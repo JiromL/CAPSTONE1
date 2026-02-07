@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.Python
+env/
+venv/
+ENV/
+
+# Frontend
+.next/
+out/
+build/
+dist/
+.env.local
+.env.*.local
+
+# Backend
+*.egg-info/
+.pytest_cache/
+.coverage
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+
+# IDE
+*.vscode
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

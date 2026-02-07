@@ -1,0 +1,23 @@
+"""
+Blueprints package initialization
+"""
+
+from .auth import auth_bp
+from .assessments import assessments_bp
+from .intake import intake_bp
+from .appointments import appointments_bp
+from .documentation import documentation_bp
+from .counseling import counseling_bp
+from .high_risk import high_risk_bp
+from .referrals import referrals_bp
+
+__all__ = [
+    'auth_bp',
+    'assessments_bp',
+    'intake_bp',
+    'appointments_bp',
+    'documentation_bp',
+    'counseling_bp',
+    'high_risk_bp',
+    'referrals_bp',
+]

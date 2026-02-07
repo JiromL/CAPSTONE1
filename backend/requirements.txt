@@ -1,0 +1,24 @@
+# Web Framework
+flask==3.1.2
+flask-cors==4.0.0
+
+# API & Authentication
+requests==2.31.0
+flask-jwt-extended==4.5.3
+werkzeug==3.1.5
+
+# Environment
+python-dotenv==1.0.0
+
+# Database - MongoDB
+pymongo==4.15.3
+dnspython==2.4.2
+
+# Chatbot/AI
+openai==1.3.0
+
+# Utilities
+pydantic==2.10.1
+pytest==7.4.3
+python-dateutil==2.8.2
+pytz==2023.3

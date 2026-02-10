@@ -94,7 +94,11 @@ export function DashboardLayout({
           <div className="flex items-center gap-6">
             <div className="text-right">
               <p className="text-gray-900 font-medium">{user?.name || user?.email}</p>
-              <p className="text-gray-600 text-sm">ID: {user?.id || '12173797'}</p>
+              <p className="text-gray-600 text-sm">
+                {user?.role === 'STUDENT' 
+                  ? `ID: ${user?.id || 'N/A'}` 
+                  : user?.role?.replace('_', ' ') || 'User'}
+              </p>
             </div>
             <div className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
               {user?.name?.charAt(0).toUpperCase() || 'S'}
@@ -110,3 +114,4 @@ export function DashboardLayout({
     </div>
   );
 }
+

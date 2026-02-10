@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Users, HelpCircle, CheckCircle, BarChart3, LogOut } from 'lucide-react';
+import { Users, HelpCircle, CheckCircle, BarChart3, MessageSquare, Settings, FileText } from 'lucide-react';
+import { DashboardLayout } from './DashboardLayout';
 
 interface DashboardProps {
   user: any;
@@ -7,163 +8,105 @@ interface DashboardProps {
 }
 
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
+  const menuItems = [
+    { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Support Tickets', href: '/staff/tickets', icon: <HelpCircle size={20} />, badge: 12 },
+    { label: 'Client Inquiries', href: '/staff/inquiries', icon: <MessageSquare size={20} />, badge: 4 },
+    { label: 'Client Management', href: '/staff/clients', icon: <Users size={20} /> },
+    { label: 'Documents', href: '/staff/documents', icon: <FileText size={20} /> },
+    { label: 'Communications', href: '/staff/communications', icon: <CheckCircle size={20} />, badge: 3 },
+    { label: 'Settings', href: '/staff/settings', icon: <Settings size={20} /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Support Staff Dashboard</h1>
-            <p className="text-gray-600 mt-1">Administrative & Support Services</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-gray-900 font-medium">{user?.email}</p>
-              <p className="text-gray-600 text-sm">Support Staff</p>
-            </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              <LogOut size={18} /> Logout
-            </button>
-          </div>
-        </div>
-      </header>
+    <DashboardLayout
+      user={user}
+      onLogout={onLogout}
+      menuItems={menuItems}
+      title="Support Staff Dashboard"
+      subtitle="Administrative & Support Services"
+    >
+      {/* Quick Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <SupportCard label="Clients Supported" value="156" color="bg-blue-50 text-blue-600" />
+        <SupportCard label="Support Tickets" value="12" color="bg-orange-50 text-orange-600" />
+        <SupportCard label="Tasks Completed" value="28" color="bg-green-50 text-green-600" />
+        <SupportCard label="Pending Tasks" value="5" color="bg-purple-50 text-purple-600" />
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Quick Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <SupportCard
-            label="Clients Supported"
-            value="156"
-            icon={Users}
-            color="bg-blue-50 text-blue-600"
-          />
-          <SupportCard
-            label="Support Tickets"
-            value="12"
-            icon={HelpCircle}
-            color="bg-orange-50 text-orange-600"
-          />
-          <SupportCard
-            label="Tasks Completed"
-            value="28"
-            icon={CheckCircle}
-            color="bg-green-50 text-green-600"
-          />
-          <SupportCard
-            label="Pending Tasks"
-            value="5"
-            icon={BarChart3}
-            color="bg-purple-50 text-purple-600"
-          />
-        </div>
-
-        {/* Support Functions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Client Support */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Client Support</h2>
-            <div className="space-y-2">
-              <SupportLink href="/staff/clients/inquiries" label="Client Inquiries" badge="4" />
-              <SupportLink href="/staff/clients/info" label="Client Information" badge="" />
-              <SupportLink href="/staff/clients/referrals" label="Referral Requests" badge="2" />
-              <SupportLink href="/staff/clients/feedback" label="Client Feedback" badge="" />
-            </div>
-          </div>
-
-          {/* Administrative */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Administrative</h2>
-            <div className="space-y-2">
-              <SupportLink href="/staff/admin/documents" label="Document Management" badge="" />
-              <SupportLink href="/staff/admin/scheduling" label="Scheduling Support" badge="" />
-              <SupportLink href="/staff/admin/communications" label="Communications" badge="3" />
-              <SupportLink href="/staff/admin/records" label="Records Management" badge="" />
-            </div>
-          </div>
-
-          {/* Resources & Help */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Resources & Help</h2>
-            <div className="space-y-2">
-              <SupportLink href="/staff/help/faq" label="FAQ Management" badge="" />
-              <SupportLink href="/staff/help/knowledge-base" label="Knowledge Base" badge="" />
-              <SupportLink href="/staff/help/training" label="Training Materials" badge="" />
-              <SupportLink href="/staff/help/contact" label="Contact Directory" badge="" />
-            </div>
-          </div>
-
-          {/* Reports & Data */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Reports & Data</h2>
-            <div className="space-y-2">
-              <SupportLink href="/staff/reports/activity" label="Activity Reports" badge="" />
-              <SupportLink href="/staff/reports/statistics" label="Statistics" badge="" />
-              <SupportLink href="/staff/reports/logs" label="System Logs" badge="" />
-              <SupportLink href="/staff/reports/export" label="Export Data" badge="" />
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Tickets */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Support Tickets</h2>
-          <div className="space-y-3">
-            <TicketItem
-              id="TK-2340"
-              title="Can't reset password"
-              client="Student"
-              priority="high"
-              status="open"
-            />
-            <TicketItem
-              id="TK-2339"
-              title="Schedule appointment issue"
-              client="Student"
-              priority="medium"
-              status="in-progress"
-            />
-            <TicketItem
-              id="TK-2338"
-              title="Document upload problem"
-              client="Counselor"
-              priority="low"
-              status="in-progress"
-            />
-          </div>
-        </div>
-
-        {/* Today's Tasks */}
+      {/* Support Functions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Today's Tasks</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Client Support</h2>
           <div className="space-y-2">
-            <TaskCheckbox label="Update client contact information" completed={false} />
-            <TaskCheckbox label="Process scheduling requests" completed={true} />
-            <TaskCheckbox label="Send appointment reminders" completed={false} />
-            <TaskCheckbox label="Archive completed referrals" completed={false} />
-            <TaskCheckbox label="Respond to support tickets" completed={true} />
+            <SupportLink href="/staff/clients/inquiries" label="Client Inquiries" badge="4" />
+            <SupportLink href="/staff/clients/info" label="Client Information" />
+            <SupportLink href="/staff/clients/referrals" label="Referral Requests" badge="2" />
+            <SupportLink href="/staff/clients/feedback" label="Client Feedback" />
           </div>
         </div>
-      </main>
-    </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Administrative</h2>
+          <div className="space-y-2">
+            <SupportLink href="/staff/admin/documents" label="Document Management" />
+            <SupportLink href="/staff/admin/scheduling" label="Scheduling Support" />
+            <SupportLink href="/staff/admin/communications" label="Communications" badge="3" />
+            <SupportLink href="/staff/admin/records" label="Records Management" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Resources & Help</h2>
+          <div className="space-y-2">
+            <SupportLink href="/staff/help/faq" label="FAQ Management" />
+            <SupportLink href="/staff/help/knowledge-base" label="Knowledge Base" />
+            <SupportLink href="/staff/help/training" label="Training Materials" />
+            <SupportLink href="/staff/help/contact" label="Contact Directory" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Reports & Data</h2>
+          <div className="space-y-2">
+            <SupportLink href="/staff/reports/activity" label="Activity Reports" />
+            <SupportLink href="/staff/reports/statistics" label="Statistics" />
+            <SupportLink href="/staff/reports/logs" label="System Logs" />
+            <SupportLink href="/staff/reports/export" label="Export Data" />
+          </div>
+        </div>
+      </div>
+
+      {/* Pending Tickets */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Support Tickets</h2>
+        <div className="space-y-3">
+          <TicketItem id="TK-2340" title="Can't reset password" client="Student" priority="high" status="open" />
+          <TicketItem id="TK-2339" title="Schedule appointment issue" client="Student" priority="medium" status="in-progress" />
+          <TicketItem id="TK-2338" title="Document upload problem" client="Counselor" priority="low" status="in-progress" />
+        </div>
+      </div>
+
+      {/* Today's Tasks */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Today's Tasks</h2>
+        <div className="space-y-2">
+          <TaskCheckbox label="Update client contact information" completed={false} />
+          <TaskCheckbox label="Process scheduling requests" completed={true} />
+          <TaskCheckbox label="Send appointment reminders" completed={false} />
+          <TaskCheckbox label="Archive completed referrals" completed={false} />
+          <TaskCheckbox label="Respond to support tickets" completed={true} />
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }
 
-function SupportCard({ label, value, icon: Icon, color }: any) {
+function SupportCard({ label, value, color }: any) {
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{label}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-        </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon size={24} />
-        </div>
-      </div>
+    <div className="bg-white rounded-lg shadow p-4">
+      <p className="text-gray-600 text-sm font-medium">{label}</p>
+      <p className={`text-3xl font-bold mt-2 ${color}`}>{value}</p>
     </div>
   );
 }

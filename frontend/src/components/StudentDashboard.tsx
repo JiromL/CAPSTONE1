@@ -9,13 +9,12 @@ interface DashboardProps {
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Student Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
-    { label: 'Schedule Appointment', href: '/reservations', icon: <Calendar size={20} /> },
-    { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
+    { label: 'Appointments', href: '/appointments', icon: <Calendar size={20} />, badge: 1 },
     { label: 'Assessments', href: '/assessments', icon: <CheckCircle size={20} /> },
-    { label: 'My Appointments', href: '/my-appointments', icon: <Clock size={20} />, badge: 1 },
+    { label: 'Referrals', href: '/referrals', icon: <MessageCircle size={20} /> },
+    { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
     { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
-    { label: 'Messages', href: '/messages', icon: <MessageCircle size={20} />, badge: 2 },
     { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
   ];
 

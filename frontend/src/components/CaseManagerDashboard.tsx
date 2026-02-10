@@ -10,12 +10,12 @@ interface DashboardProps {
 export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <Users size={20} /> },
-    { label: 'My Caseload', href: '/casemanager/cases', icon: <FileText size={20} />, badge: 32 },
-    { label: 'Follow-ups Due', href: '/casemanager/follow-ups', icon: <AlertCircle size={20} />, badge: 7 },
-    { label: 'Appointments', href: '/casemanager/appointments', icon: <Calendar size={20} />, badge: 12 },
-    { label: 'Session Notes', href: '/casemanager/notes', icon: <TrendingUp size={20} /> },
-    { label: 'Client Progress', href: '/casemanager/progress', icon: <CheckCircle size={20} /> },
-    { label: 'Settings', href: '/casemanager/settings', icon: <Settings size={20} /> },
+    { label: 'Cases', href: '/cases', icon: <FileText size={20} />, badge: 32 },
+    { label: 'Appointments', href: '/appointments', icon: <Calendar size={20} />, badge: 12 },
+    { label: 'High-Risk', href: '/high-risk', icon: <AlertCircle size={20} />, badge: 3 },
+    { label: 'Documentation', href: '/documentation', icon: <TrendingUp size={20} /> },
+    { label: 'Referrals', href: '/referrals', icon: <CheckCircle size={20} /> },
+    { label: 'Profile', href: '/profile', icon: <Settings size={20} /> },
   ];
 
   return (

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Users, Clock, CheckCircle, AlertTriangle, LogOut } from 'lucide-react';
+import { Users, Clock, CheckCircle, AlertTriangle, FileText, MessageCircle, TrendingUp } from 'lucide-react';
+import { DashboardLayout } from './DashboardLayout';
 
 interface DashboardProps {
   user: any;
@@ -7,170 +8,100 @@ interface DashboardProps {
 }
 
 export function CounselorDashboard({ user, onLogout }: DashboardProps) {
+  const menuItems = [
+    { label: 'Dashboard', href: '/dashboard', icon: <TrendingUp size={20} /> },
+    { label: 'Today\'s Sessions', href: '/counselor/sessions/today', icon: <Clock size={20} />, badge: 4 },
+    { label: 'My Clients', href: '/counselor/clients', icon: <Users size={20} /> },
+    { label: 'Session Notes', href: '/counselor/notes/pending', icon: <FileText size={20} />, badge: 2 },
+    { label: 'High-Risk Clients', href: '/counselor/high-risk', icon: <AlertTriangle size={20} />, badge: 1 },
+    { label: 'Messages', href: '/counselor/messages', icon: <MessageCircle size={20} /> },
+    { label: 'My Schedule', href: '/counselor/schedule', icon: <Clock size={20} /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Counselor Dashboard</h1>
-            <p className="text-gray-600 mt-1">Session Management & Client Care</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-gray-900 font-medium">{user?.email}</p>
-              <p className="text-gray-600 text-sm">Counselor</p>
-            </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              <LogOut size={18} /> Logout
-            </button>
-          </div>
-        </div>
-      </header>
+    <DashboardLayout
+      user={user}
+      onLogout={onLogout}
+      menuItems={menuItems}
+      title="Counselor Dashboard"
+      subtitle="Session Management & Client Care"
+    >
+      {/* Daily Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Client Load" value="18" color="bg-blue-50 text-blue-600" />
+        <StatCard label="Sessions Today" value="4" color="bg-purple-50 text-purple-600" />
+        <StatCard label="Pending Notes" value="2" color="bg-orange-50 text-orange-600" />
+        <StatCard label="Completed (Week)" value="18" color="bg-green-50 text-green-600" />
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Daily Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label="Client Load"
-            value="18"
-            icon={Users}
-            color="bg-blue-50 text-blue-600"
-          />
-          <StatCard
-            label="Sessions Today"
-            value="4"
-            icon={Clock}
-            color="bg-purple-50 text-purple-600"
-          />
-          <StatCard
-            label="Session Notes Due"
-            value="2"
-            icon={AlertTriangle}
-            color="bg-orange-50 text-orange-600"
-          />
-          <StatCard
-            label="Completed (Week)"
-            value="18"
-            icon={CheckCircle}
-            color="bg-green-50 text-green-600"
-          />
-        </div>
-
-        {/* Main Work Areas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Sessions */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Sessions</h2>
-            <div className="space-y-2">
-              <WorkLink href="/counselor/sessions/today" label="Today's Sessions" badge="4" />
-              <WorkLink href="/counselor/sessions/upcoming" label="Upcoming Sessions" badge="12" />
-              <WorkLink href="/counselor/clients" label="My Clients" badge="18" />
-              <WorkLink href="/counselor/schedule" label="My Schedule" badge="" />
-            </div>
-          </div>
-
-          {/* Documentation */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Documentation</h2>
-            <div className="space-y-2">
-              <WorkLink href="/counselor/notes/pending" label="Pending Session Notes" badge="2" />
-              <WorkLink href="/counselor/notes" label="All Session Notes" badge="" />
-              <WorkLink href="/counselor/treatment-plans" label="Treatment Plans" badge="" />
-              <WorkLink href="/counselor/case-files" label="Case Files" badge="" />
-            </div>
-          </div>
-
-          {/* Client Management */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Client Management</h2>
-            <div className="space-y-2">
-              <WorkLink href="/counselor/intake" label="Intake Forms" badge="" />
-              <WorkLink href="/counselor/progress" label="Progress Tracking" badge="" />
-              <WorkLink href="/counselor/referrals" label="Referrals" badge="" />
-              <WorkLink href="/counselor/follow-ups" label="Follow-ups" badge="" />
-            </div>
-          </div>
-
-          {/* Risk & Support */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Risk & Support</h2>
-            <div className="space-y-2">
-              <WorkLink href="/counselor/high-risk" label="High-Risk Clients" badge="1" />
-              <WorkLink href="/counselor/safety-plans" label="Safety Plans" badge="" />
-              <WorkLink href="/counselor/supervision" label="Supervision Notes" badge="" />
-              <WorkLink href="/counselor/consultation" label="Request Consultation" badge="" />
-            </div>
-          </div>
-        </div>
-
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Session Queue */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Today's Session Queue</h2>
-          <div className="space-y-3">
-            <SessionQueueItem time="10:00 AM" client="Sarah Johnson" room="Rm 201" status="next" />
-            <SessionQueueItem time="11:00 AM" client="Marcus Lee" room="Rm 203" status="upcoming" />
-            <SessionQueueItem time="1:00 PM" client="Emma Davis" room="Rm 205" status="upcoming" />
-            <SessionQueueItem time="2:30 PM" client="Alex Rodriguez" room="Rm 201" status="upcoming" />
-          </div>
-        </div>
-
-        {/* Pending Actions */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Pending Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ActionCard
-              title="Session Notes"
-              description="Complete 2 pending session notes"
-              priority="high"
-              dueTime="By 5:00 PM"
-            />
-            <ActionCard
-              title="Treatment Plan Review"
-              description="Update treatment plan for Client #567"
-              priority="medium"
-              dueTime="By Tomorrow"
-            />
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Today's Session Queue</h2>
+          <div className="space-y-3">
+            <SessionItem time="10:00 AM" client="Sarah Johnson" room="Rm 201" status="next" />
+            <SessionItem time="11:00 AM" client="Marcus Lee" room="Rm 203" status="upcoming" />
+            <SessionItem time="1:00 PM" client="Emma Davis" room="Rm 205" status="upcoming" />
+            <SessionItem time="2:30 PM" client="Alex Rodriguez" room="Rm 201" status="upcoming" />
           </div>
         </div>
-      </main>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="space-y-2">
+            <QuickLink href="/counselor/notes/pending" label="Complete Session Notes" badge="2" />
+            <QuickLink href="/counselor/treatment-plans" label="Update Treatment Plans" />
+            <QuickLink href="/counselor/high-risk" label="High-Risk Review" badge="1" />
+            <QuickLink href="/counselor/consultation" label="Request Supervision" />
+          </div>
+        </div>
+
+        {/* Pending Documentation */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Pending Documentation</h2>
+          <div className="space-y-2">
+            <DocItem title="Session notes for Client #2341" dueTime="By EOD Today" />
+            <DocItem title="Progress update for Client #2342" dueTime="By Tomorrow" />
+            <DocItem title="Risk assessment review" dueTime="By Friday" />
+          </div>
+        </div>
+
+        {/* Client Alerts */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Client Alerts</h2>
+          <div className="space-y-2">
+            <AlertItem severity="high" title="High-Risk Client Follow-up Needed" client="Client #2567" />
+            <AlertItem severity="medium" title="Missed Appointment - Reschedule" client="Client #2341" />
+          </div>
+        </div>
+      </div>
+
+      {/* Performance Metrics */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Weekly Performance</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <MetricBox label="Sessions Completed" value="18" trend="+5%" />
+          <MetricBox label="Client Satisfaction" value="4.8/5" trend="+0.2" />
+          <MetricBox label="Documentation Rate" value="95%" trend="+3%" />
+          <MetricBox label="No-shows Avoided" value="2" trend="↓" />
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+function StatCard({ label, value, color }: any) {
+  return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <p className="text-gray-600 text-sm font-medium">{label}</p>
+      <p className={`text-3xl font-bold mt-2 ${color}`}>{value}</p>
     </div>
   );
 }
 
-function StatCard({ label, value, icon: Icon, color }: any) {
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{label}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-        </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon size={24} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WorkLink({ href, label, badge }: any) {
-  return (
-    <Link href={href}>
-      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-        <span className="text-gray-900 font-medium text-sm">{label}</span>
-        {badge && <span className="bg-orange-600 text-white text-xs px-2 py-1 rounded-full">{badge}</span>}
-        {!badge && <span className="text-gray-400">→</span>}
-      </div>
-    </Link>
-  );
-}
-
-function SessionQueueItem({ time, client, room, status }: any) {
+function SessionItem({ time, client, room, status }: any) {
   const statusStyles = status === "next"
     ? "border-l-4 border-green-500 bg-green-50"
     : "border-l-4 border-gray-300 bg-gray-50";
@@ -188,13 +119,45 @@ function SessionQueueItem({ time, client, room, status }: any) {
   );
 }
 
-function ActionCard({ title, description, priority, dueTime }: any) {
-  const priorityColor = priority === "high" ? "bg-red-50 border-red-200" : "bg-yellow-50 border-yellow-200";
+function QuickLink({ href, label, badge }: any) {
   return (
-    <div className={`${priorityColor} border rounded-lg p-4`}>
-      <h3 className="font-bold text-gray-900">{title}</h3>
-      <p className="text-gray-600 text-sm mt-1">{description}</p>
-      <p className="text-gray-600 text-xs mt-2">{dueTime}</p>
+    <Link href={href}>
+      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+        <span className="text-gray-900 font-medium text-sm">{label}</span>
+        {badge && <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">{badge}</span>}
+        {!badge && <span className="text-gray-400">→</span>}
+      </div>
+    </Link>
+  );
+}
+
+function DocItem({ title, dueTime }: any) {
+  return (
+    <div className="border-l-4 border-orange-400 bg-orange-50 p-3 rounded-lg">
+      <p className="text-gray-900 font-medium text-sm">{title}</p>
+      <p className="text-gray-600 text-xs mt-1">{dueTime}</p>
+    </div>
+  );
+}
+
+function AlertItem({ severity, title, client }: any) {
+  const severityColor = severity === "high" ? "bg-red-50 border-red-300" : "bg-yellow-50 border-yellow-300";
+  return (
+    <div className={`border-l-4 ${severityColor} p-3 rounded-lg`}>
+      <p className="text-gray-900 font-medium text-sm">{title}</p>
+      <p className="text-gray-600 text-xs mt-1">{client}</p>
+    </div>
+  );
+}
+
+function MetricBox({ label, value, trend }: any) {
+  return (
+    <div className="border border-gray-200 rounded-lg p-4">
+      <p className="text-gray-600 text-sm font-medium">{label}</p>
+      <div className="flex items-end justify-between mt-2">
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p className="text-green-600 text-sm font-medium">{trend}</p>
+      </div>
     </div>
   );
 }

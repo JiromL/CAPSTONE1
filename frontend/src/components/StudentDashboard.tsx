@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Calendar, FileText, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
+import { Calendar, FileText, CheckCircle, AlertCircle, BookOpen, Clock, Heart, MessageCircle } from 'lucide-react';
+import { DashboardLayout } from './DashboardLayout';
 
 interface DashboardProps {
   user: any;
@@ -7,209 +8,139 @@ interface DashboardProps {
 }
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
-            <p className="text-gray-600 mt-1">Campus Counseling Services</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-gray-900 font-medium">{user?.email}</p>
-              <p className="text-gray-600 text-sm">Student</p>
-            </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              <LogOut size={18} /> Logout
-            </button>
-          </div>
-        </div>
-      </header>
+  const menuItems = [
+    { label: 'Student Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
+    { label: 'Schedule Appointment', href: '/reservations', icon: <Calendar size={20} /> },
+    { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
+    { label: 'Assessments', href: '/assessments', icon: <CheckCircle size={20} /> },
+    { label: 'My Appointments', href: '/my-appointments', icon: <Clock size={20} />, badge: 1 },
+    { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
+    { label: 'Messages', href: '/messages', icon: <MessageCircle size={20} />, badge: 2 },
+    { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+  ];
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 text-white mb-8">
-          <h2 className="text-2xl font-bold mb-2">Welcome, {user?.name || 'Student'}!</h2>
-          <p className="text-blue-100">We're here to support your mental health and wellbeing. Start by scheduling an appointment or completing your intake form.</p>
+  return (
+    <DashboardLayout
+      user={user}
+      onLogout={onLogout}
+      menuItems={menuItems}
+      title="Student Dashboard"
+      subtitle="Campus Counseling Services"
+    >
+      {/* Welcome Card */}
+      <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white mb-6">
+        <h2 className="text-2xl font-bold mb-2">
+          Welcome, {user?.name || 'Student'}!
+        </h2>
+        <p className="text-green-100">
+          We're here to support your mental health and wellbeing.
+        </p>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StatCard label="Upcoming Appointments" value="1" color="bg-blue-50 text-blue-600" />
+        <StatCard label="Wellness Score" value="Good" color="bg-green-50 text-green-600" />
+        <StatCard label="Last Session" value="Feb 25" color="bg-purple-50 text-purple-600" />
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Next Appointment */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Next Appointment</h2>
+          <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+            <p className="text-green-900 font-bold">March 15, 2026 at 2:00 PM</p>
+            <p className="text-green-800 text-sm mt-1">Counselor: Dr. Sarah Lee</p>
+            <p className="text-green-700 text-sm mt-2">Location: Room 205-B</p>
+          </div>
+          <Link href="/reservations">
+            <button className="mt-4 w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+              Schedule Another Appointment
+            </button>
+          </Link>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <ActionCard
-            icon={Calendar}
-            title="Book Appointment"
-            description="Schedule a counseling session"
-            href="/reservations"
-            color="bg-blue-50 text-blue-600"
-          />
-          <ActionCard
-            icon={FileText}
-            title="My Information"
-            description="Complete intake form"
-            href="/intake"
-            color="bg-green-50 text-green-600"
-          />
-          <ActionCard
-            icon={CheckCircle}
-            title="Assessments"
-            description="Take a wellness assessment"
-            href="/assessments"
-            color="bg-purple-50 text-purple-600"
-          />
-        </div>
-
-        {/* My Appointments & Tasks */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Appointments */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">My Appointments</h2>
-              <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full">1 Scheduled</span>
-            </div>
-            <div className="space-y-3">
-              <AppointmentItem
-                date="March 15, 2026"
-                time="2:00 PM"
-                counselor="Dr. Sarah Lee"
-                status="confirmed"
-              />
-              <Link href="/reservations">
-                <button className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                  Schedule Appointment
-                </button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Wellness Check */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Wellness Check</h2>
-            <div className="space-y-3">
-              <WellnessItem label="Overall Well-being" value="Good" color="text-green-600" />
-              <WellnessItem label="Last Assessment" value="Feb 25, 2026" color="text-blue-600" />
-              <WellnessItem label="Counselor" value="Dr. Sarah Lee" color="text-purple-600" />
-            </div>
-          </div>
-
-          {/* My Resources */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">My Resources</h2>
-            <div className="space-y-2">
-              <StudentLink href="/resources/crisis-line" label="Crisis Support" badge="24/7" />
-              <StudentLink href="/resources/wellness-tips" label="Wellness Tips" badge="" />
-              <StudentLink href="/resources/faq" label="Frequently Asked Questions" badge="" />
-              <StudentLink href="/resources/contact" label="Contact Us" badge="" />
-            </div>
-          </div>
-
-          {/* My Profile */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">My Profile</h2>
-            <div className="space-y-2">
-              <StudentLink href="/profile/view" label="View Profile" badge="" />
-              <StudentLink href="/profile/edit" label="Edit Information" badge="" />
-              <StudentLink href="/profile/preferences" label="Preferences" badge="" />
-              <StudentLink href="/profile/history" label="Medical History" badge="" />
-            </div>
-          </div>
-        </div>
-
-        {/* Important Information */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <AlertCircle className="text-blue-600 flex-shrink-0 mt-1" size={24} />
-            <div>
-              <h3 className="font-bold text-blue-900 mb-2">Emergency Support</h3>
-              <p className="text-blue-800 text-sm mb-3">
-                If you're experiencing a crisis or emergency, please contact campus security at ext. 911 or call the National Crisis Hotline at 988.
-              </p>
-              <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                Learn more about crisis support →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Progress Tracker */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Progress</h2>
-          <div className="space-y-4">
-            <ProgressBar label="Intake Form Completion" percentage={100} />
-            <ProgressBar label="Assessment Completion" percentage={50} />
-            <ProgressBar label="Treatment Goals" percentage={75} />
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="space-y-2">
+            <QuickActionLink href="/intake" label="Complete Intake Form" />
+            <QuickActionLink href="/assessments" label="Take Wellness Assessment" />
+            <QuickActionLink href="/resources" label="Access Resources" />
+            <QuickActionLink href="/messages" label="Contact Counselor" />
           </div>
         </div>
-      </main>
-    </div>
-  );
-}
 
-function ActionCard({ icon: Icon, title, description, href, color }: any) {
-  return (
-    <Link href={href}>
-      <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-        <div className={`p-3 rounded-lg ${color} mb-4 w-fit`}>
-          <Icon size={24} />
+        {/* Wellness Tips */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">💡 Wellness Tip</h2>
+          <p className="text-gray-700 text-sm leading-relaxed">
+            Take regular breaks during study sessions. Studies show that 5-minute breaks every 25 minutes can improve focus and reduce stress.
+          </p>
+          <Link href="/resources/wellness-tips">
+            <p className="text-green-600 text-sm mt-3 font-medium cursor-pointer hover:underline">
+              View More Tips →
+            </p>
+          </Link>
         </div>
-        <h3 className="font-bold text-gray-900 mb-1">{title}</h3>
-        <p className="text-gray-600 text-sm">{description}</p>
-      </div>
-    </Link>
-  );
-}
 
-function AppointmentItem({ date, time, counselor, status }: any) {
-  const statusColor = status === "confirmed" ? "text-green-600" : "text-yellow-600";
-  return (
-    <div className="border border-gray-200 rounded-lg p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-bold text-gray-900">{date} at {time}</p>
-          <p className="text-gray-600 text-sm">Counselor: {counselor}</p>
+        {/* Crisis Support */}
+        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6">
+          <h2 className="text-lg font-bold text-red-900 mb-2">🚨 In Crisis?</h2>
+          <p className="text-red-800 text-sm mb-4">
+            If you're in immediate danger, please contact campus security or the National Crisis Hotline.
+          </p>
+          <div className="space-y-2">
+            <p className="text-red-900 font-bold text-sm">Campus Security: Ext. 911</p>
+            <p className="text-red-900 font-bold text-sm">Crisis Hotline: 988</p>
+          </div>
         </div>
-        <span className={`text-sm font-medium ${statusColor}`}>{status.toUpperCase()}</span>
       </div>
-    </div>
+
+      {/* Progress Section */}
+      <div className="bg-white rounded-lg shadow p-6 mt-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Your Progress</h2>
+        <div className="space-y-3">
+          <ProgressItem label="Intake Form Completion" percentage={100} />
+          <ProgressItem label="Assessment Completion" percentage={50} />
+          <ProgressItem label="Treatment Goals" percentage={75} />
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }
 
-function WellnessItem({ label, value, color }: any) {
+function StatCard({ label, value, color }: any) {
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-      <span className="text-gray-600 text-sm">{label}</span>
-      <span className={`font-bold ${color}`}>{value}</span>
+    <div className="bg-white rounded-lg shadow p-4">
+      <p className="text-gray-600 text-sm font-medium">{label}</p>
+      <p className={`text-3xl font-bold mt-2 ${color}`}>{value}</p>
     </div>
   );
 }
 
-function StudentLink({ href, label, badge }: any) {
+function QuickActionLink({ href, label }: any) {
   return (
     <Link href={href}>
       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
         <span className="text-gray-900 font-medium text-sm">{label}</span>
-        {badge && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">{badge}</span>}
-        {!badge && <span className="text-gray-400">→</span>}
+        <span className="text-gray-400">→</span>
       </div>
     </Link>
   );
 }
 
-function ProgressBar({ label, percentage }: any) {
+function ProgressItem({ label, percentage }: any) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="font-medium text-gray-900">{label}</p>
+        <p className="font-medium text-gray-900 text-sm">{label}</p>
         <p className="text-sm text-gray-600">{percentage}%</p>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div
-          className="bg-blue-600 h-2 rounded-full transition-all"
+          className="bg-green-600 h-2 rounded-full transition-all"
           style={{ width: `${percentage}%` }}
         />
       </div>

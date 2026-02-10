@@ -22,7 +22,8 @@ from blueprints import (
     documentation_bp,
     counseling_bp,
     high_risk_bp,
-    referrals_bp
+    referrals_bp,
+    reservations_bp,
 )
 
 load_dotenv()
@@ -51,6 +52,7 @@ def create_app(config_name=None):
     app.register_blueprint(counseling_bp)
     app.register_blueprint(high_risk_bp)
     app.register_blueprint(referrals_bp)
+    app.register_blueprint(reservations_bp)
     
     # Health check route
     @app.route('/api/health', methods=['GET'])

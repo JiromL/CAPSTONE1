@@ -128,3 +128,108 @@ def get_case_intake(case_id):
     intake['updated_at'] = intake['updated_at'].isoformat()
     
     return jsonify(intake), 200
+
+
+@intake_bp.route('/submit', methods=['POST'])
+@jwt_required()
+def student_submit_intake():
+    """Student direct intake submission - creates case and intake if needed"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    try:
+        user_obj_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_obj_id = user_id
+    
+    # Check if user has an existing case
+    existing_case = db.db.cases.find_one({"student_id": user_obj_id})
+    
+    if existing_case:
+        case_id = existing_case['_id']
+    else:
+        # Create new case for student
+        case_doc = {
+            "_id": ObjectId(),
+            "student_id": user_obj_id,
+            "assigned_counselor_id": None,
+            "case_status": "open",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        case_result = db.db.cases.insert_one(case_doc)
+        case_id = case_result.inserted_id
+    
+    # Check if intake exists for this case
+    existing_intake = db.db.intakes.find_one({"case_id": case_id})
+    
+    if existing_intake:
+        intake_id = existing_intake['_id']
+    else:
+        # Create intake
+        intake_doc = {
+            "_id": ObjectId(),
+            "case_id": case_id,
+            "status": IntakeStatus.IN_PROGRESS.value,
+            "initiated_by": user_obj_id,
+            "responses": {},
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        intake_result = db.db.intakes.insert_one(intake_doc)
+        intake_id = intake_result.inserted_id
+    
+    # Store intake responses
+    phq9_score = sum(data.get('phq9_responses', []))
+    gad7_score = sum(data.get('gad7_responses', []))
+    
+    intake_responses = {
+        "email": data.get('email'),
+        "presenting_concerns": data.get('presenting_concerns'),
+        "medical_conditions": data.get('medical_conditions'),
+        "current_medications": data.get('current_medications'),
+        "substance_use": data.get('substance_use'),
+        "family_mental_health_history": data.get('family_mental_health_history'),
+        "phq9_responses": data.get('phq9_responses', []),
+        "phq9_score": phq9_score,
+        "gad7_responses": data.get('gad7_responses', []),
+        "gad7_score": gad7_score,
+        "sleep_patterns": data.get('sleep_patterns'),
+        "support_systems": data.get('support_systems'),
+        "previous_counseling": data.get('previous_counseling', False),
+        "notes": data.get('notes'),
+    }
+    
+    # Update intake with responses
+    db.db.intakes.update_one(
+        {"_id": intake_id},
+        {
+            "$set": {
+                "responses": intake_responses,
+                "status": IntakeStatus.COMPLETED.value,
+                "student_submitted_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    # Create assessment records for PHQ-9 and GAD-7
+    assessment_doc = {
+        "_id": ObjectId(),
+        "case_id": case_id,
+        "assessment_type": "phq9_gad7",
+        "phq9_score": phq9_score,
+        "gad7_score": gad7_score,
+        "created_at": datetime.utcnow()
+    }
+    db.db.assessments.insert_one(assessment_doc)
+    
+    audit_log(db.db, 'intake', 'submit', entity_id=str(intake_id))
+    
+    return jsonify({
+        'message': 'Intake form submitted successfully',
+        'intake_id': str(intake_id),
+        'case_id': str(case_id),
+        'phq9_score': phq9_score,
+        'gad7_score': gad7_score
+    }), 201

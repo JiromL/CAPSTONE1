@@ -1,0 +1,148 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Plus, ArrowLeft, CheckCircle, Clock, AlertCircle, FileText } from 'lucide-react';
+import Link from 'next/link';
+
+export default function ReferralsPage() {
+  const [referrals] = useState([
+    {
+      id: 1,
+      service: 'Psychiatric Evaluation',
+      provider: 'Dr. Elizabeth Cooper',
+      date: '2024-01-20',
+      status: 'completed',
+      notes: 'Initial psychiatric evaluation completed, medication plan discussed',
+    },
+    {
+      id: 2,
+      service: 'Group Therapy',
+      provider: 'Community Mental Health Center',
+      date: '2024-01-15',
+      status: 'pending',
+      notes: 'Waiting for intake appointment',
+    },
+    {
+      id: 3,
+      service: 'Academic Support',
+      provider: 'Disability Services Office',
+      date: '2024-01-10',
+      status: 'completed',
+      notes: 'Accommodations approved for the semester',
+    },
+  ]);
+
+  const referralServices = [
+    'Psychiatric Evaluation',
+    'Group Therapy',
+    'Academic Support',
+    'Crisis Intervention',
+    'Substance Abuse Treatment',
+    'Disability Services',
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-4 mb-3">
+            <Link href="/dashboard">
+              <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+                <ArrowLeft size={20} /> Back
+              </button>
+            </Link>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Referrals</h1>
+          <p className="text-gray-600 mt-1">View and manage your service referrals</p>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Request New Referral */}
+        <div className="bg-blue-50 rounded-lg p-8 mb-8 border border-blue-200">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Request a New Referral</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {referralServices.map((service) => (
+              <button
+                key={service}
+                className="bg-white hover:bg-blue-100 text-gray-900 py-2 px-4 rounded-lg font-medium transition text-sm"
+              >
+                + {service}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Active Referrals */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Referrals</h2>
+          <div className="space-y-4">
+            {referrals.map((referral) => (
+              <ReferralCard key={referral.id} referral={referral} />
+            ))}
+          </div>
+        </section>
+
+        {/* Referral Information */}
+        <section className="bg-white rounded-lg shadow p-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">About Referrals</h3>
+          <div className="space-y-4 text-gray-700">
+            <p>
+              Our counselors may recommend referrals to specialized services outside our center when additional support would be beneficial.
+            </p>
+            <p>
+              These services may include:
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Mental health specialists and psychiatrists</li>
+              <li>Group therapy programs</li>
+              <li>Crisis intervention services</li>
+              <li>Substance abuse treatment</li>
+              <li>Academic and disability support</li>
+              <li>Other campus and community resources</li>
+            </ul>
+            <p>
+              Once a referral is submitted, we&apos;ll help coordinate with the external provider and keep you informed of next steps.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function ReferralCard({ referral }: any) {
+  const statusIcon = referral.status === 'completed' ? <CheckCircle className="text-green-600" /> : <Clock className="text-blue-600" />;
+  const statusColor = referral.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start gap-4">
+          {statusIcon}
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">{referral.service}</h3>
+            <p className="text-gray-600 text-sm">{referral.provider}</p>
+          </div>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColor}`}>
+          {referral.status.charAt(0).toUpperCase() + referral.status.slice(1)}
+        </span>
+      </div>
+
+      <p className="text-gray-700 text-sm mb-3">📅 {new Date(referral.date).toLocaleDateString()}</p>
+      <p className="text-gray-700">{referral.notes}</p>
+
+      <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
+        <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium">
+          <FileText size={18} /> View Details
+        </button>
+        <button className="flex items-center gap-2 text-gray-600 hover:text-gray-700 font-medium">
+          📞 Contact Provider
+        </button>
+      </div>
+    </div>
+  );
+}

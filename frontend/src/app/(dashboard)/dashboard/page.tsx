@@ -7,7 +7,7 @@ import { PsychologistDashboard } from '@/components/PsychologistDashboard';
 import { CaseManagerDashboard } from '@/components/CaseManagerDashboard';
 import { CounselorDashboard } from '@/components/CounselorDashboard';
 import { StudentDashboard } from '@/components/StudentDashboard';
-import { IntakeCoordinatorDashboard } from '@/components/IntakeCoordinatorDashboard';
+import { IntakeCounselorDashboard } from '@/components/IntakeCounselorDashboard';
 import { SupportStaffDashboard } from '@/components/SupportStaffDashboard';
 import { CounselingTeamDashboard } from '@/components/CounselingTeamDashboard';
 
@@ -60,8 +60,8 @@ export default function Dashboard() {
       return <CounselingTeamDashboard user={user} onLogout={handleLogout} />;
     case 'CSP': // Counseling Support Person
       return <CounselingTeamDashboard user={user} onLogout={handleLogout} />;
-    case 'IC': // Intake Coordinator
-      return <IntakeCoordinatorDashboard user={user} onLogout={handleLogout} />;
+    case 'IC': // Intake Counselor
+      return <IntakeCounselorDashboard user={user} onLogout={handleLogout} />;
     case 'COUNSELOR':
       return <CounselorDashboard user={user} onLogout={handleLogout} />;
     case 'STAFF':

@@ -17,15 +17,37 @@ This workspace contains a full-stack reservation management system with the foll
 
 ### Frontend Development
 - Located in `frontend/` directory
-- Uses Next.js App Router
+- Uses Next.js App Router with TypeScript
 - Tailwind CSS for styling
-- Start with: `cd frontend && npm run dev`
+- Common commands:
+
+- Install deps: `cd frontend && npm ci`
+- Start dev server: `cd frontend && npm run dev` (hot-reloads)
+- Type-check only: `cd frontend && npx tsc --noEmit`
+- Build for production: `cd frontend && npm run build`
+- Preview production build: `cd frontend && npm run start`
+
+Notes:
+- If you see TypeScript errors in the editor, run the `npx tsc --noEmit` command to surface type-check issues.
+- For quick linting and formatting, use the workspace's `eslint` and `prettier` scripts if present (e.g. `npm run lint`).
 
 ### Backend Development
 - Located in `backend/` directory
 - Flask REST API
 - Chatbot service integration
 - Start with: `cd backend && python app.py`
+
+Notes:
+- Create and activate a Python virtual environment before installing dependencies:
+
+```powershell
+cd backend
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
++- If you encounter dependency issues (for example with `boto3` pins), try updating `requirements.txt` or installing problematic packages individually.
 
 ## Next Steps After Initialization
 

@@ -67,7 +67,7 @@ export default function DocumentationPage() {
                     <td className="px-6 py-4 text-sm text-gray-700">{new Date(doc.date).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{doc.size}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{doc.uploaded_by}</td>
-                    <td className="px-6 py-4 flex gap-3"><DownloadButton documentId={doc.id} /><button className="text-red-600 hover:text-red-700"><Trash2 size={18} /></button></td>
+                    <td className="px-6 py-4 flex gap-3"><DownloadButton documentId={`${doc.id}`} /><button className="text-red-600 hover:text-red-700"><Trash2 size={18} /></button></td>
                   </tr>
                 ))
               ) : (

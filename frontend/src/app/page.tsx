@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect } from 'react';
+import PageShell from '@/components/PageShell';
 
 export default function Home() {
   useEffect(() => {
@@ -13,8 +14,10 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
-    </div>
+    <PageShell title="Welcome" subtitle="Starting up...">
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    </PageShell>
   );
 }

@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
+import PageShell from '@/components/PageShell';
 
 export default function AssessmentsPage() {
   const [caseId, setCaseId] = useState('');
@@ -48,98 +49,43 @@ export default function AssessmentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <PageShell title="Triage & Assessment" subtitle="Create assessments with auto-scoring">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Triage & Assessment</h1>
-        <p className="text-gray-600 mb-8">EPIC 2: Create assessments with auto-scoring</p>
-
-        {/* Create Assessment Form */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">New Assessment</h2>
           <form onSubmit={handleCreateAssessment} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Case ID
-              </label>
-              <input
-                type="number"
-                value={caseId}
-                onChange={(e) => setCaseId(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Case ID</label>
+              <input type="number" value={caseId} onChange={(e) => setCaseId(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md" required />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assessment Type
-              </label>
-              <select
-                value={assessmentType}
-                onChange={(e) => setAssessmentType(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-2">Assessment Type</label>
+              <select value={assessmentType} onChange={(e) => setAssessmentType(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md">
                 {assessmentTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
+                  <option key={type.value} value={type.value}>{type.label}</option>
                 ))}
               </select>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create Assessment'}
-            </button>
+            <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md">{loading ? 'Creating...' : 'Create Assessment'}</button>
           </form>
         </div>
 
-        {/* Assessment List */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">Recent Assessments</h2>
           </div>
           <div className="divide-y divide-gray-200">
             {assessments.length === 0 ? (
-              <div className="px-6 py-8 text-center text-gray-500">
-                No assessments yet
-              </div>
+              <div className="px-6 py-8 text-center text-gray-500">No assessments yet</div>
             ) : (
               assessments.map((assessment) => (
                 <div key={assessment.assessment_id} className="px-6 py-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {assessment.assessment_type.toUpperCase()}
-                      </h3>
+                      <h3 className="font-semibold text-gray-900">{assessment.assessment_type.toUpperCase()}</h3>
                       <p className="text-sm text-gray-600">Case: {assessment.case_id}</p>
                     </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        assessment.risk_level === 'critical'
-                          ? 'bg-red-100 text-red-800'
-                          : assessment.risk_level === 'red'
-                          ? 'bg-orange-100 text-orange-800'
-                          : assessment.risk_level === 'yellow'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {assessment.risk_level}
-                    </span>
-                  </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Score:</span>{' '}
-                      <span className="font-semibold">{assessment.raw_score}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Normalized:</span>{' '}
-                      <span className="font-semibold">{assessment.normalized_score?.toFixed(1)}%</span>
-                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${assessment.risk_level === 'critical' ? 'bg-red-100 text-red-800' : assessment.risk_level === 'red' ? 'bg-orange-100 text-orange-800' : assessment.risk_level === 'yellow' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{assessment.risk_level}</span>
                   </div>
                 </div>
               ))
@@ -147,6 +93,6 @@ export default function AssessmentsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

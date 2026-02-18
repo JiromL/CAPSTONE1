@@ -7,7 +7,7 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-export function IntakeCoordinatorDashboard({ user, onLogout }: DashboardProps) {
+export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <CheckCircle size={20} /> },
     { label: 'Pending Intakes', href: '/ic/intake/pending', icon: <Clock size={20} />, badge: 15 },
@@ -24,7 +24,7 @@ export function IntakeCoordinatorDashboard({ user, onLogout }: DashboardProps) {
       user={user}
       onLogout={onLogout}
       menuItems={menuItems}
-      title="Intake Coordinator Dashboard"
+      title="Intake Counselor Dashboard"
       subtitle="Intake Processing & Scheduling"
     >
       {/* Key Metrics */}

@@ -105,7 +105,7 @@ def seed():
             'password_hash': generate_password_hash('ic123'),
             'first_name': 'Alex',
             'last_name': 'Intake',
-            'role': 'IC',  # Intake Coordinator
+            'role': 'IC',  # Intake Counselor
             'phone': '555-0007',
             'department': 'Counseling',
             'specializations': ['Triage', 'Risk Assessment'],

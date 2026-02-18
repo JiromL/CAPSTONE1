@@ -28,7 +28,7 @@ Provide a comprehensive digital platform for a university counseling and psychol
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        USERS / CLIENTS                           │
-│  (Students, Counselors, Intake Coordinators, Admins)            │
+│  (Students, Counselors, Intake Counselors, Admins)            │
 └────────────────────────┬────────────────────────────────────────┘
                          │ HTTPS / REST
          ┌───────────────┴───────────────┐
@@ -71,7 +71,7 @@ Provide a comprehensive digital platform for a university counseling and psychol
 | **STAFF** | Admin assistants | View cases, schedule | Assigned cases |
 | **CSP** | Counselor Support Person | Create assessments, view case | Assigned cases |
 | **CSC** | Counseling Support Case worker | Edit case, create assessments | Assigned cases |
-| **IC** | Intake Coordinator | Complete intake, endorse cases, triage | All cases |
+| **IC** | Intake Counselor | Complete intake, endorse cases, triage | All cases |
 | **CASE_MANAGER** | Care coordinator | Assign cases, manage workflows | All cases |
 | **PSYCHOLOGIST** | Licensed psychologist | Full case view/edit, escalate crisis | All cases |
 | **DPO** | Director of Psych Operations | Manage users, view audit, export data | All system |
@@ -91,7 +91,7 @@ VIEW_CASE, EDIT_CASE, VIEW_ASSESSMENT, CREATE_ASSESSMENT, VIEW_NOTES, EDIT_NOTES
 2. Starts intake questionnaire (demographics, chief complaint, history).
 3. System auto-scores screening tools (PHQ-9, GAD-7, PSS).
 4. Case marked as `PENDING` intake review.
-5. Intake Coordinator reviews, endorses or requests more info.
+5. Intake Counselor reviews, endorses or requests more info.
 6. Case moves to `ENDORSED` → available for counselor assignment.
 
 **Actors:** Student, IC, Backend intake service.
@@ -192,7 +192,7 @@ VIEW_CASE, EDIT_CASE, VIEW_ASSESSMENT, CREATE_ASSESSMENT, VIEW_NOTES, EDIT_NOTES
   "chief_complaint": string,
   "history": { medical, psychiatric, family, substance... },
   "status": "PENDING|IN_PROGRESS|COMPLETED|ENDORSED",
-  "completed_by": ObjectId,  // IC user ID
+  "completed_by": ObjectId,  // IC user ID (Intake Counselor)
   "created_at": datetime,
   "updated_at": datetime
 }

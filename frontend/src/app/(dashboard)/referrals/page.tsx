@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import { Plus, ArrowLeft, CheckCircle, Clock, AlertCircle, FileText } from 'lucide-react';
 import Link from 'next/link';
+import PageShell from '@/components/PageShell';
 
 export default function ReferralsPage() {
   const [referrals] = useState([
@@ -24,77 +25,36 @@ export default function ReferralsPage() {
     },
     {
       id: 3,
-      service: 'Academic Support',
-      provider: 'Disability Services Office',
-      date: '2024-01-10',
-      status: 'completed',
-      notes: 'Accommodations approved for the semester',
-    },
-  ]);
-
-  const referralServices = [
-    'Psychiatric Evaluation',
-    'Group Therapy',
-    'Academic Support',
-    'Crisis Intervention',
-    'Substance Abuse Treatment',
-    'Disability Services',
-  ];
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4 mb-3">
-            <Link href="/dashboard">
-              <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                <ArrowLeft size={20} /> Back
-              </button>
-            </Link>
+      return (
+        <PageShell title="Referrals" subtitle="View and manage your service referrals">
+          <div className="bg-blue-50 rounded-lg p-8 mb-8 border border-blue-200">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Request a New Referral</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {referralServices.map((service) => (
+                <button key={service} className="bg-white hover:bg-blue-100 text-gray-900 py-2 px-4 rounded-lg font-medium transition text-sm">+ {service}</button>
+              ))}
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Referrals</h1>
-          <p className="text-gray-600 mt-1">View and manage your service referrals</p>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Request New Referral */}
-        <div className="bg-blue-50 rounded-lg p-8 mb-8 border border-blue-200">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Request a New Referral</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {referralServices.map((service) => (
-              <button
-                key={service}
-                className="bg-white hover:bg-blue-100 text-gray-900 py-2 px-4 rounded-lg font-medium transition text-sm"
-              >
-                + {service}
-              </button>
-            ))}
-          </div>
-        </div>
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Referrals</h2>
+            <div className="space-y-4">
+              {referrals.map((referral) => (<ReferralCard key={referral.id} referral={referral} />))}
+            </div>
+          </section>
 
-        {/* Active Referrals */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Referrals</h2>
-          <div className="space-y-4">
-            {referrals.map((referral) => (
-              <ReferralCard key={referral.id} referral={referral} />
-            ))}
-          </div>
-        </section>
-
-        {/* Referral Information */}
-        <section className="bg-white rounded-lg shadow p-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">About Referrals</h3>
-          <div className="space-y-4 text-gray-700">
-            <p>
-              Our counselors may recommend referrals to specialized services outside our center when additional support would be beneficial.
-            </p>
-            <p>
-              These services may include:
-            </p>
+          <section className="bg-white rounded-lg shadow p-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">About Referrals</h3>
+            <div className="space-y-4 text-gray-700">
+              <p>Our counselors may recommend referrals to specialized services outside our center when additional support would be beneficial.</p>
+              <p>These services may include:</p>
+              <ul className="list-disc pl-6 space-y-2"><li>Mental health specialists and psychiatrists</li><li>Group therapy programs</li><li>Crisis intervention services</li><li>Substance abuse treatment</li><li>Disability services</li><li>Other campus and community resources</li></ul>
+              <p>Once a referral is submitted, we'll help coordinate with the external provider and keep you informed of next steps.</p>
+            </div>
+          </section>
+        </PageShell>
+      );
+    }
             <ul className="list-disc pl-6 space-y-2">
               <li>Mental health specialists and psychiatrists</li>
               <li>Group therapy programs</li>

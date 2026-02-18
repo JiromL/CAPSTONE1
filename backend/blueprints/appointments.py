@@ -189,6 +189,54 @@ def get_availability():
     }), 200
 
 
+@appointments_bp.route('/validate-slot', methods=['POST'])
+@jwt_required()
+def validate_slot():
+    """Validate if a requested slot conflicts with existing confirmed appointments"""
+    user_id = get_jwt_identity()
+
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    data = request.get_json() or {}
+    counselor_id = data.get('counselor_id')
+    start = data.get('start')
+    end = data.get('end')
+
+    if not counselor_id or not start or not end:
+        return jsonify({'error': 'counselor_id, start, and end are required'}), 400
+
+    try:
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
+    except ValueError:
+        return jsonify({'error': 'Invalid datetime format'}), 400
+
+    try:
+        cid = ObjectId(counselor_id)
+    except:
+        cid = counselor_id
+
+    # Find overlapping confirmed appointments for counselor
+    overlap_q = {
+        'counselor_id': cid,
+        'status': {'$in': [AppointmentStatus.CONFIRMED.value, AppointmentStatus.MATCHED.value]}
+    }
+
+    appointments = list(db.db.appointments.find(overlap_q))
+    conflict = False
+    for a in appointments:
+        a_start = a.get('requested_start')
+        a_end = a.get('requested_end')
+        if isinstance(a_start, datetime) and isinstance(a_end, datetime):
+            # overlap if start < a_end and end > a_start
+            if start_dt < a_end and end_dt > a_start:
+                conflict = True
+                break
+
+    return jsonify({'available': not conflict}), 200
+
+
 @appointments_bp.route('/<appointment_id>/confirm', methods=['POST'])
 @jwt_required()
 def confirm_appointment(appointment_id):

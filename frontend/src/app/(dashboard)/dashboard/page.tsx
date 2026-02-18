@@ -10,6 +10,8 @@ import { StudentDashboard } from '@/components/StudentDashboard';
 import { IntakeCounselorDashboard } from '@/components/IntakeCounselorDashboard';
 import { SupportStaffDashboard } from '@/components/SupportStaffDashboard';
 import { CounselingTeamDashboard } from '@/components/CounselingTeamDashboard';
+import Link from 'next/link';
+import PageShell from '@/components/PageShell';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -46,29 +48,75 @@ export default function Dashboard() {
     return null;
   }
 
-  // Route to appropriate dashboard based on role
+  const ConnectCalendarButton = (
+    <Link href="/oauth/start">
+      <button className="bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm hover:bg-gray-50">
+        Connect Calendar
+      </button>
+    </Link>
+  );
+
   switch (user.role) {
     case 'ADMIN':
-      return <AdminDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="Admin" actions={ConnectCalendarButton}>
+          <AdminDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
     case 'DPO':
-      return <DPODashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="DPO" actions={ConnectCalendarButton}>
+          <DPODashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
     case 'PSYCHOLOGIST':
-      return <PsychologistDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="Psychologist" actions={ConnectCalendarButton}>
+          <PsychologistDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
     case 'CASE_MANAGER':
-      return <CaseManagerDashboard user={user} onLogout={handleLogout} />;
-    case 'CSC': // Counseling Support Case worker
-      return <CounselingTeamDashboard user={user} onLogout={handleLogout} />;
-    case 'CSP': // Counseling Support Person
-      return <CounselingTeamDashboard user={user} onLogout={handleLogout} />;
-    case 'IC': // Intake Counselor
-      return <IntakeCounselorDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="Case Manager" actions={ConnectCalendarButton}>
+          <CaseManagerDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
+    case 'CSC':
+    case 'CSP':
+      return (
+        <PageShell title="Counseling Team" actions={ConnectCalendarButton}>
+          <CounselingTeamDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
+    case 'IC':
+      return (
+        <PageShell title="Intake" actions={ConnectCalendarButton}>
+          <IntakeCounselorDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
     case 'COUNSELOR':
-      return <CounselorDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="Counselor" actions={ConnectCalendarButton}>
+          <CounselorDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
     case 'STAFF':
-      return <SupportStaffDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="Staff" actions={ConnectCalendarButton}>
+          <SupportStaffDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
     case 'STUDENT':
-      return <StudentDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="Student" actions={ConnectCalendarButton}>
+          <StudentDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
     default:
-      return <StudentDashboard user={user} onLogout={handleLogout} />;
+      return (
+        <PageShell title="Dashboard" actions={ConnectCalendarButton}>
+          <StudentDashboard user={user} onLogout={handleLogout} />
+        </PageShell>
+      );
   }
 }

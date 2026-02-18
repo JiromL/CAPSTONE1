@@ -24,6 +24,7 @@ from blueprints import (
     high_risk_bp,
     referrals_bp,
     reservations_bp,
+    integrations_bp,
 )
 
 load_dotenv()
@@ -42,6 +43,8 @@ def create_app(config_name=None):
     
     # Initialize MongoDB
     mongodb = db.init_app(app)
+    # expose db on app for integrations and blueprints
+    app.db = mongodb
     
     # Register blueprints
     app.register_blueprint(auth_bp)
@@ -53,6 +56,7 @@ def create_app(config_name=None):
     app.register_blueprint(high_risk_bp)
     app.register_blueprint(referrals_bp)
     app.register_blueprint(reservations_bp)
+    app.register_blueprint(integrations_bp)
     
     # Health check route
     @app.route('/api/health', methods=['GET'])

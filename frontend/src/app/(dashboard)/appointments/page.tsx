@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import { Calendar, Clock, User, MapPin, Phone, CheckCircle, X, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import PageShell from '@/components/PageShell';
 
 export default function AppointmentsPage() {
   const [appointments] = useState([
@@ -41,75 +42,54 @@ export default function AppointmentsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4 mb-3">
-            <Link href="/dashboard">
-              <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                <ArrowLeft size={20} /> Back
-              </button>
-            </Link>
+    <PageShell title="Your Appointments" subtitle="Manage and schedule your counseling sessions">
+      <div className="mb-8 flex items-center gap-4">
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition">Schedule New Appointment</button>
+        <Link href="/appointments/validate">
+          <button className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-4 py-2 rounded-lg">Validate Slot</button>
+        </Link>
+      </div>
+
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Appointments</h2>
+        {upcomingAppointments.length > 0 ? (
+          <div className="space-y-4">
+            {upcomingAppointments.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} />
+            ))}
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Your Appointments</h1>
-          <p className="text-gray-600 mt-1">Manage and schedule your counseling sessions</p>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Schedule New Appointment Button */}
-        <div className="mb-8">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition">
-            Schedule New Appointment
-          </button>
-        </div>
-
-        {/* Upcoming Appointments */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Appointments</h2>
-          {upcomingAppointments.length > 0 ? (
-            <div className="space-y-4">
-              {upcomingAppointments.map((appointment) => (
-                <AppointmentCard key={appointment.id} appointment={appointment} />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <Calendar className="mx-auto text-gray-400 mb-3" size={32} />
-              <p className="text-gray-900 font-medium mb-2">No upcoming appointments</p>
-              <p className="text-gray-600">Schedule a session with our counseling team</p>
-            </div>
-          )}
-        </section>
-
-        {/* Past Appointments */}
-        {pastAppointments.length > 0 && (
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Past Appointments</h2>
-            <div className="space-y-4">
-              {pastAppointments.map((appointment) => (
-                <AppointmentCard key={appointment.id} appointment={appointment} isPast={true} />
-              ))}
-            </div>
-          </section>
+        ) : (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <Calendar className="mx-auto text-gray-400 mb-3" size={32} />
+            <p className="text-gray-900 font-medium mb-2">No upcoming appointments</p>
+            <p className="text-gray-600">Schedule a session with our counseling team</p>
+          </div>
         )}
+      </section>
 
-        {/* After Appointment Tips */}
-        <section className="mt-12">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Before Your Appointment</h3>
-            <ul className="space-y-2 text-gray-700">
-              <li>✓ Allow 10 minutes for check-in before your appointment</li>
-              <li>✓ Bring any relevant documents or notes</li>
-              <li>✓ Have a quiet, private space for your session</li>
-              <li>✓ Let us know if you need to reschedule</li>
-            </ul>
+      {pastAppointments.length > 0 && (
+        <section>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Past Appointments</h2>
+          <div className="space-y-4">
+            {pastAppointments.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} isPast={true} />
+            ))}
           </div>
         </section>
-      </main>
-    </div>
+      )}
+
+      <section className="mt-12">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-3">Before Your Appointment</h3>
+          <ul className="space-y-2 text-gray-700">
+            <li>✓ Allow 10 minutes for check-in before your appointment</li>
+            <li>✓ Bring any relevant documents or notes</li>
+            <li>✓ Have a quiet, private space for your session</li>
+            <li>✓ Let us know if you need to reschedule</li>
+          </ul>
+        </div>
+      </section>
+    </PageShell>
   );
 }
 

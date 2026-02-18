@@ -4,6 +4,7 @@ Blueprint for secure case file repository with version control and audit trails
 """
 
 from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType
@@ -11,6 +12,7 @@ from utils import audit_log, user_has_permission
 from datetime import datetime
 import os
 import json
+from flask import send_file, redirect
 
 documentation_bp = Blueprint('documentation', __name__, url_prefix='/api/documentation')
 
@@ -418,6 +420,61 @@ def upload_roi(case_id):
     }), 201
 
 
+@documentation_bp.route('/case/<case_id>/presign-upload', methods=['POST'])
+@jwt_required()
+def presign_upload(case_id):
+    """Return a presigned upload URL (S3) or fallback error if not configured."""
+    user_id = get_jwt_identity()
+
+    # Permission check
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        cid = ObjectId(case_id)
+        case = db.db.cases.find_one({"_id": cid})
+    except:
+        case = db.db.cases.find_one({"_id": case_id})
+
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+
+    data = request.get_json() or {}
+    filename = data.get('filename')
+    content_type = data.get('content_type')
+    if not filename:
+        return jsonify({'error': 'filename required'}), 400
+
+    from integrations.s3 import S3Integration
+    s3 = S3Integration(current_app.config)
+    if not s3.enabled:
+        return jsonify({'error': 'S3 not configured'}), 400
+
+    key = f"cases/{str(case['_id'])}/{filename}"
+    try:
+        url = s3.presign_upload(key, content_type=content_type)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    # create a document metadata placeholder
+    document = {
+        'case_id': case['_id'],
+        'document_type': 'attachment',
+        'title': filename,
+        'file_path': None,
+        's3_key': key,
+        'created_by_id': ObjectId(user_id) if isinstance(user_id, str) else user_id,
+        'version': 1,
+        'is_locked': False,
+        'created_at': __import__('datetime').datetime.utcnow(),
+        'presigned_expires_at': __import__('datetime').datetime.utcnow()
+    }
+
+    res = db.db.documents.insert_one(document)
+
+    return jsonify({'presigned_url': url, 'document_id': str(res.inserted_id)}), 200
+
+
 @documentation_bp.route('/case/<case_id>/safety-plan', methods=['POST'])
 @jwt_required()
 def upload_safety_plan(case_id):
@@ -466,3 +523,46 @@ def upload_safety_plan(case_id):
         'message': 'Safety plan uploaded',
         'document_id': str(result.inserted_id)
     }), 201
+
+
+@documentation_bp.route('/documents/<document_id>/download', methods=['GET'])
+@jwt_required()
+def download_document(document_id):
+    """Secure download for stored attachments or inline content"""
+    user_id = get_jwt_identity()
+
+    # Permission check
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        did = ObjectId(document_id)
+        document = db.db.documents.find_one({"_id": did})
+    except:
+        document = db.db.documents.find_one({"_id": document_id})
+
+    if not document:
+        return jsonify({'error': 'Document not found'}), 404
+
+    # If file_path exists on disk, stream it
+    file_path = document.get('file_path')
+    if file_path and os.path.exists(file_path):
+        audit_log(db.db, 'documentation', 'download', entity_id=str(document['_id']))
+        return send_file(file_path, as_attachment=True)
+
+    # If external Google Drive ID is present, redirect to Drive viewer link (note: production should use signed link)
+    gdrive_id = document.get('gdrive_id')
+    if gdrive_id:
+        drive_link = f'https://drive.google.com/uc?id={gdrive_id}&export=download'
+        audit_log(db.db, 'documentation', 'download_redirect', entity_id=str(document['_id']))
+        return redirect(drive_link)
+
+    # If stored inline as base64 content
+    data_b64 = document.get('data_base64')
+    if data_b64:
+        import base64, io
+        file_bytes = base64.b64decode(data_b64)
+        audit_log(db.db, 'documentation', 'download_inline', entity_id=str(document['_id']))
+        return send_file(io.BytesIO(file_bytes), download_name=document.get('title', 'attachment'), as_attachment=True)
+
+    return jsonify({'error': 'No downloadable content for this document'}), 404

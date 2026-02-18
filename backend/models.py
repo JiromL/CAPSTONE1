@@ -19,7 +19,7 @@ class UserRole(str, Enum):
     CASE_MANAGER = "CASE_MANAGER"
     CSC = "CSC"  # Counseling Support Case worker
     CSP = "CSP"  # Counseling Support Person
-    IC = "IC"  # Intake Coordinator
+    IC = "IC"  # Intake Counselor
     STAFF = "STAFF"
     STUDENT = "STUDENT"
 

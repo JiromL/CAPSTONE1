@@ -13,7 +13,7 @@ Digital platform for university counseling office to manage student intakes, cli
 ## Key Features (MVP)
 | Feature | Benefit | Timeline |
 |---------|---------|----------|
-| **Self-Service Intake** | Students avoid wait times; IC reviews asynchronously | Week 4 |
+| **Self-Service Intake** | Students avoid wait times; IC (Intake Counselor) reviews asynchronously | Week 4 |
 | **Auto-Risk Assessment** | PHQ-9/GAD-7 scores → risk level; no manual scoring | Week 4 |
 | **Appointment Booking** | Students self-schedule; counselor availability visible; auto-matching | Week 6 |
 | **Session Documentation** | Counselors record notes; searchable case history; audit trail | Week 8 |
@@ -45,7 +45,7 @@ Student/Counselor/Admin
 
 ```
 1. Student: Intake → Risk Score → Book Appt → Counselor Session → (Refer if needed → External)
-2. Intake Coordinator: Review Intake → Endorse (green-light for booking) → Assign counselor
+2. Intake Counselor: Review Intake → Endorse (green-light for booking) → Assign counselor
 3. Counselor: View Cases → Document Sessions → Monitor Risk → Escalate if needed
 4. Psychologist: High-risk dashboard → Escalate crisis → Contact crisis line/hospital
 5. Admin: Manage users, view audit log, export compliance reports
@@ -159,7 +159,7 @@ cd frontend && npm install && npm run dev  # Runs :3000
 ## Recommended Next Steps
 1. **Weeks 1-2:** Project kickoff, team onboarding, env setup (DONE)
 2. **Week 3-4:** Auth system + login/register pages (IN PROGRESS)
-3. **Week 5-6:** Intake form + IC workflow (STARTING)
+3. **Week 5-6:** Intake form + IC (Intake Counselor) workflow (STARTING)
 4. **Week 7-8:** Appointment booking + session docs
 5. → **Phase 2** begins Week 9 (risk monitoring, referrals, notifications)
 

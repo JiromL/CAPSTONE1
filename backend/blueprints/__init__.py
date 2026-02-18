@@ -11,6 +11,7 @@ from .counseling import counseling_bp
 from .high_risk import high_risk_bp
 from .referrals import referrals_bp
 from .reservations import reservations_bp
+from .integrations import integrations_bp
 
 __all__ = [
     'auth_bp',
@@ -22,4 +23,5 @@ __all__ = [
     'high_risk_bp',
     'referrals_bp',
     'reservations_bp',
+    'integrations_bp',
 ]

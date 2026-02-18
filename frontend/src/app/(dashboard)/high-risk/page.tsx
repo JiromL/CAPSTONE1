@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import { ArrowLeft, AlertTriangle, Phone, Mail, User, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import PageShell from '@/components/PageShell';
 
 export default function HighRiskPage() {
   const [highRiskCases] = useState([
@@ -51,81 +52,39 @@ export default function HighRiskPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4 mb-3">
-            <Link href="/dashboard">
-              <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                <ArrowLeft size={20} /> Back
-              </button>
-            </Link>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">High-Risk Monitoring</h1>
-          <p className="text-gray-600 mt-1">Monitor and support students at elevated risk</p>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Emergency Resources */}
-        <section className="mb-8">
-          <div className="bg-red-50 border-2 border-red-300 rounded-lg p-8">
-            <h2 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-              <AlertTriangle size={24} /> Emergency Resources
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {emergencyResources.map((resource, idx) => (
-                <div key={idx} className="bg-white rounded-lg p-4">
-                  <p className="font-medium text-gray-900">{resource.name}</p>
-                  <p className="text-lg font-bold text-red-600 mt-2">{resource.phone}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* High-Risk Cases */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Active High-Risk Cases</h2>
-          <div className="space-y-4">
-            {highRiskCases.map((caseItem) => (
-              <HighRiskCaseCard key={caseItem.id} caseItem={caseItem} />
+    <PageShell title="High-Risk Monitoring" subtitle="Monitor and support students at elevated risk">
+      <section className="mb-8">
+        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-8">
+          <h2 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2"><AlertTriangle size={24} /> Emergency Resources</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {emergencyResources.map((resource, idx) => (
+              <div key={idx} className="bg-white rounded-lg p-4">
+                <p className="font-medium text-gray-900">{resource.name}</p>
+                <p className="text-lg font-bold text-red-600 mt-2">{resource.phone}</p>
+              </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Guidelines */}
-        <section className="mt-12">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">High-Risk Monitoring Guidelines</h3>
-            <ul className="space-y-3 text-gray-700">
-              <li className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} />
-                <span><strong>Daily Check-ins:</strong> Contact high-risk clients daily or per treatment plan</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} />
-                <span><strong>Safety Plans:</strong> Ensure current safety plans are in place and reviewed</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} />
-                <span><strong>Emergency Contacts:</strong> Maintain accessible emergency contact information</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} />
-                <span><strong>Documentation:</strong> Record all contact attempts and client status</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} />
-                <span><strong>Escalation:</strong> Escalate to crisis services immediately if needed</span>
-              </li>
-            </ul>
-          </div>
-        </section>
-      </main>
-    </div>
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Active High-Risk Cases</h2>
+        <div className="space-y-4">{highRiskCases.map((caseItem) => (<HighRiskCaseCard key={caseItem.id} caseItem={caseItem} />))}</div>
+      </section>
+
+      <section className="mt-12">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">High-Risk Monitoring Guidelines</h3>
+          <ul className="space-y-3 text-gray-700">
+            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Daily Check-ins:</strong> Contact high-risk clients daily or per treatment plan</span></li>
+            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Safety Plans:</strong> Ensure current safety plans are in place and reviewed</span></li>
+            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Emergency Contacts:</strong> Maintain accessible emergency contact information</span></li>
+            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Documentation:</strong> Record all contact attempts and client status</span></li>
+            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Escalation:</strong> Escalate to crisis services immediately if needed</span></li>
+          </ul>
+        </div>
+      </section>
+    </PageShell>
   );
 }
 

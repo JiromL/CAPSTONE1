@@ -7,7 +7,7 @@ graph TB
     subgraph Users["👥 Users / Clients"]
         Student["Student"]
         Counselor["Counselor<br/>Psychologist"]
-        IC["Intake Coordinator"]
+        IC["Intake Counselor"]
         Admin["Admin<br/>DPO"]
     end
 
@@ -141,7 +141,7 @@ sequenceDiagram
     deactivate Frontend
 
     rect rgb(100, 150, 255, 0.1)
-    Note over Student,DB: Intake Coordinator reviews
+    Note over Student,DB: Intake Counselor reviews
     IC->>Frontend: View pending intakes
     Frontend->>Backend: GET /api/intake?status=PENDING
     Backend->>DB: Query intakes

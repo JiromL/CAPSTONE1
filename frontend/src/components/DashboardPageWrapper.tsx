@@ -12,7 +12,6 @@ interface DashboardPageWrapperProps {
 
 export function DashboardPageWrapper({ children, title, subtitle }: DashboardPageWrapperProps) {
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -25,7 +24,6 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
 
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
-    setLoading(false);
   }, []);
 
   const handleLogout = () => {
@@ -41,16 +39,12 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
     { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
   ];
 
-  if (loading) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

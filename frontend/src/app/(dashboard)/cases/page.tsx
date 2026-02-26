@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowLeft, Search, Filter, User, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { Search, Filter, User, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function CasesPage() {
   const [cases] = useState([
@@ -60,7 +60,7 @@ export default function CasesPage() {
   );
 
   return (
-    <PageShell title="Case Management" subtitle="View and manage student cases">
+    <DashboardPageWrapper title="Case Management" subtitle="View and manage student cases">
       <div className="bg-white rounded-lg shadow p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 relative">
@@ -136,7 +136,7 @@ export default function CasesPage() {
         <StatCard label="High Risk" value={cases.filter((c) => c.riskLevel === 'high').length} color="bg-red-50 text-red-600" />
         <StatCard label="Closed" value={cases.filter((c) => c.status === 'closed').length} color="bg-green-50 text-green-600" />
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }
 

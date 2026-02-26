@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function ValidateSlotPage() {
   const [counselorId, setCounselorId] = useState('');
@@ -21,7 +21,7 @@ export default function ValidateSlotPage() {
   };
 
   return (
-    <PageShell title="Validate Slot" subtitle="Check counselor availability">
+    <DashboardPageWrapper title="Validate Slot" subtitle="Check counselor availability">
       <div className="max-w-xl bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-bold mb-4">Validate Appointment Slot</h2>
         <div className="space-y-3">
@@ -43,6 +43,6 @@ export default function ValidateSlotPage() {
           {result && <pre className="mt-3 bg-gray-100 p-2 rounded text-sm overflow-auto">{result}</pre>}
         </div>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { DownloadButton } from '@/components/DownloadButton';
-import { ArrowLeft, File, Upload, Search, Filter, Trash2 } from 'lucide-react';
+import { File, Upload, Search, Filter, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function DocumentationPage() {
   const [documents] = useState([
@@ -21,7 +21,7 @@ export default function DocumentationPage() {
   const filteredDocs = documents.filter((d) => (filterType === 'all' || d.type === filterType) && d.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <PageShell title="Documentation Hub" subtitle="Manage clinical and administrative documents">
+    <DashboardPageWrapper title="Documentation Hub" subtitle="Manage clinical and administrative documents">
       <div className="bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-12 mb-8 text-center hover:bg-blue-100 transition">
         <Upload className="mx-auto text-blue-600 mb-3" size={32} />
         <h2 className="text-xl font-bold text-gray-900 mb-2">Upload New Document</h2>
@@ -92,6 +92,6 @@ export default function DocumentationPage() {
           </ul>
         </div>
       </section>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

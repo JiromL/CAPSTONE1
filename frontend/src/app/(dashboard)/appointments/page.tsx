@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Calendar, Clock, User, MapPin, Phone, CheckCircle, X, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone } from 'lucide-react';
 import Link from 'next/link';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function AppointmentsPage() {
   const [appointments] = useState([
@@ -42,7 +42,7 @@ export default function AppointmentsPage() {
   ];
 
   return (
-    <PageShell title="Your Appointments" subtitle="Manage and schedule your counseling sessions">
+    <DashboardPageWrapper title="Your Appointments" subtitle="Manage and schedule your counseling sessions">
       <div className="mb-8 flex items-center gap-4">
         <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition">Schedule New Appointment</button>
         <Link href="/appointments/validate">
@@ -89,7 +89,7 @@ export default function AppointmentsPage() {
           </ul>
         </div>
       </section>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }
 

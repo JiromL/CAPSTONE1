@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import PageShell from '@/components/PageShell'
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper'
 
 type Reservation = {
   id: string
@@ -52,7 +52,7 @@ export default function ReservationsPage() {
   }
 
   return (
-    <PageShell title="Reservations" subtitle="Manage reservations and bookings">
+    <DashboardPageWrapper title="Reservations" subtitle="Manage reservations and bookings">
       <div className="bg-white rounded-lg shadow p-6">
         <form className="mb-6 space-y-2 max-w-md" onSubmit={createReservation}>
           <input className="w-full p-2 border rounded" placeholder="User ID" value={form.user_id} onChange={e => setForm({ ...form, user_id: e.target.value })} />
@@ -78,6 +78,6 @@ export default function ReservationsPage() {
           )}
         </section>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   )
 }

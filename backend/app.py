@@ -38,7 +38,11 @@ def create_app(config_name=None):
     app.config.from_object(config.get(config_name, config['development']))
     
     # Initialize extensions
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}})
+    CORS(app, resources={r"/api/*": {"origins": [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002"  # allow the port Next picked during development
+    ]}})
     jwt = JWTManager(app)
     
     # Initialize MongoDB

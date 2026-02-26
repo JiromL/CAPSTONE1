@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowLeft, AlertTriangle, Phone, Mail, User, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, Phone, Mail, User, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function HighRiskPage() {
   const [highRiskCases] = useState([
@@ -52,7 +52,7 @@ export default function HighRiskPage() {
   ];
 
   return (
-    <PageShell title="High-Risk Monitoring" subtitle="Monitor and support students at elevated risk">
+    <DashboardPageWrapper title="High-Risk Monitoring" subtitle="Monitor and support students at elevated risk">
       <section className="mb-8">
         <div className="bg-red-50 border-2 border-red-300 rounded-lg p-8">
           <h2 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2"><AlertTriangle size={24} /> Emergency Resources</h2>
@@ -84,7 +84,7 @@ export default function HighRiskPage() {
           </ul>
         </div>
       </section>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }
 

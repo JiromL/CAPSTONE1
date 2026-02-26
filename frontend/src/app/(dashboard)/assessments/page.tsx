@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function AssessmentsPage() {
   const [caseId, setCaseId] = useState('');
@@ -49,7 +49,7 @@ export default function AssessmentsPage() {
   };
 
   return (
-    <PageShell title="Triage & Assessment" subtitle="Create assessments with auto-scoring">
+    <DashboardPageWrapper title="Triage & Assessment" subtitle="Create assessments with auto-scoring">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">New Assessment</h2>
@@ -93,6 +93,6 @@ export default function AssessmentsPage() {
           </div>
         </div>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

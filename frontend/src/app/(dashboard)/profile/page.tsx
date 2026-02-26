@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Edit2, Save } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Edit2, Save } from 'lucide-react';
 import Link from 'next/link';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function ProfilePage() {
   const [editMode, setEditMode] = useState(false);
@@ -33,7 +33,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <PageShell title="My Profile">
+    <DashboardPageWrapper title="My Profile">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow p-8">
           <div className="flex items-start justify-between mb-8">
@@ -96,7 +96,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }
 

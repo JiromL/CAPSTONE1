@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MenuItem {
   label: string;
-  href: string;
+  href?: string;
+  id?: string;
   icon?: React.ReactNode;
   badge?: number;
 }
@@ -16,6 +17,8 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
+  activeSection?: string;
+  onMenuClick?: (id: string) => void;
 }
 
 export function DashboardLayout({
@@ -25,16 +28,31 @@ export function DashboardLayout({
   children,
   title,
   subtitle,
+  activeSection,
+  onMenuClick,
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  useEffect(() => {
+    // Load sidebar state from localStorage
+    const savedSidebarState = localStorage.getItem('sidebarOpen');
+    if (savedSidebarState !== null) {
+      setSidebarOpen(JSON.parse(savedSidebarState));
+    }
+  }, []);
+
+  const handleToggleSidebar = () => {
+    const newState = !sidebarOpen;
+    setSidebarOpen(newState);
+    localStorage.setItem('sidebarOpen', JSON.stringify(newState));
+  };
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 font-sans p-8">
+      <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-lg flex overflow-hidden">
       {/* Sidebar */}
       <aside
-        className={`${
-          sidebarOpen ? 'w-64' : 'w-20'
-        } bg-white shadow-lg transition-all duration-300 flex flex-col`}
+        className={`${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 flex flex-col border-r border-gray-100 bg-transparent`}
       >
         {/* Logo/Header */}
         <div className="p-4 border-b border-gray-200">
@@ -44,7 +62,7 @@ export function DashboardLayout({
               <p className="text-xs text-gray-600">Counseling Services</p>
             </div>
             <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={handleToggleSidebar}
               className="p-1 hover:bg-gray-100 rounded-lg"
             >
               {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -54,21 +72,48 @@ export function DashboardLayout({
 
         {/* Navigation Menu */}
         <nav className="flex-1 overflow-y-auto py-4">
-          {menuItems.map((item, index) => (
-            <Link key={index} href={item.href}>
-              <div className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition cursor-pointer border-l-4 border-transparent hover:border-green-700">
-                <div className="text-gray-500 flex-shrink-0">{item.icon}</div>
+          {menuItems.map((item, index) => {
+            const isActive = activeSection && item.id && activeSection === item.id;
+            const MenuItemContent = (
+              <div className={`flex items-center gap-3 px-4 py-3 transition cursor-pointer border-l-4 ${
+                isActive 
+                  ? 'bg-gray-100 border-gray-900 text-gray-900' 
+                  : 'text-gray-700 hover:bg-gray-100 border-transparent hover:border-gray-700'
+              }`}>
+                {sidebarOpen && (
+                  <div className="text-gray-600 flex-shrink-0">{item.icon}</div>
+                )}
                 <span className={`font-medium text-sm flex-1 ${!sidebarOpen && 'hidden'}`}>
                   {item.label}
                 </span>
                 {item.badge && sidebarOpen && (
-                  <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">
+                  <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded-full">
                     {item.badge}
                   </span>
                 )}
               </div>
-            </Link>
-          ))}
+            );
+
+            // If using state-based navigation
+            if (item.id && onMenuClick) {
+              return (
+                <button
+                  key={index}
+                  onClick={() => onMenuClick(item.id!)}
+                  className="w-full text-left hover:no-underline"
+                >
+                  {MenuItemContent}
+                </button>
+              );
+            }
+
+            // Otherwise use href-based navigation
+            return (
+              <Link key={index} href={item.href || '#'}>
+                {MenuItemContent}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Logout */}
@@ -86,15 +131,15 @@ export function DashboardLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+        <header className="px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            {subtitle && <p className="text-gray-600 text-sm mt-1">{subtitle}</p>}
+            <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+            {subtitle && <p className="text-gray-600 text-xs mt-1">{subtitle}</p>}
           </div>
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className="text-gray-900 font-medium">{user?.name || user?.email}</p>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-900 font-medium text-sm">{user?.name || user?.email}</p>
+              <p className="text-gray-600 text-xs">
                 {user?.role === 'STUDENT' 
                   ? `ID: ${user?.id || 'N/A'}` 
                   : user?.role?.replace('_', ' ') || 'User'}
@@ -110,6 +155,7 @@ export function DashboardLayout({
         <main className="flex-1 overflow-auto p-8">
           {children}
         </main>
+      </div>
       </div>
     </div>
   );

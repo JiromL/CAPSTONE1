@@ -198,6 +198,56 @@ def get_case_session_history(case_id):
         return jsonify({'error': 'Case not found'}), 404
     
     notes = list(db.db.session_notes.find({"case_id": case['_id']}).sort("session_date", -1))
+
+
+# ---------------------------------------------------------------------------
+# Demo UI route
+# ---------------------------------------------------------------------------
+@counseling_bp.route('/login-page', methods=['GET'])
+def login_page():
+    """Serve a basic login page mimicking the style from the HTML snippet.
+
+    This endpoint returns an HTML string with inline CSS so that only Python is
+    used in this file (no new templates, CSS or JavaScript files).
+    """
+    html = """<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+  <title>Login</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f0f0; margin:0; }
+    .login-container { max-width: 400px; margin: 80px auto; padding: 20px;
+      background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .login-container h2 { text-align: center; color: #2c3e50; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; }
+    .form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
+    .btn { width: 100%; padding: 10px; background: #3498db; color: #fff;
+      border: none; cursor: pointer; }
+    .btn:hover { background: #2980b9; }
+  </style>
+</head>
+<body>
+  <div class=\"login-container\">
+    <h2>Let's Get Started</h2>
+    <form method=\"post\" action=\"/api/auth/login\">
+      <div class=\"form-group\">
+        <label>Username / Email</label>
+        <input type=\"text\" name=\"username\" required />
+      </div>
+      <div class=\"form-group\">
+        <label>Password</label>
+        <input type=\"password\" name=\"password\" required />
+      </div>
+      <button class=\"btn\" type=\"submit\">Sign In</button>
+    </form>
+  </div>
+</body>
+</html>"""
+    return html
+
     
     result_notes = []
     for n in notes:

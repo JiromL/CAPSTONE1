@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function IntakePage() {
   const [formData, setFormData] = useState({
@@ -109,7 +110,7 @@ export default function IntakePage() {
   };
 
   return (
-    <PageShell title="Student Intake" subtitle="Intake questionnaire and screening">
+    <DashboardPageWrapper title="Student Intake" subtitle="Intake questionnaire and screening">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Student Intake Questionnaire</h1>
         <p className="text-gray-600 mb-8">Please answer the following questions to help us provide you with the best support.</p>
@@ -182,6 +183,6 @@ export default function IntakePage() {
           </button>
         </form>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

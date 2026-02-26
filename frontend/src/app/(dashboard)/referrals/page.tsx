@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Plus, FileText, CheckCircle, Clock } from 'lucide-react';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 type Referral = {
   id: number;
@@ -50,7 +50,7 @@ const referralsData: Referral[] = [
 
 export default function ReferralsPage() {
   return (
-    <PageShell title="Referrals" subtitle="View and manage your service referrals">
+    <DashboardPageWrapper title="Referrals" subtitle="View and manage your service referrals">
       <div className="bg-blue-50 rounded-lg p-8 mb-8 border border-blue-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">Request a New Referral</h2>
@@ -91,7 +91,7 @@ export default function ReferralsPage() {
           <p>Once a referral is submitted, we'll help coordinate with the external provider and keep you informed of next steps.</p>
         </div>
       </section>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }
 

@@ -292,6 +292,76 @@ def get_safety_plan(case_id):
     }), 200
 
 
+@high_risk_bp.route('/user/<username>/notify', methods=['POST'])
+@jwt_required()
+def notify_counselor_for_user(username):
+    """Create a notification and (optionally) send email to the assigned counselor for a student."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    # find student user
+    student = db.db.users.find_one({'username': username})
+    if not student:
+        return jsonify({'error': 'Student not found'}), 404
+
+    # fetch perma history
+    entries = list(db.db.perma_history.find({'username': username}).sort('date', -1))
+    history = [{
+        'date': e.get('date').isoformat() if hasattr(e.get('date'), 'isoformat') else e.get('date'),
+        'perma_label': e.get('perma_label')
+    } for e in entries]
+    current_risk = _compute_risk_from_label(history[0]['perma_label']) if history else 'UNKNOWN'
+
+    # find a case for the student to determine assigned counselor
+    case = db.db.cases.find_one({'student_id': student.get('_id')})
+    counselor = None
+    if case and case.get('assigned_counselor_id'):
+        counselor = db.db.users.find_one({'_id': case.get('assigned_counselor_id')})
+
+    # fallback: find any counselor user
+    if not counselor:
+        counselor = db.db.users.find_one({'role': {'$in': ['PSYCHOLOGIST','CASE_MANAGER','IC','CSC','CSP']}})
+
+    if not counselor:
+        return jsonify({'error': 'No counselor found to notify'}), 400
+
+    subject = f"PERMA Alert: {username} — {current_risk} risk"
+    body_lines = [f"Student: {username}", f"Current risk: {current_risk}", "History:"]
+    for h in history:
+        body_lines.append(f"- {h['date']}: {h['perma_label']}")
+    body = "\n".join(body_lines)
+
+    # insert notification document
+    notif = {
+        'to_user_id': counselor.get('_id'),
+        'from_user_id': ObjectId(user_id) if isinstance(user_id, str) else user_id,
+        'subject': subject,
+        'body': body,
+        'metadata': {'student_username': username, 'risk': current_risk},
+        'read': False,
+        'created_at': datetime.utcnow()
+    }
+    res = db.db.notifications.insert_one(notif)
+
+    # attempt email send if counselor has email
+    email_sent = False
+    try:
+        from integrations.email import EmailIntegration
+        from config import config as app_config
+        emailer = EmailIntegration(app_config.get('development'))
+        to_addr = counselor.get('email')
+        if to_addr:
+            html = '<pre>{}</pre>'.format(body.replace('\n', '<br/>'))
+            email_sent = emailer.send_email(to_addr, subject, html)
+    except Exception:
+        email_sent = False
+
+    audit_log(db.db, 'notification', 'create', entity_id=str(res.inserted_id), new_values={'to': str(counselor.get('_id')), 'student': username, 'risk': current_risk})
+
+    return jsonify({'notification_id': str(res.inserted_id), 'email_sent': email_sent, 'to': counselor.get('username')}), 201
+
+
 @high_risk_bp.route('/crisis-escalate/<case_id>', methods=['POST'])
 @jwt_required()
 def escalate_to_crisis(case_id):

@@ -135,10 +135,47 @@ function HighRiskCaseCard({ caseItem }: any) {
         <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2">
           <Mail size={18} /> Email
         </button>
-        <button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 py-2 rounded-lg font-medium transition">
-          Update Status
-        </button>
+        <SendToCounselorButton username={caseItem.studentId} />
       </div>
+    </div>
+  );
+}
+
+function SendToCounselorButton({ username }: { username: string }) {
+  const [loading, setLoading] = React.useState(false);
+  const [sent, setSent] = React.useState<boolean | null>(null);
+
+  const handleSend = async () => {
+    setLoading(true);
+    setSent(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/high-risk/user/${encodeURIComponent(username)}/notify`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSent(true);
+      } else {
+        console.error('notify error', data);
+        setSent(false);
+      }
+    } catch (e) {
+      console.error(e);
+      setSent(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex-1">
+      <button onClick={handleSend} disabled={loading} className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded-lg font-medium transition">
+        {loading ? 'Sending...' : 'Send to Counselor'}
+      </button>
+      {sent === true && <p className="text-xs text-green-600 mt-2">Notified</p>}
+      {sent === false && <p className="text-xs text-red-600 mt-2">Failed</p>}
     </div>
   );
 }

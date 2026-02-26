@@ -35,9 +35,7 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
 
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
-    { label: 'Appointments', href: '/appointments', icon: <Calendar size={20} />, badge: 1 },
-    { label: 'Assessments', href: '/assessments', icon: <CheckCircle size={20} /> },
-    { label: 'Referrals', href: '/referrals', icon: <MessageCircle size={20} /> },
+    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
     { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
     { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
     { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },

@@ -48,11 +48,10 @@ export function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans p-8">
-      <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-lg flex overflow-hidden">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gray-50 font-sans flex">
+      {/* Fixed Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 flex flex-col border-r border-gray-100 bg-transparent`}
+        className={`${sidebarOpen ? 'w-64' : 'w-20'} fixed left-0 top-0 h-screen transition-all duration-300 flex flex-col border-r border-gray-100 bg-white shadow-lg`}
       >
         {/* Logo/Header */}
         <div className="p-4 border-b border-gray-200">
@@ -129,9 +128,9 @@ export function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="px-8 py-4 flex items-center justify-between">
+      <div className={`${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300 flex-1 flex flex-col min-h-screen`}>
+        {/* Top Header - Fixed */}
+        <header className="sticky top-0 px-8 py-4 flex items-center justify-between bg-white border-b border-gray-200 shadow-sm z-10">
           <div>
             <h1 className="text-xl font-bold text-gray-900">{title}</h1>
             {subtitle && <p className="text-gray-600 text-xs mt-1">{subtitle}</p>}
@@ -152,10 +151,11 @@ export function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-8">
-          {children}
+        <main className="flex-1 overflow-auto p-8 bg-gray-50">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
-      </div>
       </div>
     </div>
   );

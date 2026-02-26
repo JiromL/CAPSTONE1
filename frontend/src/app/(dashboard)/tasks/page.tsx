@@ -21,12 +21,12 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
 
   const tabs = [
-    { id: 'draft', label: 'Drafts', icon: <FileText size={18} />, color: 'text-gray-600' },
-    { id: 'pending', label: 'Pending', icon: <Clock size={18} />, color: 'text-yellow-600' },
-    { id: 'scheduled', label: 'Scheduled', icon: <Calendar size={18} />, color: 'text-blue-600' },
-    { id: 'in_progress', label: 'In Progress', icon: <AlertCircle size={18} />, color: 'text-indigo-600' },
-    { id: 'completed', label: 'Completed', icon: <CheckCircle size={18} />, color: 'text-green-600' },
-    { id: 'archived', label: 'Archived', icon: <Archive size={18} />, color: 'text-gray-400' },
+    { id: 'draft', label: 'Drafts', icon: <FileText size={16} /> },
+    { id: 'pending', label: 'Pending', icon: <Clock size={16} /> },
+    { id: 'scheduled', label: 'Scheduled', icon: <Calendar size={16} /> },
+    { id: 'in_progress', label: 'In Progress', icon: <AlertCircle size={16} /> },
+    { id: 'completed', label: 'Completed', icon: <CheckCircle size={16} /> },
+    { id: 'archived', label: 'Archived', icon: <Archive size={16} /> },
   ];
 
   useEffect(() => {
@@ -105,19 +105,19 @@ export default function TasksPage() {
     <DashboardPageWrapper title="My Tasks" subtitle="All your appointments, assessments, and referrals">
       <div className="space-y-6">
         {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="flex overflow-x-auto">
+        <div className="border-b border-gray-200">
+          <div className="flex overflow-x-auto gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 font-medium text-sm border-b-2 transition ${
+                className={`flex items-center gap-2 px-4 py-3 text-xs border-b-2 transition ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-400 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <span className={tab.color}>{tab.icon}</span>
+                <span className="text-gray-400">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
@@ -127,18 +127,18 @@ export default function TasksPage() {
         {/* Tasks List */}
         <div>
           {filteredTasks.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600">No tasks in this category</p>
+            <div className="text-center py-8">
+              <p className="text-xs text-gray-500">No tasks in this category</p>
             </div>
           ) : (
             <div className="space-y-2">
               {filteredTasks.map((task) => (
-                <div key={task.id} className="border border-gray-200 rounded p-4 hover:bg-gray-50 transition">
+                <div key={task.id} className="border border-gray-200 rounded p-3 hover:bg-gray-50 transition">
                   <div className="flex items-start justify-between gap-4">
                     {/* Content */}
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 mb-1">{task.title}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                      <h3 className="text-sm text-gray-900 mb-1">{task.title}</h3>
+                      <p className="text-xs text-gray-600 mb-2">{task.description}</p>
                       {(task.date || task.time) && (
                         <p className="text-xs text-gray-500">
                           {task.date} {task.time ? `at ${task.time}` : ''}
@@ -147,7 +147,7 @@ export default function TasksPage() {
                     </div>
 
                     {/* Action Button */}
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-100 transition whitespace-nowrap">
+                    <button className="px-3 py-1 border border-gray-300 text-gray-700 text-xs rounded hover:bg-gray-100 transition whitespace-nowrap">
                       {activeTab === 'draft' ? 'Continue' : 'View'}
                     </button>
                   </div>
@@ -159,20 +159,20 @@ export default function TasksPage() {
 
         {/* Summary Stats */}
         {filteredTasks.length > 0 && (
-          <div className="border border-gray-200 rounded p-6">
-            <h3 className="font-medium text-gray-900 mb-4">Summary</h3>
-            <div className="grid grid-cols-3 gap-6">
+          <div className="border border-gray-200 rounded p-4">
+            <h3 className="text-xs text-gray-700 mb-3 uppercase tracking-wide">Summary</h3>
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <p className="text-sm text-gray-600 mb-2">Total Tasks</p>
-                <p className="text-2xl font-medium text-gray-900">{tasks.length}</p>
+                <p className="text-xs text-gray-500 mb-1">Total Tasks</p>
+                <p className="text-lg text-gray-900">{tasks.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-2">in This Category</p>
-                <p className="text-2xl font-medium text-gray-900">{filteredTasks.length}</p>
+                <p className="text-xs text-gray-500 mb-1">in This Category</p>
+                <p className="text-lg text-gray-900">{filteredTasks.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-2">Awaiting Action</p>
-                <p className="text-2xl font-medium text-gray-900">{tasks.filter((t) => t.status === 'pending' || t.status === 'scheduled').length}</p>
+                <p className="text-xs text-gray-500 mb-1">Awaiting Action</p>
+                <p className="text-lg text-gray-900">{tasks.filter((t) => t.status === 'pending' || t.status === 'scheduled').length}</p>
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Calendar, FileText, CheckCircle, AlertCircle, BookOpen, Clock, Heart, MessageCircle } from 'lucide-react';
+import { BookOpen, CheckCircle, AlertCircle, FileText, Heart } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 
 interface DashboardProps {
@@ -24,123 +24,38 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       title="Student Dashboard"
       subtitle="Campus Counseling Services"
     >
-      {/* Welcome Card */}
-      <div className="bg-gray-100 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-bold mb-2 text-gray-900">
+      {/* Welcome */}
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900">
           Welcome, {user?.name || 'Student'}!
         </h2>
-        <p className="text-sm text-gray-700">
-          We're here to support your mental health and wellbeing.
-        </p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Upcoming Appointments" value="1" color="" />
-        <StatCard label="Wellness Score" value="Good" color="" />
-        <StatCard label="Last Session" value="Feb 25" color="" />
-      </div>
-
-      {/* Main Content Grid */}
+      {/* Next Appointment & Crisis Support */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Next Appointment */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="border border-gray-200 rounded-lg p-6">
           <h2 className="text-base font-bold text-gray-900 mb-4">Next Appointment</h2>
-          <div className="border border-gray-300 rounded-lg p-4 bg-white">
-            <p className="text-gray-900 font-bold text-sm">March 15, 2026 at 2:00 PM</p>
-            <p className="text-gray-700 text-xs mt-1">Counselor: Dr. Sarah Lee</p>
-            <p className="text-gray-600 text-xs mt-2">Location: Room 205-B</p>
-            </div>
+          <div className="space-y-2">
+            <p className="text-gray-900 font-medium text-sm">March 15, 2026 at 2:00 PM</p>
+            <p className="text-gray-600 text-xs">Dr. Sarah Lee • Room 205-B</p>
             <Link href="/reservations">
-              <button className="mt-4 w-full py-2 px-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium">
-                Schedule Another Appointment
+              <button className="mt-4 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition text-sm font-medium">
+                Schedule Another
               </button>
             </Link>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-base font-bold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="space-y-2">
-            <QuickActionLink href="/tasks" label="View My Tasks" />
-            <QuickActionLink href="/intake" label="Complete Intake Form" />
-            <QuickActionLink href="/resources" label="Access Resources" />
-            <QuickActionLink href="/profile" label="Update Profile" />
           </div>
-        </div>
-
-        {/* Wellness Tips */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-base font-bold text-gray-900 mb-4">Wellness Tip</h2>
-          <p className="text-gray-700 text-xs leading-relaxed">
-            Take regular breaks during study sessions. Studies show that 5-minute breaks every 25 minutes can improve focus and reduce stress.
-          </p>
-          <Link href="/resources/wellness-tips">
-            <p className="text-gray-700 text-xs mt-3 font-medium cursor-pointer hover:underline">
-              View More Tips →
-            </p>
-          </Link>
         </div>
 
         {/* Crisis Support */}
-          <div className="border border-red-300 rounded-lg p-6">
+        <div className="border border-red-300 rounded-lg p-6 bg-red-50">
           <h2 className="text-base font-bold text-red-900 mb-2">In Crisis?</h2>
           <p className="text-red-800 text-xs mb-4">
-            If you're in immediate danger, please contact campus security or the National Crisis Hotline.
+            Call 988 (National Crisis Hotline) or Campus Security (Ext. 911)
           </p>
-          <div className="space-y-2">
-            <p className="text-red-900 font-bold text-xs">Campus Security: Ext. 911</p>
-            <p className="text-red-900 font-bold text-xs">Crisis Hotline: 988</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Section */}
-      <div className="bg-white rounded-lg shadow p-6 mt-6">
-        <h2 className="text-base font-bold text-gray-900 mb-4">Your Progress</h2>
-        <div className="space-y-3">
-          <ProgressItem label="Intake Form Completion" percentage={100} />
-          <ProgressItem label="Assessment Completion" percentage={50} />
-          <ProgressItem label="Treatment Goals" percentage={75} />
         </div>
       </div>
     </DashboardLayout>
   );
 }
 
-function StatCard({ label, value, color }: any) {
-  return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <p className="text-gray-600 text-xs font-medium">{label}</p>
-      <p className={`text-2xl font-bold mt-2 ${color}`}>{value}</p>
-    </div>
-  );
-}
-
-function QuickActionLink({ href, label }: any) {
-  return (
-    <Link href={href}>
-      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-        <span className="text-gray-900 font-medium text-xs">{label}</span>
-        <span className="text-gray-400">→</span>
-      </div>
-    </Link>
-  );
-}
-
-function ProgressItem({ label, percentage }: any) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="font-medium text-gray-900 text-xs">{label}</p>
-        <p className="text-xs text-gray-600">{percentage}%</p>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div
-          className="bg-green-600 h-2 rounded-full transition-all"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  );
-}

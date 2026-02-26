@@ -194,6 +194,65 @@ def create_safety_plan(case_id):
     }), 201
 
 
+# -- new perma history / risk endpoints --------------------------------------------------
+
+def _compute_risk_from_label(label: str) -> str:
+    """Map a PERMA label to a simple risk level."""
+    if not label:
+        return 'UNKNOWN'
+    l = label.lower()
+    if 'struggl' in l or 'red' in l:
+        return 'HIGH'
+    if 'surviv' in l or 'yellow' in l:
+        return 'MEDIUM'
+    if 'thriv' in l or 'green' in l:
+        return 'LOW'
+    return 'UNKNOWN'
+
+
+@high_risk_bp.route('/user/<username>/perma-history', methods=['GET'])
+@jwt_required()
+def get_user_perma_history(username):
+    """Return the PERMA history for a student along with a risk classification."""
+    # simple permission check: counselors and above
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    entries = list(db.db.perma_history.find({'username': username}).sort('date', -1))
+    result = []
+    for e in entries:
+        result.append({
+            'date': e.get('date').isoformat() if hasattr(e.get('date'), 'isoformat') else e.get('date'),
+            'perma_label': e.get('perma_label')
+        })
+    risk = _compute_risk_from_label(result[0]['perma_label']) if result else 'UNKNOWN'
+
+    return jsonify({'username': username, 'risk': risk, 'history': result}), 200
+
+
+@high_risk_bp.route('/users', methods=['GET'])
+@jwt_required()
+def list_users_with_risk():
+    """List all student usernames along with their current risk classification."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    # get student usernames from users collection
+    student_docs = db.db.users.find({'role': 'STUDENT'}, {'username': 1})
+    users = []
+    for doc in student_docs:
+        uname = doc.get('username')
+        # fetch latest perma entry
+        entry = db.db.perma_history.find({'username': uname}).sort('date', -1).limit(1)
+        latest = list(entry)
+        risk = _compute_risk_from_label(latest[0].get('perma_label')) if latest else 'UNKNOWN'
+        users.append({'username': uname, 'risk': risk})
+
+    return jsonify(users), 200
+
+
 @high_risk_bp.route('/case/<case_id>/safety-plan', methods=['GET'])
 @jwt_required()
 def get_safety_plan(case_id):

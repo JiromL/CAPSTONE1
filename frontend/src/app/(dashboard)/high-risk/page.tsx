@@ -1,49 +1,38 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Phone, Mail, User, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function HighRiskPage() {
-  const [highRiskCases] = useState([
-    {
-      id: 1,
-      name: 'James Wilson',
-      studentId: 'STU-2024-003',
-      riskLevel: 'critical',
-      reason: 'Suicidal ideation, substance use',
-      lastAssessment: '2024-01-20',
-      safetyPlan: 'Established',
-      emergencyContact: 'Family (Dr. Patricia Williams)',
-      nextCheckIn: '2024-01-22',
-      status: 'active',
-    },
-    {
-      id: 2,
-      name: 'Robert Lee',
-      studentId: 'STU-2024-005',
-      riskLevel: 'high',
-      reason: 'Depression, self-harm thoughts',
-      lastAssessment: '2024-01-19',
-      safetyPlan: 'In Progress',
-      emergencyContact: 'Roommate Notification',
-      nextCheckIn: '2024-01-23',
-      status: 'active',
-    },
-    {
-      id: 3,
-      name: 'Lisa Chen',
-      studentId: 'STU-2024-006',
-      riskLevel: 'moderate',
-      reason: 'Eating disorder concerns',
-      lastAssessment: '2024-01-18',
-      safetyPlan: 'Established',
-      emergencyContact: 'Parent Contact Info on File',
-      nextCheckIn: '2024-01-25',
-      status: 'monitoring',
-    },
-  ]);
+  const [highRiskCases, setHighRiskCases] = useState<any[]>([]);
+
+  // load list of student risk levels from backend
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('/api/high-risk/users', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        // backend returns [{username, risk},...]
+        const mapped = data.map((u: any, idx: number) => ({
+          id: idx,
+          name: u.username,
+          studentId: u.username,
+          riskLevel: u.risk.toLowerCase(),
+          reason: '',
+          lastAssessment: '',
+          safetyPlan: '',
+          emergencyContact: '',
+          nextCheckIn: '',
+          status: 'active',
+        }));
+        setHighRiskCases(mapped);
+      })
+      .catch((err) => console.error('load risk users', err));
+  }, []);
 
   const emergencyResources = [
     { name: '24/7 Crisis Hotline', phone: '1-800-273-8255' },

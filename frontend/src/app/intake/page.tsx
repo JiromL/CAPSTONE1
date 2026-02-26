@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ChevronRight, Check } from 'lucide-react';
 
@@ -8,6 +8,7 @@ export default function IntakePage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [counselingId, setCounselingId] = useState('');
+  const [existingCounselingId, setExistingCounselingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     purpose: '',
     purpose_other: '',
@@ -22,6 +23,14 @@ export default function IntakePage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Load existing counseling ID from localStorage
+  useEffect(() => {
+    const savedId = localStorage.getItem('counseling_id');
+    if (savedId) {
+      setExistingCounselingId(savedId);
+    }
+  }, []);
 
   const steps = [
     { number: 1, title: 'Purpose & Counselor' },
@@ -148,6 +157,15 @@ export default function IntakePage() {
         {!submitted ? (
           <>
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Student Intake Form</h1>
+
+            {/* Display existing counseling ID at the top */}
+            {existingCounselingId && (
+              <div className="mb-8 border border-green-300 rounded-lg p-6 bg-green-50">
+                <p className="text-sm text-green-700 font-medium mb-2">Your Counseling ID</p>
+                <p className="text-2xl font-bold text-green-900 font-mono tracking-wider">{existingCounselingId}</p>
+                <p className="text-xs text-green-700 mt-2">You can use this to reference your previous intake submission</p>
+              </div>
+            )}
 
             {/* Stepper */}
             <div className="mb-12">

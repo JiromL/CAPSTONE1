@@ -10,9 +10,7 @@ interface DashboardProps {
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
-    { label: 'Appointments', href: '/appointments', icon: <Calendar size={20} />, badge: 1 },
-    { label: 'Assessments', href: '/assessments', icon: <CheckCircle size={20} /> },
-    { label: 'Referrals', href: '/referrals', icon: <MessageCircle size={20} /> },
+    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
     { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
     { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
     { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
@@ -64,10 +62,10 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-base font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-2">
+            <QuickActionLink href="/tasks" label="View My Tasks" />
             <QuickActionLink href="/intake" label="Complete Intake Form" />
-            <QuickActionLink href="/assessments" label="Take Wellness Assessment" />
             <QuickActionLink href="/resources" label="Access Resources" />
-            <QuickActionLink href="/messages" label="Contact Counselor" />
+            <QuickActionLink href="/profile" label="Update Profile" />
           </div>
         </div>
 

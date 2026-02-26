@@ -238,7 +238,7 @@ export default function IntakePage() {
                         name="purpose_other"
                         value={formData.purpose_other}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-black focus:ring-1 focus:ring-gray-400"
                         placeholder="Describe the purpose of your visit..."
                       />
                     </div>
@@ -273,7 +273,7 @@ export default function IntakePage() {
                         name="preferred_date"
                         value={formData.preferred_date}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
@@ -285,7 +285,7 @@ export default function IntakePage() {
                         name="preferred_time"
                         value={formData.preferred_time}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export default function IntakePage() {
                       name="platform"
                       value={formData.platform}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select a platform</option>
                       <option value="face_to_face">Face to Face</option>
@@ -321,7 +321,7 @@ export default function IntakePage() {
                       value={formData.concerns}
                       onChange={handleInputChange}
                       rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
                       placeholder="Please describe the concerns you'd like to discuss..."
                     />
                   </div>

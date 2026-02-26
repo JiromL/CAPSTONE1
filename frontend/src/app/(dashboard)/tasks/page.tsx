@@ -157,26 +157,7 @@ export default function TasksPage() {
           )}
         </div>
 
-        {/* Summary Stats */}
-        {filteredTasks.length > 0 && (
-          <div className="border border-gray-200 rounded p-4">
-            <h3 className="text-xs text-gray-700 mb-3 uppercase tracking-wide">Summary</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Total Tasks</p>
-                <p className="text-lg text-gray-900">{tasks.length}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">in This Category</p>
-                <p className="text-lg text-gray-900">{filteredTasks.length}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Awaiting Action</p>
-                <p className="text-lg text-gray-900">{tasks.filter((t) => t.status === 'pending' || t.status === 'scheduled').length}</p>
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     </DashboardPageWrapper>
   );

@@ -153,41 +153,41 @@ export default function IntakePage() {
 
   return (
     <DashboardPageWrapper title="Student Intake" subtitle="Complete your intake form">
-      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-8">
+      <div className="max-w-2xl mx-auto">
         {!submitted ? (
           <>
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Student Intake Form</h1>
+            <h1 className="text-xl font-semibold text-gray-900 mb-6">Intake Form</h1>
 
             {/* Display existing counseling ID at the top */}
             {existingCounselingId && (
-              <div className="mb-8 border border-green-300 rounded-lg p-6 bg-green-50">
-                <p className="text-sm text-green-700 font-medium mb-2">Your Counseling ID</p>
-                <p className="text-2xl font-bold text-green-900 font-mono tracking-wider">{existingCounselingId}</p>
-                <p className="text-xs text-green-700 mt-2">You can use this to reference your previous intake submission</p>
+              <div className="mb-6 border border-gray-200 rounded p-4 bg-gray-50">
+                <p className="text-xs text-gray-600 font-medium mb-2">Your Counseling ID</p>
+                <p className="text-lg font-mono text-gray-900">{existingCounselingId}</p>
+                <p className="text-xs text-gray-600 mt-2">Reference your previous submissions using this ID</p>
               </div>
             )}
 
             {/* Stepper */}
-            <div className="mb-12">
+            <div className="mb-8">
               <div className="flex items-center justify-between">
                 {steps.map((step, idx) => (
                   <div key={step.number} className="flex items-center flex-1">
                     <div
-                      className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm ${
+                      className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium ${
                         currentStep >= step.number
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-gray-400 text-white'
                           : 'bg-gray-200 text-gray-600'
                       }`}
                     >
-                      {currentStep > step.number ? <Check size={20} /> : step.number}
+                      {currentStep > step.number ? <Check size={16} /> : step.number}
                     </div>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900">{step.title}</p>
+                    <div className="ml-2">
+                      <p className="text-xs text-gray-700">{step.title}</p>
                     </div>
                     {idx < steps.length - 1 && (
                       <div
-                        className={`flex-1 h-1 mx-3 ${
-                          currentStep > step.number ? 'bg-blue-600' : 'bg-gray-200'
+                        className={`flex-1 h-px mx-2 ${
+                          currentStep > step.number ? 'bg-gray-400' : 'bg-gray-200'
                         }`}
                       />
                     )}
@@ -198,8 +198,8 @@ export default function IntakePage() {
 
             {message && (
               <div
-                className={`mb-6 p-4 rounded-md ${
-                  message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                className={`mb-6 p-3 rounded text-xs ${
+                  message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                 }`}
               >
                 {message.text}
@@ -209,16 +209,16 @@ export default function IntakePage() {
             <form onSubmit={handleSubmit}>
               {/* Step 1: Purpose & Counselor */}
               {currentStep === 1 && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
                       What is the purpose of your visit? *
                     </label>
                     <select
                       name="purpose"
                       value={formData.purpose}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-400"
                     >
                       <option value="">Select a purpose</option>
                       <option value="counseling">Initial Counseling</option>
@@ -230,7 +230,7 @@ export default function IntakePage() {
 
                   {formData.purpose === 'other' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
                         Please specify the purpose *
                       </label>
                       <input
@@ -238,14 +238,14 @@ export default function IntakePage() {
                         name="purpose_other"
                         value={formData.purpose_other}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-400"
                         placeholder="Describe the purpose of your visit..."
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
                       Preferred Counselor (optional)
                     </label>
                     <input
@@ -253,7 +253,7 @@ export default function IntakePage() {
                       name="counselor"
                       value={formData.counselor}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-400"
                       placeholder="Enter counselor name if you have a preference..."
                     />
                   </div>
@@ -419,12 +419,12 @@ export default function IntakePage() {
               )}
 
               {/* Navigation Buttons */}
-              <div className="flex gap-4 mt-8">
+              <div className="flex gap-3 mt-6">
                 {currentStep > 1 && (
                   <button
                     type="button"
                     onClick={handlePrev}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50"
+                    className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-100"
                   >
                     ← Back
                   </button>
@@ -433,36 +433,33 @@ export default function IntakePage() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 flex items-center gap-2"
+                    className="ml-auto px-4 py-1.5 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 flex items-center gap-2"
                   >
-                    Next <ChevronRight size={18} />
+                    Next <ChevronRight size={14} />
                   </button>
                 )}
                 {currentStep === 4 && (
                   <button
                     type="submit"
                     disabled={loading}
-                    className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 disabled:bg-gray-400"
+                    className="ml-auto px-4 py-1.5 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 disabled:bg-gray-300"
                   >
-                    {loading ? 'Submitting...' : 'Submit Intake Form'}
+                    {loading ? 'Submitting...' : 'Submit Form'}
                   </button>
                 )}
               </div>
             </form>
           </>
         ) : (
-          <div className="text-center py-12">
-            <div className="bg-green-50 rounded-lg p-8 mb-6">
-              <h1 className="text-3xl font-bold text-green-900 mb-4">Thank You!</h1>
-              <p className="text-green-700 mb-6">Your intake form has been submitted successfully.</p>
-              <div className="bg-white rounded-lg p-6 inline-block">
-                <p className="text-gray-600 text-sm mb-2">Your Counseling ID</p>
-                <p className="text-3xl font-bold text-blue-600 font-mono">{counselingId}</p>
-                <p className="text-gray-600 text-xs mt-4 max-w-sm">
-                  Please save this ID for your records. You'll use it for all future counseling communications.
-                </p>
-              </div>
-              <p className="text-gray-600 mt-8">A confirmation email with your counseling ID has been sent to your email address.</p>
+          <div className="text-center py-8">
+            <h1 className="text-lg font-semibold text-gray-900 mb-4">Form Submitted</h1>
+            <p className="text-sm text-gray-600 mb-6">Your intake form has been submitted successfully.</p>
+            <div className="border border-gray-200 rounded p-4 inline-block mb-6">
+              <p className="text-xs text-gray-600 mb-2">Your Counseling ID</p>
+              <p className="text-xl font-mono text-gray-900 tracking-wider">{counselingId}</p>
+              <p className="text-xs text-gray-600 mt-3 max-w-sm">
+                A confirmation email has been sent to your email address.
+              </p>
             </div>
             <button
               onClick={() => {
@@ -481,7 +478,7 @@ export default function IntakePage() {
                   consent: false,
                 });
               }}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700"
+              className="px-4 py-1.5 bg-gray-400 text-white rounded text-sm hover:bg-gray-500"
             >
               Submit Another Form
             </button>

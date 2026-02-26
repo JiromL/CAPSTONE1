@@ -51,46 +51,46 @@ export default function LoginPage() {
         </div>
 
         {/* right login area */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-lg px-8 py-10">
-            <div className="flex items-center justify-center mb-6">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
+          <div className="w-full max-w-md border border-gray-200 rounded p-6">
+            <div className="flex items-center justify-center mb-4">
               {/* logo placeholder */}
-              <div className="h-16 w-16 bg-gray-300 rounded" />
+              <div className="h-10 w-10 bg-gray-300 rounded" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2 text-center">
-              Let's Get Started
+            <h1 className="text-base font-semibold text-gray-900 mb-1 text-center">
+              Sign In
             </h1>
-            <p className="text-center text-gray-600 mb-6">Sign in to CPS System</p>
+            <p className="text-center text-gray-600 text-xs mb-4">Campus Counseling Services</p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                <div className="border border-gray-200 text-gray-700 px-3 py-2 rounded text-xs">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Username / Email
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Email
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-transparent text-black"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-transparent text-black text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Password
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-transparent text-black"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-transparent text-black text-sm"
                   required
                 />
               </div>
@@ -98,18 +98,18 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 transition"
+                className="w-full bg-gray-400 hover:bg-gray-500 text-white font-medium py-1.5 px-4 rounded disabled:opacity-50 transition text-sm"
               >
-                {loading ? 'Logging in...' : 'SIGN IN'}
+                {loading ? 'Logging in...' : 'Sign In'}
               </button>
             </form>
 
-            <div className="mt-4 text-center">
+            <div className="mt-3 text-center">
               <Link
                 href="/forgot-password"
-                className="text-sm text-indigo-600 hover:text-indigo-700"
+                className="text-xs text-gray-600 hover:text-gray-700"
               >
-                Trouble in Login?
+                Forgot password?
               </Link>
             </div>
           </div>

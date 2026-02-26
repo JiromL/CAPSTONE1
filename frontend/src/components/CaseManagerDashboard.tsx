@@ -26,21 +26,21 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
       subtitle="Case Coordination & Follow-up"
     >
       {/* Quick Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="border border-gray-200 rounded-lg p-6">
-          <p className="text-gray-600 text-xs font-medium mb-2">Active Cases</p>
-          <p className="text-4xl font-bold text-gray-900">32</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="border border-gray-200 rounded p-4">
+          <p className="text-gray-600 text-xs font-medium mb-1">Active Cases</p>
+          <p className="text-2xl font-bold text-gray-900">32</p>
         </div>
-        <div className="border border-gray-200 rounded-lg p-6">
-          <p className="text-gray-600 text-xs font-medium mb-2">Follow-ups Due</p>
-          <p className="text-4xl font-bold text-gray-900">7</p>
+        <div className="border border-gray-200 rounded p-4">
+          <p className="text-gray-600 text-xs font-medium mb-1">Follow-ups Due</p>
+          <p className="text-2xl font-bold text-gray-900">7</p>
         </div>
       </div>
 
       {/* Core Actions */}
-      <div className="border border-gray-200 rounded-lg p-6">
-        <h2 className="text-base font-bold text-gray-900 mb-4">Actions</h2>
-        <div className="space-y-2">
+      <div className="border border-gray-200 rounded p-4">
+        <h2 className="text-sm font-semibold text-gray-900 mb-2">Actions</h2>
+        <div className="space-y-1">
           <CaseLink href="/cases" label="View Cases" badge="32" />
           <CaseLink href="/high-risk" label="High-Risk Clients" badge="4" />
           <CaseLink href="/documentation" label="Documentation" />
@@ -54,10 +54,10 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
 function CaseLink({ href, label, badge }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-        <span className="text-gray-900 font-medium text-sm">{label}</span>
-        {badge && <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">{badge}</span>}
-        {!badge && <span className="text-gray-400">→</span>}
+      <div className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50 transition cursor-pointer">
+        <span className="text-gray-900 font-medium text-xs">{label}</span>
+        {badge && <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">{badge}</span>}
+        {!badge && <span className="text-gray-400 text-xs">→</span>}
       </div>
     </Link>
   );

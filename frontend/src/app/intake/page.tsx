@@ -127,6 +127,8 @@ export default function IntakePage() {
 
       if (response.ok) {
         setCounselingId(data.counseling_id);
+        // Save counseling ID to localStorage
+        localStorage.setItem('counseling_id', data.counseling_id);
         setSubmitted(true);
         setMessage({ type: 'success', text: 'Intake form submitted successfully!' });
       } else {

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { BookOpen, CheckCircle, AlertCircle, FileText, Heart } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { useState, useEffect } from 'react';
 
 interface DashboardProps {
   user: any;
@@ -8,6 +9,16 @@ interface DashboardProps {
 }
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
+  const [counselingId, setCounselingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load counseling ID from localStorage
+    const savedId = localStorage.getItem('counseling_id');
+    if (savedId) {
+      setCounselingId(savedId);
+    }
+  }, []);
+
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
     { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
@@ -30,6 +41,15 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           Welcome, {user?.name || 'Student'}!
         </h2>
       </div>
+
+      {/* Counseling ID - if available */}
+      {counselingId && (
+        <div className="mb-6 border border-green-300 rounded-lg p-6 bg-green-50">
+          <p className="text-sm text-green-700 font-medium mb-2">Your Counseling ID</p>
+          <p className="text-3xl font-bold text-green-900 font-mono tracking-wider">{counselingId}</p>
+          <p className="text-xs text-green-700 mt-2">Use this ID for all counseling communications</p>
+        </div>
+      )}
 
       {/* Next Appointment & Crisis Support */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

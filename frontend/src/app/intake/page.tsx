@@ -218,7 +218,7 @@ export default function IntakePage() {
                       name="purpose"
                       value={formData.purpose}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-400"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-black focus:ring-1 focus:ring-gray-400"
                     >
                       <option value="">Select a purpose</option>
                       <option value="counseling">Initial Counseling</option>
@@ -246,15 +246,15 @@ export default function IntakePage() {
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Preferred Counselor (optional)
+                      Preferred / Assigned Counselor (optional)
                     </label>
                     <input
                       type="text"
                       name="counselor"
                       value={formData.counselor}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-gray-400"
-                      placeholder="Enter counselor name if you have a preference..."
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-black focus:ring-1 focus:ring-gray-400"
+                      placeholder="Enter counselor name if you have a preference or assignment..."
                     />
                   </div>
                 </div>

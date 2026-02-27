@@ -189,7 +189,7 @@ function SendToCounselorButton({ username }: { username: string }) {
     setSent(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/high-risk/user/${encodeURIComponent(username)}/notify`, {
+      const res = await fetch(api(`/api/high-risk/user/${encodeURIComponent(username)}/notify`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

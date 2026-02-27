@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Phone, Mail, User, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import ManualNotifyForm from '@/components/ManualNotifyForm';
 
 export default function HighRiskPage() {
   const [highRiskCases, setHighRiskCases] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'cases' | 'manual'>('cases');
 
   // load list of student risk levels from backend
   useEffect(() => {
@@ -57,8 +59,37 @@ export default function HighRiskPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Active High-Risk Cases</h2>
-        <div className="space-y-4">{highRiskCases.map((caseItem) => (<HighRiskCaseCard key={caseItem.id} caseItem={caseItem} />))}</div>
+        {/* page-level tabs */}
+        <div className="border-b border-gray-200 mb-6">
+          <div className="flex overflow-x-auto gap-1">
+            <button
+              onClick={() => setActiveTab('cases')}
+              className={`flex-1 py-3 text-center text-sm font-medium transition ${
+                activeTab === 'cases'
+                  ? 'border-b-2 border-gray-400 text-gray-900'
+                  : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Active Cases
+            </button>
+            <button
+              onClick={() => setActiveTab('manual')}
+              className={`flex-1 py-3 text-center text-sm font-medium transition ${
+                activeTab === 'manual'
+                  ? 'border-b-2 border-gray-400 text-gray-900'
+                  : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Manual Notify
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'cases' ? (
+          <div className="space-y-4">{highRiskCases.map((caseItem) => (<HighRiskCaseCard key={caseItem.id} caseItem={caseItem} />))}</div>
+        ) : (
+          <ManualNotifyForm />
+        )}
       </section>
 
       <section className="mt-12">
@@ -78,65 +109,72 @@ export default function HighRiskPage() {
 }
 
 function HighRiskCaseCard({ caseItem }: any) {
-  const riskColor =
-    caseItem.riskLevel === 'critical'
-      ? 'bg-red-100 border-red-300'
-      : caseItem.riskLevel === 'high'
-      ? 'bg-orange-100 border-orange-300'
-      : 'bg-yellow-100 border-yellow-300';
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<Array<{ date: string; perma_label: string }>>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const statusIcon = caseItem.status === 'active' ? <AlertTriangle className="text-red-600" /> : <CheckCircle className="text-green-600" />;
+  const toggleHistory = async () => {
+    if (!showHistory) {
+      // fetch when expanding
+      setLoadingHistory(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/high-risk/user/${encodeURIComponent(caseItem.studentId)}/perma-history`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setHistory(data.history || []);
+        } else {
+          setHistory([]);
+        }
+      } catch (e) {
+        console.error('load history', e);
+        setHistory([]);
+      } finally {
+        setLoadingHistory(false);
+      }
+    }
+    setShowHistory(!showHistory);
+  };
 
   return (
-    <div className={`border-2 ${riskColor} rounded-lg p-6`}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start gap-4">
-          {statusIcon}
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">{caseItem.name}</h3>
-            <p className="text-gray-600 text-sm">{caseItem.studentId}</p>
-          </div>
+    <div className="border border-gray-300 rounded p-4 bg-white">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">{caseItem.name}</h3>
+          <p className="text-xs text-gray-500">{caseItem.studentId}</p>
         </div>
-        <span className="text-sm font-bold px-3 py-1 bg-white rounded-full text-gray-900">
+        <span className="text-xs font-bold text-gray-700">
           {caseItem.riskLevel.toUpperCase()}
         </span>
       </div>
 
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Risk Reason</p>
-            <p className="font-medium text-gray-900">{caseItem.reason}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Safety Plan</p>
-            <p className="font-medium text-gray-900">{caseItem.safetyPlan}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Last Assessment</p>
-            <p className="font-medium text-gray-900">{new Date(caseItem.lastAssessment).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Next Check-in</p>
-            <p className="font-medium text-gray-900">{new Date(caseItem.nextCheckIn).toLocaleDateString()}</p>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t border-gray-300">
-          <p className="text-sm text-gray-600 mb-2">Emergency Contact</p>
-          <p className="font-medium text-gray-900 mb-4">{caseItem.emergencyContact}</p>
-        </div>
-      </div>
-
-      <div className="flex gap-3 pt-4 border-t border-gray-300">
-        <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2">
-          <Phone size={18} /> Call
-        </button>
-        <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2">
-          <Mail size={18} /> Email
+      <div className="mt-2 flex gap-2 text-sm">
+        <button
+          onClick={toggleHistory}
+          className="text-blue-600 hover:underline"
+        >
+          {showHistory ? 'Hide history' : 'View history'}
         </button>
         <SendToCounselorButton username={caseItem.studentId} />
       </div>
+
+      {showHistory && (
+        <div className="mt-2 text-xs text-gray-700">
+          {loadingHistory && <p>Loading...</p>}
+          {!loadingHistory && history.length === 0 && <p>No history</p>}
+          {!loadingHistory && history.length > 0 && (
+            <ul className="list-disc ml-5">
+              {history.map((h, idx) => (
+                <li key={idx}>
+                  {new Date(h.date).toLocaleDateString()}: {h.perma_label}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -179,3 +217,4 @@ function SendToCounselorButton({ username }: { username: string }) {
     </div>
   );
 }
+

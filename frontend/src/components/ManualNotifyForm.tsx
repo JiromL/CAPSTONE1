@@ -15,9 +15,11 @@ export default function ManualNotifyForm() {
     if (!username) return;
     setLoadingHistory(true);
     setHistoryError(null);
+    const url = api(`/api/high-risk/user/${encodeURIComponent(username)}/perma-history`);
+    console.log('fetching history from', url);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(api(`/api/high-risk/user/${encodeURIComponent(username)}/perma-history`), {
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -29,9 +31,9 @@ export default function ManualNotifyForm() {
         setRisk('');
         setHistoryError(data.error || 'Failed to load history');
       }
-    } catch (err) {
-      console.error(err);
-      setHistoryError('Network error');
+    } catch (err: any) {
+      console.error('fetch history error', err);
+      setHistoryError(err.message || 'Network error');
     } finally {
       setLoadingHistory(false);
     }

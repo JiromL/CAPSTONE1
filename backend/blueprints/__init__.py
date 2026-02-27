@@ -8,7 +8,7 @@ from .intake import intake_bp
 from .appointments import appointments_bp
 from .documentation import documentation_bp
 from .counseling import counseling_bp
-from .high_risk import high_risk_bp
+from .high_risk import high_risk_bp, dashboard_bp
 from .referrals import referrals_bp
 from .reservations import reservations_bp
 from .integrations import integrations_bp
@@ -21,6 +21,7 @@ __all__ = [
     'documentation_bp',
     'counseling_bp',
     'high_risk_bp',
+    'dashboard_bp',
     'referrals_bp',
     'reservations_bp',
     'integrations_bp',

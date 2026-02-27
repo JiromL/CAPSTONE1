@@ -22,6 +22,7 @@ from blueprints import (
     documentation_bp,
     counseling_bp,
     high_risk_bp,
+    dashboard_bp,
     referrals_bp,
     reservations_bp,
     integrations_bp,
@@ -58,6 +59,7 @@ def create_app(config_name=None):
     app.register_blueprint(documentation_bp)
     app.register_blueprint(counseling_bp)
     app.register_blueprint(high_risk_bp)
+    app.register_blueprint(dashboard_bp)
     app.register_blueprint(referrals_bp)
     app.register_blueprint(reservations_bp)
     app.register_blueprint(integrations_bp)

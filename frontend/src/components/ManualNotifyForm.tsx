@@ -15,7 +15,7 @@ export default function ManualNotifyForm() {
     if (!username) return;
     setLoadingHistory(true);
     setHistoryError(null);
-    const url = api(`/api/high-risk/user/${encodeURIComponent(username)}/perma-history`);
+    const url = api(`/api/v1/dashboard/user_perma_history/${encodeURIComponent(username)}?offset=0&limit=100`);
     console.log('fetching history from', url);
     try {
       const token = localStorage.getItem('token');
@@ -34,8 +34,10 @@ export default function ManualNotifyForm() {
       }
 
       if (res.ok) {
-        setHistory(data.history || []);
-        setRisk(data.risk || '');
+        setHistory(data || []);
+        // Extract latest perma label for risk display
+        const latestLabel = data && data.length > 0 ? data[0].perma_label : '';
+        setRisk(latestLabel);
       } else {
         setHistory([]);
         setRisk('');

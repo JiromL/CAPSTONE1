@@ -610,3 +610,65 @@ def get_daily_updates_due():
         'overdue_count': len(overdue_cases),
         'cases': result_cases
     }), 200
+
+
+# -- v1 dashboard endpoints (matching live API spec) --
+
+dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/api/v1/dashboard')
+
+
+@dashboard_bp.route('/users', methods=['GET'])
+@jwt_required()
+def dashboard_list_users():
+    """List all student usernames with their latest PERMA label."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    # Get student usernames from users collection
+    student_docs = db.db.users.find({'role': 'STUDENT'}, {'username': 1, '_id': 1})
+    users = []
+    for doc in student_docs:
+        uname = doc.get('username')
+        # Fetch latest PERMA entry
+        latest_entry = db.db.perma_history.find_one(
+            {'username': uname},
+            sort=[('date', -1)]
+        )
+        perma_label = latest_entry.get('perma_label') if latest_entry else 'Unknown'
+        users.append({
+            'username': uname,
+            'perma_label': perma_label
+        })
+
+    return jsonify(users), 200
+
+
+@dashboard_bp.route('/user_perma_history/<username>', methods=['GET'])
+@jwt_required()
+def dashboard_user_perma_history(username):
+    """Get PERMA history for a user with pagination (offset/limit)."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    # Get pagination parameters
+    offset = int(request.args.get('offset', 0))
+    limit = int(request.args.get('limit', 100))
+
+    # Fetch entries with pagination
+    entries = list(
+        db.db.perma_history.find({'username': username})
+        .sort('date', -1)
+        .skip(offset)
+        .limit(limit)
+    )
+
+    result = []
+    for e in entries:
+        result.append({
+            'date': e.get('date').isoformat() if hasattr(e.get('date'), 'isoformat') else str(e.get('date')),
+            'perma_label': e.get('perma_label')
+        })
+
+    return jsonify(result), 200

@@ -62,7 +62,7 @@ The frontend will be available at `http://localhost:3000`
    python app.py
    ```
 
-The backend will be available at `http://localhost:5000`
+The backend will be available at `http://localhost:5000` (or set env `PORT` to another value, e.g. 5001)
 
 ## API Endpoints
 

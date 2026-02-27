@@ -23,7 +23,7 @@ pip install -r requirements.txt
 
 # Start Flask server
 python app.py
-# Server runs on http://localhost:5000
+# Server runs on http://localhost:5000 (configurable via PORT env var)
 ```
 
 ### 2. Frontend Setup
@@ -163,7 +163,7 @@ npm install
 Create `.env.local`:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5000  # update if you run backend on a different port, e.g. 5001
 ```
 
 ### Step 4: Build Assets
@@ -289,6 +289,8 @@ db.session.commit()
 ### Backend Issues
 
 **Port 5000 already in use:**
+
+*(You can start the backend on a different port with `PORT=5001 python app.py` or similar. In development set `NEXT_PUBLIC_API_BASE` accordingly.)*
 ```bash
 # Find process using port
 lsof -i :5000  # Mac/Linux
@@ -331,7 +333,7 @@ npm run dev -- -p 3001
 # Verify CORS is enabled in backend/app.py:
 # CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000"]}})
 
-# Ensure backend is running on port 5000
+# Ensure backend is running on port 5000 (or another port you chose)
 ```
 
 **Blank page after login:**

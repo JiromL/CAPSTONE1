@@ -12,10 +12,18 @@ export default function PageShell({ title, subtitle, actions, children }: Props)
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-lg font-semibold text-gray-900">
               CPS System
             </Link>
+            <nav className="flex items-center gap-4">
+              <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
+                Dashboard
+              </Link>
+              <Link href="/send-perma" className="text-sm text-gray-600 hover:text-gray-900">
+                Send PERMA
+              </Link>
+            </nav>
             {title && <div className="text-sm text-gray-600">{title}</div>}
           </div>
           <div className="flex items-center gap-3">{actions}</div>

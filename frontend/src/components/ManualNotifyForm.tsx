@@ -22,7 +22,17 @@ export default function ManualNotifyForm() {
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+
+      // try to parse JSON, but if content-type is not JSON return text
+      let data: any;
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Expected JSON but got: ${text}`);
+      }
+
       if (res.ok) {
         setHistory(data.history || []);
         setRisk(data.risk || '');

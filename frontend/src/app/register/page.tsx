@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import PageShell from '@/components/PageShell'
+import { api } from '@/utils/api';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '' })
@@ -13,7 +14,7 @@ export default function RegisterPage() {
     setError('')
     setMsg('')
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(api('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '@/utils/api';
 
 export default function ManualNotifyForm() {
   const [username, setUsername] = useState('');
@@ -16,7 +17,7 @@ export default function ManualNotifyForm() {
     setHistoryError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/high-risk/user/${encodeURIComponent(username)}/perma-history`, {
+      const res = await fetch(api(`/api/high-risk/user/${encodeURIComponent(username)}/perma-history`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -42,7 +43,7 @@ export default function ManualNotifyForm() {
     setNotifyResult(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/high-risk/user/${encodeURIComponent(username)}/notify`, {
+      const res = await fetch(api(`/api/high-risk/user/${encodeURIComponent(username)}/notify`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });

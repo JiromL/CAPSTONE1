@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ChevronRight, Check } from 'lucide-react';
+import { api } from '@/utils/api';
 
 export default function IntakePage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -123,7 +124,7 @@ export default function IntakePage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/intake/submit', {
+      const response = await fetch(api('/api/intake/submit'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

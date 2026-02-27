@@ -5,6 +5,7 @@ import { AlertTriangle, Phone, Mail, User, Calendar, CheckCircle, XCircle } from
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import ManualNotifyForm from '@/components/ManualNotifyForm';
+import { api } from '@/utils/api';
 
 export default function HighRiskPage() {
   const [highRiskCases, setHighRiskCases] = useState<any[]>([]);
@@ -13,7 +14,7 @@ export default function HighRiskPage() {
   // load list of student risk levels from backend
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('/api/high-risk/users', {
+    fetch(api('/api/high-risk/users'), {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then((r) => r.json())
@@ -119,7 +120,7 @@ function HighRiskCaseCard({ caseItem }: any) {
       setLoadingHistory(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`/api/high-risk/user/${encodeURIComponent(caseItem.studentId)}/perma-history`, {
+        const res = await fetch(api(`/api/high-risk/user/${encodeURIComponent(caseItem.studentId)}/perma-history`), {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

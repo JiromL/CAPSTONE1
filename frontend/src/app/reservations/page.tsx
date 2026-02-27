@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper'
+import { api } from '@/utils/api';
 
 type Reservation = {
   id: string
@@ -25,7 +26,7 @@ export default function ReservationsPage() {
   async function fetchReservations() {
     setLoading(true)
     try {
-      const res = await fetch('/api/reservations')
+      const res = await fetch(api('/api/reservations'))
       const data = await res.json()
       setReservations(data.reservations || [])
     } catch (e) {
@@ -38,7 +39,7 @@ export default function ReservationsPage() {
   async function createReservation(e: React.FormEvent) {
     e.preventDefault()
     try {
-      const res = await fetch('/api/reservations', {
+      const res = await fetch(api('/api/reservations'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

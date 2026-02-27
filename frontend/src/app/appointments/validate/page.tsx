@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { api } from '@/utils/api';
 
 export default function ValidateSlotPage() {
   const [counselorId, setCounselorId] = useState('');
@@ -11,7 +12,7 @@ export default function ValidateSlotPage() {
 
   const validate = async () => {
     const token = localStorage.getItem('token');
-    const res = await fetch('/api/appointments/validate-slot', {
+    const res = await fetch(api('/api/appointments/validate-slot'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ counselor_id: counselorId, start, end })

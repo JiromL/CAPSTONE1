@@ -41,7 +41,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     """Development configuration"""
-    DEBUG = True
+    DEBUG = False
     MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
     MONGODB_DB_NAME = 'cps_system_dev'
 

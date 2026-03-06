@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 
 const ThemeToggle = dynamic(() => import('./ThemeToggle').then(mod => ({ default: mod.ThemeToggle })), {
   ssr: false,
+  loading: () => <div className="p-2 w-10 h-10" />,
 });
 
 type Props = {

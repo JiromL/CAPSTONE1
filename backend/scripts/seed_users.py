@@ -19,7 +19,7 @@ def seed():
     users = db.users
     
     # Clear existing users (optional; comment out to keep)
-    # users.delete_many({})
+    users.delete_many({})
     
     test_users = [
         {

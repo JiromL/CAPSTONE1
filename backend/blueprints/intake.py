@@ -237,8 +237,8 @@ def student_submit_intake():
     }
     db.db.assessments.insert_one(assessment_doc)
     
-    # Send email with counseling ID
-    if user_email:
+    # Send email with counseling ID (only if SMTP is configured)
+    if user_email and current_app.config.get('SMTP_HOST'):
         try:
             email_body = f"""Dear Student,
 

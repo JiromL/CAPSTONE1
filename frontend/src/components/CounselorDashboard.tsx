@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { TrendingUp, Clock, Users, AlertTriangle, FileText, MessageCircle } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { DashboardCalendar } from './Calendar';
+import { useState } from 'react';
 
 interface DashboardProps {
   user: any;
@@ -8,6 +10,7 @@ interface DashboardProps {
 }
 
 export function CounselorDashboard({ user, onLogout }: DashboardProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <TrendingUp size={20} /> },
     { label: 'Today\'s Sessions', href: '/counselor/sessions/today', icon: <Clock size={20} />, badge: 4 },
@@ -26,15 +29,43 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       title="Counselor Dashboard"
       subtitle="Session Management & Client Care"
     >
-      {/* Today's Sessions */}
-      <div className="border border-gray-200 rounded p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">Today's Sessions</h2>
-        <div className="space-y-1">
-          <SessionItem time="10:00 AM" client="Sarah Johnson" room="Rm 201" status="next" />
-          <SessionItem time="11:00 AM" client="Marcus Lee" room="Rm 203" status="upcoming" />
-          <SessionItem time="1:00 PM" client="Emma Davis" room="Rm 205" status="upcoming" />
-          <SessionItem time="2:30 PM" client="Alex Rodriguez" room="Rm 201" status="upcoming" />
+      {/* Today's Sessions & Calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        {/* Today's Sessions */}
+        <div className="lg:col-span-2 border border-gray-200 rounded p-4">
+          <h2 className="text-sm font-semibold text-gray-900 mb-2">Today's Sessions</h2>
+          <div className="space-y-1">
+            <SessionItem time="10:00 AM" client="Sarah Johnson" room="Rm 201" status="next" />
+            <SessionItem time="11:00 AM" client="Marcus Lee" room="Rm 203" status="upcoming" />
+            <SessionItem time="1:00 PM" client="Emma Davis" room="Rm 205" status="upcoming" />
+            <SessionItem time="2:30 PM" client="Alex Rodriguez" room="Rm 201" status="upcoming" />
+          </div>
         </div>
+
+        {/* Calendar */}
+        <DashboardCalendar
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          title="Session Calendar"
+          showAppointments={true}
+          appointments={[
+            {
+              date: new Date(2026, 2, 6),
+              title: 'Sarah Johnson',
+              time: '10:00 AM',
+            },
+            {
+              date: new Date(2026, 2, 6),
+              title: 'Marcus Lee',
+              time: '11:00 AM',
+            },
+            {
+              date: new Date(2026, 2, 8),
+              title: 'Emma Davis',
+              time: '2:00 PM',
+            },
+          ]}
+        />
       </div>
 
       {/* Client Alerts */}

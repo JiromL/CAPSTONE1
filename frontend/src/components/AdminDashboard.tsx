@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Users, Settings, BarChart3, AlertCircle, Lock, Shield, Database, Activity } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { DashboardCalendar } from './Calendar';
+import { useState } from 'react';
 
 interface DashboardProps {
   user: any;
@@ -8,6 +10,7 @@ interface DashboardProps {
 }
 
 export function AdminDashboard({ user, onLogout }: DashboardProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
     { label: 'User Management', href: '/admin/users', icon: <Users size={20} /> },
@@ -37,6 +40,29 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        {/* Calendar Sidebar */}
+        <div>
+          <DashboardCalendar
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            title="System Events Calendar"
+            showAppointments={true}
+            appointments={[
+              {
+                date: new Date(2026, 2, 10),
+                title: 'System Maintenance',
+                time: '2:00 AM - 4:00 AM',
+              },
+              {
+                date: new Date(2026, 2, 15),
+                title: 'Monthly Backup',
+                time: '11:00 PM',
+              },
+            ]}
+          />
+        </div>
+
+        {/* System Status Cards */}
         {/* User Management */}
         <div className="border border-gray-200 rounded p-4">
           <h2 className="text-sm font-semibold text-gray-900 mb-2">User Management</h2>

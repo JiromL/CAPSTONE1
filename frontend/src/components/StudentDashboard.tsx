@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { BookOpen, CheckCircle, AlertCircle, FileText, Heart } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { DashboardCalendar } from './Calendar';
 import { useState, useEffect } from 'react';
 
 interface DashboardProps {
@@ -10,6 +11,7 @@ interface DashboardProps {
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [counselingId, setCounselingId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     // Load counseling ID from localStorage
@@ -51,8 +53,8 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         </div>
       )}
 
-      {/* Next Appointment & Crisis Support */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Next Appointment & Crisis Support & Calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Next Appointment */}
         <div className="border border-gray-200 rounded p-4">
           <h2 className="text-sm font-semibold text-gray-900 mb-2">Next Appointment</h2>
@@ -74,6 +76,26 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             Call 988 (National Crisis Hotline) or Campus Security (Ext. 911)
           </p>
         </div>
+
+        {/* Calendar */}
+        <DashboardCalendar
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          title="Appointment Schedule"
+          showAppointments={true}
+          appointments={[
+            {
+              date: new Date(2026, 2, 15),
+              title: 'Counseling Session',
+              time: '2:00 PM - 3:00 PM',
+            },
+            {
+              date: new Date(2026, 2, 22),
+              title: 'Follow-up Session',
+              time: '10:00 AM - 11:00 AM',
+            },
+          ]}
+        />
       </div>
     </DashboardLayout>
   );

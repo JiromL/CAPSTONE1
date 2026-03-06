@@ -13,10 +13,9 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BarChart3 size={20} /> },
     { label: 'Cases', href: '/dashboard/cases', icon: <Users size={20} /> },
-    { label: 'Appointments', href: '/dashboard/appointments', icon: <Shield size={20} /> },
     { label: 'High-Risk Review', href: '/dashboard/high-risk', icon: <AlertTriangle size={20} />, badge: 8 },
-    { label: 'Documentation', href: '/dashboard/documentation', icon: <Calendar size={20} /> },
-    { label: 'Assessments', href: '/dashboard/assessments', icon: <TrendingUp size={20} /> },
+    { label: 'Reports', href: '/dashboard/documentation', icon: <Calendar size={20} /> },
+    { label: 'Team', href: '/dashboard/referrals', icon: <TrendingUp size={20} /> },
     { label: 'Profile', href: '/dashboard/profile', icon: <Settings size={20} /> },
   ];
 

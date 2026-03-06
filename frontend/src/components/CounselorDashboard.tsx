@@ -16,10 +16,9 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard/dashboard', icon: <TrendingUp size={20} /> },
     { label: 'Appointments', href: '/dashboard/appointments', icon: <Clock size={20} />, badge: 4 },
-    { label: 'Assessments', href: '/dashboard/assessments', icon: <FileText size={20} />, badge: 2 },
-    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <AlertTriangle size={20} />, badge: 1 },
     { label: 'Cases', href: '/dashboard/cases', icon: <Users size={20} /> },
     { label: 'Referrals', href: '/dashboard/referrals', icon: <MessageCircle size={20} /> },
+    { label: 'Documentation', href: '/dashboard/documentation', icon: <FileText size={20} />, badge: 2 },
     { label: 'Profile', href: '/dashboard/profile', icon: <Clock size={20} /> },
   ];
 

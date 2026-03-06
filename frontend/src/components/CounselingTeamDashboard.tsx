@@ -15,8 +15,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
     { label: 'Appointments', href: '/dashboard/appointments', icon: <Users size={20} /> },
     { label: 'Cases', href: '/dashboard/cases', icon: <Phone size={20} />, badge: 7 },
     { label: 'Documentation', href: '/dashboard/documentation', icon: <FileText size={20} /> },
-    { label: 'Referrals', href: '/dashboard/referrals', icon: <MessageCircle size={20} />, badge: 5 },
-    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <AlertCircle size={20} />, badge: 3 },
+    { label: 'Tasks', href: '/dashboard/tasks', icon: <MessageCircle size={20} />, badge: 5 },
     { label: 'Profile', href: '/dashboard/profile', icon: <CheckCircle size={20} /> },
   ];
 

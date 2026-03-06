@@ -12,10 +12,9 @@ interface DashboardProps {
 export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard/dashboard', icon: <CheckCircle size={20} /> },
-    { label: 'Tasks', href: '/dashboard/tasks', icon: <Clock size={20} />, badge: 15 },
     { label: 'Assessments', href: '/dashboard/assessments', icon: <FileText size={20} />, badge: 8 },
     { label: 'Cases', href: '/dashboard/cases', icon: <CheckCircle size={20} /> },
-    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <Calendar size={20} /> },
+    { label: 'Documentation', href: '/dashboard/documentation', icon: <Clock size={20} /> },
     { label: 'Referrals', href: '/dashboard/referrals', icon: <Phone size={20} /> },
     { label: 'Profile', href: '/dashboard/profile', icon: <Users size={20} /> },
   ];

@@ -17,10 +17,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
     { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BarChart3 size={20} /> },
     { label: 'User Management', href: '/dashboard/admin/users', icon: <Users size={20} /> },
     { label: 'Cases', href: '/dashboard/cases', icon: <Shield size={20} /> },
-    { label: 'Appointments', href: '/dashboard/appointments', icon: <Activity size={20} /> },
     { label: 'Documentation', href: '/dashboard/documentation', icon: <Settings size={20} /> },
-    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <Lock size={20} /> },
-    { label: 'Referrals', href: '/dashboard/referrals', icon: <Database size={20} /> },
     { label: 'Profile', href: '/dashboard/profile', icon: <AlertCircle size={20} /> },
   ];
 

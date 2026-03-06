@@ -13,11 +13,10 @@ interface DashboardProps {
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'Appointments', href: '/dashboard/appointments', icon: <HelpCircle size={20} />, badge: 12 },
     { label: 'Cases', href: '/dashboard/cases', icon: <MessageSquare size={20} />, badge: 4 },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: <HelpCircle size={20} />, badge: 12 },
     { label: 'Documentation', href: '/dashboard/documentation', icon: <Users size={20} /> },
-    { label: 'Referrals', href: '/dashboard/referrals', icon: <FileText size={20} /> },
-    { label: 'Assessments', href: '/dashboard/assessments', icon: <CheckCircle size={20} />, badge: 3 },
+    { label: 'Tasks', href: '/dashboard/tasks', icon: <FileText size={20} />, badge: 3 },
     { label: 'Profile', href: '/dashboard/profile', icon: <Settings size={20} /> },
   ];
 

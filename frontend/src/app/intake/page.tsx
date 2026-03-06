@@ -157,14 +157,14 @@ export default function IntakePage() {
       <div className="max-w-2xl mx-auto">
         {!submitted ? (
           <>
-            <h1 className="text-xl font-semibold text-gray-900 mb-6">Intake Form</h1>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-6">Intake Form</h1>
 
             {/* Display existing counseling ID at the top */}
             {existingCounselingId && (
-              <div className="mb-6 border border-gray-200 rounded p-4 bg-gray-50">
-                <p className="text-xs text-gray-600 font-medium mb-2">Your Counseling ID</p>
-                <p className="text-lg font-mono text-gray-900">{existingCounselingId}</p>
-                <p className="text-xs text-gray-600 mt-2">Reference your previous submissions using this ID</p>
+              <div className="mb-6 border border-gray-200 dark:border-gray-700 rounded p-4 bg-gray-50 dark:bg-gray-900">
+                <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-2">Your Counseling ID</p>
+                <p className="text-lg font-mono text-gray-900 dark:text-gray-50">{existingCounselingId}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Reference your previous submissions using this ID</p>
               </div>
             )}
 
@@ -176,19 +176,19 @@ export default function IntakePage() {
                     <div
                       className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium ${
                         currentStep >= step.number
-                          ? 'bg-gray-400 text-white'
-                          : 'bg-gray-200 text-gray-600'
+                          ? 'bg-gray-400 dark:bg-gray-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                       }`}
                     >
                       {currentStep > step.number ? <Check size={16} /> : step.number}
                     </div>
                     <div className="ml-2">
-                      <p className="text-xs text-gray-700">{step.title}</p>
+                      <p className="text-xs text-gray-700 dark:text-gray-300">{step.title}</p>
                     </div>
                     {idx < steps.length - 1 && (
                       <div
                         className={`flex-1 h-px mx-2 ${
-                          currentStep > step.number ? 'bg-gray-400' : 'bg-gray-200'
+                          currentStep > step.number ? 'bg-gray-400 dark:bg-gray-600' : 'bg-gray-200 dark:bg-gray-700'
                         }`}
                       />
                     )}
@@ -200,7 +200,9 @@ export default function IntakePage() {
             {message && (
               <div
                 className={`mb-6 p-3 rounded text-xs ${
-                  message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                  message.type === 'success' 
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
+                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
                 }`}
               >
                 {message.text}
@@ -212,14 +214,14 @@ export default function IntakePage() {
               {currentStep === 1 && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       What is the purpose of your visit? *
                     </label>
                     <select
                       name="purpose"
                       value={formData.purpose}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-black focus:ring-1 focus:ring-gray-400"
+                      className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm text-black dark:text-white bg-white dark:bg-gray-800 focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500"
                     >
                       <option value="">Select a purpose</option>
                       <option value="counseling">Initial Counseling</option>
@@ -231,7 +233,7 @@ export default function IntakePage() {
 
                   {formData.purpose === 'other' && (
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Please specify the purpose *
                       </label>
                       <input
@@ -239,14 +241,14 @@ export default function IntakePage() {
                         name="purpose_other"
                         value={formData.purpose_other}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-black focus:ring-1 focus:ring-gray-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500"
                         placeholder="Describe the purpose of your visit..."
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Preferred / Assigned Counselor (optional)
                     </label>
                     <input
@@ -254,7 +256,7 @@ export default function IntakePage() {
                       name="counselor"
                       value={formData.counselor}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-black focus:ring-1 focus:ring-gray-400"
+                      className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500"
                       placeholder="Enter counselor name if you have a preference or assignment..."
                     />
                   </div>
@@ -266,7 +268,7 @@ export default function IntakePage() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
                         Preferred Date *
                       </label>
                       <input
@@ -274,11 +276,11 @@ export default function IntakePage() {
                         name="preferred_date"
                         value={formData.preferred_date}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-black dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
                         Preferred Time *
                       </label>
                       <input
@@ -286,20 +288,20 @@ export default function IntakePage() {
                         name="preferred_time"
                         value={formData.preferred_time}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-black dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
                       Preferred Platform *
                     </label>
                     <select
                       name="platform"
                       value={formData.platform}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-black dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select a platform</option>
                       <option value="face_to_face">Face to Face</option>
@@ -314,7 +316,7 @@ export default function IntakePage() {
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
                       What concerns, needs, or problems would you like to address? *
                     </label>
                     <textarea
@@ -322,20 +324,20 @@ export default function IntakePage() {
                       value={formData.concerns}
                       onChange={handleInputChange}
                       rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                       placeholder="Please describe the concerns you'd like to discuss..."
                     />
                   </div>
 
-                  <div className="border-t pt-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Anxiety Assessment (GAD-7)</h3>
-                    <p className="text-sm text-gray-600 mb-6">
+                  <div className="border-t border-gray-300 dark:border-gray-700 pt-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-4">Anxiety Assessment (GAD-7)</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                       Over the last 2 weeks, how often have you been bothered by the following?
                     </p>
                     <div className="space-y-6">
                       {gad7_questions.map((question, index) => (
                         <div key={index}>
-                          <label className="block text-sm font-medium text-gray-900 mb-3">
+                          <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-3">
                             {index + 1}. {question}
                           </label>
                           <div className="flex gap-4">
@@ -349,7 +351,7 @@ export default function IntakePage() {
                                   onChange={() => handle_gad7_change(index, value)}
                                   className="w-4 h-4"
                                 />
-                                <span className="text-sm text-gray-700">
+                                <span className="text-sm text-gray-700 dark:text-gray-300">
                                   {value === 0 && 'Not at all'}
                                   {value === 1 && 'Several days'}
                                   {value === 2 && 'More than half'}
@@ -368,41 +370,41 @@ export default function IntakePage() {
               {/* Step 4: Review & Consent */}
               {currentStep === 4 && (
                 <div className="space-y-6">
-                  <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                    <h3 className="font-bold text-gray-900">Review Your Information</h3>
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 space-y-4 border border-gray-200 dark:border-gray-700">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-50">Review Your Information</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-600">Purpose</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-gray-600 dark:text-gray-400">Purpose</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-50">
                           {formData.purpose === 'other' ? formData.purpose_other : formData.purpose}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Preferred Counselor</p>
-                        <p className="font-medium text-gray-900">{formData.counselor || 'Auto-assigned'}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Preferred Counselor</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-50">{formData.counselor || 'Auto-assigned'}</p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Preferred Date & Time</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-gray-600 dark:text-gray-400">Preferred Date & Time</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-50">
                           {formData.preferred_date} at {formData.preferred_time}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Platform</p>
-                        <p className="font-medium text-gray-900">{formData.platform}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Platform</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-50">{formData.platform}</p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-gray-600">Concerns</p>
-                        <p className="font-medium text-gray-900">{formData.concerns}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Concerns</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-50">{formData.concerns}</p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-gray-600">GAD-7 Score</p>
-                        <p className="font-medium text-gray-900">{formData.gad7_responses.reduce((a, b) => a + b, 0)} / 21</p>
+                        <p className="text-gray-600 dark:text-gray-400">GAD-7 Score</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-50">{formData.gad7_responses.reduce((a, b) => a + b, 0)} / 21</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="border-t pt-6">
+                  <div className="border-t border-gray-300 dark:border-gray-700 pt-6">
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -411,7 +413,7 @@ export default function IntakePage() {
                         onChange={handleInputChange}
                         className="w-5 h-5 mt-1"
                       />
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         I consent to participate in counseling services and understand that my information will be kept confidential in accordance with applicable privacy laws. *
                       </span>
                     </label>
@@ -425,7 +427,7 @@ export default function IntakePage() {
                   <button
                     type="button"
                     onClick={handlePrev}
-                    className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-100"
+                    className="px-4 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                   >
                     ← Back
                   </button>
@@ -434,7 +436,7 @@ export default function IntakePage() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="ml-auto px-4 py-1.5 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 flex items-center gap-2"
+                    className="ml-auto px-4 py-1.5 bg-gray-400 dark:bg-gray-600 text-white rounded text-sm hover:bg-gray-500 dark:hover:bg-gray-700 flex items-center gap-2 transition"
                   >
                     Next <ChevronRight size={14} />
                   </button>
@@ -443,7 +445,7 @@ export default function IntakePage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="ml-auto px-4 py-1.5 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 disabled:bg-gray-300"
+                    className="ml-auto px-4 py-1.5 bg-gray-400 dark:bg-gray-600 text-white rounded text-sm hover:bg-gray-500 dark:hover:bg-gray-700 disabled:bg-gray-300 dark:disabled:bg-gray-500 transition"
                   >
                     {loading ? 'Submitting...' : 'Submit Form'}
                   </button>
@@ -453,12 +455,12 @@ export default function IntakePage() {
           </>
         ) : (
           <div className="text-center py-8">
-            <h1 className="text-lg font-semibold text-gray-900 mb-4">Form Submitted</h1>
-            <p className="text-sm text-gray-600 mb-6">Your intake form has been submitted successfully.</p>
-            <div className="border border-gray-200 rounded p-4 inline-block mb-6">
-              <p className="text-xs text-gray-600 mb-2">Your Counseling ID</p>
-              <p className="text-xl font-mono text-gray-900 tracking-wider">{counselingId}</p>
-              <p className="text-xs text-gray-600 mt-3 max-w-sm">
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Form Submitted</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Your intake form has been submitted successfully.</p>
+            <div className="border border-gray-200 dark:border-gray-700 rounded p-4 inline-block mb-6 bg-gray-50 dark:bg-gray-900">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Your Counseling ID</p>
+              <p className="text-xl font-mono text-gray-900 dark:text-gray-50 tracking-wider">{counselingId}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 max-w-sm">
                 A confirmation email has been sent to your email address.
               </p>
             </div>
@@ -479,7 +481,7 @@ export default function IntakePage() {
                   consent: false,
                 });
               }}
-              className="px-4 py-1.5 bg-gray-400 text-white rounded text-sm hover:bg-gray-500"
+              className="px-4 py-1.5 bg-gray-400 dark:bg-gray-600 text-white rounded text-sm hover:bg-gray-500 dark:hover:bg-gray-700 transition"
             >
               Submit Another Form
             </button>

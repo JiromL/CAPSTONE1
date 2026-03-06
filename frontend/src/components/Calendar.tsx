@@ -22,7 +22,7 @@ export function DashboardCalendar({
 }: CalendarProps) {
   const [date, setDate] = useState<Date | [Date, Date] | null>(selectedDate || new Date());
 
-  const handleDateChange = (value: Date | [Date, Date]) => {
+  const handleDateChange = (value: Date | [Date, Date] | null) => {
     setDate(value);
     if (value instanceof Date) {
       onDateSelect?.(value);
@@ -103,7 +103,7 @@ export function DashboardCalendar({
           }
         `}</style>
         <Calendar
-          onChange={handleDateChange}
+          onChange={(value: any) => handleDateChange(value)}
           value={date}
           locale="en-US"
           tileClassName={({ date: tileDate }) => {

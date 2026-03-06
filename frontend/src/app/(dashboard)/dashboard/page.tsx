@@ -3,13 +3,12 @@
 import { useEffect, useState } from 'react';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { DPODashboard } from '@/components/DPODashboard';
-import { PsychologistDashboard } from '@/components/PsychologistDashboard';
-import { CaseManagerDashboard } from '@/components/CaseManagerDashboard';
 import { CounselorDashboard } from '@/components/CounselorDashboard';
-import { StudentDashboard } from '@/components/StudentDashboard';
+import { PsychologistDashboard } from '@/components/PsychologistDashboard';
+import { CounselingTeamDashboard } from '@/components/CounselingTeamDashboard';
 import { IntakeCounselorDashboard } from '@/components/IntakeCounselorDashboard';
 import { SupportStaffDashboard } from '@/components/SupportStaffDashboard';
-import { CounselingTeamDashboard } from '@/components/CounselingTeamDashboard';
+import { StudentDashboard } from '@/components/StudentDashboard';
 import Link from 'next/link';
 
 export default function Dashboard() {
@@ -52,17 +51,15 @@ export default function Dashboard() {
       return <AdminDashboard user={user} onLogout={handleLogout} />;
     case 'DPO':
       return <DPODashboard user={user} onLogout={handleLogout} />;
+    case 'COUNSELOR':
+      return <CounselorDashboard user={user} onLogout={handleLogout} />;
     case 'PSYCHOLOGIST':
       return <PsychologistDashboard user={user} onLogout={handleLogout} />;
-    case 'CASE_MANAGER':
-      return <CaseManagerDashboard user={user} onLogout={handleLogout} />;
     case 'CSC':
     case 'CSP':
       return <CounselingTeamDashboard user={user} onLogout={handleLogout} />;
     case 'IC':
       return <IntakeCounselorDashboard user={user} onLogout={handleLogout} />;
-    case 'COUNSELOR':
-      return <CounselorDashboard user={user} onLogout={handleLogout} />;
     case 'STAFF':
       return <SupportStaffDashboard user={user} onLogout={handleLogout} />;
     case 'STUDENT':

@@ -8,7 +8,7 @@ db = client['cps_system_dev']
 # Update test users with emails and hashed passwords
 credentials = [
     {'role': 'ADMIN', 'email': 'admin@counseling.edu', 'password': 'admin123'},
-    {'role': 'CASE_MANAGER', 'email': 'cm@counseling.edu', 'password': 'cmpass123'},
+    {'role': 'COUNSELOR', 'email': 'counselor@counseling.edu', 'password': 'counsel123'},
     {'role': 'PSYCHOLOGIST', 'email': 'psych@counseling.edu', 'password': 'psych123'}
 ]
 

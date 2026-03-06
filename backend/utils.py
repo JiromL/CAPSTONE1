@@ -12,7 +12,12 @@ from bson import ObjectId
 def audit_log(db, entity_type, action, entity_id=None, old_values=None, new_values=None):
     """Create an audit log entry in MongoDB (EPIC 1: Implement Audit Log)"""
     try:
-        user_id = get_jwt_identity()
+        try:
+            user_id = get_jwt_identity()
+        except:
+            # No JWT context (e.g., during login), use None
+            user_id = None
+        
         ip_address = request.remote_addr
         
         log_entry = {

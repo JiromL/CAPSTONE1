@@ -15,12 +15,12 @@ class UserRole(str, Enum):
     """9-tier role hierarchy"""
     ADMIN = "ADMIN"
     DPO = "DPO"  # Director of Psychological Operations
-    PSYCHOLOGIST = "PSYCHOLOGIST"
-    CASE_MANAGER = "CASE_MANAGER"
-    CSC = "CSC"  # Counseling Support Case worker
-    CSP = "CSP"  # Counseling Support Person
+    COUNSELOR = "COUNSELOR"  # Non-clinical/developmental counselor
+    PSYCHOLOGIST = "PSYCHOLOGIST"  # Clinical psychologist
+    CSC = "CSC"  # Continuing Session Counselor
+    CSP = "CSP"  # Continuing Session Psychologist
     IC = "IC"  # Intake Counselor
-    STAFF = "STAFF"
+    STAFF = "STAFF"  # Office assistant/support staff
     STUDENT = "STUDENT"
 
 
@@ -91,6 +91,23 @@ class AssessmentType(str, Enum):
     PSS = "PSS"              # Perceived Stress Scale
 
 
+class CaseStatus(str, Enum):
+    """Case lifecycle states"""
+    NEW = "NEW"                              # New intake received
+    INTAKE_SCHEDULED = "INTAKE_SCHEDULED"    # Awaiting intake appointment
+    ACTIVE = "ACTIVE"                        # Ongoing sessions
+    PENDING_TERMINATION = "PENDING_TERMINATION"  # Client or counselor initiated end
+    CLOSED = "CLOSED"                        # Case terminated & documented
+    CANCELLED = "CANCELLED"                  # Case never started
+
+
+class CaseType(str, Enum):
+    """Types of cases"""
+    CLINICAL = "CLINICAL"              # Diagnosis, ongoing psychotherapy (PSYCHOLOGIST)
+    DEVELOPMENTAL = "DEVELOPMENTAL"    # Non-clinical counseling (COUNSELOR)
+    CHECK_IN = "CHECK_IN"             # Periodic check-ins only
+
+
 # RBAC Permission Matrix
 ROLE_PERMISSIONS = {
     UserRole.ADMIN: set(PermissionType),
@@ -110,6 +127,15 @@ ROLE_PERMISSIONS = {
         PermissionType.VIEW_RISK_DASHBOARD,
         PermissionType.ESCALATE_CRISIS,
     },
+    UserRole.COUNSELOR: {
+        PermissionType.VIEW_CASE,
+        PermissionType.EDIT_CASE,
+        PermissionType.VIEW_ASSESSMENT,
+        PermissionType.CREATE_ASSESSMENT,
+        PermissionType.VIEW_NOTES,
+        PermissionType.EDIT_NOTES,
+        PermissionType.VIEW_AUDIT_LOG,
+    },
     UserRole.PSYCHOLOGIST: {
         PermissionType.VIEW_CASE,
         PermissionType.EDIT_CASE,
@@ -122,16 +148,6 @@ ROLE_PERMISSIONS = {
         PermissionType.VIEW_RISK_DASHBOARD,
         PermissionType.ESCALATE_CRISIS,
     },
-    UserRole.CASE_MANAGER: {
-        PermissionType.VIEW_CASE,
-        PermissionType.EDIT_CASE,
-        PermissionType.VIEW_ASSESSMENT,
-        PermissionType.VIEW_NOTES,
-        PermissionType.EDIT_NOTES,
-        PermissionType.VIEW_AUDIT_LOG,
-        PermissionType.ASSIGN_CASES,
-        PermissionType.VIEW_RISK_DASHBOARD,
-    },
     UserRole.CSC: {
         PermissionType.VIEW_CASE,
         PermissionType.EDIT_CASE,
@@ -142,9 +158,13 @@ ROLE_PERMISSIONS = {
     },
     UserRole.CSP: {
         PermissionType.VIEW_CASE,
+        PermissionType.EDIT_CASE,
         PermissionType.CREATE_ASSESSMENT,
         PermissionType.VIEW_NOTES,
+        PermissionType.EDIT_NOTES,
+        PermissionType.VIEW_SENSITIVE_FIELDS,
         PermissionType.VIEW_RISK_DASHBOARD,
+        PermissionType.ESCALATE_CRISIS,
     },
     UserRole.IC: {
         PermissionType.VIEW_CASE,

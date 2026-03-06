@@ -12,6 +12,7 @@ from .high_risk import high_risk_bp, dashboard_bp
 from .referrals import referrals_bp
 from .reservations import reservations_bp
 from .integrations import integrations_bp
+from .cases import cases_bp
 
 __all__ = [
     'auth_bp',
@@ -25,4 +26,5 @@ __all__ = [
     'referrals_bp',
     'reservations_bp',
     'integrations_bp',
+    'cases_bp',
 ]

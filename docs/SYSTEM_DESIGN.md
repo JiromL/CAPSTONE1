@@ -72,7 +72,8 @@ Provide a comprehensive digital platform for a university counseling and psychol
 | **CSP** | Counselor Support Person | Create assessments, view case | Assigned cases |
 | **CSC** | Counseling Support Case worker | Edit case, create assessments | Assigned cases |
 | **IC** | Intake Counselor | Complete intake, endorse cases, triage | All cases |
-| **CASE_MANAGER** | Care coordinator | Assign cases, manage workflows | All cases |
+| **COUNSELOR** | Non-clinical counselor | Create assessments, manage sessions | Non-clinical cases |
+| **IC** | Intake counselor | Conduct triage and intake assessments | New cases |
 | **PSYCHOLOGIST** | Licensed psychologist | Full case view/edit, escalate crisis | All cases |
 | **DPO** | Director of Psych Operations | Manage users, view audit, export data | All system |
 | **ADMIN** | System admin | All permissions | Full system access |

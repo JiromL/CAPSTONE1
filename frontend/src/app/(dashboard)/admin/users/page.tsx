@@ -60,9 +60,11 @@ export default function UserManagementPage() {
       PSYCHOLOGIST: 'bg-blue-100 text-blue-800',
       COUNSELOR: 'bg-green-100 text-green-800',
       DPO: 'bg-purple-100 text-purple-800',
-      CASE_MANAGER: 'bg-orange-100 text-orange-800',
-      INTAKE_COORDINATOR: 'bg-yellow-100 text-yellow-800',
-      SUPPORT_STAFF: 'bg-gray-100 text-gray-800',
+      IC: 'bg-yellow-100 text-yellow-800',
+      CSC: 'bg-orange-100 text-orange-800',
+      CSP: 'bg-orange-200 text-orange-900',
+      STAFF: 'bg-gray-100 text-gray-800',
+      STUDENT: 'bg-sky-100 text-sky-800',
     };
     return roleColors[role] || 'bg-gray-100 text-gray-800';
   };

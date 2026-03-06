@@ -13,14 +13,14 @@ if admin:
     )
     print(f"Updated ADMIN: admin_user")
 
-# Get first CASE_MANAGER
-cm = db.users.find_one({'role': 'CASE_MANAGER'})
-if cm:
+# Get first COUNSELOR
+counselor = db.users.find_one({'role': 'COUNSELOR'})
+if counselor:
     db.users.update_one(
-        {'_id': cm['_id']},
-        {'$set': {'username': 'case_manager', 'password': 'cmpass123'}}
+        {'_id': counselor['_id']},
+        {'$set': {'username': 'counselor', 'password': 'counsel123'}}
     )
-    print(f"Updated CASE_MANAGER: case_manager")
+    print(f"Updated COUNSELOR: counselor")
 
 # Get first PSYCHOLOGIST
 psych = db.users.find_one({'role': 'PSYCHOLOGIST'})

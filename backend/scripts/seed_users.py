@@ -22,6 +22,7 @@ def seed():
     users.delete_many({})
     
     test_users = [
+        # ADMIN & MANAGEMENT
         {
             'email': 'admin@university.edu',
             'password_hash': generate_password_hash('admin123'),
@@ -40,7 +41,7 @@ def seed():
             'password_hash': generate_password_hash('dpo123'),
             'first_name': 'Dr. Sarah',
             'last_name': 'Director',
-            'role': 'DPO',  # Director of Psychological Operations
+            'role': 'DPO',
             'phone': '555-0002',
             'department': 'Counseling',
             'specializations': ['Clinical Psychology', 'Crisis Management'],
@@ -48,65 +49,27 @@ def seed():
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
         },
+        # INTAKE COUNSELORS (IC) - Triage/Intake
         {
-            'email': 'psychologist@university.edu',
-            'password_hash': generate_password_hash('psych123'),
-            'first_name': 'Dr. James',
-            'last_name': 'Therapist',
-            'role': 'PSYCHOLOGIST',
-            'phone': '555-0003',
+            'email': 'julse@university.edu',
+            'password_hash': generate_password_hash('julse123'),
+            'first_name': 'Julse',
+            'last_name': 'Onsite',
+            'role': 'IC',
+            'phone': '555-0010',
             'department': 'Counseling',
-            'specializations': ['Depression', 'Anxiety', 'Trauma'],
+            'specializations': ['Triage', 'Initial Assessment'],
             'is_active': True,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
         },
         {
-            'email': 'counselor1@university.edu',
-            'password_hash': generate_password_hash('counsel123'),
-            'first_name': 'Maria',
-            'last_name': 'Garcia',
-            'role': 'PSYCHOLOGIST',  # Licensed counselor
-            'phone': '555-0004',
-            'department': 'Counseling',
-            'specializations': ['Anxiety', 'Eating Disorders'],
-            'is_active': True,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
-        },
-        {
-            'email': 'counselor2@university.edu',
-            'password_hash': generate_password_hash('counsel456'),
-            'first_name': 'Michael',
-            'last_name': 'Chen',
-            'role': 'PSYCHOLOGIST',  # Licensed counselor
-            'phone': '555-0005',
-            'department': 'Counseling',
-            'specializations': ['ADHD', 'Academic Stress'],
-            'is_active': True,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
-        },
-        {
-            'email': 'casemanager@university.edu',
-            'password_hash': generate_password_hash('case123'),
-            'first_name': 'Lisa',
-            'last_name': 'Manager',
-            'role': 'CASE_MANAGER',
-            'phone': '555-0006',
-            'department': 'Counseling',
-            'specializations': ['Care Coordination'],
-            'is_active': True,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
-        },
-        {
-            'email': 'ic@university.edu',
-            'password_hash': generate_password_hash('ic123'),
-            'first_name': 'Alex',
+            'email': 'archie@university.edu',
+            'password_hash': generate_password_hash('archie123'),
+            'first_name': 'Archie',
             'last_name': 'Intake',
-            'role': 'IC',  # Intake Counselor
-            'phone': '555-0007',
+            'role': 'IC',
+            'phone': '555-0011',
             'department': 'Counseling',
             'specializations': ['Triage', 'Risk Assessment'],
             'is_active': True,
@@ -114,18 +77,216 @@ def seed():
             'updated_at': datetime.utcnow(),
         },
         {
-            'email': 'csp@university.edu',
-            'password_hash': generate_password_hash('csp123'),
-            'first_name': 'Jordan',
-            'last_name': 'Support',
-            'role': 'CSP',  # Counseling Support Person
-            'phone': '555-0008',
+            'email': 'mars@university.edu',
+            'password_hash': generate_password_hash('mars123'),
+            'first_name': 'Mars',
+            'last_name': 'Online',
+            'role': 'IC',
+            'phone': '555-0012',
             'department': 'Counseling',
-            'specializations': [],
+            'specializations': ['Online Triage', 'Virtual Assessment'],
             'is_active': True,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
         },
+        {
+            'email': 'ria@university.edu',
+            'password_hash': generate_password_hash('ria123'),
+            'first_name': 'Ria',
+            'last_name': 'Counselor',
+            'role': 'IC',
+            'phone': '555-0013',
+            'department': 'Counseling',
+            'specializations': ['Intake Interview', 'Documentation'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'cris@university.edu',
+            'password_hash': generate_password_hash('cris123'),
+            'first_name': 'Cris',
+            'last_name': 'Intake',
+            'role': 'IC',
+            'phone': '555-0014',
+            'department': 'Counseling',
+            'specializations': ['Triage', 'Client Screening'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'wil@university.edu',
+            'password_hash': generate_password_hash('wil123'),
+            'first_name': 'Wil',
+            'last_name': 'Midshift',
+            'role': 'IC',
+            'phone': '555-0015',
+            'department': 'Counseling',
+            'specializations': ['Evening Intake', 'Midshift Coverage'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'rose.c@university.edu',
+            'password_hash': generate_password_hash('rosec123'),
+            'first_name': 'Rose',
+            'last_name': 'C',
+            'role': 'IC',
+            'phone': '555-0016',
+            'department': 'Counseling',
+            'specializations': ['Morning Intake', 'Client Orientation'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'gracie@university.edu',
+            'password_hash': generate_password_hash('gracie123'),
+            'first_name': 'Gracie',
+            'last_name': 'Midshift',
+            'role': 'IC',
+            'phone': '555-0017',
+            'department': 'Counseling',
+            'specializations': ['Evening Triage', 'After-hours Coverage'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        # CONTINUING SESSION PSYCHOLOGISTS (Clinical)
+        {
+            'email': 'daryl@university.edu',
+            'password_hash': generate_password_hash('daryl123'),
+            'first_name': 'Daryl',
+            'last_name': 'Psychologist',
+            'role': 'PSYCHOLOGIST',
+            'phone': '555-0020',
+            'department': 'Counseling',
+            'specializations': ['Clinical Psychology', 'Psychotherapy'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'niko@university.edu',
+            'password_hash': generate_password_hash('niko123'),
+            'first_name': 'Niko',
+            'last_name': 'Marco',
+            'role': 'PSYCHOLOGIST',
+            'phone': '555-0021',
+            'department': 'Counseling',
+            'specializations': ['Trauma', 'Crisis Intervention'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'bon@university.edu',
+            'password_hash': generate_password_hash('bon123'),
+            'first_name': 'Bon',
+            'last_name': 'Homme',
+            'role': 'PSYCHOLOGIST',
+            'phone': '555-0022',
+            'department': 'Counseling',
+            'specializations': ['Long-term Therapy', 'Behavioral Health'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'shel@university.edu',
+            'password_hash': generate_password_hash('shel123'),
+            'first_name': 'Shel',
+            'last_name': 'Onsite',
+            'role': 'PSYCHOLOGIST',
+            'phone': '555-0023',
+            'department': 'Counseling',
+            'specializations': ['Clinical Assessment', 'Diagnosis'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'jenny@university.edu',
+            'password_hash': generate_password_hash('jenny123'),
+            'first_name': 'Jenny',
+            'last_name': 'Online',
+            'role': 'PSYCHOLOGIST',
+            'phone': '555-0024',
+            'department': 'Counseling',
+            'specializations': ['Virtual Therapy', 'Telepsychology'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'chona@university.edu',
+            'password_hash': generate_password_hash('chona123'),
+            'first_name': 'Chona',
+            'last_name': 'Psychologist',
+            'role': 'PSYCHOLOGIST',
+            'phone': '555-0025',
+            'department': 'Counseling',
+            'specializations': ['Anxiety Disorders', 'DBT'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        # CONTINUING SESSION COUNSELORS (Non-clinical)
+        {
+            'email': 'rose.t@university.edu',
+            'password_hash': generate_password_hash('roset123'),
+            'first_name': 'Rose',
+            'last_name': 'T',
+            'role': 'COUNSELOR',
+            'phone': '555-0030',
+            'department': 'Counseling',
+            'specializations': ['Academic Counseling', 'Adjustment Support'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'bia@university.edu',
+            'password_hash': generate_password_hash('bia123'),
+            'first_name': 'Bia',
+            'last_name': 'Counselor',
+            'role': 'COUNSELOR',
+            'phone': '555-0031',
+            'department': 'Counseling',
+            'specializations': ['Peer Support', 'Life Coaching'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'chelly@university.edu',
+            'password_hash': generate_password_hash('chelly123'),
+            'first_name': 'Chelly',
+            'last_name': 'Counselor',
+            'role': 'COUNSELOR',
+            'phone': '555-0032',
+            'department': 'Counseling',
+            'specializations': ['Developmental Counseling', 'Healthy Relationships'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        {
+            'email': 'daye@university.edu',
+            'password_hash': generate_password_hash('daye123'),
+            'first_name': 'Daye',
+            'last_name': 'Counselor',
+            'role': 'COUNSELOR',
+            'phone': '555-0033',
+            'department': 'Counseling',
+            'specializations': ['Student Success', 'Motivation'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        # TEST STUDENTS
         {
             'email': 'student1@university.edu',
             'password_hash': generate_password_hash('student123'),
@@ -179,9 +340,25 @@ def seed():
 
 if __name__ == '__main__':
     seed()
-    print("\n💡 Login credentials:")
-    print("   admin@university.edu / admin123")
-    print("   psychologist@university.edu / psych123")
-    print("   ic@university.edu / ic123")
-    print("   student1@university.edu / student123")
+    print("\n💡 Test Credentials by Role:")
+    print("\n   ADMIN:")
+    print("   └─ admin@university.edu / admin123")
+    print("\n   DPO (Director):")
+    print("   └─ dpo@university.edu / dpo123")
+    print("\n   INTAKE COUNSELORS (Triage/Intake):")
+    print("   └─ julse@university.edu / julse123")
+    print("   └─ archie@university.edu / archie123")
+    print("   └─ mars@university.edu / mars123")
+    print("\n   PSYCHOLOGISTS (Clinical/Continuing Sessions):")
+    print("   └─ daryl@university.edu / daryl123")
+    print("   └─ niko@university.edu / niko123")
+    print("   └─ jenny@university.edu / jenny123")
+    print("\n   COUNSELORS (Non-clinical/Continuing Sessions):")
+    print("   └─ rose.t@university.edu / roset123")
+    print("   └─ bia@university.edu / bia123")
+    print("   └─ chelly@university.edu / chelly123")
+    print("\n   STUDENTS:")
+    print("   └─ student1@university.edu / student123")
+    print("   └─ student2@university.edu / student456")
+    print("   └─ student3@university.edu / student789")
     print()

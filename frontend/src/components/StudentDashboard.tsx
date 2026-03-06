@@ -24,11 +24,11 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   }, []);
 
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
-    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
+    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BookOpen size={20} /> },
+    { label: 'My Tasks', href: '/dashboard/tasks', icon: <CheckCircle size={20} />, badge: 3 },
     { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
     { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
-    { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+    { label: 'My Profile', href: '/dashboard/profile', icon: <AlertCircle size={20} /> },
   ];
 
   return (
@@ -63,7 +63,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           <div className="space-y-1">
             <p className="text-gray-900 dark:text-gray-50 font-medium text-xs">March 15, 2026 at 2:00 PM</p>
             <p className="text-gray-600 dark:text-gray-400 text-xs">Dr. Sarah Lee • Room 205-B</p>
-            <Link href="/reservations">
+            <Link href="/intake">
               <button className="mt-2 px-3 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-100 transition text-xs font-medium">
                 Schedule Another
               </button>

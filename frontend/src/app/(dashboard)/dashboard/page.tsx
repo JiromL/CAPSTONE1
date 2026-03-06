@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { DPODashboard } from '@/components/DPODashboard';
 import { CounselorDashboard } from '@/components/CounselorDashboard';
@@ -9,9 +10,9 @@ import { CounselingTeamDashboard } from '@/components/CounselingTeamDashboard';
 import { IntakeCounselorDashboard } from '@/components/IntakeCounselorDashboard';
 import { SupportStaffDashboard } from '@/components/SupportStaffDashboard';
 import { StudentDashboard } from '@/components/StudentDashboard';
-import Link from 'next/link';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,19 +20,24 @@ export default function Dashboard() {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
 
+    console.log('Dashboard loaded. Token:', token ? 'exists' : 'missing');
+    console.log('Dashboard loaded. User data:', userData ? 'exists' : 'missing');
+
     if (!userData || !token) {
-      window.location.href = '/login';
+      console.log('No token or user data, redirecting to login');
+      router.push('/login');
       return;
     }
 
     const parsedUser = JSON.parse(userData);
+    console.log('Parsed user:', parsedUser);
     setUser(parsedUser);
     setLoading(false);
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   if (loading) {

@@ -12,13 +12,13 @@ interface DashboardProps {
 
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'Support Tickets', href: '/staff/tickets', icon: <HelpCircle size={20} />, badge: 12 },
-    { label: 'Client Inquiries', href: '/staff/inquiries', icon: <MessageSquare size={20} />, badge: 4 },
-    { label: 'Client Management', href: '/staff/clients', icon: <Users size={20} /> },
-    { label: 'Documents', href: '/staff/documents', icon: <FileText size={20} /> },
-    { label: 'Communications', href: '/staff/communications', icon: <CheckCircle size={20} />, badge: 3 },
-    { label: 'Settings', href: '/staff/settings', icon: <Settings size={20} /> },
+    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: <HelpCircle size={20} />, badge: 12 },
+    { label: 'Cases', href: '/dashboard/cases', icon: <MessageSquare size={20} />, badge: 4 },
+    { label: 'Documentation', href: '/dashboard/documentation', icon: <Users size={20} /> },
+    { label: 'Referrals', href: '/dashboard/referrals', icon: <FileText size={20} /> },
+    { label: 'Assessments', href: '/dashboard/assessments', icon: <CheckCircle size={20} />, badge: 3 },
+    { label: 'Profile', href: '/dashboard/profile', icon: <Settings size={20} /> },
   ];
 
   return (
@@ -41,10 +41,10 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <SupportLink href="/staff/clients/inquiries" label="Client Inquiries" />
-          <SupportLink href="/staff/admin/communications" label="Communications" />
-          <SupportLink href="/staff/admin/documents" label="Document Management" />
-          <SupportLink href="/staff/tickets" label="Support Tickets" />
+          <SupportLink href="/dashboard/cases" label="Client Inquiries" />
+          <SupportLink href="/dashboard/appointments" label="Communications" />
+          <SupportLink href="/dashboard/documentation" label="Document Management" />
+          <SupportLink href="/dashboard/tasks" label="Support Tickets" />
         </div>
       </div>
 

@@ -14,13 +14,13 @@ interface DashboardProps {
 export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <TrendingUp size={20} /> },
-    { label: 'Today\'s Sessions', href: '/counselor/sessions/today', icon: <Clock size={20} />, badge: 4 },
-    { label: 'My Clients', href: '/counselor/clients', icon: <Users size={20} /> },
-    { label: 'Session Notes', href: '/counselor/notes/pending', icon: <FileText size={20} />, badge: 2 },
-    { label: 'High-Risk Clients', href: '/counselor/high-risk', icon: <AlertTriangle size={20} />, badge: 1 },
-    { label: 'Messages', href: '/counselor/messages', icon: <MessageCircle size={20} /> },
-    { label: 'My Schedule', href: '/counselor/schedule', icon: <Clock size={20} /> },
+    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <TrendingUp size={20} /> },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: <Clock size={20} />, badge: 4 },
+    { label: 'Assessments', href: '/dashboard/assessments', icon: <FileText size={20} />, badge: 2 },
+    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <AlertTriangle size={20} />, badge: 1 },
+    { label: 'Cases', href: '/dashboard/cases', icon: <Users size={20} /> },
+    { label: 'Referrals', href: '/dashboard/referrals', icon: <MessageCircle size={20} /> },
+    { label: 'Profile', href: '/dashboard/profile', icon: <Clock size={20} /> },
   ];
 
   return (
@@ -42,9 +42,9 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="flex flex-wrap gap-2">
-          <ActionButton href="/counselor/sessions/today" label="View Today's Sessions" />
-          <ActionButton href="/counselor/notes/pending" label="Review Pending Notes" />
-          <ActionButton href="/counselor/high-risk" label="High-Risk Clients" />
+          <ActionButton href="/dashboard/appointments" label="View Today's Sessions" />
+          <ActionButton href="/dashboard/documentation" label="Review Pending Notes" />
+          <ActionButton href="/dashboard/high-risk" label="High-Risk Clients" />
         </div>
       </div>
     </DashboardLayout>

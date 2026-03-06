@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import PageShell from '@/components/PageShell';
+import { api } from '@/utils/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,24 +17,36 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:5555';
-      const response = await fetch(`${apiBase}/api/auth/login`, {
+      const url = api('/api/auth/login');
+      console.log('Login URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
+        console.error('Error response:', data);
         throw new Error(data.error || 'Invalid credentials');
       }
 
       const data = await response.json();
+      console.log('Login successful, data:', data);
+      
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data));
+      
+      console.log('Stored in localStorage, redirecting to /dashboard');
       window.location.href = '/dashboard';
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const message = err instanceof Error ? err.message : 'Login failed';
+      console.error('Login error:', message);
+      setError(message);
     } finally {
       setLoading(false);
     }

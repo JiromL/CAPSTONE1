@@ -14,14 +14,14 @@ interface DashboardProps {
 export function AdminDashboard({ user, onLogout }: DashboardProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'User Management', href: '/admin/users', icon: <Users size={20} /> },
-    { label: 'Role Management', href: '/admin/roles', icon: <Shield size={20} /> },
-    { label: 'Audit Log', href: '/admin/audit-log', icon: <Activity size={20} /> },
-    { label: 'System Settings', href: '/admin/settings', icon: <Settings size={20} /> },
-    { label: 'Security', href: '/admin/security', icon: <Lock size={20} /> },
-    { label: 'Database', href: '/admin/database', icon: <Database size={20} /> },
-    { label: 'Alerts', href: '/admin/alerts', icon: <AlertCircle size={20} /> },
+    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'User Management', href: '/dashboard/admin/users', icon: <Users size={20} /> },
+    { label: 'Cases', href: '/dashboard/cases', icon: <Shield size={20} /> },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: <Activity size={20} /> },
+    { label: 'Documentation', href: '/dashboard/documentation', icon: <Settings size={20} /> },
+    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <Lock size={20} /> },
+    { label: 'Referrals', href: '/dashboard/referrals', icon: <Database size={20} /> },
+    { label: 'Profile', href: '/dashboard/profile', icon: <AlertCircle size={20} /> },
   ];
 
   return (
@@ -44,10 +44,10 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <AdminLink href="/admin/users" label="Manage Users" />
-          <AdminLink href="/admin/alerts" label="View Alerts" />
-          <AdminLink href="/admin/reports" label="Generate Reports" />
-          <AdminLink href="/admin/audit-log" label="Audit Log" />
+          <AdminLink href="/dashboard/admin/users" label="Manage Users" />
+          <AdminLink href="/dashboard/admin/alerts" label="View Alerts" />
+          <AdminLink href="/dashboard/admin/reports" label="Generate Reports" />
+          <AdminLink href="/dashboard/admin/audit-log" label="Audit Log" />
         </div>
       </div>
     </DashboardLayout>

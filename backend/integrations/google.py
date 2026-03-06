@@ -52,9 +52,93 @@ class GoogleIntegration:
         return tokens
 
     def create_calendar_event(self, access_token, event):
-        # event: {summary, start: {dateTime, timeZone}, end: {...}, attendees: []}
+        """Create calendar event (therapy session/appointment)
+        event: {
+            'summary': 'Therapy Session - John Doe',
+            'description': 'Clinical assessment and treatment planning',
+            'start': {'dateTime': '2026-03-15T14:00:00', 'timeZone': 'America/New_York'},
+            'end': {'dateTime': '2026-03-15T15:00:00', 'timeZone': 'America/New_York'},
+            'attendees': [{'email': 'counselor@university.edu'}, {'email': 'student@university.edu'}],
+            'reminders': {'useDefault': False, 'overrides': [{'method': 'email', 'minutes': 24*60}]}
+        }
+        """
         url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
         resp = requests.post(url, json=event, headers=headers, timeout=10)
         resp.raise_for_status()
         return resp.json()
+
+    def update_calendar_event(self, access_token, event_id, event):
+        """Update existing calendar event"""
+        url = f'https://www.googleapis.com/calendar/v3/calendars/primary/events/{event_id}'
+        headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
+        resp = requests.patch(url, json=event, headers=headers, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+
+    def delete_calendar_event(self, access_token, event_id):
+        """Delete calendar event"""
+        url = f'https://www.googleapis.com/calendar/v3/calendars/primary/events/{event_id}'
+        headers = {'Authorization': f'Bearer {access_token}'}
+        resp = requests.delete(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+        return {'success': True}
+
+    def get_calendar_events(self, access_token, time_min, time_max, max_results=10):
+        """Get calendar events for a time range"""
+        url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+        headers = {'Authorization': f'Bearer {access_token}'}
+        params = {
+            'timeMin': time_min,
+            'timeMax': time_max,
+            'maxResults': max_results,
+            'singleEvents': True,
+            'orderBy': 'startTime'
+        }
+        resp = requests.get(url, headers=headers, params=params, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_free_slots(self, access_token, date, duration_minutes=60):
+        """Find available time slots on a given date"""
+        from datetime import datetime, timedelta
+        
+        # Get all events for the day
+        day_start = f"{date}T00:00:00Z"
+        day_end = f"{date}T23:59:59Z"
+        events = self.get_calendar_events(access_token, day_start, day_end, max_results=50)
+        
+        # Business hours: 9am - 5pm
+        busy_times = []
+        for event in events.get('items', []):
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            end = event['end'].get('dateTime', event['end'].get('date'))
+            busy_times.append((start, end))
+        
+        # Calculate free slots
+        free_slots = []
+        current = datetime.fromisoformat(f"{date}T09:00:00")
+        end_of_day = datetime.fromisoformat(f"{date}T17:00:00")
+        
+        while current + timedelta(minutes=duration_minutes) <= end_of_day:
+            slot_end = current + timedelta(minutes=duration_minutes)
+            # Check if slot overlaps with any busy time
+            is_free = True
+            for busy_start, busy_end in busy_times:
+                if isinstance(busy_start, str):
+                    busy_start = datetime.fromisoformat(busy_start.replace('Z', '+00:00'))
+                    busy_end = datetime.fromisoformat(busy_end.replace('Z', '+00:00'))
+                
+                if current < busy_end and slot_end > busy_start:
+                    is_free = False
+                    break
+            
+            if is_free:
+                free_slots.append({
+                    'start': current.isoformat(),
+                    'end': slot_end.isoformat()
+                })
+            
+            current += timedelta(minutes=30)  # 30-min increment
+        
+        return free_slots

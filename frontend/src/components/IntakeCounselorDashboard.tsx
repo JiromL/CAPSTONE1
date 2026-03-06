@@ -11,14 +11,13 @@ interface DashboardProps {
 
 export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <CheckCircle size={20} /> },
-    { label: 'Pending Intakes', href: '/ic/intake/pending', icon: <Clock size={20} />, badge: 15 },
-    { label: 'In Progress', href: '/ic/intake/in-progress', icon: <FileText size={20} />, badge: 8 },
-    { label: 'Completed', href: '/ic/intake/completed', icon: <CheckCircle size={20} /> },
-    { label: 'Schedule Calendar', href: '/ic/schedule/calendar', icon: <Calendar size={20} /> },
-    { label: 'Student Contact', href: '/ic/contact/students', icon: <Phone size={20} /> },
-    { label: 'Counselor Availability', href: '/ic/schedule/counselors', icon: <Users size={20} /> },
-    { label: 'Overdue Forms', href: '/ic/intake/overdue', icon: <AlertCircle size={20} />, badge: 2 },
+    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <CheckCircle size={20} /> },
+    { label: 'Tasks', href: '/dashboard/tasks', icon: <Clock size={20} />, badge: 15 },
+    { label: 'Assessments', href: '/dashboard/assessments', icon: <FileText size={20} />, badge: 8 },
+    { label: 'Cases', href: '/dashboard/cases', icon: <CheckCircle size={20} /> },
+    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <Calendar size={20} /> },
+    { label: 'Referrals', href: '/dashboard/referrals', icon: <Phone size={20} /> },
+    { label: 'Profile', href: '/dashboard/profile', icon: <Users size={20} /> },
   ];
 
   return (
@@ -41,10 +40,10 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <IntakeLink href="/ic/intake/pending" label="Pending Intakes" />
-          <IntakeLink href="/ic/intake/new" label="Start New Intake" />
-          <IntakeLink href="/ic/forms/verify" label="Verify Forms" />
-          <IntakeLink href="/ic/schedule/assign" label="Assign Time Slots" />
+          <IntakeLink href="/dashboard/tasks" label="Pending Intakes" />
+          <IntakeLink href="/dashboard/assessments" label="Start New Intake" />
+          <IntakeLink href="/dashboard/assessments" label="Verify Forms" />
+          <IntakeLink href="/dashboard/appointments" label="Assign Time Slots" />
         </div>
       </div>
 

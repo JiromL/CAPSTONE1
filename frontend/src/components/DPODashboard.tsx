@@ -11,13 +11,13 @@ interface DashboardProps {
 
 export function DPODashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'Team Management', href: '/dpo/counselors', icon: <Users size={20} /> },
-    { label: 'Case Supervision', href: '/dpo/cases', icon: <Shield size={20} /> },
-    { label: 'High-Risk Review', href: '/dpo/high-risk', icon: <AlertTriangle size={20} />, badge: 8 },
-    { label: 'Weekly Reviews', href: '/dpo/reviews', icon: <Calendar size={20} /> },
-    { label: 'Performance Metrics', href: '/dpo/performance', icon: <TrendingUp size={20} /> },
-    { label: 'Department Settings', href: '/dpo/settings', icon: <Settings size={20} /> },
+    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Cases', href: '/dashboard/cases', icon: <Users size={20} /> },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: <Shield size={20} /> },
+    { label: 'High-Risk Review', href: '/dashboard/high-risk', icon: <AlertTriangle size={20} />, badge: 8 },
+    { label: 'Documentation', href: '/dashboard/documentation', icon: <Calendar size={20} /> },
+    { label: 'Assessments', href: '/dashboard/assessments', icon: <TrendingUp size={20} /> },
+    { label: 'Profile', href: '/dashboard/profile', icon: <Settings size={20} /> },
   ];
 
   return (
@@ -40,10 +40,10 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <OperationLink href="/dpo/cases" label="Review Cases" />
-          <OperationLink href="/dpo/high-risk" label="High-Risk Cases" />
-          <OperationLink href="/dpo/counselors" label="Team Management" />
-          <OperationLink href="/dpo/reports" label="Operations Reports" />
+          <OperationLink href="/dashboard/cases" label="Review Cases" />
+          <OperationLink href="/dashboard/high-risk" label="High-Risk Cases" />
+          <OperationLink href="/dashboard/cases" label="Team Management" />
+          <OperationLink href="/dashboard/documentation" label="Operations Reports" />
         </div>
       </div>
     </DashboardLayout>

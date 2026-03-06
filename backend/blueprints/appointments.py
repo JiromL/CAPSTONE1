@@ -3,7 +3,7 @@ EPIC 4: BOOKING & SCHEDULING SYSTEM
 Blueprint for appointment booking with real-time availability and automated confirmations
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, redirect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
@@ -452,3 +452,255 @@ def get_upcoming_appointments(case_id):
         'upcoming_appointments': result_appointments
     }), 200
 
+
+# ============= GOOGLE CALENDAR INTEGRATION =============
+
+@appointments_bp.route('/google/authorize', methods=['GET'])
+@jwt_required()
+def get_google_authorization_url():
+    """Get Google OAuth authorization URL for staff"""
+    from config import Config
+    from integrations.google import GoogleIntegration
+    import secrets
+    
+    user_id = get_jwt_identity()
+    state = secrets.token_urlsafe(32)
+    
+    # Store state in database for verification
+    db.db.oauth_states.insert_one({
+        'user_id': ObjectId(user_id),
+        'state': state,
+        'created_at': datetime.utcnow(),
+        'expires_at': datetime.utcnow() + timedelta(minutes=10)
+    })
+    
+    google = GoogleIntegration(Config)
+    auth_url = google.get_authorize_url(state=state)
+    
+    return jsonify({
+        'auth_url': auth_url,
+        'message': 'Visit this URL to authorize Google Calendar access'
+    }), 200
+
+
+@appointments_bp.route('/google/callback', methods=['GET'])
+def google_oauth_callback():
+    """Handle Google OAuth callback"""
+    from config import Config
+    from integrations.google import GoogleIntegration
+    
+    code = request.args.get('code')
+    state = request.args.get('state')
+    
+    if not code or not state:
+        return redirect(f'/dashboard/staff-settings?error=Missing+code+or+state')
+    
+    # Verify state
+    oauth_state = db.db.oauth_states.find_one({'state': state})
+    if not oauth_state:
+        return redirect(f'/dashboard/staff-settings?error=Invalid+state+parameter')
+    
+    if oauth_state['expires_at'] < datetime.utcnow():
+        return redirect(f'/dashboard/staff-settings?error=State+expired')
+    
+    user_id = oauth_state['user_id']
+    
+    # Exchange code for tokens
+    google = GoogleIntegration(Config)
+    try:
+        google.exchange_code_and_store(db.db, Config, user_id, code)
+        
+        # Delete used state
+        db.db.oauth_states.delete_one({'state': state})
+        
+        # Redirect to success page
+        return redirect(f'/dashboard/staff-settings?success=Google+Calendar+connected')
+    except Exception as e:
+        return redirect(f'/dashboard/staff-settings?error={str(e)}')
+
+
+@appointments_bp.route('/<appointment_id>/sync-to-calendar', methods=['POST'])
+@jwt_required()
+def sync_appointment_to_calendar(appointment_id):
+    """Sync appointment to counselor's Google Calendar"""
+    from config import Config
+    from integrations.google import GoogleIntegration
+    from integrations.token_store import get_tokens
+    
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    try:
+        appointment = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
+    except:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+    
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    # Check if counselor has Google Calendar connected
+    google_tokens = get_tokens(db.db, user_id, 'google')
+    if not google_tokens or not google_tokens.get('access_token'):
+        return jsonify({
+            'error': 'Google Calendar not connected',
+            'auth_url': f'/api/appointments/google/authorize'
+        }), 400
+    
+    # Get case and counselor info
+    case = db.db.cases.find_one({'_id': appointment['case_id']})
+    student = db.db.users.find_one({'_id': case['student_id']})
+    
+    # Build calendar event
+    event = {
+        'summary': f'Therapy Session - {student.get("first_name", "Student")} {student.get("last_name", "")}',
+        'description': f'Case: {str(case["_id"])}\nPresenting Issue: {case.get("presenting_issue")}',
+        'start': {
+            'dateTime': appointment['requested_start'].isoformat(),
+            'timeZone': 'America/New_York'
+        },
+        'end': {
+            'dateTime': appointment['requested_end'].isoformat(),
+            'timeZone': 'America/New_York'
+        },
+        'attendees': [
+            {'email': user['email'], 'responseStatus': 'accepted'},
+            {'email': student.get('email', '')},  # Student gets invite too
+        ],
+        'reminders': {
+            'useDefault': False,
+            'overrides': [
+                {'method': 'email', 'minutes': 24*60},  # 1 day before
+                {'method': 'notification', 'minutes': 15}  # 15 min before
+            ]
+        }
+    }
+    
+    # Create event on Google Calendar
+    google = GoogleIntegration(Config)
+    try:
+        response = google.create_calendar_event(google_tokens['access_token'], event)
+        
+        # Store event ID in database for later updates/deletions
+        db.db.appointments.update_one(
+            {'_id': ObjectId(appointment_id)},
+            {'$set': {
+                'google_calendar_event_id': response['id'],
+                'calendar_synced': True,
+                'calendar_last_sync': datetime.utcnow()
+            }}
+        )
+        
+        audit_log(db, 'appointment', 'calendar_sync', entity_id=appointment_id,
+                  new_values={'google_event_id': response['id']})
+        
+        return jsonify({
+            'success': True,
+            'event_id': response['id'],
+            'event_url': response.get('htmlLink'),
+            'message': 'Appointment synced to Google Calendar'
+        }), 201
+    except Exception as e:
+        return jsonify({'error': f'Failed to sync to calendar: {str(e)}'}), 400
+
+
+@appointments_bp.route('/<appointment_id>/remove-from-calendar', methods=['DELETE'])
+@jwt_required()
+def remove_appointment_from_calendar(appointment_id):
+    """Remove appointment from Google Calendar"""
+    from config import Config
+    from integrations.google import GoogleIntegration
+    from integrations.token_store import get_tokens
+    
+    user_id = get_jwt_identity()
+    
+    try:
+        appointment = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
+    except:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+    
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    if not appointment.get('google_calendar_event_id'):
+        return jsonify({'error': 'Appointment not synced to calendar'}), 400
+    
+    google_tokens = get_tokens(db.db, user_id, 'google')
+    if not google_tokens:
+        return jsonify({'error': 'Google Calendar not connected'}), 400
+    
+    google = GoogleIntegration(Config)
+    try:
+        google.delete_calendar_event(google_tokens['access_token'], 
+                                     appointment['google_calendar_event_id'])
+        
+        # Update database
+        db.db.appointments.update_one(
+            {'_id': ObjectId(appointment_id)},
+            {'$set': {
+                'calendar_synced': False,
+                'google_calendar_event_id': None
+            }}
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Appointment removed from Google Calendar'
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to remove from calendar: {str(e)}'}), 400
+
+
+@appointments_bp.route('/google/available-slots', methods=['GET'])
+@jwt_required()
+def get_available_slots():
+    """Get available time slots from counselor's Google Calendar"""
+    from config import Config
+    from integrations.google import GoogleIntegration
+    from integrations.token_store import get_tokens
+    
+    user_id = get_jwt_identity()
+    date = request.args.get('date')  # Format: YYYY-MM-DD
+    duration = request.args.get('duration', 60, type=int)  # minutes
+    
+    if not date:
+        return jsonify({'error': 'Missing date parameter'}), 400
+    
+    google_tokens = get_tokens(db.db, user_id, 'google')
+    if not google_tokens:
+        return jsonify({
+            'error': 'Google Calendar not connected',
+            'auth_url': '/api/appointments/google/authorize'
+        }), 400
+    
+    google = GoogleIntegration(Config)
+    try:
+        free_slots = google.get_free_slots(google_tokens['access_token'], date, duration)
+        return jsonify({
+            'date': date,
+            'duration_minutes': duration,
+            'available_slots': free_slots,
+            'count': len(free_slots)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch slots: {str(e)}'}), 400
+
+
+@appointments_bp.route('/google/disconnect', methods=['POST'])
+@jwt_required()
+def disconnect_google_calendar():
+    """Disconnect user's Google Calendar access"""
+    user_id = get_jwt_identity()
+    
+    # Remove the Google tokens
+    db.db.token_store.delete_many({
+        'user_id': ObjectId(user_id),
+        'service': 'google'
+    })
+    
+    return jsonify({
+        'success': True,
+        'message': 'Google Calendar disconnected successfully'
+    }), 200

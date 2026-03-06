@@ -11,13 +11,13 @@ interface DashboardProps {
 
 export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <TrendingUp size={20} /> },
-    { label: 'Active Clients', href: '/csp/clients/active', icon: <Users size={20} /> },
-    { label: 'Follow-ups Due', href: '/csp/clients/follow-up', icon: <Phone size={20} />, badge: 7 },
-    { label: 'Case Documentation', href: '/csp/cases/documentation', icon: <FileText size={20} /> },
-    { label: 'Client Messages', href: '/csp/communication/messages', icon: <MessageCircle size={20} />, badge: 5 },
-    { label: 'Referral Assistance', href: '/csp/cases/referrals', icon: <AlertCircle size={20} />, badge: 3 },
-    { label: 'Resources', href: '/csp/procedures/protocols', icon: <CheckCircle size={20} /> },
+    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <TrendingUp size={20} /> },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: <Users size={20} /> },
+    { label: 'Cases', href: '/dashboard/cases', icon: <Phone size={20} />, badge: 7 },
+    { label: 'Documentation', href: '/dashboard/documentation', icon: <FileText size={20} /> },
+    { label: 'Referrals', href: '/dashboard/referrals', icon: <MessageCircle size={20} />, badge: 5 },
+    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <AlertCircle size={20} />, badge: 3 },
+    { label: 'Profile', href: '/dashboard/profile', icon: <CheckCircle size={20} /> },
   ];
 
   return (
@@ -40,10 +40,10 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <TeamLink href="/csp/clients/active" label="Active Clients" />
-          <TeamLink href="/csp/clients/follow-up" label="Client Follow-ups" />
-          <TeamLink href="/csp/communication/messages" label="Client Messages" />
-          <TeamLink href="/csp/cases/referrals" label="Referral Support" />
+          <TeamLink href="/dashboard/cases" label="Active Clients" />
+          <TeamLink href="/dashboard/appointments" label="Client Follow-ups" />
+          <TeamLink href="/dashboard/referrals" label="Client Messages" />
+          <TeamLink href="/dashboard/referrals" label="Referral Support" />
         </div>
       </div>
     </DashboardLayout>

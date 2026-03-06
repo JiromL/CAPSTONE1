@@ -85,6 +85,8 @@ def login():
 @jwt_required()
 def get_profile():
     """Get current user profile"""
+    from integrations.token_store import get_tokens
+    
     user_id = get_jwt_identity()
     
     try:
@@ -97,6 +99,10 @@ def get_profile():
     
     user.pop('password_hash', None)
     user['_id'] = str(user['_id'])
+    
+    # Check if user has Google Calendar connected
+    google_tokens = get_tokens(db.db, user_id, 'google')
+    user['google_calendar_connected'] = bool(google_tokens and google_tokens.get('access_token'))
     
     return jsonify(user), 200
 

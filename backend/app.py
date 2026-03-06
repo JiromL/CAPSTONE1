@@ -43,10 +43,14 @@ def create_app(config_name=None):
     CORS(app, resources={r"/api/*": {"origins": [
         "http://localhost:3000",
         "http://localhost:3001",
-        "http://localhost:3002",  # allow the port Next picked during development
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://localhost:3004",  # allow multiple ports for Next.js development
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002"
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:3003",
+        "http://127.0.0.1:3004"
     ]}})
     jwt = JWTManager(app)
     
@@ -115,4 +119,4 @@ app = create_app()
 if __name__ == '__main__':
     # allow overriding port to avoid conflicts (e.g. macOS AirPlay on 5000)
     port = int(os.environ.get('PORT', 5000))
-    app.run(port=port)
+    app.run(port=port, debug=False, threaded=True)

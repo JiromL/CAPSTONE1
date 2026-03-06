@@ -39,14 +39,15 @@ export function DashboardCalendar({
     : [];
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900">
       <div className="mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">{title}</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">{title}</h2>
         <style>{`
           .react-calendar {
             width: 100%;
             border: none;
             padding: 0;
+            background: transparent;
           }
           .react-calendar__tile {
             padding: 6px;
@@ -54,16 +55,30 @@ export function DashboardCalendar({
             color: #1f2937;
             font-weight: 500;
           }
+          .dark .react-calendar__tile {
+            color: #e5e7eb;
+          }
           .react-calendar__tile:hover {
             background-color: #f3f4f6;
+          }
+          .dark .react-calendar__tile:hover {
+            background-color: #1f2937;
           }
           .react-calendar__tile--active {
             background-color: #3b82f6;
             color: white;
           }
+          .dark .react-calendar__tile--active {
+            background-color: #2563eb;
+            color: white;
+          }
           .react-calendar__tile--now {
             background-color: #dbeafe;
             color: #1f2937;
+          }
+          .dark .react-calendar__tile--now {
+            background-color: #1e40af;
+            color: #e0e7ff;
           }
           .react-calendar__navigation {
             margin-bottom: 12px;
@@ -74,11 +89,17 @@ export function DashboardCalendar({
             color: #1f2937;
             font-weight: 600;
           }
+          .dark .react-calendar__navigation button {
+            color: #e5e7eb;
+          }
           .react-calendar__month-view__days__day-names {
             font-size: 11px;
             font-weight: 600;
             color: #1f2937;
             margin-bottom: 8px;
+          }
+          .dark .react-calendar__month-view__days__day-names {
+            color: #d1d5db;
           }
         `}</style>
         <Calendar
@@ -97,8 +118,8 @@ export function DashboardCalendar({
 
       {/* Appointments for selected date */}
       {showAppointments && selectedDateObj && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-900 mb-2">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <h3 className="text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2">
             Appointments for {selectedDateObj.toLocaleDateString('en-US', { 
               weekday: 'short', 
               month: 'short', 
@@ -108,14 +129,14 @@ export function DashboardCalendar({
           {dayAppointments.length > 0 ? (
             <div className="space-y-2">
               {dayAppointments.map((apt, idx) => (
-                <div key={idx} className="bg-blue-50 rounded p-2">
-                  <p className="text-xs font-medium text-gray-900">{apt.title}</p>
-                  <p className="text-xs text-gray-600">{apt.time}</p>
+                <div key={idx} className="bg-blue-50 dark:bg-blue-900/20 rounded p-2">
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-50">{apt.title}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{apt.time}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-500">No appointments scheduled</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">No appointments scheduled</p>
           )}
         </div>
       )}

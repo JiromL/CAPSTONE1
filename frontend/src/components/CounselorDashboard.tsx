@@ -32,8 +32,8 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       {/* Today's Sessions & Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         {/* Today's Sessions */}
-        <div className="lg:col-span-2 border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Today's Sessions</h2>
+        <div className="lg:col-span-2 border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Today's Sessions</h2>
           <div className="space-y-1">
             <SessionItem time="10:00 AM" client="Sarah Johnson" room="Rm 201" status="next" />
             <SessionItem time="11:00 AM" client="Marcus Lee" room="Rm 203" status="upcoming" />
@@ -69,11 +69,11 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       </div>
 
       {/* Client Alerts */}
-      <div className="border border-gray-200 rounded p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1">High-Risk Alert</h2>
-        <p className="text-gray-700 text-xs mb-2">1 client requires follow-up</p>
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-1">High-Risk Alert</h2>
+        <p className="text-gray-700 dark:text-gray-300 text-xs mb-2">1 client requires follow-up</p>
         <Link href="/counselor/high-risk">
-          <button className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-100 transition text-xs font-medium">
+          <button className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-xs font-medium">
             Review Alert
           </button>
         </Link>
@@ -83,15 +83,15 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
 }
 
 function SessionItem({ time, client, room, status }: any) {
-  const statusStyles = "border border-gray-200";
+  const statusStyles = "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900";
 
   return (
     <div className={`${statusStyles} p-3 rounded flex items-center justify-between`}>
       <div>
-        <p className="text-gray-900 font-medium text-xs">{time} - {client}</p>
-        <p className="text-gray-600 text-xs">{room}</p>
+        <p className="text-gray-900 dark:text-gray-50 font-medium text-xs">{time} - {client}</p>
+        <p className="text-gray-600 dark:text-gray-400 text-xs">{room}</p>
       </div>
-      <span className="text-xs text-gray-600">
+      <span className="text-xs text-gray-600 dark:text-gray-400">
         {status === "next" ? "NEXT" : "Scheduled"}
       </span>
     </div>

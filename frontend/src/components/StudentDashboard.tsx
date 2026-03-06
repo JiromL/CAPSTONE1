@@ -39,28 +39,28 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     >
       {/* Welcome */}
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-50">
           Welcome, {user?.name || 'Student'}!
         </h2>
       </div>
 
       {/* Counseling ID - if available */}
       {counselingId && (
-        <div className="mb-4 border border-gray-200 rounded p-4">
-          <p className="text-xs text-gray-700 font-medium mb-1">Your Counseling ID</p>
-          <p className="text-lg font-bold text-gray-900 font-mono tracking-wider">{counselingId}</p>
-          <p className="text-xs text-gray-600 mt-1">Use this ID for all counseling communications</p>
+        <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+          <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mb-1">Your Counseling ID</p>
+          <p className="text-lg font-bold text-gray-900 dark:text-gray-50 font-mono tracking-wider">{counselingId}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Use this ID for all counseling communications</p>
         </div>
       )}
 
       {/* Next Appointment & Crisis Support & Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Next Appointment */}
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Next Appointment</h2>
+        <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Next Appointment</h2>
           <div className="space-y-1">
-            <p className="text-gray-900 font-medium text-xs">March 15, 2026 at 2:00 PM</p>
-            <p className="text-gray-600 text-xs">Dr. Sarah Lee • Room 205-B</p>
+            <p className="text-gray-900 dark:text-gray-50 font-medium text-xs">March 15, 2026 at 2:00 PM</p>
+            <p className="text-gray-600 dark:text-gray-400 text-xs">Dr. Sarah Lee • Room 205-B</p>
             <Link href="/reservations">
               <button className="mt-2 px-3 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-100 transition text-xs font-medium">
                 Schedule Another
@@ -70,9 +70,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         </div>
 
         {/* Crisis Support */}
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-1">In Crisis?</h2>
-          <p className="text-gray-700 text-xs">
+        <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-1">In Crisis?</h2>
+          <p className="text-gray-700 dark:text-gray-300 text-xs">
             Call 988 (National Crisis Hotline) or Campus Security (Ext. 911)
           </p>
         </div>

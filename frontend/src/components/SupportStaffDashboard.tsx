@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import { Users, HelpCircle, CheckCircle, BarChart3, MessageSquare, Settings, FileText } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { useState } from 'react';
 
 interface DashboardProps {
   user: any;

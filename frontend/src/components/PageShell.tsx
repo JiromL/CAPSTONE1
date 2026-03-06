@@ -1,4 +1,11 @@
+'use client';
+
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const ThemeToggle = dynamic(() => import('./ThemeToggle').then(mod => ({ default: mod.ThemeToggle })), {
+  ssr: false,
+});
 
 type Props = {
   title?: string;
@@ -26,7 +33,10 @@ export default function PageShell({ title, subtitle, actions, children }: Props)
             </nav>
             {title && <div className="text-sm text-gray-600 dark:text-gray-400">{title}</div>}
           </div>
-          <div className="flex items-center gap-3">{actions}</div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            {actions}
+          </div>
         </div>
       </header>
 

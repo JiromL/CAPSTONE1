@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Users, Settings, BarChart3, AlertCircle, Lock, Shield, Database, Activity } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';

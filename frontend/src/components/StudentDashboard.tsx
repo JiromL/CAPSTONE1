@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { BookOpen, CheckCircle, AlertCircle, FileText, Heart } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';

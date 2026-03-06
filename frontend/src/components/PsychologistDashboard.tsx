@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Users, Brain, AlertTriangle, FileText, Calendar, TrendingUp, Shield } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';

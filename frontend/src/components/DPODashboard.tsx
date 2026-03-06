@@ -29,77 +29,38 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
       subtitle="Director of Psychological Operations"
     >
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <MetricCard label="Counselors" value="15" change="+2" />
-        <MetricCard label="Critical Cases" value="8" change="-1" />
-        <MetricCard label="Weekly Sessions" value="124" change="+5%" />
-        <MetricCard label="Avg Satisfaction" value="4.8/5" change="+0.2" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <MetricCard label="Counselors" value="15" />
+        <MetricCard label="Critical Cases" value="8" color="red" />
+        <MetricCard label="Weekly Sessions" value="124" />
+        <MetricCard label="High-Risk Reviews" value="8" color="orange" />
       </div>
 
-      {/* Operations Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Team Management</h2>
-          <div className="space-y-1">
-            <OperationLink href="/dpo/counselors" label="Manage Counselors" />
-            <OperationLink href="/dpo/assignments" label="Case Assignments" />
-            <OperationLink href="/dpo/schedules" label="Team Schedules" />
-            <OperationLink href="/dpo/performance" label="Performance Metrics" />
-          </div>
-        </div>
-
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Case Supervision</h2>
-          <div className="space-y-1">
-            <OperationLink href="/dpo/cases" label="All Cases" />
-            <OperationLink href="/dpo/high-risk" label="High-Risk Review" badge="8" />
-            <OperationLink href="/dpo/escalations" label="Escalations" />
-            <OperationLink href="/dpo/outcomes" label="Case Outcomes" />
-          </div>
-        </div>
-
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Quality Assurance</h2>
-          <div className="space-y-1">
-            <OperationLink href="/dpo/audits" label="File Audits" />
-            <OperationLink href="/dpo/compliance" label="Compliance Check" />
-            <OperationLink href="/dpo/training" label="Staff Training" />
-            <OperationLink href="/dpo/feedback" label="Client Feedback" />
-          </div>
-        </div>
-
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Strategic Planning</h2>
-          <div className="space-y-1">
-            <OperationLink href="/dpo/reports" label="Operations Report" />
-            <OperationLink href="/dpo/trends" label="Trend Analysis" />
-            <OperationLink href="/dpo/capacity" label="Capacity Planning" />
-            <OperationLink href="/dpo/goals" label="Department Goals" />
-          </div>
-        </div>
-      </div>
-
-      {/* Weekly Overview */}
-      <div className="border border-gray-200 rounded p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">This Week Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <OverviewItem label="Sessions Scheduled" value="48" status="On Track" />
-          <OverviewItem label="New Assessments" value="12" status="On Track" />
-          <OverviewItem label="Follow-ups Required" value="5" status="Action Needed" />
+      {/* Quick Actions */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <OperationLink href="/dpo/cases" label="Review Cases" />
+          <OperationLink href="/dpo/high-risk" label="High-Risk Cases" />
+          <OperationLink href="/dpo/counselors" label="Team Management" />
+          <OperationLink href="/dpo/reports" label="Operations Reports" />
         </div>
       </div>
     </DashboardLayout>
   );
 }
 
-function MetricCard({ label, value, change }: any) {
+function MetricCard({ label, value, color = "blue" }: any) {
+  const colorStyles = {
+    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
+    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
+    orange: "bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700",
+  };
+
   return (
-    <div className="border border-gray-200 rounded p-3">
-      <p className="text-gray-600 text-xs font-medium">{label}</p>
-      <div className="flex items-end justify-between mt-1">
-        <p className="text-lg font-bold text-gray-900">{value}</p>
-        <p className="text-gray-600 text-xs font-medium">{change}</p>
-      </div>
+    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
+      <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
     </div>
   );
 }
@@ -107,10 +68,8 @@ function MetricCard({ label, value, change }: any) {
 function OperationLink({ href, label, badge }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50 transition cursor-pointer">
-        <span className="text-gray-900 font-medium text-xs">{label}</span>
-        {badge && <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">{badge}</span>}
-        {!badge && <span className="text-gray-400 text-xs">→</span>}
+      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
+        <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
       </div>
     </Link>
   );

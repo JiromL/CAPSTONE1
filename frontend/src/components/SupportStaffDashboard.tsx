@@ -30,53 +30,21 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
       subtitle="Administrative & Support Services"
     >
       {/* Quick Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <SupportCard label="Clients Supported" value="156" />
-        <SupportCard label="Support Tickets" value="12" />
-        <SupportCard label="Tasks Completed" value="28" />
-        <SupportCard label="Pending Tasks" value="5" />
+        <SupportCard label="Support Tickets" value="12" color="orange" />
+        <SupportCard label="Tasks Completed" value="28" color="green" />
+        <SupportCard label="Pending Tasks" value="5" color="red" />
       </div>
 
-      {/* Support Functions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Client Support</h2>
-          <div className="space-y-1">
-            <SupportLink href="/staff/clients/inquiries" label="Client Inquiries" badge="4" />
-            <SupportLink href="/staff/clients/info" label="Client Information" />
-            <SupportLink href="/staff/clients/referrals" label="Referral Requests" badge="2" />
-            <SupportLink href="/staff/clients/feedback" label="Client Feedback" />
-          </div>
-        </div>
-
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Administrative</h2>
-          <div className="space-y-1">
-            <SupportLink href="/staff/admin/documents" label="Document Management" />
-            <SupportLink href="/staff/admin/scheduling" label="Scheduling Support" />
-            <SupportLink href="/staff/admin/communications" label="Communications" badge="3" />
-            <SupportLink href="/staff/admin/records" label="Records Management" />
-          </div>
-        </div>
-
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Resources & Help</h2>
-          <div className="space-y-1">
-            <SupportLink href="/staff/help/faq" label="FAQ Management" />
-            <SupportLink href="/staff/help/knowledge-base" label="Knowledge Base" />
-            <SupportLink href="/staff/help/training" label="Training Materials" />
-            <SupportLink href="/staff/help/contact" label="Contact Directory" />
-          </div>
-        </div>
-
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Reports & Data</h2>
-          <div className="space-y-1">
-            <SupportLink href="/staff/reports/activity" label="Activity Reports" />
-            <SupportLink href="/staff/reports/statistics" label="Statistics" />
-            <SupportLink href="/staff/reports/logs" label="System Logs" />
-            <SupportLink href="/staff/reports/export" label="Export Data" />
-          </div>
+      {/* Quick Actions */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <SupportLink href="/staff/clients/inquiries" label="Client Inquiries" />
+          <SupportLink href="/staff/admin/communications" label="Communications" />
+          <SupportLink href="/staff/admin/documents" label="Document Management" />
+          <SupportLink href="/staff/tickets" label="Support Tickets" />
         </div>
       </div>
 
@@ -105,11 +73,18 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   );
 }
 
-function SupportCard({ label, value }: any) {
+function SupportCard({ label, value, color = "blue" }: any) {
+  const colorStyles = {
+    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
+    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
+    orange: "bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700",
+    green: "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700",
+  };
+
   return (
-    <div className="border border-gray-200 rounded p-3">
-      <p className="text-gray-600 text-xs font-medium">{label}</p>
-      <p className="text-lg font-bold text-gray-900 mt-1">{value}</p>
+    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
+      <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
     </div>
   );
 }
@@ -117,10 +92,8 @@ function SupportCard({ label, value }: any) {
 function SupportLink({ href, label, badge }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50 transition cursor-pointer">
-        <span className="text-gray-900 font-medium text-xs">{label}</span>
-        {badge && <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">{badge}</span>}
-        {!badge && <span className="text-gray-400 text-xs">→</span>}
+      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
+        <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
       </div>
     </Link>
   );

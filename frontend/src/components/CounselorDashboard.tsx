@@ -31,56 +31,53 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       title="Counselor Dashboard"
       subtitle="Session Management & Client Care"
     >
-      {/* Today's Sessions & Calendar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        {/* Today's Sessions */}
-        <div className="lg:col-span-2 border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Today's Sessions</h2>
-          <div className="space-y-1">
-            <SessionItem time="10:00 AM" client="Sarah Johnson" room="Rm 201" status="next" />
-            <SessionItem time="11:00 AM" client="Marcus Lee" room="Rm 203" status="upcoming" />
-            <SessionItem time="1:00 PM" client="Emma Davis" room="Rm 205" status="upcoming" />
-            <SessionItem time="2:30 PM" client="Alex Rodriguez" room="Rm 201" status="upcoming" />
-          </div>
-        </div>
-
-        {/* Calendar */}
-        <DashboardCalendar
-          selectedDate={selectedDate}
-          onDateSelect={setSelectedDate}
-          title="Session Calendar"
-          showAppointments={true}
-          appointments={[
-            {
-              date: new Date(2026, 2, 6),
-              title: 'Sarah Johnson',
-              time: '10:00 AM',
-            },
-            {
-              date: new Date(2026, 2, 6),
-              title: 'Marcus Lee',
-              time: '11:00 AM',
-            },
-            {
-              date: new Date(2026, 2, 8),
-              title: 'Emma Davis',
-              time: '2:00 PM',
-            },
-          ]}
-        />
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <MetricCard label="Sessions Today" value="4" icon={<Clock size={20} />} />
+        <MetricCard label="Pending Notes" value="2" icon={<FileText size={20} />} color="orange" />
+        <MetricCard label="High-Risk Alerts" value="1" icon={<AlertTriangle size={20} />} color="red" />
       </div>
 
-      {/* Client Alerts */}
+      {/* Quick Actions */}
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-1">High-Risk Alert</h2>
-        <p className="text-gray-700 dark:text-gray-300 text-xs mb-2">1 client requires follow-up</p>
-        <Link href="/counselor/high-risk">
-          <button className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-xs font-medium">
-            Review Alert
-          </button>
-        </Link>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton href="/counselor/sessions/today" label="View Today's Sessions" />
+          <ActionButton href="/counselor/notes/pending" label="Review Pending Notes" />
+          <ActionButton href="/counselor/high-risk" label="High-Risk Clients" />
+        </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function MetricCard({ label, value, icon, color = "blue" }: any) {
+  const colorStyles = {
+    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
+    orange: "bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700",
+    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
+  };
+
+  return (
+    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
+        </div>
+        <div className="text-gray-400 dark:text-gray-500">{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+function ActionButton({ href, label }: any) {
+  return (
+    <Link href={href}>
+      <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm font-medium">
+        {label}
+      </button>
+    </Link>
   );
 }
 

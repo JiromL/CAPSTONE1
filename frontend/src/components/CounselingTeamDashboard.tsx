@@ -29,109 +29,39 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
       subtitle="Client Case Support & Coordination"
     >
       {/* Team Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <TeamCard label="Clients Assisted" value="45" />
-        <TeamCard label="Support Calls" value="18" />
-        <TeamCard label="Cases Processed" value="32" />
-        <TeamCard label="Follow-ups" value="7" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <TeamCard label="Active Clients" value="45" />
+        <TeamCard label="Follow-ups Due" value="7" color="orange" />
+        <TeamCard label="Support Messages" value="5" color="blue" />
+        <TeamCard label="Referrals" value="3" color="red" />
       </div>
 
-      {/* Support Functions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        {/* Client Support */}
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Client Support</h2>
-          <div className="space-y-1">
-            <TeamLink href="/csp/clients/active" label="Active Clients" badge="45" />
-            <TeamLink href="/csp/clients/intake" label="Intake Assistance" badge="8" />
-            <TeamLink href="/csp/clients/follow-up" label="Follow-up Calls" badge="7" />
-            <TeamLink href="/csp/clients/resources" label="Client Resources" />
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Quick Actions</h2>
-          <div className="space-y-1">
-            <TeamLink href="/csp/contact/outreach" label="Client Outreach" />
-            <TeamLink href="/csp/scheduling/assist" label="Help Schedule Appointment" />
-            <TeamLink href="/csp/communication/messages" label="Client Messages" badge="5" />
-            <TeamLink href="/csp/cases/referrals" label="Referral Support" badge="3" />
-          </div>
-        </div>
-
-        {/* Case Support */}
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Case Management</h2>
-          <div className="space-y-1">
-            <TeamLink href="/csp/cases/pending" label="Pending Cases" badge="12" />
-            <TeamLink href="/csp/cases/documentation" label="Case Documentation" />
-            <TeamLink href="/csp/cases/referrals" label="Referral Assistance" badge="3" />
-            <TeamLink href="/csp/cases/archive" label="Archived Cases" />
-          </div>
-        </div>
-
-        {/* Communication */}
-        <div className="border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Communication</h2>
-          <div className="space-y-1">
-            <TeamLink href="/csp/communication/messages" label="Client Messages" badge="5" />
-            <TeamLink href="/csp/communication/calls" label="Call Log" />
-            <TeamLink href="/csp/communication/emails" label="Email Templates" />
-            <TeamLink href="/csp/communication/scheduling" label="Scheduling Help" />
-          </div>
-        </div>
-      </div>
-
-      {/* Pending Follow-ups */}
-      <div className="border border-gray-200 rounded p-4 mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-gray-900">Pending Client Follow-ups</h2>
-          <span className="text-xs text-gray-600">7 Due Today</span>
-        </div>
-        <div className="space-y-2">
-          <FollowUpItem
-            clientId="C-2341"
-            name="Sarah Mitchell"
-            reason="Missed appointment follow-up"
-            dueTime="Today"
-            priority="high"
-          />
-          <FollowUpItem
-            clientId="C-2342"
-            name="James Brown"
-            reason="Check-in call"
-            dueTime="Today"
-            priority="medium"
-          />
-          <FollowUpItem
-            clientId="C-2343"
-            name="Emma Wilson"
-            reason="Confirm new appointment"
-            dueTime="Tomorrow"
-            priority="low"
-          />
-        </div>
-      </div>
-
-      {/* Support Metrics */}
-      <div className="border border-gray-200 rounded p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">Weekly Support Metrics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <MetricBox label="Clients Assisted" value="45" trend="+8" />
-          <MetricBox label="Avg Response Time" value="2.1 hrs" trend="-0.3h" />
-          <MetricBox label="Client Satisfaction" value="4.7/5" trend="+0.2" />
+      {/* Quick Actions */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <TeamLink href="/csp/clients/active" label="Active Clients" />
+          <TeamLink href="/csp/clients/follow-up" label="Client Follow-ups" />
+          <TeamLink href="/csp/communication/messages" label="Client Messages" />
+          <TeamLink href="/csp/cases/referrals" label="Referral Support" />
         </div>
       </div>
     </DashboardLayout>
   );
 }
 
-function TeamCard({ label, value }: any) {
+function TeamCard({ label, value, color = "blue" }: any) {
+  const colorStyles = {
+    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
+    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
+    orange: "bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700",
+    green: "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700",
+  };
+
   return (
-    <div className="border border-gray-200 rounded p-3">
-      <p className="text-gray-600 text-xs font-medium">{label}</p>
-      <p className="text-lg font-bold text-gray-900 mt-1">{value}</p>
+    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
+      <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
     </div>
   );
 }
@@ -139,10 +69,8 @@ function TeamCard({ label, value }: any) {
 function TeamLink({ href, label, badge }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50 transition cursor-pointer">
-        <span className="text-gray-900 font-medium text-xs">{label}</span>
-        {badge && <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">{badge}</span>}
-        {!badge && <span className="text-gray-400 text-xs">→</span>}
+      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
+        <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
       </div>
     </Link>
   );

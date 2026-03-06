@@ -27,24 +27,21 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
       title="Case Manager Dashboard"
       subtitle="Case Coordination & Follow-up"
     >
-      {/* Quick Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div className="border border-gray-200 rounded p-4">
-          <p className="text-gray-600 text-xs font-medium mb-1">Active Cases</p>
-          <p className="text-2xl font-bold text-gray-900">32</p>
-        </div>
-        <div className="border border-gray-200 rounded p-4">
-          <p className="text-gray-600 text-xs font-medium mb-1">Follow-ups Due</p>
-          <p className="text-2xl font-bold text-gray-900">7</p>
-        </div>
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <MetricCard label="Active Cases" value="32" />
+        <MetricCard label="Follow-ups Due" value="7" color="orange" />
+        <MetricCard label="High-Risk" value="4" color="red" />
+        <MetricCard label="Completed (Month)" value="18" color="green" />
       </div>
 
-      {/* Core Actions */}
-      <div className="border border-gray-200 rounded p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">Actions</h2>
-        <div className="space-y-1">
-          <CaseLink href="/cases" label="View Cases" badge="32" />
-          <CaseLink href="/high-risk" label="High-Risk Clients" badge="4" />
+      {/* Quick Actions */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <CaseLink href="/cases" label="View Cases" />
+          <CaseLink href="/high-risk" label="High-Risk Clients" />
+          <CaseLink href="/tasks" label="My Tasks" />
           <CaseLink href="/documentation" label="Documentation" />
         </div>
       </div>
@@ -52,14 +49,27 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
   );
 }
 
+function MetricCard({ label, value, color = "blue" }: any) {
+  const colorStyles = {
+    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
+    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
+    orange: "bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700",
+    green: "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700",
+  };
+
+  return (
+    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
+      <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
+    </div>
+  );
+}
 
 function CaseLink({ href, label, badge }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50 transition cursor-pointer">
-        <span className="text-gray-900 font-medium text-xs">{label}</span>
-        {badge && <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">{badge}</span>}
-        {!badge && <span className="text-gray-400 text-xs">→</span>}
+      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
+        <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
       </div>
     </Link>
   );

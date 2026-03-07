@@ -11,12 +11,12 @@ interface DashboardProps {
 
 export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <CheckCircle size={20} /> },
-    { label: 'Assessments', href: '/dashboard/assessments', icon: <FileText size={20} />, badge: 8 },
-    { label: 'Cases', href: '/dashboard/cases', icon: <CheckCircle size={20} /> },
-    { label: 'Documentation', href: '/dashboard/documentation', icon: <Clock size={20} /> },
-    { label: 'Referrals', href: '/dashboard/referrals', icon: <Phone size={20} /> },
-    { label: 'Profile', href: '/dashboard/profile', icon: <Users size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', icon: <CheckCircle size={20} /> },
+    { label: 'Assessments', href: '/assessments', icon: <FileText size={20} />, badge: 8 },
+    { label: 'Cases', href: '/cases', icon: <CheckCircle size={20} /> },
+    { label: 'Documentation', href: '/documentation', icon: <Clock size={20} /> },
+    { label: 'Referrals', href: '/referrals', icon: <Phone size={20} /> },
+    { label: 'Profile', href: '/profile', icon: <Users size={20} /> },
   ];
 
   return (
@@ -39,10 +39,10 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <IntakeLink href="/dashboard/tasks" label="Pending Intakes" />
-          <IntakeLink href="/dashboard/assessments" label="Start New Intake" />
-          <IntakeLink href="/dashboard/assessments" label="Verify Forms" />
-          <IntakeLink href="/dashboard/appointments" label="Assign Time Slots" />
+          <IntakeLink href="/tasks" label="Pending Intakes" />
+          <IntakeLink href="/assessments" label="Start New Intake" />
+          <IntakeLink href="/assessments" label="Verify Forms" />
+          <IntakeLink href="/appointments" label="Assign Time Slots" />
         </div>
       </div>
 

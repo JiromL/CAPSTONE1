@@ -11,12 +11,12 @@ interface DashboardProps {
 
 export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <Users size={20} /> },
-    { label: 'My Tasks', href: '/dashboard/tasks', icon: <CheckCircle size={20} />, badge: 15 },
-    { label: 'Cases', href: '/dashboard/cases', icon: <FileText size={20} />, badge: 32 },
-    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <AlertCircle size={20} />, badge: 3 },
-    { label: 'Documentation', href: '/dashboard/documentation', icon: <TrendingUp size={20} /> },
-    { label: 'Profile', href: '/dashboard/profile', icon: <Settings size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', icon: <Users size={20} /> },
+    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 15 },
+    { label: 'Cases', href: '/cases', icon: <FileText size={20} />, badge: 32 },
+    { label: 'High-Risk', href: '/high-risk', icon: <AlertCircle size={20} />, badge: 3 },
+    { label: 'Documentation', href: '/documentation', icon: <TrendingUp size={20} /> },
+    { label: 'Profile', href: '/profile', icon: <Settings size={20} /> },
   ];
 
   return (
@@ -39,10 +39,10 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <CaseLink href="/dashboard/cases" label="View Cases" />
-          <CaseLink href="/dashboard/high-risk" label="High-Risk Clients" />
-          <CaseLink href="/dashboard/tasks" label="My Tasks" />
-          <CaseLink href="/dashboard/documentation" label="Documentation" />
+          <CaseLink href="/cases" label="View Cases" />
+          <CaseLink href="/high-risk" label="High-Risk Clients" />
+          <CaseLink href="/tasks" label="My Tasks" />
+          <CaseLink href="/documentation" label="Documentation" />
         </div>
       </div>
     </DashboardLayout>

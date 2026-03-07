@@ -14,12 +14,12 @@ interface DashboardProps {
 export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <TrendingUp size={20} /> },
-    { label: 'Appointments', href: '/dashboard/appointments', icon: <Clock size={20} />, badge: 4 },
-    { label: 'Cases', href: '/dashboard/cases', icon: <Users size={20} /> },
-    { label: 'Referrals', href: '/dashboard/referrals', icon: <MessageCircle size={20} /> },
-    { label: 'Documentation', href: '/dashboard/documentation', icon: <FileText size={20} />, badge: 2 },
-    { label: 'Profile', href: '/dashboard/profile', icon: <Clock size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', icon: <TrendingUp size={20} /> },
+    { label: 'Appointments', href: '/appointments', icon: <Clock size={20} />, badge: 4 },
+    { label: 'Cases', href: '/cases', icon: <Users size={20} /> },
+    { label: 'Referrals', href: '/referrals', icon: <MessageCircle size={20} /> },
+    { label: 'Documentation', href: '/documentation', icon: <FileText size={20} />, badge: 2 },
+    { label: 'Profile', href: '/profile', icon: <Clock size={20} /> },
   ];
 
   return (
@@ -41,9 +41,9 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="flex flex-wrap gap-2">
-          <ActionButton href="/dashboard/appointments" label="View Today's Sessions" />
-          <ActionButton href="/dashboard/documentation" label="Review Pending Notes" />
-          <ActionButton href="/dashboard/high-risk" label="High-Risk Clients" />
+          <ActionButton href="/appointments" label="View Today's Sessions" />
+          <ActionButton href="/documentation" label="Review Pending Notes" />
+          <ActionButton href="/high-risk" label="High-Risk Clients" />
         </div>
       </div>
     </DashboardLayout>

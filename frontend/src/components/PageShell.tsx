@@ -21,7 +21,7 @@ export default function PageShell({ title, subtitle, actions, children }: Props)
       <header className="bg-white dark:bg-gray-900 shadow dark:shadow-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+            <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
               CPS System
             </Link>
             <nav className="flex items-center gap-4">

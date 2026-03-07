@@ -24,11 +24,11 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   }, []);
 
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BookOpen size={20} /> },
-    { label: 'My Tasks', href: '/dashboard/tasks', icon: <CheckCircle size={20} />, badge: 3 },
+    { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
+    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
     { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
     { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
-    { label: 'My Profile', href: '/dashboard/profile', icon: <AlertCircle size={20} /> },
+    { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
   ];
 
   return (

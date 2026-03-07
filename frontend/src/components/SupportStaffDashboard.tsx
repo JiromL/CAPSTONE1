@@ -12,12 +12,12 @@ interface DashboardProps {
 
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'Cases', href: '/dashboard/cases', icon: <MessageSquare size={20} />, badge: 4 },
-    { label: 'Appointments', href: '/dashboard/appointments', icon: <HelpCircle size={20} />, badge: 12 },
-    { label: 'Documentation', href: '/dashboard/documentation', icon: <Users size={20} /> },
-    { label: 'Tasks', href: '/dashboard/tasks', icon: <FileText size={20} />, badge: 3 },
-    { label: 'Profile', href: '/dashboard/profile', icon: <Settings size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Cases', href: '/cases', icon: <MessageSquare size={20} />, badge: 4 },
+    { label: 'Appointments', href: '/appointments', icon: <HelpCircle size={20} />, badge: 12 },
+    { label: 'Documentation', href: '/documentation', icon: <Users size={20} /> },
+    { label: 'Tasks', href: '/tasks', icon: <FileText size={20} />, badge: 3 },
+    { label: 'Profile', href: '/profile', icon: <Settings size={20} /> },
   ];
 
   return (
@@ -40,10 +40,10 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <SupportLink href="/dashboard/cases" label="Client Inquiries" />
-          <SupportLink href="/dashboard/appointments" label="Communications" />
-          <SupportLink href="/dashboard/documentation" label="Document Management" />
-          <SupportLink href="/dashboard/tasks" label="Support Tickets" />
+          <SupportLink href="/cases" label="Client Inquiries" />
+          <SupportLink href="/appointments" label="Communications" />
+          <SupportLink href="/documentation" label="Document Management" />
+          <SupportLink href="/tasks" label="Support Tickets" />
         </div>
       </div>
 

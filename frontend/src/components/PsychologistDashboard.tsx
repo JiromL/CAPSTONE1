@@ -11,13 +11,13 @@ interface DashboardProps {
 
 export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard/dashboard', icon: <Brain size={20} /> },
-    { label: 'Cases', href: '/dashboard/cases', icon: <FileText size={20} /> },
-    { label: 'Assessments', href: '/dashboard/assessments', icon: <Calendar size={20} />, badge: 7 },
-    { label: 'Documentation', href: '/dashboard/documentation', icon: <Shield size={20} /> },
-    { label: 'High-Risk', href: '/dashboard/high-risk', icon: <AlertTriangle size={20} />, badge: 3 },
-    { label: 'Referrals', href: '/dashboard/referrals', icon: <Users size={20} /> },
-    { label: 'Profile', href: '/dashboard/profile', icon: <TrendingUp size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', icon: <Brain size={20} /> },
+    { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
+    { label: 'Assessments', href: '/assessments', icon: <Calendar size={20} />, badge: 7 },
+    { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
+    { label: 'High-Risk', href: '/high-risk', icon: <AlertTriangle size={20} />, badge: 3 },
+    { label: 'Referrals', href: '/referrals', icon: <Users size={20} /> },
+    { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
   ];
 
   return (
@@ -40,10 +40,10 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <ClinicalLink href="/dashboard/cases" label="Review Pending Cases" />
-          <ClinicalLink href="/dashboard/assessments" label="Risk Assessments" />
-          <ClinicalLink href="/dashboard/appointments" label="Schedule Supervision" />
-          <ClinicalLink href="/dashboard/documentation" label="Clinical Notes" />
+          <ClinicalLink href="/cases" label="Review Pending Cases" />
+          <ClinicalLink href="/assessments" label="Risk Assessments" />
+          <ClinicalLink href="/appointments" label="Schedule Supervision" />
+          <ClinicalLink href="/documentation" label="Clinical Notes" />
         </div>
       </div>
     </DashboardLayout>

@@ -13,6 +13,7 @@ from .referrals import referrals_bp
 from .reservations import reservations_bp
 from .integrations import integrations_bp
 from .cases import cases_bp
+from .resources import resources_bp
 
 __all__ = [
     'auth_bp',
@@ -27,4 +28,5 @@ __all__ = [
     'reservations_bp',
     'integrations_bp',
     'cases_bp',
+    'resources_bp',
 ]

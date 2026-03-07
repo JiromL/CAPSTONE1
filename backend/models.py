@@ -108,6 +108,14 @@ class CaseType(str, Enum):
     CHECK_IN = "CHECK_IN"             # Periodic check-ins only
 
 
+class ResourceUploadRole(str, Enum):
+    """Staff roles that can upload wellness resources"""
+    PSYCHOLOGIST = "PSYCHOLOGIST"
+    COUNSELOR = "COUNSELOR"
+    CASE_MANAGER = "CASE_MANAGER"
+    IC = "IC"  # Intake Counselor
+
+
 # RBAC Permission Matrix
 ROLE_PERMISSIONS = {
     UserRole.ADMIN: set(PermissionType),
@@ -231,6 +239,8 @@ class MongoDB:
             self.db.risk_checkins.create_index("case_id")
             self.db.crisis_escalations.create_index("case_id")
             self.db.referrals.create_index("case_id")
+            self.db.resources.create_index("uploaded_by_user_id")
+            self.db.resources.create_index("uploaded_by_role")
             self.db.audit_logs.create_index("user_id")
             self.db.permission_overrides.create_index("user_id")
         except Exception as e:

@@ -29,3 +29,17 @@ class S3Integration:
             params['ContentType'] = content_type
         url = self.s3.generate_presigned_url('put_object', Params=params, ExpiresIn=expires_in)
         return url
+    
+    def presign_download(self, key, expires_in=3600):
+        """Generate presigned URL for downloading an object"""
+        if not self.enabled:
+            raise RuntimeError('S3 not enabled')
+        params = {'Bucket': self.bucket, 'Key': key}
+        url = self.s3.generate_presigned_url('get_object', Params=params, ExpiresIn=expires_in)
+        return url
+    
+    def delete_object(self, key):
+        """Delete an object from S3"""
+        if not self.enabled:
+            raise RuntimeError('S3 not enabled')
+        self.s3.delete_object(Bucket=self.bucket, Key=key)

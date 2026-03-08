@@ -238,8 +238,7 @@ export default function EnhancedIntakePage() {
   return (
     <DashboardPageWrapper title="Student Intake Form" subtitle="Help us understand your needs">
       <div className="max-w-3xl mx-auto">
-        {/* Stepper */}
-        <div className="mb-8">
+        <div className="mb-6\">
           <div className="flex items-center justify-between">
             {steps.map((step, idx) => (
               <div key={step.number} className="flex items-center flex-1">
@@ -247,13 +246,13 @@ export default function EnhancedIntakePage() {
                   className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium transition ${
                     currentStep >= step.number
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                      : 'bg-gray-200 dark:bg-gray-700'
                   }`}
                 >
                   {currentStep > step.number ? <Check size={16} /> : step.number}
                 </div>
                 <div className="ml-2">
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{step.title}</p>
+                  <p className="text-xs font-medium">{step.title}</p>
                 </div>
                 {idx < steps.length - 1 && (
                   <div
@@ -269,10 +268,10 @@ export default function EnhancedIntakePage() {
 
         {message && (
           <div
-            className={`mb-6 p-4 rounded-lg text-sm ${
+            className={`mb-6 p-4 rounded text-sm ${
               message.type === 'success'
-                ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
-                : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+                ? 'bg-green-50 dark:bg-green-900/20 text-green-700 border border-green-200'
+                : 'bg-red-50 dark:bg-red-900/20 text-red-700 border border-red-200'
             }`}
           >
             {message.text}
@@ -367,7 +366,6 @@ export default function EnhancedIntakePage() {
                 >
                   <option value="in-person">In-Person</option>
                   <option value="zoom">Zoom Video</option>
-                  <option value="phone">Phone</option>
                   <option value="flexible">Flexible</option>
                 </select>
               </div>

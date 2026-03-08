@@ -3,7 +3,7 @@
  * Efficient queries for dashboard data from backend endpoints
  */
 
-import { API_BASE_URL } from './api';
+import { api } from './api';
 
 export interface RiskLevel {
   level: 'GREEN' | 'YELLOW' | 'RED' | 'CRITICAL';
@@ -67,7 +67,7 @@ export interface UrgentAssessment {
  */
 export async function getDashboardData(token: string): Promise<DashboardData | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/assessments/dashboard`, {
+    const response = await fetch(api('/assessments/dashboard'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -94,7 +94,7 @@ export async function getDashboardData(token: string): Promise<DashboardData | n
  */
 export async function getUrgentAssessments(token: string): Promise<UrgentAssessment[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/assessments/urgent`, {
+    const response = await fetch(api('/assessments/urgent'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -120,7 +120,7 @@ export async function getUrgentAssessments(token: string): Promise<UrgentAssessm
  */
 export async function getAssessmentStatistics(token: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/assessments/stats`, {
+    const response = await fetch(api('/assessments/stats'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -145,7 +145,7 @@ export async function getAssessmentStatistics(token: string) {
  */
 export async function initializeAssessmentIndexes(token: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/assessments/init-indexes`, {
+    const response = await fetch(api('/assessments/init-indexes'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

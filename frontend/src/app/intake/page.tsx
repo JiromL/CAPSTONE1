@@ -148,7 +148,7 @@ export default function IntakePage() {
   const [autoSuggestedDate, setAutoSuggestedDate] = useState('');
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
-  const [communicationMethod, setCommunicationMethod] = useState<'zoom' | 'google_meet' | 'phone' | 'in_person'>('zoom');
+  const [communicationMethod, setCommunicationMethod] = useState<'zoom' | 'google_meet' | 'in_person'>('zoom');
   const [counselingId, setCounselingId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -314,7 +314,7 @@ export default function IntakePage() {
 
     setIsSubmitting(true);
     try {
-      const payload = {
+      const payload: any = {
         purpose: selectedConcern,
         is_emergency: isUrgent,
         emergency_notes: urgencyNotes,
@@ -330,7 +330,7 @@ export default function IntakePage() {
         payload[`${assessment}_responses`] = assessmentResponses[assessment];
       });
 
-      const response = await fetch(`${api.base}/intake/submit`, {
+      const response = await fetch(api('/intake/submit'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -364,18 +364,18 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-1">What brings you in today?</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">Select the concern that best describes your situation</p>
+          <h2 className="text-xl font-semibold mb-2 text-white">What brings you in today?</h2>
+          <p className="text-sm text-white mb-6">Select the concern that best describes your situation</p>
 
             <div className="space-y-2 mb-8">
               {Object.entries(CONCERN_TYPES).map(([key, concern]) => (
                 <button
                   key={key}
                   onClick={() => setSelectedConcern(key)}
-                  className={`w-full p-3 border text-left transition ${
+                  className={`w-full p-3 border rounded text-left transition ${
                     selectedConcern === key
-                      ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 hover:border-gray-400 dark:hover:border-gray-500'
+                      ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
+                      : 'border-gray-300 dark:border-gray-600 text-white hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
                   {concern.label}
@@ -383,15 +383,13 @@ export default function IntakePage() {
               ))}
             </div>
 
-            <div className="flex gap-2">
-              <button
-                disabled={!selectedConcern}
-                onClick={handleConcernSelection}
-                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next →
-              </button>
-            </div>
+            <button
+              disabled={!selectedConcern}
+              onClick={handleConcernSelection}
+              className="w-full px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
           </div>
       </DashboardLayout>
     );
@@ -421,8 +419,8 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-1">Which screenings would you like to complete?</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">Select all that apply based on your concerns</p>
+          <h2 className="text-xl font-semibold text-white mb-1">Which screenings would you like to complete?</h2>
+          <p className="text-sm text-white mb-8">Select all that apply based on your concerns</p>
 
             <div className="space-y-2 mb-8">
               {allowedAssessments.map((assessment) => (
@@ -436,7 +434,7 @@ export default function IntakePage() {
                     onChange={() => toggleScreening(assessment)}
                     className="w-4 h-4 mr-3"
                   />
-                  <span className="text-gray-900 dark:text-gray-50">
+                  <span className="text-white">
                     {assessmentLabels[assessment] || assessment}
                   </span>
                 </label>
@@ -446,7 +444,7 @@ export default function IntakePage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setStep('concern')}
-                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-white rounded hover:border-gray-400 dark:hover:border-gray-500"
               >
                 ← Back
               </button>
@@ -476,15 +474,15 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-8">Is this urgent?</h2>
+          <h2 className="text-xl font-semibold mb-6 text-white">Is this urgent?</h2>
 
-            <div className="space-y-2 mb-8">
+            <div className="space-y-2 mb-6">
               <button
                 onClick={() => setIsUrgent(true)}
-                className={`w-full p-3 border rounded text-left ${
+                className={`w-full p-3 border rounded text-left transition ${
                   isUrgent === true
-                    ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 hover:border-gray-400 dark:hover:border-gray-500'
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
                 }`}
               >
                 Yes, I need immediate support
@@ -492,10 +490,10 @@ export default function IntakePage() {
 
               <button
                 onClick={() => setIsUrgent(false)}
-                className={`w-full p-3 border rounded text-left ${
+                className={`w-full p-3 border rounded text-left transition ${
                   isUrgent === false
-                    ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 hover:border-gray-400 dark:hover:border-gray-500'
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
                 }`}
               >
                 No, I can wait for an appointment
@@ -503,14 +501,14 @@ export default function IntakePage() {
             </div>
 
             {isUrgent && (
-              <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
                   Describe what's happening (optional)
                 </label>
                 <textarea
                   value={urgencyNotes}
                   onChange={(e) => setUrgencyNotes(e.target.value)}
-                  className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded dark:bg-gray-900 text-gray-900 dark:text-gray-50 text-sm"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-900 text-sm"
                   rows={3}
                   placeholder="What is happening right now?"
                 />
@@ -520,14 +518,14 @@ export default function IntakePage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setStep('concern')}
-                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm hover:border-gray-400"
               >
                 ← Back
               </button>
               <button
                 disabled={isUrgent === null}
                 onClick={() => handleUrgencyResponse(isUrgent === true)}
-                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next →
               </button>
@@ -552,21 +550,21 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-8">Immediate Support</h2>
+          <h2 className="text-xl font-semibold mb-6 text-white">Immediate Support</h2>
 
-            <div className="space-y-3 mb-8">
-              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
-                <p className="font-semibold text-gray-900 dark:text-gray-50">24/7 Crisis Hotline</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">988 (Suicide & Crisis Lifeline)</p>
+            <div className="space-y-3 mb-6">
+              <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
+                  <p className="font-semibold text-white">24/7 Crisis Hotline</p>
+                <p className="text-white text-sm">988 (Suicide & Crisis Lifeline)</p>
               </div>
 
               {isBusinessHours && (
-                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
-                  <p className="font-semibold text-gray-900 dark:text-gray-50 mb-1">Talk Now (Business Hours)</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">Monday - Friday, 9 AM - 5 PM</p>
+                <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
+                  <p className="font-semibold mb-1 text-white">Talk Now (Business Hours)</p>
+                  <p className="text-white text-sm mb-3">Monday - Friday, 9 AM - 5 PM</p>
                   <button
                     onClick={() => setStep('appointment')}
-                    className="w-full px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 text-sm"
+                    className="w-full px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200 text-sm"
                   >
                     Schedule Now
                   </button>
@@ -574,29 +572,29 @@ export default function IntakePage() {
               )}
 
               {!isBusinessHours && (
-                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
-                  <p className="font-semibold text-gray-900 dark:text-gray-50 mb-1">Hours</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">Monday - Friday, 9 AM - 5 PM</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Use 988 for crisis support outside these hours</p>
+                <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
+                  <p className="font-semibold mb-1 text-white">Hours</p>
+                  <p className="text-white text-sm">Monday - Friday, 9 AM - 5 PM</p>
+                  <p className="text-white text-sm mt-1">Use 988 for crisis support outside these hours</p>
                 </div>
               )}
 
-              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
-                <p className="font-semibold text-gray-900 dark:text-gray-50">Campus Security</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Ext. 911</p>
+              <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
+                <p className="font-semibold text-white">Campus Security</p>
+                <p className="text-white text-sm">Ext. 911</p>
               </div>
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => setStep('urgency')}
-                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm hover:border-gray-400"
               >
                 ← Back
               </button>
               <button
                 onClick={() => setStep('appointment')}
-                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300"
+                className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
               >
                 Next →
               </button>
@@ -625,42 +623,40 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl">
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-3 text-xs text-gray-600 dark:text-gray-400">
+          <div className="mb-6">
+            <div className="flex justify-between text-xs text-white mb-2">
               <span>Question {completedQuestions + 1} of {totalQuestions}</span>
               <span>{assessmentInfo.name}</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full">
               <div
-                className="bg-gray-900 dark:bg-gray-50 h-1.5 rounded-full"
+                className="bg-gray-900 dark:bg-gray-100 h-1.5 rounded-full transition-all"
                 style={{ width: `${((completedQuestions) / totalQuestions) * 100}%` }}
               />
             </div>
           </div>
 
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-8">{currentQuestion}</h2>
+          <h2 className="text-lg font-semibold mb-6 text-white">{currentQuestion}</h2>
 
-            <div className="space-y-2 mb-8">
+            <div className="space-y-2 mb-6">
               {RESPONSE_SCALE.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleAnswerQuestion(option.value)}
-                  className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded hover:border-gray-400 dark:hover:border-gray-500 text-left text-gray-900 dark:text-gray-50 text-sm"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded text-left text-sm hover:border-gray-400 dark:hover:border-gray-500"
                 >
                   {option.label}
                 </button>
               ))}
             </div>
 
-            <div className="flex gap-2">
-              <button
-                disabled={completedQuestions === 0}
-                onClick={handlePreviousQuestion}
-                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ← Back
-              </button>
-            </div>
+            <button
+              disabled={completedQuestions === 0}
+              onClick={handlePreviousQuestion}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ← Back
+            </button>
           </div>
       </DashboardLayout>
     );
@@ -678,109 +674,162 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-8">Schedule Your Appointment</h2>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column: Form Fields */}
+          <div className="col-span-2 space-y-4">
+            <h2 className="text-xl font-semibold mb-6 text-white">Schedule Your Appointment</h2>
 
-            <div className="space-y-4 mb-8">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">Date</label>
-                <input
-                  type="date"
-                  value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-50 text-sm"
-                />
-              </div>
-
-              {!isUrgent && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">Time</label>
-                  <select
-                    value={appointmentTime}
-                    onChange={(e) => setAppointmentTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-50 text-sm"
-                  >
-                    <option value="">Select...</option>
-                    <option value="9:00">9:00 AM</option>
-                    <option value="10:00">10:00 AM</option>
-                    <option value="11:00">11:00 AM</option>
-                    <option value="1:00">1:00 PM</option>
-                    <option value="2:00">2:00 PM</option>
-                    <option value="3:00">3:00 PM</option>
-                    <option value="4:00">4:00 PM</option>
-                  </select>
-                </div>
-              )}
-
-              {isUrgent && (
-                <div className="p-3 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-700 dark:text-gray-300">
-                  A counselor will contact you within 30 minutes during business hours.
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">How to meet</label>
-                <div className="space-y-2">
-                  {[
-                    { value: 'zoom', label: 'Zoom' },
-                    { value: 'google_meet', label: 'Google Meet' },
-                    { value: 'phone', label: 'Phone' },
-                    { value: 'in_person', label: 'In Person' }
-                  ].map(({ value, label }) => (
-                    <label key={value} className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 text-sm">
-                      <input
-                        type="radio"
-                        name="communication"
-                        value={value}
-                        checked={communicationMethod === value}
-                        onChange={(e) => setCommunicationMethod(e.target.value as any)}
-                        className="mr-2"
-                      />
-                      <span className="text-gray-900 dark:text-gray-50">{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <label className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 text-sm">
-                <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
-                  className="mr-2 w-4 h-4"
-                />
-                <span className="text-gray-900 dark:text-gray-50">Keep anonymous</span>
-              </label>
-
-              <label className="flex items-start p-3 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 text-xs">
-                <input
-                  type="checkbox"
-                  checked={consentGiven}
-                  onChange={(e) => setConsentGiven(e.target.checked)}
-                  className="mr-2 w-4 h-4 mt-0.5"
-                />
-                <span className="text-gray-700 dark:text-gray-300">
-                  I consent to my responses being used for assessment and to be contacted for my appointment. I understand I can call 988 anytime for crisis support.
-                </span>
-              </label>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Preferred Date</label>
+              <input
+                type="date"
+                value={appointmentDate}
+                onChange={(e) => setAppointmentDate(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-sm"
+              />
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStep(isUrgent ? 'crisis' : 'screening')}
-                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={handleSubmitIntake}
-                disabled={!appointmentDate || !consentGiven || isSubmitting}
-                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </button>
+            {!isUrgent && (
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Preferred Time</label>
+                <select
+                  value={appointmentTime}
+                  onChange={(e) => setAppointmentTime(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-sm"
+                >
+                  <option value="">Select a time...</option>
+                  <option value="9:00">9:00 AM</option>
+                  <option value="10:00">10:00 AM</option>
+                  <option value="11:00">11:00 AM</option>
+                  <option value="1:00">1:00 PM</option>
+                  <option value="2:00">2:00 PM</option>
+                  <option value="3:00">3:00 PM</option>
+                  <option value="4:00">4:00 PM</option>
+                </select>
+              </div>
+            )}
+
+            {isUrgent && (
+              <div className="p-4 border border-gray-300 rounded text-sm text-white bg-gray-50 dark:bg-gray-900/50">
+                A counselor will contact you within 30 minutes during business hours.
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">How to Meet</label>
+              <div className="space-y-2">
+                {[
+                  { value: 'zoom', label: 'Zoom Video Call' },
+                  { value: 'google_meet', label: 'Google Meet' },
+                  { value: 'in_person', label: 'In Person' }
+                ].map(({ value, label }) => (
+                  <label key={value} className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                    <input
+                      type="radio"
+                      name="communication"
+                      value={value}
+                      checked={communicationMethod === value}
+                      onChange={(e) => setCommunicationMethod(e.target.value as any)}
+                      className="mr-3"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50">
+              <input
+                type="checkbox"
+                checked={isAnonymous}
+                onChange={(e) => setIsAnonymous(e.target.checked)}
+                className="mr-2 w-4 h-4"
+              />
+              Keep anonymous
+            </label>
+
+            <label className="flex items-start p-3 border border-gray-300 dark:border-gray-600 rounded text-xs cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50">
+              <input
+                type="checkbox"
+                checked={consentGiven}
+                onChange={(e) => setConsentGiven(e.target.checked)}
+                className="mr-2 mt-0.5 w-4 h-4"
+              />
+              <span className="text-white">
+                I consent to my responses being used for assessment and to be contacted for my appointment. I understand I can call 988 anytime for crisis support.
+              </span>
+            </label>
+          </div>
+
+          {/* Right Column: Appointment Details Summary */}
+          <div className="col-span-1">
+            <div className="border border-gray-300 dark:border-gray-600 rounded p-6 bg-gray-50 dark:bg-gray-900/50 sticky top-20">
+              <h3 className="text-lg font-semibold mb-6 pb-4 border-b border-gray-300 dark:border-gray-600 text-white">Your Appointment</h3>
+              
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">PURPOSE:</p>
+                  <p className="text-sm font-semibold text-white capitalize">{selectedConcern || 'Not selected'}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">COMMUNICATION:</p>
+                  <p className="text-sm font-semibold text-white capitalize">
+                    {communicationMethod?.replace('_', ' ') || 'Not selected'}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">DATE:</p>
+                  <p className="text-sm font-semibold text-white">
+                    {appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not selected'}
+                  </p>
+                </div>
+
+                {!isUrgent && (
+                  <div>
+                    <p className="text-xs font-semibold text-white mb-1">TIME:</p>
+                    <p className="text-sm font-semibold text-white">
+                      {appointmentTime || 'Not selected'}
+                    </p>
+                  </div>
+                )}
+
+                {isUrgent && (
+                  <div>
+                    <p className="text-xs font-semibold text-white mb-1">STATUS:</p>
+                    <p className="text-sm font-semibold text-white">URGENT - Within 30 minutes</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">PRIVACY:</p>
+                  <p className="text-sm font-semibold text-white">
+                    {isAnonymous ? 'Anonymous' : 'Standard'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6 mt-8">
+          <div className="col-span-2 flex gap-2">
+            <button
+              onClick={() => setStep(isUrgent ? 'crisis' : 'screening')}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-900/50"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={handleSubmitIntake}
+              disabled={!appointmentDate || !consentGiven || isSubmitting}
+              className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Intake'}
+            </button>
+          </div>
+        </div>
       </DashboardLayout>
     );
   }
@@ -797,29 +846,119 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-1">Thank you!</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-8">Your intake has been submitted.</p>
-
-            {counselingId && (
-              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded mb-8">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Counseling ID</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-50 font-mono">{counselingId}</p>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column: Success Message and Information */}
+          <div className="col-span-2 space-y-6">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full mb-4">
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
               </div>
-            )}
-
-            <div className="space-y-2 mb-8 text-sm text-gray-600 dark:text-gray-400">
-              <p>• You will receive an email confirmation with your appointment details</p>
-              <p>• A counselor will contact you at the time selected</p>
-              <p>• For crisis support anytime, call 988</p>
+              <h2 className="text-2xl font-semibold mb-2">Intake Complete</h2>
+              <p className="text-white">Your appointment has been scheduled. You'll receive a confirmation email shortly.</p>
             </div>
 
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded p-4">
+              <div className="flex gap-3">
+                <svg className="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <div className="text-sm text-white">
+                  <p className="font-semibold">What happens next?</p>
+                  <ul className="mt-2 space-y-1">
+                    <li>✓ Check your email for a confirmation message</li>
+                    <li>✓ A counselor will contact you to confirm your appointment</li>
+                    <li>✓ You'll receive login instructions for your appointment</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold text-white">Need immediate support?</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <a href="tel:988" className="p-3 border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/40 text-sm font-medium text-center">
+                  📞 Call 988<br/><span className="text-xs text-white">Crisis Hotline</span>
+                </a>
+                <a href="https://suicidepreventionlifeline.org" target="_blank" rel="noopener noreferrer" className="p-3 border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 text-sm font-medium text-center">
+                  💬 Crisis Chat<br/><span className="text-xs text-white">24/7 Support</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Appointment Summary */}
+          <div className="col-span-1">
+            <div className="border border-gray-300 dark:border-gray-600 rounded p-6 bg-gray-50 dark:bg-gray-900/50 sticky top-20">
+              <h3 className="text-lg font-semibold mb-6 pb-4 border-b border-gray-300 dark:border-gray-600 text-white">Your Appointment</h3>
+              
+              <div className="space-y-5">
+                {counselingId && (
+                  <div>
+                    <p className="text-xs font-semibold text-white mb-1">REFERENCE ID:</p>
+                    <p className="text-sm font-semibold text-white break-all font-mono">{counselingId}</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">REASON:</p>
+                  <p className="text-sm font-semibold text-white capitalize">{selectedConcern || 'Not specified'}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">SCHEDULED DATE:</p>
+                  <p className="text-sm font-semibold text-white">
+                    {appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Pending'}
+                  </p>
+                </div>
+
+                {!isUrgent && appointmentTime && (
+                  <div>
+                    <p className="text-xs font-semibold text-white mb-1">TIME:</p>
+                    <p className="text-sm font-semibold text-white">{appointmentTime}</p>
+                  </div>
+                )}
+
+                {isUrgent && (
+                  <div>
+                    <p className="text-xs font-semibold text-white mb-1">PRIORITY:</p>
+                    <p className="text-sm font-semibold text-white">URGENT - Within 30 min</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">FORMAT:</p>
+                  <p className="text-sm font-semibold text-white capitalize">{communicationMethod?.replace('_', ' ') || 'Not specified'}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">LOCATION:</p>
+                  <p className="text-sm font-semibold text-white">
+                    {communicationMethod === 'in_person' ? 'Campus Counseling Center' : 'Online'}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-white mb-1">PRIVACY:</p>
+                  <p className="text-sm font-semibold text-white">
+                    {isAnonymous ? 'Anonymous' : 'Standard'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6 mt-8">
+          <div className="col-span-2">
             <Link href="/dashboard">
-              <button className="w-full px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300">
+              <button className="w-full px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200">
                 Return to Dashboard
               </button>
             </Link>
           </div>
+        </div>
       </DashboardLayout>
     );
   }

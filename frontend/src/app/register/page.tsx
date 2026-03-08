@@ -102,6 +102,15 @@ export default function RegisterPage() {
         {msg && <p className="mt-4 text-sm text-green-700 dark:text-green-400">{msg}</p>}
         {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
         
+        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <p className="text-center text-xs text-gray-600 dark:text-gray-400 mb-3">
+            Or sign up with Google
+          </p>
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Go to <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">login page</a> and use the Google option
+          </p>
+        </div>
+
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
           Already have an account? <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">Login</a>
         </p>

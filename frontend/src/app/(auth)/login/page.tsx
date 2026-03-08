@@ -1,51 +1,156 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageShell from '@/components/PageShell';
 import { api } from '@/utils/api';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [loginMethod, setLoginMethod] = useState<'email' | 'oauth'>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [googleReady, setGoogleReady] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Initialize Google Sign-In
+  useEffect(() => {
+    const loadGoogleScript = async () => {
+      try {
+        // Fetch Client ID from backend
+        const url = api('/api/auth/oauth/google/client-id');
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.warn('Could not fetch Google Client ID');
+          return;
+        }
+
+        const data = await response.json();
+        const clientId = data.client_id;
+
+        if (!clientId) {
+          console.warn('No Google Client ID available');
+          return;
+        }
+
+        // Load Google Sign-In script
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+
+        script.onload = () => {
+          if ((window as any).google?.accounts) {
+            (window as any).google.accounts.id.initialize({
+              client_id: clientId,
+              callback: handleGoogleSignIn,
+              auto_select: false,
+            });
+
+            const buttonContainer = document.getElementById('google-signin-button');
+            if (buttonContainer) {
+              (window as any).google.accounts.id.renderButton(buttonContainer, {
+                theme: 'outline',
+                size: 'large',
+                width: '100%',
+              });
+              setGoogleReady(true);
+            }
+          }
+        };
+
+        script.onerror = () => {
+          console.warn('Failed to load Google Sign-In script');
+        };
+
+        document.body.appendChild(script);
+      } catch (err) {
+        console.warn('Google Sign-In setup failed:', err);
+      }
+    };
+
+    loadGoogleScript();
+  }, []);
+
+  const handleGoogleSignIn = async (response: any) => {
+    if (!response.credential) {
+      setError('Google sign-in failed');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const url = api('/api/auth/oauth/google/callback');
+      const backendResponse = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: response.credential }),
+      });
+
+      if (!backendResponse.ok) {
+        const data = await backendResponse.json().catch(() => ({}));
+        const errorMsg = data.error || 'Sign-in failed';
+        
+        if (backendResponse.status === 403) {
+          setError(`${errorMsg} ${data.email ? `(${data.email})` : ''}`);
+        } else {
+          setError(errorMsg);
+        }
+        return;
+      }
+
+      const data = await backendResponse.json();
+      
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data));
+      
+      router.push('/dashboard');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Sign-in failed';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
       const url = api('/api/auth/login');
-      console.log('Login URL:', url);
-      
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        console.error('Error response:', data);
-        throw new Error(data.error || 'Invalid credentials');
+        const errorMsg = data.error || 'Login failed';
+        
+        if (response.status === 403) {
+          setError(`${errorMsg}`);
+        } else {
+          setError(errorMsg);
+        }
+        return;
       }
 
       const data = await response.json();
-      console.log('Login successful, data:', data);
       
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data));
       
-      console.log('Stored in localStorage, redirecting to /dashboard');
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
-      console.error('Login error:', message);
       setError(message);
     } finally {
       setLoading(false);
@@ -55,69 +160,124 @@ export default function LoginPage() {
   return (
     <PageShell title="Login" subtitle="Sign in to your CPS account">
       <div className="min-h-[80vh] flex flex-col lg:flex-row">
-        {/* left carousel area for large screens */}
+        {/* Left carousel area */}
         <div className="hidden lg:block lg:w-1/2 relative">
           <div className="h-full w-full overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
-            {/* placeholder for carousel image */}
             <span className="text-gray-500 dark:text-gray-400">Image area</span>
           </div>
         </div>
 
-        {/* right login area */}
+        {/* Right login area */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
           <div className="w-full max-w-md border border-gray-200 dark:border-gray-700 rounded p-6 bg-white dark:bg-gray-900">
             <div className="flex items-center justify-center mb-4">
-              {/* logo placeholder */}
               <div className="h-10 w-10 bg-gray-300 dark:bg-gray-700 rounded" />
             </div>
             <h1 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-1 text-center">
               Sign In
             </h1>
-            <p className="text-center text-gray-600 dark:text-gray-400 text-xs mb-4">Campus Counseling Services</p>
+            <p className="text-center text-gray-600 dark:text-gray-400 text-xs mb-6">Campus Counseling Services</p>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {error && (
-                <div className="border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded text-xs">
-                  {error}
-                </div>
-              )}
+            {/* DLSU Domain Notice */}
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-xs text-blue-700 dark:text-blue-300">
+              <p className="font-medium mb-1">DLSU Account Required</p>
+              <p>Only @dlsu.edu.ph email addresses are allowed</p>
+            </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-gray-400 dark:focus:border-gray-500 bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
-                  required
-                />
+            {/* Error message */}
+            {error && (
+              <div className="mb-4 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded text-xs">
+                {error}
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-gray-400 dark:focus:border-gray-500 bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
-                  required
-                />
-              </div>
-
+            {/* Login method tabs */}
+            <div className="flex gap-2 mb-4">
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gray-400 dark:bg-gray-600 hover:bg-gray-500 dark:hover:bg-gray-700 text-white font-medium py-1.5 px-4 rounded disabled:opacity-50 transition text-sm"
+                onClick={() => setLoginMethod('email')}
+                className={`flex-1 px-3 py-2 rounded text-xs font-medium transition ${
+                  loginMethod === 'email'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                }`}
               >
-                {loading ? 'Logging in...' : 'Sign In'}
+                Email
               </button>
-            </form>
+              <button
+                onClick={() => setLoginMethod('oauth')}
+                className={`flex-1 px-3 py-2 rounded text-xs font-medium transition ${
+                  loginMethod === 'oauth'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Google
+              </button>
+            </div>
 
-            <div className="mt-4 space-y-3">
+            {/* Email/Password Login */}
+            {loginMethod === 'email' && (
+              <form onSubmit={handleEmailLogin} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@dlsu.edu.ph"
+                    className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white font-medium py-1.5 px-4 rounded disabled:opacity-50 transition text-sm"
+                >
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </button>
+              </form>
+            )}
+
+            {/* Google OAuth Login */}
+            {loginMethod === 'oauth' && (
+              <div>
+                {googleReady ? (
+                  <div
+                    id="google-signin-button"
+                    style={{ display: 'flex', justifyContent: 'center' }}
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                      Loading Google Sign-In...
+                    </p>
+                    <div className="inline-block">
+                      <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="mt-6 space-y-3">
               <div className="text-center">
                 <Link
                   href="/forgot-password"

@@ -1,7 +1,7 @@
 """
 EPIC 1: USER ROLES & ACCESS CONTROL (RBAC)
 Blueprint for user authentication, authorization, and permission management
-MongoDB-compatible version
+MongoDB-compatible version with Google OAuth2.0 and Email Verification
 """
 
 from flask import Blueprint, request, jsonify
@@ -9,14 +9,110 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, UserRole, PermissionType, ROLE_PERMISSIONS
 from utils import audit_log, user_has_permission
+from services.oauth_service import OAuthService
 from services.email_service import EmailService
 from datetime import datetime, timedelta
 from bson import ObjectId
 
-# Initialize email service
+# Initialize services
+oauth_service = OAuthService()
 email_service = EmailService()
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+
+
+@auth_bp.route('/oauth/google/client-id', methods=['GET'])
+def get_google_client_id():
+    """Get Google Client ID for frontend"""
+    return jsonify({
+        'client_id': oauth_service.get_google_client_id()
+    }), 200
+
+
+@auth_bp.route('/oauth/google/callback', methods=['POST'])
+def google_oauth_callback():
+    """Handle Google OAuth callback with ID token"""
+    data = request.get_json()
+    
+    if not data.get('token'):
+        return jsonify({'error': 'Missing token'}), 400
+    
+    token = data['token']
+    
+    # Verify Google token
+    user_info = oauth_service.verify_token(token)
+    
+    if user_info is None:
+        return jsonify({'error': 'Invalid token'}), 401
+    
+    if isinstance(user_info, dict) and user_info.get('error'):
+        # Domain restriction error
+        return jsonify(user_info), 403
+    
+    email = user_info['email']
+    
+    # Find or create user
+    existing_user = db.db.users.find_one({"email": email})
+    
+    if existing_user:
+        # User exists - update oauth info if not already linked
+        if not existing_user.get('oauth_provider'):
+            db.db.users.update_one(
+                {"_id": existing_user['_id']},
+                {"$set": {
+                    "oauth_provider": "google",
+                    "oauth_id": user_info.get('sub'),
+                    "picture": user_info.get('picture', ''),
+                    "is_verified": True,  # OAuth emails are verified
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+        
+        audit_log(db.db, 'auth', 'oauth_login', entity_id=str(existing_user['_id']))
+    else:
+        # Create new user via OAuth
+        user_doc = {
+            "_id": ObjectId(),
+            "email": email,
+            "password_hash": None,  # OAuth users don't have passwords
+            "first_name": user_info.get('first_name', ''),
+            "last_name": user_info.get('last_name', ''),
+            "picture": user_info.get('picture', ''),
+            "oauth_id": user_info.get('sub'),  # Google user ID
+            "oauth_provider": "google",
+            "role": UserRole.STUDENT.value,
+            "phone": None,
+            "department": None,
+            "specializations": [],
+            "is_active": True,
+            "is_verified": True,  # OAuth users are automatically verified
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+        
+        result = db.db.users.insert_one(user_doc)
+        existing_user = user_doc
+        existing_user['_id'] = result.inserted_id
+        
+        audit_log(db.db, 'user', 'create', entity_id=str(result.inserted_id), new_values={
+            'email': user_doc['email'],
+            'role': user_doc['role'],
+            'oauth_provider': 'google',
+            'is_verified': True
+        })
+    
+    # Create JWT token
+    access_token = create_access_token(identity=str(existing_user['_id']))
+    
+    return jsonify({
+        'access_token': access_token,
+        'user_id': str(existing_user['_id']),
+        'email': existing_user['email'],
+        'first_name': existing_user.get('first_name', ''),
+        'last_name': existing_user.get('last_name', ''),
+        'picture': existing_user.get('picture', ''),
+        'role': existing_user.get('role', UserRole.STUDENT.value),
+    }), 200
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -211,7 +307,7 @@ def resend_code():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Login user and return JWT token"""
+    """Login user with email/password and return JWT token"""
     data = request.get_json()
     
     if not data.get('email') or not data.get('password'):
@@ -225,8 +321,12 @@ def login():
         return jsonify({'error': 'Invalid credentials'}), 401
     
     # Check if email is verified
-    if not user.get('is_verified', True):  # True for backwards compatibility with old users
-        return jsonify({'error': 'Email not verified. Please check your email for verification code.', 'user_id': str(user['_id'])}), 403
+    if not user.get('is_verified', True):
+        return jsonify({
+            'error': 'Email not verified. Please check your email for verification code.',
+            'user_id': str(user['_id']),
+            'email': user['email']
+        }), 403
     
     if not user.get('is_active', True):
         return jsonify({'error': 'User account is inactive'}), 403

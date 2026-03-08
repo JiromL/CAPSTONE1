@@ -9,28 +9,70 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, UserRole, PermissionType, ROLE_PERMISSIONS
 from utils import audit_log, user_has_permission
-from datetime import datetime
+from services.email_service import EmailService
+from datetime import datetime, timedelta
 from bson import ObjectId
+
+# Initialize email service
+email_service = EmailService()
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """Register a new user"""
+    """Register a new user with email verification"""
     data = request.get_json()
     
+    # Validate required fields
     if not data.get('email') or not data.get('password') or not data.get('first_name') or not data.get('last_name'):
-        return jsonify({'error': 'Missing required fields'}), 400
+        return jsonify({'error': 'Missing required fields: email, password, first_name, last_name'}), 400
+    
+    email = data['email'].lower().strip()
+    
+    # Validate DLSU email domain
+    if not email.endswith('@dlsu.edu.ph'):
+        return jsonify({'error': 'Only DLSU email addresses (@dlsu.edu.ph) are allowed'}), 400
     
     # Check if email already exists
-    existing_user = db.db.users.find_one({"email": data['email']})
+    existing_user = db.db.users.find_one({"email": email})
     if existing_user:
-        return jsonify({'error': 'Email already exists'}), 409
+        if existing_user.get('is_verified'):
+            return jsonify({'error': 'Email already registered'}), 409
+        else:
+            # User exists but not verified, send new code
+            verification_code = EmailService.generate_verification_code()
+            code_expiry = datetime.utcnow() + timedelta(hours=24)
+            
+            db.db.users.update_one(
+                {"_id": existing_user['_id']},
+                {"$set": {
+                    "verification_code": verification_code,
+                    "verification_code_expires": code_expiry,
+                    "verification_attempts": 0
+                }}
+            )
+            
+            # Send verification email
+            email_service.send_verification_email(
+                email,
+                data['first_name'],
+                verification_code
+            )
+            
+            return jsonify({
+                'message': 'Verification code sent to your email',
+                'email': email,
+                'user_id': str(existing_user['_id'])
+            }), 200
+    
+    # Create unverified user account
+    verification_code = EmailService.generate_verification_code()
+    code_expiry = datetime.utcnow() + timedelta(hours=24)
     
     user_doc = {
         "_id": ObjectId(),
-        "email": data['email'],
+        "email": email,
         "password_hash": generate_password_hash(data['password']),
         "first_name": data['first_name'],
         "last_name": data['last_name'],
@@ -39,15 +81,132 @@ def register():
         "department": data.get('department'),
         "specializations": data.get('specializations', []),
         "is_active": True,
+        "is_verified": False,
+        "verification_code": verification_code,
+        "verification_code_expires": code_expiry,
+        "verification_attempts": 0,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
     }
     
     result = db.db.users.insert_one(user_doc)
     
-    audit_log(db.db, 'user', 'create', entity_id=str(result.inserted_id), new_values={'email': user_doc['email'], 'role': user_doc['role']})
+    # Send verification email
+    email_service.send_verification_email(
+        email,
+        data['first_name'],
+        verification_code
+    )
     
-    return jsonify({'message': 'User created', 'user_id': str(result.inserted_id)}), 201
+    audit_log(db.db, 'user', 'create', entity_id=str(result.inserted_id), new_values={
+        'email': user_doc['email'],
+        'role': user_doc['role'],
+        'is_verified': False
+    })
+    
+    return jsonify({
+        'message': 'Account created. Please check your email for verification code.',
+        'email': email,
+        'user_id': str(result.inserted_id)
+    }), 201
+
+
+@auth_bp.route('/verify-email', methods=['POST'])
+def verify_email():
+    """Verify email with verification code"""
+    data = request.get_json()
+    
+    if not data.get('email') or not data.get('code'):
+        return jsonify({'error': 'Missing email or verification code'}), 400
+    
+    email = data['email'].lower().strip()
+    code = data['code'].strip()
+    
+    user = db.db.users.find_one({"email": email})
+    
+    if not user:
+        return jsonify({'error': 'Email not found'}), 404
+    
+    if user.get('is_verified'):
+        return jsonify({'error': 'Email already verified'}), 400
+    
+    # Check code expiry
+    if not user.get('verification_code_expires'):
+        return jsonify({'error': 'No verification code requested'}), 400
+    
+    if user['verification_code_expires'] < datetime.utcnow():
+        return jsonify({'error': 'Verification code expired. Please request a new code.'}), 400
+    
+    # Check attempts
+    attempts = user.get('verification_attempts', 0)
+    if attempts >= 5:
+        return jsonify({'error': 'Too many failed attempts. Please request a new code.'}), 429
+    
+    # Verify code
+    if user.get('verification_code') != code:
+        db.db.users.update_one(
+            {"_id": user['_id']},
+            {"$inc": {"verification_attempts": 1}}
+        )
+        return jsonify({'error': 'Invalid verification code'}), 401
+    
+    # Verify successful - activate account
+    db.db.users.update_one(
+        {"_id": user['_id']},
+        {"$set": {
+            "is_verified": True,
+            "verification_code": None,
+            "verification_code_expires": None,
+            "verification_attempts": 0,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Send welcome email
+    email_service.send_welcome_email(email, user['first_name'])
+    
+    audit_log(db.db, 'user', 'email_verified', entity_id=str(user['_id']), new_values={'is_verified': True})
+    
+    return jsonify({'message': 'Email verified successfully. You can now login.'}), 200
+
+
+@auth_bp.route('/resend-code', methods=['POST'])
+def resend_code():
+    """Resend verification code"""
+    data = request.get_json()
+    
+    if not data.get('email'):
+        return jsonify({'error': 'Missing email'}), 400
+    
+    email = data['email'].lower().strip()
+    user = db.db.users.find_one({"email": email})
+    
+    if not user:
+        return jsonify({'error': 'Email not found'}), 404
+    
+    if user.get('is_verified'):
+        return jsonify({'error': 'Email already verified'}), 400
+    
+    # Generate new code
+    verification_code = EmailService.generate_verification_code()
+    code_expiry = datetime.utcnow() + timedelta(hours=24)
+    
+    db.db.users.update_one(
+        {"_id": user['_id']},
+        {"$set": {
+            "verification_code": verification_code,
+            "verification_code_expires": code_expiry,
+            "verification_attempts": 0
+        }}
+    )
+    
+    # Send email
+    email_service.send_code_reminder_email(email, user['first_name'], verification_code)
+    
+    audit_log(db.db, 'user', 'resend_code', entity_id=str(user['_id']))
+    
+    return jsonify({'message': 'Verification code sent to your email'}), 200
+
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -58,11 +217,16 @@ def login():
     if not data.get('email') or not data.get('password'):
         return jsonify({'error': 'Missing email or password'}), 400
     
-    user = db.db.users.find_one({"email": data['email']})
+    email = data['email'].lower().strip()
+    user = db.db.users.find_one({"email": email})
     
     if not user or not check_password_hash(user['password_hash'], data['password']):
-        audit_log(db.db, 'access_control', 'failed_login', old_values={'email': data['email']})
+        audit_log(db.db, 'access_control', 'failed_login', old_values={'email': email})
         return jsonify({'error': 'Invalid credentials'}), 401
+    
+    # Check if email is verified
+    if not user.get('is_verified', True):  # True for backwards compatibility with old users
+        return jsonify({'error': 'Email not verified. Please check your email for verification code.', 'user_id': str(user['_id'])}), 403
     
     if not user.get('is_active', True):
         return jsonify({'error': 'User account is inactive'}), 403
@@ -79,6 +243,7 @@ def login():
         'last_name': user['last_name'],
         'role': user['role'],
     }), 200
+
 
 
 @auth_bp.route('/me', methods=['GET'])

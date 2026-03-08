@@ -1,712 +1,836 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
-import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { ChevronRight, Check, Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { FileText, BookOpen, CheckCircle, Heart, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 import { api } from '@/utils/api';
+import { DashboardLayout } from '@/components/DashboardLayout';
+
+// Assessment questions - shown ONE AT A TIME - simple, direct format
+const ASSESSMENTS = {
+  phq9: {
+    name: 'Depression Screening',
+    questions: [
+      'Are you depressed?',
+      'Do you have little interest or pleasure in doing things?',
+      'Do you have trouble sleeping or sleep too much?',
+      'Do you feel tired or have little energy?',
+      'Are you struggling with appetite or eating too much?',
+      'Do you feel bad about yourself?',
+      'Do you have trouble concentrating?',
+      'Are you feeling restless or slowed down?',
+      'Have you had thoughts of harming yourself?',
+    ]
+  },
+  gad7: {
+    name: 'Anxiety Screening',
+    questions: [
+      'Are you anxious?',
+      'Can you stop or control worrying?',
+      'Do you worry too much?',
+      'Can you relax easily?',
+      'Are you restless?',
+      'Are you easily annoyed or irritable?',
+      'Are you afraid something bad might happen?',
+    ]
+  },
+  pss: {
+    name: 'Stress Assessment',
+    questions: [
+      'Do unexpected events upset you?',
+      'Do you feel unable to control things in your life?',
+      'Do you feel nervous or stressed?',
+      'Are you confident handling your problems?',
+      'Do you feel things are going your way?',
+      'Do you struggle to cope with responsibilities?',
+      'Can you control frustrations in your life?',
+      'Do you feel on top of things?',
+    ]
+  },
+  acad: {
+    name: 'Academic Stress Screening',
+    questions: [
+      'Are you struggling with coursework?',
+      'Do you have test anxiety?',
+      'Do you struggle with time management?',
+      'Are you overwhelmed by academic workload?',
+      'Do you understand course material?',
+      'Are you concerned about your grades?',
+      'Do you struggle with procrastination?',
+      'Do you have trouble concentrating on studies?',
+    ]
+  },
+  career: {
+    name: 'Career Readiness Screening',
+    questions: [
+      'Are you uncertain about your career?',
+      'Are you unsure of your career interests?',
+      'Are you anxious about job prospects?',
+      'Do you find it hard to make career decisions?',
+      'Do you feel pressure about your career?',
+      'Do you lack confidence professionally?',
+      'Are you concerned about your resume or interviews?',
+      'Do you worry about work-life balance?',
+    ]
+  },
+  social: {
+    name: 'Social Functioning Screening',
+    questions: [
+      'Do you feel isolated or lonely?',
+      'Do you struggle to make friends?',
+      'Do you have difficulty in relationships?',
+      'Are you uncomfortable in social situations?',
+      'Do you have family conflicts?',
+      'Do you feel judged by others?',
+      'Do you struggle with assertiveness?',
+      'Do you feel disconnected from your community?',
+    ]
+  }
+};
+
+// Concern types and their associated assessments
+const CONCERN_TYPES = {
+  personal: {
+    label: 'Personal/Mental Health',
+    assessments: ['phq9', 'gad7', 'pss']
+  },
+  academic: {
+    label: 'Academic Concerns',
+    assessments: ['acad', 'phq9', 'gad7']
+  },
+  career: {
+    label: 'Career/Professional',
+    assessments: ['career', 'phq9']
+  },
+  social: {
+    label: 'Social/Relationships',
+    assessments: ['social', 'gad7']
+  },
+  other: {
+    label: 'Other',
+    assessments: ['phq9', 'gad7', 'pss', 'acad', 'career', 'social']
+  }
+};
+
+const RESPONSE_SCALE = [
+  { value: 0, label: 'No' },
+  { value: 1, label: 'Somewhat' },
+  { value: 2, label: 'Often' },
+  { value: 3, label: 'Very Much' }
+];
 
 export default function IntakePage() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [counselingId, setCounselingId] = useState('');
-  const [appointmentDate, setAppointmentDate] = useState('');
-  const [estimatedDays, setEstimatedDays] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [selectedAssessments, setSelectedAssessments] = useState<string[]>([]);
-  const [currentAssessmentIndex, setCurrentAssessmentIndex] = useState(0);
+  const router = useRouter();
+  const [step, setStep] = useState<'concern' | 'screening_selection' | 'urgency' | 'crisis' | 'screening' | 'appointment' | 'complete'>('concern');
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
-  const [formData, setFormData] = useState({
-    purpose: '',
-    purpose_other: '',
-    concerns: '',
-    emergency_notes: '',
-    phq9_responses: [] as number[],
-    gad7_responses: [] as number[],
-    pss_responses: [] as number[],
-    acad_responses: [] as number[],
-    career_responses: [] as number[],
-    social_responses: [] as number[],
-    preferred_platform: 'in-person',
-    consent_given: false,
-    is_anonymous: false,
-    is_emergency: false,
-  });
+  // Concern selection
+  const [selectedConcern, setSelectedConcern] = useState<string | null>(null);
+  
+  // Screening selection - checkboxes for which assessments to take
+  const [selectedScreenings, setSelectedScreenings] = useState<Set<string>>(new Set());
+  
+  const [isUrgent, setIsUrgent] = useState<boolean | null>(null);
+  const [urgencyNotes, setUrgencyNotes] = useState('');
+  const [consentGiven, setConsentGiven] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
-  const [scores, setScores] = useState({ phq9: 0, gad7: 0, pss: 0, acad: 0, career: 0, social: 0 });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // Assessment tracking
+  const [selectedAssessments, setSelectedAssessments] = useState<string[]>([]);
+  const [currentAssessmentIdx, setCurrentAssessmentIdx] = useState(0);
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+  const [assessmentResponses, setAssessmentResponses] = useState<{[key: string]: number[]}>({});
+  const [assessmentScores, setAssessmentScores] = useState<{[key: string]: number}>({});
 
-  const phq9_questions = [
-    'Little interest or pleasure in doing things',
-    'Feeling down, depressed, or hopeless',
-    'Trouble falling or staying asleep, or sleeping too much',
-    'Feeling tired or having little energy',
-    'Poor appetite or overeating',
-    'Feeling bad about yourself or that you are a failure',
-    'Trouble concentrating on things',
-    'Moving or speaking so slowly or being fidgety or restless',
-    'Thoughts that you would be better off dead',
-  ];
+  // Appointment preferences
+  const [autoSuggestedDate, setAutoSuggestedDate] = useState('');
+  const [appointmentDate, setAppointmentDate] = useState('');
+  const [appointmentTime, setAppointmentTime] = useState('');
+  const [communicationMethod, setCommunicationMethod] = useState<'zoom' | 'google_meet' | 'phone' | 'in_person'>('zoom');
+  const [counselingId, setCounselingId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const gad7_questions = [
-    'Feeling nervous, anxious or on edge',
-    'Not being able to stop or control worrying',
-    'Worrying too much about different things',
-    'Trouble relaxing',
-    'Being so restless that it is hard to sit still',
-    'Becoming easily annoyed or irritable',
-    'Feeling afraid as if something awful might happen',
-  ];
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
 
-  const pss_questions = [
-    'Been unable to control things in your life',
-    'Felt confident about ability to handle personal problems',
-    'Felt things were going your way',
-    'Felt difficulties were piling up',
-    'Been upset by things that happened unexpectedly',
-    'Felt nervous or stressed',
-    'Dealt successfully with day-to-day hassles',
-    'Felt unable to cope with all you had to do',
-    'Been able to control irritations in your life',
-    'Felt that you were on top of things',
-  ];
-
-  const acad_questions = [
-    'Difficulty concentrating on coursework',
-    'Feeling overwhelmed by academic workload',
-    'Struggling with time management and deadlines',
-    'Difficulty staying motivated in classes',
-    'Concern about grades or academic performance',
-    'Trouble participating in class discussions',
-    'Difficulty completing assignments on time',
-    'Feeling disconnected from your major or field of study',
-  ];
-
-  const career_questions = [
-    'Uncertain about your career direction',
-    'Concerned about job market readiness',
-    'Difficulty identifying your strengths and interests',
-    'Worried about finding internship or job opportunities',
-    'Unsure about skills needed for desired career',
-    'Concerned about work-life balance in chosen field',
-    'Need guidance on career planning and goals',
-    'Worried about competition in your field',
-  ];
-
-  const social_questions = [
-    'Difficulty making or maintaining friendships',
-    'Feeling lonely or isolated',
-    'Trouble in romantic relationships',
-    'Difficulty communicating with others',
-    'Conflict with family members',
-    'Struggling to fit in or belong',
-    'Anxiety in social situations',
-    'Difficulty setting boundaries in relationships',
-  ];
-
-  const assessmentInfo = {
-    phq9: {
-      name: 'Depression Screening',
-      description: 'Over the last 2 weeks, how often have you been bothered by these problems?',
-      questions: phq9_questions,
-      maxScore: 27
-    },
-    gad7: {
-      name: 'Anxiety Screening',
-      description: 'Over the last 2 weeks, how often have you felt...?',
-      questions: gad7_questions,
-      maxScore: 21
-    },
-    pss: {
-      name: 'Stress Assessment',
-      description: 'In the last month, how often have you...?',
-      questions: pss_questions,
-      maxScore: 40
-    },
-    acad: {
-      name: 'Academic Stress Assessment',
-      description: 'How often do you experience these academic-related concerns?',
-      questions: acad_questions,
-      maxScore: 32
-    },
-    career: {
-      name: 'Career Readiness Assessment',
-      description: 'How often do you feel these career-related concerns?',
-      questions: career_questions,
-      maxScore: 32
-    },
-    social: {
-      name: 'Social Functioning Assessment',
-      description: 'How often do you experience these social-related concerns?',
-      questions: social_questions,
-      maxScore: 32
+    if (!userData || !token) {
+      router.push('/login');
+      return;
     }
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    setLoading(false);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    router.push('/login');
   };
 
-  // Mapping of concerns to available assessments
-  const concernAssessmentMapping: Record<string, string[]> = {
-    personal: ['phq9', 'gad7', 'pss'],
-    academic: ['acad', 'phq9', 'gad7'], // Academic focus with optional mental health
-    career: ['career', 'phq9'],         // Career focus with optional anxiety
-    social: ['social', 'gad7'],         // Social focus with optional anxiety
-    other: ['phq9', 'gad7', 'pss', 'acad', 'career', 'social'] // All available
+  const menuItems = [
+    { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
+    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
+    { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
+    { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
+    { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+  ];
+
+  // Determine which assessments to run based on selected concern
+  const determineAssessments = () => {
+    if (!selectedConcern) return [];
+    return CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.assessments || [];
   };
 
-  const getAvailableAssessments = (): string[] => {
-    const concern = formData.purpose || 'personal';
-    return concernAssessmentMapping[concern] || [];
+  // Calculate auto-suggested appointment date based on scores
+  const calculateAutoSuggestedDate = (scores: {[key: string]: number}) => {
+    let highestRiskScore = 0;
+    
+    // Calculate weighted risk
+    if (scores.phq9) highestRiskScore = Math.max(highestRiskScore, scores.phq9 / 27);
+    if (scores.gad7) highestRiskScore = Math.max(highestRiskScore, scores.gad7 / 21);
+
+    // Map risk to appointment window
+    if (highestRiskScore >= 0.75) return 'same_day'; // Critical
+    if (highestRiskScore >= 0.5) return '1_day'; // High - within 1 day
+    if (highestRiskScore >= 0.25) return '3_days'; // Moderate - within 3 days
+    return 'next_week'; // Low - next week
   };
 
-  const handleAssessmentChange = (assessmentType: string, index: number, value: number) => {
-    const key = `${assessmentType}_responses` as keyof typeof formData;
-    const updated = [...(formData[key] as number[])];
-    updated[index] = value;
-    setFormData({ ...formData, [key]: updated });
-    updateScores({ ...formData, [key]: updated });
+  // Handle concern selection and move to urgency check
+  const handleConcernSelection = () => {
+    if (!selectedConcern) {
+      alert('Please select a concern');
+      return;
+    }
+    
+    // Move directly to urgency check
+    setStep('urgency');
   };
 
-  const updateScores = (data: any) => {
-    const phq9 = (data.phq9_responses as number[]).reduce((a, b) => a + b, 0);
-    const gad7 = (data.gad7_responses as number[]).reduce((a, b) => a + b, 0);
-    const pss = (data.pss_responses as number[]).reduce((a, b) => a + b, 0);
-    const acad = (data.acad_responses as number[]).reduce((a, b) => a + b, 0);
-    const career = (data.career_responses as number[]).reduce((a, b) => a + b, 0);
-    const social = (data.social_responses as number[]).reduce((a, b) => a + b, 0);
-    setScores({ phq9, gad7, pss, acad, career, social });
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+  // Handle screening selection and move to screening questions
+  const handleScreeningSelection = () => {
+    if (selectedScreenings.size === 0) {
+      alert('Please select at least one screening');
+      return;
+    }
+    
+    const assessments = Array.from(selectedScreenings);
+    setSelectedAssessments(assessments);
+    
+    // Initialize assessment responses
+    const initialResponses: {[key: string]: number[]} = {};
+    assessments.forEach(assessment => {
+      initialResponses[assessment] = new Array(ASSESSMENTS[assessment as keyof typeof ASSESSMENTS].questions.length).fill(-1);
     });
+    setAssessmentResponses(initialResponses);
+    setStep('screening');
   };
-
-  const validateStep = (step: number): boolean => {
-    setMessage(null);
-    switch (step) {
-      case 1:
-        if (!formData.purpose) {
-          setMessage({ type: 'error', text: 'Please select a concern category' });
-          return false;
-        }
-        if (formData.purpose === 'other' && !formData.purpose_other.trim()) {
-          setMessage({ type: 'error', text: 'Please describe your other concern' });
-          return false;
-        }
-        return true;
-      case 2:
-        if (!formData.concerns.trim()) {
-          setMessage({ type: 'error', text: 'Please describe your concerns' });
-          return false;
-        }
-        if (formData.is_emergency && !formData.emergency_notes.trim()) {
-          setMessage({ type: 'error', text: 'Please provide details about your urgent situation' });
-          return false;
-        }
-        return true;
-      case 3:
-        // Assessment selection - optional
-        return true;
-      case 4:
-        // Taking assessments - optional
-        return true;
-      case 5:
-        if (!formData.consent_given) {
-          setMessage({ type: 'error', text: 'You must consent to proceed' });
-          return false;
-        }
-        return true;
-      default:
-        return true;
-    }
-  };
-
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep === 3 && selectedAssessments.length > 0) {
-        // If assessments selected, go to assessment taking step
-        setCurrentStep(4);
-        setCurrentAssessmentIndex(0);
-      } else if (currentStep === 4) {
-        // In assessment step, move to next assessment or to step 5
-        if (currentAssessmentIndex < selectedAssessments.length - 1) {
-          setCurrentAssessmentIndex(currentAssessmentIndex + 1);
-        } else {
-          // All assessments done, move to step 5
-          setCurrentStep(5);
-        }
-      } else if (currentStep < 5) {
-        // Skip to next step
-        setCurrentStep(currentStep + 1);
-      }
-    }
-  };
-
-  const handlePrev = () => {
-    setMessage(null);
-    if (currentStep === 4) {
-      // In assessment step, go back to previous assessment or back to step 3
-      if (currentAssessmentIndex > 0) {
-        setCurrentAssessmentIndex(currentAssessmentIndex - 1);
-      } else {
-        setCurrentStep(3);
-      }
-    } else if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const toggleAssessment = (type: string) => {
-    setSelectedAssessments(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
-  };
-
-  const handleCompleteAssessment = () => {
-    if (currentAssessmentIndex < selectedAssessments.length - 1) {
-      setCurrentAssessmentIndex(currentAssessmentIndex + 1);
+  
+  // Toggle screening checkbox
+  const toggleScreening = (screening: string) => {
+    const newSelected = new Set(selectedScreenings);
+    if (newSelected.has(screening)) {
+      newSelected.delete(screening);
     } else {
-      setCurrentStep(5);
+      newSelected.add(screening);
+    }
+    setSelectedScreenings(newSelected);
+  };
+
+  // Step 2: Urgency check - routing decision point
+  const handleUrgencyResponse = (isEmergency: boolean) => {
+    setIsUrgent(isEmergency);
+    if (isEmergency) {
+      // If urgent, go straight to crisis resources
+      setStep('crisis');
+    } else {
+      // If not urgent, go to screening selection to pick which screenings
+      setSelectedScreenings(new Set());
+      setStep('screening_selection');
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateStep(5)) return;
+  // Update current assessment response
+  const handleAnswerQuestion = (value: number) => {
+    const currentAssessment = selectedAssessments[currentAssessmentIdx];
+    const newResponses = { ...assessmentResponses };
+    newResponses[currentAssessment][currentQuestionIdx] = value;
+    setAssessmentResponses(newResponses);
 
-    setLoading(true);
-    setMessage(null);
+    // Move to next question
+    const currentAssessmentQuestions = ASSESSMENTS[currentAssessment as keyof typeof ASSESSMENTS].questions.length;
+    if (currentQuestionIdx < currentAssessmentQuestions - 1) {
+      setCurrentQuestionIdx(currentQuestionIdx + 1);
+    } else {
+      // Move to next assessment
+      if (currentAssessmentIdx < selectedAssessments.length - 1) {
+        setCurrentAssessmentIdx(currentAssessmentIdx + 1);
+        setCurrentQuestionIdx(0);
+      } else {
+        // All assessments complete - calculate scores
+        calculateScores();
+        setStep('appointment');
+      }
+    }
+  };
 
+  // Calculate assessment scores (hidden from student)
+  const calculateScores = () => {
+    const scores: {[key: string]: number} = {};
+    selectedAssessments.forEach(assessment => {
+      const responses = assessmentResponses[assessment];
+      const score = responses.reduce((sum, val) => sum + (val >= 0 ? val : 0), 0);
+      scores[assessment] = score;
+    });
+    setAssessmentScores(scores);
+    
+    // Calculate auto-suggested appointment date based on scores
+    const suggestedDateWindow = calculateAutoSuggestedDate(scores);
+    setAutoSuggestedDate(suggestedDateWindow);
+  };
+
+  // Go back to previous question
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIdx > 0) {
+      setCurrentQuestionIdx(currentQuestionIdx - 1);
+    } else if (currentAssessmentIdx > 0) {
+      setCurrentAssessmentIdx(currentAssessmentIdx - 1);
+      const prevAssessment = selectedAssessments[currentAssessmentIdx - 1];
+      const prevAssessmentLen = ASSESSMENTS[prevAssessment as keyof typeof ASSESSMENTS].questions.length;
+      setCurrentQuestionIdx(prevAssessmentLen - 1);
+    }
+  };
+
+  // Submit intake
+  const handleSubmitIntake = async () => {
+    if (!consentGiven) {
+      alert('Please provide consent to proceed');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const submitData = {
-        ...formData,
+      const payload = {
+        purpose: selectedConcern,
+        is_emergency: isUrgent,
+        emergency_notes: urgencyNotes,
         is_anonymous: isAnonymous,
+        consent_given: true,
+        preferred_platform: communicationMethod,
+        appointment_date: appointmentDate,
+        appointment_time: appointmentTime,
       };
 
-      const response = await fetch(api('/api/intake/submit'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(submitData),
+      // Add assessment responses
+      selectedAssessments.forEach(assessment => {
+        payload[`${assessment}_responses`] = assessmentResponses[assessment];
       });
 
-      const data = await response.json();
+      const response = await fetch(`${api.base}/intake/submit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
 
-      if (response.ok) {
-        setCounselingId(data.counseling_id);
-        setAppointmentDate(data.appointment_date);
-        setEstimatedDays(data.estimated_days);
-        localStorage.setItem('counseling_id', data.counseling_id);
-        setSubmitted(true);
-        setMessage({ type: 'success', text: 'Intake submitted successfully!' });
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to submit intake' });
-      }
+      if (!response.ok) throw new Error('Failed to submit intake');
+
+      const data = await response.json();
+      setCounselingId(data.counseling_id);
+      setStep('complete');
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error submitting form' });
+      alert('Error submitting intake: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (submitted) {
-    const apptDate = new Date(appointmentDate).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-
+  // ============================================
+  // STEP 1: CONCERN SELECTION
+  // ============================================
+  if (step === 'concern') {
     return (
-      <DashboardPageWrapper title="Intake Submitted" subtitle="Thank you for completing the form">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8">
-            <div className="text-center mb-8">
-              <Check className="mx-auto mb-4 text-green-600" size={40} />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-2">Thank You</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Your intake has been received and processed</p>
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-1">What brings you in today?</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">Select the concern that best describes your situation</p>
+
+            <div className="space-y-2 mb-8">
+              {Object.entries(CONCERN_TYPES).map(([key, concern]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedConcern(key)}
+                  className={`w-full p-3 border text-left transition ${
+                    selectedConcern === key
+                      ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  {concern.label}
+                </button>
+              ))}
             </div>
 
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-4 mb-6 border border-gray-200 dark:border-gray-600">
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Your Counseling ID</p>
-              <p className="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400 tracking-wider">
-                {counselingId}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Keep this for all future communication
-              </p>
+            <div className="flex gap-2">
+              <button
+                disabled={!selectedConcern}
+                onClick={handleConcernSelection}
+                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
             </div>
-
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-4 mb-6">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">Expected Appointment</p>
-              <p className="text-lg text-blue-900 dark:text-blue-200 font-medium">{apptDate}</p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">Within {estimatedDays}</p>
-            </div>
-
-            {Object.entries(scores).map(([key, value]: [string, number]) => {
-              const assessmentKey = key as keyof typeof assessmentInfo;
-              if (key === 'phq9' && value === 0 && !formData.phq9_responses.length) return null;
-              if (key === 'gad7' && value === 0 && !formData.gad7_responses.length) return null;
-              if (key === 'pss' && value === 0 && !formData.pss_responses.length) return null;
-              if (key === 'acad' && value === 0 && !formData.acad_responses.length) return null;
-              if (key === 'career' && value === 0 && !formData.career_responses.length) return null;
-              if (key === 'social' && value === 0 && !formData.social_responses.length) return null;
-
-              const info = assessmentInfo[assessmentKey];
-              return (
-                <div key={key} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded border border-gray-200 dark:border-gray-600 mb-2">
-                  <span className="text-sm text-gray-900 dark:text-gray-50">{info.name}</span>
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{value}/{info.maxScore}</span>
-                </div>
-              );
-            })}
-
-            <button
-              onClick={() => window.location.href = '/'}
-              className="w-full mt-8 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-            >
-              Return to Dashboard
-            </button>
           </div>
-        </div>
-      </DashboardPageWrapper>
+      </DashboardLayout>
     );
   }
 
-  return (
-    <DashboardPageWrapper title="Intake Form" subtitle="Tell us about your needs">
-      <div className="max-w-2xl mx-auto">
-        {/* Simple Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map((step) => (
-              <div
-                key={step}
-                className={`h-2 flex-1 rounded transition ${
-                  currentStep >= step ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                }`}
-              />
-            ))}
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {currentStep === 4 && selectedAssessments.length > 0 ? (
-              <>Step 4: Assessment {currentAssessmentIndex + 1} of {selectedAssessments.length}</>
-            ) : (
-              <>Step {currentStep} of {selectedAssessments.length > 0 ? 5 : 4}</>
-            )}
-          </p>
-        </div>
+  // ============================================
+  // STEP 1.5: SCREENING SELECTION (Choose which screenings to take)
+  // ============================================
+  if (step === 'screening_selection') {
+    const allowedAssessments = determineAssessments();
+    
+    const assessmentLabels: {[key: string]: string} = {
+      phq9: 'Depression Screening (PHQ-9)',
+      gad7: 'Anxiety Screening (GAD-7)',
+      pss: 'Stress Assessment (PSS)',
+      acad: 'Academic Stress Screening',
+      career: 'Career Readiness Screening',
+      social: 'Social Functioning Screening'
+    };
+    
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-1">Which screenings would you like to complete?</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">Select all that apply based on your concerns</p>
 
-        {/* Step 1: About You */}
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
-                What is your primary concern? *
-              </label>
-              <select
-                name="purpose"
-                value={formData.purpose}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select a concern</option>
-                <option value="social">Social Concerns</option>
-                <option value="personal">Personal Concerns (Mental Health)</option>
-                <option value="academic">Academic Concerns</option>
-                <option value="career">Career Concerns</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            {formData.purpose === 'other' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
-                  Please specify *
-                </label>
-                <input
-                  type="text"
-                  name="purpose_other"
-                  value={formData.purpose_other}
-                  onChange={handleInputChange}
-                  placeholder="Describe your concern"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
-                Preferred Communication Method
-              </label>
-              <select
-                name="preferred_platform"
-                value={formData.preferred_platform}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="in-person">In-Person</option>
-                <option value="zoom">Zoom Video</option>
-                <option value="phone">Phone</option>
-                <option value="flexible">Flexible</option>
-              </select>
-            </div>
-
-            <label className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer">
-              {isAnonymous ? (
-                <EyeOff size={18} className="text-gray-600 dark:text-gray-400" />
-              ) : (
-                <Eye size={18} className="text-gray-600 dark:text-gray-400" />
-              )}
-              <input
-                type="checkbox"
-                checked={isAnonymous}
-                onChange={(e) => {
-                  setIsAnonymous(e.target.checked);
-                  setFormData({ ...formData, is_anonymous: e.target.checked });
-                }}
-                className="w-4 h-4"
-              />
-              <span className="text-sm text-gray-900 dark:text-gray-50">
-                {isAnonymous ? 'Anonymous submission' : 'Keep my identity private'}
-              </span>
-            </label>
-          </div>
-        )}
-
-        {/* Step 2: Concerns Description */}
-        {currentStep === 2 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
-                Tell us what you're experiencing *
-              </label>
-              <textarea
-                name="concerns"
-                value={formData.concerns}
-                onChange={handleInputChange}
-                rows={5}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
-                placeholder="Share what's on your mind..."
-              />
-            </div>
-
-            <label className="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.is_emergency}
-                onChange={(e) => {
-                  setFormData({ ...formData, is_emergency: e.target.checked });
-                }}
-                className="w-4 h-4"
-              />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-50">
-                This is urgent
-              </span>
-            </label>
-
-            {formData.is_emergency && (
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
-                  Describe the urgent situation *
-                </label>
-                <textarea
-                  name="emergency_notes"
-                  value={formData.emergency_notes}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-orange-300 dark:border-orange-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm focus:ring-2 focus:ring-orange-500"
-                  placeholder="Please provide details..."
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 3: Assessment Selection */}
-        {currentStep === 3 && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Would you like to complete any of these assessments? (Optional)
-            </p>
-
-            {getAvailableAssessments().map((type) => {
-              const info = assessmentInfo[type as keyof typeof assessmentInfo];
-              return (
-                <label key={type} className="flex items-start gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+            <div className="space-y-2 mb-8">
+              {allowedAssessments.map((assessment) => (
+                <label
+                  key={assessment}
+                  className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500"
+                >
                   <input
                     type="checkbox"
-                    checked={selectedAssessments.includes(type)}
-                    onChange={() => toggleAssessment(type)}
-                    className="w-4 h-4 mt-1"
+                    checked={selectedScreenings.has(assessment)}
+                    onChange={() => toggleScreening(assessment)}
+                    className="w-4 h-4 mr-3"
                   />
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-50">{info.name}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{info.description}</p>
-                  </div>
+                  <span className="text-gray-900 dark:text-gray-50">
+                    {assessmentLabels[assessment] || assessment}
+                  </span>
                 </label>
-              );
-            })}
+              ))}
+            </div>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-              You can skip assessments and proceed to submit your intake.
-            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep('concern')}
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
+              >
+                ← Back
+              </button>
+              <button
+                disabled={selectedScreenings.size === 0}
+                onClick={handleScreeningSelection}
+                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
           </div>
-        )}
+      </DashboardLayout>
+    );
+  }
 
-        {/* Step 4: Assessment Taking */}
-        {currentStep === 4 && selectedAssessments.length > 0 && (
-          <div className="space-y-4">
-            {(() => {
-              const assessmentType = selectedAssessments[currentAssessmentIndex] as keyof typeof assessmentInfo;
-              const info = assessmentInfo[assessmentType];
-              const responses = formData[`${assessmentType}_responses` as keyof typeof formData] as number[];
-              const score = responses.reduce((a, b) => a + b, 0);
+  // ============================================
+  // STEP 2: URGENCY CHECK
+  // ============================================
+  if (step === 'urgency') {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-8">Is this urgent?</h2>
 
-              return (
-                <div>
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-50 mb-1">
-                      {info.name}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{info.description}</p>
-                    <p className="text-xs text-gray-500">
-                      Question {currentAssessmentIndex + 1} of {selectedAssessments.length}
-                    </p>
-                  </div>
+            <div className="space-y-2 mb-8">
+              <button
+                onClick={() => setIsUrgent(true)}
+                className={`w-full p-3 border rounded text-left ${
+                  isUrgent === true
+                    ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 hover:border-gray-400 dark:hover:border-gray-500'
+                }`}
+              >
+                Yes, I need immediate support
+              </button>
 
-                  <div className="space-y-3">
-                    {info.questions.map((question, idx) => (
-                      <div key={idx}>
-                        <p className="text-sm text-gray-900 dark:text-gray-50 mb-2">{question}</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {[0, 1, 2, 3].map((value) => (
-                            <label key={value} className="flex items-center gap-1 cursor-pointer">
-                              <input
-                                type="radio"
-                                checked={responses[idx] === value}
-                                onChange={() => handleAssessmentChange(assessmentType, idx, value)}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-xs text-gray-700 dark:text-gray-300">
-                                {['Not at all', 'Several days', 'More than half', 'Nearly every day'][value]}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              <button
+                onClick={() => setIsUrgent(false)}
+                className={`w-full p-3 border rounded text-left ${
+                  isUrgent === false
+                    ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-50 hover:border-gray-400 dark:hover:border-gray-500'
+                }`}
+              >
+                No, I can wait for an appointment
+              </button>
+            </div>
 
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">
-                    Progress: {score}/{info.maxScore}
-                  </p>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Step 5: Review & Consent */}
-        {currentStep === 5 && (
-          <div className="space-y-4">
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3 text-sm">
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Concern</p>
-                <p className="text-gray-900 dark:text-gray-50 font-medium">
-                  {formData.purpose === 'other' ? formData.purpose_other : formData.purpose}
-                </p>
+            {isUrgent && (
+              <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
+                  Describe what's happening (optional)
+                </label>
+                <textarea
+                  value={urgencyNotes}
+                  onChange={(e) => setUrgencyNotes(e.target.value)}
+                  className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded dark:bg-gray-900 text-gray-900 dark:text-gray-50 text-sm"
+                  rows={3}
+                  placeholder="What is happening right now?"
+                />
               </div>
-              {selectedAssessments.length > 0 && (
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Assessments Completed</p>
-                  <p className="text-gray-900 dark:text-gray-50 font-medium">
-                    {selectedAssessments
-                      .map(t => assessmentInfo[t as keyof typeof assessmentInfo].name)
-                      .join(', ')}
-                  </p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep('concern')}
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
+              >
+                ← Back
+              </button>
+              <button
+                disabled={isUrgent === null}
+                onClick={() => handleUrgencyResponse(isUrgent === true)}
+                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ============================================
+  // STEP 3: CRISIS RESOURCES
+  // ============================================
+  if (step === 'crisis') {
+    const isBusinessHours = new Date().getHours() >= 9 && new Date().getHours() < 17;
+    
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-8">Immediate Support</h2>
+
+            <div className="space-y-3 mb-8">
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
+                <p className="font-semibold text-gray-900 dark:text-gray-50">24/7 Crisis Hotline</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">988 (Suicide & Crisis Lifeline)</p>
+              </div>
+
+              {isBusinessHours && (
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
+                  <p className="font-semibold text-gray-900 dark:text-gray-50 mb-1">Talk Now (Business Hours)</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">Monday - Friday, 9 AM - 5 PM</p>
+                  <button
+                    onClick={() => setStep('appointment')}
+                    className="w-full px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 text-sm"
+                  >
+                    Schedule Now
+                  </button>
                 </div>
               )}
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Communication Method</p>
-                <p className="text-gray-900 dark:text-gray-50 font-medium capitalize">
-                  {formData.preferred_platform}
-                </p>
+
+              {!isBusinessHours && (
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
+                  <p className="font-semibold text-gray-900 dark:text-gray-50 mb-1">Hours</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Monday - Friday, 9 AM - 5 PM</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Use 988 for crisis support outside these hours</p>
+                </div>
+              )}
+
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded">
+                <p className="font-semibold text-gray-900 dark:text-gray-50">Campus Security</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Ext. 911</p>
               </div>
             </div>
 
-            <label className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.consent_given}
-                onChange={handleInputChange}
-                name="consent_given"
-                className="w-4 h-4 mt-1"
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep('urgency')}
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={() => setStep('appointment')}
+                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ============================================
+  // STEP 4: PROGRESSIVE SCREENING (ONE QUESTION AT A TIME)
+  // ============================================
+  if (step === 'screening') {
+    const currentAssessment = selectedAssessments[currentAssessmentIdx];
+    const assessmentInfo = ASSESSMENTS[currentAssessment as keyof typeof ASSESSMENTS];
+    const currentQuestion = assessmentInfo.questions[currentQuestionIdx];
+    const totalQuestions = selectedAssessments.reduce((sum, a) => sum + ASSESSMENTS[a as keyof typeof ASSESSMENTS].questions.length, 0);
+    const completedQuestions = selectedAssessments.slice(0, currentAssessmentIdx).reduce((sum, a) => sum + ASSESSMENTS[a as keyof typeof ASSESSMENTS].questions.length, 0) + currentQuestionIdx;
+
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl">
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-3 text-xs text-gray-600 dark:text-gray-400">
+              <span>Question {completedQuestions + 1} of {totalQuestions}</span>
+              <span>{assessmentInfo.name}</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div
+                className="bg-gray-900 dark:bg-gray-50 h-1.5 rounded-full"
+                style={{ width: `${((completedQuestions) / totalQuestions) * 100}%` }}
               />
-              <span className="text-sm text-gray-900 dark:text-gray-50">
-                I consent to submit this intake form and understand that counseling information will be used according to our privacy policy
-              </span>
-            </label>
+            </div>
           </div>
-        )}
 
-        {/* Messages */}
-        {message && (
-          <div
-            className={`mt-4 p-3 rounded-lg text-sm ${
-              message.type === 'error'
-                ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
-                : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-            }`}
-          >
-            {message.text}
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-8">{currentQuestion}</h2>
+
+            <div className="space-y-2 mb-8">
+              {RESPONSE_SCALE.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleAnswerQuestion(option.value)}
+                  className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded hover:border-gray-400 dark:hover:border-gray-500 text-left text-gray-900 dark:text-gray-50 text-sm"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                disabled={completedQuestions === 0}
+                onClick={handlePreviousQuestion}
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Back
+              </button>
+            </div>
           </div>
-        )}
+      </DashboardLayout>
+    );
+  }
 
-        {/* Navigation */}
-        <div className="flex gap-3 mt-8">
-          <button
-            onClick={handlePrev}
-            disabled={currentStep === 1}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-50 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Back
-          </button>
+  // ============================================
+  // STEP 5: SCHEDULE APPOINTMENT
+  // ============================================
+  if (step === 'appointment') {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-8">Schedule Your Appointment</h2>
 
-          {currentStep === 5 ? (
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {loading ? 'Submitting...' : 'Submit Intake'}
-            </button>
-          ) : currentStep === 4 && selectedAssessments.length > 0 ? (
-            <button
-              onClick={handleNext}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2 transition"
-            >
-              {currentAssessmentIndex < selectedAssessments.length - 1 
-                ? `Next Assessment (${currentAssessmentIndex + 2}/${selectedAssessments.length})`
-                : 'Continue to Review'} <ChevronRight size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={handleNext}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2 transition"
-            >
-              Next <ChevronRight size={16} />
-            </button>
-          )}
-        </div>
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={appointmentDate}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-50 text-sm"
+                />
+              </div>
+
+              {!isUrgent && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">Time</label>
+                  <select
+                    value={appointmentTime}
+                    onChange={(e) => setAppointmentTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-50 text-sm"
+                  >
+                    <option value="">Select...</option>
+                    <option value="9:00">9:00 AM</option>
+                    <option value="10:00">10:00 AM</option>
+                    <option value="11:00">11:00 AM</option>
+                    <option value="1:00">1:00 PM</option>
+                    <option value="2:00">2:00 PM</option>
+                    <option value="3:00">3:00 PM</option>
+                    <option value="4:00">4:00 PM</option>
+                  </select>
+                </div>
+              )}
+
+              {isUrgent && (
+                <div className="p-3 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-700 dark:text-gray-300">
+                  A counselor will contact you within 30 minutes during business hours.
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">How to meet</label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'zoom', label: 'Zoom' },
+                    { value: 'google_meet', label: 'Google Meet' },
+                    { value: 'phone', label: 'Phone' },
+                    { value: 'in_person', label: 'In Person' }
+                  ].map(({ value, label }) => (
+                    <label key={value} className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 text-sm">
+                      <input
+                        type="radio"
+                        name="communication"
+                        value={value}
+                        checked={communicationMethod === value}
+                        onChange={(e) => setCommunicationMethod(e.target.value as any)}
+                        className="mr-2"
+                      />
+                      <span className="text-gray-900 dark:text-gray-50">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <label className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isAnonymous}
+                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  className="mr-2 w-4 h-4"
+                />
+                <span className="text-gray-900 dark:text-gray-50">Keep anonymous</span>
+              </label>
+
+              <label className="flex items-start p-3 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 text-xs">
+                <input
+                  type="checkbox"
+                  checked={consentGiven}
+                  onChange={(e) => setConsentGiven(e.target.checked)}
+                  className="mr-2 w-4 h-4 mt-0.5"
+                />
+                <span className="text-gray-700 dark:text-gray-300">
+                  I consent to my responses being used for assessment and to be contacted for my appointment. I understand I can call 988 anytime for crisis support.
+                </span>
+              </label>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep(isUrgent ? 'crisis' : 'screening')}
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded hover:border-gray-400 dark:hover:border-gray-500"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={handleSubmitIntake}
+                disabled={!appointmentDate || !consentGiven || isSubmitting}
+                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ============================================
+  // STEP 6: CONFIRMATION & SUBMISSION
+  // ============================================
+  if (step === 'complete') {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-1">Thank you!</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-8">Your intake has been submitted.</p>
+
+            {counselingId && (
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded mb-8">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Counseling ID</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-gray-50 font-mono">{counselingId}</p>
+              </div>
+            )}
+
+            <div className="space-y-2 mb-8 text-sm text-gray-600 dark:text-gray-400">
+              <p>• You will receive an email confirmation with your appointment details</p>
+              <p>• A counselor will contact you at the time selected</p>
+              <p>• For crisis support anytime, call 988</p>
+            </div>
+
+            <Link href="/dashboard">
+              <button className="w-full px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300">
+                Return to Dashboard
+              </button>
+            </Link>
+          </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
-    </DashboardPageWrapper>
-  );
+    );
+  }
+
+  return null;
 }

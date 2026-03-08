@@ -3,6 +3,17 @@ Role-Based Assessment Dashboard Endpoints
 Efficient, role-based access to assessment data with real-time alerts
 """
 
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import db, RiskLevel, PermissionType, ROLE_PERMISSIONS
+from utils import audit_log, user_has_permission
+from datetime import datetime
+from bson import ObjectId
+
+# Create blueprint for assessment endpoints
+intake_bp = Blueprint('assessment_intake', __name__, url_prefix='/api/assessments')
+
+
 def init_assessment_indexes(db_instance):
     """Create efficient database indexes for assessment queries"""
     try:
@@ -16,7 +27,7 @@ def init_assessment_indexes(db_instance):
         # Assessment collection indexes
         db_instance.db.assessments.create_index([("case_id", 1)])
         db_instance.db.assessments.create_index([("assessment_type", 1), ("created_at", -1)])
-        db_instance.db.assessments.create_index([("assessment_type", 1), f"{assessment_type}_score", 1)])
+        db_instance.db.assessments.create_index([("assessment_type", 1), ("score", 1)])
         
         # Case collection indexes
         db_instance.db.cases.create_index([("student_id", 1)])

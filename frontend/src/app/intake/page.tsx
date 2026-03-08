@@ -330,7 +330,7 @@ export default function IntakePage() {
         payload[`${assessment}_responses`] = assessmentResponses[assessment];
       });
 
-      const response = await fetch(api('/intake/submit'), {
+      const response = await fetch(api('/api/intake/submit'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

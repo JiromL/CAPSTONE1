@@ -464,7 +464,7 @@ Counseling & Psychological Services Team"""
             print(f"Warning - Email send failed: {e}")
     
     audit_log(db.db, 'intake', 'submit', entity_id=str(intake_id), 
-              details=f"is_emergency={is_emergency}, is_anonymous={is_anonymous}, urgency={urgency_level}")
+              new_values={"is_emergency": is_emergency, "is_anonymous": is_anonymous, "urgency": urgency_level})
     
     # Build response with scores only if available
     scores_response = {}
@@ -691,69 +691,95 @@ def get_assessment_dashboard():
     try:
         if user_role == 'STUDENT':
             # Student sees only their own assessments
-            case = db.db.cases.find_one({"student_id": ObjectId(user_id)})
-            if case:
-                intakes = list(db.db.intakes.find({"case_id": case['_id']}).sort("created_at", -1).limit(5))
-                for intake in intakes:
-                    scores = intake.get('responses', {})
-                    risk = get_risk_level(
-                        scores.get('phq9_score'),
-                        scores.get('gad7_score'),
-                        scores.get('acad_score'),
-                        scores.get('social_score')
-                    )
-                    dashboard_data['recent_cases'].append({
-                        'counseling_id': intake.get('counseling_id'),
-                        'submitted_at': intake.get('student_submitted_at').isoformat() if intake.get('student_submitted_at') else None,
-                        'appointment_date': intake.get('responses', {}).get('appointment_date'),
-                        'risk_level': risk,
-                        'scores': {k: v for k, v in scores.items() if k.endswith('_score')}
-                    })
-                
-                dashboard_data['summary'] = {
-                    'total_intakes': len(intakes),
-                    'my_case_id': str(case['_id'])
-                }
+            try:
+                case = db.db.cases.find_one({"student_id": ObjectId(user_id)})
+                if case:
+                    intakes = list(db.db.intakes.find({"case_id": case['_id']}).sort("created_at", -1).limit(5))
+                    for intake in intakes:
+                        try:
+                            scores = intake.get('responses', {})
+                            risk = get_risk_level(
+                                scores.get('phq9_score'),
+                                scores.get('gad7_score'),
+                                scores.get('acad_score'),
+                                scores.get('social_score')
+                            )
+                            submitted_at = intake.get('student_submitted_at')
+                            dashboard_data['recent_cases'].append({
+                                'counseling_id': intake.get('counseling_id'),
+                                'submitted_at': submitted_at.isoformat() if submitted_at else None,
+                                'appointment_date': intake.get('responses', {}).get('appointment_date'),
+                                'risk_level': risk,
+                                'scores': {k: v for k, v in scores.items() if k.endswith('_score')}
+                            })
+                        except Exception as intake_err:
+                            print(f"Error processing intake {intake.get('_id')}: {intake_err}")
+                            continue
+                    
+                    dashboard_data['summary'] = {
+                        'total_intakes': len(intakes),
+                        'my_case_id': str(case['_id'])
+                    }
+                else:
+                    dashboard_data['summary'] = {
+                        'total_intakes': 0,
+                        'message': 'No case found for this student'
+                    }
+            except Exception as student_err:
+                print(f"Error loading student dashboard: {student_err}")
+                dashboard_data['summary'] = {'error': str(student_err)}
         
         elif user_role in ['COUNSELOR', 'CSC', 'CSP']:
             # Counselor sees only their assigned cases
-            cases = list(db.db.cases.find({"assigned_counselor_id": ObjectId(user_id)}).limit(50))
-            case_ids = [case['_id'] for case in cases]
-            
-            # Efficiently get all assessments for assigned cases
-            intakes = list(db.db.intakes.find({
-                "case_id": {"$in": case_ids},
-                "status": "COMPLETED"
-            }).sort("student_submitted_at", -1).limit(20))
-            
-            for intake in intakes:
-                scores = intake.get('responses', {})
-                risk = get_risk_level(
-                    scores.get('phq9_score'),
-                    scores.get('gad7_score')
-                )
+            try:
+                cases = list(db.db.cases.find({"assigned_counselor_id": ObjectId(user_id)}).limit(50))
+                case_ids = [case['_id'] for case in cases]
                 
-                if risk in ['RED', 'CRITICAL']:
-                    dashboard_data['alerts'].append({
-                        'case_id': str(intake['case_id']),
-                        'counseling_id': intake.get('counseling_id'),
-                        'risk_level': risk,
-                        'type': 'high_risk_assessment'
-                    })
+                if case_ids:
+                    # Efficiently get all assessments for assigned cases
+                    intakes = list(db.db.intakes.find({
+                        "case_id": {"$in": case_ids},
+                        "status": "COMPLETED"
+                    }).sort("student_submitted_at", -1).limit(20))
+                    
+                    for intake in intakes:
+                        try:
+                            scores = intake.get('responses', {})
+                            risk = get_risk_level(
+                                scores.get('phq9_score'),
+                                scores.get('gad7_score')
+                            )
+                            
+                            if risk in ['RED', 'CRITICAL']:
+                                dashboard_data['alerts'].append({
+                                    'case_id': str(intake['case_id']),
+                                    'counseling_id': intake.get('counseling_id'),
+                                    'risk_level': risk,
+                                    'type': 'high_risk_assessment'
+                                })
+                            
+                            submitted_at = intake.get('student_submitted_at')
+                            dashboard_data['recent_cases'].append({
+                                'case_id': str(intake['case_id']),
+                                'counseling_id': intake.get('counseling_id'),
+                                'submitted_at': submitted_at.isoformat() if submitted_at else None,
+                                'risk_level': risk,
+                                'is_emergency': intake.get('is_emergency')
+                            })
+                        except Exception as intake_err:
+                            print(f"Error processing intake {intake.get('_id')}: {intake_err}")
+                            continue
+                else:
+                    intakes = []
                 
-                dashboard_data['recent_cases'].append({
-                    'case_id': str(intake['case_id']),
-                    'counseling_id': intake.get('counseling_id'),
-                    'submitted_at': intake.get('student_submitted_at').isoformat() if intake.get('student_submitted_at') else None,
-                    'risk_level': risk,
-                    'is_emergency': intake.get('is_emergency')
-                })
-            
-            dashboard_data['summary'] = {
-                'assigned_cases': len(cases),
-                'high_risk_alerts': len(dashboard_data['alerts']),
-                'recent_assessments': len(intakes)
-            }
+                dashboard_data['summary'] = {
+                    'assigned_cases': len(cases),
+                    'high_risk_alerts': len(dashboard_data['alerts']),
+                    'recent_assessments': len(intakes)
+                }
+            except Exception as counselor_err:
+                print(f"Error loading counselor dashboard: {counselor_err}")
+                dashboard_data['summary'] = {'error': str(counselor_err)}
         
         elif user_role == 'PSYCHOLOGIST':
             # Psychologists see high-complexity cases (mental health focus)
@@ -842,16 +868,42 @@ def get_assessment_dashboard():
                         'concern': concern
                     })
             
-            dashboard_data['recent_cases'] = all_intakes[:20]
+            for intake in all_intakes[:20]:
+                scores = intake.get('responses', {})
+                risk = get_risk_level(
+                    scores.get('phq9_score'),
+                    scores.get('gad7_score'),
+                    scores.get('acad_score'),
+                    scores.get('social_score')
+                )
+                dashboard_data['recent_cases'].append({
+                    'case_id': str(intake.get('case_id', '')),
+                    'counseling_id': intake.get('counseling_id'),
+                    'concern': scores.get('purpose', 'General'),
+                    'risk_level': risk,
+                    'is_emergency': intake.get('is_emergency'),
+                    'submitted_at': intake.get('student_submitted_at').isoformat() if intake.get('student_submitted_at') else None
+                })
+            
             dashboard_data['summary'] = {
                 'total_intakes': len(all_intakes),
                 'risk_distribution': risk_distribution,
                 'concern_distribution': concern_distribution,
                 'critical_alerts': len([a for a in dashboard_data['alerts'] if a['risk_level'] == 'CRITICAL'])
             }
+        
+        else:
+            dashboard_data['summary'] = {'message': f'Dashboard data not available for role {user_role}', 'role': user_role}
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Dashboard error for user {user_id}: {str(e)}")
+        return jsonify({
+            'user_role': user_role,
+            'timestamp': datetime.utcnow().isoformat(),
+            'alerts': [],
+            'summary': {'error': str(e)},
+            'recent_cases': []
+        }), 200
     
     return jsonify(dashboard_data), 200
 

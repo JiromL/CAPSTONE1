@@ -67,7 +67,7 @@ export interface UrgentAssessment {
  */
 export async function getDashboardData(token: string): Promise<DashboardData | null> {
   try {
-    const response = await fetch(api('/assessments/dashboard'), {
+    const response = await fetch(api('/api/intake/assessments/dashboard'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -94,7 +94,7 @@ export async function getDashboardData(token: string): Promise<DashboardData | n
  */
 export async function getUrgentAssessments(token: string): Promise<UrgentAssessment[]> {
   try {
-    const response = await fetch(api('/assessments/urgent'), {
+    const response = await fetch(api('/api/intake/assessments/urgent'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -120,7 +120,7 @@ export async function getUrgentAssessments(token: string): Promise<UrgentAssessm
  */
 export async function getAssessmentStatistics(token: string) {
   try {
-    const response = await fetch(api('/assessments/stats'), {
+    const response = await fetch(api('/api/intake/assessments/stats'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -145,7 +145,7 @@ export async function getAssessmentStatistics(token: string) {
  */
 export async function initializeAssessmentIndexes(token: string) {
   try {
-    const response = await fetch(api('/assessments/init-indexes'), {
+    const response = await fetch(api('/api/intake/assessments/init-indexes'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

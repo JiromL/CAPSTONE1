@@ -6,7 +6,7 @@ import { api } from './api';
  */
 export async function fetchDashboardData(token: string) {
   try {
-    const response = await fetch(api('/intake/assessments/dashboard'), {
+    const response = await fetch(api('/api/intake/assessments/dashboard'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -30,7 +30,7 @@ export async function fetchDashboardData(token: string) {
  */
 export async function fetchUrgentAssessments(token: string) {
   try {
-    const response = await fetch(api('/intake/assessments/urgent'), {
+    const response = await fetch(api('/api/intake/assessments/urgent'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -54,7 +54,7 @@ export async function fetchUrgentAssessments(token: string) {
  */
 export async function fetchAssessmentStats(token: string) {
   try {
-    const response = await fetch(api('/intake/assessments/stats'), {
+    const response = await fetch(api('/api/intake/assessments/stats'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -78,7 +78,7 @@ export async function fetchAssessmentStats(token: string) {
  */
 export async function fetchAppointments(token: string) {
   try {
-    const response = await fetch(api('/appointments'), {
+    const response = await fetch(api('/api/appointments'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

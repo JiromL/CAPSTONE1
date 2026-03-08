@@ -117,13 +117,27 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-3 text-center">
-              <Link
-                href="/forgot-password"
-                className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                Forgot password?
-              </Link>
+            <div className="mt-4 space-y-3">
+              <div className="text-center">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3 text-center">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  Don't have an account?
+                </p>
+                <Link
+                  href="/register"
+                  className="inline-block text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition"
+                >
+                  Create Account
+                </Link>
+              </div>
             </div>
           </div>
         </div>

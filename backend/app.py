@@ -4,12 +4,16 @@ Complete implementation of 8 Epics with RBAC, Triage, Intake, Booking, Documenta
 Counseling, High-Risk Monitoring, and Referral Management - Using MongoDB
 """
 
+import os
+from dotenv import load_dotenv
+
+# Load environment variables BEFORE any other imports
+load_dotenv()
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from datetime import datetime
-import os
-from dotenv import load_dotenv
 
 from config import config
 from models import db, UserRole, PermissionType, RiskLevel
@@ -30,8 +34,7 @@ from blueprints import (
     resources_bp,
 )
 from blueprints.google_calendar import calendar_bp
-
-load_dotenv()
+from blueprints.mhbot_integration import mhbot_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -76,6 +79,7 @@ def create_app(config_name=None):
     app.register_blueprint(cases_bp)
     app.register_blueprint(resources_bp)
     app.register_blueprint(calendar_bp)
+    app.register_blueprint(mhbot_bp)
     
     # Health check route
     @app.route('/api/health', methods=['GET'])

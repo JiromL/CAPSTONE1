@@ -268,6 +268,21 @@ def confirm_appointment(appointment_id):
         }}
     )
     
+    # Auto-sync to Google Calendar if counselor has calendar connected
+    counselor_id = appointment.get('counselor_id')
+    if counselor_id:
+        try:
+            from blueprints.google_calendar import sync_appointment_to_calendar
+            calendar_event_id = sync_appointment_to_calendar(str(counselor_id), appointment)
+            if calendar_event_id:
+                db.db.appointments.update_one(
+                    {"_id": appointment['_id']},
+                    {"$set": {"calendar_event_id": calendar_event_id}}
+                )
+        except Exception as e:
+            # Calendar sync is optional, don't fail appointment confirmation
+            print(f"Calendar sync error: {str(e)}")
+    
     audit_log(db.db, 'appointment', 'confirm', entity_id=str(appointment['_id']), new_values={
         'status': AppointmentStatus.CONFIRMED.value
     })

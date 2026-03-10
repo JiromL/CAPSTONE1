@@ -1,7 +1,7 @@
 """Zoom integration for creating real Zoom meetings via API"""
 
-import jwt
 import requests
+import base64
 import time
 from datetime import datetime, timedelta
 
@@ -9,45 +9,75 @@ from datetime import datetime, timedelta
 class ZoomIntegration:
     """
     Real Zoom API integration for creating meetings.
-    Creates JWT tokens and makes API calls to Zoom's meeting endpoint.
+    Uses Server-to-Server OAuth2 with account credentials flow.
     """
 
     ZOOM_API_BASE = "https://api.zoom.us/v2"
-    TOKEN_EXPIRY_SECONDS = 3600  # 1 hour
+    ZOOM_OAUTH_TOKEN_URL = "https://zoom.us/oauth/token"
+    TOKEN_EXPIRY_BUFFER = 300  # 5 minute buffer before expiry
 
     def __init__(self, config):
         self.account_id = config.ZOOM_ACCOUNT_ID
         self.client_id = config.ZOOM_CLIENT_ID
         self.client_secret = config.ZOOM_CLIENT_SECRET
-        self.token_secret = getattr(config, 'ZOOM_TOKEN_SECRET', None)
-        self._jwt_token = None
+        self._access_token = None
         self._token_expiry = None
 
-    def _generate_jwt_token(self):
+    def _get_oauth_token(self):
         """
-        Generate a JWT token for Zoom API authentication.
-        This is the Server-to-Server OAuth token generation.
-        Uses Account ID in the payload for proper Zoom OAuth flow.
+        Get OAuth access token using account credentials flow.
+        This authenticates with Zoom using Client ID and Secret.
         """
-        if self._jwt_token and self._token_expiry and datetime.utcnow() < self._token_expiry:
-            return self._jwt_token
+        # Check if current token is still valid (with buffer)
+        if self._access_token and self._token_expiry:
+            time_remaining = (self._token_expiry - datetime.utcnow()).total_seconds()
+            if time_remaining > self.TOKEN_EXPIRY_BUFFER:
+                return self._access_token
 
-        payload = {
-            'iss': self.client_id,
-            'sub': self.account_id,  # Account ID for S2S OAuth
-            'exp': int(time.time()) + self.TOKEN_EXPIRY_SECONDS
+        # Create Basic Auth header
+        auth_string = f"{self.client_id}:{self.client_secret}"
+        auth_bytes = auth_string.encode('utf-8')
+        auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+
+        headers = {
+            "Authorization": f"Basic {auth_b64}",
+            "Content-Type": "application/x-www-form-urlencoded"
         }
 
-        # Use token_secret if available, otherwise fall back to client_secret
-        secret_key = self.token_secret or self.client_secret
-        
-        self._jwt_token = jwt.encode(payload, secret_key, algorithm='HS256')
-        self._token_expiry = datetime.utcnow() + timedelta(seconds=self.TOKEN_EXPIRY_SECONDS - 60)
-        return self._jwt_token
+        data = {
+            "grant_type": "account_credentials",
+            "account_id": self.account_id
+        }
+
+        try:
+            response = requests.post(
+                self.ZOOM_OAUTH_TOKEN_URL,
+                headers=headers,
+                data=data,
+                timeout=10
+            )
+            response.raise_for_status()
+
+            token_data = response.json()
+            self._access_token = token_data.get('access_token')
+            expires_in = token_data.get('expires_in', 3600)
+            self._token_expiry = datetime.utcnow() + timedelta(seconds=expires_in)
+
+            return self._access_token
+
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Failed to get Zoom OAuth token: {str(e)}"
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    error_msg = f"Zoom OAuth error: {error_data}"
+                except:
+                    error_msg = f"Zoom OAuth error: {e.response.text}"
+            raise Exception(error_msg)
 
     def _get_headers(self):
-        """Get authorization headers with JWT token"""
-        token = self._generate_jwt_token()
+        """Get authorization headers with OAuth access token"""
+        token = self._get_oauth_token()
         return {
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
@@ -70,10 +100,10 @@ class ZoomIntegration:
         if not self.client_id or not self.client_secret or not self.account_id:
             raise ValueError("Zoom Account ID, Client ID and Secret are required")
 
-        # Use account_id directly instead of 'me'
-        url = f"{self.ZOOM_API_BASE}/users/{self.account_id}/meetings"
+        # Use /users/me/meetings - OAuth token authenticates to the account
+        url = f"{self.ZOOM_API_BASE}/users/me/meetings"
 
-        # Use token_secret if available for password generation
+        # Generate password if not provided
         if not password:
             password = ''.join(
                 str(i % 10) for i in range(int(time.time()) % 1000, int(time.time()) % 1000 + 6)

@@ -12,7 +12,7 @@ from bson import ObjectId
 import random
 import string
 import uuid
-from integrations import EmailIntegration
+from integrations import EmailIntegration, ZoomIntegration
 
 intake_bp = Blueprint('intake', __name__, url_prefix='/api/intake')
 
@@ -65,23 +65,66 @@ def get_allowed_assessments_for_concern(concern: str) -> list:
     return concern_mapping.get(concern, ['phq9', 'gad7', 'pss'])
 
 
-def generate_meeting_link(preferred_platform: str, appointment_id: str, counseling_id: str) -> dict:
+def generate_meeting_link(preferred_platform: str, appointment_id: str, counseling_id: str, appointment_date: datetime = None) -> dict:
     """
     Generate a meeting link based on the preferred platform.
-    Returns: {'platform': str, 'join_url': str, 'meeting_id': str}
+    For Zoom: Creates a real meeting via Zoom API.
+    For Google Meet: Generates a meeting code.
+    For in-person: Returns location info.
+    
+    Returns: {'platform': str, 'join_url': str, 'meeting_id': str, ...}
     """
     meeting_id = f"{counseling_id}-{str(appointment_id)[:8]}"
     
     if preferred_platform == 'zoom':
-        # Generate Zoom meeting link (using the provided meeting ID)
-        # In production, this would call the Zoom API to create a real meeting
-        zoom_meeting_id = ''.join(random.choices(string.digits, k=9))
-        return {
-            'platform': 'zoom',
-            'join_url': f'https://zoom.us/j/{zoom_meeting_id}',
-            'meeting_id': zoom_meeting_id,
-            'meeting_passcode': ''.join(random.choices(string.digits, k=6))
-        }
+        try:
+            # Initialize Zoom integration with app config
+            zoom = ZoomIntegration(current_app.config)
+            
+            # If no credentials, fall back to fake meeting (for testing)
+            if not zoom.client_id or not zoom.client_secret:
+                print(f"⚠️  ZOOM: Missing credentials, generating test meeting link")
+                zoom_meeting_id = ''.join(random.choices(string.digits, k=9))
+                return {
+                    'platform': 'zoom',
+                    'join_url': f'https://zoom.us/j/{zoom_meeting_id}',
+                    'meeting_id': zoom_meeting_id,
+                    'meeting_passcode': ''.join(random.choices(string.digits, k=6)),
+                    'status': 'test_meeting'
+                }
+            
+            # Format start time for Zoom API (ISO 8601 with timezone)
+            if appointment_date is None:
+                appointment_date = datetime.utcnow() + timedelta(days=3)
+            
+            # Convert to ISO format: 2026-03-15T10:30:00
+            start_time = appointment_date.strftime('%Y-%m-%dT%H:%M:%S')
+            
+            # Create real Zoom meeting
+            meeting_result = zoom.create_meeting(
+                user_id='me',  # Creates meeting for authenticated user
+                topic=f'CPS Initial Assessment - {counseling_id}',
+                start_time=start_time,
+                duration_minutes=60,
+                password=None  # Zoom will generate
+            )
+            
+            print(f"✅ ZOOM: Real meeting created - {meeting_result.get('meeting_id')}")
+            return meeting_result
+            
+        except Exception as e:
+            print(f"❌ ZOOM: Failed to create meeting: {str(e)}")
+            # Fallback to fake meeting if API fails
+            zoom_meeting_id = ''.join(random.choices(string.digits, k=9))
+            return {
+                'platform': 'zoom',
+                'join_url': f'https://zoom.us/j/{zoom_meeting_id}',
+                'meeting_id': zoom_meeting_id,
+                'meeting_passcode': ''.join(random.choices(string.digits, k=6)),
+                'status': 'fallback_test_meeting',
+                'error': str(e)
+            }
+            
     elif preferred_platform == 'google_meet':
         # Generate Google Meet link
         # Format: https://meet.google.com/xxx-yyyy-zzz
@@ -442,7 +485,7 @@ def student_submit_intake():
     # CREATE APPOINTMENT WITH MEETING LINK
     preferred_platform = data.get('preferred_platform', 'in-person')
     appointment_id = ObjectId()
-    meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id)
+    meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id, appointment_date)
     
     appointment_doc = {
         "_id": appointment_id,

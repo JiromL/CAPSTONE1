@@ -5,6 +5,7 @@ flask-cors==4.0.0
 # API & Authentication
 requests==2.31.0
 flask-jwt-extended==4.5.3
+PyJWT==2.8.0
 werkzeug==3.1.5
 
 # Environment

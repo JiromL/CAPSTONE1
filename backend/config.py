@@ -18,6 +18,8 @@ class Config:
     # Authentication & Third-party integrations
     GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+    GOOGLE_SERVICE_ACCOUNT_EMAIL = os.getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL')
+    GOOGLE_SERVICE_ACCOUNT_KEY = os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
     ZOOM_ACCOUNT_ID = os.getenv('ZOOM_ACCOUNT_ID')
     ZOOM_CLIENT_ID = os.getenv('ZOOM_CLIENT_ID')
     ZOOM_CLIENT_SECRET = os.getenv('ZOOM_CLIENT_SECRET')

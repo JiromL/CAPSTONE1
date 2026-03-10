@@ -12,7 +12,7 @@ from bson import ObjectId
 import random
 import string
 import uuid
-from integrations import EmailIntegration, ZoomIntegration
+from integrations import EmailIntegration, ZoomIntegration, GoogleMeetIntegration
 
 intake_bp = Blueprint('intake', __name__, url_prefix='/api/intake')
 
@@ -69,7 +69,7 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
     """
     Generate a meeting link based on the preferred platform.
     For Zoom: Creates a real meeting via Zoom API.
-    For Google Meet: Generates a meeting code.
+    For Google Meet: Creates a real meeting via Google Calendar API.
     For in-person: Returns location info.
     
     Returns: {'platform': str, 'join_url': str, 'meeting_id': str, ...}
@@ -112,14 +112,28 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
             raise Exception(error_msg)
             
     elif preferred_platform == 'google_meet':
-        # Generate Google Meet link
-        # Format: https://meet.google.com/xxx-yyyy-zzz
-        meet_code = f"{meeting_id.replace('-', '').lower()[:3]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:3]}"
-        return {
-            'platform': 'google_meet',
-            'join_url': f'https://meet.google.com/{meet_code.lower()}',
-            'meeting_id': meet_code
-        }
+        # Create real Google Meet meeting via Google Calendar API
+        try:
+            if appointment_date is None:
+                appointment_date = datetime.utcnow() + timedelta(days=3)
+            
+            google_meet = GoogleMeetIntegration(current_app.config)
+            
+            meeting_result = google_meet.create_meeting(
+                title=f'CPS Initial Assessment - {counseling_id}',
+                start_time=appointment_date,
+                duration_minutes=60,
+                description=f'Campus Counseling & Psychology Services\nInitial Assessment\nCounseling ID: {counseling_id}'
+            )
+            
+            print(f"✅ GOOGLE MEET: Real meeting created - {meeting_result.get('meeting_id')}")
+            return meeting_result
+            
+        except Exception as e:
+            error_msg = f"Failed to create Google Meet: {str(e)}"
+            print(f"❌ GOOGLE MEET: {error_msg}")
+            raise Exception(error_msg)
+            
     else:  # in-person
         return {
             'platform': 'in-person',

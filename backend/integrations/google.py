@@ -1,9 +1,171 @@
-"""Google integration stubs: OAuth, Calendar hooks"""
+"""Google integration: OAuth, Calendar, and Google Meet meeting creation"""
 import os
+import json
 from urllib.parse import urlencode
 import requests
 from datetime import datetime, timedelta
 from .token_store import save_tokens, get_tokens
+
+
+class GoogleMeetIntegration:
+    """
+    Create real Google Meet meetings via Google Calendar API.
+    Requires Google OAuth access token (either service account or user-delegated).
+    """
+
+    CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3"
+
+    def __init__(self, config):
+        """
+        Initialize with config. For real meet creation, provide:
+        - GOOGLE_SERVICE_ACCOUNT_EMAIL (service account)
+        - GOOGLE_SERVICE_ACCOUNT_KEY (service account JSON key)
+        OR
+        - A user's OAuth access token for Google Calendar
+        """
+        self.config = config
+        self.service_account_email = os.getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL')
+        self.service_account_key_str = os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+        
+    def _get_service_account_token(self):
+        """
+        Get OAuth token for service account using JWT grant.
+        Needed for calendar.insert scope with service account.
+        """
+        if not self.service_account_key_str:
+            raise ValueError("GOOGLE_SERVICE_ACCOUNT_KEY not configured")
+        
+        try:
+            import jwt
+        except ImportError:
+            raise ImportError("PyJWT required for service account authentication. Install: pip install PyJWT")
+        
+        key_data = json.loads(self.service_account_key_str)
+        iat = int(datetime.utcnow().timestamp())
+        exp = iat + 3600
+        
+        payload = {
+            "iss": key_data.get('client_email'),
+            "scope": "https://www.googleapis.com/auth/calendar",
+            "aud": "https://oauth2.googleapis.com/token",
+            "exp": exp,
+            "iat": iat,
+        }
+        
+        token = jwt.encode(payload, key_data.get('private_key'), algorithm='RS256')
+        
+        # Exchange JWT for access token
+        token_data = {
+            'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion': token,
+        }
+        
+        response = requests.post('https://oauth2.googleapis.com/token', data=token_data, timeout=10)
+        response.raise_for_status()
+        
+        return response.json().get('access_token')
+
+    def create_meeting(self, title, start_time, duration_minutes=60, description=None, attendees_emails=None):
+        """
+        Create a Google Meet meeting via Calendar API.
+        
+        Args:
+            title: Meeting title
+            start_time: datetime object or ISO string
+            duration_minutes: Meeting duration
+            description: Meeting description
+            attendees_emails: List of email addresses to invite
+            
+        Returns:
+            dict: Meeting info with conferenceData including Google Meet link
+            or raises Exception if creation fails
+        """
+        try:
+            access_token = self._get_service_account_token()
+        except Exception as e:
+            raise Exception(f"Failed to get Google service account token: {str(e)}")
+        
+        # Parse start_time if it's a string
+        if isinstance(start_time, str):
+            start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        else:
+            start_dt = start_time
+        
+        end_dt = start_dt + timedelta(minutes=duration_minutes)
+        
+        # Build event payload
+        event = {
+            'summary': title,
+            'description': description or 'Counseling & Psychology Services Appointment',
+            'start': {
+                'dateTime': start_dt.isoformat(),
+                'timeZone': 'America/New_York',
+            },
+            'end': {
+                'dateTime': end_dt.isoformat(),
+                'timeZone': 'America/New_York',
+            },
+            'conferenceData': {
+                'createRequest': {
+                    'requestId': f"meet-{int(datetime.utcnow().timestamp())}",
+                    'conferenceSolution': {
+                        'key': {
+                            'type': 'hangoutsMeet',
+                        },
+                    },
+                },
+            },
+        }
+        
+        if attendees_emails:
+            event['attendees'] = [{'email': email, 'responseStatus': 'needsAction'} for email in attendees_emails]
+        
+        # Create calendar event with Google Meet
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json',
+        }
+        
+        params = {
+            'conferenceDataVersion': 1,
+            'sendUpdates': 'all' if attendees_emails else 'none',
+        }
+        
+        try:
+            response = requests.post(
+                f'{self.CALENDAR_API_BASE}/calendars/primary/events',
+                json=event,
+                headers=headers,
+                params=params,
+                timeout=10
+            )
+            response.raise_for_status()
+            
+            event_data = response.json()
+            meet_link = None
+            
+            if event_data.get('conferenceData'):
+                meet_link = event_data['conferenceData'].get('entryPoints', [{}])[0].get('uri')
+            
+            return {
+                'platform': 'google_meet',
+                'meeting_id': event_data.get('id'),
+                'join_url': meet_link or event_data.get('hangoutLink'),
+                'event_id': event_data.get('id'),
+                'calendar_event': event_data.get('htmlLink'),
+                'start_time': event_data.get('start', {}).get('dateTime'),
+                'end_time': event_data.get('end', {}).get('dateTime'),
+                'status': 'successfully_created',
+            }
+            
+        except requests.exceptions.RequestException as e:
+            error_msg = str(e)
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_msg = e.response.json()
+                except:
+                    error_msg = e.response.text
+            raise Exception(f"Failed to create Google Meet: {error_msg}")
 
 
 class GoogleIntegration:

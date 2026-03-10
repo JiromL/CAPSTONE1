@@ -17,9 +17,18 @@ class ZoomIntegration:
     TOKEN_EXPIRY_BUFFER = 300  # 5 minute buffer before expiry
 
     def __init__(self, config):
-        self.account_id = config.ZOOM_ACCOUNT_ID
-        self.client_id = config.ZOOM_CLIENT_ID
-        self.client_secret = config.ZOOM_CLIENT_SECRET
+        # Handle both Config class and Flask config dict
+        if hasattr(config, 'ZOOM_ACCOUNT_ID'):
+            # Direct Config class
+            self.account_id = config.ZOOM_ACCOUNT_ID
+            self.client_id = config.ZOOM_CLIENT_ID
+            self.client_secret = config.ZOOM_CLIENT_SECRET
+        else:
+            # Flask config (dict-like)
+            self.account_id = config.get('ZOOM_ACCOUNT_ID')
+            self.client_id = config.get('ZOOM_CLIENT_ID')
+            self.client_secret = config.get('ZOOM_CLIENT_SECRET')
+        
         self._access_token = None
         self._token_expiry = None
 

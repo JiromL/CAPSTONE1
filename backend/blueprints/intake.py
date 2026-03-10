@@ -344,13 +344,13 @@ def student_submit_intake():
                 'error': f'Assessment {assessment} is not available for {concern} concerns. Allowed: {", ".join(allowed_assessments)}'
             }), 400
     
-    # Calculate scores
-    phq9_score = sum(phq9_responses) if phq9_responses else None
-    gad7_score = sum(gad7_responses) if gad7_responses else None
-    pss_score = sum(pss_responses) if pss_responses else None
-    acad_score = sum(acad_responses) if acad_responses else None
-    career_score = sum(career_responses) if career_responses else None
-    social_score = sum(social_responses) if social_responses else None
+    # Calculate scores (extract 'score' from each response dict)
+    phq9_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in phq9_responses) if phq9_responses else None
+    gad7_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in gad7_responses) if gad7_responses else None
+    pss_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in pss_responses) if pss_responses else None
+    acad_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in acad_responses) if acad_responses else None
+    career_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in career_responses) if career_responses else None
+    social_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in social_responses) if social_responses else None
     
     # Determine urgency level based on available scores
     urgency_level = 'normal'

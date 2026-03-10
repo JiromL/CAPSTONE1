@@ -317,7 +317,7 @@ export default function IntakePage() {
     if (!automaticAppointmentInfo) {
       setIsCalculatingAppointment(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || localStorage.getItem('access_token');
         
         // Build the payload with assessment responses
         const payload: any = {};
@@ -387,7 +387,7 @@ export default function IntakePage() {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
       console.log('🔐 TOKEN DEBUG:');
       console.log('   Token exists:', !!token);
       console.log('   Token length:', token?.length);
@@ -417,7 +417,8 @@ export default function IntakePage() {
         payload[`${assessment}_responses`] = assessmentResponses[assessment];
       });
 
-      const finalToken = localStorage.getItem('token');
+      // Try to get token from localStorage (check both keys for compatibility)
+      let finalToken = localStorage.getItem('token') || localStorage.getItem('access_token');
       const endpoint = api('/api/intake/submit');
       
       console.log('📡 INTAKE SUBMISSION DEBUG:');
@@ -428,6 +429,10 @@ export default function IntakePage() {
       console.log('   Automatic date:', automaticAppointmentInfo?.automatic_date);
       console.log('   Selected date:', appointmentDate);
       console.log('   Payload keys:', Object.keys(payload));
+      
+      if (!finalToken) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
       
       const response = await fetch(endpoint, {
         method: 'POST',

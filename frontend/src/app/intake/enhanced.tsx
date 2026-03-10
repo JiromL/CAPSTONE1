@@ -148,7 +148,7 @@ export default function EnhancedIntakePage() {
     setMessage(null);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const submitData = {
         ...formData,
         is_anonymous: isAnonymous,

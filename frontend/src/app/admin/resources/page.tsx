@@ -53,7 +53,7 @@ export default function AdminResourcesPage() {
     setUploading(true);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', title);

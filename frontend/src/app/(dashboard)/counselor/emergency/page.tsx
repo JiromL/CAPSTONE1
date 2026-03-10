@@ -38,7 +38,7 @@ export default function CounselorEmergencyPage() {
     setMessage(null);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch(api('/api/intake/emergency'), {
         headers: {
           Authorization: `Bearer ${token}`,

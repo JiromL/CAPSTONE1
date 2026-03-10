@@ -34,7 +34,7 @@ export default function ResourcesPage() {
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('token');
         if (!token) {
           router.push('/login');
           return;
@@ -78,7 +78,7 @@ export default function ResourcesPage() {
 
   const handleDownload = async (resourceId: string) => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/resources/${resourceId}/download`,
         {

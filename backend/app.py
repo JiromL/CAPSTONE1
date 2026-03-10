@@ -44,6 +44,16 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config.get(config_name, config['development']))
     
+    # Update config with current environment variables (for runtime env vars like SMTP)
+    app.config['SMTP_HOST'] = os.getenv('SMTP_HOST', app.config.get('SMTP_HOST'))
+    app.config['SMTP_PORT'] = int(os.getenv('SMTP_PORT', app.config.get('SMTP_PORT', 587)))
+    app.config['SMTP_USER'] = os.getenv('SMTP_USER', app.config.get('SMTP_USER'))
+    app.config['SMTP_PASS'] = os.getenv('SMTP_PASS', app.config.get('SMTP_PASS'))
+    app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID', app.config.get('GOOGLE_CLIENT_ID'))
+    app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET', app.config.get('GOOGLE_CLIENT_SECRET'))
+    app.config['ZOOM_CLIENT_ID'] = os.getenv('ZOOM_CLIENT_ID', app.config.get('ZOOM_CLIENT_ID'))
+    app.config['ZOOM_CLIENT_SECRET'] = os.getenv('ZOOM_CLIENT_SECRET', app.config.get('ZOOM_CLIENT_SECRET'))
+    
     # Initialize extensions
     CORS(app, resources={r"/api/*": {"origins": [
         "http://localhost:3000",

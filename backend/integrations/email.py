@@ -11,10 +11,17 @@ from datetime import datetime, timedelta
 
 class EmailIntegration:
     def __init__(self, config):
-        self.host = config.SMTP_HOST
-        self.port = config.SMTP_PORT
-        self.user = config.SMTP_USER
-        self.password = config.SMTP_PASS
+        # Handle both dict-like and object-like config
+        if hasattr(config, 'get'):  # dict-like
+            self.host = config.get('SMTP_HOST')
+            self.port = config.get('SMTP_PORT', 587)
+            self.user = config.get('SMTP_USER')
+            self.password = config.get('SMTP_PASS')
+        else:  # object-like
+            self.host = getattr(config, 'SMTP_HOST', None)
+            self.port = getattr(config, 'SMTP_PORT', 587)
+            self.user = getattr(config, 'SMTP_USER', None)
+            self.password = getattr(config, 'SMTP_PASS', None)
 
     def send_email(self, to_address, subject, html_body, text_body=None):
         msg = MIMEText(html_body, 'html')

@@ -478,8 +478,12 @@ def student_submit_intake():
     db.db.appointments.insert_one(appointment_doc)
     
     # Send email with counseling ID and appointment info
-    if user_email and current_app.config.get('SMTP_HOST'):
+    smtp_host = current_app.config.get('SMTP_HOST')
+    print(f"📧 EMAIL CHECK: user_email={user_email}, SMTP_HOST={smtp_host}")
+    
+    if user_email and smtp_host:
         try:
+            print(f"📧 SENDING EMAIL to {user_email}...")
             if is_emergency:
                 status_msg = "Your intake has been flagged for priority review."
                 next_step = f"You should receive an appointment confirmation within {estimated_days}."
@@ -556,13 +560,16 @@ Best regards,
 Counseling & Psychological Services Team"""
             
             email_integration = EmailIntegration(current_app.config)
-            email_integration.send_email(
+            result = email_integration.send_email(
                 to_address=user_email if not is_anonymous else None,
                 subject=f"Your Counseling ID: {counseling_id}",
                 html_body=email_body
             )
+            print(f"✅ EMAIL SENT: result={result}")
         except Exception as e:
-            print(f"Warning - Email send failed: {e}")
+            print(f"❌ Email send failed: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     audit_log(db.db, 'intake', 'submit', entity_id=str(intake_id), 
               new_values={"is_emergency": is_emergency, "is_anonymous": is_anonymous, "urgency": urgency_level})

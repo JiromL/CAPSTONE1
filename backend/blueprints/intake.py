@@ -5,12 +5,13 @@ MongoDB-compatible version
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, IntakeStatus, PermissionType
+from models import db, IntakeStatus, PermissionType, AppointmentStatus
 from utils import audit_log, user_has_permission
 from datetime import datetime, timedelta
 from bson import ObjectId
 import random
 import string
+import uuid
 from integrations import EmailIntegration
 
 intake_bp = Blueprint('intake', __name__, url_prefix='/api/intake')
@@ -30,7 +31,7 @@ def calculate_appointment_date(is_emergency: bool, urgency_level: str = 'normal'
     - normal: 3-5 business days
     Returns (appointment_date, estimated_days_string)
     """
-    today = datetime.utcnow().date()
+    today = datetime.utcnow()
     
     if is_emergency or urgency_level == 'emergency':
         # 1-2 business days for emergency
@@ -62,6 +63,41 @@ def get_allowed_assessments_for_concern(concern: str) -> list:
         'other': ['phq9', 'gad7', 'pss', 'acad', 'career', 'social']  # All available
     }
     return concern_mapping.get(concern, ['phq9', 'gad7', 'pss'])
+
+
+def generate_meeting_link(preferred_platform: str, appointment_id: str, counseling_id: str) -> dict:
+    """
+    Generate a meeting link based on the preferred platform.
+    Returns: {'platform': str, 'join_url': str, 'meeting_id': str}
+    """
+    meeting_id = f"{counseling_id}-{str(appointment_id)[:8]}"
+    
+    if preferred_platform == 'zoom':
+        # Generate Zoom meeting link (using the provided meeting ID)
+        # In production, this would call the Zoom API to create a real meeting
+        zoom_meeting_id = ''.join(random.choices(string.digits, k=9))
+        return {
+            'platform': 'zoom',
+            'join_url': f'https://zoom.us/j/{zoom_meeting_id}',
+            'meeting_id': zoom_meeting_id,
+            'meeting_passcode': ''.join(random.choices(string.digits, k=6))
+        }
+    elif preferred_platform == 'google_meet':
+        # Generate Google Meet link
+        # Format: https://meet.google.com/xxx-yyyy-zzz
+        meet_code = f"{meeting_id.replace('-', '').lower()[:3]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:3]}"
+        return {
+            'platform': 'google_meet',
+            'join_url': f'https://meet.google.com/{meet_code.lower()}',
+            'meeting_id': meet_code
+        }
+    else:  # in-person
+        return {
+            'platform': 'in-person',
+            'join_url': None,
+            'meeting_id': None,
+            'location': 'Counseling & Psychology Services Office'
+        }
 
 
 @intake_bp.route('/start/<case_id>', methods=['POST'])
@@ -403,6 +439,44 @@ def student_submit_intake():
             }
             db.db.assessments.insert_one(assessment_doc)
     
+    # CREATE APPOINTMENT WITH MEETING LINK
+    preferred_platform = data.get('preferred_platform', 'in-person')
+    appointment_id = ObjectId()
+    meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id)
+    
+    appointment_doc = {
+        "_id": appointment_id,
+        "case_id": case_id,
+        "intake_id": intake_id,
+        "student_id": user_obj_id,
+        "counselor_id": assigned_counselor_id,
+        "appointment_type": "initial_assessment",
+        "status": AppointmentStatus.REQUESTED.value,
+        "preferred_platform": preferred_platform,
+        "meeting_link": meeting_link_info.get('join_url'),
+        "meeting_id": meeting_link_info.get('meeting_id'),
+        "meeting_passcode": meeting_link_info.get('meeting_passcode'),
+        "requested_start": appointment_date,
+        "requested_end": appointment_date + timedelta(hours=1),
+        "counseling_id": counseling_id,
+        "is_emergency": is_emergency,
+        "urgency_level": urgency_level,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    # Add platform-specific info
+    if preferred_platform == 'zoom':
+        appointment_doc['zoom_meeting_id'] = meeting_link_info.get('meeting_id')
+        appointment_doc['zoom_join_url'] = meeting_link_info.get('join_url')
+    elif preferred_platform == 'google_meet':
+        appointment_doc['meet_code'] = meeting_link_info.get('meeting_id')
+        appointment_doc['meet_join_url'] = meeting_link_info.get('join_url')
+    else:  # in-person
+        appointment_doc['location'] = meeting_link_info.get('location', 'CPS Office')
+    
+    db.db.appointments.insert_one(appointment_doc)
+    
     # Send email with counseling ID and appointment info
     if user_email and current_app.config.get('SMTP_HOST'):
         try:
@@ -435,6 +509,30 @@ def student_submit_intake():
             if not score_summary:
                 score_summary = "No assessments taken with this submission."
             
+            # Build appointment info for email
+            appointment_info = ""
+            if preferred_platform == 'zoom' and meeting_link_info.get('join_url'):
+                appointment_info = f"""
+Virtual Appointment Details:
+- Platform: Zoom Video Conference
+- Join URL: {meeting_link_info.get('join_url')}
+- Meeting ID: {meeting_link_info.get('meeting_id')}
+- Passcode: {meeting_link_info.get('meeting_passcode')}
+"""
+            elif preferred_platform == 'google_meet' and meeting_link_info.get('join_url'):
+                appointment_info = f"""
+Virtual Appointment Details:
+- Platform: Google Meet
+- Join URL: {meeting_link_info.get('join_url')}
+- Meeting Code: {meeting_link_info.get('meeting_id')}
+"""
+            else:
+                appointment_info = """
+In-Person Appointment:
+- Location: Counseling & Psychology Services Office
+- Please arrive 10 minutes early
+"""
+            
             email_body = f"""Dear {user_name},
 
 Thank you for completing your intake form with Counseling & Psychological Services.
@@ -445,6 +543,9 @@ Your Counseling ID: {counseling_id}
 
 Assessment Results:
 {score_summary}
+
+Appointment Information:
+{appointment_info}
 
 Next Steps: {next_step}
 Estimated appointment date: {appointment_date.strftime('%B %d, %Y')}
@@ -481,6 +582,25 @@ Counseling & Psychological Services Team"""
     if social_score is not None:
         scores_response['social'] = social_score
     
+    # Build appointment info for response
+    appointment_response = {
+        'preferred_platform': preferred_platform,
+        'appointment_date': appointment_date.isoformat(),
+    }
+    
+    if preferred_platform == 'zoom' and meeting_link_info.get('join_url'):
+        appointment_response['platform'] = 'Zoom Video Conference'
+        appointment_response['join_url'] = meeting_link_info.get('join_url')
+        appointment_response['meeting_id'] = meeting_link_info.get('meeting_id')
+        appointment_response['passcode'] = meeting_link_info.get('meeting_passcode')
+    elif preferred_platform == 'google_meet' and meeting_link_info.get('join_url'):
+        appointment_response['platform'] = 'Google Meet'
+        appointment_response['join_url'] = meeting_link_info.get('join_url')
+        appointment_response['meeting_code'] = meeting_link_info.get('meeting_id')
+    else:
+        appointment_response['platform'] = 'In-Person'
+        appointment_response['location'] = meeting_link_info.get('location', 'CPS Office')
+    
     return jsonify({
         'message': 'Intake submitted successfully',
         'counseling_id': counseling_id,
@@ -492,8 +612,66 @@ Counseling & Psychological Services Team"""
         'assigned_counselor': str(assigned_counselor_id) if assigned_counselor_id else None,
         'appointment_date': appointment_date.isoformat(),
         'estimated_days': estimated_days,
-        'scores': scores_response
+        'scores': scores_response,
+        'appointment': appointment_response
     }), 201
+
+
+@intake_bp.route('/calculate-appointment', methods=['POST'])
+@jwt_required()
+def calculate_appointment():
+    """Calculate automatic appointment date based on assessment scores"""
+    data = request.get_json()
+    
+    # Extract assessment responses
+    phq9_responses = data.get('phq9_responses', [])
+    gad7_responses = data.get('gad7_responses', [])
+    pss_responses = data.get('pss_responses', [])
+    acad_responses = data.get('acad_responses', [])
+    
+    # Calculate scores
+    phq9_score = sum([int(r.get('score', 0)) for r in phq9_responses if r.get('score')]) if phq9_responses else None
+    gad7_score = sum([int(r.get('score', 0)) for r in gad7_responses if r.get('score')]) if gad7_responses else None
+    pss_score = sum([int(r.get('score', 0)) for r in pss_responses if r.get('score')]) if pss_responses else None
+    acad_score = sum([int(r.get('score', 0)) for r in acad_responses if r.get('score')]) if acad_responses else None
+    
+    # Determine urgency level (mirrors scoring in student_submit_intake)
+    urgency_level = 'normal'
+    is_emergency = False
+    
+    if phq9_score and phq9_score > 20:
+        is_emergency = True
+    elif phq9_score and phq9_score > 15:
+        urgency_level = 'high'
+    elif gad7_score and gad7_score > 15:
+        is_emergency = True
+    elif gad7_score and gad7_score > 12:
+        urgency_level = 'high'
+    elif acad_score and acad_score > 24:
+        urgency_level = 'high'
+    
+    # Calculate appointment date
+    appointment_date, estimated_days = calculate_appointment_date(is_emergency, urgency_level)
+    
+    # Get minimum selectable date (today for normal, same day for high/emergency consideration)
+    today = datetime.utcnow()
+    min_date = appointment_date - timedelta(days=1)  # Can select date before auto if within reason
+    
+    return jsonify({
+        'automatic_date': appointment_date.isoformat(),
+        'automatic_date_formatted': appointment_date.strftime('%A, %B %d, %Y'),
+        'urgency_level': urgency_level,
+        'is_emergency': is_emergency,
+        'estimated_days': estimated_days,
+        'min_selectable_date': min_date.isoformat(),
+        'min_selectable_date_formatted': min_date.strftime('%Y-%m-%d'),
+        'scores': {
+            'phq9': phq9_score,
+            'gad7': gad7_score,
+            'pss': pss_score,
+            'acad': acad_score
+        }
+    }), 200
 
 
 @intake_bp.route('/emergency', methods=['GET'])

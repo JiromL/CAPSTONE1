@@ -222,9 +222,9 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
                         {getRiskLevelIcon(caseItem.risk_level)} {caseItem.risk_level}
                       </span>
                     </div>
-                    {caseItem.concern && (
+                    {caseItem.purpose && (
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Concern: {caseItem.concern}
+                        Concern: {caseItem.purpose}
                       </p>
                     )}
                     {caseItem.submitted_at && (

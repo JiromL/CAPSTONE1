@@ -6,7 +6,10 @@ import { api } from './api';
  */
 export async function fetchDashboardData(token: string) {
   try {
-    const response = await fetch(api('/api/intake/assessments/dashboard'), {
+    const url = api('/api/intake/assessments/dashboard');
+    console.log('Fetching dashboard from:', url);
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -15,7 +18,9 @@ export async function fetchDashboardData(token: string) {
     });
 
     if (!response.ok) {
-      throw new Error(`Dashboard fetch failed: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Dashboard fetch failed with status ${response.status}:`, errorText);
+      throw new Error(`Dashboard fetch failed: ${response.status} ${response.statusText}`);
     }
 
     return await response.json();

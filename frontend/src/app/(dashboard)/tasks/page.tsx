@@ -49,7 +49,7 @@ export default function TasksPage() {
           data.recent_cases.forEach((caseItem: any) => {
             transformedTasks.push({
               id: caseItem.counseling_id || caseItem.intake_id || 'unknown',
-              title: `Assessment: ${caseItem.concern || 'General'}`,
+              title: `Assessment: ${caseItem.purpose || 'General'}`,
               type: 'assessment',
               status: caseItem.is_emergency ? 'scheduled' : (caseItem.status || 'pending'),
               date: caseItem.appointment_date || caseItem.submitted_at,

@@ -150,7 +150,14 @@ export default function IntakePage() {
   const [appointmentTime, setAppointmentTime] = useState('');
   const [communicationMethod, setCommunicationMethod] = useState<'zoom' | 'google_meet' | 'in_person'>('zoom');
   const [counselingId, setCounselingId] = useState('');
+  const [appointmentData, setAppointmentData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Automatic appointment calculation
+  const [automaticAppointmentInfo, setAutomaticAppointmentInfo] = useState<any>(null);
+  const [minSelectableDate, setMinSelectableDate] = useState('');
+  const [isCalculatingAppointment, setIsCalculatingAppointment] = useState(false);
+  const [appointmentOverridden, setAppointmentOverridden] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -305,6 +312,61 @@ export default function IntakePage() {
     }
   };
 
+  // Calculate automatic appointment based on assessment scores
+  const calculateAppointment = async () => {
+    if (!automaticAppointmentInfo) {
+      setIsCalculatingAppointment(true);
+      try {
+        const token = localStorage.getItem('token');
+        
+        // Build the payload with assessment responses
+        const payload: any = {};
+        selectedAssessments.forEach(assessment => {
+          payload[`${assessment}_responses`] = assessmentResponses[assessment] || [];
+        });
+        
+        console.log('📅 Calculating appointment with scores:', payload);
+        
+        const response = await fetch(api('/api/intake/calculate-appointment'), {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Appointment calculated:', data);
+          setAutomaticAppointmentInfo(data);
+          
+          // Extract date part from ISO format (YYYY-MM-DD)
+          const automaticDateOnly = data.automatic_date.split('T')[0];
+          const minDateOnly = data.min_selectable_date_formatted || data.min_selectable_date.split('T')[0];
+          
+          setMinSelectableDate(minDateOnly);
+          setAutoSuggestedDate(data.automatic_date_formatted);
+          setAppointmentDate(automaticDateOnly); // Pre-fill with automatic date (YYYY-MM-DD)
+          setAppointmentOverridden(false);
+        } else {
+          console.error('❌ Failed to calculate appointment:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ Error calculating appointment:', error);
+      } finally {
+        setIsCalculatingAppointment(false);
+      }
+    }
+  };
+
+  // Calculate automatic appointment when entering appointment step
+  useEffect(() => {
+    if (step === 'appointment' && !automaticAppointmentInfo && selectedAssessments.length > 0) {
+      calculateAppointment();
+    }
+  }, [step, automaticAppointmentInfo, selectedAssessments.length]);
+
   // Submit intake
   const handleSubmitIntake = async () => {
     if (!consentGiven) {
@@ -312,8 +374,31 @@ export default function IntakePage() {
       return;
     }
 
+    // Validate appointment date is not earlier than automatic date
+    if (automaticAppointmentInfo && appointmentDate) {
+      const selectedDate = new Date(appointmentDate);
+      const automaticDate = new Date(automaticAppointmentInfo.automatic_date);
+      
+      if (selectedDate < automaticDate) {
+        alert(`⚠️ Appointment date cannot be earlier than the automatically calculated date (${automaticAppointmentInfo.automatic_date_formatted}). Please select a later date.`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
+      const token = localStorage.getItem('token');
+      console.log('🔐 TOKEN DEBUG:');
+      console.log('   Token exists:', !!token);
+      console.log('   Token length:', token?.length);
+      console.log('   Token preview:', token?.substring(0, 30) + '...');
+      
+      if (!token) {
+        alert('❌ No authentication token found! Please log in again.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload: any = {
         purpose: selectedConcern,
         is_emergency: isUrgent,
@@ -323,6 +408,8 @@ export default function IntakePage() {
         preferred_platform: communicationMethod,
         appointment_date: appointmentDate,
         appointment_time: appointmentTime,
+        appointment_override: appointmentOverridden,
+        automatic_appointment_date: automaticAppointmentInfo?.automatic_date,
       };
 
       // Add assessment responses
@@ -330,21 +417,75 @@ export default function IntakePage() {
         payload[`${assessment}_responses`] = assessmentResponses[assessment];
       });
 
-      const response = await fetch(api('/api/intake/submit'), {
+      const finalToken = localStorage.getItem('token');
+      const endpoint = api('/api/intake/submit');
+      
+      console.log('📡 INTAKE SUBMISSION DEBUG:');
+      console.log('   Endpoint:', endpoint);
+      console.log('   Token from localStorage:', !!finalToken ? `${finalToken.substring(0, 30)}...` : 'NULL');
+      console.log('   Auth header:', finalToken ? `Bearer ${finalToken.substring(0, 20)}...` : 'NOT SET');
+      console.log('   Appointment override:', appointmentOverridden);
+      console.log('   Automatic date:', automaticAppointmentInfo?.automatic_date);
+      console.log('   Selected date:', appointmentDate);
+      console.log('   Payload keys:', Object.keys(payload));
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${finalToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error('Failed to submit intake');
+      console.log('📤 Response status:', response.status, response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API ERROR:', response.status);
+        console.error('   Error response:', errorText);
+        throw new Error(`Failed to submit intake: ${response.status}`);
+      }
 
       const data = await response.json();
+      console.log('✅ FULL API RESPONSE:', JSON.stringify(data, null, 2));
+      console.log('🔍 Response keys:', Object.keys(data));
+      console.log('📅 data.appointment exists?', !!data.appointment);
+      console.log('📅 data.appointment value:', data.appointment);
+      console.log('📅 type of data.appointment:', typeof data.appointment);
+      
+      // Check if appointment is null, undefined, or has the wrong structure
+      if (!data.appointment) {
+        console.error('❌ CRITICAL: data.appointment is', data.appointment);
+        console.error('   Full response:', data);
+        console.error('   Check if API is returning appointment object');
+      }
+      
+      if (data.appointment) {
+        console.log('   - join_url:', data.appointment.join_url);
+        console.log('   - meeting_id:', data.appointment.meeting_id);
+        console.log('   - platform:', data.appointment.platform);
+        console.log('   - preferred_platform:', data.appointment.preferred_platform);
+      } else {
+        console.log('⚠️ WARNING: data.appointment is undefined or null!');
+        console.log('Available top-level fields in response:', Object.entries(data).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v).substring(0, 50) : v}`).join(', '));
+      }
+      
+      console.log('📌 About to set state...');
+      console.log('   setCounselingId:', data.counseling_id);
+      console.log('   setAppointmentData:', data.appointment);
       setCounselingId(data.counseling_id);
+      setAppointmentData(data.appointment);
+      console.log('✅ State setters called');
+      console.log('📌 About to setStep("complete")');
       setStep('complete');
+      console.log('✅ setStep("complete") called');
     } catch (error) {
+      console.error('❌ ERROR DURING SUBMISSION:', error);
+      if (error instanceof Error) {
+        console.error('   Message:', error.message);
+        console.error('   Stack:', error.stack);
+      }
       alert('Error submitting intake: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSubmitting(false);
@@ -679,14 +820,63 @@ export default function IntakePage() {
           <div className="col-span-2 space-y-4">
             <h2 className="text-xl font-semibold mb-6 text-white">Schedule Your Appointment</h2>
 
+            {/* Automatic Appointment Info */}
+            {automaticAppointmentInfo && (
+              <div className="p-4 border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <p className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-2">
+                  📅 AUTOMATIC APPOINTMENT SCHEDULED
+                </p>
+                <p className="text-lg font-bold text-blue-700 dark:text-blue-300 mb-1">
+                  {automaticAppointmentInfo.automatic_date_formatted}
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+                  Based on your assessment scores ({automaticAppointmentInfo.estimated_days})
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  {automaticAppointmentInfo.is_emergency ? (
+                    <>⚠️ Emergency: High priority scheduling</>
+                  ) : automaticAppointmentInfo.urgency_level === 'high' ? (
+                    <>🔴 High Priority: Prioritized scheduling</>
+                  ) : (
+                    <>✓ Standard: Regular scheduling</>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {isCalculatingAppointment && (
+              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded text-center text-sm text-white">
+                Calculating automatic appointment...
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Preferred Date</label>
+              <label className="block text-sm font-medium text-white mb-2">
+                Preferred Date
+                {appointmentOverridden && (
+                  <span className="text-xs text-yellow-500 ml-2">(Custom date selected)</span>
+                )}
+              </label>
               <input
                 type="date"
                 value={appointmentDate}
-                onChange={(e) => setAppointmentDate(e.target.value)}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  if (minSelectableDate && newDate < minSelectableDate) {
+                    alert(`Cannot select a date earlier than ${minSelectableDate}`);
+                    return;
+                  }
+                  setAppointmentDate(newDate);
+                  setAppointmentOverridden(true);
+                }}
+                min={minSelectableDate}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-sm"
               />
+              {minSelectableDate && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Earliest selectable: {new Date(minSelectableDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+              )}
             </div>
 
             {!isUrgent && (
@@ -890,6 +1080,23 @@ export default function IntakePage() {
 
           {/* Right Column: Appointment Summary */}
           <div className="col-span-1">
+            {/* DEBUG: Show appointment data state */}
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded text-xs text-red-200 font-mono break-all">
+              <div className="font-bold mb-2">🔴 DEBUG INFO</div>
+              <div>step value: <span className="text-yellow-300">{step}</span></div>
+              <div>appointmentData exists: {appointmentData ? '✅ YES' : '❌ NO'}</div>
+              <div>typeof appointmentData: {typeof appointmentData}</div>
+              {appointmentData && (
+                <>
+                  <div>join_url: {appointmentData.join_url ? '✅ YES' : '❌ NO'}</div>
+                  <div>meeting_id: {appointmentData.meeting_id || 'NONE'}</div>
+                  <div>platform: {appointmentData.platform || 'NONE'}</div>
+                  <div className="mt-2 font-bold">FULL DATA:</div>
+                  <div className="whitespace-pre-wrap">{JSON.stringify(appointmentData, null, 2)}</div>
+                </>
+              )}
+            </div>
+
             <div className="border border-gray-300 dark:border-gray-600 rounded p-6 bg-gray-50 dark:bg-gray-900/50 sticky top-20">
               <h3 className="text-lg font-semibold mb-6 pb-4 border-b border-gray-300 dark:border-gray-600 text-white">Your Appointment</h3>
               
@@ -909,7 +1116,10 @@ export default function IntakePage() {
                 <div>
                   <p className="text-xs font-semibold text-white mb-1">SCHEDULED DATE:</p>
                   <p className="text-sm font-semibold text-white">
-                    {appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Pending'}
+                    {appointmentData?.appointment_date 
+                      ? new Date(appointmentData.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'Pending'}
                   </p>
                 </div>
 
@@ -929,15 +1139,62 @@ export default function IntakePage() {
 
                 <div>
                   <p className="text-xs font-semibold text-white mb-1">FORMAT:</p>
-                  <p className="text-sm font-semibold text-white capitalize">{communicationMethod?.replace('_', ' ') || 'Not specified'}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-white mb-1">LOCATION:</p>
-                  <p className="text-sm font-semibold text-white">
-                    {communicationMethod === 'in_person' ? 'Campus Counseling Center' : 'Online'}
+                  <p className="text-sm font-semibold text-white capitalize">
+                    {appointmentData?.preferred_platform?.replace(/_/g, ' ') || communicationMethod?.replace(/_/g, ' ') || 'Not specified'}
                   </p>
                 </div>
+
+                {/* Meeting Link Section - Explicit Rendering */}
+                {appointmentData && appointmentData.join_url ? (
+                  <>
+                    {/* INLINE STYLE TEST - Should always show if appointmentData.join_url exists */}
+                    <div style={{
+                      backgroundColor: '#ff0000',
+                      color: '#fff',
+                      padding: '12px',
+                      marginBottom: '12px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}>
+                      🎯 INLINE STYLE TEST: join_url is present
+                    </div>
+
+                    {/* Tailwind Version */}
+                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-400 dark:border-purple-600 rounded animate-pulse">
+                      <p className="text-xs font-bold text-purple-900 dark:text-purple-200 mb-3">✅ MEETING LINK READY</p>
+                      <a 
+                        href={appointmentData.join_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block p-3 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded font-bold text-center mb-3 transition"
+                      >
+                        🎥 {appointmentData.preferred_platform === 'zoom' ? 'JOIN ZOOM' : appointmentData.preferred_platform === 'google_meet' ? 'JOIN GOOGLE MEET' : 'JOIN MEETING'} →
+                      </a>
+                      <div className="p-2 bg-gray-900 dark:bg-gray-800 rounded text-xs font-mono text-white break-all space-y-2">
+                        {appointmentData.meeting_id && (
+                          <div><span className="text-gray-400">Meeting ID:</span> <span className="text-purple-300 font-bold">{appointmentData.meeting_id}</span></div>
+                        )}
+                        {appointmentData.passcode && (
+                          <div><span className="text-gray-400">Passcode:</span> <span className="text-purple-300 font-bold">{appointmentData.passcode}</span></div>
+                        )}
+                        {appointmentData.meeting_code && (
+                          <div><span className="text-gray-400">Code:</span> <span className="text-purple-300 font-bold">{appointmentData.meeting_code}</span></div>
+                        )}
+                        <div><span className="text-gray-400">Link:</span></div>
+                        <div className="text-purple-300 underline break-all text-xs">{appointmentData.join_url}</div>
+                      </div>
+                    </div>
+                  </>
+                ) : appointmentData ? (
+                  <div className="p-2 bg-gray-800 rounded mb-3 text-xs text-yellow-400 break-all font-mono border border-yellow-600">
+                    <div>📍 {appointmentData.preferred_platform === 'in_person' ? 'In-Person: ' + (appointmentData.location || 'CPS Office') : '⏳ Meeting link will be sent via email'}</div>
+                  </div>
+                ) : (
+                  <div className="p-2 bg-blue-900/50 rounded mb-3 text-xs text-blue-300 border border-blue-600">
+                    <div>ℹ️ No appointment details available</div>
+                  </div>
+                )}
 
                 <div>
                   <p className="text-xs font-semibold text-white mb-1">PRIVACY:</p>

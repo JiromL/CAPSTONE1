@@ -16,8 +16,10 @@ class ZoomIntegration:
     TOKEN_EXPIRY_SECONDS = 3600  # 1 hour
 
     def __init__(self, config):
+        self.account_id = config.ZOOM_ACCOUNT_ID
         self.client_id = config.ZOOM_CLIENT_ID
         self.client_secret = config.ZOOM_CLIENT_SECRET
+        self.token_secret = getattr(config, 'ZOOM_TOKEN_SECRET', None)
         self._jwt_token = None
         self._token_expiry = None
 
@@ -25,16 +27,21 @@ class ZoomIntegration:
         """
         Generate a JWT token for Zoom API authentication.
         This is the Server-to-Server OAuth token generation.
+        Uses Account ID in the payload for proper Zoom OAuth flow.
         """
         if self._jwt_token and self._token_expiry and datetime.utcnow() < self._token_expiry:
             return self._jwt_token
 
         payload = {
             'iss': self.client_id,
+            'sub': self.account_id,  # Account ID for S2S OAuth
             'exp': int(time.time()) + self.TOKEN_EXPIRY_SECONDS
         }
 
-        self._jwt_token = jwt.encode(payload, self.client_secret, algorithm='HS256')
+        # Use token_secret if available, otherwise fall back to client_secret
+        secret_key = self.token_secret or self.client_secret
+        
+        self._jwt_token = jwt.encode(payload, secret_key, algorithm='HS256')
         self._token_expiry = datetime.utcnow() + timedelta(seconds=self.TOKEN_EXPIRY_SECONDS - 60)
         return self._jwt_token
 
@@ -46,12 +53,11 @@ class ZoomIntegration:
             'Content-Type': 'application/json'
         }
 
-    def create_meeting(self, user_id, topic, start_time, duration_minutes=60, password=None):
+    def create_meeting(self, topic, start_time, duration_minutes=60, password=None):
         """
         Create a real Zoom meeting via the API.
 
         Args:
-            user_id: Zoom user ID (usually "me" for the account owner)
             topic: Meeting topic/title
             start_time: ISO format datetime string (e.g., '2026-03-15T10:30:00')
             duration_minutes: Meeting duration in minutes
@@ -61,12 +67,13 @@ class ZoomIntegration:
             dict: Meeting info including join_url, meeting_id, passcode
             or raises Exception if API call fails
         """
-        if not self.client_id or not self.client_secret:
-            raise ValueError("Zoom Client ID and Secret are required")
+        if not self.client_id or not self.client_secret or not self.account_id:
+            raise ValueError("Zoom Account ID, Client ID and Secret are required")
 
-        url = f"{self.ZOOM_API_BASE}/users/{user_id}/meetings"
+        # Use account_id directly instead of 'me'
+        url = f"{self.ZOOM_API_BASE}/users/{self.account_id}/meetings"
 
-        # Use default password if not provided
+        # Use token_secret if available for password generation
         if not password:
             password = ''.join(
                 str(i % 10) for i in range(int(time.time()) % 1000, int(time.time()) % 1000 + 6)

@@ -102,7 +102,6 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
             
             # Create real Zoom meeting
             meeting_result = zoom.create_meeting(
-                user_id='me',  # Creates meeting for authenticated user
                 topic=f'CPS Initial Assessment - {counseling_id}',
                 start_time=start_time,
                 duration_minutes=60,

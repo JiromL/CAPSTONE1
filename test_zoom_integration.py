@@ -6,7 +6,11 @@ Tests basic functionality without needing a full intake submission
 
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+# Load environment variables from .env file FIRST
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
@@ -46,7 +50,25 @@ def test_zoom_integration():
     try:
         token = zoom._generate_jwt_token()
         print(f"✅ JWT Token generated: {token[:20]}...")
+        print(f"   Token length: {len(token)}")
         print(f"   Token expires at: {zoom._token_expiry}")
+        
+        # Decode to see what's inside (for debugging)
+        import json
+        import base64
+        try:
+            # JWT format: header.payload.signature
+            parts = token.split('.')
+            payload = parts[1]
+            # Add padding if needed
+            padding = 4 - len(payload) % 4
+            if padding != 4:
+                payload += '=' * padding
+            decoded_payload = json.loads(base64.urlsafe_b64decode(payload))
+            print(f"   Token payload: {decoded_payload}")
+        except:
+            pass
+            
     except Exception as e:
         print(f"❌ Failed to generate JWT token: {str(e)}")
         return False
@@ -55,10 +77,9 @@ def test_zoom_integration():
     try:
         print("\n📝 Attempting to create test Zoom meeting...")
         
-        start_time = (datetime.utcnow() + timedelta(days=3)).strftime('%Y-%m-%dT%H:%M:%S')
+        start_time = (datetime.now(timezone.utc) + timedelta(days=3)).strftime('%Y-%m-%dT%H:%M:%S')
         
         meeting_result = zoom.create_meeting(
-            user_id='me',
             topic='CPS Test Meeting - Integration Test',
             start_time=start_time,
             duration_minutes=60

@@ -17,8 +17,10 @@ class Config:
         self.MONGODB_DB_NAME = 'cps_system'
         self.GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
         self.GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+        self.ZOOM_ACCOUNT_ID = os.getenv('ZOOM_ACCOUNT_ID')
         self.ZOOM_CLIENT_ID = os.getenv('ZOOM_CLIENT_ID')
         self.ZOOM_CLIENT_SECRET = os.getenv('ZOOM_CLIENT_SECRET')
+        self.ZOOM_TOKEN_SECRET = os.getenv('ZOOM_TOKEN_SECRET')
         self.PANDADOC_API_KEY = os.getenv('PANDADOC_API_KEY')
         self.SMTP_HOST = os.getenv('SMTP_HOST')
         self.SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))

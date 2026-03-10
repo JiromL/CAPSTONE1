@@ -6,9 +6,12 @@ Counseling, High-Risk Monitoring, and Referral Management - Using MongoDB
 
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Load environment variables BEFORE any other imports
-load_dotenv()
+# Look for .env in the parent directory (project root)
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS

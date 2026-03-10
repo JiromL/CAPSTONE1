@@ -77,22 +77,16 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
     meeting_id = f"{counseling_id}-{str(appointment_id)[:8]}"
     
     if preferred_platform == 'zoom':
+        # Initialize Zoom integration with app config
+        zoom = ZoomIntegration(current_app.config)
+        
+        # Check if credentials are properly configured
+        if not zoom.client_id or not zoom.client_secret:
+            error_msg = "Zoom credentials not configured. Please contact support."
+            print(f"❌ ZOOM: {error_msg}")
+            raise ValueError(error_msg)
+        
         try:
-            # Initialize Zoom integration with app config
-            zoom = ZoomIntegration(current_app.config)
-            
-            # If no credentials, fall back to fake meeting (for testing)
-            if not zoom.client_id or not zoom.client_secret:
-                print(f"⚠️  ZOOM: Missing credentials, generating test meeting link")
-                zoom_meeting_id = ''.join(random.choices(string.digits, k=9))
-                return {
-                    'platform': 'zoom',
-                    'join_url': f'https://zoom.us/j/{zoom_meeting_id}',
-                    'meeting_id': zoom_meeting_id,
-                    'meeting_passcode': ''.join(random.choices(string.digits, k=6)),
-                    'status': 'test_meeting'
-                }
-            
             # Format start time for Zoom API (ISO 8601 with timezone)
             if appointment_date is None:
                 appointment_date = datetime.utcnow() + timedelta(days=3)
@@ -100,7 +94,7 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
             # Convert to ISO format: 2026-03-15T10:30:00
             start_time = appointment_date.strftime('%Y-%m-%dT%H:%M:%S')
             
-            # Create real Zoom meeting
+            # Create real Zoom meeting (no fallback)
             meeting_result = zoom.create_meeting(
                 topic=f'CPS Initial Assessment - {counseling_id}',
                 start_time=start_time,
@@ -112,17 +106,10 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
             return meeting_result
             
         except Exception as e:
-            print(f"❌ ZOOM: Failed to create meeting: {str(e)}")
-            # Fallback to fake meeting if API fails
-            zoom_meeting_id = ''.join(random.choices(string.digits, k=9))
-            return {
-                'platform': 'zoom',
-                'join_url': f'https://zoom.us/j/{zoom_meeting_id}',
-                'meeting_id': zoom_meeting_id,
-                'meeting_passcode': ''.join(random.choices(string.digits, k=6)),
-                'status': 'fallback_test_meeting',
-                'error': str(e)
-            }
+            error_msg = f"Failed to create Zoom meeting: {str(e)}"
+            print(f"❌ ZOOM: {error_msg}")
+            # No fallback - raise the error instead
+            raise Exception(error_msg)
             
     elif preferred_platform == 'google_meet':
         # Generate Google Meet link

@@ -949,8 +949,14 @@ def get_assessment_dashboard():
                                 scores.get('social_score')
                             )
                             submitted_at = intake.get('student_submitted_at')
+                            
+                            # Get associated appointment
+                            appointment = db.db.appointments.find_one({"case_id": case['_id']}) if case else None
+                            appointment_id = str(appointment['_id']) if appointment else None
+                            
                             dashboard_data['recent_cases'].append({
                                 'counseling_id': intake.get('counseling_id'),
+                                'appointment_id': appointment_id,
                                 'submitted_at': submitted_at.isoformat() if submitted_at else None,
                                 'appointment_date': intake.get('responses', {}).get('appointment_date'),
                                 'risk_level': risk,

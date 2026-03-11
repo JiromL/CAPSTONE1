@@ -16,37 +16,68 @@ appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/appointme
 @appointments_bp.route('', methods=['GET'])
 @jwt_required()
 def list_appointments():
-    """List appointments for a counselor"""
+    """List appointments for a counselor or student's own appointments"""
     user_id = get_jwt_identity()
     
     try:
         user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
         user = db.db.users.find_one({"_id": user_id_obj})
-    except:
-        return jsonify({'error': 'Invalid user ID'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Invalid user ID: {str(e)}'}), 400
     
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
     try:
-        # Fetch appointments assigned to this counselor
-        appointments = list(db.db.appointments.find(
-            {"counselor_id": user_id_obj}
-        ).sort("_id", -1).limit(100))
+        # Determine query based on user role
+        role = user.get('role', '').upper()
         
-        # Convert ObjectId to strings for JSON serialization
+        if role == 'STUDENT':
+            # For students: find appointments through their cases
+            student_cases = list(db.db.cases.find({"student_id": user_id_obj}))
+            case_ids = [case['_id'] for case in student_cases]
+            
+            if case_ids:
+                appointments = list(db.db.appointments.find(
+                    {"case_id": {"$in": case_ids}}
+                ).sort("_id", -1).limit(100))
+            else:
+                appointments = []
+        else:
+            # For counselors/staff: find appointments where they are the counselor
+            appointments = list(db.db.appointments.find(
+                {"counselor_id": user_id_obj}
+            ).sort("_id", -1).limit(100))
+        
+        # Helper function to convert ObjectIds to strings recursively
+        def convert_objectids(obj):
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    if isinstance(value, ObjectId):
+                        obj[key] = str(value)
+                    elif isinstance(value, (dict, list)):
+                        obj[key] = convert_objectids(value)
+                    elif hasattr(value, 'isoformat'):
+                        try:
+                            obj[key] = value.isoformat() if not isinstance(value, str) else value
+                        except:
+                            pass
+            elif isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    if isinstance(item, ObjectId):
+                        obj[i] = str(item)
+                    elif isinstance(item, (dict, list)):
+                        obj[i] = convert_objectids(item)
+                    elif hasattr(item, 'isoformat'):
+                        try:
+                            obj[i] = item.isoformat() if not isinstance(item, str) else item
+                        except:
+                            pass
+            return obj
+        
+        # Convert all appointments
         for apt in appointments:
-            apt['_id'] = str(apt['_id'])
-            if 'counselor_id' in apt:
-                apt['counselor_id'] = str(apt['counselor_id'])
-            if 'case_id' in apt:
-                apt['case_id'] = str(apt['case_id'])
-            if 'created_at' in apt:
-                apt['created_at'] = apt['created_at'].isoformat()
-            if 'requested_start' in apt:
-                apt['requested_start'] = apt['requested_start'].isoformat()
-            if 'requested_end' in apt:
-                apt['requested_end'] = apt['requested_end'].isoformat()
+            convert_objectids(apt)
         
         return jsonify({
             'appointments': appointments,
@@ -54,7 +85,11 @@ def list_appointments():
         }), 200
         
     except Exception as e:
-        return jsonify({'error': f'Failed to fetch appointments: {str(e)}'}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in list_appointments: {str(e)}")
+        print(error_trace)
+        return jsonify({'error': f'Failed to fetch appointments: {str(e)}', 'details': error_trace}), 500
 
 
 @appointments_bp.route('/request', methods=['POST'])
@@ -759,3 +794,108 @@ def disconnect_google_calendar():
         'success': True,
         'message': 'Google Calendar disconnected successfully'
     }), 200
+
+
+@appointments_bp.route('/<appointment_id>', methods=['GET'])
+@jwt_required()
+def get_appointment_details(appointment_id):
+    """Get appointment details for a student or counselor"""
+    user_id = get_jwt_identity()
+    
+    try:
+        apt_id = ObjectId(appointment_id) if isinstance(appointment_id, str) else appointment_id
+        appointment = db.db.appointments.find_one({"_id": apt_id})
+    except:
+        appointment = db.db.appointments.find_one({"_id": appointment_id})
+    
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    # Check permission: student can view their own appointment, counselor can view assigned appointments
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_id_obj = user_id
+    
+    student_id = appointment.get('student_id')
+    counselor_id = appointment.get('counselor_id')
+    
+    if str(user_id_obj) != str(student_id) and str(user_id_obj) != str(counselor_id):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    
+    try:
+        # Get counselor info
+        counselor = None
+        if counselor_id:
+            counselor = db.db.users.find_one({"_id": counselor_id})
+        
+        # Get case info
+        case = None
+        if appointment.get('case_id'):
+            case = db.db.cases.find_one({"_id": appointment.get('case_id')})
+        
+        # Helper function to convert ObjectIds to strings recursively
+        def convert_objectids(obj):
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    if isinstance(value, ObjectId):
+                        obj[key] = str(value)
+                    elif isinstance(value, (dict, list)):
+                        obj[key] = convert_objectids(value)
+                    elif hasattr(value, 'isoformat'):
+                        try:
+                            obj[key] = value.isoformat() if not isinstance(value, str) else value
+                        except:
+                            pass
+            elif isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    if isinstance(item, ObjectId):
+                        obj[i] = str(item)
+                    elif isinstance(item, (dict, list)):
+                        obj[i] = convert_objectids(item)
+                    elif hasattr(item, 'isoformat'):
+                        try:
+                            obj[i] = item.isoformat() if not isinstance(item, str) else item
+                        except:
+                            pass
+            return obj
+        
+        # Format response
+        response = {
+            'id': str(appointment['_id']),
+            'type': appointment.get('appointment_type', 'followup'),
+            'status': appointment.get('status', 'pending'),
+            'preferred_platform': appointment.get('preferred_platform', 'in-person'),
+            'meeting_link': appointment.get('meeting_link'),
+            'requested_start': appointment.get('requested_start').isoformat() if appointment.get('requested_start') and hasattr(appointment.get('requested_start'), 'isoformat') else appointment.get('requested_start'),
+            'requested_end': appointment.get('requested_end').isoformat() if appointment.get('requested_end') and hasattr(appointment.get('requested_end'), 'isoformat') else appointment.get('requested_end'),
+            'scheduled_start': appointment.get('scheduled_start').isoformat() if appointment.get('scheduled_start') and hasattr(appointment.get('scheduled_start'), 'isoformat') else appointment.get('scheduled_start'),
+            'scheduled_end': appointment.get('scheduled_end').isoformat() if appointment.get('scheduled_end') and hasattr(appointment.get('scheduled_end'), 'isoformat') else appointment.get('scheduled_end'),
+            'meeting_id': appointment.get('meeting_id'),
+            'meeting_passcode': appointment.get('meeting_passcode'),
+            'counselor': {
+                'id': str(counselor['_id']),
+                'name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}",
+                'email': counselor.get('email'),
+                'role': counselor.get('role')
+            } if counselor else None,
+            'case': {
+                'id': str(case['_id']),
+                'student_id': str(case.get('student_id')),
+                'status': case.get('status'),
+                'risk_level': case.get('risk_level')
+            } if case else None,
+            'created_at': appointment.get('created_at').isoformat() if appointment.get('created_at') and hasattr(appointment.get('created_at'), 'isoformat') else appointment.get('created_at')
+        }
+        
+        # Convert all remaining ObjectIds
+        convert_objectids(response)
+        
+        return jsonify(response), 200
+    
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in get_appointment_details: {str(e)}")
+        print(error_trace)
+        return jsonify({'error': f'Failed to get appointment details: {str(e)}', 'details': error_trace}), 500

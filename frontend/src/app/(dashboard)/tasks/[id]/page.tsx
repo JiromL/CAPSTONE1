@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { ArrowLeft, Calendar, User, Phone, MapPin, AlertCircle, CheckCircle, Clock, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Phone, MapPin, AlertCircle, CheckCircle, Clock, Copy, Check, X, Edit } from 'lucide-react';
 
 interface AppointmentDetail {
   id: string;
@@ -42,6 +42,13 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [cancelDialog, setCancelDialog] = useState(false);
+  const [rescheduleDialog, setRescheduleDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadAppointment = async () => {
@@ -87,6 +94,102 @@ export default function TaskDetailPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleCancel = async () => {
+    if (!appointment) return;
+    
+    setActionLoading(true);
+    setActionError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8000/api/appointments/${appointment.id}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: cancelReason || 'No reason provided' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to cancel appointment');
+      }
+
+      // Update local state
+      setAppointment({ ...appointment, status: 'CANCELLED' });
+      setCancelDialog(false);
+      setCancelReason('');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to cancel appointment';
+      setActionError(message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!appointment) return;
+    
+    if (!rescheduleDate || !rescheduleTime) {
+      setActionError('Please select both date and time');
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Combine date and time
+      const dateTime = new Date(`${rescheduleDate}T${rescheduleTime}`);
+      const endTime = new Date(dateTime.getTime() + 1 * 60 * 60 * 1000); // 1 hour later
+      
+      const response = await fetch(`http://localhost:8000/api/appointments/${appointment.id}/reschedule`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requested_start: dateTime.toISOString(),
+          requested_end: endTime.toISOString(),
+          reason: 'Rescheduled by student',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to reschedule appointment');
+      }
+
+      const data = await response.json();
+      
+      // Update local state
+      setAppointment({
+        ...appointment,
+        status: 'REQUESTED',
+        requested_start: data.requested_start,
+        requested_end: data.requested_end,
+      });
+      
+      setRescheduleDialog(false);
+      setRescheduleDate('');
+      setRescheduleTime('');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to reschedule appointment';
+      setActionError(message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const canCancelOrReschedule = appointment && 
+    appointment.status !== 'COMPLETED' && 
+    appointment.status !== 'CANCELLED';
+
 
   const formatDateTime = (date: string | undefined) => {
     if (!date) return 'Not scheduled';
@@ -195,18 +298,47 @@ export default function TaskDetailPage() {
                 Created: {formatDateTime(appointment.created_at)}
               </p>
             </div>
-            <div className="flex flex-col gap-2">
-              <span className={`px-4 py-2 text-xs font-semibold rounded-full text-center ${getStatusColor(appointment.status)}`}>
-                {appointment.status.toUpperCase()}
-              </span>
-              {appointment.case?.risk_level && (
-                <span className={`px-4 py-2 text-xs font-semibold rounded-full text-center ${getRiskLevelColor(appointment.case.risk_level)}`}>
-                  Risk: {appointment.case.risk_level}
+            <div className="space-y-2">
+              <div className="flex flex-col gap-2">
+                <span className={`px-4 py-2 text-xs font-semibold rounded-full text-center ${getStatusColor(appointment.status)}`}>
+                  {appointment.status.toUpperCase()}
                 </span>
+                {appointment.case?.risk_level && (
+                  <span className={`px-4 py-2 text-xs font-semibold rounded-full text-center ${getRiskLevelColor(appointment.case.risk_level)}`}>
+                    Risk: {appointment.case.risk_level}
+                  </span>
+                )}
+              </div>
+              {canCancelOrReschedule && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => setRescheduleDialog(true)}
+                    className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                    title="Reschedule appointment"
+                  >
+                    <Edit size={14} />
+                    Reschedule
+                  </button>
+                  <button
+                    onClick={() => setCancelDialog(true)}
+                    className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded bg-red-600 text-white hover:bg-red-700 transition"
+                    title="Cancel appointment"
+                  >
+                    <X size={14} />
+                    Cancel
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* Action Error Message */}
+        {actionError && (
+          <div className="border border-red-200 bg-red-50 dark:bg-red-900/30 rounded p-4">
+            <p className="text-sm text-red-700 dark:text-red-200">{actionError}</p>
+          </div>
+        )}
 
         {/* Main Content Grid */}
         <div className="grid gap-6 lg:grid-cols-3">
@@ -380,7 +512,129 @@ export default function TaskDetailPage() {
             )}
           </div>
         </div>
-      </div>
+
+        {/* Cancel Dialog */}
+        {cancelDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+              <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Cancel Appointment</h3>
+                <button
+                  onClick={() => {
+                    setCancelDialog(false);
+                    setActionError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <p className="text-sm text-gray-600 dark:text-gray-300">Are you sure you want to cancel this appointment? This action cannot be undone.</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Reason (optional)
+                  </label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Please provide a reason for cancellation"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setCancelDialog(false);
+                    setActionError(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium rounded text-gray-900 dark:text-gray-50 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                  disabled={actionLoading}
+                >
+                  Keep Appointment
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={actionLoading}
+                  className="px-4 py-2 text-sm font-medium rounded text-white bg-red-600 hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {actionLoading ? 'Cancelling...' : 'Cancel Appointment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reschedule Dialog */}
+        {rescheduleDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+              <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Reschedule Appointment</h3>
+                <button
+                  onClick={() => {
+                    setRescheduleDialog(false);
+                    setActionError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    New Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={rescheduleDate}
+                    onChange={(e) => setRescheduleDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    New Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={rescheduleTime}
+                    onChange={(e) => setRescheduleTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {actionError && (
+                  <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 text-sm p-3 rounded">
+                    {actionError}
+                  </div>
+                )}
+              </div>
+              <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setRescheduleDialog(false);
+                    setActionError(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium rounded text-gray-900 dark:text-gray-50 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                  disabled={actionLoading}
+                >
+                  Keep Current Time
+                </button>
+                <button
+                  onClick={handleReschedule}
+                  disabled={actionLoading || !rescheduleDate || !rescheduleTime}
+                  className="px-4 py-2 text-sm font-medium rounded text-white bg-blue-600 hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading ? 'Rescheduling...' : 'Reschedule'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}      </div>
     </DashboardPageWrapper>
   );
 }

@@ -899,3 +899,194 @@ def get_appointment_details(appointment_id):
         print(f"Error in get_appointment_details: {str(e)}")
         print(error_trace)
         return jsonify({'error': f'Failed to get appointment details: {str(e)}', 'details': error_trace}), 500
+
+@appointments_bp.route('/<appointment_id>/cancel', methods=['POST'])
+@jwt_required()
+def cancel_appointment(appointment_id):
+    """Cancel an appointment"""
+    user_id = get_jwt_identity()
+    
+    try:
+        apt_id = ObjectId(appointment_id) if isinstance(appointment_id, str) else appointment_id
+        appointment = db.db.appointments.find_one({"_id": apt_id})
+    except:
+        appointment = db.db.appointments.find_one({"_id": appointment_id})
+    
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    # Check permission: student or counselor can cancel
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_id_obj = user_id
+    
+    student_id = appointment.get('student_id')
+    counselor_id = appointment.get('counselor_id')
+    
+    # Only student or assigned counselor can cancel
+    if str(user_id_obj) != str(student_id) and str(user_id_obj) != str(counselor_id):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    
+    # Can't cancel already completed or cancelled appointments
+    current_status = appointment.get('status', '').upper()
+    if current_status in ['COMPLETED', 'CANCELLED']:
+        return jsonify({'error': f'Cannot cancel appointment with status {current_status}'}), 400
+    
+    try:
+        data = request.get_json() or {}
+        reason = data.get('reason', 'No reason provided')
+        
+        # Update appointment status
+        result = db.db.appointments.update_one(
+            {"_id": apt_id},
+            {
+                "$set": {
+                    "status": AppointmentStatus.CANCELLED.value,
+                    "cancelled_at": datetime.utcnow(),
+                    "cancellation_reason": reason,
+                    "cancelled_by_user_id": user_id_obj
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({'error': 'Failed to cancel appointment'}), 500
+        
+        # Log audit trail
+        audit_log(
+            db.db, 
+            'appointments', 
+            'cancelled',
+            entity_id=str(apt_id),
+            old_values={'status': current_status},
+            new_values={'status': 'CANCELLED', 'reason': reason}
+        )
+        
+        return jsonify({
+            'message': 'Appointment cancelled successfully',
+            'appointment_id': str(apt_id),
+            'status': 'CANCELLED'
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in cancel_appointment: {str(e)}")
+        print(error_trace)
+        return jsonify({'error': f'Failed to cancel appointment: {str(e)}'}), 500
+
+
+@appointments_bp.route('/<appointment_id>/reschedule', methods=['POST'])
+@jwt_required()
+def reschedule_appointment(appointment_id):
+    """Reschedule an appointment to a new date/time"""
+    user_id = get_jwt_identity()
+    
+    try:
+        apt_id = ObjectId(appointment_id) if isinstance(appointment_id, str) else appointment_id
+        appointment = db.db.appointments.find_one({"_id": apt_id})
+    except:
+        appointment = db.db.appointments.find_one({"_id": appointment_id})
+    
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    # Check permission: student or counselor can reschedule
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_id_obj = user_id
+    
+    student_id = appointment.get('student_id')
+    counselor_id = appointment.get('counselor_id')
+    
+    # Only student or assigned counselor can reschedule
+    if str(user_id_obj) != str(student_id) and str(user_id_obj) != str(counselor_id):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    
+    # Can't reschedule completed or cancelled appointments
+    current_status = appointment.get('status', '').upper()
+    if current_status in ['COMPLETED', 'CANCELLED']:
+        return jsonify({'error': f'Cannot reschedule appointment with status {current_status}'}), 400
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+        
+        new_start = data.get('requested_start')
+        new_end = data.get('requested_end')
+        reason = data.get('reason', 'Rescheduled by user')
+        
+        if not new_start:
+            return jsonify({'error': 'requested_start is required'}), 400
+        
+        # Parse datetime strings if necessary
+        try:
+            if isinstance(new_start, str):
+                new_start = datetime.fromisoformat(new_start.replace('Z', '+00:00'))
+            if isinstance(new_end, str):
+                new_end = datetime.fromisoformat(new_end.replace('Z', '+00:00'))
+        except:
+            return jsonify({'error': 'Invalid datetime format for start/end times'}), 400
+        
+        # Store old values for audit log
+        old_start = appointment.get('requested_start')
+        old_end = appointment.get('requested_end')
+        old_status = appointment.get('status')
+        
+        # Update appointment with new times
+        result = db.db.appointments.update_one(
+            {"_id": apt_id},
+            {
+                "$set": {
+                    "requested_start": new_start,
+                    "requested_end": new_end or new_start + timedelta(hours=1),
+                    "status": AppointmentStatus.REQUESTED.value,  # Reset to requested status
+                    "rescheduled_at": datetime.utcnow(),
+                    "reschedule_reason": reason,
+                    "rescheduled_by_user_id": user_id_obj,
+                    # Clear the scheduled times when rescheduling
+                    "scheduled_start": None,
+                    "scheduled_end": None
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({'error': 'Failed to reschedule appointment'}), 500
+        
+        # Log audit trail
+        audit_log(
+            db.db,
+            'appointments',
+            'rescheduled',
+            entity_id=str(apt_id),
+            old_values={
+                'status': old_status,
+                'requested_start': str(old_start),
+                'requested_end': str(old_end)
+            },
+            new_values={
+                'status': AppointmentStatus.REQUESTED.value,
+                'requested_start': str(new_start),
+                'requested_end': str(new_end),
+                'reason': reason
+            }
+        )
+        
+        return jsonify({
+            'message': 'Appointment rescheduled successfully',
+            'appointment_id': str(apt_id),
+            'status': 'REQUESTED',
+            'requested_start': new_start.isoformat(),
+            'requested_end': (new_end or new_start + timedelta(hours=1)).isoformat()
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in reschedule_appointment: {str(e)}")
+        print(error_trace)
+        return jsonify({'error': f'Failed to reschedule appointment: {str(e)}'}), 500

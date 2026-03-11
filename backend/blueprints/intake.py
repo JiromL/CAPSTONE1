@@ -65,12 +65,19 @@ def get_allowed_assessments_for_concern(concern: str) -> list:
     return concern_mapping.get(concern, ['phq9', 'gad7', 'pss'])
 
 
-def generate_meeting_link(preferred_platform: str, appointment_id: str, counseling_id: str, appointment_date: datetime = None) -> dict:
+def generate_meeting_link(preferred_platform: str, appointment_id: str, counseling_id: str, appointment_date: datetime = None, student_email: str = None) -> dict:
     """
     Generate a meeting link based on the preferred platform.
     For Zoom: Creates a real meeting via Zoom API.
     For Google Meet: Creates a real meeting via Google Calendar API.
     For in-person: Returns location info.
+    
+    Args:
+        preferred_platform: 'zoom', 'google_meet', or 'in-person'
+        appointment_id: unique appointment ID
+        counseling_id: counseling ID
+        appointment_date: datetime for appointment
+        student_email: student's email for Google Meet attendee
     
     Returns: {'platform': str, 'join_url': str, 'meeting_id': str, ...}
     """
@@ -119,11 +126,17 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
             
             google_meet = GoogleMeetIntegration(current_app.config)
             
+            # Add student as attendee so they can access the meeting
+            attendees = []
+            if student_email:
+                attendees.append(student_email)
+            
             meeting_result = google_meet.create_meeting(
                 title=f'CPS Initial Assessment - {counseling_id}',
                 start_time=appointment_date,
                 duration_minutes=60,
-                description=f'Campus Counseling & Psychology Services\nInitial Assessment\nCounseling ID: {counseling_id}'
+                description=f'Campus Counseling & Psychology Services\nInitial Assessment\nCounseling ID: {counseling_id}',
+                attendees_emails=attendees if attendees else None
             )
             
             print(f"✅ GOOGLE MEET: Real meeting created - {meeting_result.get('meeting_id')}")
@@ -485,7 +498,7 @@ def student_submit_intake():
     # CREATE APPOINTMENT WITH MEETING LINK
     preferred_platform = data.get('preferred_platform', 'in-person')
     appointment_id = ObjectId()
-    meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id, appointment_date)
+    meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id, appointment_date, student_email=user_email)
     
     appointment_doc = {
         "_id": appointment_id,

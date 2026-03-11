@@ -4,7 +4,7 @@ Blueprint for user authentication, authorization, and permission management
 MongoDB-compatible version with Google OAuth2.0 and Email Verification
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, UserRole, PermissionType, ROLE_PERMISSIONS
@@ -13,6 +13,7 @@ from services.oauth_service import OAuthService
 from services.email_service import EmailService
 from datetime import datetime, timedelta
 from bson import ObjectId
+from integrations.token_store import get_tokens
 
 # Initialize services
 oauth_service = OAuthService()
@@ -366,7 +367,7 @@ def get_profile():
     user['_id'] = str(user['_id'])
     
     # Check if user has Google Calendar connected
-    google_tokens = get_tokens(db.db, user_id, 'google')
+    google_tokens = get_tokens(db.db, current_app.config, user_id, 'google')
     user['google_calendar_connected'] = bool(google_tokens and google_tokens.get('access_token'))
     
     return jsonify(user), 200

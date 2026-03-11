@@ -13,6 +13,50 @@ from datetime import datetime, timedelta
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/appointments')
 
 
+@appointments_bp.route('', methods=['GET'])
+@jwt_required()
+def list_appointments():
+    """List appointments for a counselor"""
+    user_id = get_jwt_identity()
+    
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({"_id": user_id_obj})
+    except:
+        return jsonify({'error': 'Invalid user ID'}), 400
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    try:
+        # Fetch appointments assigned to this counselor
+        appointments = list(db.db.appointments.find(
+            {"counselor_id": user_id_obj}
+        ).sort("_id", -1).limit(100))
+        
+        # Convert ObjectId to strings for JSON serialization
+        for apt in appointments:
+            apt['_id'] = str(apt['_id'])
+            if 'counselor_id' in apt:
+                apt['counselor_id'] = str(apt['counselor_id'])
+            if 'case_id' in apt:
+                apt['case_id'] = str(apt['case_id'])
+            if 'created_at' in apt:
+                apt['created_at'] = apt['created_at'].isoformat()
+            if 'requested_start' in apt:
+                apt['requested_start'] = apt['requested_start'].isoformat()
+            if 'requested_end' in apt:
+                apt['requested_end'] = apt['requested_end'].isoformat()
+        
+        return jsonify({
+            'appointments': appointments,
+            'count': len(appointments)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch appointments: {str(e)}'}), 500
+
+
 @appointments_bp.route('/request', methods=['POST'])
 @jwt_required()
 def request_appointment():

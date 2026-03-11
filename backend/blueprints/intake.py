@@ -577,9 +577,9 @@ Virtual Appointment Details:
             elif preferred_platform == 'google_meet' and meeting_link_info.get('join_url'):
                 appointment_info = f"""
 Virtual Appointment Details:
-- Platform: Google Meet
-- Join URL: {meeting_link_info.get('join_url')}
-- Meeting Code: {meeting_link_info.get('meeting_id')}
+- Platform: Google Meet (via Google Calendar)
+- Calendar Invite: {meeting_link_info.get('join_url')}
+- You can also access the meeting directly from the Calendar event
 """
             else:
                 appointment_info = """

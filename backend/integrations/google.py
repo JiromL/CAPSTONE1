@@ -182,34 +182,16 @@ class GoogleMeetIntegration:
             
             event_data = response.json()
             
-            meet_link = None
-            
-            if event_data.get('conferenceData'):
-                meet_link = event_data['conferenceData'].get('entryPoints', [{}])[0].get('uri')
-            
-            hangout_link = event_data.get('hangoutLink')
-            
-            # If API didn't provide a meet link, generate one from the event ID
-            # Google Meet links are dynamic and valid for any valid meeting code
-            if not (meet_link or hangout_link):
-                event_id = event_data.get('id')
-                # Create a deterministic meeting code from event ID
-                # Google Meet codes are typically 10 characters of alphanumerics + hyphens
-                import re
-                # Use first 11 chars of event ID and replace non-alphanumeric with hyphens
-                code = re.sub(r'[^a-z0-9]', '-', event_id[:11].lower())
-                # Ensure code is valid length (3-11 chars)
-                code = code.replace('--', '-').strip('-')[:11]
-                if len(code) < 3:
-                    code = event_id[:11].replace('_', '-').replace('.', '-').lower()
-                meet_link = f"https://meet.google.com/{code}"
+            # The calendar event contains the Google Meet link
+            # Students access the meeting through the calendar invite
+            calendar_link = event_data.get('htmlLink')
             
             return {
                 'platform': 'google_meet',
                 'meeting_id': event_data.get('id'),
-                'join_url': meet_link or hangout_link,
+                'join_url': calendar_link,  # Calendar invite link that contains the Meet
                 'event_id': event_data.get('id'),
-                'calendar_event': event_data.get('htmlLink'),
+                'calendar_event': calendar_link,
                 'start_time': event_data.get('start', {}).get('dateTime'),
                 'end_time': event_data.get('end', {}).get('dateTime'),
                 'status': 'successfully_created',

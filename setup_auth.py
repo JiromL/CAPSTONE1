@@ -9,7 +9,8 @@ db = client['cps_system_dev']
 credentials = [
     {'role': 'ADMIN', 'email': 'admin@counseling.edu', 'password': 'admin123'},
     {'role': 'COUNSELOR', 'email': 'counselor@counseling.edu', 'password': 'counsel123'},
-    {'role': 'PSYCHOLOGIST', 'email': 'psych@counseling.edu', 'password': 'psych123'}
+    {'role': 'PSYCHOLOGIST', 'email': 'psych@counseling.edu', 'password': 'psych123'},
+    {'role': 'STAFF', 'email': 'office.assistant@counseling.edu', 'password': 'officestaff123'}
 ]
 
 for cred in credentials:

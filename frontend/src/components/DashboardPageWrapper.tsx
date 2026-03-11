@@ -104,11 +104,11 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
       case 'STAFF':
         return [
           ...baseItems,
-          { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-          { label: 'Appointments', href: '/appointments', icon: <Calendar size={20} /> },
-          { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
-          { label: 'Tasks', href: '/tasks', icon: <CheckCircle size={20} /> },
-          { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+          { label: 'Batch Assignment', href: '/staff/batch-assign', icon: <Users size={20} /> },
+          { label: 'Workload Report', href: '/staff/workload-report', icon: <TrendingUp size={20} /> },
+          { label: 'Reassignment Suggestions', href: '/staff/reassignment-suggestions', icon: <AlertCircle size={20} /> },
+          { label: 'Appointments', href: '/staff/appointments', icon: <Calendar size={20} />, badge: 12 },
+          { label: 'Staff Settings', href: '/dashboard/staff-settings', icon: <Shield size={20} /> },
         ];
       default:
         return [

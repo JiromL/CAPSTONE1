@@ -13,11 +13,11 @@ interface DashboardProps {
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'Cases', href: '/cases', icon: <MessageSquare size={20} />, badge: 4 },
-    { label: 'Appointments', href: '/appointments', icon: <HelpCircle size={20} />, badge: 12 },
-    { label: 'Documentation', href: '/documentation', icon: <Users size={20} /> },
-    { label: 'Tasks', href: '/tasks', icon: <FileText size={20} />, badge: 3 },
-    { label: 'Profile', href: '/profile', icon: <Settings size={20} /> },
+    { label: 'Batch Assignment', href: '/staff/batch-assign', icon: <Users size={20} /> },
+    { label: 'Workload Report', href: '/staff/workload-report', icon: <FileText size={20} /> },
+    { label: 'Reassignment Suggestions', href: '/staff/reassignment-suggestions', icon: <HelpCircle size={20} /> },
+    { label: 'Appointments', href: '/appointments', icon: <MessageSquare size={20} />, badge: 12 },
+    { label: 'Staff Settings', href: '/dashboard/staff-settings', icon: <Settings size={20} /> },
   ];
 
   return (
@@ -25,47 +25,46 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
       user={user}
       onLogout={onLogout}
       menuItems={menuItems}
-      title="Support Staff Dashboard"
-      subtitle="Administrative & Support Services"
+      title="Office Assistant Dashboard"
+      subtitle="Appointment & Staff Management"
     >
       {/* Quick Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        <SupportCard label="Clients Supported" value="156" />
-        <SupportCard label="Support Tickets" value="12" color="orange" />
-        <SupportCard label="Tasks Completed" value="28" color="green" />
-        <SupportCard label="Pending Tasks" value="5" color="red" />
+        <SupportCard label="Pending Appointments" value="12" />
+        <SupportCard label="Counselor Workload" value="24" color="orange" />
+        <SupportCard label="Batch Assignments Today" value="5" color="green" />
+        <SupportCard label="Calendar Connected" value="8/12" color="blue" />
       </div>
 
       {/* Quick Actions */}
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <SupportLink href="/cases" label="Client Inquiries" />
-          <SupportLink href="/appointments" label="Communications" />
-          <SupportLink href="/documentation" label="Document Management" />
-          <SupportLink href="/tasks" label="Support Tickets" />
+          <SupportLink href="/staff/batch-assign" label="Batch Assign Appointments" />
+          <SupportLink href="/staff/workload-report" label="View Workload Report" />
+          <SupportLink href="/staff/reassignment-suggestions" label="Reassignment Suggestions" />
+          <SupportLink href="/dashboard/staff-settings" label="Calendar Settings" />
         </div>
       </div>
 
-      {/* Pending Tickets */}
-      <div className="border border-gray-200 rounded p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">Support Tickets</h2>
+      {/* Pending Appointments */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 mb-4 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Unassigned Appointments</h2>
         <div className="space-y-2">
-          <TicketItem id="TK-2340" title="Can't reset password" client="Student" priority="high" status="open" />
-          <TicketItem id="TK-2339" title="Schedule appointment issue" client="Student" priority="medium" status="in-progress" />
-          <TicketItem id="TK-2338" title="Document upload problem" client="Counselor" priority="low" status="in-progress" />
+          <TicketItem id="APT-2340" title="Initial consultation request" client="Student" priority="high" status="open" />
+          <TicketItem id="APT-2339" title="Follow-up appointment" client="Counselor" priority="medium" status="open" />
+          <TicketItem id="APT-2338" title="Crisis assessment needed" client="Student" priority="high" status="open" />
         </div>
       </div>
 
-      {/* Today's Tasks */}
-      <div className="border border-gray-200 rounded p-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">Today's Tasks</h2>
+      {/* Counselor Workload */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Counselor Workload Overview</h2>
         <div className="space-y-1">
-          <TaskCheckbox label="Update client contact information" completed={false} />
-          <TaskCheckbox label="Process scheduling requests" completed={true} />
-          <TaskCheckbox label="Send appointment reminders" completed={false} />
-          <TaskCheckbox label="Archive completed referrals" completed={false} />
-          <TaskCheckbox label="Respond to support tickets" completed={true} />
+          <TaskCheckbox label="Dr. Sarah Smith: 8/10 slots filled" completed={false} />
+          <TaskCheckbox label="Dr. James Cohen: 10/10 slots filled (FULL)" completed={true} />
+          <TaskCheckbox label="Marcus Johnson: 5/10 slots filled" completed={false} />
+          <TaskCheckbox label="Elena Rodriguez: 9/10 slots filled" completed={true} />
         </div>
       </div>
     </DashboardLayout>

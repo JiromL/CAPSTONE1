@@ -184,6 +184,7 @@ ROLE_PERMISSIONS = {
         PermissionType.VIEW_CASE,
         PermissionType.VIEW_ASSESSMENT,
         PermissionType.VIEW_NOTES,
+        PermissionType.ASSIGN_CASES,  # Can manage appointment assignments and auto-assignment
     },
     UserRole.STUDENT: {
         PermissionType.VIEW_CASE,

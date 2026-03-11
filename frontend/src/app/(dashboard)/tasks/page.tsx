@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { Clock, CheckCircle, AlertCircle, Calendar, FileText } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Calendar, FileText, Eye, Zap } from 'lucide-react';
 import { fetchDashboardData, formatDate } from '@/utils/dashboard-api';
 
 interface Task {
@@ -15,6 +16,8 @@ interface Task {
   description: string;
   riskLevel?: string;
   isEmergency?: boolean;
+  auto_assigned?: boolean;
+  counselor_name?: string;
 }
 
 export default function TasksPage() {
@@ -34,38 +37,66 @@ export default function TasksPage() {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          setError('No authentication token');
+          setError('No authentication token found. Please log in again.');
           setLoading(false);
           return;
         }
 
-        // Fetch real dashboard data from API
-        const data = await fetchDashboardData(token);
-        
-        // Transform dashboard data into task format
+        // Fetch user's actual appointments from the API
+        const response = await fetch('http://localhost:8000/api/appointments', {
+          headers: {'Authorization': `Bearer ${token}`},
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(`${errorData.error || `Failed to fetch appointments: ${response.status}`}`);
+        }
+
+        const data = await response.json();
         const transformedTasks: Task[] = [];
-        
-        if (data.recent_cases && Array.isArray(data.recent_cases)) {
-          data.recent_cases.forEach((caseItem: any) => {
+
+        if (data.appointments && Array.isArray(data.appointments)) {
+          data.appointments.forEach((apt: any) => {
+            const startDate = apt.scheduled_start || apt.requested_start;
+            // Map appointment status to task status
+            let taskStatus: 'pending' | 'scheduled' | 'completed' = 'pending';
+            const apptStatus = apt.status?.toLowerCase();
+            if (apptStatus === 'scheduled' || apptStatus === 'confirmed' || apptStatus === 'matched') {
+              taskStatus = 'scheduled';
+            } else if (apptStatus === 'completed' || apptStatus === 'cancelled') {
+              taskStatus = 'completed';
+            }
+            // 'requested' and any other status maps to 'pending'
+            
+            // Extract counselor name from the appointment data
+            let counselorName: string | undefined;
+            if (apt.counselor && typeof apt.counselor === 'object') {
+              counselorName = `${apt.counselor.name || apt.counselor.first_name || ''} ${apt.counselor.last_name || ''}`.trim();
+            } else if (typeof apt.counselor === 'string') {
+              counselorName = apt.counselor;
+            }
+            
             transformedTasks.push({
-              id: caseItem.counseling_id || caseItem.intake_id || 'unknown',
-              title: `Assessment: ${caseItem.purpose || 'General'}`,
-              type: 'assessment',
-              status: caseItem.is_emergency ? 'scheduled' : (caseItem.status || 'pending'),
-              date: caseItem.appointment_date || caseItem.submitted_at,
-              description: `Risk Level: ${caseItem.risk_level || 'GREEN'} ${
-                caseItem.is_emergency ? '- EMERGENCY' : ''
-              }`,
-              riskLevel: caseItem.risk_level,
-              isEmergency: caseItem.is_emergency,
+              id: apt._id,
+              title: `${apt.appointment_type?.charAt(0).toUpperCase()}${apt.appointment_type?.slice(1) || 'Appointment'}`,
+              type: 'appointment',
+              status: taskStatus,
+              date: startDate,
+              description: `Platform: ${apt.preferred_platform === 'in-person' ? 'In-Person' : apt.preferred_platform || 'TBD'}`,
+              riskLevel: 'GREEN',
+              isEmergency: false,
+              auto_assigned: apptStatus === 'matched' || apptStatus === 'scheduled' && !!apt.counselor_id,
+              counselor_name: counselorName,
             });
           });
         }
 
         setTasks(transformedTasks);
+        setError(null);
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load appointments from server';
         console.error('Failed to load tasks:', err);
-        setError('Failed to load tasks from server');
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -146,9 +177,19 @@ export default function TasksPage() {
                       <div className="flex items-center gap-2 mb-1">
                         {task.isEmergency && <AlertCircle size={16} className="text-red-600" />}
                         {task.status === 'completed' && <CheckCircle size={16} className="text-green-600" />}
+                        {task.auto_assigned && (
+                          <span title="Auto-assigned to counselor" className="flex items-center gap-1 text-blue-600">
+                            <Zap size={14} />
+                          </span>
+                        )}
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">{task.title}</h3>
                       </div>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{task.description}</p>
+                      {task.auto_assigned && task.counselor_name && (
+                        <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
+                          ⚡ Assigned to: {task.counselor_name}
+                        </p>
+                      )}
                       {task.date && (
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           {formatDate(task.date)}
@@ -156,18 +197,30 @@ export default function TasksPage() {
                       )}
                     </div>
 
-                    {/* Status Badge */}
-                    <span className={`px-3 py-1 text-xs rounded font-medium whitespace-nowrap ${
-                      task.isEmergency
-                        ? 'bg-red-200 dark:bg-red-700 text-red-900 dark:text-red-100'
-                        : task.status === 'completed'
-                        ? 'bg-green-200 dark:bg-green-700 text-green-900 dark:text-green-100'
-                        : task.status === 'scheduled'
-                        ? 'bg-blue-200 dark:bg-blue-700 text-blue-900 dark:text-blue-100'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                    }`}>
-                      {task.isEmergency ? 'EMERGENCY' : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                    </span>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {/* View Button */}
+                      <Link
+                        href={`/tasks/${task.id}`}
+                        className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded font-medium bg-blue-100 dark:bg-blue-700 text-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-600 transition"
+                      >
+                        <Eye size={14} />
+                        View
+                      </Link>
+
+                      {/* Status Badge */}
+                      <span className={`px-3 py-2 text-xs rounded font-medium whitespace-nowrap ${
+                        task.isEmergency
+                          ? 'bg-red-200 dark:bg-red-700 text-red-900 dark:text-red-100'
+                          : task.status === 'completed'
+                          ? 'bg-green-200 dark:bg-green-700 text-green-900 dark:text-green-100'
+                          : task.status === 'scheduled'
+                          ? 'bg-blue-200 dark:bg-blue-700 text-blue-900 dark:text-blue-100'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                      }`}>
+                        {task.isEmergency ? 'EMERGENCY' : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}

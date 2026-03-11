@@ -6,7 +6,14 @@ from bson import ObjectId
 
 
 def _get_fernet(config):
-    key = config.ENCRYPTION_KEY
+    # Handle both Config objects (attribute access) and Flask's current_app.config (dict access)
+    if hasattr(config, 'ENCRYPTION_KEY'):
+        key = config.ENCRYPTION_KEY
+    elif isinstance(config, dict):
+        key = config.get('ENCRYPTION_KEY')
+    else:
+        key = None
+    
     if not key:
         raise RuntimeError('ENCRYPTION_KEY not set in config')
     # Allow raw base64 or plain key

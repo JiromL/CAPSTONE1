@@ -34,7 +34,7 @@ class Config:
     
     # Storage & security
     GDRIVE_SERVICE_ACCOUNT_JSON = os.getenv('GDRIVE_SERVICE_ACCOUNT_JSON')
-    ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+    ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '5k4TtzFSzW3xEVU1ZT-2zV1X-vZEX_V_ZIXwcfvcK3Y=')
     S3_ENABLED = os.getenv('S3_ENABLED', 'false').lower() == 'true'
     S3_BUCKET = os.getenv('S3_BUCKET')
     S3_REGION = os.getenv('S3_REGION')

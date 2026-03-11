@@ -103,7 +103,7 @@ def calendar_status():
     user_id = get_jwt_identity()
     
     try:
-        tokens = get_tokens(db, current_app.config, user_id, 'google')
+        tokens = get_tokens(db.db, current_app.config, user_id, 'google')
         is_connected = tokens is not None and tokens.get('access_token') is not None
         
         return jsonify({
@@ -140,7 +140,7 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
     Returns: calendar_event_id or None if calendar not connected
     """
     try:
-        tokens = get_tokens(db, current_app.config, user_id, 'google')
+        tokens = get_tokens(db.db, current_app.config, user_id, 'google')
         
         if not tokens or not tokens.get('access_token'):
             return None  # Calendar not connected
@@ -230,7 +230,7 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
 def update_appointment_in_calendar(user_id, appointment_data):
     """Update existing calendar event"""
     try:
-        tokens = get_tokens(db, current_app.config, user_id, 'google')
+        tokens = get_tokens(db.db, current_app.config, user_id, 'google')
         
         if not tokens or not appointment_data.get('calendar_event_id'):
             return None
@@ -284,7 +284,7 @@ def update_appointment_in_calendar(user_id, appointment_data):
 def delete_appointment_from_calendar(user_id, calendar_event_id):
     """Delete calendar event"""
     try:
-        tokens = get_tokens(db, current_app.config, user_id, 'google')
+        tokens = get_tokens(db.db, current_app.config, user_id, 'google')
         
         if not tokens or not calendar_event_id:
             return False

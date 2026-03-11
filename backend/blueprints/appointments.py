@@ -3,7 +3,7 @@ EPIC 4: BOOKING & SCHEDULING SYSTEM
 Blueprint for appointment booking with real-time availability and automated confirmations
 """
 
-from flask import Blueprint, request, jsonify, redirect
+from flask import Blueprint, request, jsonify, redirect, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
@@ -518,7 +518,6 @@ def get_upcoming_appointments(case_id):
 @jwt_required()
 def get_google_authorization_url():
     """Get Google OAuth authorization URL for staff"""
-    from config import Config
     from integrations.google import GoogleIntegration
     import secrets
     
@@ -533,7 +532,7 @@ def get_google_authorization_url():
         'expires_at': datetime.utcnow() + timedelta(minutes=10)
     })
     
-    google = GoogleIntegration(Config)
+    google = GoogleIntegration(current_app.config)
     auth_url = google.get_authorize_url(state=state)
     
     return jsonify({
@@ -545,7 +544,7 @@ def get_google_authorization_url():
 @appointments_bp.route('/google/callback', methods=['GET'])
 def google_oauth_callback():
     """Handle Google OAuth callback"""
-    from config import Config
+
     from integrations.google import GoogleIntegration
     
     code = request.args.get('code')
@@ -565,9 +564,9 @@ def google_oauth_callback():
     user_id = oauth_state['user_id']
     
     # Exchange code for tokens
-    google = GoogleIntegration(Config)
+    google = GoogleIntegration(current_app.config)
     try:
-        google.exchange_code_and_store(db.db, Config, user_id, code)
+        google.exchange_code_and_store(db.db, current_app.config, user_id, code)
         
         # Delete used state
         db.db.oauth_states.delete_one({'state': state})
@@ -582,7 +581,6 @@ def google_oauth_callback():
 @jwt_required()
 def sync_appointment_to_calendar(appointment_id):
     """Sync appointment to counselor's Google Calendar"""
-    from config import Config
     from integrations.google import GoogleIntegration
     from integrations.token_store import get_tokens
     
@@ -601,7 +599,7 @@ def sync_appointment_to_calendar(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
     
     # Check if counselor has Google Calendar connected
-    google_tokens = get_tokens(db.db, user_id, 'google')
+    google_tokens = get_tokens(db.db, current_app.config, user_id, 'google')
     if not google_tokens or not google_tokens.get('access_token'):
         return jsonify({
             'error': 'Google Calendar not connected',
@@ -638,7 +636,7 @@ def sync_appointment_to_calendar(appointment_id):
     }
     
     # Create event on Google Calendar
-    google = GoogleIntegration(Config)
+    google = GoogleIntegration(current_app.config)
     try:
         response = google.create_calendar_event(google_tokens['access_token'], event)
         
@@ -669,7 +667,6 @@ def sync_appointment_to_calendar(appointment_id):
 @jwt_required()
 def remove_appointment_from_calendar(appointment_id):
     """Remove appointment from Google Calendar"""
-    from config import Config
     from integrations.google import GoogleIntegration
     from integrations.token_store import get_tokens
     
@@ -686,11 +683,11 @@ def remove_appointment_from_calendar(appointment_id):
     if not appointment.get('google_calendar_event_id'):
         return jsonify({'error': 'Appointment not synced to calendar'}), 400
     
-    google_tokens = get_tokens(db.db, user_id, 'google')
+    google_tokens = get_tokens(db.db, current_app.config, user_id, 'google')
     if not google_tokens:
         return jsonify({'error': 'Google Calendar not connected'}), 400
     
-    google = GoogleIntegration(Config)
+    google = GoogleIntegration(current_app.config)
     try:
         google.delete_calendar_event(google_tokens['access_token'], 
                                      appointment['google_calendar_event_id'])
@@ -716,7 +713,6 @@ def remove_appointment_from_calendar(appointment_id):
 @jwt_required()
 def get_available_slots():
     """Get available time slots from counselor's Google Calendar"""
-    from config import Config
     from integrations.google import GoogleIntegration
     from integrations.token_store import get_tokens
     
@@ -727,14 +723,14 @@ def get_available_slots():
     if not date:
         return jsonify({'error': 'Missing date parameter'}), 400
     
-    google_tokens = get_tokens(db.db, user_id, 'google')
+    google_tokens = get_tokens(db.db, current_app.config, user_id, 'google')
     if not google_tokens:
         return jsonify({
             'error': 'Google Calendar not connected',
             'auth_url': '/api/appointments/google/authorize'
         }), 400
     
-    google = GoogleIntegration(Config)
+    google = GoogleIntegration(current_app.config)
     try:
         free_slots = google.get_free_slots(google_tokens['access_token'], date, duration)
         return jsonify({

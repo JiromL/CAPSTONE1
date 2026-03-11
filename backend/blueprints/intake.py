@@ -687,11 +687,19 @@ def calculate_appointment():
     pss_responses = data.get('pss_responses', [])
     acad_responses = data.get('acad_responses', [])
     
-    # Calculate scores
-    phq9_score = sum([int(r.get('score', 0)) for r in phq9_responses if r.get('score')]) if phq9_responses else None
-    gad7_score = sum([int(r.get('score', 0)) for r in gad7_responses if r.get('score')]) if gad7_responses else None
-    pss_score = sum([int(r.get('score', 0)) for r in pss_responses if r.get('score')]) if pss_responses else None
-    acad_score = sum([int(r.get('score', 0)) for r in acad_responses if r.get('score')]) if acad_responses else None
+    # Calculate scores - handle both dict and int formats
+    def extract_score(item):
+        """Extract score from item, handling both dict with 'score' key and plain integers"""
+        if isinstance(item, dict):
+            return int(item.get('score', 0)) if item.get('score') else 0
+        elif isinstance(item, (int, float)):
+            return int(item)
+        return 0
+    
+    phq9_score = sum([extract_score(r) for r in phq9_responses]) if phq9_responses else None
+    gad7_score = sum([extract_score(r) for r in gad7_responses]) if gad7_responses else None
+    pss_score = sum([extract_score(r) for r in pss_responses]) if pss_responses else None
+    acad_score = sum([extract_score(r) for r in acad_responses]) if acad_responses else None
     
     # Determine urgency level (mirrors scoring in student_submit_intake)
     urgency_level = 'normal'

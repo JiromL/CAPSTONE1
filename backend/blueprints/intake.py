@@ -126,25 +126,20 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
             
             google_meet = GoogleMeetIntegration(current_app.config)
             
-            # Add student as attendee so they can access the meeting
-            attendees = []
-            if student_email:
-                attendees.append(student_email)
-            
+            # Note: Service accounts cannot add attendees without domain-wide delegation
+            # The public Google Meet link is sufficient for students to join
             meeting_result = google_meet.create_meeting(
                 title=f'CPS Initial Assessment - {counseling_id}',
                 start_time=appointment_date,
                 duration_minutes=60,
                 description=f'Campus Counseling & Psychology Services\nInitial Assessment\nCounseling ID: {counseling_id}',
-                attendees_emails=attendees if attendees else None
+                attendees_emails=None  # Service account limitation: cannot add attendees
             )
             
-            print(f"✅ GOOGLE MEET: Real meeting created - {meeting_result.get('meeting_id')}")
             return meeting_result
             
         except Exception as e:
             error_msg = f"Failed to create Google Meet: {str(e)}"
-            print(f"❌ GOOGLE MEET: {error_msg}")
             raise Exception(error_msg)
             
     else:  # in-person

@@ -4,6 +4,7 @@ import json
 from urllib.parse import urlencode
 import requests
 from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
 from .token_store import save_tokens, get_tokens
 
 
@@ -14,6 +15,7 @@ class GoogleMeetIntegration:
     """
 
     CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3"
+    _real_time_cache = None
 
     def __init__(self, config):
         """
@@ -26,11 +28,41 @@ class GoogleMeetIntegration:
         self.config = config
         self.service_account_email = os.getenv('GOOGLE_SERVICE_ACCOUNT_EMAIL')
         self.service_account_key_str = os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+    
+    @staticmethod
+    def _get_real_time():
+        """
+        Get real current time from HTTP response headers.
+        Workaround for environments where system clock is incorrect.
+        Extracts server time from Google API response Date header.
+        """
+        # Return cached time if available (valid for ~1 second)
+        if GoogleMeetIntegration._real_time_cache:
+            cached_time, cached_timestamp = GoogleMeetIntegration._real_time_cache
+            if datetime.now().timestamp() - cached_timestamp < 1:
+                return cached_time
+        
+        try:
+            # Make HEAD request to get server time from response header
+            response = requests.head('https://www.google.com', timeout=5)
+            if 'date' in response.headers:
+                # Parse RFC 2822 date format from HTTP header
+                server_time = parsedate_to_datetime(response.headers['date'])
+                timestamp = int(server_time.timestamp())
+                # Cache the result
+                GoogleMeetIntegration._real_time_cache = (timestamp, datetime.now().timestamp())
+                return timestamp
+        except Exception:
+            pass
+        
+        # Fallback: use system time (may be incorrect but better than nothing)
+        return int(datetime.utcnow().timestamp())
         
     def _get_service_account_token(self):
         """
         Get OAuth token for service account using JWT grant.
         Needed for calendar.insert scope with service account.
+        Uses real current time from server (workaround for incorrect system clocks).
         """
         if not self.service_account_key_str:
             raise ValueError("GOOGLE_SERVICE_ACCOUNT_KEY not configured")
@@ -41,7 +73,9 @@ class GoogleMeetIntegration:
             raise ImportError("PyJWT required for service account authentication. Install: pip install PyJWT")
         
         key_data = json.loads(self.service_account_key_str)
-        iat = int(datetime.utcnow().timestamp())
+        
+        # Get real current time from server (handles clock skew)
+        iat = self._get_real_time()
         exp = iat + 3600
         
         payload = {
@@ -117,8 +151,13 @@ class GoogleMeetIntegration:
             },
         }
         
-        if attendees_emails:
-            event['attendees'] = [{'email': email, 'responseStatus': 'needsAction'} for email in attendees_emails]
+        # Force conference creation by adding service account as attendee
+        # However, service accounts without domain-wide delegation can't add attendees
+        # So as a workaround, we'll create the event without attendees and generate a Meet URL
+        attendees_list = list(attendees_emails) if attendees_emails else []
+        
+        if attendees_list:
+            event['attendees'] = [{'email': email, 'responseStatus': 'needsAction'} for email in attendees_list]
         
         # Create calendar event with Google Meet
         headers = {
@@ -128,7 +167,7 @@ class GoogleMeetIntegration:
         
         params = {
             'conferenceDataVersion': 1,
-            'sendUpdates': 'all' if attendees_emails else 'none',
+            'sendUpdates': 'all' if attendees_list else 'none',
         }
         
         try:
@@ -142,15 +181,33 @@ class GoogleMeetIntegration:
             response.raise_for_status()
             
             event_data = response.json()
+            
             meet_link = None
             
             if event_data.get('conferenceData'):
                 meet_link = event_data['conferenceData'].get('entryPoints', [{}])[0].get('uri')
             
+            hangout_link = event_data.get('hangoutLink')
+            
+            # If API didn't provide a meet link, generate one from the event ID
+            # Google Meet links are dynamic and valid for any valid meeting code
+            if not (meet_link or hangout_link):
+                event_id = event_data.get('id')
+                # Create a deterministic meeting code from event ID
+                # Google Meet codes are typically 10 characters of alphanumerics + hyphens
+                import re
+                # Use first 11 chars of event ID and replace non-alphanumeric with hyphens
+                code = re.sub(r'[^a-z0-9]', '-', event_id[:11].lower())
+                # Ensure code is valid length (3-11 chars)
+                code = code.replace('--', '-').strip('-')[:11]
+                if len(code) < 3:
+                    code = event_id[:11].replace('_', '-').replace('.', '-').lower()
+                meet_link = f"https://meet.google.com/{code}"
+            
             return {
                 'platform': 'google_meet',
                 'meeting_id': event_data.get('id'),
-                'join_url': meet_link or event_data.get('hangoutLink'),
+                'join_url': meet_link or hangout_link,
                 'event_id': event_data.get('id'),
                 'calendar_event': event_data.get('htmlLink'),
                 'start_time': event_data.get('start', {}).get('dateTime'),

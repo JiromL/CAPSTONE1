@@ -46,31 +46,15 @@ def test_zoom_integration():
         print(f"\n❌ Failed to initialize: {str(e)}")
         return False
     
-    # Generate JWT token
+    # Get OAuth token
     try:
-        token = zoom._generate_jwt_token()
-        print(f"✅ JWT Token generated: {token[:20]}...")
+        token = zoom._get_oauth_token()
+        print(f"✅ OAuth Token generated: {token[:20]}...")
         print(f"   Token length: {len(token)}")
         print(f"   Token expires at: {zoom._token_expiry}")
-        
-        # Decode to see what's inside (for debugging)
-        import json
-        import base64
-        try:
-            # JWT format: header.payload.signature
-            parts = token.split('.')
-            payload = parts[1]
-            # Add padding if needed
-            padding = 4 - len(payload) % 4
-            if padding != 4:
-                payload += '=' * padding
-            decoded_payload = json.loads(base64.urlsafe_b64decode(payload))
-            print(f"   Token payload: {decoded_payload}")
-        except:
-            pass
             
     except Exception as e:
-        print(f"❌ Failed to generate JWT token: {str(e)}")
+        print(f"❌ Failed to generate OAuth token: {str(e)}")
         return False
     
     # Try to create a test meeting

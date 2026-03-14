@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, AlertTriangle, TrendingUp, Calendar, BarChart3, Settings, Shield } from 'lucide-react';
+import { Users, AlertTriangle, TrendingUp, Calendar, BarChart3, Settings } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 
 interface DashboardProps {
@@ -14,8 +14,8 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
     { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
     { label: 'Cases', href: '/cases', icon: <Users size={20} /> },
     { label: 'High-Risk Review', href: '/high-risk', icon: <AlertTriangle size={20} />, badge: 8 },
-    { label: 'Reports', href: '/documentation', icon: <Calendar size={20} /> },
-    { label: 'Team', href: '/referrals', icon: <TrendingUp size={20} /> },
+    { label: 'Cases Analysis', href: '/cases', icon: <Calendar size={20} /> },
+    { label: 'Team Management', href: '/cases', icon: <TrendingUp size={20} /> },
     { label: 'Profile', href: '/profile', icon: <Settings size={20} /> },
   ];
 
@@ -40,9 +40,9 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <OperationLink href="/cases" label="Review Cases" />
-          <OperationLink href="/high-risk" label="High-Risk Cases" />
+          <OperationLink href="/high-risk" label="High-Risk Cases" badge={8} />
           <OperationLink href="/cases" label="Team Management" />
-          <OperationLink href="/documentation" label="Operations Reports" />
+          <OperationLink href="/cases" label="Operations Reports" />
         </div>
       </div>
     </DashboardLayout>
@@ -67,19 +67,12 @@ function MetricCard({ label, value, color = "blue" }: any) {
 function OperationLink({ href, label, badge }: any) {
   return (
     <Link href={href}>
-      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
+      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer flex justify-between items-center">
         <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
+        {badge && <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{badge}</span>}
       </div>
     </Link>
   );
 }
 
-function OverviewItem({ label, value, status }: any) {
-  return (
-    <div className="border border-gray-200 rounded p-3">
-      <p className="text-gray-600 text-xs">{label}</p>
-      <p className="text-lg font-bold text-gray-900 mt-1">{value}</p>
-      <p className="text-xs font-medium text-gray-700 mt-1">{status}</p>
-    </div>
-  );
-}
+

@@ -849,11 +849,11 @@ def sync_appointment_to_calendar(appointment_id):
         'description': f'Case: {str(case["_id"])}\nPresenting Issue: {case.get("presenting_issue")}',
         'start': {
             'dateTime': appointment['requested_start'].isoformat(),
-            'timeZone': 'America/New_York'
+            'timeZone': 'Asia/Manila'
         },
         'end': {
             'dateTime': appointment['requested_end'].isoformat(),
-            'timeZone': 'America/New_York'
+            'timeZone': 'Asia/Manila'
         },
         'attendees': [
             {'email': user['email'], 'responseStatus': 'accepted'},

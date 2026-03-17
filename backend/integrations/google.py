@@ -133,11 +133,11 @@ class GoogleMeetIntegration:
             'description': description or 'Counseling & Psychology Services Appointment',
             'start': {
                 'dateTime': start_dt.isoformat(),
-                'timeZone': 'America/New_York',
+                'timeZone': 'Asia/Manila',
             },
             'end': {
                 'dateTime': end_dt.isoformat(),
-                'timeZone': 'America/New_York',
+                'timeZone': 'Asia/Manila',
             },
             'conferenceData': {
                 'createRequest': {

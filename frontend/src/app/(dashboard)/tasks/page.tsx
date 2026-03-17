@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { Clock, CheckCircle, AlertCircle, Calendar, FileText, Eye, Zap } from 'lucide-react';
 import { fetchDashboardData, formatDate } from '@/utils/dashboard-api';
+import { api } from '@/utils/api';
 
 interface Task {
   id: string;
@@ -43,7 +44,7 @@ export default function TasksPage() {
         }
 
         // Fetch user's actual appointments from the API
-        const response = await fetch('http://localhost:8000/api/appointments', {
+        const response = await fetch(api('/api/appointments'), {
           headers: {'Authorization': `Bearer ${token}`},
         });
 

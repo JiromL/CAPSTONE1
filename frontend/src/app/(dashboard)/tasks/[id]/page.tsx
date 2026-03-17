@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ArrowLeft, Calendar, User, Phone, MapPin, AlertCircle, CheckCircle, Clock, Copy, Check, X, Edit } from 'lucide-react';
+import { api } from '@/utils/api';
 
 interface AppointmentDetail {
   id: string;
@@ -61,7 +62,7 @@ export default function TaskDetailPage() {
         }
 
         // Try to fetch as appointment ID first
-        let response = await fetch(`http://localhost:8000/api/appointments/${taskId}`, {
+        let response = await fetch(api(`/api/appointments/${taskId}`), {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ export default function TaskDetailPage() {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/appointments/${appointment.id}/cancel`, {
+      const response = await fetch(api(`/api/appointments/${appointment.id}/cancel`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -147,7 +148,7 @@ export default function TaskDetailPage() {
       const dateTime = new Date(`${rescheduleDate}T${rescheduleTime}`);
       const endTime = new Date(dateTime.getTime() + 1 * 60 * 60 * 1000); // 1 hour later
       
-      const response = await fetch(`http://localhost:8000/api/appointments/${appointment.id}/reschedule`, {
+      const response = await fetch(api(`/api/appointments/${appointment.id}/reschedule`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, Settings, BarChart3, AlertCircle, Lock, Shield, Database, Activity } from 'lucide-react';
+import { Users, Settings, BarChart3, AlertCircle, Lock, Shield, Database, Activity, TrendingUp } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { DashboardCalendar } from './Calendar';
 import { useState } from 'react';
@@ -15,10 +15,10 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'User Management', href: '/admin/users', icon: <Users size={20} /> },
+    { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
     { label: 'Cases', href: '/cases', icon: <Shield size={20} /> },
     { label: 'Documentation', href: '/documentation', icon: <Settings size={20} /> },
-    { label: 'Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+    { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
   ];
 
   return (

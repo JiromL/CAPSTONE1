@@ -14,6 +14,8 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
     { label: 'Dashboard', href: '/dashboard', icon: <CheckCircle size={20} /> },
     { label: 'Assessments', href: '/assessments', icon: <FileText size={20} />, badge: 8 },
     { label: 'Cases', href: '/cases', icon: <CheckCircle size={20} /> },
+    { label: 'Schedule Calendar', href: '/ic/schedule/calendar', icon: <Calendar size={20} /> },
+    { label: 'Counselor Availability', href: '/ic/schedule/counselors', icon: <Users size={20} /> },
     { label: 'Documentation', href: '/documentation', icon: <Clock size={20} /> },
     { label: 'Referrals', href: '/referrals', icon: <Phone size={20} /> },
     { label: 'Profile', href: '/profile', icon: <Users size={20} /> },

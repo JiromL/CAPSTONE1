@@ -14,66 +14,129 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [googleReady, setGoogleReady] = useState(false);
+  const [googleError, setGoogleError] = useState('');
 
   // Initialize Google Sign-In
   useEffect(() => {
+    // Only run when OAuth tab is selected
+    if (loginMethod !== 'oauth') return;
+
     const loadGoogleScript = async () => {
       try {
-        // Fetch Client ID from backend
-        const url = api('/api/auth/oauth/google/client-id');
-        const response = await fetch(url);
+        console.log('[Google OAuth] Starting initialization...');
         
-        if (!response.ok) {
-          console.warn('Could not fetch Google Client ID');
+        // If script already loaded, just reinitialize
+        if ((window as any).google?.accounts?.id) {
+          console.log('[Google OAuth] Google already loaded, reinitializing...');
+          
+          // Fetch fresh Client ID
+          const clientIdResponse = await fetch(api('/api/auth/oauth/google/client-id'));
+          if (!clientIdResponse.ok) throw new Error('Failed to fetch Client ID');
+          
+          const { client_id } = await clientIdResponse.json();
+          
+          (window as any).google.accounts.id.initialize({
+            client_id,
+            callback: handleGoogleSignIn,
+          });
+          
+          // Render button to container
+          const container = document.getElementById('google-signin-button');
+          if (container && container.children.length === 0) {
+            (window as any).google.accounts.id.renderButton(container, {
+              theme: 'outline',
+              size: 'large',
+              width: '100%',
+            });
+            setGoogleReady(true);
+            console.log('[Google OAuth] ✅ Button rendered');
+          }
           return;
         }
 
-        const data = await response.json();
-        const clientId = data.client_id;
+        // Fetch Client ID from backend
+        console.log('[Google OAuth] Fetching Client ID from:', api('/api/auth/oauth/google/client-id'));
+        const clientIdResponse = await fetch(api('/api/auth/oauth/google/client-id'));
+        
+        if (!clientIdResponse.ok) {
+          throw new Error(`Failed to fetch Client ID: ${clientIdResponse.status}`);
+        }
 
-        if (!clientId) {
-          console.warn('No Google Client ID available');
-          return;
+        const { client_id } = await clientIdResponse.json();
+        console.log('[Google OAuth] Got Client ID:', client_id?.substring(0, 20) + '...');
+
+        if (!client_id) {
+          throw new Error('No Client ID in response');
         }
 
         // Load Google Sign-In script
+        console.log('[Google OAuth] Loading Google script...');
         const script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
         script.async = true;
         script.defer = true;
 
         script.onload = () => {
-          if ((window as any).google?.accounts) {
-            (window as any).google.accounts.id.initialize({
-              client_id: clientId,
-              callback: handleGoogleSignIn,
-              auto_select: false,
-            });
+          console.log('[Google OAuth] Script loaded, initializing...');
+          if (!(window as any).google?.accounts?.id) {
+            throw new Error('google.accounts.id not available after script load');
+          }
 
-            const buttonContainer = document.getElementById('google-signin-button');
-            if (buttonContainer) {
-              (window as any).google.accounts.id.renderButton(buttonContainer, {
+          (window as any).google.accounts.id.initialize({
+            client_id,
+            callback: handleGoogleSignIn,
+          });
+
+          console.log('[Google OAuth] Looking for container...');
+          const container = document.getElementById('google-signin-button');
+          
+          if (!container) {
+            console.error('[Google OAuth] Container #google-signin-button not found in DOM');
+            setGoogleError('Container initialization failed');
+            return;
+          }
+
+          console.log('[Google OAuth] Container found, rendering button...');
+          if (container.children.length === 0) {
+            try {
+              (window as any).google.accounts.id.renderButton(container, {
                 theme: 'outline',
                 size: 'large',
                 width: '100%',
               });
               setGoogleReady(true);
+              console.log('[Google OAuth] ✅ Button rendered successfully');
+            } catch (renderErr) {
+              console.error('[Google OAuth] Render error:', renderErr);
+              setGoogleError('Failed to render button');
             }
+          } else {
+            setGoogleReady(true);
+            console.log('[Google OAuth] Container already has children');
           }
         };
 
-        script.onerror = () => {
-          console.warn('Failed to load Google Sign-In script');
+        script.onerror = (err) => {
+          console.error('[Google OAuth] Script load error:', err);
+          setGoogleError('Failed to load Google script');
         };
 
-        document.body.appendChild(script);
+        document.head.appendChild(script);
+        console.log('[Google OAuth] Script appended to head');
+
       } catch (err) {
-        console.warn('Google Sign-In setup failed:', err);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('[Google OAuth] Fatal error:', message);
+        setGoogleError(message);
       }
     };
 
-    loadGoogleScript();
-  }, []);
+    // Load when OAuth is selected and not already ready
+    if (!googleReady && !googleError) {
+      loadGoogleScript();
+    }
+
+  }, [loginMethod]);
 
   const handleGoogleSignIn = async (response: any) => {
     if (!response.credential) {
@@ -257,20 +320,39 @@ export default function LoginPage() {
 
             {/* Google OAuth Login */}
             {loginMethod === 'oauth' && (
-              <div>
-                {googleReady ? (
-                  <div
-                    id="google-signin-button"
-                    style={{ display: 'flex', justifyContent: 'center' }}
-                  />
+              <div className="space-y-3">
+                {googleError ? (
+                  <div className="text-center py-6 px-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                    <p className="text-sm text-red-700 dark:text-red-300 font-medium mb-2">⚠️ Google Sign-In Unavailable</p>
+                    <p className="text-xs text-red-600 dark:text-red-400 mb-3">{googleError}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Try using email login instead</p>
+                  </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
-                      Loading Google Sign-In...
-                    </p>
-                    <div className="inline-block">
-                      <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                    </div>
+                  <div>
+                    {!googleReady && (
+                      <div className="text-center py-8">
+                        <div className="inline-block mb-3">
+                          <div className="w-10 h-10 border-4 border-gray-300 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin"></div>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Loading Google Sign-In...
+                        </p>
+                      </div>
+                    )}
+                    {googleReady && (
+                      <div className="text-center text-xs text-gray-600 dark:text-gray-400 mb-3">
+                        Sign in with your DLSU email
+                      </div>
+                    )}
+                    <div
+                      id="google-signin-button"
+                      className="w-full flex justify-center min-h-[44px] bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600"
+                    />
+                    {googleReady && (
+                      <div className="text-xs text-center text-gray-500 dark:text-gray-500 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                        Secure sign-in powered by Google
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -15,8 +15,9 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
     { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
     { label: 'Batch Assignment', href: '/staff/batch-assign', icon: <Users size={20} /> },
     { label: 'Workload Report', href: '/staff/workload-report', icon: <FileText size={20} /> },
+    { label: 'Counselor Availability', href: '/ic/schedule/counselors', icon: <Users size={20} /> },
     { label: 'Reassignment Suggestions', href: '/staff/reassignment-suggestions', icon: <HelpCircle size={20} /> },
-    { label: 'Appointments', href: '/appointments', icon: <MessageSquare size={20} />, badge: 12 },
+    { label: 'Appointments', href: '/staff/appointments', icon: <MessageSquare size={20} />, badge: 12 },
     { label: 'Staff Settings', href: '/dashboard/staff-settings', icon: <Settings size={20} /> },
   ];
 

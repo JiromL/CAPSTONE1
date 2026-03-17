@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, HelpCircle, CheckCircle, BarChart3, MessageSquare, Settings, FileText } from 'lucide-react';
+import { Users, HelpCircle, CheckCircle, BarChart3, MessageSquare, Settings, FileText, UserPlus } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { useState } from 'react';
 
@@ -13,6 +13,7 @@ interface DashboardProps {
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Walk-in Intake', href: '/staff/walkin-intake', icon: <UserPlus size={20} /> },
     { label: 'Batch Assignment', href: '/staff/batch-assign', icon: <Users size={20} /> },
     { label: 'Workload Report', href: '/staff/workload-report', icon: <FileText size={20} /> },
     { label: 'Counselor Availability', href: '/ic/schedule/counselors', icon: <Users size={20} /> },
@@ -40,7 +41,8 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
       {/* Quick Actions */}
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <SupportLink href="/staff/walkin-intake" label="Add Walk-in Student" />
           <SupportLink href="/staff/batch-assign" label="Batch Assign Appointments" />
           <SupportLink href="/staff/workload-report" label="View Workload Report" />
           <SupportLink href="/staff/reassignment-suggestions" label="Reassignment Suggestions" />

@@ -1266,3 +1266,129 @@ def get_assessment_statistics():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@intake_bp.route('/walkin', methods=['POST'])
+@jwt_required()
+def create_walkin_intake():
+    """
+    Create a walk-in intake record for a student visiting the office.
+    Staff submits student info and the system creates an intake record.
+    
+    Request body:
+    {
+        "first_name": str,
+        "last_name": str,
+        "email": str,
+        "student_id": str (optional),
+        "phone": str (optional),
+        "concern": str (academic, mental_health, personal, relationship, career, crisis, other),
+        "is_urgent": bool,
+        "notes": str (optional)
+    }
+    """
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({"_id": ObjectId(user_id)})
+    
+    # Verify user has permission (STAFF/office assistant can create walk-ins)
+    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'IC']:
+        return jsonify({'error': 'Insufficient permissions to create walk-in intake'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['first_name', 'last_name', 'email']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Email validation
+        if '@' not in data.get('email', ''):
+            return jsonify({'error': 'Invalid email address'}), 400
+        
+        # Generate IDs
+        counseling_id = generate_counseling_id()
+        
+        # Determine appointment date based on urgency
+        is_urgent = data.get('is_urgent', False)
+        appointment_date, days_string = calculate_appointment_date(is_urgent, 'high' if is_urgent else 'normal')
+        
+        # Create case record
+        case_id = ObjectId()
+        case_data = {
+            '_id': case_id,
+            'counseling_id': counseling_id,
+            'student_id': data.get('student_id', ''),
+            'student_email': data.get('email'),
+            'student_name': f"{data.get('first_name')} {data.get('last_name')}",
+            'phone': data.get('phone', ''),
+            'status': 'ACTIVE',
+            'created_at': datetime.utcnow(),
+            'created_by': user_id,
+            'intake_source': 'WALKIN',
+            'notes': data.get('notes', ''),
+        }
+        db.db.cases.insert_one(case_data)
+        
+        # Create intake record
+        concern = data.get('concern', 'other')
+        
+        intake_data = {
+            '_id': ObjectId(),
+            'case_id': case_id,
+            'counseling_id': counseling_id,
+            'status': IntakeStatus.PENDING,
+            'student_name': f"{data.get('first_name')} {data.get('last_name')}",
+            'student_email': data.get('email'),
+            'student_id': data.get('student_id', ''),
+            'phone': data.get('phone', ''),
+            'is_emergency': is_urgent,
+            'is_walkin': True,
+            'walkin_notes': data.get('notes', ''),
+            'created_at': datetime.utcnow(),
+            'created_by': user_id,
+            'created_by_role': user.get('role'),
+            'responses': {
+                'purpose': concern,
+                'concern_details': f"Walk-in: {data.get('notes', '')}",
+            },
+            'appointment_date': appointment_date,
+            'estimated_appointment_days': days_string,
+        }
+        result = db.db.intakes.insert_one(intake_data)
+        
+        # Create initial appointment record
+        appointment_data = {
+            '_id': ObjectId(),
+            'counseling_id': counseling_id,
+            'case_id': case_id,
+            'student_email': data.get('email'),
+            'status': AppointmentStatus.PENDING,
+            'appointment_type': 'INITIAL_CONSULTATION',
+            'scheduled_date': appointment_date,
+            'is_walkin': True,
+            'created_at': datetime.utcnow(),
+            'created_by': 'WALKIN_SYSTEM',
+        }
+        db.db.appointments.insert_one(appointment_data)
+        
+        # Audit log
+        audit_log(
+            user_id,
+            'CREATE_WALKIN_INTAKE',
+            f"Created walk-in intake for {data.get('first_name')} {data.get('last_name')} ({data.get('email')})",
+            result.inserted_id
+        )
+        
+        return jsonify({
+            'success': True,
+            'intake_id': str(result.inserted_id),
+            'case_id': str(case_id),
+            'counseling_id': counseling_id,
+            'message': f'Walk-in intake created. Estimated appointment in {days_string}.',
+            'appointment_date': appointment_date.isoformat(),
+        }), 201
+        
+    except Exception as e:
+        current_app.logger.error(f"Error creating walk-in intake: {str(e)}")
+        return jsonify({'error': str(e)}), 500

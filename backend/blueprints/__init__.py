@@ -10,6 +10,7 @@ from .documentation import documentation_bp
 from .counseling import counseling_bp
 from .high_risk import high_risk_bp, dashboard_bp
 from .referrals import referrals_bp
+from .check_ins import check_ins_bp
 from .reservations import reservations_bp
 from .integrations import integrations_bp
 from .cases import cases_bp
@@ -25,6 +26,7 @@ __all__ = [
     'high_risk_bp',
     'dashboard_bp',
     'referrals_bp',
+    'check_ins_bp',
     'reservations_bp',
     'integrations_bp',
     'cases_bp',

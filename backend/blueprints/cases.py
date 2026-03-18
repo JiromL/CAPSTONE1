@@ -112,9 +112,16 @@ def create_case():
         'case_type': data.get('case_type', CaseType.DEVELOPMENTAL.value),
         'presenting_issue': data.get('presenting_issue', ''),
         'risk_level': data.get('risk_level', RiskLevel.GREEN.value),
+        
+        # NEW: Client status and transaction tracking
+        'client_status': data.get('client_status', 'ACTIVE'),  # ACTIVE, INACTIVE, CHECK_IN_ONLY, etc.
+        'transaction_type': data.get('transaction_type', 'NEW_INTAKE'),  # NEW_INTAKE, CHECK_IN, SELF_REFERRED, etc.
+        'primary_concern': data.get('presenting_issue', ''),  # Can differ from presenting issue
+        
         'session_count': 0,
         'target_sessions': data.get('target_sessions'),
         'sessions': [],
+        'check_ins': [],  # Track check-in history
         'last_session_date': None,
         'next_appointment': data.get('next_appointment'),
         'notes': [],
@@ -364,3 +371,64 @@ def close_case(case_id):
         'success': True,
         'message': 'Case closed'
     }), 200
+
+
+@cases_bp.route('/<case_id>/status', methods=['PUT'])
+@jwt_required()
+def update_client_status(case_id):
+    """Update client status (ACTIVE, INACTIVE, CHECK_IN_ONLY, etc.)"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    # Check permission
+    if not has_permission(user.get('role'), PermissionType.EDIT_CASE):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    
+    try:
+        case = db.db.cases.find_one({'_id': ObjectId(case_id)})
+    except:
+        return jsonify({'error': 'Invalid case ID'}), 400
+    
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+    
+    data = request.get_json()
+    
+    new_status = data.get('client_status')
+    if not new_status:
+        return jsonify({'error': 'client_status is required'}), 400
+    
+    # Validate status
+    valid_statuses = ['ACTIVE', 'INACTIVE', 'CHECK_IN_ONLY', 'WITH_MH_CHECK_IN', 
+                      'UNDER_ACCOMMODATION', 'TERMINATION_PENDING']
+    if new_status not in valid_statuses:
+        return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
+    
+    update_fields = {
+        'client_status': new_status,
+        'updated_at': datetime.utcnow()
+    }
+    
+    # Also update primary concern if provided
+    if data.get('primary_concern'):
+        update_fields['primary_concern'] = data['primary_concern']
+    
+    # Add reason/notes if provided
+    if data.get('reason'):
+        update_fields['status_change_reason'] = data['reason']
+    
+    db.db.cases.update_one(
+        {'_id': ObjectId(case_id)},
+        {'$set': update_fields}
+    )
+    
+    return jsonify({
+        'success': True,
+        'case_id': str(case['_id']),
+        'client_status': new_status,
+        'message': f'Client status updated to {new_status}'
+    }), 200
+

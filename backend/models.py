@@ -84,6 +84,26 @@ class ReferralType(str, Enum):
     EXTERNAL = "EXTERNAL"
 
 
+class ClientStatus(str, Enum):
+    """Client service status"""
+    ACTIVE = "ACTIVE"                          # Currently in active counseling
+    INACTIVE = "INACTIVE"                      # Not currently receiving services
+    CHECK_IN_ONLY = "CHECK_IN_ONLY"           # Periodic check-ins only, no ongoing counseling
+    UNDER_ACCOMMODATION = "UNDER_ACCOMMODATION"  # Under SDFO accommodation
+    WITH_MH_CHECK_IN = "WITH_MH_CHECK_IN"     # Collaborating with MH, check-in only
+    TERMINATION_PENDING = "TERMINATION_PENDING"  # Being closed/terminated
+
+
+class TransactionType(str, Enum):
+    """Type of client contact/transaction"""
+    NEW_INTAKE = "NEW_INTAKE"           # First-time intake
+    CHECK_IN = "CHECK_IN"               # Periodic check-in for existing client
+    SELF_REFERRED = "SELF_REFERRED"     # Self-referral
+    REFERRED = "REFERRED"               # Referred from another department
+    WALK_IN = "WALK_IN"                 # Walk-in visit
+    FOLLOW_UP = "FOLLOW_UP"             # Follow-up from previous contact
+
+
 class AssessmentType(str, Enum):
     """Types of assessment tools"""
     PHQ9 = "PHQ9"            # Depression screening

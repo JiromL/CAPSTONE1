@@ -26,13 +26,13 @@ const ASSESSMENTS = {
   gad7: {
     name: 'Anxiety Screening',
     questions: [
-      'Are you anxious?',
-      'Can you stop or control worrying?',
-      'Do you worry too much?',
-      'Can you relax easily?',
-      'Are you restless?',
-      'Are you easily annoyed or irritable?',
-      'Are you afraid something bad might happen?',
+      'Feeling nervous, anxious, or on edge.',
+      'Not being able to stop or control worrying.',
+      'Worrying too much about different things.',
+      'Trouble relaxing.',
+      'Being so restless that it is hard to sit still.',
+      'Becoming easily annoyed or irritable.',
+      'Feeling afraid as if something awful might happen.',
     ]
   },
   pss: {
@@ -148,7 +148,7 @@ export default function IntakePage() {
   const [autoSuggestedDate, setAutoSuggestedDate] = useState('');
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
-  const [communicationMethod, setCommunicationMethod] = useState<'zoom' | 'google_meet' | 'in_person'>('zoom');
+  const [communicationMethod, setCommunicationMethod] = useState<'zoom' | 'google_meet' | 'in_person'>('in_person');
   const [counselingId, setCounselingId] = useState('');
   const [appointmentData, setAppointmentData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -509,34 +509,44 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold mb-2 text-white">What brings you in today?</h2>
-          <p className="text-sm text-white mb-6">Select the concern that best describes your situation</p>
-
-            <div className="space-y-2 mb-8">
-              {Object.entries(CONCERN_TYPES).map(([key, concern]) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedConcern(key)}
-                  className={`w-full p-3 border rounded text-left transition ${
-                    selectedConcern === key
-                      ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
-                      : 'border-gray-300 dark:border-gray-600 text-white hover:border-gray-400 dark:hover:border-gray-500'
-                  }`}
-                >
-                  {concern.label}
-                </button>
-              ))}
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="inline-block px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-700 mb-3">
+              Step 1 of 6
             </div>
-
-            <button
-              disabled={!selectedConcern}
-              onClick={handleConcernSelection}
-              className="w-full px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next →
-            </button>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white mb-2">What brings you in today?</h1>
+            <p className="text-gray-600 dark:text-gray-300">Tell us about your primary concern</p>
           </div>
+
+          {/* Concern Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+            {Object.entries(CONCERN_TYPES).map(([key, concern]) => (
+              <button
+                key={key}
+                onClick={() => setSelectedConcern(key)}
+                className={`p-4 border-2 rounded-lg text-left transition-all ${
+                  selectedConcern === key
+                    ? 'bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-600'
+                    : 'bg-white border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-gray-600'
+                }`}
+              >
+                <p className={`font-semibold ${selectedConcern === key ? 'text-blue-900 dark:text-blue-200' : 'text-gray-900 dark:text-gray-100'}`}>
+                  {concern.label}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          {/* Action Button */}
+          <button
+            disabled={!selectedConcern}
+            onClick={handleConcernSelection}
+            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Continue →
+          </button>
+        </div>
       </DashboardLayout>
     );
   }
@@ -555,6 +565,15 @@ export default function IntakePage() {
       career: 'Career Readiness Screening',
       social: 'Social Functioning Screening'
     };
+
+    const assessmentDescriptions: {[key: string]: string} = {
+      phq9: 'Quick assessment for depressive symptoms',
+      gad7: 'Evaluate anxiety levels and worries',
+      pss: 'Measure perceived stress levels',
+      acad: 'Assess academic-related concerns',
+      career: 'Evaluate career clarity and confidence',
+      social: 'Understand social and relationship concerns'
+    };
     
     return (
       <DashboardLayout
@@ -564,45 +583,62 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-white mb-1">Which screenings would you like to complete?</h2>
-          <p className="text-sm text-white mb-8">Select all that apply based on your concerns</p>
-
-            <div className="space-y-2 mb-8">
-              {allowedAssessments.map((assessment) => (
-                <label
-                  key={assessment}
-                  className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:border-gray-400 dark:hover:border-gray-500"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedScreenings.has(assessment)}
-                    onChange={() => toggleScreening(assessment)}
-                    className="w-4 h-4 mr-3"
-                  />
-                  <span className="text-white">
-                    {assessmentLabels[assessment] || assessment}
-                  </span>
-                </label>
-              ))}
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="inline-block px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-700 mb-3">
+              Step 2 of 6
             </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStep('concern')}
-                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-white rounded hover:border-gray-400 dark:hover:border-gray-500"
-              >
-                ← Back
-              </button>
-              <button
-                disabled={selectedScreenings.size === 0}
-                onClick={handleScreeningSelection}
-                className="flex-1 px-4 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next →
-              </button>
-            </div>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white mb-2">Screening Assessments</h1>
+            <p className="text-gray-600 dark:text-gray-300">Select which assessments you'd like to complete</p>
           </div>
+
+          {/* Screening Cards */}
+          <div className="space-y-3 mb-8">
+            {allowedAssessments.map((assessment) => (
+              <label
+                key={assessment}
+                className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  selectedScreenings.has(assessment)
+                    ? 'bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-600'
+                    : 'bg-white border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-gray-600'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedScreenings.has(assessment)}
+                  onChange={() => toggleScreening(assessment)}
+                  className="w-5 h-5 mt-1 mr-4 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <p className={`font-semibold ${selectedScreenings.has(assessment) ? 'text-blue-900 dark:text-blue-200' : 'text-gray-900 dark:text-gray-100'}`}>
+                    {assessmentLabels[assessment] || assessment}
+                  </p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                    {assessmentDescriptions[assessment]}
+                  </p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep('concern')}
+              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-900 rounded-lg hover:bg-gray-50 font-semibold transition-colors dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+            >
+              ← Back
+            </button>
+            <button
+              disabled={selectedScreenings.size === 0}
+              onClick={handleScreeningSelection}
+              className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Continue →
+            </button>
+          </div>
+        </div>
       </DashboardLayout>
     );
   }
@@ -619,64 +655,86 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold mb-6 text-white">Is this urgent?</h2>
-
-            <div className="space-y-2 mb-6">
-              <button
-                onClick={() => setIsUrgent(true)}
-                className={`w-full p-3 border rounded text-left transition ${
-                  isUrgent === true
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}
-              >
-                Yes, I need immediate support
-              </button>
-
-              <button
-                onClick={() => setIsUrgent(false)}
-                className={`w-full p-3 border rounded text-left transition ${
-                  isUrgent === false
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}
-              >
-                No, I can wait for an appointment
-              </button>
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="inline-block px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-700 mb-3">
+              Step 3 of 6
             </div>
-
-            {isUrgent && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  Describe what's happening (optional)
-                </label>
-                <textarea
-                  value={urgencyNotes}
-                  onChange={(e) => setUrgencyNotes(e.target.value)}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-900 text-sm"
-                  rows={3}
-                  placeholder="What is happening right now?"
-                />
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStep('concern')}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm hover:border-gray-400"
-              >
-                ← Back
-              </button>
-              <button
-                disabled={isUrgent === null}
-                onClick={() => handleUrgencyResponse(isUrgent === true)}
-                className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next →
-              </button>
-            </div>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white mb-2">How urgent is your situation?</h1>
+            <p className="text-gray-600 dark:text-gray-300">This helps us prioritize your support</p>
           </div>
+
+          {/* Urgency Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {/* Not Urgent */}
+            <button
+              onClick={() => setIsUrgent(false)}
+              className={`p-6 border-2 rounded-lg text-left transition-all ${
+                isUrgent === false
+                  ? 'bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-600'
+                  : 'bg-white border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-gray-600'
+              }`}
+            >
+              <p className={`text-lg font-semibold ${isUrgent === false ? 'text-green-900 dark:text-green-200' : 'text-gray-900 dark:text-gray-100'}`}>
+                I can wait
+              </p>
+              <p className={`text-sm mt-1 ${isUrgent === false ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                Schedule an appointment within a week
+              </p>
+            </button>
+
+            {/* Urgent */}
+            <button
+              onClick={() => setIsUrgent(true)}
+              className={`p-6 border-2 rounded-lg text-left transition-all ${
+                isUrgent === true
+                  ? 'bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-600'
+                  : 'bg-white border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-gray-600'
+              }`}
+            >
+              <p className={`text-lg font-semibold ${isUrgent === true ? 'text-amber-900 dark:text-amber-200' : 'text-gray-900 dark:text-gray-100'}`}>
+                I need help soon
+              </p>
+              <p className={`text-sm mt-1 ${isUrgent === true ? 'text-amber-700 dark:text-amber-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                I'd like support as soon as possible
+              </p>
+            </button>
+          </div>
+
+          {/* Optional Notes for Urgent Cases */}
+          {isUrgent && (
+            <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-900/20 dark:border-amber-700">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                What's happening? (optional)
+              </label>
+              <textarea
+                value={urgencyNotes}
+                onChange={(e) => setUrgencyNotes(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                rows={4}
+                placeholder="Share what you're experiencing..."
+              />
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep('concern')}
+              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-900 rounded-lg hover:bg-gray-50 font-semibold transition-colors dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+            >
+              ← Back
+            </button>
+            <button
+              disabled={isUrgent === null}
+              onClick={() => handleUrgencyResponse(isUrgent === true)}
+              className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Continue →
+            </button>
+          </div>
+        </div>
       </DashboardLayout>
     );
   }
@@ -695,57 +753,87 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold mb-6 text-white">Immediate Support</h2>
-
-            <div className="space-y-3 mb-6">
-              <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
-                  <p className="font-semibold text-white">24/7 Crisis Hotline</p>
-                <p className="text-white text-sm">988 (Suicide & Crisis Lifeline)</p>
-              </div>
-
-              {isBusinessHours && (
-                <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
-                  <p className="font-semibold mb-1 text-white">Talk Now (Business Hours)</p>
-                  <p className="text-white text-sm mb-3">Monday - Friday, 9 AM - 5 PM</p>
-                  <button
-                    onClick={() => setStep('appointment')}
-                    className="w-full px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200 text-sm"
-                  >
-                    Schedule Now
-                  </button>
-                </div>
-              )}
-
-              {!isBusinessHours && (
-                <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
-                  <p className="font-semibold mb-1 text-white">Hours</p>
-                  <p className="text-white text-sm">Monday - Friday, 9 AM - 5 PM</p>
-                  <p className="text-white text-sm mt-1">Use 988 for crisis support outside these hours</p>
-                </div>
-              )}
-
-              <div className="p-4 border border-gray-300 dark:border-gray-600 rounded">
-                <p className="font-semibold text-white">Campus Security</p>
-                <p className="text-white text-sm">Ext. 911</p>
-              </div>
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="inline-block px-3 py-1 bg-red-50 border border-red-200 rounded-full text-sm text-red-700 mb-3">
+              Get Support Now
             </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStep('urgency')}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm hover:border-gray-400"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={() => setStep('appointment')}
-                className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
-              >
-                Next →
-              </button>
-            </div>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white mb-2">Resources Available</h1>
+            <p className="text-gray-600 dark:text-gray-300">Multiple ways to get help right now</p>
           </div>
+
+          {/* Quick Access Resources */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {/* 24/7 Crisis Line */}
+            <div className="p-5 bg-red-50 border-2 border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-700">
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300 mb-2">24/7 CRISIS SUPPORT</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Call 988</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">Suicide & Crisis Lifeline - Anytime</p>
+              <a
+                href="tel:988"
+                className="block w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-center transition-colors"
+              >
+                Call 988 Now
+              </a>
+            </div>
+
+            {/* Campus Security */}
+            <div className="p-5 bg-gray-100 border-2 border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-600">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">CAMPUS EMERGENCY</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Ext. 911</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">Campus Security - For emergencies</p>
+              <a
+                href="tel:911"
+                className="block w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg text-center transition-colors"
+              >
+                Call Emergency
+              </a>
+            </div>
+
+            {/* CPS Direct Line (if Business Hours) */}
+            {isBusinessHours && (
+              <div className="p-5 bg-green-50 border-2 border-green-200 rounded-lg md:col-span-2 dark:bg-green-900/20 dark:border-green-700">
+                <p className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">TALK TO A COUNSELOR NOW</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">Monday - Friday, 9 AM - 5 PM</p>
+                <button
+                  onClick={() => setStep('appointment')}
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-center transition-colors"
+                >
+                  Schedule Emergency Appointment →
+                </button>
+              </div>
+            )}
+
+            {/* Crisis Chat */}
+            <a
+              href="https://suicidepreventionlifeline.org/chat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-5 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-colors dark:bg-blue-900/20 dark:border-blue-700 dark:hover:bg-blue-900/40"
+            >
+              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">CRISIS CHAT</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Talk Online</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">24/7 support via chat</p>
+            </a>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep('urgency')}
+              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-900 rounded-lg hover:bg-gray-50 font-semibold transition-colors dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={() => setStep('appointment')}
+              className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              Continue →
+            </button>
+          </div>
+        </div>
       </DashboardLayout>
     );
   }
@@ -759,6 +847,7 @@ export default function IntakePage() {
     const currentQuestion = assessmentInfo.questions[currentQuestionIdx];
     const totalQuestions = selectedAssessments.reduce((sum, a) => sum + ASSESSMENTS[a as keyof typeof ASSESSMENTS].questions.length, 0);
     const completedQuestions = selectedAssessments.slice(0, currentAssessmentIdx).reduce((sum, a) => sum + ASSESSMENTS[a as keyof typeof ASSESSMENTS].questions.length, 0) + currentQuestionIdx;
+    const progressPercent = ((completedQuestions) / totalQuestions) * 100;
 
     return (
       <DashboardLayout
@@ -768,42 +857,68 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl">
-          <div className="mb-6">
-            <div className="flex justify-between text-xs text-white mb-2">
-              <span>Question {completedQuestions + 1} of {totalQuestions}</span>
-              <span>{assessmentInfo.name}</span>
+        <div className="max-w-2xl mx-auto">
+          {/* Progress Section */}
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm text-blue-600 dark:text-blue-400 font-semibold mb-1">
+                  {assessmentInfo.name}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Question {completedQuestions + 1} of {totalQuestions}
+                </div>
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {Math.round(progressPercent)}%
+              </div>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
               <div
-                className="bg-gray-900 dark:bg-gray-100 h-1.5 rounded-full transition-all"
-                style={{ width: `${((completedQuestions) / totalQuestions) * 100}%` }}
+                className="bg-blue-500 dark:bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
 
-          <h2 className="text-lg font-semibold mb-6 text-white">{currentQuestion}</h2>
+          {/* Question */}
+          <div className="mb-10">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white leading-snug">
+              {currentQuestion}
+            </h2>
+          </div>
 
-            <div className="space-y-2 mb-6">
-              {RESPONSE_SCALE.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => handleAnswerQuestion(option.value)}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded text-left text-sm hover:border-gray-400 dark:hover:border-gray-500"
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+          {/* Response Options */}
+          <div className="grid grid-cols-2 gap-3 mb-10">
+            {RESPONSE_SCALE.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleAnswerQuestion(option.value)}
+                className="p-4 bg-white border border-gray-300 hover:border-blue-300 hover:bg-blue-50 rounded-lg text-center transition-all dark:bg-gray-800 dark:border-gray-700 dark:hover:border-blue-600 dark:hover:bg-gray-750"
+              >
+                <p className="text-gray-900 dark:text-white font-medium">{option.label}</p>
+              </button>
+            ))}
+          </div>
 
+          {/* Navigation */}
+          <div className="flex gap-3">
             <button
               disabled={completedQuestions === 0}
               onClick={handlePreviousQuestion}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-900 rounded-lg hover:bg-gray-50 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
             >
-              ← Back
+              ← Previous
+            </button>
+            <button
+              disabled={completedQuestions === 0}
+              onClick={() => setStep('appointment')}
+              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-900 rounded-lg hover:bg-gray-50 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+            >
+              Skip to Appointment
             </button>
           </div>
+        </div>
       </DashboardLayout>
     );
   }
@@ -827,25 +942,60 @@ export default function IntakePage() {
 
             {/* Automatic Appointment Info */}
             {automaticAppointmentInfo && (
-              <div className="p-4 border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
-                <p className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-2">
-                  📅 AUTOMATIC APPOINTMENT SCHEDULED
-                </p>
-                <p className="text-lg font-bold text-blue-700 dark:text-blue-300 mb-1">
+              <div className={`p-4 border-2 rounded ${
+                automaticAppointmentInfo.risk_level === 'RED' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
+                automaticAppointmentInfo.risk_level === 'YELLOW' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+                'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold dark:text-gray-100">
+                    📅 AUTOMATIC APPOINTMENT SCHEDULED
+                  </p>
+                  {automaticAppointmentInfo.risk_level && (
+                    <div className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                      automaticAppointmentInfo.risk_level === 'RED' ? 'bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                      automaticAppointmentInfo.risk_level === 'YELLOW' ? 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                      'bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                    }`}>
+                      {automaticAppointmentInfo.risk_level}
+                    </div>
+                  )}
+                </div>
+                <p className={`text-lg font-bold mb-1 ${
+                  automaticAppointmentInfo.risk_level === 'RED' ? 'text-red-700 dark:text-red-300' :
+                  automaticAppointmentInfo.risk_level === 'YELLOW' ? 'text-yellow-700 dark:text-yellow-300' :
+                  'text-blue-700 dark:text-blue-300'
+                }`}>
                   {automaticAppointmentInfo.automatic_date_formatted}
                 </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+                <p className={`text-xs mb-3 ${
+                  automaticAppointmentInfo.risk_level === 'RED' ? 'text-red-600 dark:text-red-400' :
+                  automaticAppointmentInfo.risk_level === 'YELLOW' ? 'text-yellow-600 dark:text-yellow-400' :
+                  'text-blue-600 dark:text-blue-400'
+                }`}>
                   Based on your assessment scores ({automaticAppointmentInfo.estimated_days})
                 </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  {automaticAppointmentInfo.is_emergency ? (
-                    <>⚠️ Emergency: High priority scheduling</>
-                  ) : automaticAppointmentInfo.urgency_level === 'high' ? (
-                    <>🔴 High Priority: Prioritized scheduling</>
+                <p className={`text-xs ${
+                  automaticAppointmentInfo.risk_level === 'RED' ? 'text-red-600 dark:text-red-400' :
+                  automaticAppointmentInfo.risk_level === 'YELLOW' ? 'text-yellow-600 dark:text-yellow-400' :
+                  'text-blue-600 dark:text-blue-400'
+                }`}>
+                  {automaticAppointmentInfo.risk_level === 'RED' ? (
+                    <>🚨 Critical: Crisis management within 30 minutes</>
+                  ) : automaticAppointmentInfo.risk_level === 'YELLOW' ? (
+                    <>🔴 High Priority: Schedule within 1 business day</>
                   ) : (
-                    <>✓ Standard: Regular scheduling</>
+                    <>✓ Standard: Schedule 2-3 business days</>
                   )}
                 </p>
+                {automaticAppointmentInfo.appointment_time && automaticAppointmentInfo.risk_level !== 'RED' && (
+                  <p className={`text-xs mt-2 pt-2 border-t ${
+                    automaticAppointmentInfo.risk_level === 'YELLOW' ? 'border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400' :
+                    'border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    ⏰ Appointment time: <span className="font-semibold">{automaticAppointmentInfo.appointment_time}</span>
+                  </p>
+                )}
               </div>
             )}
 
@@ -1041,185 +1191,163 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left Column: Success Message and Information */}
-          <div className="col-span-2 space-y-6">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full mb-4">
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-semibold mb-2">Intake Complete</h2>
-              <p className="text-white">Your appointment has been scheduled. You'll receive a confirmation email shortly.</p>
+        <div className="max-w-3xl mx-auto">
+          {/* Success Header */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
+              <svg className="w-8 h-8 text-green-600 dark:text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
             </div>
-
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded p-4">
-              <div className="flex gap-3">
-                <svg className="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <div className="text-sm text-white">
-                  <p className="font-semibold">What happens next?</p>
-                  <ul className="mt-2 space-y-1">
-                    <li>✓ Check your email for a confirmation message</li>
-                    <li>✓ A counselor will contact you to confirm your appointment</li>
-                    <li>✓ You'll receive login instructions for your appointment</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="font-semibold text-white">Need immediate support?</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <a href="tel:988" className="p-3 border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/40 text-sm font-medium text-center">
-                  📞 Call 988<br/><span className="text-xs text-white">Crisis Hotline</span>
-                </a>
-                <a href="https://suicidepreventionlifeline.org" target="_blank" rel="noopener noreferrer" className="p-3 border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 text-sm font-medium text-center">
-                  💬 Crisis Chat<br/><span className="text-xs text-white">24/7 Support</span>
-                </a>
-              </div>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Intake Complete</h1>
+            <p className="text-gray-600 dark:text-gray-300">Your appointment has been scheduled successfully</p>
           </div>
 
-          {/* Right Column: Appointment Summary */}
-          <div className="col-span-1">
-            {/* DEBUG: Show appointment data state */}
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded text-xs text-red-200 font-mono break-all">
-              <div className="font-bold mb-2">🔴 DEBUG INFO</div>
-              <div>step value: <span className="text-yellow-300">{step}</span></div>
-              <div>appointmentData exists: {appointmentData ? '✅ YES' : '❌ NO'}</div>
-              <div>typeof appointmentData: {typeof appointmentData}</div>
-              {appointmentData && (
-                <>
-                  <div>join_url: {appointmentData.join_url ? '✅ YES' : '❌ NO'}</div>
-                  <div>meeting_id: {appointmentData.meeting_id || 'NONE'}</div>
-                  <div>platform: {appointmentData.platform || 'NONE'}</div>
-                  <div className="mt-2 font-bold">FULL DATA:</div>
-                  <div className="whitespace-pre-wrap">{JSON.stringify(appointmentData, null, 2)}</div>
-                </>
-              )}
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Left Column: Next Steps & Resources */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Next Steps */}
+              <div className="p-5 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">What happens next?</h3>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <span className="text-green-600 dark:text-green-500 font-bold">✓</span>
+                    <div>
+                      <p className="text-gray-900 dark:text-white font-semibold">Check your email</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">You'll receive confirmation with your appointment details</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-green-600 dark:text-green-500 font-bold">✓</span>
+                    <div>
+                      <p className="text-gray-900 dark:text-white font-semibold">Counselor contact</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">We'll confirm your appointment time with you</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-green-600 dark:text-green-500 font-bold">✓</span>
+                    <div>
+                      <p className="text-gray-900 dark:text-white font-semibold">Ready to meet</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">You'll receive login info for your appointment</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resources */}
+              <div className="p-5 bg-gray-50 border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Need support?</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <a href="tel:988" className="p-3 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors dark:bg-red-900/20 dark:border-red-800 dark:hover:bg-red-900/40">
+                    <p className="text-red-700 dark:text-red-400 font-semibold text-sm">Crisis Support</p>
+                    <p className="text-gray-900 dark:text-white font-bold">Call 988</p>
+                  </a>
+                  <a href="https://suicidepreventionlifeline.org/chat" target="_blank" rel="noopener noreferrer" className="p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors dark:bg-blue-900/20 dark:border-blue-800 dark:hover:bg-blue-900/40">
+                    <p className="text-blue-700 dark:text-blue-400 font-semibold text-sm">Chat</p>
+                    <p className="text-gray-900 dark:text-white font-bold">24/7 Online</p>
+                  </a>
+                </div>
+              </div>
             </div>
 
-            <div className="border border-gray-300 dark:border-gray-600 rounded p-6 bg-gray-50 dark:bg-gray-900/50 sticky top-20">
-              <h3 className="text-lg font-semibold mb-6 pb-4 border-b border-gray-300 dark:border-gray-600 text-white">Your Appointment</h3>
-              
-              <div className="space-y-5">
-                {counselingId && (
-                  <div>
-                    <p className="text-xs font-semibold text-white mb-1">REFERENCE ID:</p>
-                    <p className="text-sm font-semibold text-white break-all font-mono">{counselingId}</p>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-xs font-semibold text-white mb-1">REASON:</p>
-                  <p className="text-sm font-semibold text-white capitalize">{selectedConcern || 'Not specified'}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-white mb-1">SCHEDULED DATE:</p>
-                  <p className="text-sm font-semibold text-white">
-                    {appointmentData?.appointment_date 
-                      ? new Date(appointmentData.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : 'Pending'}
-                  </p>
-                </div>
-
-                {!isUrgent && appointmentTime && (
-                  <div>
-                    <p className="text-xs font-semibold text-white mb-1">TIME:</p>
-                    <p className="text-sm font-semibold text-white">{appointmentTime}</p>
-                  </div>
-                )}
-
-                {isUrgent && (
-                  <div>
-                    <p className="text-xs font-semibold text-white mb-1">PRIORITY:</p>
-                    <p className="text-sm font-semibold text-white">URGENT - Within 30 min</p>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-xs font-semibold text-white mb-1">FORMAT:</p>
-                  <p className="text-sm font-semibold text-white capitalize">
-                    {appointmentData?.preferred_platform?.replace(/_/g, ' ') || communicationMethod?.replace(/_/g, ' ') || 'Not specified'}
-                  </p>
-                </div>
-
-                {/* Meeting Link Section - Explicit Rendering */}
-                {appointmentData && appointmentData.join_url ? (
-                  <>
-                    {/* INLINE STYLE TEST - Should always show if appointmentData.join_url exists */}
-                    <div style={{
-                      backgroundColor: '#ff0000',
-                      color: '#fff',
-                      padding: '12px',
-                      marginBottom: '12px',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      fontWeight: 'bold'
-                    }}>
-                      🎯 INLINE STYLE TEST: join_url is present
+            {/* Right Column: Appointment Summary */}
+            <div className="lg:col-span-1">
+              <div className="p-5 bg-gray-50 border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700 sticky top-20">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                  Your Appointment
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Reference ID */}
+                  {counselingId && (
+                    <div>
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">REFERENCE ID</p>
+                      <p className="text-sm font-mono text-blue-600 dark:text-blue-400 break-all">{counselingId}</p>
                     </div>
+                  )}
 
-                    {/* Tailwind Version */}
-                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-400 dark:border-purple-600 rounded animate-pulse">
-                      <p className="text-xs font-bold text-purple-900 dark:text-purple-200 mb-3">✅ MEETING LINK READY</p>
+                  {/* Risk Level */}
+                  {appointmentData?.risk_level && (
+                    <div>
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">RISK LEVEL</p>
+                      <div className={`inline-block px-3 py-1 rounded-full font-bold text-sm ${
+                        appointmentData.risk_level === 'RED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        appointmentData.risk_level === 'YELLOW' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      }`}>
+                        {appointmentData.risk_level}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reason */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">REASON</p>
+                    <p className="text-gray-900 dark:text-white font-semibold capitalize">{selectedConcern || 'Personal'}</p>
+                  </div>
+
+                  {/* Date */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">SCHEDULED</p>
+                    <p className="text-gray-900 dark:text-white font-semibold">
+                      {appointmentData?.appointment_date 
+                        ? new Date(appointmentData.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : 'Pending'}
+                    </p>
+                  </div>
+
+                  {/* Time */}
+                  {!isUrgent && (appointmentData?.appointment_time || appointmentTime) && (
+                    <div>
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">TIME</p>
+                      <p className="text-gray-900 dark:text-white font-semibold">{appointmentData?.appointment_time || appointmentTime}</p>
+                    </div>
+                  )}
+
+                  {(isUrgent || appointmentData?.risk_level === 'RED') && (
+                    <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">PRIORITY</p>
+                      <p className="text-red-600 dark:text-red-400 font-bold flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 bg-red-600 dark:bg-red-400 rounded-full animate-pulse"></span>
+                        🚨 Urgent - Within 30 minutes
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Format */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">FORMAT</p>
+                    <p className="text-gray-900 dark:text-white font-semibold capitalize">
+                      {appointmentData?.preferred_platform?.replace(/_/g, ' ') || communicationMethod?.replace(/_/g, ' ') || 'Online'}
+                    </p>
+                  </div>
+
+                  {/* Meeting Link if Available */}
+                  {appointmentData?.join_url && (
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                       <a 
                         href={appointmentData.join_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="block p-3 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded font-bold text-center mb-3 transition"
+                        className="block w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-center transition-colors text-sm"
                       >
-                        🎥 {appointmentData.preferred_platform === 'zoom' ? 'JOIN ZOOM' : appointmentData.preferred_platform === 'google_meet' ? 'JOIN GOOGLE MEET' : 'JOIN MEETING'} →
+                        Join Meeting →
                       </a>
-                      <div className="p-2 bg-gray-900 dark:bg-gray-800 rounded text-xs font-mono text-white break-all space-y-2">
-                        {appointmentData.meeting_id && (
-                          <div><span className="text-gray-400">Meeting ID:</span> <span className="text-purple-300 font-bold">{appointmentData.meeting_id}</span></div>
-                        )}
-                        {appointmentData.passcode && (
-                          <div><span className="text-gray-400">Passcode:</span> <span className="text-purple-300 font-bold">{appointmentData.passcode}</span></div>
-                        )}
-                        {appointmentData.meeting_code && (
-                          <div><span className="text-gray-400">Code:</span> <span className="text-purple-300 font-bold">{appointmentData.meeting_code}</span></div>
-                        )}
-                        <div><span className="text-gray-400">Link:</span></div>
-                        <div className="text-purple-300 underline break-all text-xs">{appointmentData.join_url}</div>
-                      </div>
                     </div>
-                  </>
-                ) : appointmentData ? (
-                  <div className="p-2 bg-gray-800 rounded mb-3 text-xs text-yellow-400 break-all font-mono border border-yellow-600">
-                    <div>📍 {appointmentData.preferred_platform === 'in_person' ? 'In-Person: ' + (appointmentData.location || 'CPS Office') : '⏳ Meeting link will be sent via email'}</div>
-                  </div>
-                ) : (
-                  <div className="p-2 bg-blue-900/50 rounded mb-3 text-xs text-blue-300 border border-blue-600">
-                    <div>ℹ️ No appointment details available</div>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-xs font-semibold text-white mb-1">PRIVACY:</p>
-                  <p className="text-sm font-semibold text-white">
-                    {isAnonymous ? 'Anonymous' : 'Standard'}
-                  </p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-6 mt-8">
-          <div className="col-span-2">
-            <Link href="/dashboard">
-              <button className="w-full px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-200">
-                Return to Dashboard
-              </button>
-            </Link>
-          </div>
+          {/* Footer Button */}
+          <Link href="/dashboard">
+            <button className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+              Return to Dashboard
+            </button>
+          </Link>
         </div>
       </DashboardLayout>
     );

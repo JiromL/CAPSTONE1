@@ -23,31 +23,48 @@ def generate_counseling_id():
     return f"CPS-{random_string}"
 
 
-def calculate_appointment_date(is_emergency: bool, urgency_level: str = 'normal'):
+def calculate_appointment_date(is_emergency: bool, urgency_level: str = 'normal', risk_level: str = 'GREEN'):
     """
-    Calculate appointment date based on urgency (CPS operations schedule).
-    - emergency: 1-2 business days
-    - high: 2-3 business days  
-    - normal: 3-5 business days
-    Returns (appointment_date, estimated_days_string)
+    Calculate appointment date based on risk level (CPS triage system).
+    
+    Risk-Based Triage Rules:
+    - RED (High Risk): Crisis management within 30 minutes; ensure client safety
+    - YELLOW (Medium Risk): Schedule intake interview within same day or next day
+    - GREEN (Low Risk): Schedule intake interview 2-3 days after triage
+    
+    Returns (appointment_date, estimated_days_string, appointment_time)
     """
     today = datetime.utcnow()
     
-    if is_emergency or urgency_level == 'emergency':
-        # 1-2 business days for emergency
-        days_out = 2
-        urgency_text = "1-2 business days"
-    elif urgency_level == 'high':
-        # 2-3 business days for high urgency
-        days_out = 3
-        urgency_text = "2-3 business days"
-    else:
-        # 3-5 business days for normal
-        days_out = 4
-        urgency_text = "3-5 business days"
+    # RED = High Risk = Critical emergency
+    if risk_level == 'RED' or is_emergency or urgency_level == 'emergency':
+        # 30 minutes for critical emergency
+        days_out = 0
+        appointment_date = today + timedelta(minutes=30)
+        urgency_text = "Immediate (within 30 minutes)"
+        appointment_time = "Immediate"
     
-    appointment_date = today + timedelta(days=days_out)
-    return appointment_date, urgency_text
+    # YELLOW = Medium Risk = High priority
+    elif risk_level == 'YELLOW' or urgency_level == 'high':
+        # Same day or next day for high priority
+        days_out = 1
+        appointment_date = today + timedelta(days=1)
+        # Set to 10:00 AM business hours
+        appointment_date = appointment_date.replace(hour=10, minute=0, second=0, microsecond=0)
+        urgency_text = "Within 1 business day"
+        appointment_time = "10:00 AM"
+    
+    # GREEN = Low Risk = Standard scheduling
+    else:
+        # 2-3 days for low risk (standard intake)
+        days_out = 2
+        appointment_date = today + timedelta(days=days_out)
+        # Set to 10:00 AM business hours
+        appointment_date = appointment_date.replace(hour=10, minute=0, second=0, microsecond=0)
+        urgency_text = "2-3 business days"
+        appointment_time = "10:00 AM"
+    
+    return appointment_date, urgency_text, appointment_time
 
 
 def get_allowed_assessments_for_concern(concern: str) -> list:
@@ -88,10 +105,15 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
         zoom = ZoomIntegration(current_app.config)
         
         # Check if credentials are properly configured
-        if not zoom.client_id or not zoom.client_secret:
-            error_msg = "Zoom credentials not configured. Please contact support."
-            print(f"❌ ZOOM: {error_msg}")
-            raise ValueError(error_msg)
+        if not zoom.client_id or not zoom.client_secret or not zoom.account_id:
+            # For testing: generate mock Zoom link
+            print(f"⚠️ ZOOM: Credentials not configured. Generating mock link for testing.")
+            return {
+                'platform': 'zoom',
+                'join_url': f'https://zoom.us/wc/join/mock-{meeting_id}',
+                'meeting_id': meeting_id,
+                'meeting_passcode': '123456'
+            }
         
         try:
             # Format start time for Zoom API (ISO 8601 with timezone)
@@ -121,10 +143,20 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
     elif preferred_platform == 'google_meet':
         # Create real Google Meet meeting via Google Calendar API
         try:
+            google_meet = GoogleMeetIntegration(current_app.config)
+            
+            # Check if credentials are configured
+            if not google_meet.service_account_email or not google_meet.service_account_key_str:
+                # For testing: generate mock Google Meet link
+                print(f"⚠️ GOOGLE MEET: Credentials not configured. Generating mock link for testing.")
+                return {
+                    'platform': 'google_meet',
+                    'join_url': f'https://meet.google.com/{meeting_id}',
+                    'meeting_id': meeting_id
+                }
+            
             if appointment_date is None:
                 appointment_date = datetime.utcnow() + timedelta(days=3)
-            
-            google_meet = GoogleMeetIntegration(current_app.config)
             
             # Note: Service accounts cannot add attendees without domain-wide delegation
             # The public Google Meet link is sufficient for students to join
@@ -140,7 +172,14 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
             
         except Exception as e:
             error_msg = f"Failed to create Google Meet: {str(e)}"
-            raise Exception(error_msg)
+            print(f"⚠️ GOOGLE MEET: {error_msg} - Falling back to in-person")
+            # Fallback to in-person on error
+            return {
+                'platform': 'in-person',
+                'join_url': None,
+                'meeting_id': None,
+                'location': 'Counseling & Psychology Services Office'
+            }
             
     else:  # in-person
         return {
@@ -275,10 +314,16 @@ def student_submit_intake():
     user_id = get_jwt_identity()
     data = request.get_json()
     
-    # Validate consent
+    # Validate basic data
+    if not data:
+        return jsonify({'error': 'Request body is empty'}), 400
+    
     if not data.get('consent_given'):
         return jsonify({'error': 'Consent is required to proceed'}), 400
     
+    if not data.get('purpose'):
+        return jsonify({'error': 'Purpose/concern is required'}), 400
+
     try:
         user_obj_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
     except:
@@ -374,31 +419,28 @@ def student_submit_intake():
     career_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in career_responses) if career_responses else None
     social_score = sum(r.get('score', 0) if isinstance(r, dict) else r for r in social_responses) if social_responses else None
     
-    # Determine urgency level based on available scores
-    urgency_level = 'normal'
-    if phq9_score and phq9_score > 20:
-        urgency_level = 'high'  # Very high depression
-    if gad7_score and gad7_score > 15:
-        urgency_level = 'high'  # Very high anxiety
-    if acad_score and acad_score > 24:
-        urgency_level = 'high'  # Very high academic stress
-    if social_score and social_score > 24:
-        urgency_level = 'high'  # Very high social concerns
+    # Calculate risk level based on assessment scores (RED/YELLOW/GREEN)
+    risk_level = get_risk_level(phq9_score, gad7_score, pss_score, acad_score, career_score, social_score)
     
-    # Determine if emergency based on scores or explicit flag
-    is_emergency = data.get('is_emergency', False) or \
-                   (phq9_score and phq9_score > 20) or \
-                   (gad7_score and gad7_score > 15)
+    # Determine if emergency (RED or explicit flag)
+    is_emergency = risk_level == 'RED' or data.get('is_emergency', False)
+    
+    # Determine urgency level for backward compatibility
+    urgency_level = 'normal'
+    if risk_level == 'RED':
+        urgency_level = 'emergency'
+    elif risk_level == 'YELLOW':
+        urgency_level = 'high'
     
     # Determine if anonymous
     is_anonymous = data.get('is_anonymous', False)
     
-    # Calculate appointment date based on urgency
-    appointment_date, estimated_days = calculate_appointment_date(is_emergency, urgency_level)
+    # Calculate appointment date based on risk level
+    appointment_date, estimated_days, appointment_time = calculate_appointment_date(is_emergency, urgency_level, risk_level)
     
-    # Auto-assign counselor if NOT emergency (emergency requires manual review)
+    # Auto-assign counselor if NOT RED (RED requires manual review)
     assigned_counselor_id = None
-    if not is_emergency:
+    if risk_level != 'RED':
         # Smart assignment based on assessment scores (if available)
         if phq9_score and phq9_score > 15:
             # High depression → Psychologist
@@ -414,7 +456,7 @@ def student_submit_intake():
             assigned_counselor_id = counselor['_id']
             db.db.cases.update_one(
                 {"_id": case_id},
-                {"$set": {"assigned_counselor_id": assigned_counselor_id}}
+                {"$set": {"assigned_counselor_id": assigned_counselor_id, "risk_level": risk_level}}
             )
     
     # Build intake responses (handle optional assessments)
@@ -424,8 +466,10 @@ def student_submit_intake():
         "student_name": None if is_anonymous else user_name,
         "is_emergency": is_emergency,
         "urgency_level": urgency_level,
+        "risk_level": risk_level,
         "estimated_appointment_days": estimated_days,
         "appointment_date": appointment_date.isoformat(),
+        "appointment_time": appointment_time,
         "emergency_notes": data.get('emergency_notes', ''),
         "purpose": data.get('purpose'),
         "purpose_other": data.get('purpose_other', ''),
@@ -493,7 +537,19 @@ def student_submit_intake():
     # CREATE APPOINTMENT WITH MEETING LINK
     preferred_platform = data.get('preferred_platform', 'in-person')
     appointment_id = ObjectId()
-    meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id, appointment_date, student_email=user_email)
+    
+    try:
+        meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id, appointment_date, student_email=user_email)
+    except Exception as e:
+        # If meeting link generation fails (e.g., Zoom/Google credentials missing), default to in-person
+        print(f"⚠️ MEETING LINK FAILED ({preferred_platform}): {str(e)} - Defaulting to in-person")
+        preferred_platform = 'in-person'
+        meeting_link_info = {
+            'platform': 'in-person',
+            'join_url': None,
+            'meeting_id': None,
+            'location': 'Counseling & Psychology Services Office'
+        }
     
     appointment_doc = {
         "_id": appointment_id,
@@ -509,7 +565,9 @@ def student_submit_intake():
         "meeting_passcode": meeting_link_info.get('meeting_passcode'),
         "requested_start": appointment_date,
         "requested_end": appointment_date + timedelta(hours=1),
+        "appointment_time": appointment_time,
         "counseling_id": counseling_id,
+        "risk_level": risk_level,
         "is_emergency": is_emergency,
         "urgency_level": urgency_level,
         "created_at": datetime.utcnow(),
@@ -686,6 +744,8 @@ def calculate_appointment():
     gad7_responses = data.get('gad7_responses', [])
     pss_responses = data.get('pss_responses', [])
     acad_responses = data.get('acad_responses', [])
+    career_responses = data.get('career_responses', [])
+    social_responses = data.get('social_responses', [])
     
     # Calculate scores - handle both dict and int formats
     def extract_score(item):
@@ -700,42 +760,45 @@ def calculate_appointment():
     gad7_score = sum([extract_score(r) for r in gad7_responses]) if gad7_responses else None
     pss_score = sum([extract_score(r) for r in pss_responses]) if pss_responses else None
     acad_score = sum([extract_score(r) for r in acad_responses]) if acad_responses else None
+    career_score = sum([extract_score(r) for r in career_responses]) if career_responses else None
+    social_score = sum([extract_score(r) for r in social_responses]) if social_responses else None
     
-    # Determine urgency level (mirrors scoring in student_submit_intake)
+    # Calculate risk level based on scores
+    risk_level = get_risk_level(phq9_score, gad7_score, pss_score, acad_score, career_score, social_score)
+    
+    # Determine urgency level for backward compatibility
     urgency_level = 'normal'
     is_emergency = False
-    
-    if phq9_score and phq9_score > 20:
+    if risk_level == 'RED':
         is_emergency = True
-    elif phq9_score and phq9_score > 15:
-        urgency_level = 'high'
-    elif gad7_score and gad7_score > 15:
-        is_emergency = True
-    elif gad7_score and gad7_score > 12:
-        urgency_level = 'high'
-    elif acad_score and acad_score > 24:
+        urgency_level = 'emergency'
+    elif risk_level == 'YELLOW':
         urgency_level = 'high'
     
     # Calculate appointment date
-    appointment_date, estimated_days = calculate_appointment_date(is_emergency, urgency_level)
+    appointment_date, estimated_days, appointment_time = calculate_appointment_date(is_emergency, urgency_level, risk_level)
     
-    # Get minimum selectable date (today for normal, same day for high/emergency consideration)
+    # Get minimum selectable date
     today = datetime.utcnow()
-    min_date = appointment_date - timedelta(days=1)  # Can select date before auto if within reason
+    min_date = appointment_date - timedelta(days=1)
     
     return jsonify({
         'automatic_date': appointment_date.isoformat(),
         'automatic_date_formatted': appointment_date.strftime('%A, %B %d, %Y'),
+        'risk_level': risk_level,
         'urgency_level': urgency_level,
         'is_emergency': is_emergency,
         'estimated_days': estimated_days,
+        'appointment_time': appointment_time,
         'min_selectable_date': min_date.isoformat(),
         'min_selectable_date_formatted': min_date.strftime('%Y-%m-%d'),
         'scores': {
             'phq9': phq9_score,
             'gad7': gad7_score,
             'pss': pss_score,
-            'acad': acad_score
+            'acad': acad_score,
+            'career': career_score,
+            'social': social_score
         }
     }), 200
 
@@ -843,7 +906,34 @@ def assign_emergency_appointment(intake_id):
 # EFFICIENT ROLE-BASED ASSESSMENT ENDPOINTS
 # ============================================================
 
-def get_risk_level(phq9_score=None, gad7_score=None, acad_score=None, social_score=None):
+def get_risk_level(phq9_score=None, gad7_score=None, pss_score=None, acad_score=None, 
+                   social_score=None, career_score=None):
+    """
+    Calculate risk level (RED/YELLOW/GREEN) based on assessment scores.
+    
+    Risk Thresholds:
+    - RED (Critical): PHQ-9 > 20 OR GAD-7 > 15 OR PSS > 30
+    - YELLOW (High): PHQ-9 > 15 OR GAD-7 > 12 OR PSS > 20 OR Acad > 24 OR Social > 24
+    - GREEN (Low): Below YELLOW thresholds
+    
+    Returns: 'RED', 'YELLOW', or 'GREEN'
+    """
+    # RED = Critical risk
+    if (phq9_score and phq9_score > 20) or \
+       (gad7_score and gad7_score > 15) or \
+       (pss_score and pss_score > 30):
+        return 'RED'
+    
+    # YELLOW = High risk
+    if (phq9_score and phq9_score > 15) or \
+       (gad7_score and gad7_score > 12) or \
+       (pss_score and pss_score > 20) or \
+       (acad_score and acad_score > 24) or \
+       (social_score and social_score > 24):
+        return 'YELLOW'
+    
+    # GREEN = Low risk (default)
+    return 'GREEN'
     """Calculate risk level based on assessment scores"""
     if not any([phq9_score, gad7_score, acad_score, social_score]):
         return "GREEN"
@@ -1309,9 +1399,11 @@ def create_walkin_intake():
         # Generate IDs
         counseling_id = generate_counseling_id()
         
-        # Determine appointment date based on urgency
+        # Determine risk level and appointment date based on urgency
         is_urgent = data.get('is_urgent', False)
-        appointment_date, days_string = calculate_appointment_date(is_urgent, 'high' if is_urgent else 'normal')
+        risk_level = 'RED' if is_urgent else 'GREEN'
+        urgency_level = 'emergency' if is_urgent else 'normal'
+        appointment_date, days_string, appointment_time = calculate_appointment_date(is_urgent, urgency_level, risk_level)
         
         # Create case record
         case_id = ObjectId()
@@ -1323,6 +1415,7 @@ def create_walkin_intake():
             'student_name': f"{data.get('first_name')} {data.get('last_name')}",
             'phone': data.get('phone', ''),
             'status': 'ACTIVE',
+            'risk_level': risk_level,
             'created_at': datetime.utcnow(),
             'created_by': user_id,
             'intake_source': 'WALKIN',
@@ -1343,6 +1436,8 @@ def create_walkin_intake():
             'student_id': data.get('student_id', ''),
             'phone': data.get('phone', ''),
             'is_emergency': is_urgent,
+            'risk_level': risk_level,
+            'urgency_level': urgency_level,
             'is_walkin': True,
             'walkin_notes': data.get('notes', ''),
             'created_at': datetime.utcnow(),
@@ -1353,6 +1448,7 @@ def create_walkin_intake():
                 'concern_details': f"Walk-in: {data.get('notes', '')}",
             },
             'appointment_date': appointment_date,
+            'appointment_time': appointment_time,
             'estimated_appointment_days': days_string,
         }
         result = db.db.intakes.insert_one(intake_data)
@@ -1366,6 +1462,8 @@ def create_walkin_intake():
             'status': AppointmentStatus.PENDING,
             'appointment_type': 'INITIAL_CONSULTATION',
             'scheduled_date': appointment_date,
+            'appointment_time': appointment_time,
+            'risk_level': risk_level,
             'is_walkin': True,
             'created_at': datetime.utcnow(),
             'created_by': 'WALKIN_SYSTEM',

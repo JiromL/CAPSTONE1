@@ -1,0 +1,71 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.100.238:5001
+[33mPress CTRL+C to quit[0m
+/private/tmp/CAPSTONE1/backend/app.py:113: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  'timestamp': datetime.utcnow().isoformat(),
+127.0.0.1 - - [18/Mar/2026 10:30:49] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:12] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:12] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:12] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:12] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:13] "OPTIONS /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:13] "OPTIONS /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:13] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:13] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:14] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:31:14] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:09] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:09] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:09] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:09] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:13] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:13] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:31] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:31] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:31] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:35:31] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:37:16] "[31m[1mPOST /api/auth/login HTTP/1.1[0m" 401 -
+127.0.0.1 - - [18/Mar/2026 10:37:41] "OPTIONS /api/intake/calculate-appointment HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:37:41] "POST /api/intake/calculate-appointment HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:37:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:33] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:33] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:33] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:33] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:35] "OPTIONS /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:35] "OPTIONS /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:35] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:35] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:38] "OPTIONS /api/resources/student HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:38] "OPTIONS /api/resources/student HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:38] "[31m[1mGET /api/resources/student HTTP/1.1[0m" 400 -
+127.0.0.1 - - [18/Mar/2026 10:38:38] "[31m[1mGET /api/resources/student HTTP/1.1[0m" 400 -
+127.0.0.1 - - [18/Mar/2026 10:38:39] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:39] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:38:45] "GET /api/auth/oauth/google/client-id HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:39:07] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:06] "GET /api/auth/oauth/google/client-id HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:10] "OPTIONS /api/auth/oauth/google/callback HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:10] "POST /api/auth/oauth/google/callback HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:10] "OPTIONS /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:10] "OPTIONS /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:10] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:10] "GET /api/intake/assessments/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:12] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:12] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:12] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:12] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:17] "OPTIONS /api/appointments/69ba0da6c88eb309569c5cdc HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:17] "OPTIONS /api/appointments/69ba0da6c88eb309569c5cdc HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:17] "GET /api/appointments/69ba0da6c88eb309569c5cdc HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:17] "GET /api/appointments/69ba0da6c88eb309569c5cdc HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:19] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:19] "OPTIONS /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:19] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:19] "GET /api/appointments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:36] "OPTIONS /api/intake/submit HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 10:53:37] "[35m[1mPOST /api/intake/submit HTTP/1.1[0m" 201 -

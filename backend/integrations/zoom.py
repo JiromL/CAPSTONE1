@@ -136,6 +136,13 @@ class ZoomIntegration:
             }
         }
 
+        print(f"🔷 ZOOM DEBUG: Creating meeting")
+        print(f"   Topic: {topic}")
+        print(f"   Start time: {start_time}")
+        print(f"   Duration: {duration_minutes} min")
+        print(f"   Password: {password}")
+        print(f"   Payload: {payload}")
+
         try:
             response = requests.post(
                 url,
@@ -143,6 +150,10 @@ class ZoomIntegration:
                 headers=self._get_headers(),
                 timeout=10
             )
+            
+            print(f"🔷 ZOOM RESPONSE: Status {response.status_code}")
+            print(f"   Response: {response.text[:500]}")
+            
             response.raise_for_status()
 
             meeting_data = response.json()
@@ -160,8 +171,9 @@ class ZoomIntegration:
 
         except requests.exceptions.RequestException as e:
             error_msg = str(e)
-            if hasattr(e.response, 'text'):
+            if hasattr(e, 'response') and hasattr(e.response, 'text'):
                 error_msg = e.response.text
+            print(f"❌ ZOOM ERROR: {error_msg}")
             raise Exception(f"Failed to create Zoom meeting: {error_msg}")
 
     def get_meeting(self, meeting_id):

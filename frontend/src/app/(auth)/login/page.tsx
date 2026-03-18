@@ -221,7 +221,7 @@ export default function LoginPage() {
   };
 
   return (
-    <PageShell title="Login" subtitle="Sign in to your CPS account">
+    <PageShell title="Login" subtitle="Sign in to your CPS account" hideNav={true}>
       <div className="min-h-[80vh] flex flex-col lg:flex-row">
         {/* Left carousel area */}
         <div className="hidden lg:block lg:w-1/2 relative">

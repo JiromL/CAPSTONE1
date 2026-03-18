@@ -9,9 +9,10 @@ type Props = {
   subtitle?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
+  hideNav?: boolean;
 };
 
-export default function PageShell({ title, subtitle, actions, children }: Props) {
+export default function PageShell({ title, subtitle, actions, children, hideNav = false }: Props) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <header className="bg-white dark:bg-gray-900 shadow dark:shadow-gray-800">
@@ -20,14 +21,16 @@ export default function PageShell({ title, subtitle, actions, children }: Props)
             <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
               CPS System
             </Link>
-            <nav className="flex items-center gap-4">
-              <Link href="/dashboard" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50">
-                Dashboard
-              </Link>
-              <Link href="/send-perma" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50">
-                Send PERMA
-              </Link>
-            </nav>
+            {!hideNav && (
+              <nav className="flex items-center gap-4">
+                <Link href="/dashboard" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50">
+                  Dashboard
+                </Link>
+                <Link href="/send-perma" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50">
+                  Send PERMA
+                </Link>
+              </nav>
+            )}
             {title && <div className="text-sm text-gray-600 dark:text-gray-400">{title}</div>}
           </div>
           <div className="flex items-center gap-3">

@@ -228,7 +228,7 @@ def update_user_role(user_id):
         
         # Audit log
         audit_log(db.db, 'users', 'role_updated', entity_id=str(target_user_id_obj), 
-                  details=f'Role changed from {old_role} to {new_role}')
+                  old_values={'role': old_role}, new_values={'role': new_role})
         
         print(f'[Users/Role] Updated {target_user.get("email")} role from {old_role} to {new_role}')
         

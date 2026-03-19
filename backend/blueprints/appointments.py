@@ -231,6 +231,85 @@ def list_appointments():
         return jsonify({'error': f'Failed to fetch appointments: {str(e)}', 'details': error_trace}), 500
 
 
+@appointments_bp.route('/my-appointments', methods=['GET'])
+@jwt_required()
+def get_my_appointments():
+    """Get all appointments for the logged-in user (student or counselor)"""
+    user_id = get_jwt_identity()
+    
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({"_id": user_id_obj})
+    except Exception as e:
+        return jsonify({'error': f'Invalid user ID: {str(e)}'}), 400
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    try:
+        # Determine query based on user role
+        role = user.get('role', '').upper()
+        
+        if role == 'STUDENT':
+            # For students: find appointments through their cases
+            student_cases = list(db.db.cases.find({"student_id": user_id_obj}))
+            case_ids = [case['_id'] for case in student_cases]
+            
+            if case_ids:
+                appointments = list(db.db.appointments.find(
+                    {"case_id": {"$in": case_ids}}
+                ).sort("requested_start", -1).limit(100))
+            else:
+                appointments = []
+        else:
+            # For counselors/staff: find appointments where they are the counselor
+            appointments = list(db.db.appointments.find(
+                {"counselor_id": user_id_obj}
+            ).sort("requested_start", -1).limit(100))
+        
+        # Helper function to convert ObjectIds to strings recursively
+        def convert_objectids(obj):
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    if isinstance(value, ObjectId):
+                        obj[key] = str(value)
+                    elif isinstance(value, (dict, list)):
+                        obj[key] = convert_objectids(value)
+                    elif hasattr(value, 'isoformat'):
+                        try:
+                            obj[key] = value.isoformat() if not isinstance(value, str) else value
+                        except:
+                            pass
+            elif isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    if isinstance(item, ObjectId):
+                        obj[i] = str(item)
+                    elif isinstance(item, (dict, list)):
+                        obj[i] = convert_objectids(item)
+                    elif hasattr(item, 'isoformat'):
+                        try:
+                            obj[i] = item.isoformat() if not isinstance(item, str) else item
+                        except:
+                            pass
+            return obj
+        
+        # Convert all appointments
+        for apt in appointments:
+            convert_objectids(apt)
+        
+        return jsonify({
+            'appointments': appointments,
+            'count': len(appointments)
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in get_my_appointments: {str(e)}")
+        print(error_trace)
+        return jsonify({'error': f'Failed to fetch appointments: {str(e)}'}), 500
+
+
 @appointments_bp.route('/request', methods=['POST'])
 @jwt_required()
 def request_appointment():

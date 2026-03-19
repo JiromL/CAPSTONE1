@@ -115,3 +115,139 @@ def get_profile():
     except Exception as e:
         print(f'Error fetching profile: {str(e)}')
         return jsonify({'error': 'Failed to fetch profile'}), 500
+
+
+@users_bp.route('/all', methods=['GET'])
+@jwt_required()
+def get_all_users():
+    """Get all users (admin only)"""
+    user_id = get_jwt_identity()
+    
+    try:
+        # Check if user is admin
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        current_user = db.db.users.find_one({'_id': user_id_obj})
+        
+        print(f'[Users/All] Current user: {current_user.get("email") if current_user else "NOT FOUND"}, Role: {current_user.get("role") if current_user else "NONE"}')
+        
+        if not current_user:
+            return jsonify({'error': 'User not found', 'user_id': str(user_id_obj)}), 404
+        
+        if current_user.get('role') != 'ADMIN':
+            return jsonify({'error': f'Unauthorized - admin access required. Your role: {current_user.get("role")}'}), 403
+        
+        # Get all users
+        users = list(db.db.users.find(
+            {},
+            {'password_hash': 0}  # Exclude passwords
+        ))
+        
+        print(f'[Users/All] Found {len(users)} users')
+        
+        # Format user data
+        formatted_users = []
+        for user in users:
+            formatted_users.append({
+                '_id': str(user['_id']),
+                'name': user.get('name') or f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
+                'email': user.get('email'),
+                'role': user.get('role', 'STUDENT'),
+                'is_active': user.get('is_active', True),
+                'created_at': user.get('created_at').isoformat() if user.get('created_at') else None,
+                'department': user.get('department', ''),
+            })
+        
+        return jsonify({
+            'users': formatted_users,
+            'count': len(formatted_users)
+        }), 200
+    
+    except Exception as e:
+        print(f'[Users/All] Error fetching all users: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to fetch users: {str(e)}'}), 500
+
+
+@users_bp.route('/<user_id>/role', methods=['PUT'])
+@jwt_required()
+def update_user_role(user_id):
+    """Update user role (admin only)"""
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Valid roles
+    VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'STAFF', 'STUDENT']
+    
+    try:
+        # Check if current user is admin
+        current_user_id_obj = ObjectId(current_user_id) if isinstance(current_user_id, str) else current_user_id
+        current_user = db.db.users.find_one({'_id': current_user_id_obj})
+        
+        print(f'[Users/Role] Admin: {current_user.get("email") if current_user else "NOT FOUND"}, Role: {current_user.get("role") if current_user else "NONE"}')
+        
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+        
+        if current_user.get('role') != 'ADMIN':
+            return jsonify({'error': f'Unauthorized - admin access required. Your role: {current_user.get("role")}'}), 403
+        
+        # Validate new role
+        new_role = data.get('role', '').strip().upper()
+        if not new_role or new_role not in VALID_ROLES:
+            return jsonify({'error': f'Invalid role. Valid roles: {", ".join(VALID_ROLES)}'}), 400
+        
+        # Get target user
+        try:
+            target_user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        except:
+            return jsonify({'error': 'Invalid user ID format'}), 400
+        
+        target_user = db.db.users.find_one({'_id': target_user_id_obj})
+        
+        if not target_user:
+            return jsonify({'error': 'Target user not found'}), 404
+        
+        old_role = target_user.get('role', 'STUDENT')
+        
+        # Prevent self-demotion from ADMIN (optional safety check)
+        if str(target_user_id_obj) == str(current_user_id_obj) and new_role != 'ADMIN':
+            return jsonify({'error': 'Cannot demote yourself from admin role'}), 400
+        
+        # Update role
+        result = db.db.users.update_one(
+            {'_id': target_user_id_obj},
+            {'$set': {
+                'role': new_role,
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'error': 'Failed to update user role'}), 500
+        
+        # Audit log
+        audit_log(db.db, 'users', 'role_updated', entity_id=str(target_user_id_obj), 
+                  details=f'Role changed from {old_role} to {new_role}')
+        
+        print(f'[Users/Role] Updated {target_user.get("email")} role from {old_role} to {new_role}')
+        
+        # Return updated user
+        updated_user = db.db.users.find_one({'_id': target_user_id_obj})
+        
+        return jsonify({
+            'message': 'Role updated successfully',
+            'user': {
+                '_id': str(updated_user['_id']),
+                'name': updated_user.get('name') or f"{updated_user.get('first_name', '')} {updated_user.get('last_name', '')}".strip(),
+                'email': updated_user.get('email'),
+                'role': updated_user.get('role'),
+                'old_role': old_role
+            }
+        }), 200
+    
+    except Exception as e:
+        print(f'[Users/Role] Error updating role: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to update role: {str(e)}'}), 500

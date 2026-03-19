@@ -25,6 +25,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [resourceCount, setResourceCount] = useState(0);
   const [isCheckInOnly, setIsCheckInOnly] = useState(false);
+  const [taskCount, setTaskCount] = useState(0);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -54,8 +55,11 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             console.error('Failed to fetch resource count:', err);
           }
 
-          // Check if student is check-in only
+          // Check if student is check-in only and calculate actual task count
           try {
+            let pendingCount = 0;
+
+            // Check for check-in task
             const caseResponse = await fetch(api('/api/cases/my-current'), {
               headers: { Authorization: `Bearer ${token}` },
             });
@@ -66,9 +70,29 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               if (['CHECK_IN_ONLY', 'WITH_MH_CHECK_IN', 'UNDER_ACCOMMODATION'].includes(clientStatus)) {
                 setIsCheckInOnly(true);
               }
+              if (caseData.client_status === 'CHECK_IN_ONLY') {
+                pendingCount += 1; // Check-in task
+              }
             }
+
+            // Count pending/scheduled appointments
+            const appointmentsResponse = await fetch(api('/api/appointments'), {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (appointmentsResponse.ok) {
+              const appointmentsData = await appointmentsResponse.json();
+              if (Array.isArray(appointmentsData.appointments)) {
+                const pendingAppts = appointmentsData.appointments.filter((apt: any) => {
+                  const status = apt.status?.toLowerCase();
+                  return status === 'pending' || status === 'requested' || status === 'scheduled' || status === 'confirmed' || status === 'matched';
+                });
+                pendingCount += pendingAppts.length;
+              }
+            }
+
+            setTaskCount(pendingCount);
           } catch (err) {
-            console.error('Failed to fetch case status:', err);
+            console.error('Failed to fetch task count:', err);
           }
         }
       } catch (err) {
@@ -85,11 +109,10 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   // Build menu items conditionally
   const baseMenuItems = [
     { label: 'Dashboard', href: '/dashboard' },
-    { label: 'My Tasks', href: '/dashboard/tasks', badge: dashboardData?.recent_cases?.length || 0 },
+    { label: 'My Tasks', href: '/tasks', badge: taskCount },
     { label: 'Intake Form', href: '/intake' },
-    { label: 'Appointments', href: '/appointments' },
     ...(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student' }] : []),
-    { label: 'Resources', href: '/resources', badge: resourceCount },
+    { label: 'Wellness Resources', href: '/resources', badge: resourceCount },
     { label: 'Profile', href: '/profile' },
   ];
 
@@ -137,7 +160,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       )}
 
       {/* Next Appointment & Crisis Support & Calendar */}
-      {!loading && (
+      {!loading && !isCheckInOnly && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Next Appointment */}
           <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">

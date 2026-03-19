@@ -137,6 +137,7 @@ export default function TasksPage() {
   }, []);
 
   const filteredTasks = tasks.filter((task) => task.status === activeTab);
+  const pendingAndScheduledCount = tasks.filter((task) => task.status === 'pending' || task.status === 'scheduled').length;
 
   if (loading) {
     return (
@@ -149,7 +150,7 @@ export default function TasksPage() {
   }
 
   return (
-    <DashboardPageWrapper title="My Tasks" subtitle="All your appointments, assessments, and referrals">
+    <DashboardPageWrapper title="My Tasks" subtitle={`${pendingAndScheduledCount} active task${pendingAndScheduledCount !== 1 ? 's' : ''}`}>
       <div className="space-y-6">
         {/* Error Message */}
         {error && (
@@ -161,20 +162,32 @@ export default function TasksPage() {
         {/* Tab Navigation */}
         <div className="border-b border-gray-200 dark:border-gray-700">
           <div className="flex overflow-x-auto gap-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-xs border-b-2 transition ${
-                  activeTab === tab.id
-                    ? 'border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-50'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                <span className="text-gray-400 dark:text-gray-500">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const tabCount = tasks.filter((task) => task.status === tab.id).length;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 text-xs border-b-2 transition ${
+                    activeTab === tab.id
+                      ? 'border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-50'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <span className="text-gray-400 dark:text-gray-500">{tab.icon}</span>
+                  {tab.label}
+                  {tabCount > 0 && (
+                    <span className={`ml-1 px-2 py-0.5 text-xs rounded-full font-semibold ${
+                      activeTab === tab.id
+                        ? 'bg-gray-400 dark:bg-gray-600'
+                        : 'bg-gray-300 dark:bg-gray-600'
+                    }`}>
+                      {tabCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -187,7 +200,7 @@ export default function TasksPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredTasks.map((task) => (
+              {filteredTasks.map((task, index) => (
                 <div 
                   key={task.id} 
                   className={`border rounded p-4 transition ${
@@ -206,6 +219,9 @@ export default function TasksPage() {
                     {/* Content */}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-gray-400 dark:text-gray-600 min-w-fit">
+                          #{index + 1}
+                        </span>
                         {task.isEmergency && <AlertCircle size={16} className="text-red-600" />}
                         {task.status === 'completed' && <CheckCircle size={16} className="text-green-600" />}
                         {task.auto_assigned && (

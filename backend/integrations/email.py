@@ -24,19 +24,38 @@ class EmailIntegration:
             self.password = getattr(config, 'SMTP_PASS', None)
 
     def send_email(self, to_address, subject, html_body, text_body=None):
+        # Don't send if no email
+        if not to_address:
+            print("⚠️ No email address provided, skipping email send")
+            return False
+            
         msg = MIMEText(html_body, 'html')
         msg['Subject'] = subject
         msg['From'] = self.user or 'no-reply@example.com'
         msg['To'] = to_address
 
         try:
+            print(f"📧 Attempting to send email via {self.host}:{self.port}")
             with smtplib.SMTP(self.host, self.port, timeout=10) as smtp:
                 smtp.starttls()
                 if self.user and self.password:
+                    print(f"📧 Logging in as {self.user}")
                     smtp.login(self.user, self.password)
+                print(f"📧 Sending message from {msg['From']} to {to_address}")
                 smtp.sendmail(msg['From'], [to_address], msg.as_string())
+            print(f"✅ EMAIL SENT SUCCESSFULLY to {to_address}")
             return True
-        except Exception:
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ SMTP Authentication Failed: {e}")
+            print(f"   Check SMTP_USER and SMTP_PASS in .env")
+            return False
+        except smtplib.SMTPException as e:
+            print(f"❌ SMTP Error: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Email send failed: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def send_via_gmail(self, db, config, user_id, to_address, subject, html_body, text_body=None):

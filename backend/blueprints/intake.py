@@ -588,7 +588,14 @@ def student_submit_intake():
     
     # Send email with counseling ID and appointment info
     smtp_host = current_app.config.get('SMTP_HOST')
-    print(f"📧 EMAIL CHECK: user_email={user_email}, SMTP_HOST={smtp_host}")
+    smtp_user = current_app.config.get('SMTP_USER')
+    print(f"\n{'='*60}")
+    print(f"📧 EMAIL DEBUG:")
+    print(f"  user_email: {user_email}")
+    print(f"  smtp_host: {smtp_host}")
+    print(f"  smtp_user: {smtp_user}")
+    print(f"  smtp_port: {current_app.config.get('SMTP_PORT')}")
+    print(f"{'='*60}\n")
     
     if user_email and smtp_host:
         try:

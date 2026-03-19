@@ -26,6 +26,7 @@ from blueprints import (
     assessments_bp,
     intake_bp,
     appointments_bp,
+    availability_bp,
     documentation_bp,
     counseling_bp,
     high_risk_bp,
@@ -36,10 +37,13 @@ from blueprints import (
     integrations_bp,
     cases_bp,
     resources_bp,
+    users_bp,
+    analytics_bp,
 )
 from blueprints.google_calendar import calendar_bp
 from blueprints.mhbot_integration import mhbot_bp
 from blueprints.engagement import engagement_bp
+from blueprints.appointments_enhancements import appointments_enh_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -86,6 +90,7 @@ def create_app(config_name=None):
     app.register_blueprint(assessments_bp)
     app.register_blueprint(intake_bp)
     app.register_blueprint(appointments_bp)
+    app.register_blueprint(availability_bp)
     app.register_blueprint(documentation_bp)
     app.register_blueprint(counseling_bp)
     app.register_blueprint(high_risk_bp)
@@ -96,9 +101,12 @@ def create_app(config_name=None):
     app.register_blueprint(integrations_bp)
     app.register_blueprint(cases_bp)
     app.register_blueprint(resources_bp)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(analytics_bp)
     app.register_blueprint(calendar_bp)
     app.register_blueprint(mhbot_bp)
     app.register_blueprint(engagement_bp)
+    app.register_blueprint(appointments_enh_bp)
     
     # Health check route
     @app.route('/api/health', methods=['GET'])

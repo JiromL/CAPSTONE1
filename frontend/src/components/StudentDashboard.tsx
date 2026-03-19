@@ -1,15 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, CheckCircle, AlertCircle, FileText, Heart } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { DashboardCalendar } from './Calendar';
 import { useState, useEffect } from 'react';
 import { fetchDashboardData, formatDate } from '@/utils/dashboard-api';
+import { api } from '@/utils/api';
 
 interface DashboardProps {
   user: any;
   onLogout: () => void;
+}
+
+interface ResourceResponse {
+  resources_count: number;
+  resources?: any[];
 }
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
@@ -18,6 +23,8 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resourceCount, setResourceCount] = useState(0);
+  const [isCheckInOnly, setIsCheckInOnly] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -33,6 +40,36 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         if (token) {
           const data = await fetchDashboardData(token);
           setDashboardData(data);
+
+          // Fetch resource count
+          try {
+            const resourceResponse = await fetch(api('/api/resources/student'), {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (resourceResponse.ok) {
+              const resourceData: ResourceResponse = await resourceResponse.json();
+              setResourceCount(resourceData.resources_count || 0);
+            }
+          } catch (err) {
+            console.error('Failed to fetch resource count:', err);
+          }
+
+          // Check if student is check-in only
+          try {
+            const caseResponse = await fetch(api('/api/cases/my-current'), {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (caseResponse.ok) {
+              const caseData = await caseResponse.json();
+              const clientStatus = caseData.client_status;
+              // Show check-in menu for check-in only statuses
+              if (['CHECK_IN_ONLY', 'WITH_MH_CHECK_IN', 'UNDER_ACCOMMODATION'].includes(clientStatus)) {
+                setIsCheckInOnly(true);
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch case status:', err);
+          }
         }
       } catch (err) {
         console.error('Failed to load dashboard:', err);
@@ -45,13 +82,18 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     loadDashboardData();
   }, []);
 
-  const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
-    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: dashboardData?.recent_cases?.length || 0 },
-    { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
-    { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
-    { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+  // Build menu items conditionally
+  const baseMenuItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'My Tasks', href: '/dashboard/tasks', badge: dashboardData?.recent_cases?.length || 0 },
+    { label: 'Intake Form', href: '/intake' },
+    { label: 'Appointments', href: '/appointments' },
+    ...(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student' }] : []),
+    { label: 'Resources', href: '/resources', badge: resourceCount },
+    { label: 'Profile', href: '/profile' },
   ];
+
+  const menuItems = baseMenuItems;
 
   // Get first appointment from dashboard data if available
   const nextAppointment = dashboardData?.recent_cases?.[0];
@@ -62,7 +104,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       onLogout={onLogout}
       menuItems={menuItems}
       title="Student Dashboard"
-      subtitle="Campus Counseling Services"
+      subtitle="Manage your wellness"
     >
       {/* Welcome */}
       <div className="mb-4">

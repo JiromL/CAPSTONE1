@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, Brain, AlertTriangle, FileText, Calendar, TrendingUp, Shield } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 
 interface DashboardProps {
@@ -11,13 +10,13 @@ interface DashboardProps {
 
 export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <Brain size={20} /> },
-    { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-    { label: 'Assessments', href: '/assessments', icon: <Calendar size={20} />, badge: 7 },
-    { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
-    { label: 'High-Risk', href: '/high-risk', icon: <AlertTriangle size={20} />, badge: 3 },
-    { label: 'Referrals', href: '/referrals', icon: <Users size={20} /> },
-    { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Cases', href: '/dashboard/cases' },
+    { label: 'Assessments', href: '/dashboard/assessments', badge: 7 },
+    { label: 'Documentation', href: '/dashboard/documentation' },
+    { label: 'High-Risk', href: '/dashboard/high-risk', badge: 3 },
+    { label: 'Referrals', href: '/dashboard/referrals' },
+    { label: 'Profile', href: '/dashboard/profile' },
   ];
 
   return (
@@ -26,50 +25,44 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
       onLogout={onLogout}
       menuItems={menuItems}
       title="Psychologist Dashboard"
-      subtitle="Clinical Review & Case Oversight"
+      subtitle="Clinical Review"
     >
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <ClinicalCard label="Cases Under Review" value="24" />
-        <ClinicalCard label="Critical Cases" value="3" color="red" />
-        <ClinicalCard label="Pending Reviews" value="7" color="orange" />
+        <ClinicalCard label="Critical Cases" value="3" />
+        <ClinicalCard label="Pending Reviews" value="7" />
         <ClinicalCard label="This Week Sessions" value="18" />
       </div>
 
       {/* Quick Actions */}
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Quick Links</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <ClinicalLink href="/cases" label="Review Pending Cases" />
-          <ClinicalLink href="/assessments" label="Risk Assessments" />
-          <ClinicalLink href="/appointments" label="Schedule Supervision" />
-          <ClinicalLink href="/documentation" label="Clinical Notes" />
+          <ClinicalLink href="/dashboard/cases" label="Review Cases" />
+          <ClinicalLink href="/dashboard/assessments" label="Assessments" />
+          <ClinicalLink href="/dashboard/appointments" label="Schedule Session" />
+          <ClinicalLink href="/dashboard/documentation" label="Clinical Notes" />
         </div>
       </div>
     </DashboardLayout>
   );
 }
 
-function ClinicalCard({ label, value, color = "blue" }: any) {
-  const colorStyles = {
-    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
-    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
-    orange: "bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700",
-  };
-
+function ClinicalCard({ label, value }: any) {
   return (
-    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
+    <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-gray-50 dark:bg-gray-800/50">
       <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
+      <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
     </div>
   );
 }
 
-function ClinicalLink({ href, label, badge }: any) {
+function ClinicalLink({ href, label }: any) {
   return (
     <Link href={href}>
       <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
-        <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
+        <span className="text-gray-900 dark:text-gray-100 font-medium text-sm">{label}</span>
       </div>
     </Link>
   );

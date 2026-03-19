@@ -60,14 +60,14 @@ export function DashboardLayout({
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className={`${!sidebarOpen && 'hidden'}`}>
-              <div className="text-xl font-bold text-green-700 dark:text-green-500">CPS</div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Counseling Services</p>
+              <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">CPS</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Services</p>
             </div>
             <button
               onClick={handleToggleSidebar}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              {sidebarOpen ? <X size={20} className="text-gray-600" /> : <Menu size={20} className="text-gray-600" />}
             </button>
           </div>
         </div>
@@ -77,19 +77,16 @@ export function DashboardLayout({
           {menuItems.map((item, index) => {
             const isActive = activeSection && item.id && activeSection === item.id;
             const MenuItemContent = (
-              <div className={`flex items-center gap-3 px-4 py-3 transition cursor-pointer border-l-4 ${
+              <div className={`flex items-center gap-3 px-4 py-2.5 transition cursor-pointer border-l-4 text-sm ${
                 isActive 
-                  ? 'bg-gray-100 dark:bg-gray-800 border-gray-900 dark:border-gray-400 text-gray-900 dark:text-gray-50' 
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent hover:border-gray-700 dark:hover:border-gray-600'
+                  ? 'bg-gray-100 dark:bg-gray-800 border-gray-900 dark:border-gray-300 text-gray-900 dark:text-gray-100 font-medium' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-400 dark:hover:border-gray-500'
               }`}>
-                {sidebarOpen && (
-                  <div className="text-gray-600 dark:text-gray-400 flex-shrink-0">{item.icon}</div>
-                )}
-                <span className={`font-medium text-sm flex-1 ${!sidebarOpen && 'hidden'}`}>
+                <span className={`flex-1${!sidebarOpen && 'hidden'}`}>
                   {item.label}
                 </span>
                 {item.badge && sidebarOpen && (
-                  <span className="bg-gray-600 dark:bg-gray-500 text-white text-xs px-2 py-1 rounded-full">
+                  <span className="bg-gray-700 dark:bg-gray-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
                     {item.badge}
                   </span>
                 )}

@@ -3,7 +3,6 @@ EPIC 5: CENTRALIZED DOCUMENTATION HUB
 Blueprint for secure case file repository with version control and audit trails
 """
 
-from flask import Blueprint, request, jsonify, send_file
 from flask import Blueprint, request, jsonify, send_file, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
@@ -11,13 +10,311 @@ from models import db, PermissionType
 from utils import audit_log, user_has_permission
 from datetime import datetime
 import os
+import sys
 import json
-from flask import send_file, redirect
+import io
+from werkzeug.utils import secure_filename
+
+# Import Google Drive service from utils directory
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'utils'))
+from gdrive import get_gdrive_service
 
 documentation_bp = Blueprint('documentation', __name__, url_prefix='/api/documentation')
 
 
-@documentation_bp.route('/case/<case_id>/documents', methods=['POST'])
+@documentation_bp.route('', methods=['GET'])
+@jwt_required()
+def list_documents():
+    """List all accessible documents for the current user"""
+    user_id = get_jwt_identity()
+    
+    try:
+        # Convert user_id to ObjectId if needed
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        
+        # Get user and their role
+        user = db.db.users.find_one({'_id': user_id_obj})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user_role = user.get('role', 'STUDENT')
+        
+        # Build query based on role
+        query = {}
+        
+        # Different roles have different access levels
+        if user_role == 'ADMIN':
+            # Admin can see all documents
+            pass  # No query restriction
+        elif user_role in ['COUNSELOR', 'PSYCHOLOGIST', 'DPO', 'CSC']:
+            # These roles can see documents from cases they work on
+            # For now, get documents from all cases (refined access control can be added)
+            query = {'case_id': {'$exists': True}}
+        else:
+            # Students and others can only see documents from their own cases
+            student_cases = list(db.db.cases.find(
+                {'student_id': str(user_id_obj)},
+                {'_id': 1}
+            ).limit(100))
+            case_ids = [case['_id'] for case in student_cases]
+            if case_ids:
+                query = {'case_id': {'$in': case_ids}}
+            else:
+                query = {'case_id': None}  # No cases, empty result
+        
+        # Fetch documents
+        documents = list(db.db.documents.find(query).sort('created_at', -1).limit(100))
+        
+        # Format response
+        doc_list = []
+        for doc in documents:
+            doc_list.append({
+                '_id': str(doc.get('_id')),
+                'case_id': str(doc.get('case_id')) if doc.get('case_id') else None,
+                'document_type': doc.get('document_type'),
+                'title': doc.get('title'),
+                'content': doc.get('content')[:200] if doc.get('content') else None,  # Brief preview
+                'file_path': doc.get('file_path'),
+                'created_at': doc.get('created_at').isoformat() if doc.get('created_at') else None,
+                'created_by_id': str(doc.get('created_by_id')) if doc.get('created_by_id') else None,
+                'created_by_name': doc.get('created_by_name', 'Unknown'),
+                'is_locked': doc.get('is_locked', False),
+                'locked_by_id': str(doc.get('locked_by_id')) if doc.get('locked_by_id') else None,
+            })
+        
+        audit_log(db.db, 'documentation', 'list_documents', entity_id=str(user_id_obj))
+        
+        return jsonify({
+            'documents': doc_list,
+            'count': len(doc_list),
+            'user_role': user_role
+        }), 200
+    
+    except Exception as e:
+        print(f'Error listing documents: {str(e)}')
+        return jsonify({'error': f'Failed to list documents: {str(e)}'}), 500
+
+
+@documentation_bp.route('/upload', methods=['POST'])
+@jwt_required()
+def upload_document():
+    """Upload a document file to Google Drive and save metadata to MongoDB"""
+    user_id = get_jwt_identity()
+    
+    try:
+        # Get user info
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({'_id': user_id_obj})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check if file is in request
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Get document metadata from form
+        case_id = request.form.get('case_id')
+        document_type = request.form.get('document_type', 'Other')
+        title = request.form.get('title', file.filename)
+        
+        if not case_id:
+            return jsonify({'error': 'case_id is required'}), 400
+        
+        # Verify case exists and user has access
+        try:
+            case_id_obj = ObjectId(case_id)
+            case = db.db.cases.find_one({'_id': case_id_obj})
+        except:
+            case = db.db.cases.find_one({'_id': case_id})
+        
+        if not case:
+            return jsonify({'error': 'Case not found'}), 404
+        
+        # Read file content
+        file_content = file.read()
+        if len(file_content) == 0:
+            return jsonify({'error': 'File is empty'}), 400
+        
+        # Upload to Google Drive
+        gdrive = get_gdrive_service()
+        filename = secure_filename(f"{case_id}_{datetime.utcnow().timestamp()}_{file.filename}")
+        
+        gdrive_file = gdrive.upload_file(
+            file_content=file_content,
+            filename=filename,
+            mime_type=file.content_type or 'application/octet-stream',
+            metadata={
+                'description': f'Case document: {title}',
+                'properties': {
+                    'case_id': str(case_id),
+                    'uploaded_by': str(user_id)
+                }
+            }
+        )
+        
+        if not gdrive_file:
+            return jsonify({'error': 'Failed to upload file to Google Drive'}), 500
+        
+        # Save document metadata to MongoDB
+        document = {
+            'case_id': case_id_obj if isinstance(case_id_obj, ObjectId) else ObjectId(case_id),
+            'document_type': document_type,
+            'title': title,
+            'original_filename': file.filename,
+            'gdrive_file_id': gdrive_file.get('id'),
+            'gdrive_file_link': gdrive_file.get('webViewLink'),
+            'file_size': len(file_content),
+            'mime_type': file.content_type or 'application/octet-stream',
+            'created_by_id': user_id_obj,
+            'created_by_name': f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+            'is_locked': False,
+            'version': 1
+        }
+        
+        result = db.db.documents.insert_one(document)
+        
+        audit_log(db.db, 'document', 'upload', entity_id=str(result.inserted_id), new_values={
+            'document_type': document_type,
+            'title': title,
+            'gdrive_file_id': gdrive_file.get('id')
+        })
+        
+        return jsonify({
+            'document_id': str(result.inserted_id),
+            'case_id': str(case_id),
+            'title': title,
+            'gdrive_file_id': gdrive_file.get('id'),
+            'gdrive_file_link': gdrive_file.get('webViewLink'),
+            'created_at': document['created_at'].isoformat(),
+            'message': 'Document uploaded successfully'
+        }), 201
+    
+    except Exception as e:
+        print(f'Error uploading document: {str(e)}')
+        return jsonify({'error': f'Failed to upload document: {str(e)}'}), 500
+
+
+@documentation_bp.route('/<document_id>/download', methods=['GET'])
+@jwt_required()
+def download_document(document_id):
+    """Download a document from Google Drive"""
+    user_id = get_jwt_identity()
+    
+    try:
+        # Get document
+        doc_id_obj = ObjectId(document_id) if isinstance(document_id, str) else document_id
+        document = db.db.documents.find_one({'_id': doc_id_obj})
+        
+        if not document:
+            return jsonify({'error': 'Document not found'}), 404
+        
+        # Check access permissions
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({'_id': user_id_obj})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user_role = user.get('role', 'STUDENT')
+        case_id = document.get('case_id')
+        
+        # Permission check
+        has_access = False
+        if user_role == 'ADMIN':
+            has_access = True
+        elif user_role in ['COUNSELOR', 'PSYCHOLOGIST', 'DPO', 'CSC']:
+            # Check if user is assigned to this case
+            has_access = True  # Can be refined based on case assignments
+        else:
+            # Student can only access their own case documents
+            student_case = db.db.cases.find_one({
+                '_id': case_id,
+                'student_id': str(user_id_obj)
+            })
+            has_access = student_case is not None
+        
+        if not has_access:
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Download from Google Drive
+        gdrive_file_id = document.get('gdrive_file_id')
+        if not gdrive_file_id:
+            return jsonify({'error': 'Google Drive file ID not found'}), 404
+        
+        gdrive = get_gdrive_service()
+        file_content = gdrive.get_file(gdrive_file_id)
+        
+        if not file_content:
+            return jsonify({'error': 'Failed to download file from Google Drive'}), 500
+        
+        # Log download
+        audit_log(db.db, 'document', 'download', entity_id=str(doc_id_obj))
+        
+        return send_file(
+            io.BytesIO(file_content),
+            download_name=document.get('original_filename'),
+            as_attachment=True,
+            mimetype=document.get('mime_type', 'application/octet-stream')
+        )
+    
+    except Exception as e:
+        print(f'Error downloading document: {str(e)}')
+        return jsonify({'error': f'Failed to download document: {str(e)}'}), 500
+
+
+@documentation_bp.route('/<document_id>/delete', methods=['DELETE'])
+@jwt_required()
+def delete_document(document_id):
+    """Delete a document from Google Drive and MongoDB"""
+    user_id = get_jwt_identity()
+    
+    try:
+        # Get document
+        doc_id_obj = ObjectId(document_id) if isinstance(document_id, str) else document_id
+        document = db.db.documents.find_one({'_id': doc_id_obj})
+        
+        if not document:
+            return jsonify({'error': 'Document not found'}), 404
+        
+        # Check permissions - only creator or admin can delete
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({'_id': user_id_obj})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user_role = user.get('role', 'STUDENT')
+        created_by_id = document.get('created_by_id')
+        
+        is_creator = str(user_id_obj) == str(created_by_id)
+        is_admin = user_role == 'ADMIN'
+        
+        if not (is_creator or is_admin):
+            return jsonify({'error': 'Only document creator or admin can delete'}), 403
+        
+        # Delete from Google Drive
+        gdrive_file_id = document.get('gdrive_file_id')
+        if gdrive_file_id:
+            gdrive = get_gdrive_service()
+            gdrive.delete_file(gdrive_file_id)
+        
+        # Delete from MongoDB
+        db.db.documents.delete_one({'_id': doc_id_obj})
+        
+        audit_log(db.db, 'document', 'delete', entity_id=str(doc_id_obj))
+        
+        return jsonify({'message': 'Document deleted successfully'}), 200
+    
+    except Exception as e:
+        print(f'Error deleting document: {str(e)}')
+        return jsonify({'error': f'Failed to delete document: {str(e)}'}), 500
+
+
+
 @jwt_required()
 def create_document(case_id):
     """Create a new case document (EPIC 5: Create Case File Repository)"""
@@ -523,46 +820,3 @@ def upload_safety_plan(case_id):
         'message': 'Safety plan uploaded',
         'document_id': str(result.inserted_id)
     }), 201
-
-
-@documentation_bp.route('/documents/<document_id>/download', methods=['GET'])
-@jwt_required()
-def download_document(document_id):
-    """Secure download for stored attachments or inline content"""
-    user_id = get_jwt_identity()
-
-    # Permission check
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
-        return jsonify({'error': 'Insufficient permissions'}), 403
-
-    try:
-        did = ObjectId(document_id)
-        document = db.db.documents.find_one({"_id": did})
-    except:
-        document = db.db.documents.find_one({"_id": document_id})
-
-    if not document:
-        return jsonify({'error': 'Document not found'}), 404
-
-    # If file_path exists on disk, stream it
-    file_path = document.get('file_path')
-    if file_path and os.path.exists(file_path):
-        audit_log(db.db, 'documentation', 'download', entity_id=str(document['_id']))
-        return send_file(file_path, as_attachment=True)
-
-    # If external Google Drive ID is present, redirect to Drive viewer link (note: production should use signed link)
-    gdrive_id = document.get('gdrive_id')
-    if gdrive_id:
-        drive_link = f'https://drive.google.com/uc?id={gdrive_id}&export=download'
-        audit_log(db.db, 'documentation', 'download_redirect', entity_id=str(document['_id']))
-        return redirect(drive_link)
-
-    # If stored inline as base64 content
-    data_b64 = document.get('data_base64')
-    if data_b64:
-        import base64, io
-        file_bytes = base64.b64decode(data_b64)
-        audit_log(db.db, 'documentation', 'download_inline', entity_id=str(document['_id']))
-        return send_file(io.BytesIO(file_bytes), download_name=document.get('title', 'attachment'), as_attachment=True)
-
-    return jsonify({'error': 'No downloadable content for this document'}), 404

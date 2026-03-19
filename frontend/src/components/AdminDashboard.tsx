@@ -1,10 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, Settings, BarChart3, AlertCircle, Lock, Shield, Database, Activity, TrendingUp } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
-import { DashboardCalendar } from './Calendar';
-import { useState } from 'react';
 
 interface DashboardProps {
   user: any;
@@ -12,13 +9,12 @@ interface DashboardProps {
 }
 
 export function AdminDashboard({ user, onLogout }: DashboardProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
-    { label: 'Cases', href: '/cases', icon: <Shield size={20} /> },
-    { label: 'Documentation', href: '/documentation', icon: <Settings size={20} /> },
-    { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Users', href: '/admin/users' },
+    { label: 'Cases', href: '/cases' },
+    { label: 'Documentation', href: '/documentation' },
+    { label: 'Profile', href: '/profile' },
   ];
 
   return (
@@ -27,23 +23,23 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
       onLogout={onLogout}
       menuItems={menuItems}
       title="Admin Dashboard"
-      subtitle="System Management & Oversight"
+      subtitle="System Management"
     >
       {/* System Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <StatusCard label="Total Users" value="156" />
         <StatusCard label="Active Cases" value="342" />
-        <StatusCard label="System Health" value="99.8%" color="green" />
-        <StatusCard label="Alerts" value="2" color="red" />
+        <StatusCard label="System Health" value="99.8%" />
+        <StatusCard label="Alerts" value="2" />
       </div>
 
       {/* Quick Actions */}
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Quick Links</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <AdminLink href="/admin/users" label="Manage Users" />
           <AdminLink href="/admin/alerts" label="View Alerts" />
-          <AdminLink href="/admin/reports" label="Generate Reports" />
+          <AdminLink href="/admin/reports" label="Reports" />
           <AdminLink href="/admin/audit-log" label="Audit Log" />
         </div>
       </div>
@@ -51,17 +47,11 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
   );
 }
 
-function StatusCard({ label, value, color = "blue" }: any) {
-  const colorStyles = {
-    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
-    green: "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700",
-    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
-  };
-
+function StatusCard({ label, value }: any) {
   return (
-    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
+    <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-gray-50 dark:bg-gray-800/50">
       <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
+      <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
     </div>
   );
 }
@@ -70,7 +60,7 @@ function AdminLink({ href, label }: any) {
   return (
     <Link href={href}>
       <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
-        <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
+        <span className="text-gray-900 dark:text-gray-100 font-medium text-sm">{label}</span>
       </div>
     </Link>
   );

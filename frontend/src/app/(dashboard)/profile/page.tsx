@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, Edit2, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Mail, Phone, MapPin, Calendar, Edit2, Save, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { api } from '@/utils/api';
 
 export default function ProfilePage() {
   const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [profile, setProfile] = useState({
     firstName: 'John',
     lastName: 'Doe',
@@ -22,63 +26,217 @@ export default function ProfilePage() {
 
   const [formData, setFormData] = useState(profile);
 
+  // Load user data from localStorage on mount
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setProfile(prev => ({
+          ...prev,
+          firstName: user.first_name || prev.firstName,
+          lastName: user.last_name || prev.lastName,
+          email: user.email || prev.email,
+          studentId: user.id_number || user._id || prev.studentId,
+        }));
+        setFormData(prev => ({
+          ...prev,
+          firstName: user.first_name || prev.firstName,
+          lastName: user.last_name || prev.lastName,
+          email: user.email || prev.email,
+          studentId: user.id_number || user._id || prev.studentId,
+        }));
+      } catch (err) {
+        console.error('Failed to load user data:', err);
+      }
+    }
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSave = () => {
-    setProfile(formData);
-    setEditMode(false);
+  const handleSave = async () => {
+    // Validate email and name
+    if (!formData.firstName.trim()) {
+      setErrorMessage('First name is required');
+      return;
+    }
+    if (!formData.lastName.trim()) {
+      setErrorMessage('Last name is required');
+      return;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setErrorMessage('Valid email is required');
+      return;
+    }
+
+    setSaving(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : {};
+
+      const response = await fetch(api('/api/users/profile'), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update profile');
+      }
+
+      // Update localStorage with new data
+      const updatedUser = {
+        ...user,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      setProfile(formData);
+      setEditMode(false);
+      setSuccessMessage('Profile updated successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
+      setErrorMessage(message);
+      console.error('Profile update error:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <DashboardPageWrapper title="My Profile">
       <div className="max-w-3xl mx-auto">
-        <div className="border border-gray-200 rounded p-6">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded">
+            <p className="text-sm text-green-700 dark:text-green-300">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded flex gap-3">
+            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={18} />
+            <p className="text-sm text-red-700 dark:text-red-300">{errorMessage}</p>
+          </div>
+        )}
+
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl font-semibold">{profile.firstName[0]}{profile.lastName[0]}</div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900 mb-1">{profile.firstName} {profile.lastName}</h2>
-                <p className="text-xs text-gray-600">{profile.studentId}</p>
-                <p className="text-xs text-gray-600">{profile.major} • {profile.year}</p>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{profile.firstName} {profile.lastName}</h2>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{profile.studentId}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{profile.major} • {profile.year}</p>
               </div>
             </div>
-            <button onClick={() => setEditMode(!editMode)} className="flex items-center gap-2 bg-gray-400 hover:bg-gray-500 text-white px-3 py-1.5 rounded text-sm transition"><Edit2 size={14} /> {editMode ? 'Cancel' : 'Edit'}</button>
+            <button 
+              onClick={() => {
+                setEditMode(!editMode);
+                setErrorMessage(null);
+              }} 
+              className="flex items-center gap-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white px-3 py-2 rounded text-sm transition"
+            >
+              <Edit2 size={14} /> {editMode ? 'Cancel' : 'Edit'}
+            </button>
           </div>
 
           <div className="space-y-4">
             {editMode ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
-                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
+                    <input 
+                      type="text" 
+                      name="firstName" 
+                      value={formData.firstName} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
-                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
+                    <input 
+                      type="text" 
+                      name="lastName" 
+                      value={formData.lastName} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      value={formData.email} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                    <input 
+                      type="tel" 
+                      name="phone" 
+                      value={formData.phone} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
                   </div>
                 </div>
-                <button onClick={handleSave} className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-1.5 rounded text-sm transition flex items-center gap-2"><Save size={14} /> Save</button>
+                <div className="flex gap-3 pt-2">
+                  <button 
+                    onClick={handleSave} 
+                    disabled={saving}
+                    className="flex items-center gap-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white px-6 py-2 rounded-lg text-sm transition disabled:opacity-50"
+                  >
+                    <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setFormData(profile);
+                      setEditMode(false);
+                      setErrorMessage(null);
+                    }}
+                    disabled={saving}
+                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <InfoRow icon={<Mail size={16} />} label="Email" value={profile.email} />
                 <InfoRow icon={<Phone size={16} />} label="Phone" value={profile.phone} />
                 <InfoRow icon={<User size={16} />} label="Student ID" value={profile.studentId} />
                 <InfoRow icon={<Calendar size={16} />} label="Enrollment Date" value={new Date(profile.enrollmentDate).toLocaleDateString()} />
-                <div className="border-t border-gray-200 pt-3 mt-3">
-                  <h3 className="text-xs font-semibold text-gray-700 mb-2">Emergency Contact</h3>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Emergency Contact</h3>
                   <InfoRow label="Name" value={profile.emergencyContact} indent={true} />
                   <InfoRow label="Phone" value={profile.emergencyPhone} indent={true} />
                 </div>

@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DownloadButton } from '@/components/DownloadButton';
-import { File, Upload, Search, Filter, Trash2, AlertCircle, FileText } from 'lucide-react';
-import Link from 'next/link';
+import { File, Upload, Search, AlertCircle, X } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -11,55 +9,157 @@ export default function DocumentationPage() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadType, setUploadType] = useState('Other');
+  const [uploading, setUploading] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
 
   const documentTypes = ['Intake', 'Progress Notes', 'Treatment Plan', 'Assessment', 'Referral', 'Other'];
 
   useEffect(() => {
-    const loadDocuments = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('No authentication token found');
-          setLoading(false);
-          return;
-        }
-
-        // Try to fetch from API endpoint
-        const response = await fetch(api('/api/documentation'), {
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => null);
-
-        if (response && response.ok) {
-          const data = await response.json();
-          setDocuments(data.documents || []);
-        } else {
-          setDocuments([]);
-          setError('Documentation API not yet implemented. Please set up /api/documentation endpoint.');
-        }
-      } catch (err) {
-        console.error('Error loading documents:', err);
-        setDocuments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadDocuments();
   }, []);
 
+  const loadDocuments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No authentication token found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(api('/api/documentation'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDocuments(data.documents || []);
+        setError(null);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to load documents');
+        setDocuments([]);
+      }
+    } catch (err) {
+      console.error('Error loading documents:', err);
+      setError('Failed to load documents');
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setUploadFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!uploadFile) {
+      setError('Please select a file');
+      return;
+    }
+
+    if (!uploadTitle) {
+      setError('Please enter a document title');
+      return;
+    }
+
+    // Get case_id from localStorage or URL params (implement based on your routing)
+    const caseId = localStorage.getItem('current_case_id');
+    if (!caseId) {
+      setError('No case selected. Please select a case before uploading.');
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('title', uploadTitle);
+      formData.append('document_type', uploadType);
+      formData.append('case_id', caseId);
+
+      const response = await fetch(api('/api/documentation/upload'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuccess('Document uploaded successfully!');
+        setUploadFile(null);
+        setUploadTitle('');
+        setUploadType('Other');
+        setShowUploadForm(false);
+        
+        // Reload documents
+        setTimeout(() => {
+          loadDocuments();
+          setSuccess(null);
+        }, 2000);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to upload document');
+      }
+    } catch (err) {
+      console.error('Error uploading document:', err);
+      setError('Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (docId: string) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(api(`/api/documentation/${docId}/delete`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        setSuccess('Document deleted successfully');
+        loadDocuments();
+        setTimeout(() => setSuccess(null), 2000);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to delete document');
+      }
+    } catch (err) {
+      console.error('Error deleting document:', err);
+      setError('Failed to delete document');
+    }
+  };
+
   const filteredDocs = documents.filter(
     (d) =>
-      (filterType === 'all' || d.type === filterType) &&
-      d.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (filterType === 'all' || d.document_type === filterType) &&
+      (d.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       d.content?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
     return (
       <DashboardPageWrapper title="Documentation Hub" subtitle="Manage clinical and administrative documents">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400"></div>
         </div>
       </DashboardPageWrapper>
     );
@@ -69,44 +169,133 @@ export default function DocumentationPage() {
     <DashboardPageWrapper title="Documentation Hub" subtitle="Manage clinical and administrative documents">
       <div className="space-y-6">
         {error && (
-          <div className="border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded p-4 flex gap-3">
-            <AlertCircle className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
-            <p className="text-sm text-amber-700 dark:text-amber-300">{error}</p>
+          <div className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-lg p-4 flex gap-3">
+            <AlertCircle className="text-gray-600 dark:text-gray-400 flex-shrink-0" size={20} />
+            <p className="text-sm text-gray-700 dark:text-gray-300">{error}</p>
           </div>
         )}
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-12 mb-8 text-center hover:bg-blue-100 dark:hover:bg-blue-900/30 transition cursor-pointer">
-          <Upload className="mx-auto text-blue-600 dark:text-blue-400 mb-3" size={32} />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50 mb-2">Upload New Document</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">Drag and drop or click to select files</p>
-          <button className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white px-6 py-2 rounded-lg font-medium transition">
-            Choose File
-          </button>
-        </div>
+        {success && (
+          <div className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-lg p-4 flex gap-3">
+            <div className="text-green-600 dark:text-green-400 flex-shrink-0">✓</div>
+            <p className="text-sm text-gray-700 dark:text-gray-300">{success}</p>
+          </div>
+        )}
 
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 mb-8 border border-gray-200 dark:border-gray-700">
+        {/* Upload Form Section */}
+        {showUploadForm ? (
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Upload Document</h3>
+              <button
+                onClick={() => setShowUploadForm(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Document Title
+                </label>
+                <input
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="Enter document title"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Document Type
+                </label>
+                <select
+                  value={uploadType}
+                  onChange={(e) => setUploadType(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  {documentTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select File
+                </label>
+                <input
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-900 dark:file:bg-gray-700 file:text-white"
+                  required
+                />
+                {uploadFile && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                    Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white rounded-lg font-medium text-sm transition disabled:opacity-50"
+                >
+                  {uploading ? 'Uploading...' : 'Upload Document'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowUploadForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowUploadForm(true)}
+            className="w-full bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer text-center"
+          >
+            <Upload className="mx-auto text-gray-400 mb-3" size={32} />
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload New Document</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Click to select a file to upload</p>
+          </button>
+        )}
+
+        {/* Search and Filter */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2 relative">
-              <Search className="absolute left-3 top-3 text-gray-400 dark:text-gray-500" size={20} />
+              <Search className="absolute left-3 top-3 text-gray-400 dark:text-gray-500" size={18} />
               <input
                 type="text"
                 placeholder="Search documents..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter size={20} className="text-gray-500 dark:text-gray-400" />
+            <div>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               >
                 <option value="all">All Types</option>
-                {documentTypes.map((typ) => (
-                  <option key={typ} value={typ}>
-                    {typ}
+                {documentTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
                   </option>
                 ))}
               </select>
@@ -114,75 +303,59 @@ export default function DocumentationPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-hidden border border-gray-200 dark:border-gray-700">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-50">
-                    Document Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-50">Type</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-50">Date</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-50">Size</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-50">
-                    Uploaded By
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-50">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredDocs.length > 0 ? (
-                  filteredDocs.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                      <td className="px-6 py-4 flex items-center gap-3">
-                        <File className="text-gray-400 dark:text-gray-500" size={20} />
-                        <span className="font-medium text-gray-900 dark:text-gray-50">{doc.name}</span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-3 py-1 rounded-full text-sm font-medium">
-                          {doc.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {new Date(doc.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{doc.size}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{doc.uploaded_by}</td>
-                      <td className="px-6 py-4 flex gap-3">
-                        <DownloadButton documentId={`${doc.id}`} />
-                        <button className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition">
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-600 dark:text-gray-400">
-                      <FileText className="mx-auto mb-2 text-gray-400" size={32} />
-                      <p>No documents found</p>
-                      {error && <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">API endpoint needs implementation</p>}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        {/* Documents List */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {filteredDocs.length > 0 ? (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredDocs.map((doc) => (
+                <div key={doc._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <File size={18} className="text-gray-400" />
+                        <h3 className="font-medium text-gray-900 dark:text-white">{doc.title}</h3>
+                        {doc.is_locked && (
+                          <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                            Locked
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        Type: {doc.document_type} • Created: {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'N/A'}
+                      </p>
+                      {doc.content && (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{doc.content}</p>
+                      )}
+                    </div>
+                    <div className="ml-4 flex gap-2">
+                      {doc.gdrive_file_link && (
+                        <a
+                          href={doc.gdrive_file_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                        >
+                          View
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleDelete(doc._id)}
+                        className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-12 text-center">
+              <File className="mx-auto mb-3 text-gray-400" size={32} />
+              <p className="text-gray-600 dark:text-gray-400">No documents found</p>
+            </div>
+          )}
         </div>
-
-        <section className="mt-12">
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-8">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-3">Document Management Policy</h3>
-            <ul className="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
-              <li>• All documents are securely stored and encrypted</li>
-              <li>• Access is restricted to authorized clinical staff</li>
-              <li>• Documents are retained per institutional policy</li>
-              <li>• Regular backups ensure document availability</li>
-              <li>• Audit logs track all document access</li>
-            </ul>
-          </div>
-        </section>
       </div>
     </DashboardPageWrapper>
   );

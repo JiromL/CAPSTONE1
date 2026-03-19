@@ -10,7 +10,7 @@ import { api } from '@/utils/api';
 interface Task {
   id: string;
   title: string;
-  type: 'appointment' | 'assessment' | 'referral' | 'intake';
+  type: 'appointment' | 'assessment' | 'referral' | 'intake' | 'check-in';
   status: 'pending' | 'scheduled' | 'completed';
   date?: string;
   time?: string;
@@ -19,6 +19,9 @@ interface Task {
   isEmergency?: boolean;
   auto_assigned?: boolean;
   counselor_name?: string;
+  concern?: string;
+  client_status?: string;
+  link?: string;
 }
 
 export default function TasksPage() {
@@ -43,6 +46,34 @@ export default function TasksPage() {
           return;
         }
 
+        const transformedTasks: Task[] = [];
+
+        // Fetch student's current case (for check-in if applicable)
+        try {
+          const caseResponse = await fetch(api('/api/cases/my-current'), {
+            headers: {'Authorization': `Bearer ${token}`},
+          });
+          if (caseResponse.ok) {
+            const caseData = await caseResponse.json();
+            const currentCase = caseData.case;
+            // If student is CHECK_IN_ONLY, add check-in task
+            if (currentCase && currentCase.client_status === 'CHECK_IN_ONLY') {
+              transformedTasks.push({
+                id: currentCase._id || 'check-in-task',
+                title: 'Submit Check-In',
+                type: 'check-in',
+                status: 'pending',
+                description: `Status: ${currentCase.client_status}${currentCase.concern ? ` | Concern: ${currentCase.concern}` : ''}`,
+                concern: currentCase.concern,
+                client_status: currentCase.client_status,
+                link: '/check-ins-student',
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch case:', err);
+        }
+
         // Fetch user's actual appointments from the API
         const response = await fetch(api('/api/appointments'), {
           headers: {'Authorization': `Bearer ${token}`},
@@ -54,7 +85,6 @@ export default function TasksPage() {
         }
 
         const data = await response.json();
-        const transformedTasks: Task[] = [];
 
         if (data.appointments && Array.isArray(data.appointments)) {
           data.appointments.forEach((apt: any) => {
@@ -200,14 +230,24 @@ export default function TasksPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
-                      {/* View Button */}
-                      <Link
-                        href={`/tasks/${task.id}`}
-                        className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded font-medium bg-blue-100 dark:bg-blue-700 text-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-600 transition"
-                      >
-                        <Eye size={14} />
-                        View
-                      </Link>
+                      {/* For check-in tasks, link directly to check-in form */}
+                      {task.type === 'check-in' && task.link ? (
+                        <Link
+                          href={task.link}
+                          className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded font-medium bg-blue-100 dark:bg-blue-700 text-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-600 transition"
+                        >
+                          <Eye size={14} />
+                          Submit
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/tasks/${task.id}`}
+                          className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded font-medium bg-blue-100 dark:bg-blue-700 text-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-600 transition"
+                        >
+                          <Eye size={14} />
+                          View
+                        </Link>
+                      )}
 
                       {/* Status Badge */}
                       <span className={`px-3 py-2 text-xs rounded font-medium whitespace-nowrap ${

@@ -10,7 +10,7 @@ class Config:
     # Class-level defaults for Flask's config_from_object
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)  # Extended for development/testing
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
     MONGODB_DB_NAME = 'cps_system'

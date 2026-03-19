@@ -35,6 +35,48 @@ def get_cases_for_user(user_id, user_role):
         return None  # No access
 
 
+@cases_bp.route('/my-current', methods=['GET'])
+@jwt_required()
+def get_student_current_case():
+    """Get current case for student (student view only)"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    
+    if not user or user.get('role') != 'STUDENT':
+        return jsonify({'error': 'Students only'}), 403
+    
+    # Find student's case
+    case = db.db.cases.find_one({'student_id': ObjectId(user_id)})
+    
+    if not case:
+        return jsonify({
+            'case': None,
+            'message': 'No case found for this student'
+        }), 200
+    
+    # Get assigned counselor name if any
+    counselor_name = None
+    if case.get('assigned_counselor_id'):
+        counselor = db.db.users.find_one({'_id': ObjectId(case['assigned_counselor_id'])})
+        counselor_name = counselor.get('name') if counselor else None
+    
+    return jsonify({
+        'case': {
+            '_id': str(case['_id']),
+            'case_number': case.get('case_number'),
+            'student_id': str(case.get('student_id')),
+            'status': case.get('status'),
+            'case_status': case.get('case_status'),
+            'client_status': case.get('client_status'),  # ACTIVE, CHECK_IN_ONLY, etc
+            'concern': case.get('presenting_issue') or case.get('primary_concern'),  # Concern/issue
+            'case_type': case.get('case_type'),
+            'assigned_counselor_id': str(case['assigned_counselor_id']) if case.get('assigned_counselor_id') else None,
+            'counselor_name': counselor_name,
+            'created_at': case.get('created_at').isoformat() if case.get('created_at') else None
+        }
+    }), 200
+
+
 @cases_bp.route('', methods=['GET'])
 @jwt_required()
 def get_cases():
@@ -79,6 +121,92 @@ def get_cases():
         'role': user_role,
         'cases': cases
     }), 200
+
+
+@cases_bp.route('/checkin/create', methods=['POST'])
+@jwt_required()
+def create_checkin_case():
+    """Create CHECK_IN_ONLY case for non-counseling referred students (Staff only)"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    
+    if not user or user.get('role') not in [UserRole.COUNSELOR, UserRole.PSYCHOLOGIST, UserRole.IC, UserRole.ADMIN, UserRole.DPO]:
+        return jsonify({'error': 'Staff only'}), 403
+    
+    data = request.get_json()
+    
+    # Validate required fields
+    if not data.get('student_id'):
+        return jsonify({'error': 'student_id is required'}), 400
+    if not data.get('concern'):
+        return jsonify({'error': 'concern is required'}), 400
+    if not data.get('client_status'):
+        return jsonify({'error': 'client_status is required'}), 400
+    
+    # Get student
+    try:
+        student_obj_id = ObjectId(data['student_id'])
+    except:
+        return jsonify({'error': 'Invalid student_id format'}), 400
+    
+    student = db.db.users.find_one({'_id': student_obj_id})
+    if not student or student.get('role') != UserRole.STUDENT:
+        return jsonify({'error': 'Student not found'}), 404
+    
+    # Check if student already has active case
+    existing_case = db.db.cases.find_one({'student_id': student_obj_id})
+    if existing_case:
+        return jsonify({'error': 'Student already has an active case'}), 409
+    
+    # Get counselor if assigned
+    assigned_counselor_id = None
+    if data.get('assigned_counselor_id'):
+        try:
+            assigned_counselor_id = ObjectId(data['assigned_counselor_id'])
+            counselor = db.db.users.find_one({'_id': assigned_counselor_id})
+            if not counselor or counselor.get('role') not in [UserRole.COUNSELOR, UserRole.PSYCHOLOGIST]:
+                return jsonify({'error': 'Invalid counselor selected'}), 400
+        except:
+            return jsonify({'error': 'Invalid counselor_id format'}), 400
+    
+    # Valid client statuses for non-counseling
+    valid_statuses = ['CHECK_IN_ONLY', 'WITH_MH_CHECK_IN', 'UNDER_ACCOMMODATION', 'ACTIVE', 'INACTIVE', 'TERMINATION_PENDING']
+    if data['client_status'] not in valid_statuses:
+        return jsonify({'error': f'Invalid client_status. Must be one of: {", ".join(valid_statuses)}'}), 400
+    
+    # Create case
+    case_doc = {
+        '_id': ObjectId(),
+        'student_id': student_obj_id,
+        'assigned_counselor_id': assigned_counselor_id,
+        'case_status': CaseStatus.ACTIVE.value,  # Case itself is active
+        'client_status': data['client_status'],  # Type of client (CHECK_IN_ONLY, etc)
+        'presenting_issue': data['concern'],
+        'primary_concern': data.get('primary_concern', data['concern']),
+        'case_type': CaseType.DEVELOPMENTAL.value,  # Non-counseling cases are DEVELOPMENTAL type
+        'risk_level': RiskLevel.GREEN.value,  # Default GREEN for check-in only
+        'status': 'open',
+        'created_at': datetime.utcnow(),
+        'updated_at': datetime.utcnow(),
+        'created_by': ObjectId(user_id) if isinstance(user_id, str) else user_id,
+        'notes': data.get('notes', '')
+    }
+    
+    result = db.db.cases.insert_one(case_doc)
+    
+    # Audit log
+    from utils import audit_log
+    audit_log(db.db, 'case', 'create_checkin', entity_id=str(result.inserted_id), user_id=user_id)
+    
+    return jsonify({
+        'case_id': str(result.inserted_id),
+        'student_id': data['student_id'],
+        'student_name': student.get('name', 'Unknown'),
+        'concern': data['concern'],
+        'client_status': data['client_status'],
+        'assigned_counselor_id': str(assigned_counselor_id) if assigned_counselor_id else None,
+        'message': 'Check-in case created successfully'
+    }), 201
 
 
 @cases_bp.route('', methods=['POST'])

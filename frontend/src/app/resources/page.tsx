@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { useRouter } from 'next/navigation';
 
 interface Resource {
@@ -104,16 +104,16 @@ export default function ResourcesPage() {
 
   if (loading) {
     return (
-      <PageShell title="Wellness Resources" subtitle="Loading your resources...">
+      <DashboardPageWrapper title="Wellness Resources">
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-50"></div>
         </div>
-      </PageShell>
+      </DashboardPageWrapper>
     );
   }
 
   return (
-    <PageShell title="Wellness Resources" subtitle="Resources shared by your counselor">
+    <DashboardPageWrapper title="Wellness Resources">
       <div className="max-w-4xl mx-auto">
         {/* Info Banner */}
         {!caseFound ? (
@@ -220,7 +220,7 @@ export default function ResourcesPage() {
           </ul>
         </div>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter, AlertCircle, CheckCircle, FileText, ExternalLink } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -89,58 +89,22 @@ export default function CasesPage() {
   };
 
   const getRiskColor = (level: string) => {
-    switch (level?.toUpperCase()) {
-      case 'CRITICAL':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
-      case 'RED':
-        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300';
-      case 'YELLOW':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
-      default:
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-    }
+    return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
   };
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'open':
-      case 'active':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
-      case 'intake_scheduled':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
-      case 'pending':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400';
-      case 'closed':
-        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
-      default:
-        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
-    }
+    return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
   };
 
   const getClientStatusColor = (clientStatus: string) => {
-    switch (clientStatus?.toUpperCase()) {
-      case 'ACTIVE':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
-      case 'CHECK_IN_ONLY':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
-      case 'WITH_MH_CHECK_IN':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400';
-      case 'UNDER_ACCOMMODATION':
-        return 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400';
-      case 'TERMINATION_PENDING':
-        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400';
-      case 'INACTIVE':
-        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
-      default:
-        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
-    }
+    return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
   };
 
   if (loading) {
     return (
       <DashboardPageWrapper title={getRoleSpecificTitle()} subtitle="Manage and track student cases">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400"></div>
         </div>
       </DashboardPageWrapper>
     );
@@ -150,9 +114,8 @@ export default function CasesPage() {
     <DashboardPageWrapper title={getRoleSpecificTitle()} subtitle="Manage and track student cases">
       <div className="space-y-6">
         {error && (
-          <div className="border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 rounded p-4 flex gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded p-4">
+            <p className="text-sm text-gray-700 dark:text-gray-300">{error}</p>
           </div>
         )}
 
@@ -206,12 +169,10 @@ export default function CasesPage() {
                   <div className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <FileText size={16} className="text-gray-400" />
-                          <span className="font-semibold text-gray-900 dark:text-gray-50 hover:text-blue-600 dark:hover:text-blue-400">
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-900 dark:text-gray-50">
                             {caseItem.presenting_issue || 'N/A'}
                           </span>
-                          <ExternalLink size={14} className="text-gray-400" />
                         </div>
                         <div className="flex flex-wrap gap-2 items-center mb-2">
                           <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -253,7 +214,6 @@ export default function CasesPage() {
             </div>
           ) : (
             <div className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-              <FileText className="mx-auto mb-2 text-gray-400" size={32} />
               <p>No cases found</p>
             </div>
           )}
@@ -264,22 +224,18 @@ export default function CasesPage() {
           <StatCard
             label="Total Cases"
             value={cases.length}
-            color="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
           />
           <StatCard
             label="Open Cases"
             value={cases.filter((c) => c.status === 'open').length}
-            color="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
           />
           <StatCard
             label="High Risk"
             value={cases.filter((c) => c.risk_level?.toUpperCase() === 'RED' || c.risk_level?.toUpperCase() === 'CRITICAL').length}
-            color="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
           />
           <StatCard
             label="Closed"
             value={cases.filter((c) => c.status === 'closed').length}
-            color="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
           />
         </div>
       </div>
@@ -287,11 +243,11 @@ export default function CasesPage() {
   );
 }
 
-function StatCard({ label, value, color }: any) {
+function StatCard({ label, value }: any) {
   return (
-    <div className={`${color} rounded-lg p-6 text-center border border-current border-opacity-20`}>
-      <p className="text-3xl font-bold">{value}</p>
-      <p className="text-sm font-medium mt-2">{label}</p>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center border border-gray-200 dark:border-gray-700">
+      <p className="text-3xl font-semibold text-gray-900 dark:text-gray-50">{value}</p>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{label}</p>
     </div>
   );
 }

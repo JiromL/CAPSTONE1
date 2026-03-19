@@ -9,7 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType, ClientStatus, TransactionType
 from utils import audit_log, user_has_permission
-from datetime import datetime
+from datetime import datetime, timedelta
 
 check_ins_bp = Blueprint('check_ins', __name__, url_prefix='/api/check-ins')
 
@@ -376,3 +376,178 @@ def get_check_in_summary():
         'total_cases': db.db.cases.count_documents({}),
         'total_check_ins': db.db.check_ins.count_documents({})
     }), 200
+
+
+@check_ins_bp.route('/student/self-checkin', methods=['POST'])
+@jwt_required()
+def student_self_checkin():
+    """
+    Student self-initiated check-in (for non-counseling clients)
+    Students who are referred but only need periodic check-ins can submit their status
+    """
+    user_id = get_jwt_identity()
+    
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({'_id': user_id_obj})
+    except:
+        user = db.db.users.find_one({'_id': user_id})
+    
+    if not user or user.get('role') != 'STUDENT':
+        return jsonify({'error': 'Only students can submit self check-ins'}), 403
+    
+    data = request.get_json()
+    
+    # Find student's case
+    case = db.db.cases.find_one({'student_id': str(user_id_obj)})
+    if not case:
+        return jsonify({
+            'error': 'No active case found',
+            'message': 'Complete your intake first to enable check-ins'
+        }), 404
+    
+    # Create student self check-in record
+    check_in = {
+        "case_id": case['_id'],
+        "client_id": user_id_obj,
+        "checked_in_by": user_id_obj,  # Student self-checkin
+        "is_self_checkin": True,
+        "check_in_type": "SELF_STATUS_UPDATE",
+        
+        # Student-reported status
+        "reported_status": data.get('status'),  # How they're doing: DOING_WELL, MANAGING, STRUGGLING, IN_CRISIS
+        "reported_concern": data.get('concern'),  # Any current concerns
+        
+        # Wellness check
+        "wellness_rating": data.get('wellness_rating'),  # 1-10 scale of how they're feeling
+        "mood": data.get('mood'),  # Current mood descriptor
+        
+        # Self-reported support needs
+        "needs_support": data.get('needs_support', False),  # Do they need support?
+        "support_type": data.get('support_type'),  # COUNSELING, RESOURCES, REFERRAL, OTHER
+        "support_details": data.get('support_details'),  # Details about what they need
+        
+        # Check-in details
+        "notes": data.get('notes', ''),  # Any additional notes from student
+        "action_items": data.get('action_items', []),  # Self-identified action items
+        
+        # Contact info
+        "contact_method": "SELF_REPORTED",
+        "duration_minutes": 0,
+        
+        # Outcome
+        "outcome": "SUBMITTED_FOR_REVIEW",  # Will be reviewed by counselor
+        "reviewed_by": None,  # Will be filled when staff reviews
+        "staff_notes": None,  # Staff response/notes
+        
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    result = db.db.check_ins.insert_one(check_in)
+    
+    audit_log(db.db, 'check_ins', 'student_self_checkin', 
+              entity_id=str(result.inserted_id), 
+              user_id=str(user_id_obj),
+              entity_type='case',
+              related_id=str(case['_id']))
+    
+    return jsonify({
+        'message': 'Check-in submitted successfully',
+        'check_in_id': str(result.inserted_id),
+        'case_id': str(case['_id']),
+        'status': 'SUBMITTED_FOR_REVIEW',
+        'timestamp': datetime.utcnow().isoformat()
+    }), 201
+
+
+@check_ins_bp.route('/student/my-checkins', methods=['GET'])
+@jwt_required()
+def get_student_checkins():
+    """Get student's submitted check-ins and responses"""
+    user_id = get_jwt_identity()
+    
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_id_obj = user_id
+    
+    # Get student's check-ins
+    checkins = list(db.db.check_ins.find({
+        'client_id': user_id_obj,
+        'is_self_checkin': True
+    }).sort('created_at', -1).limit(50))
+    
+    # Format response
+    formatted_checkins = []
+    for checkin in checkins:
+        formatted_checkins.append({
+            '_id': str(checkin['_id']),
+            'case_id': str(checkin.get('case_id')),
+            'submitted_at': checkin.get('created_at').isoformat() if checkin.get('created_at') else None,
+            'status': checkin.get('reported_status'),
+            'wellness_rating': checkin.get('wellness_rating'),
+            'mood': checkin.get('mood'),
+            'concern': checkin.get('reported_concern'),
+            'outcome': checkin.get('outcome'),
+            'staff_notes': checkin.get('staff_notes'),
+            'reviewed_at': checkin.get('updated_at').isoformat() if checkin.get('updated_at') and checkin.get('reviewed_by') else None
+        })
+    
+    return jsonify({
+        'check_ins': formatted_checkins,
+        'total': len(formatted_checkins)
+    }), 200
+
+
+@check_ins_bp.route('/student/pending-checkins', methods=['GET'])
+@jwt_required()
+def get_pending_student_checkins():
+    """Get due/pending check-ins for this student"""
+    user_id = get_jwt_identity()
+    
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_id_obj = user_id
+    
+    # Find student's case to get next check-in date
+    case = db.db.cases.find_one({'student_id': str(user_id_obj)})
+    if not case:
+        return jsonify({'pending_checkins': []}), 200
+    
+    # Get last check-in
+    last_checkin = db.db.check_ins.find_one({
+        'case_id': case['_id'],
+        'is_self_checkin': True
+    }, sort=[('created_at', -1)])
+    
+    pending = []
+    
+    # If case has next_check_in_date and it's in the past, it's due
+    next_checkin_date = case.get('next_check_in_date')
+    if next_checkin_date and next_checkin_date <= datetime.utcnow():
+        pending.append({
+            'case_id': str(case['_id']),
+            'due_date': next_checkin_date.isoformat(),
+            'days_overdue': (datetime.utcnow() - next_checkin_date).days,
+            'message': 'Your periodic check-in is due'
+        })
+    elif last_checkin:
+        # Estimate next check-in (30 days after last one by default)
+        next_est = last_checkin['created_at'] + timedelta(days=30)
+        if datetime.utcnow() >= next_est:
+            pending.append({
+                'case_id': str(case['_id']),
+                'due_date': next_est.isoformat(),
+                'days_overdue': (datetime.utcnow() - next_est).days,
+                'message': 'Your periodic check-in is due'
+            })
+    else:
+        # First check-in encouraged
+        pending.append({
+            'case_id': str(case['_id']),
+            'message': 'Please submit your initial check-in to help us support you better'
+        })
+    
+    return jsonify({'pending_checkins': pending}), 200

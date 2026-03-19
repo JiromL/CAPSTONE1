@@ -296,6 +296,16 @@ def get_my_appointments():
         # Convert all appointments
         for apt in appointments:
             convert_objectids(apt)
+            
+            # Add counselor name if counselor_id exists
+            if apt.get('counselor_id'):
+                try:
+                    counselor = db.db.users.find_one({"_id": ObjectId(apt['counselor_id'])})
+                    if counselor:
+                        apt['counselor_name'] = counselor.get('name', 'Unknown Counselor')
+                        apt['counselor_email'] = counselor.get('email', '')
+                except:
+                    pass
         
         return jsonify({
             'appointments': appointments,
@@ -1475,7 +1485,7 @@ def cancel_appointment(appointment_id):
 @appointments_bp.route('/<appointment_id>/reschedule', methods=['POST'])
 @jwt_required()
 def reschedule_appointment(appointment_id):
-    """Reschedule an appointment to a new date/time"""
+    """Reschedule an appointment to a new date/time (student request, requires counselor approval)"""
     user_id = get_jwt_identity()
     
     try:
@@ -1496,9 +1506,9 @@ def reschedule_appointment(appointment_id):
     student_id = appointment.get('student_id')
     counselor_id = appointment.get('counselor_id')
     
-    # Only student or assigned counselor can reschedule
-    if str(user_id_obj) != str(student_id) and str(user_id_obj) != str(counselor_id):
-        return jsonify({'error': 'Insufficient permissions'}), 403
+    # Only student can request reschedule
+    if str(user_id_obj) != str(student_id):
+        return jsonify({'error': 'Only students can request reschedule changes'}), 403
     
     # Can't reschedule completed or cancelled appointments
     current_status = appointment.get('status', '').upper()
@@ -1572,11 +1582,13 @@ def reschedule_appointment(appointment_id):
         )
         
         return jsonify({
-            'message': 'Appointment rescheduled successfully',
+            'message': 'Reschedule request submitted successfully',
+            'detail': 'Your counselor has been notified and will review your reschedule request',
             'appointment_id': str(apt_id),
             'status': 'REQUESTED',
             'requested_start': new_start.isoformat(),
-            'requested_end': (new_end or new_start + timedelta(hours=1)).isoformat()
+            'requested_end': (new_end or new_start + timedelta(hours=1)).isoformat(),
+            'reason': reason
         }), 200
         
     except Exception as e:

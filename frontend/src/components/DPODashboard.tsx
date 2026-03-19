@@ -12,6 +12,7 @@ interface DashboardProps {
 export function DPODashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Analytics', href: '/admin/analytics', icon: <TrendingUp size={20} /> },
     { label: 'Cases', href: '/cases', icon: <Users size={20} /> },
     { label: 'High-Risk', href: '/high-risk', icon: <AlertTriangle size={20} />, badge: 5 },
     { label: 'Reports', href: '/documentation', icon: <Calendar size={20} /> },
@@ -39,10 +40,10 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <OperationLink href="/cases" label="Review Cases" />
+          <OperationLink href="/admin/analytics" label="View Analytics" />
           <OperationLink href="/high-risk" label="High-Risk Cases" badge={8} />
-          <OperationLink href="/cases" label="Team Management" />
-          <OperationLink href="/cases" label="Operations Reports" />
+          <OperationLink href="/cases" label="Review Cases" />
+          <OperationLink href="/documentation" label="Reports & Docs" />
         </div>
       </div>
     </DashboardLayout>

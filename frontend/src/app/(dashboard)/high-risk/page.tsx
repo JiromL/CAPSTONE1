@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Phone, Mail, User, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import ManualNotifyForm from '@/components/ManualNotifyForm';
@@ -46,13 +45,13 @@ export default function HighRiskPage() {
   return (
     <DashboardPageWrapper title="High-Risk Monitoring" subtitle="Monitor and support students at elevated risk">
       <section className="mb-8">
-        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-8">
-          <h2 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2"><AlertTriangle size={24} /> Emergency Resources</h2>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50 mb-4">Emergency Resources</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {emergencyResources.map((resource, idx) => (
-              <div key={idx} className="bg-white rounded-lg p-4">
-                <p className="font-medium text-gray-900">{resource.name}</p>
-                <p className="text-lg font-bold text-red-600 mt-2">{resource.phone}</p>
+              <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                <p className="font-medium text-gray-900 dark:text-gray-50">{resource.name}</p>
+                <p className="text-base text-gray-700 dark:text-gray-300 mt-2">{resource.phone}</p>
               </div>
             ))}
           </div>
@@ -94,14 +93,14 @@ export default function HighRiskPage() {
       </section>
 
       <section className="mt-12">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">High-Risk Monitoring Guidelines</h3>
-          <ul className="space-y-3 text-gray-700">
-            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Daily Check-ins:</strong> Contact high-risk clients daily or per treatment plan</span></li>
-            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Safety Plans:</strong> Ensure current safety plans are in place and reviewed</span></li>
-            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Emergency Contacts:</strong> Maintain accessible emergency contact information</span></li>
-            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Documentation:</strong> Record all contact attempts and client status</span></li>
-            <li className="flex items-start gap-3"><CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} /><span><strong>Escalation:</strong> Escalate to crisis services immediately if needed</span></li>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50 mb-4">High-Risk Monitoring Guidelines</h3>
+          <ul className="space-y-3 text-gray-700 dark:text-gray-300">
+            <li><span className="font-medium">Daily Check-ins:</span> Contact high-risk clients daily or per treatment plan</li>
+            <li><span className="font-medium">Safety Plans:</span> Ensure current safety plans are in place and reviewed</li>
+            <li><span className="font-medium">Emergency Contacts:</span> Maintain accessible emergency contact information</li>
+            <li><span className="font-medium">Documentation:</span> Record all contact attempts and client status</li>
+            <li><span className="font-medium">Escalation:</span> Escalate to crisis services immediately if needed</li>
           </ul>
         </div>
       </section>
@@ -210,7 +209,7 @@ function SendToCounselorButton({ username }: { username: string }) {
 
   return (
     <div className="flex-1">
-      <button onClick={handleSend} disabled={loading} className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded-lg font-medium transition">
+      <button onClick={handleSend} disabled={loading} className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition">
         {loading ? 'Sending...' : 'Send to Counselor'}
       </button>
       {sent === true && <p className="text-xs text-green-600 mt-2">Notified</p>}

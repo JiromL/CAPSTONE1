@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 export default function DashboardRedirect() {
   useEffect(() => {
     // Redirect to main dashboard
-    window.location.href = '/dashboard/dashboard';
+    window.location.href = '/dashboard';
   }, []);
 
   return (

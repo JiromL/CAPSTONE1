@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, CheckCircle, FileText, Heart, AlertCircle, Search, X, Mail, Clock, Plus } from 'lucide-react';
+import { BookOpen, CheckCircle, FileText, Heart, AlertCircle, Search, X, Mail, Clock, Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ScheduleAppointmentCalendar } from '@/components/ScheduleAppointmentCalendar';
 import { CancelNoShowModal } from '@/components/CancelNoShowModal';
@@ -54,6 +54,17 @@ export default function AppointmentsPage() {
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
     
+    // Load from cache first
+    const cachedAppointments = localStorage.getItem('appointments_cache');
+    if (cachedAppointments) {
+      try {
+        setAppointments(JSON.parse(cachedAppointments));
+      } catch (e) {
+        console.error('Failed to load cached appointments');
+      }
+    }
+    
+    // Fetch fresh data
     fetchAppointments(token);
   }, [router]);
 
@@ -73,7 +84,10 @@ export default function AppointmentsPage() {
       if (response.ok) {
         const data = await response.json();
         console.log('[Appointments] Success:', data);
-        setAppointments(data.appointments || []);
+        const appointments = data.appointments || [];
+        setAppointments(appointments);
+        // Cache the appointments
+        localStorage.setItem('appointments_cache', JSON.stringify(appointments));
       } else {
         const errorText = await response.text();
         console.error('[Appointments] Failed to fetch:', {
@@ -253,7 +267,9 @@ export default function AppointmentsPage() {
       });
 
       if (response.ok) {
-        await sendEmailNotification('no-show', selectedAppointment);
+        // Note: 'no-show' isn't a valid notification type for sendEmailNotification
+        // Treating as a cancel notification
+        await sendEmailNotification('cancel', selectedAppointment);
         setNotificationMessage({ type: 'success', text: 'No show recorded successfully' });
         setShowNoShowModal(false);
         setSelectedAppointment(null);
@@ -491,7 +507,7 @@ export default function AppointmentsPage() {
 
           {upcomingAppointments.length === 0 ? (
             <div className="p-8 border border-gray-200 rounded text-center dark:border-gray-700 dark:bg-gray-800">
-              <Calendar size={32} className="mx-auto mb-3 text-gray-400" />
+              <CalendarIcon size={32} className="mx-auto mb-3 text-gray-400" />
               <p className="text-gray-600 dark:text-gray-400">No upcoming appointments</p>
               <button
                 onClick={() => router.push('/intake')}

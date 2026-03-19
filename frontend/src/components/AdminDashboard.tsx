@@ -10,11 +10,11 @@ interface DashboardProps {
 
 export function AdminDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Users', href: '/admin/users' },
-    { label: 'Cases', href: '/cases' },
-    { label: 'Documentation', href: '/documentation' },
-    { label: 'Profile', href: '/profile' },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'Users', href: '/admin/users', id: 'users' },
+    { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'Documentation', href: '/documentation', id: 'documentation' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   return (
@@ -24,6 +24,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
       menuItems={menuItems}
       title="Admin Dashboard"
       subtitle="System Management"
+      activeSection="dashboard"
     >
       {/* System Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
@@ -39,7 +40,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <AdminLink href="/admin/users" label="Manage Users" />
           <AdminLink href="/admin/alerts" label="View Alerts" />
-          <AdminLink href="/admin/reports" label="Reports" />
+          <AdminLink href="/admin/security" label="Reports" />
           <AdminLink href="/admin/audit-log" label="Audit Log" />
         </div>
       </div>

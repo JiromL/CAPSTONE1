@@ -10,13 +10,13 @@ interface DashboardProps {
 
 export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Cases', href: '/dashboard/cases' },
-    { label: 'Assessments', href: '/dashboard/assessments', badge: 7 },
-    { label: 'Documentation', href: '/dashboard/documentation' },
-    { label: 'High-Risk', href: '/dashboard/high-risk', badge: 3 },
-    { label: 'Referrals', href: '/dashboard/referrals' },
-    { label: 'Profile', href: '/dashboard/profile' },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'Assessments', href: '/assessments', id: 'assessments', badge: 7 },
+    { label: 'Documentation', href: '/documentation', id: 'documentation' },
+    { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 3 },
+    { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   return (
@@ -26,6 +26,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
       menuItems={menuItems}
       title="Psychologist Dashboard"
       subtitle="Clinical Review"
+      activeSection="dashboard"
     >
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
@@ -39,10 +40,10 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Quick Links</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <ClinicalLink href="/dashboard/cases" label="Review Cases" />
-          <ClinicalLink href="/dashboard/assessments" label="Assessments" />
-          <ClinicalLink href="/dashboard/appointments" label="Schedule Session" />
-          <ClinicalLink href="/dashboard/documentation" label="Clinical Notes" />
+          <ClinicalLink href="/cases" label="Review Cases" />
+          <ClinicalLink href="/assessments" label="Assessments" />
+          <ClinicalLink href="/appointments" label="Schedule Session" />
+          <ClinicalLink href="/documentation" label="Clinical Notes" />
         </div>
       </div>
     </DashboardLayout>

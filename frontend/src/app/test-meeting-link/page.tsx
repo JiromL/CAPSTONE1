@@ -43,8 +43,8 @@ export default function MeetingLinkTestPage() {
                 {testData.passcode && (
                   <div><span className="text-gray-400">Passcode:</span> <span className="text-purple-300 font-bold">{testData.passcode}</span></div>
                 )}
-                {testData.meeting_code && (
-                  <div><span className="text-gray-400">Code:</span> <span className="text-purple-300 font-bold">{testData.meeting_code}</span></div>
+                {testData.meeting_id && (
+                  <div><span className="text-gray-400">Meeting ID:</span> <span className="text-purple-300 font-bold">{testData.meeting_id}</span></div>
                 )}
                 <div><span className="text-gray-400">Link:</span></div>
                 <div className="text-purple-300 underline break-all text-xs">{testData.join_url}</div>

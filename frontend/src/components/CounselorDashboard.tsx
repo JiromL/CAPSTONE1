@@ -37,13 +37,13 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
     loadDashboardData();
   }, []);
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Appointments', href: '/dashboard/appointments', badge: dashboardData?.summary?.assigned_cases || 0 },
-    { label: 'Availability', href: '/dashboard/availability' },
-    { label: 'Cases', href: '/dashboard/cases' },
-    { label: 'Referrals', href: '/dashboard/referrals' },
-    { label: 'Documentation', href: '/dashboard/documentation' },
-    { label: 'Profile', href: '/dashboard/profile' },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'Appointments', href: '/appointments', id: 'appointments', badge: dashboardData?.summary?.assigned_cases || 0 },
+    { label: 'Availability', href: '/availability', id: 'availability' },
+    { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'Documentation', href: '/documentation', id: 'documentation' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   const summary = dashboardData?.summary || {};
@@ -57,6 +57,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       menuItems={menuItems}
       title="Counselor Dashboard"
       subtitle="Session Management"
+      activeSection="dashboard"
     >
       {/* Loading State */}
       {loading && (
@@ -115,9 +116,9 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
           <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900 mb-6">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Quick Links</h2>
             <div className="flex flex-wrap gap-2">
-              <ActionButton href="/dashboard/appointments" label="Appointments" />
-              <ActionButton href="/dashboard/documentation" label="Documentation" />
-              <ActionButton href="/dashboard/cases" label="Cases" />
+              <ActionButton href="/appointments" label="Appointments" />
+              <ActionButton href="/documentation" label="Documentation" />
+              <ActionButton href="/cases" label="Cases" />
             </div>
           </div>
 

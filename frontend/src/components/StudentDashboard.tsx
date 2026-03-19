@@ -108,12 +108,12 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
   // Build menu items conditionally
   const baseMenuItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'My Tasks', href: '/tasks', badge: taskCount },
-    { label: 'Intake Form', href: '/intake' },
-    ...(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student' }] : []),
-    { label: 'Wellness Resources', href: '/resources', badge: resourceCount },
-    { label: 'Profile', href: '/profile' },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: taskCount },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    ...(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student', id: 'check-ins-student' }] : []),
+    { label: 'Wellness Resources', href: '/resources', id: 'resources', badge: resourceCount },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   const menuItems = baseMenuItems;
@@ -128,6 +128,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       menuItems={menuItems}
       title="Student Dashboard"
       subtitle="Manage your wellness"
+      activeSection="dashboard"
     >
       {/* Welcome */}
       <div className="mb-4">

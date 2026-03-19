@@ -36,6 +36,11 @@ export default function Dashboard() {
   }, [router]);
 
   const handleLogout = () => {
+    // Clear all caches before clearing localStorage
+    localStorage.removeItem('appointments_cache');
+    localStorage.removeItem('cases_cache');
+    localStorage.removeItem('assessments_cache');
+    localStorage.removeItem('dashboard_cache');
     localStorage.clear();
     router.push('/login');
   };

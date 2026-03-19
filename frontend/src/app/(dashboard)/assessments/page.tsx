@@ -43,11 +43,22 @@ export default function AssessmentsPage() {
 
         const data = await response.json();
         setDashboardData(data);
+        // Cache the assessments data
+        localStorage.setItem('assessments_cache', JSON.stringify(data));
         setError(null);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load assessments';
         console.error('Error loading assessments:', err);
         setError(errorMessage);
+        // Try to load from cache on error
+        const cached = localStorage.getItem('assessments_cache');
+        if (cached) {
+          try {
+            setDashboardData(JSON.parse(cached));
+          } catch (e) {
+            console.error('Failed to load cached assessments');
+          }
+        }
       } finally {
         setLoading(false);
       }

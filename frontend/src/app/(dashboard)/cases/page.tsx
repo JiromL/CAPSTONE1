@@ -48,12 +48,24 @@ export default function CasesPage() {
         }
 
         const data = await response.json();
-        setCases(data.cases || []);
+        const casesList = data.cases || [];
+        setCases(casesList);
+        // Cache the cases data
+        localStorage.setItem('cases_cache', JSON.stringify(casesList));
         setError(null);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load cases';
         console.error('Error loading cases:', err);
         setError(errorMessage);
+        // Try to load from cache on error
+        const cached = localStorage.getItem('cases_cache');
+        if (cached) {
+          try {
+            setCases(JSON.parse(cached));
+          } catch (e) {
+            console.error('Failed to load cached cases');
+          }
+        }
       } finally {
         setLoading(false);
       }

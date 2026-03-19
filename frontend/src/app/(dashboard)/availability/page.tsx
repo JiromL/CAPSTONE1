@@ -222,17 +222,24 @@ export default function AvailabilityPage() {
   }
 
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'My Appointments', href: '/appointments' },
-    { label: 'Availability', id: 'availability' },
-    { label: 'Cases', href: '/cases' },
-    { label: 'Profile', href: '/profile' },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'Appointments', href: '/appointments', id: 'appointments' },
+    { label: 'Availability', href: '/availability', id: 'availability' },
+    { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'Documentation', href: '/documentation', id: 'documentation' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   return (
     <DashboardLayout
       user={user}
       onLogout={() => {
+        // Clear all caches before logout
+        localStorage.removeItem('appointments_cache');
+        localStorage.removeItem('cases_cache');
+        localStorage.removeItem('assessments_cache');
+        localStorage.removeItem('dashboard_cache');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';

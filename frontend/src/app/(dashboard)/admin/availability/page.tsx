@@ -207,17 +207,22 @@ export default function AdminAvailabilityPage() {
   }
 
   const menuItems = [
-    { label: 'Dashboard', href: '/admin-dashboard' },
-    { label: 'Users', href: '/admin/users' },
-    { label: 'Counselor Availability', id: 'availability' },
-    { label: 'Cases', href: '/admin/cases' },
-    { label: 'Settings', href: '/admin/settings' },
+    { label: 'Dashboard', href: '/admin-dashboard', id: 'dashboard' },
+    { label: 'Users', href: '/admin/users', id: 'users' },
+    { label: 'Counselor Availability', href: '/availability', id: 'availability' },
+    { label: 'Cases', href: '/admin/cases', id: 'cases' },
+    { label: 'Settings', href: '/admin/settings', id: 'settings' },
   ];
 
   return (
     <DashboardLayout
       user={user}
       onLogout={() => {
+        // Clear all caches before logout
+        localStorage.removeItem('appointments_cache');
+        localStorage.removeItem('cases_cache');
+        localStorage.removeItem('assessments_cache');
+        localStorage.removeItem('dashboard_cache');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';

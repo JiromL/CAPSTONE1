@@ -49,8 +49,8 @@ export default function ScheduleCalendarPage() {
         const uniqueCounselors = Array.from(
           new Map(
             appts
-              .filter((a) => a.counselor_name)
-              .map((a) => [a.counselor_name, { name: a.counselor_name }])
+              .filter((a: any) => a.counselor_name)
+              .map((a: any) => [a.counselor_name, { name: a.counselor_name }])
           ).values()
         ) as any[];
         setCounselors(uniqueCounselors);

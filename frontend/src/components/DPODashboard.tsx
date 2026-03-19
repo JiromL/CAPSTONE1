@@ -11,13 +11,13 @@ interface DashboardProps {
 
 export function DPODashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BarChart3 size={20} /> },
-    { label: 'Analytics', href: '/admin/analytics', icon: <TrendingUp size={20} /> },
-    { label: 'Cases', href: '/cases', icon: <Users size={20} /> },
-    { label: 'High-Risk', href: '/high-risk', icon: <AlertTriangle size={20} />, badge: 5 },
-    { label: 'Reports', href: '/documentation', icon: <Calendar size={20} /> },
-    { label: 'Team', href: '/referrals', icon: <TrendingUp size={20} /> },
-    { label: 'Profile', href: '/profile', icon: <Settings size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'Analytics', href: '/admin/analytics', id: 'analytics' },
+    { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 5 },
+    { label: 'Reports', href: '/documentation', id: 'reports' },
+    { label: 'Team', href: '/referrals', id: 'team' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   return (
@@ -27,6 +27,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
       menuItems={menuItems}
       title="DPO Dashboard"
       subtitle="Director of Psychological Operations"
+      activeSection="dashboard"
     >
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">

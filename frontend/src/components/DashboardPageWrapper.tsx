@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Calendar, FileText, CheckCircle, AlertCircle, BookOpen, Heart, MessageCircle, Users, Brain, Shield, TrendingUp } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 
@@ -12,6 +13,7 @@ interface DashboardPageWrapperProps {
 
 export function DashboardPageWrapper({ children, title, subtitle }: DashboardPageWrapperProps) {
   const [user, setUser] = useState<any>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -27,6 +29,10 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem('appointments_cache');
+    localStorage.removeItem('cases_cache');
+    localStorage.removeItem('assessments_cache');
+    localStorage.removeItem('dashboard_cache');
     localStorage.clear();
     window.location.href = '/login';
   };
@@ -34,94 +40,122 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
   // Get menu items based on user role
   const getMenuItems = (role: string) => {
     const baseItems = [
-      { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
+      { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
     ];
 
     switch(role) {
       case 'STUDENT':
         return [
           ...baseItems,
-          { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
-          { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
-          { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
-          { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+          { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: 3 },
+          { label: 'Intake Form', href: '/intake', id: 'intake' },
+          { label: 'Wellness Resources', href: '/resources', id: 'resources' },
+          { label: 'My Profile', href: '/profile', id: 'profile' },
         ];
       case 'ADMIN':
         return [
           ...baseItems,
-          { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
-          { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-          { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
-          { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+          { label: 'Users', href: '/admin/users', id: 'users' },
+          { label: 'Cases', href: '/cases', id: 'cases' },
+          { label: 'Documentation', href: '/documentation', id: 'documentation' },
+          { label: 'Profile', href: '/profile', id: 'profile' },
         ];
       case 'PSYCHOLOGIST':
         return [
           ...baseItems,
-          { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-          { label: 'Assessments', href: '/assessments', icon: <Calendar size={20} />, badge: 7 },
-          { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
-          { label: 'High-Risk', href: '/high-risk', icon: <AlertCircle size={20} />, badge: 3 },
-          { label: 'Referrals', href: '/referrals', icon: <Users size={20} /> },
-          { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+          { label: 'Cases', href: '/cases', id: 'cases' },
+          { label: 'Assessments', href: '/assessments', id: 'assessments', badge: 7 },
+          { label: 'Documentation', href: '/documentation', id: 'documentation' },
+          { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 3 },
+          { label: 'Referrals', href: '/referrals', id: 'referrals' },
+          { label: 'Profile', href: '/profile', id: 'profile' },
         ];
       case 'COUNSELOR':
         return [
           ...baseItems,
-          { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-          { label: 'Appointments', href: '/appointments', icon: <Calendar size={20} />, badge: 4 },
-          { label: 'Referrals', href: '/referrals', icon: <Users size={20} /> },
-          { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
-          { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+          { label: 'Appointments', href: '/appointments', id: 'appointments', badge: 4 },
+          { label: 'Availability', href: '/availability', id: 'availability' },
+          { label: 'Cases', href: '/cases', id: 'cases' },
+          { label: 'Referrals', href: '/referrals', id: 'referrals' },
+          { label: 'Documentation', href: '/documentation', id: 'documentation' },
+          { label: 'Profile', href: '/profile', id: 'profile' },
         ];
       case 'IC':
         return [
           ...baseItems,
-          { label: 'Assessments', href: '/assessments', icon: <Calendar size={20} />, badge: 12 },
-          { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-          { label: 'Schedule Calendar', href: '/ic/schedule/calendar', icon: <Calendar size={20} /> },
-          { label: 'Counselor Availability', href: '/ic/schedule/counselors', icon: <Users size={20} /> },
-          { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
-          { label: 'Referrals', href: '/referrals', icon: <Users size={20} /> },
-          { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+          { label: 'Assessments', href: '/assessments', id: 'assessments', badge: 12 },
+          { label: 'Cases', href: '/cases', id: 'cases' },
+          { label: 'Schedule Calendar', href: '/ic/schedule/calendar', id: 'schedule-calendar' },
+          { label: 'Counselor Availability', href: '/ic/schedule/counselors', id: 'counselor-availability' },
+          { label: 'Documentation', href: '/documentation', id: 'documentation' },
+          { label: 'Referrals', href: '/referrals', id: 'referrals' },
+          { label: 'Profile', href: '/profile', id: 'profile' },
         ];
       case 'DPO':
         return [
           ...baseItems,
-          { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-          { label: 'High-Risk', href: '/high-risk', icon: <AlertCircle size={20} />, badge: 5 },
-          { label: 'Reports', href: '/documentation', icon: <Shield size={20} /> },
-          { label: 'Team', href: '/referrals', icon: <Users size={20} /> },
-          { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+          { label: 'Cases', href: '/cases', id: 'cases' },
+          { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 5 },
+          { label: 'Reports', href: '/documentation', id: 'reports' },
+          { label: 'Team', href: '/referrals', id: 'team' },
+          { label: 'Profile', href: '/profile', id: 'profile' },
         ];
       case 'CSP':
       case 'CSC':
         return [
           ...baseItems,
-          { label: 'Appointments', href: '/appointments', icon: <Calendar size={20} />, badge: 6 },
-          { label: 'Cases', href: '/cases', icon: <FileText size={20} /> },
-          { label: 'Documentation', href: '/documentation', icon: <Shield size={20} /> },
-          { label: 'Tasks', href: '/tasks', icon: <CheckCircle size={20} /> },
-          { label: 'Profile', href: '/profile', icon: <TrendingUp size={20} /> },
+          { label: 'Appointments', href: '/appointments', id: 'appointments', badge: 6 },
+          { label: 'Cases', href: '/cases', id: 'cases' },
+          { label: 'Documentation', href: '/documentation', id: 'documentation' },
+          { label: 'Tasks', href: '/tasks', id: 'tasks' },
+          { label: 'Profile', href: '/profile', id: 'profile' },
         ];
       case 'STAFF':
         return [
           ...baseItems,
-          { label: 'Batch Assignment', href: '/staff/batch-assign', icon: <Users size={20} /> },
-          { label: 'Workload Report', href: '/staff/workload-report', icon: <TrendingUp size={20} /> },
-          { label: 'Counselor Availability', href: '/ic/schedule/counselors', icon: <Users size={20} /> },
-          { label: 'Reassignment Suggestions', href: '/staff/reassignment-suggestions', icon: <AlertCircle size={20} /> },
-          { label: 'Appointments', href: '/staff/appointments', icon: <Calendar size={20} />, badge: 12 },
-          { label: 'Staff Settings', href: '/dashboard/staff-settings', icon: <Shield size={20} /> },
+          { label: 'Batch Assignment', href: '/staff/batch-assign', id: 'batch-assign' },
+          { label: 'Workload Report', href: '/staff/workload-report', id: 'workload-report' },
+          { label: 'Counselor Availability', href: '/ic/schedule/counselors', id: 'counselor-availability' },
+          { label: 'Reassignment Suggestions', href: '/staff/reassignment-suggestions', id: 'reassignment-suggestions' },
+          { label: 'Appointments', href: '/staff/appointments', id: 'staff-appointments', badge: 12 },
+          { label: 'Staff Settings', href: '/dashboard/staff-settings', id: 'staff-settings' },
         ];
       default:
         return [
           ...baseItems,
-          { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
-          { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
-          { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
-          { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+          { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: 3 },
+          { label: 'Intake Form', href: '/intake', id: 'intake' },
+          { label: 'Wellness Resources', href: '/resources', id: 'resources' },
+          { label: 'My Profile', href: '/profile', id: 'profile' },
         ];
     }
+  };
+
+  // Determine active section from pathname
+  const getActiveSection = (pathname: string) => {
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length === 0) return 'dashboard';
+    
+    const lastSegment = segments[segments.length - 1];
+    
+    // Map route segments to menu item IDs
+    const routeMap: { [key: string]: string } = {
+      'appointments': 'appointments',
+      'availability': 'availability',
+      'cases': 'cases',
+      'assessments': 'assessments',
+      'referrals': 'referrals',
+      'documentation': 'documentation',
+      'profile': 'profile',
+      'tasks': 'tasks',
+      'intake': 'intake',
+      'resources': 'resources',
+      'high-risk': 'high-risk',
+      'users': 'users',
+      'dashboard': 'dashboard',
+    };
+    
+    return routeMap[lastSegment] || 'dashboard';
   };
 
   if (!user) {
@@ -133,6 +167,7 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
   }
 
   const menuItems = getMenuItems(user.role);
+  const activeSection = getActiveSection(pathname);
 
   return (
     <DashboardLayout
@@ -141,6 +176,7 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
       menuItems={menuItems}
       title={title}
       subtitle={subtitle || 'Campus Counseling Services'}
+      activeSection={activeSection}
     >
       {children}
     </DashboardLayout>

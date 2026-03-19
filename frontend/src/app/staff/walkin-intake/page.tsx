@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardPageWrapper from '@/components/DashboardPageWrapper';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 

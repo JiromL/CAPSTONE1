@@ -34,6 +34,23 @@ export default function BookAppointmentPage() {
   const [preferredMethod, setPreferredMethod] = useState('in-person');
   const [preferredDate, setPreferredDate] = useState('');
   const [preferredTime, setPreferredTime] = useState('');
+  
+  // Personal information
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  
+  // Terms and conditions
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  
+  // Draft functionality
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
+  
+  // Verification/checking step
+  const [showVerification, setShowVerification] = useState(false);
+  
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -48,7 +65,20 @@ export default function BookAppointmentPage() {
           return;
         }
 
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        
+        // Pre-fill personal information
+        setFirstName(parsedUser.first_name || '');
+        setLastName(parsedUser.last_name || '');
+        setEmail(parsedUser.email || '');
+        setPhone(parsedUser.phone || '');
+
+        // Check for saved draft
+        const draftData = localStorage.getItem('bookAppointmentDraft');
+        if (draftData) {
+          setHasDraft(true);
+        }
 
         // Fetch available slots for next 30 days
         const startDate = new Date();
@@ -87,8 +117,76 @@ export default function BookAppointmentPage() {
     loadData();
   }, [router]);
 
-  const handleBookAppointment = async (e: React.FormEvent) => {
+  const saveDraft = () => {
+    const draftData = {
+      firstName,
+      lastName,
+      email,
+      phone,
+      purpose,
+      otherPurpose,
+      concern,
+      referralType,
+      referredBy,
+      preferredMethod,
+      preferredDate,
+      preferredTime,
+      agreedToTerms,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('bookAppointmentDraft', JSON.stringify(draftData));
+    setDraftSaved(true);
+    setHasDraft(true);
+    setTimeout(() => setDraftSaved(false), 3000);
+  };
+
+  const loadDraft = () => {
+    const draftData = localStorage.getItem('bookAppointmentDraft');
+    if (draftData) {
+      const draft = JSON.parse(draftData);
+      setFirstName(draft.firstName);
+      setLastName(draft.lastName);
+      setEmail(draft.email);
+      setPhone(draft.phone);
+      setPurpose(draft.purpose);
+      setOtherPurpose(draft.otherPurpose);
+      setConcern(draft.concern);
+      setReferralType(draft.referralType);
+      setReferredBy(draft.referredBy);
+      setPreferredMethod(draft.preferredMethod);
+      setPreferredDate(draft.preferredDate);
+      setPreferredTime(draft.preferredTime);
+      setAgreedToTerms(draft.agreedToTerms);
+    }
+  };
+
+  const clearDraft = () => {
+    localStorage.removeItem('bookAppointmentDraft');
+    setHasDraft(false);
+  };
+
+  const handleBookAppointment = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!firstName.trim()) {
+      setSubmitError('Please enter your first name');
+      return;
+    }
+
+    if (!lastName.trim()) {
+      setSubmitError('Please enter your last name');
+      return;
+    }
+
+    if (!email.trim()) {
+      setSubmitError('Please enter your email address');
+      return;
+    }
+
+    if (!phone.trim()) {
+      setSubmitError('Please enter your phone number');
+      return;
+    }
 
     if (!purpose) {
       setSubmitError('Please select a purpose');
@@ -120,6 +218,17 @@ export default function BookAppointmentPage() {
       return;
     }
 
+    if (!agreedToTerms) {
+      setSubmitError('Please agree to the terms and conditions');
+      return;
+    }
+
+    // All validation passed, show verification page
+    setSubmitError(null);
+    setShowVerification(true);
+  };
+
+  const handleConfirmAppointment = async () => {
     setSubmitting(true);
     setSubmitError(null);
 
@@ -142,6 +251,10 @@ export default function BookAppointmentPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+          phone: phone,
           preferred_date: preferredDate,
           preferred_time: preferredTime,
           appointment_type: 'initial',
@@ -150,6 +263,7 @@ export default function BookAppointmentPage() {
           referred_by: referralType === 'referred' ? referredBy : null,
           concern: concern,
           preferred_method: preferredMethod,
+          agreed_to_terms: agreedToTerms,
         }),
       });
 
@@ -157,10 +271,11 @@ export default function BookAppointmentPage() {
         const data = await response.json();
         console.log('[BookAppointment] Appointment created:', data);
         setBookingConfirmed(true);
+        clearDraft();
         
-        // Redirect after showing confirmation
+        // Redirect after showing confirmation - use relative path to stay within dashboard
         setTimeout(() => {
-          router.push('/appointments');
+          router.push('../appointments');
         }, 2500);
       } else {
         const errorData = await response.text();
@@ -211,11 +326,185 @@ export default function BookAppointmentPage() {
             <p className="text-green-700 dark:text-green-300 mb-6">
               Your appointment request has been submitted. You will receive a confirmation email shortly.
             </p>
-            <Link href="/appointments">
+            <Link href="../appointments">
               <button className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
                 View My Appointments
               </button>
             </Link>
+          </div>
+        </div>
+      </DashboardPageWrapper>
+    );
+  }
+
+  // Show verification/checking page if in verification step
+  if (showVerification) {
+    const finalPurpose = purpose === 'others' ? otherPurpose : purpose;
+    const appointmentDate = new Date(preferredDate);
+    const dateString = appointmentDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    return (
+      <DashboardPageWrapper title="Appointment Verification" subtitle="Review and confirm your appointment request">
+        <div className="max-w-4xl mx-auto">
+          {submitError && (
+            <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-red-900 dark:text-red-50">Submission Error</h3>
+                  <p className="text-red-700 dark:text-red-300 text-sm">{submitError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            {/* Header */}
+            <div className="bg-emerald-700 dark:bg-emerald-800 text-white p-6 mb-6">
+              <h1 className="text-3xl font-bold mb-2">Appointment Request Form</h1>
+              <p className="text-emerald-50">Please review all information carefully before submitting</p>
+            </div>
+
+            <div className="px-8 pb-8">
+              {/* Student Information Section */}
+              <div className="mb-8">
+                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <h2 className="font-bold text-lg">PERSONAL INFORMATION</h2>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded">
+                  <div className="grid grid-cols-2 gap-0">
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">First Name</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{firstName}</p>
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Last Name</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{lastName}</p>
+                    </div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Email Address</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{email}</p>
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Phone Number</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{phone}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Appointment Details Section */}
+              <div className="mb-8">
+                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <h2 className="font-bold text-lg">APPOINTMENT DETAILS</h2>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded">
+                  <div className="grid grid-cols-2 gap-0">
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Preferred Date</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{dateString}</p>
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Preferred Time</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{preferredTime}</p>
+                    </div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Preferred Method</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium capitalize">{preferredMethod}</p>
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Purpose</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{finalPurpose}</p>
+                    </div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Referral Type</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium capitalize">{referralType === 'self-referred' ? 'Self-Referred' : 'Referred'}</p>
+                    </div>
+                    {referralType === 'referred' && (
+                      <div className="p-4 bg-white dark:bg-gray-900">
+                        <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Referred By</p>
+                        <p className="text-gray-900 dark:text-gray-50 font-medium">{referredBy}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Concern Section */}
+              <div className="mb-8">
+                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <h2 className="font-bold text-lg">PRIMARY CONCERN</h2>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-gray-50 dark:bg-gray-800 min-h-24">
+                  <p className="text-gray-900 dark:text-gray-50">{concern}</p>
+                </div>
+              </div>
+
+              {/* Important Notes */}
+              <div className="mb-8">
+                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <h2 className="font-bold text-lg">IMPORTANT NOTES</h2>
+                </div>
+                <ul className="space-y-2 text-gray-700 dark:text-gray-300">
+                  <li>• All information provided must be accurate and complete</li>
+                  <li>• Please ensure your preferred date and time are accurate</li>
+                  <li>• You will receive a confirmation email with appointment details</li>
+                  <li>• Contact support at least 24 hours before for rescheduling requests</li>
+                  <li>• I agree to the terms and conditions stated in the form</li>
+                </ul>
+              </div>
+
+              {/* Verification Checkbox */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-8">
+                <div className="flex gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-50">Terms Accepted</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">You have agreed to the counseling services terms and conditions.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleConfirmAppointment}
+                  disabled={submitting}
+                  className={`flex-1 px-6 py-3 rounded font-bold transition ${
+                    submitting
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                  }`}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Appointment Request'}
+                </button>
+                <button
+                  type="button"
+                  onClick={saveDraft}
+                  disabled={submitting}
+                  className={`px-6 py-3 rounded font-bold transition ${
+                    submitting
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white'
+                  }`}
+                >
+                  Save Draft
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowVerification(false)}
+                  disabled={submitting}
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-bold"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </DashboardPageWrapper>
@@ -244,7 +533,108 @@ export default function BookAppointmentPage() {
             Reserve Your Appointment
           </h2>
 
+          {/* Draft Save Success Message */}
+          {draftSaved && (
+            <div className="mb-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4">
+              <div className="flex gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-green-900 dark:text-green-50">Draft Saved</h3>
+                  <p className="text-green-700 dark:text-green-300 text-sm">Your form data has been saved. You can continue later.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Saved Draft Info */}
+          {hasDraft && (
+            <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+              <div className="flex gap-3 justify-between items-start">
+                <div className="flex gap-3 flex-1">
+                  <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-50">Draft Available</h3>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm">You have a saved draft. Click "Load Draft" to continue where you left off.</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={loadDraft}
+                    className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition"
+                  >
+                    Load Draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearDraft}
+                    className="px-3 py-1 text-sm bg-red-200 hover:bg-red-300 text-red-900 rounded transition"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleBookAppointment} className="space-y-6">
+            {/* Personal Information */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">
+                Personal Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    First Name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Enter your first name"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Last Name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Enter your last name"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Email Address <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Phone Number <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Enter your phone number"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Purpose of Visit */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -382,10 +772,11 @@ export default function BookAppointmentPage() {
                   type="date"
                   value={preferredDate}
                   onChange={(e) => setPreferredDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  max={new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From tomorrow onwards</p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -416,21 +807,72 @@ export default function BookAppointmentPage() {
             </div>
 
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Please select your preferred date (up to 30 days from today) and time. Our office assistant will confirm your appointment based on counselor availability.
+              Please select your preferred date (from tomorrow onwards, up to 30 days) and time. Our office assistant will confirm your appointment based on counselor availability.
             </p>
+
+            {/* Terms and Conditions */}
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">
+                Terms & Conditions
+              </h3>
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-4 mb-4 max-h-40 overflow-y-auto text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                <p>
+                  <strong>1. Confidentiality:</strong> All information shared during counseling sessions is confidential and will be kept secure in accordance with data protection regulations.
+                </p>
+                <p>
+                  <strong>2. Appointment Policies:</strong> Please cancel or reschedule appointments at least 24 hours in advance. No-shows may be subject to a cancellation fee.
+                </p>
+                <p>
+                  <strong>3. Professional Conduct:</strong> Counselors are bound by professional ethical standards and will provide services in a non-judgmental manner.
+                </p>
+                <p>
+                  <strong>4. Consent to Treatment:</strong> By booking an appointment, you consent to receiving counseling and psychological services.
+                </p>
+                <p>
+                  <strong>5. Privacy:</strong> Your personal information will only be used for scheduling and providing counseling services. It will not be shared with third parties without your consent, except as required by law.
+                </p>
+                <p>
+                  <strong>6. Limitation of Liability:</strong> While we strive to provide quality services, we are not liable for indirect or consequential damages arising from the use of our services.
+                </p>
+              </div>
+              
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="w-4 h-4 mt-1 rounded border-gray-300"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  I have read and agree to the terms and conditions for counseling services <span className="text-red-600">*</span>
+                </span>
+              </label>
+            </div>
 
             {/* Submit Buttons */}
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
-                disabled={submitting || !preferredDate || !preferredTime}
+                disabled={submitting || !preferredDate || !preferredTime || !agreedToTerms || !firstName || !lastName || !email || !phone}
                 className={`flex-1 px-6 py-2 rounded-lg font-medium transition ${
-                  submitting || !preferredDate || !preferredTime
+                  submitting || !preferredDate || !preferredTime || !agreedToTerms || !firstName || !lastName || !email || !phone
                     ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
-                {submitting ? 'Booking...' : 'Book Appointment'}
+                {submitting ? 'Reserving...' : 'Reserve Your Appointment'}
+              </button>
+              <button
+                type="button"
+                onClick={saveDraft}
+                disabled={submitting}
+                className={`px-6 py-2 rounded-lg font-medium transition ${
+                  submitting
+                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                    : 'bg-amber-500 hover:bg-amber-600 text-white'
+                }`}
+              >
+                Save as Draft
               </button>
               <button
                 type="button"

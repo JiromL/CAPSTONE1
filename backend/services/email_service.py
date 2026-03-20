@@ -9,6 +9,8 @@ import random
 import string
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from datetime import datetime, timedelta
 
 
@@ -136,8 +138,81 @@ class EmailService:
         
         return self._send_email(recipient_email, subject, html_body)
     
-    def _send_email(self, recipient_email, subject, html_body):
-        """Internal method to send email"""
+    def send_appointment_confirmation_email(self, recipient_email, student_name, appointment_details, pdf_file_path=None):
+        """Send appointment confirmation email with optional PDF attachment
+        
+        Args:
+            recipient_email: Email address of student
+            student_name: Full name of student
+            appointment_details: Dict containing appointment info:
+                - reference_id: Confirmation number
+                - appointment_date: Date of appointment
+                - appointment_time: Time of appointment
+                - platform: Meeting platform (In-Person, Google Meet, Zoom)
+                - counselor_name: Name of assigned counselor
+                - concern: Primary concern (optional)
+        pdf_file_path: Path to confirmation PDF file to attach
+        """
+        
+        subject = f"Your Appointment Confirmation - {appointment_details.get('reference_id', 'CPS')}"
+        
+        appointment_date = appointment_details.get('appointment_date', '')
+        appointment_time = appointment_details.get('appointment_time', '')
+        platform = appointment_details.get('platform', 'In-Person')
+        counselor_name = appointment_details.get('counselor_name', 'CPS Staff')
+        concern = appointment_details.get('concern', '')
+        reference_id = appointment_details.get('reference_id', '')
+        
+        html_body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #1B5E20; text-align: center;">Appointment Confirmed</h2>
+                    
+                    <p>Dear {student_name},</p>
+                    
+                    <p>Thank you for scheduling an appointment with the Counseling and Psychological Services (CPS). Your appointment has been confirmed.</p>
+                    
+                    <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #1B5E20;">
+                        <h3 style="color: #1B5E20; margin-top: 0;">Appointment Details</h3>
+                        <p style="margin: 10px 0;"><strong>Confirmation Number:</strong> {reference_id}</p>
+                        <p style="margin: 10px 0;"><strong>Date:</strong> {appointment_date}</p>
+                        <p style="margin: 10px 0;"><strong>Time:</strong> {appointment_time}</p>
+                        <p style="margin: 10px 0;"><strong>Format:</strong> {platform}</p>
+                        <p style="margin: 10px 0;"><strong>Counselor:</strong> {counselor_name}</p>
+                        {f'<p style="margin: 10px 0;"><strong>Concern:</strong> {concern}</p>' if concern else ''}
+                    </div>
+                    
+                    <div style="background-color: #FFF3E0; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #FF6F00;">
+                        <h4 style="margin-top: 0; color: #E65100;">Important Notes:</h4>
+                        <ol style="margin: 0; padding-left: 20px;">
+                            <li>Please arrive 10 minutes early for in-person appointments.</li>
+                            <li>If meeting via Google Meet or Zoom, ensure you have a stable internet connection.</li>
+                            <li>If you need to reschedule, contact us at least 24 hours before your appointment.</li>
+                            <li>Your appointment confirmation document has been attached for your reference.</li>
+                        </ol>
+                    </div>
+                    
+                    <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    
+                    <p style="color: #999; font-size: 12px; text-align: center;">
+                        DLSU Counseling & Psychological Services<br>
+                        De La Salle University<br>
+                        <a href="mailto:cps@dlsu.edu.ph" style="color: #0052cc; text-decoration: none;">cps@dlsu.edu.ph</a><br>
+                        Phone: +63 2 XXXX-XXXX
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+        
+        return self._send_email(recipient_email, subject, html_body, attachment_path=pdf_file_path)
+    
+
+    def _send_email(self, recipient_email, subject, html_body, attachment_path=None):
+        """Internal method to send email with optional file attachment"""
         
         if self.dev_mode:
             print(f"\n{'='*60}")
@@ -146,6 +221,8 @@ class EmailService:
             print(f"Subject: {subject}")
             print(f"{'='*60}")
             print(html_body)
+            if attachment_path:
+                print(f"[ATTACHMENT]: {attachment_path}")
             print(f"{'='*60}\n")
             return True
         
@@ -158,6 +235,21 @@ class EmailService:
             
             # Attach HTML
             message.attach(MIMEText(html_body, 'html'))
+            
+            # Attach file if provided
+            if attachment_path and os.path.exists(attachment_path):
+                try:
+                    with open(attachment_path, 'rb') as attachment:
+                        part = MIMEBase('application', 'octet-stream')
+                        part.set_payload(attachment.read())
+                    
+                    encoders.encode_base64(part)
+                    filename = os.path.basename(attachment_path)
+                    part.add_header('Content-Disposition', f'attachment; filename= {filename}')
+                    message.attach(part)
+                    print(f"✓ Attached file: {filename}")
+                except Exception as e:
+                    print(f"⚠ Could not attach file: {e}")
             
             # Send via SMTP
             with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:

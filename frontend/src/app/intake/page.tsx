@@ -6,6 +6,7 @@ import { FileText, BookOpen, CheckCircle, Heart, AlertCircle } from 'lucide-reac
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { AppointmentConfirmation } from '@/components/AppointmentConfirmation';
 
 // Assessment questions - shown ONE AT A TIME - simple, direct format
 const ASSESSMENTS = {
@@ -137,8 +138,11 @@ export default function IntakePage() {
   const [selectedScreenings, setSelectedScreenings] = useState<Set<string>>(new Set());
   
   const [isUrgent, setIsUrgent] = useState<boolean | null>(null);
+  const [urgencyLevel, setUrgencyLevel] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null);
   const [urgencyNotes, setUrgencyNotes] = useState('');
   const [consentGiven, setConsentGiven] = useState(false);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
 
   // Assessment tracking
   const [selectedAssessments, setSelectedAssessments] = useState<string[]>([]);
@@ -215,6 +219,7 @@ export default function IntakePage() {
           if (draft.form_data.selectedAssessments) setSelectedAssessments(draft.form_data.selectedAssessments);
           if (draft.form_data.assessmentResponses) setAssessmentResponses(draft.form_data.assessmentResponses);
           if (draft.form_data.assessmentScores) setAssessmentScores(draft.form_data.assessmentScores);
+          if (draft.form_data.urgencyLevel) setUrgencyLevel(draft.form_data.urgencyLevel);
           if (draft.form_data.isUrgent !== null) setIsUrgent(draft.form_data.isUrgent);
           if (draft.form_data.urgencyNotes) setUrgencyNotes(draft.form_data.urgencyNotes);
           if (draft.form_data.consentGiven) setConsentGiven(draft.form_data.consentGiven);
@@ -249,6 +254,7 @@ export default function IntakePage() {
         selectedAssessments,
         assessmentResponses,
         assessmentScores,
+        urgencyLevel,
         isUrgent,
         urgencyNotes,
         consentGiven,
@@ -336,7 +342,7 @@ export default function IntakePage() {
   };
 
   // Calculate urgency level (RED, YELLOW, GREEN) based on assessment scores
-  const calculateUrgencyLevel = (scores: {[key: string]: number}): string => {
+  const calculateUrgencyLevel = (scores: {[key: string]: number}): 'RED' | 'YELLOW' | 'GREEN' => {
     // RED: PHQ-9 > 20 OR GAD-7 > 15 OR PSS > 30
     if ((scores.phq9 && scores.phq9 > 20) || (scores.gad7 && scores.gad7 > 15) || (scores.pss && scores.pss > 30)) {
       return 'RED';
@@ -497,11 +503,12 @@ export default function IntakePage() {
     setAssessmentScores(scores);
     
     // Calculate urgency level based on thresholds
-    const urgencyLevel = calculateUrgencyLevel(scores);
-    console.log('🎯 Calculated Urgency Level:', urgencyLevel, 'from scores:', scores);
+    const urgency = calculateUrgencyLevel(scores);
+    setUrgencyLevel(urgency);
+    console.log('🎯 Calculated Urgency Level:', urgency, 'from scores:', scores);
     
     // Set urgency to true if RED, false otherwise
-    const isUrgent = urgencyLevel === 'RED';
+    const isUrgent = urgency === 'RED';
     setIsUrgent(isUrgent);
     
     // Calculate auto-suggested appointment date based on scores
@@ -518,6 +525,24 @@ export default function IntakePage() {
       const prevAssessment = selectedAssessments[currentAssessmentIdx - 1];
       const prevAssessmentLen = ASSESSMENTS[prevAssessment as keyof typeof ASSESSMENTS].questions.length;
       setCurrentQuestionIdx(prevAssessmentLen - 1);
+    }
+  };
+
+  // Generate available 30-min time slots for intake counselor
+  const generateAvailableSlots = () => {
+    const slots: string[] = [];
+    const startHour = 9; // 9 AM
+    const endHour = 17; // 5 PM
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+      slots.push(`${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`);
+      if (hour < endHour - 1) {
+        slots.push(`${hour > 12 ? hour - 12 : hour}:30 ${hour >= 12 ? 'PM' : 'AM'}`);
+      }
+    }
+    setAvailableTimeSlots(slots);
+    if (slots.length > 0) {
+      setSelectedTimeSlot(slots[0]);
     }
   };
 
@@ -574,10 +599,34 @@ export default function IntakePage() {
     if (step === 'appointment' && !automaticAppointmentInfo && selectedAssessments.length > 0) {
       calculateAppointment();
     }
-  }, [step, automaticAppointmentInfo, selectedAssessments.length]);
+    
+    // Generate available time slots for RED/YELLOW urgency
+    if (step === 'appointment' && (urgencyLevel === 'RED' || urgencyLevel === 'YELLOW')) {
+      generateAvailableSlots();
+    }
+  }, [step, automaticAppointmentInfo, selectedAssessments.length, urgencyLevel]);
 
   // Submit intake
   const handleSubmitIntake = async () => {
+    // Validate required fields
+    if (!selectedConcern) {
+      alert('❌ Please select your primary concern');
+      setStep('concern');
+      return;
+    }
+
+    if (!appointmentDate) {
+      alert('❌ Please select an appointment date');
+      setStep('appointment');
+      return;
+    }
+
+    if (!appointmentTime) {
+      alert('❌ Please select an appointment time');
+      setStep('appointment');
+      return;
+    }
+
     if (!consentGiven) {
       alert('Please provide consent to proceed');
       return;
@@ -585,11 +634,12 @@ export default function IntakePage() {
 
     // Validate appointment date is not earlier than automatic date
     if (automaticAppointmentInfo && appointmentDate) {
-      const selectedDate = new Date(appointmentDate);
-      const automaticDate = new Date(automaticAppointmentInfo.automatic_date);
+      // Compare dates as strings (YYYY-MM-DD format) to avoid timezone issues
+      const selectedDateStr = appointmentDate.split('T')[0]; // Extract date part only
+      const automaticDateStr = automaticAppointmentInfo.automatic_date.split('T')[0];
       
-      if (selectedDate < automaticDate) {
-        alert(`⚠️ Appointment date cannot be earlier than the automatically calculated date (${automaticAppointmentInfo.automatic_date_formatted}). Please select a later date.`);
+      if (selectedDateStr < automaticDateStr) {
+        alert(`⚠️ Appointment date cannot be earlier than the automatically calculated date (${automaticAppointmentInfo.automatic_date_formatted}). Please select ${automaticAppointmentInfo.automatic_date_formatted} or later.`);
         return;
       }
     }
@@ -1564,17 +1614,28 @@ export default function IntakePage() {
             <p className="text-gray-600 dark:text-gray-400 text-sm">Choose your preferred date and time</p>
           </div>
 
-          {/* Appointment Info */}
+          {/* Appointment Info based on Urgency Level */}
           {automaticAppointmentInfo && (
-            <div className="p-4 border border-gray-300 rounded mb-6 dark:border-gray-600 dark:bg-gray-800">
+            <div className={`p-4 border rounded mb-6 dark:bg-gray-800 ${
+              urgencyLevel === 'RED' 
+                ? 'border-red-300 bg-red-50 dark:border-red-600' 
+                : urgencyLevel === 'YELLOW'
+                ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-600'
+                : 'border-gray-300'
+            }`}>
               <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                {urgencyLevel === 'RED' ? '🔴 ' : urgencyLevel === 'YELLOW' ? '🟡 ' : '🟢 '}
                 Suggested Appointment
               </p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {automaticAppointmentInfo.automatic_date_formatted}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                Based on your responses ({automaticAppointmentInfo.estimated_days})
+                {urgencyLevel === 'RED' 
+                  ? 'High priority scheduling needed' 
+                  : urgencyLevel === 'YELLOW'
+                  ? 'Scheduled based on availability'
+                  : 'Flexible scheduling available'}
               </p>
             </div>
           )}
@@ -1595,24 +1656,66 @@ export default function IntakePage() {
                 value={appointmentDate}
                 onChange={(e) => {
                   const newDate = e.target.value;
-                  if (minSelectableDate && newDate < minSelectableDate) {
-                    alert(`Cannot select a date earlier than ${minSelectableDate}`);
+                  
+                  // For RED/YELLOW: enforce same-day only
+                  if ((urgencyLevel === 'RED' || urgencyLevel === 'YELLOW') && newDate !== minSelectableDate) {
+                    alert(`${urgencyLevel === 'RED' ? 'High-risk' : 'High-priority'} appointments must be scheduled for today (${minSelectableDate})`);
                     return;
                   }
+                  
+                  // For GREEN: enforce tomorrow onwards
+                  if (urgencyLevel === 'GREEN' && minSelectableDate && newDate < minSelectableDate) {
+                    alert(`Cannot select a date earlier than tomorrow`);
+                    return;
+                  }
+                  
                   setAppointmentDate(newDate);
                   setAppointmentOverridden(true);
                 }}
                 min={minSelectableDate}
+                max={
+                  (urgencyLevel === 'RED' || urgencyLevel === 'YELLOW')
+                    ? minSelectableDate // Same day only for RED/YELLOW
+                    : undefined // No max for GREEN
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               />
               {minSelectableDate && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Earliest: {new Date(minSelectableDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {urgencyLevel === 'RED' || urgencyLevel === 'YELLOW'
+                    ? `📅 Today: ${new Date(minSelectableDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                    : `📅 Earliest: ${new Date(minSelectableDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                 </p>
               )}
             </div>
 
-            {!isUrgent && (
+            {(urgencyLevel === 'RED' || urgencyLevel === 'YELLOW') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  {urgencyLevel === 'RED' ? '🔴 Recommended 30-min Time Slot' : '🟡 Recommended Time Slot'}
+                </label>
+                <select
+                  value={selectedTimeSlot}
+                  onChange={(e) => {
+                    setSelectedTimeSlot(e.target.value);
+                    setAppointmentTime(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  <option value="">Select a time...</option>
+                  {availableTimeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {urgencyLevel === 'RED' 
+                    ? 'Recommended slots from intake counselor availability' 
+                    : 'Available times based on counselor schedule'}
+                </p>
+              </div>
+            )}
+
+            {urgencyLevel === 'GREEN' && (
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Preferred Time</label>
                 <select
@@ -1629,12 +1732,9 @@ export default function IntakePage() {
                   <option value="3:00">3:00 PM</option>
                   <option value="4:00">4:00 PM</option>
                 </select>
-              </div>
-            )}
-
-            {isUrgent && (
-              <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded text-sm text-gray-700 dark:text-gray-300">
-                A counselor will contact you within 30 minutes during business hours.
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Schedule for next day or onwards at your convenience
+                </p>
               </div>
             )}
 
@@ -1717,6 +1817,13 @@ export default function IntakePage() {
             <p className="text-gray-600 dark:text-gray-400 text-sm">Please verify all details before submitting</p>
           </div>
 
+          {/* Info: PDF Export Available After Submission */}
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600 rounded">
+            <p className="text-sm text-green-900 dark:text-green-200">
+              <span className="font-semibold">📄 After submission:</span> You'll receive an official appointment confirmation document that you can print or download as PDF
+            </p>
+          </div>
+
           {/* Personal Information */}
           <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Personal Information</h3>
@@ -1753,7 +1860,11 @@ export default function IntakePage() {
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Your Concern</h3>
             <div className="text-sm mb-4">
               <p className="text-gray-600 dark:text-gray-400">Primary Concern</p>
-              <p className="text-gray-900 dark:text-white font-medium">{CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern || '-'}</p>
+              {!selectedConcern ? (
+                <p className="text-red-600 dark:text-red-400 font-medium">⚠️ Required: Please select a concern</p>
+              ) : (
+                <p className="text-gray-900 dark:text-white font-medium">{CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern}</p>
+              )}
             </div>
             {selectedAssessments.length > 0 && (
               <div>
@@ -1770,76 +1881,25 @@ export default function IntakePage() {
             )}
           </div>
 
-          {/* Assessment Scores & Urgency Level */}
-          {Object.keys(assessmentScores).length > 0 && (
-            <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Assessment Results</h3>
-              
-              {/* Scores */}
-              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded space-y-2">
-                {assessmentScores.phq9 !== undefined && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">PHQ-9 Score</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{assessmentScores.phq9} <span className="text-gray-500">(Max: 27)</span></span>
-                  </div>
-                )}
-                {assessmentScores.gad7 !== undefined && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">GAD-7 Score</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{assessmentScores.gad7} <span className="text-gray-500">(Max: 21)</span></span>
-                  </div>
-                )}
-                {assessmentScores.pss !== undefined && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">PSS Score</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{assessmentScores.pss} <span className="text-gray-500">(Max: 40)</span></span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Urgency Level */}
-              <div className="flex items-center gap-3">
-                <span className="text-gray-600 dark:text-gray-400 text-sm">Risk Level:</span>
-                <div className={`px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 ${
-                  calculateUrgencyLevel(assessmentScores) === 'RED' 
-                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    : calculateUrgencyLevel(assessmentScores) === 'YELLOW'
-                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                }`}>
-                  {calculateUrgencyLevel(assessmentScores) === 'RED' && '🔴'}
-                  {calculateUrgencyLevel(assessmentScores) === 'YELLOW' && '🟡'}
-                  {calculateUrgencyLevel(assessmentScores) === 'GREEN' && '🟢'}
-                  {calculateUrgencyLevel(assessmentScores)}
-                </div>
-              </div>
-              
-              {/* Risk Guidance */}
-              <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-gray-700 dark:text-gray-300">
-                {calculateUrgencyLevel(assessmentScores) === 'RED' && (
-                  '🔴 RED: Requires urgent attention. Appointment within 30 minutes.'
-                )}
-                {calculateUrgencyLevel(assessmentScores) === 'YELLOW' && (
-                  '🟡 YELLOW: High priority. Appointment within same day or next day.'
-                )}
-                {calculateUrgencyLevel(assessmentScores) === 'GREEN' && (
-                  '🟢 GREEN: Standard priority. Appointment can be scheduled for next day or later.'
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Appointment Details */}
           <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Appointment Details</h3>
             <div className="space-y-2 text-sm">
               <div>
                 <p className="text-gray-600 dark:text-gray-400">Scheduled Date</p>
-                <p className="text-gray-900 dark:text-white font-medium">{appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</p>
+                {!appointmentDate ? (
+                  <p className="text-red-600 dark:text-red-400 font-medium">⚠️ Required: Please select a date</p>
+                ) : (
+                  <p className="text-gray-900 dark:text-white font-medium">{new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                )}
               </div>
               <div>
                 <p className="text-gray-600 dark:text-gray-400">Appointment Time</p>
-                <p className="text-gray-900 dark:text-white font-medium">{appointmentTime || '-'}</p>
+                {!appointmentTime ? (
+                  <p className="text-red-600 dark:text-red-400 font-medium">⚠️ Required: Please select a time</p>
+                ) : (
+                  <p className="text-gray-900 dark:text-white font-medium">{appointmentTime}</p>
+                )}
               </div>
               <div>
                 <p className="text-gray-600 dark:text-gray-400">Communication Method</p>
@@ -1937,6 +1997,23 @@ export default function IntakePage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Appointment Confirmation Document */}
+          <div className="mb-8">
+            <AppointmentConfirmation
+              studentName={`${personalInfo.first_name} ${personalInfo.last_name}`}
+              studentId={personalInfo.id_number}
+              studentContact={personalInfo.contact_number}
+              appointmentDate={appointmentData?.appointment_date || appointmentDate}
+              appointmentTime={appointmentData?.appointment_time || appointmentTime}
+              platform={appointmentData?.preferred_platform || communicationMethod}
+              screeningsCompleted={selectedAssessments.map(assessment => 
+                ASSESSMENTS[assessment as keyof typeof ASSESSMENTS]?.name || assessment
+              )}
+              referenceId={counselingId}
+              concern={selectedConcern ? (CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern) : 'General'}
+            />
           </div>
 
           {/* Appointment Summary */}

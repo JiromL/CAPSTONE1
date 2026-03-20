@@ -9,6 +9,9 @@ from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
 from utils import audit_log, user_has_permission
 from datetime import datetime, timedelta
+import os
+from services.pdf_service import generate_appointment_confirmation_pdf
+from services.email_service import EmailService
 
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/appointments')
 
@@ -349,15 +352,19 @@ def request_appointment():
     if data.get('referral_type') == 'referred' and not data.get('referred_by'):
         return jsonify({'error': 'Please specify who referred you'}), 400
     
-    # Get or create case for student
-    case_id = None
-    case = None
-    
-    # Convert user_id to ObjectId safely
+    # Load user early (needed for email notifications)
     try:
         user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
     except:
         user_id_obj = user_id
+    
+    user = db.db.users.find_one({"_id": user_id_obj})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Get or create case for student
+    case_id = None
+    case = None
     
     if data.get('case_id'):
         # Use provided case_id
@@ -372,10 +379,6 @@ def request_appointment():
                 return jsonify({'error': 'Case not found'}), 404
     else:
         # Auto-create case for student if needed
-        user = db.db.users.find_one({"_id": user_id_obj})
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
         # Check if student already has a case
         existing_case = db.db.cases.find_one({"student_id": user_id_obj})
         if existing_case:
@@ -429,6 +432,9 @@ def request_appointment():
     result = db.db.appointments.insert_one(appointment)
     appointment_id = str(result.inserted_id)
     
+    # Get the updated appointment to use in emails
+    updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
+    
     # Attempt auto-assignment
     auto_assigned = False
     auto_assigned_counselor_id = None
@@ -443,6 +449,53 @@ def request_appointment():
         auto_assigned_message = message
         print(f"Auto-assignment failed: {message}")
     
+    # Send appointment request receipt email
+    try:
+        student_email = case.get('student_email', '') if case else user.get('email', '')
+        student_name = case.get('student_name', 'Student') if case else f"{user.get('first_name', '')} {user.get('last_name', '')}"
+        
+        email_service = EmailService()
+        
+        receipt_subject = "Appointment Request Received"
+        receipt_html = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #1B5E20;">Appointment Request Received</h2>
+                    
+                    <p>Dear {student_name},</p>
+                    
+                    <p>Thank you for submitting your appointment request with the Counseling and Psychological Services (CPS). We have received your submission and will process it shortly.</p>
+                    
+                    <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #1B5E20;">
+                        <h3 style="color: #1B5E20; margin-top: 0;">Request Details</h3>
+                        <p style="margin: 8px 0;"><strong>Request ID:</strong> {appointment_id}</p>
+                        <p style="margin: 8px 0;"><strong>Preferred Date:</strong> {data.get('preferred_date')}</p>
+                        <p style="margin: 8px 0;"><strong>Purpose:</strong> {data.get('purpose')}</p>
+                        <p style="margin: 8px 0;"><strong>Status:</strong> {updated_appointment.get('status', AppointmentStatus.REQUESTED.value)}</p>
+                    </div>
+                    
+                    <p>Our counseling team will review your request and match you with an appropriate counselor. You will receive a confirmation email once your appointment has been scheduled.</p>
+                    
+                    <p style="color: #666; font-size: 12px;">If you have any questions, please don't hesitate to contact our support team.</p>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    
+                    <p style="color: #999; font-size: 12px; text-align: center;">
+                        DLSU Counseling & Psychological Services<br>
+                        De La Salle University
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+        
+        email_service._send_email(student_email, receipt_subject, receipt_html)
+        print(f"✓ Appointment request receipt sent to {student_email}")
+    except Exception as e:
+        print(f"⚠ Could not send request receipt email: {e}")
+
+    
     audit_log(db.db, 'appointment', 'request', entity_id=appointment_id, new_values={
         'case_id': str(case_id),
         'preferred_date': data['preferred_date'],
@@ -451,9 +504,6 @@ def request_appointment():
         'auto_assigned': auto_assigned,
         'counselor_id': auto_assigned_counselor_id
     })
-    
-    # Get the updated appointment to return current status
-    updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
     
     return jsonify({
         'appointment_id': appointment_id,
@@ -681,7 +731,7 @@ def validate_slot():
 @appointments_bp.route('/<appointment_id>/confirm', methods=['POST'])
 @jwt_required()
 def confirm_appointment(appointment_id):
-    """Confirm appointment (EPIC 4: Automated Appointment Confirmation)"""
+    """Confirm appointment and send confirmation email with PDF (EPIC 4: Automated Appointment Confirmation)"""
     user_id = get_jwt_identity()
     
     # Check permission
@@ -708,6 +758,93 @@ def confirm_appointment(appointment_id):
             "updated_at": datetime.utcnow()
         }}
     )
+    
+    # Prepare appointment data for email and PDF
+    try:
+        # Get student info
+        student_id = appointment.get('student_id')
+        student = db.db.users.find_one({"_id": student_id})
+        
+        # Get counselor info
+        counselor_id = appointment.get('counselor_id')
+        counselor = db.db.users.find_one({"_id": counselor_id}) if counselor_id else None
+        
+        # Format appointment details
+        student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}"
+        student_email = student.get('email', '')
+        student_id_str = student.get('student_id', 'N/A')
+        student_contact = student.get('phone_number', student_email)
+        
+        counselor_name = f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}" if counselor else "CPS Staff"
+        
+        # Format dates/times
+        appointment_date = appointment.get('requested_start', datetime.utcnow()).strftime('%B %d, %Y')
+        appointment_time = appointment.get('requested_start', datetime.utcnow()).strftime('%I:%M %p')
+        
+        # Get platform (format properly)
+        platform = appointment.get('preferred_method', 'In-Person')
+        platform_map = {
+            'in_person': 'In-Person',
+            'google_meet': 'Google Meet',
+            'zoom': 'Zoom',
+            'phone': 'Phone'
+        }
+        platform = platform_map.get(platform.lower(), platform)
+        
+        # Prepare appointment data dict
+        appointment_data = {
+            'student_name': student_name,
+            'student_id': student_id_str,
+            'student_email': student_email,
+            'student_contact': student_contact,
+            'reference_id': str(appointment['_id']),
+            'appointment_date': appointment_date,
+            'appointment_time': appointment_time,
+            'platform': platform,
+            'counselor_name': counselor_name,
+            'concern': appointment.get('concern', ''),
+            'screenings_completed': []
+        }
+        
+        # Try to generate PDF
+        pdf_path = None
+        try:
+            temp_dir = os.path.join(current_app.root_path, 'temp_pdfs')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            pdf_filename = f"CPS_Appointment_{student_id_str}_{appointment_date.replace(' ', '_').replace(',', '')}.pdf"
+            pdf_path = os.path.join(temp_dir, pdf_filename)
+            
+            generate_appointment_confirmation_pdf(appointment_data, pdf_path)
+            print(f"✓ PDF generated for appointment confirmation: {pdf_path}")
+        except Exception as e:
+            print(f"⚠ Could not generate PDF: {e}")
+            pdf_path = None
+        
+        # Send confirmation email with PDF attachment
+        try:
+            email_service = EmailService()
+            email_service.send_appointment_confirmation_email(
+                recipient_email=student_email,
+                student_name=student_name,
+                appointment_details=appointment_data,
+                pdf_file_path=pdf_path
+            )
+            print(f"✓ Confirmation email sent to {student_email}")
+        except Exception as e:
+            print(f"⚠ Could not send confirmation email: {e}")
+        
+        # Clean up PDF after sending (if it exists)
+        if pdf_path and os.path.exists(pdf_path):
+            try:
+                os.remove(pdf_path)
+                print(f"✓ Temporary PDF cleaned up: {pdf_path}")
+            except:
+                pass
+    
+    except Exception as e:
+        print(f"⚠ Error sending confirmation: {e}")
+        # Don't fail the appointment confirmation if email sending fails
     
     # Auto-sync to Google Calendar if counselor has calendar connected
     counselor_id = appointment.get('counselor_id')

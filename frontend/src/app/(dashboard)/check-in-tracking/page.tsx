@@ -67,7 +67,7 @@ export default function CheckInClientsPage() {
       });
       const data = await res.json();
 
-      const rows = (data.data || []).map((client: NonCounselingClient) => [
+      const rows = (data.data || []).map((client: CheckInClient) => [
         client.case_number,
         client.client_name,
         client.client_id_number,

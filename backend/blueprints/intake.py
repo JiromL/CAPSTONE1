@@ -842,35 +842,77 @@ In-Person Appointment:
 - Please arrive 10 minutes early
 """
             
-            email_body = f"""Dear {user_name},
-
-Thank you for completing your intake form with Counseling & Psychological Services.
-
-{status_msg}
-
-Your Counseling ID: {counseling_id}
-
-Assessment Results:
-{score_summary}
-
-Appointment Information:
-{appointment_info}
-
-Next Steps: {next_step}
-Estimated appointment date: {appointment_date.strftime('%B %d, %Y')}
-
-Please keep your Counseling ID for all future communications and appointments.
-
-Best regards,
-Counseling & Psychological Services Team"""
+            # Convert to professional HTML email
+            score_lines = score_summary.strip().split('\n')
+            scores_html = ''.join([f'<li>{line.replace("- ", "")}</li>' for line in score_lines if line.strip()])
+            
+            # Clean up appointment info formatting
+            appointment_lines = appointment_info.strip().split('\n')
+            appointment_html = ''
+            for line in appointment_lines:
+                if line.strip():
+                    if line.startswith('-'):
+                        appointment_html += f'<li>{line.replace("- ", "")}</li>'
+                    else:
+                        appointment_html += f'<p><strong>{line}</strong></p>'
+            
+            html_email_body = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #1B5E20;">Intake Form Received</h2>
+                        
+                        <p>Dear {user_name},</p>
+                        
+                        <p>Thank you for completing your intake form with the Counseling and Psychological Services (CPS). Your submission has been received and reviewed.</p>
+                        
+                        <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #1B5E20;">
+                            <h3 style="color: #1B5E20; margin-top: 0;">Your Counseling ID</h3>
+                            <p style="font-size: 18px; font-weight: bold; color: #0052cc; margin: 0;">{counseling_id}</p>
+                            <p style="margin: 10px 0; font-size: 12px; color: #666;">Save this ID for all future communications and appointments</p>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
+                            <h3 style="color: #1B5E20;">Assessment Results</h3>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                {scores_html}
+                            </ul>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
+                            <h3 style="color: #1B5E20;">Appointment Information</h3>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                {appointment_html}
+                            </ul>
+                            <p style="margin: 15px 0; font-size: 12px; color: #666;"><strong>Estimated Appointment Date:</strong> {appointment_date.strftime('%B %d, %Y')}</p>
+                        </div>
+                        
+                        <div style="background-color: #E8F5E9; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
+                            <h3 style="color: #2E7D32; margin-top: 0;">Next Steps</h3>
+                            <p>{next_step}</p>
+                            <p style="margin: 10px 0; font-size: 12px; color: #666;">You will receive an appointment confirmation email with additional details.</p>
+                        </div>
+                        
+                        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                        
+                        <p style="color: #999; font-size: 12px; text-align: center;">
+                            DLSU Counseling & Psychological Services<br>
+                            De La Salle University<br>
+                            Email: <a href="mailto:cps@dlsu.edu.ph" style="color: #0052cc; text-decoration: none;">cps@dlsu.edu.ph</a>
+                        </p>
+                    </div>
+                </body>
+            </html>
+            """
             
             email_integration = EmailIntegration(current_app.config)
             result = email_integration.send_email(
                 to_address=user_email,
                 subject=f"Your Counseling ID: {counseling_id}",
-                html_body=email_body
+                html_body=html_email_body
             )
             print(f"✅ EMAIL SENT: result={result}")
+
         except Exception as e:
             print(f"❌ Email send failed: {type(e).__name__}: {str(e)}")
             import traceback

@@ -272,11 +272,6 @@ export default function BookAppointmentPage() {
         console.log('[BookAppointment] Appointment created:', data);
         setBookingConfirmed(true);
         clearDraft();
-        
-        // Redirect after showing confirmation - use relative path to stay within dashboard
-        setTimeout(() => {
-          router.push('../appointments');
-        }, 2500);
       } else {
         const errorData = await response.text();
         console.error('[BookAppointment] Booking failed:', response.status, errorData);
@@ -326,9 +321,9 @@ export default function BookAppointmentPage() {
             <p className="text-green-700 dark:text-green-300 mb-6">
               Your appointment request has been submitted. You will receive a confirmation email shortly.
             </p>
-            <Link href="../appointments">
+            <Link href="../tasks">
               <button className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
-                View My Appointments
+                View My Tasks
               </button>
             </Link>
           </div>

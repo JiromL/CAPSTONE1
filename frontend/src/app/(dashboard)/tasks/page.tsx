@@ -11,7 +11,7 @@ interface Task {
   id: string;
   title: string;
   type: 'appointment' | 'assessment' | 'referral' | 'intake' | 'check-in';
-  status: 'pending' | 'scheduled' | 'completed';
+  status: 'draft' | 'pending' | 'scheduled' | 'completed';
   date?: string;
   time?: string;
   description: string;
@@ -30,7 +30,32 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load draft appointments from localStorage
+  const loadDraftAppointments = (): Task[] => {
+    const draftTasks: Task[] = [];
+    const draftData = localStorage.getItem('bookAppointmentDraft');
+    if (draftData) {
+      try {
+        const draft = JSON.parse(draftData);
+        draftTasks.push({
+          id: 'draft-appointment',
+          title: 'Draft Appointment Request',
+          type: 'appointment',
+          status: 'draft' as any,
+          date: draft.preferredDate,
+          time: draft.preferredTime,
+          description: `Purpose: ${draft.purpose === 'others' ? draft.otherPurpose : draft.purpose}`,
+          concern: draft.concern,
+        });
+      } catch (e) {
+        console.error('Failed to parse draft:', e);
+      }
+    }
+    return draftTasks;
+  };
+
   const tabs = [
+    { id: 'draft', label: 'Draft', icon: <FileText size={16} /> },
     { id: 'pending', label: 'Pending', icon: <Clock size={16} /> },
     { id: 'scheduled', label: 'Scheduled', icon: <Calendar size={16} /> },
     { id: 'completed', label: 'Completed', icon: <CheckCircle size={16} /> },
@@ -122,7 +147,9 @@ export default function TasksPage() {
           });
         }
 
-        setTasks(transformedTasks);
+        // Add draft appointments
+        const draftTasks = loadDraftAppointments();
+        setTasks([...draftTasks, ...transformedTasks]);
         setError(null);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load appointments from server';
@@ -246,8 +273,28 @@ export default function TasksPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
-                      {/* For check-in tasks, link directly to check-in form */}
-                      {task.type === 'check-in' && task.link ? (
+                      {/* For draft tasks, show Edit and Delete */}
+                      {task.status === 'draft' ? (
+                        <>
+                          <Link
+                            href="/book-appointment"
+                            className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded font-medium bg-amber-100 dark:bg-amber-700 text-amber-900 dark:text-amber-100 hover:bg-amber-200 dark:hover:bg-amber-600 transition"
+                          >
+                            <FileText size={14} />
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => {
+                              localStorage.removeItem('bookAppointmentDraft');
+                              setTasks(tasks.filter(t => t.id !== task.id));
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded font-medium bg-red-100 dark:bg-red-700 text-red-900 dark:text-red-100 hover:bg-red-200 dark:hover:bg-red-600 transition"
+                          >
+                            <AlertCircle size={14} />
+                            Delete
+                          </button>
+                        </>
+                      ) : task.type === 'check-in' && task.link ? (
                         <Link
                           href={task.link}
                           className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded font-medium bg-blue-100 dark:bg-blue-700 text-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-600 transition"

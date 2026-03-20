@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState({
     firstName: 'John',
     lastName: 'Doe',
@@ -32,6 +33,7 @@ export default function ProfilePage() {
     if (userData) {
       try {
         const user = JSON.parse(userData);
+        setUserRole(user.role || null);
         setProfile(prev => ({
           ...prev,
           firstName: user.first_name || prev.firstName,
@@ -252,6 +254,11 @@ export default function ProfilePage() {
             <AccountOption label="Notification Preferences" description="Manage notifications" />
             <AccountOption label="Privacy Settings" description="Control information visibility" />
             <AccountOption label="Two-Factor Authentication" description="Secure with 2FA" isEnabled={true} />
+            {userRole && ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP'].includes(userRole) && (
+              <Link href="/staff-settings">
+                <AccountOption label="Work Preferences & Availability" description="Configure availability without pricing" />
+              </Link>
+            )}
           </div>
         </div>
       </div>

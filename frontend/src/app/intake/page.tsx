@@ -178,6 +178,11 @@ export default function IntakePage() {
   const [minSelectableDate, setMinSelectableDate] = useState('');
   const [isCalculatingAppointment, setIsCalculatingAppointment] = useState(false);
   const [appointmentOverridden, setAppointmentOverridden] = useState(false);
+  const [activeAppointmentError, setActiveAppointmentError] = useState<{
+    hasError: boolean;
+    message: string;
+    appointmentTime?: string;
+  }>({ hasError: false, message: '' });
   
   // Available times for custom date selection
   const [availableTimes, setAvailableTimes] = useState<any[]>([]);
@@ -196,9 +201,46 @@ export default function IntakePage() {
     setUser(parsedUser);
     setLoading(false);
     
+    // Check for active appointments
+    checkForActiveAppointments();
+    
     // Load draft if it exists
     loadDraft();
   }, [router]);
+
+  const checkForActiveAppointments = async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      if (!token) return;
+
+      const response = await fetch(api('/api/appointments/active'), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.has_active_appointment) {
+          let appointmentTimeStr = 'Unknown';
+          if (data.appointment_time) {
+            appointmentTimeStr = new Date(data.appointment_time).toLocaleDateString('en-US', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+          setActiveAppointmentError({
+            hasError: true,
+            message: `You already have an active appointment scheduled for ${appointmentTimeStr}. Please complete or cancel your existing appointment before booking a new one.`,
+            appointmentTime: appointmentTimeStr
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for active appointments:', error);
+    }
+  };
 
   const loadDraft = async () => {
     try {
@@ -741,10 +783,24 @@ export default function IntakePage() {
       console.log('📤 Response status:', response.status, response.ok);
       
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorData = await response.json();
         console.error('❌ API ERROR:', response.status);
-        console.error('   Error response:', errorText);
-        throw new Error(`Failed to submit intake: ${response.status}`);
+        console.error('   Error response:', errorData);
+        
+        // Handle 409 Conflict - student already has active appointment
+        if (response.status === 409) {
+          const message = errorData.message || errorData.error || 'You already have an active appointment. Please complete or cancel it before booking a new one.';
+          setActiveAppointmentError({
+            hasError: true,
+            message: message,
+            appointmentTime: errorData.existing_appointment_status
+          });
+          alert('⚠️ ' + message);
+          setIsSubmitting(false);
+          return;
+        }
+        
+        throw new Error(`Failed to submit intake: ${errorData.error || response.status}`);
       }
 
       const data = await response.json();
@@ -791,6 +847,39 @@ export default function IntakePage() {
       setIsSubmitting(false);
     }
   };
+
+  // ============================================
+  // ERROR: ACTIVE APPOINTMENT CHECK
+  // ============================================
+  if (activeAppointmentError.hasError) {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl mx-auto">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-red-900 mb-1">Active Appointment Exists</h3>
+                <p className="text-red-800">{activeAppointmentError.message}</p>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   // ============================================
   // STEP 1: CONCERN SELECTION

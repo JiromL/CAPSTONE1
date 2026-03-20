@@ -523,6 +523,33 @@ def student_submit_intake():
     user_email = user.get('email', '') if user else ''
     user_name = user.get('name', 'Student') if user else 'Student'
     
+    # CHECK: Student can only have ONE active appointment at a time
+    # Active statuses: REQUESTED, PENDING_APPROVAL, APPROVED, MATCHED, CONFIRMED
+    # Inactive statuses: COMPLETED, CANCELLED, NO_SHOW
+    active_appointment = db.db.appointments.find_one({
+        "student_id": user_obj_id,
+        "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
+        # Optionally check if appointment is in the future (if it has a scheduled_start field)
+        "$or": [
+            {"scheduled_start": {"$exists": False}},  # No scheduled time yet (still pending)
+            {"scheduled_start": {"$gt": datetime.utcnow()}}  # Scheduled time is in the future
+        ]
+    })
+    
+    if active_appointment:
+        appointment_time_str = "Unknown"
+        if active_appointment.get('scheduled_start'):
+            appointment_time_str = active_appointment['scheduled_start'].strftime('%B %d, %Y at %I:%M %p').lstrip('0').replace(' 0', ' ')
+        elif active_appointment.get('requested_start'):
+            appointment_time_str = active_appointment['requested_start'].strftime('%B %d, %Y at %I:%M %p').lstrip('0').replace(' 0', ' ')
+        
+        return jsonify({
+            'error': 'You already have an active appointment scheduled.',
+            'message': f'You cannot book a new appointment while you have an existing one. Your current appointment is scheduled for {appointment_time_str}. Please wait until after your appointment or cancel it first.',
+            'existing_appointment_id': str(active_appointment['_id']),
+            'existing_appointment_status': active_appointment.get('status')
+        }), 409
+    
     # Check if user has an existing case
     existing_case = db.db.cases.find_one({"student_id": user_obj_id})
     

@@ -354,6 +354,70 @@ def get_my_appointments():
         return jsonify({'error': f'Failed to fetch appointments: {str(e)}'}), 500
 
 
+@appointments_bp.route('/active', methods=['GET'])
+@jwt_required()
+def check_active_appointment():
+    """Check if student has an active (unfinished) appointment
+    
+    Returns information about any active appointment that prevents new bookings.
+    Students can only have ONE active appointment at a time.
+    
+    Active statuses: REQUESTED, PENDING_APPROVAL, APPROVED, MATCHED, CONFIRMED
+    Inactive statuses: COMPLETED, CANCELLED, NO_SHOW
+    """
+    user_id = get_jwt_identity()
+    
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({"_id": user_id_obj})
+    except Exception as e:
+        return jsonify({'error': f'Invalid user ID: {str(e)}'}), 400
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    try:
+        # Check for active appointment - active statuses only
+        active_appointment = db.db.appointments.find_one({
+            "student_id": user_id_obj,
+            "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
+            # Also check if appointment is in the future (or no scheduled time yet)
+            "$or": [
+                {"scheduled_start": {"$exists": False}},  # No scheduled time yet
+                {"scheduled_start": {"$gt": datetime.utcnow()}}  # Scheduled time is in the future
+            ]
+        })
+        
+        if active_appointment:
+            # Convert ObjectId to string
+            appointment_time = None
+            if active_appointment.get('scheduled_start'):
+                appointment_time = active_appointment['scheduled_start'].isoformat()
+            elif active_appointment.get('requested_start'):
+                appointment_time = active_appointment['requested_start'].isoformat()
+            
+            return jsonify({
+                'has_active_appointment': True,
+                'appointment_id': str(active_appointment['_id']),
+                'status': active_appointment.get('status'),
+                'appointment_time': appointment_time,
+                'appointment_type': active_appointment.get('appointment_type', 'unknown'),
+                'counselor_id': str(active_appointment.get('counselor_id', '')) if active_appointment.get('counselor_id') else None,
+                'message': 'You already have an active appointment. Please complete or cancel it before booking a new one.'
+            }), 200
+        else:
+            return jsonify({
+                'has_active_appointment': False,
+                'message': 'No active appointment'
+            }), 200
+        
+    except Exception as e:
+        import traceback
+        print(f"Error checking active appointment: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Failed to check active appointment: {str(e)}'}), 500
+
+
 @appointments_bp.route('/request', methods=['POST'])
 @jwt_required()
 def request_appointment():

@@ -848,7 +848,6 @@ export default function IntakePage() {
     }
   };
 
-  // ============================================
   // ERROR: ACTIVE APPOINTMENT CHECK
   // ============================================
   if (activeAppointmentError.hasError) {
@@ -860,19 +859,31 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl mx-auto">
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-red-900 mb-1">Active Appointment Exists</h3>
-                <p className="text-red-800">{activeAppointmentError.message}</p>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                >
-                  Return to Dashboard
-                </button>
+        <div className="max-w-2xl mx-auto py-8">
+          <div className="p-6 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg">
+            <div className="flex gap-4">
+              <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-red-900 dark:text-red-200 mb-2">
+                  Cannot Book Another Appointment
+                </h2>
+                <p className="text-red-800 dark:text-red-300 mb-4 leading-relaxed">
+                  {activeAppointmentError.message}
+                </p>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white font-medium rounded hover:bg-red-700 dark:hover:bg-red-800 transition-colors"
+                  >
+                    Return to Dashboard
+                  </button>
+                  <button
+                    onClick={() => router.push('/dashboard/my-appointments')}
+                    className="px-6 py-2 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-400 font-medium rounded hover:bg-red-50 dark:hover:bg-red-900/40 transition-colors"
+                  >
+                    View My Appointment
+                  </button>
+                </div>
               </div>
             </div>
           </div>

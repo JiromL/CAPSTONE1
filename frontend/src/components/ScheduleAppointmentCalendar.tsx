@@ -27,10 +27,11 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [counselorId, setCounselorId] = useState<string>('');
   const [counselors, setCounselors] = useState<any[]>([]);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCounselors();
-  }, []);
+  }, [caseId]);
 
   useEffect(() => {
     if (counselorId) {
@@ -41,25 +42,52 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
   const fetchCounselors = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setLoadingError('No authentication token found');
+        return;
+      }
+
+      console.log('[ScheduleCalendar] Fetching case with ID:', caseId?.substring(0, 8) + '...');
 
       // For now, we'll fetch the case to get the case's assigned counselor
       const response = await fetch(`http://localhost:5001/api/cases/${caseId}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
+      console.log('[ScheduleCalendar] Case fetch response:', response.status);
+
       if (response.ok) {
         const data = await response.json();
-        // Set counselors list - in a real app this would come from the API
-        if (data.assigned_counselor_id) {
-          setCounselorId(data.assigned_counselor_id);
+        console.log('[ScheduleCalendar] Case response keys:', Object.keys(data));
+        
+        // Handle both response formats: direct case object or { case: {...} }
+        const caseData = data.case || data;
+        
+        console.log('[ScheduleCalendar] Case data keys:', Object.keys(caseData));
+        console.log('[ScheduleCalendar] assigned_counselor_id:', caseData.assigned_counselor_id);
+        
+        // Try multiple field names
+        const counselorId = caseData.assigned_counselor_id || caseData.counselor_id || caseData.counselorId;
+        if (counselorId) {
+          console.log('[ScheduleCalendar] Setting counselor ID:', counselorId.substring(0, 8) + '...');
+          setCounselorId(counselorId);
+          setLoadingError(null);
+        } else {
+          console.error('[ScheduleCalendar] No counselor ID found in case');
+          setLoadingError('No counselor assigned to your case. Please contact support.');
         }
+      } else {
+        const errorText = await response.text();
+        console.error('[ScheduleCalendar] Case fetch error:', response.status, errorText);
+        setLoadingError(`Failed to load case information (${response.status})`);
       }
     } catch (error) {
-      console.error('Error fetching counselors:', error);
+      console.error('[ScheduleCalendar] Error fetching counselors:', error);
+      setLoadingError('Error loading counselor information');
     }
   };
 
@@ -196,9 +224,25 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
         </div>
       )}
 
-      {/* Calendar */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+      {loadingError && (
+        <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+          <AlertCircle size={18} />
+          {loadingError}
+        </div>
+      )}
+
+      {!counselorId && !loadingError && (
+        <div className="mb-6 p-8 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-50 mb-3"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Loading available appointment times...</p>
+        </div>
+      )}
+
+      {counselorId && (
+        <>
+          {/* Calendar */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
           <button
             onClick={previousMonth}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
@@ -293,6 +337,8 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
             Duration: <span className="font-medium">{selectedSlot.duration_minutes} minutes</span>
           </p>
         </div>
+      )}
+        </>
       )}
 
       {/* Action buttons */}

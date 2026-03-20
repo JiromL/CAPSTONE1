@@ -48,6 +48,7 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
         return [
           ...baseItems,
           { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: 3 },
+          { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
           { label: 'Intake Form', href: '/intake', id: 'intake' },
           { label: 'Wellness Resources', href: '/resources', id: 'resources' },
           { label: 'My Profile', href: '/profile', id: 'profile' },

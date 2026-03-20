@@ -61,6 +61,9 @@ class IntakeStatus(str, Enum):
 class AppointmentStatus(str, Enum):
     """Appointment workflow states"""
     REQUESTED = "REQUESTED"
+    PENDING_APPROVAL = "PENDING_APPROVAL"  # Waiting for counselor approval
+    APPROVED = "APPROVED"                  # Counselor approved, confirmed
+    DENIED = "DENIED"                      # Counselor denied, student can resubmit
     MATCHED = "MATCHED"
     CONFIRMED = "CONFIRMED"
     COMPLETED = "COMPLETED"
@@ -264,6 +267,16 @@ class MongoDB:
             self.db.resources.create_index("uploaded_by_role")
             self.db.audit_logs.create_index("user_id")
             self.db.permission_overrides.create_index("user_id")
+            # New client tracking collections
+            self.db.new_client_intakes.create_index("client_id_number")
+            self.db.new_client_intakes.create_index("intake_counselor_id")
+            self.db.new_client_intakes.create_index("created_date")
+            self.db.non_counseling_clients.create_index("case_number")
+            self.db.non_counseling_clients.create_index("counselor_id")
+            self.db.non_counseling_clients.create_index("client_id_number")
+            self.db.counseling_cases.create_index("case_number")
+            self.db.counseling_cases.create_index("counselor_id")
+            self.db.counseling_cases.create_index("client_id_number")
         except Exception as e:
             print(f"⚠ MongoDB indexes warning: {e}")
 

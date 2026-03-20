@@ -21,6 +21,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [counselingId, setCounselingId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resourceCount, setResourceCount] = useState(0);
@@ -75,13 +76,17 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               }
             }
 
-            // Count pending/scheduled appointments
+            // Fetch and store appointments
             const appointmentsResponse = await fetch(api('/api/appointments'), {
               headers: { Authorization: `Bearer ${token}` },
             });
             if (appointmentsResponse.ok) {
               const appointmentsData = await appointmentsResponse.json();
               if (Array.isArray(appointmentsData.appointments)) {
+                // Store all appointments in state for display
+                setAppointments(appointmentsData.appointments);
+                
+                // Count pending/scheduled appointments
                 const pendingAppts = appointmentsData.appointments.filter((apt: any) => {
                   const status = apt.status?.toLowerCase();
                   return status === 'pending' || status === 'requested' || status === 'scheduled' || status === 'confirmed' || status === 'matched';
@@ -110,6 +115,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const baseMenuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
     { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: taskCount },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
     { label: 'Intake Form', href: '/intake', id: 'intake' },
     ...(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student', id: 'check-ins-student' }] : []),
     { label: 'Wellness Resources', href: '/resources', id: 'resources', badge: resourceCount },
@@ -118,8 +124,13 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
   const menuItems = baseMenuItems;
 
-  // Get first appointment from dashboard data if available
-  const nextAppointment = dashboardData?.recent_cases?.[0];
+  // Get first appointment from stored appointments (sorted by date)
+  const nextAppointment = appointments
+    .sort((a: any, b: any) => new Date(a.requested_start || a.scheduled_date || 0).getTime() - new Date(b.requested_start || b.scheduled_date || 0).getTime())
+    .find((apt: any) => {
+      const status = apt.status?.toLowerCase();
+      return status === 'pending' || status === 'requested' || status === 'scheduled' || status === 'confirmed' || status === 'matched';
+    });
 
   return (
     <DashboardLayout
@@ -170,15 +181,17 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               {nextAppointment ? (
                 <>
                   <p className="text-gray-900 dark:text-gray-50 font-medium text-xs">
-                    {formatDate(nextAppointment.appointment_date)}
+                    {formatDate(nextAppointment.requested_start || nextAppointment.scheduled_date || '')}
                   </p>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs">{nextAppointment.counselor_name || 'Assigned Counselor'}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs">
+                    {nextAppointment.counselor_name || nextAppointment.assigned_counselor_name || 'Assigned Counselor'}
+                  </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Status: {nextAppointment.status || 'Scheduled'}</p>
                 </>
               ) : (
                 <p className="text-gray-600 dark:text-gray-400 text-xs">No appointments scheduled yet</p>
               )}
-              <Link href="/intake">
+              <Link href="/book-appointment">
                 <button className="mt-2 px-3 py-1.5 border border-gray-300 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-xs font-medium">
                   Schedule Appointment
                 </button>
@@ -201,8 +214,8 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             title="Appointment Schedule"
             showAppointments={true}
             appointments={
-              dashboardData?.recent_cases?.map((apt: any) => ({
-                date: new Date(apt.appointment_date),
+              appointments.map((apt: any) => ({
+                date: new Date(apt.requested_start || apt.scheduled_date || new Date()),
                 title: 'Counseling Session',
                 time: apt.status || 'Scheduled',
               })) || []

@@ -72,7 +72,13 @@ export default function TaskDetailPage() {
         // If that fails, try to use it as a reference ID from dashboard
         if (!response.ok) {
           // The ID might be a counseling_id or intake_id, not an appointment_id
-          setError('Task details not available yet. Please ensure you have an appointment scheduled.');
+          try {
+            const errorData = await response.json();
+            console.error('Backend error:', errorData);
+            setError(errorData.error || `Task details not available (HTTP ${response.status})`);
+          } catch {
+            setError(`Task details not available (HTTP ${response.status})`);
+          }
           setLoading(false);
           return;
         }

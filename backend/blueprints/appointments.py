@@ -63,7 +63,7 @@ def find_available_counselor(case_id, requested_start, requested_end):
         available_roles = ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP']
         counselors = list(db.db.users.find({
             'role': {'$in': available_roles},
-            'status': 'active'
+            'is_active': True
         }))
         
         if not counselors:
@@ -129,6 +129,18 @@ def auto_assign_appointment(appointment_id):
                 "updated_at": datetime.utcnow()
             }}
         )
+        
+        # Also update the case with the assigned counselor (if not already assigned)
+        case = db.db.cases.find_one({"_id": appointment['case_id']})
+        if case and not case.get('assigned_counselor_id'):
+            db.db.cases.update_one(
+                {"_id": appointment['case_id']},
+                {"$set": {
+                    "assigned_counselor_id": counselor['_id'],
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            print(f"[auto_assign_appointment] Also assigned counselor to case {appointment['case_id']}")
         
         # Audit log
         audit_log(
@@ -323,38 +335,94 @@ def get_my_appointments():
 @appointments_bp.route('/request', methods=['POST'])
 @jwt_required()
 def request_appointment():
-    """Student request appointment with auto-assignment to available counselor (EPIC 4: Student Appointment Request System)"""
+    """Student request appointment with preferred date/time and booking details (EPIC 4: Student Appointment Request System)"""
     user_id = get_jwt_identity()
     data = request.get_json()
     
-    if not data.get('case_id') or not data.get('requested_start') or not data.get('requested_end'):
-        return jsonify({'error': 'Missing required fields'}), 400
+    # Validate required fields (case_id is optional - will be created if missing)
+    required_fields = ['preferred_date', 'preferred_time', 'purpose', 'concern', 'referral_type', 'preferred_method']
+    missing_fields = [field for field in required_fields if not data.get(field)]
+    if missing_fields:
+        return jsonify({'error': f'Missing required fields: {", ".join(missing_fields)}'}), 400
     
-    # Check permission
-    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
-        return jsonify({'error': 'Insufficient permissions'}), 403
+    # Validate referred_by if referral_type is 'referred'
+    if data.get('referral_type') == 'referred' and not data.get('referred_by'):
+        return jsonify({'error': 'Please specify who referred you'}), 400
     
+    # Get or create case for student
+    case_id = None
+    case = None
+    
+    # Convert user_id to ObjectId safely
     try:
-        case_id = ObjectId(data['case_id']) if isinstance(data['case_id'], str) else data['case_id']
-        case = db.db.cases.find_one({"_id": case_id})
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
     except:
-        case = db.db.cases.find_one({"_id": data['case_id']})
+        user_id_obj = user_id
     
-    if not case:
-        return jsonify({'error': 'Case not found'}), 404
+    if data.get('case_id'):
+        # Use provided case_id
+        try:
+            case_id = ObjectId(data['case_id']) if isinstance(data['case_id'], str) else data['case_id']
+            case = db.db.cases.find_one({"_id": case_id})
+            if not case:
+                return jsonify({'error': 'Case not found'}), 404
+        except:
+            case = db.db.cases.find_one({"_id": data['case_id']})
+            if not case:
+                return jsonify({'error': 'Case not found'}), 404
+    else:
+        # Auto-create case for student if needed
+        user = db.db.users.find_one({"_id": user_id_obj})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check if student already has a case
+        existing_case = db.db.cases.find_one({"student_id": user_id_obj})
+        if existing_case:
+            case_id = existing_case['_id']
+            case = existing_case
+        else:
+            # Create new case
+            case_doc = {
+                "_id": ObjectId(),
+                "student_id": user_id_obj,
+                "student_name": f"{user.get('first_name', '')} {user.get('last_name', '')}",
+                "student_email": user.get('email', ''),
+                "status": "active",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            result = db.db.cases.insert_one(case_doc)
+            case_id = result.inserted_id
+            case = case_doc
     
     try:
-        requested_start = datetime.fromisoformat(data['requested_start'])
-        requested_end = datetime.fromisoformat(data['requested_end'])
-    except ValueError:
-        return jsonify({'error': 'Invalid datetime format'}), 400
+        # Parse preferred_date and preferred_time to create appointment start/end
+        # Format: preferred_date is ISO date (YYYY-MM-DD), preferred_time is HH:MM
+        preferred_date_str = data['preferred_date']
+        preferred_time_str = data['preferred_time']
+        
+        # Combine date and time into ISO format datetime
+        datetime_str = f"{preferred_date_str}T{preferred_time_str}:00"
+        requested_start = datetime.fromisoformat(datetime_str)
+        # Assume 1-hour appointment by default
+        requested_end = requested_start + timedelta(hours=1)
+    except (ValueError, KeyError) as e:
+        return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
     
     appointment = {
+        "student_id": user_id_obj,
         "case_id": case_id,
-        "appointment_type": data.get('appointment_type', 'followup'),
+        "appointment_type": data.get('appointment_type', 'initial'),
         "requested_start": requested_start,
         "requested_end": requested_end,
         "status": AppointmentStatus.REQUESTED.value,
+        # New student booking fields
+        "purpose": data.get('purpose'),
+        "concern": data.get('concern'),
+        "referral_type": data.get('referral_type'),
+        "referred_by": data.get('referred_by'),
+        "preferred_method": data.get('preferred_method'),
         "created_at": datetime.utcnow()
     }
     
@@ -377,7 +445,9 @@ def request_appointment():
     
     audit_log(db.db, 'appointment', 'request', entity_id=appointment_id, new_values={
         'case_id': str(case_id),
-        'requested_start': data['requested_start'],
+        'preferred_date': data['preferred_date'],
+        'preferred_time': data['preferred_time'],
+        'purpose': data.get('purpose'),
         'auto_assigned': auto_assigned,
         'counselor_id': auto_assigned_counselor_id
     })
@@ -390,6 +460,11 @@ def request_appointment():
         'status': updated_appointment.get('status', AppointmentStatus.REQUESTED.value),
         'requested_start': requested_start.isoformat(),
         'requested_end': requested_end.isoformat(),
+        'purpose': data.get('purpose'),
+        'concern': data.get('concern'),
+        'referral_type': data.get('referral_type'),
+        'referred_by': data.get('referred_by'),
+        'preferred_method': data.get('preferred_method'),
         'auto_assigned': auto_assigned,
         'counselor_id': auto_assigned_counselor_id,
         'auto_assignment_message': auto_assigned_message
@@ -1106,8 +1181,30 @@ def get_appointment_details(appointment_id):
     
     student_id = appointment.get('student_id')
     counselor_id = appointment.get('counselor_id')
+    case_id = appointment.get('case_id')
     
-    if str(user_id_obj) != str(student_id) and str(user_id_obj) != str(counselor_id):
+    # Permission check: 
+    # 1. Student can view their own appointment (if student_id is set)
+    # 2. Counselor can view appointments they're assigned to
+    # 3. Check case.student_id if appointment.student_id is not set (for backwards compatibility)
+    
+    has_permission = False
+    
+    # Check if user is the student
+    if student_id and str(user_id_obj) == str(student_id):
+        has_permission = True
+    
+    # Check if user is the counselor
+    elif counselor_id and str(user_id_obj) == str(counselor_id):
+        has_permission = True
+    
+    # Check if user is the student via the case (backwards compatibility)
+    elif case_id:
+        case = db.db.cases.find_one({"_id": case_id})
+        if case and case.get('student_id') and str(user_id_obj) == str(case.get('student_id')):
+            has_permission = True
+    
+    if not has_permission:
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
@@ -1480,6 +1577,155 @@ def cancel_appointment(appointment_id):
         print(f"Error in cancel_appointment: {str(e)}")
         print(error_trace)
         return jsonify({'error': f'Failed to cancel appointment: {str(e)}'}), 500
+
+
+@appointments_bp.route('/<appointment_id>/approve', methods=['POST'])
+@jwt_required()
+def approve_appointment(appointment_id):
+    """Counselor approves a pending appointment"""
+    user_id = get_jwt_identity()
+    
+    try:
+        apt_id = ObjectId(appointment_id) if isinstance(appointment_id, str) else appointment_id
+        appointment = db.db.appointments.find_one({"_id": apt_id})
+    except:
+        appointment = db.db.appointments.find_one({"_id": appointment_id})
+    
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    # Check permission: only assigned counselor can approve
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_id_obj = user_id
+    
+    counselor_id = appointment.get('counselor_id')
+    
+    if str(user_id_obj) != str(counselor_id):
+        return jsonify({'error': 'Only assigned counselor can approve appointments'}), 403
+    
+    # Can only approve pending appointments
+    current_status = appointment.get('status', '').upper()
+    if current_status not in ['REQUESTED', 'PENDING_APPROVAL']:
+        return jsonify({'error': f'Cannot approve appointment with status {current_status}'}), 400
+    
+    try:
+        # Update appointment status to APPROVED
+        result = db.db.appointments.update_one(
+            {"_id": apt_id},
+            {
+                "$set": {
+                    "status": AppointmentStatus.APPROVED.value,
+                    "approved_at": datetime.utcnow(),
+                    "approved_by_counselor_id": user_id_obj,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({'error': 'Failed to approve appointment'}), 500
+        
+        # Log audit trail
+        audit_log(
+            db.db, 
+            'appointments', 
+            'approved',
+            entity_id=str(apt_id),
+            old_values={'status': current_status},
+            new_values={'status': 'APPROVED'}
+        )
+        
+        return jsonify({
+            'message': 'Appointment approved successfully',
+            'appointment_id': str(apt_id),
+            'status': 'APPROVED'
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in approve_appointment: {str(e)}")
+        print(error_trace)
+        return jsonify({'error': f'Failed to approve appointment: {str(e)}'}), 500
+
+
+@appointments_bp.route('/<appointment_id>/deny', methods=['POST'])
+@jwt_required()
+def deny_appointment(appointment_id):
+    """Counselor denies a pending appointment with reason"""
+    user_id = get_jwt_identity()
+    
+    try:
+        apt_id = ObjectId(appointment_id) if isinstance(appointment_id, str) else appointment_id
+        appointment = db.db.appointments.find_one({"_id": apt_id})
+    except:
+        appointment = db.db.appointments.find_one({"_id": appointment_id})
+    
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    # Check permission: only assigned counselor can deny
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_id_obj = user_id
+    
+    counselor_id = appointment.get('counselor_id')
+    
+    if str(user_id_obj) != str(counselor_id):
+        return jsonify({'error': 'Only assigned counselor can deny appointments'}), 403
+    
+    # Can only deny pending appointments
+    current_status = appointment.get('status', '').upper()
+    if current_status not in ['REQUESTED', 'PENDING_APPROVAL']:
+        return jsonify({'error': f'Cannot deny appointment with status {current_status}'}), 400
+    
+    try:
+        data = request.get_json() or {}
+        denial_reason = data.get('reason', 'No reason provided')
+        
+        # Update appointment status to DENIED
+        result = db.db.appointments.update_one(
+            {"_id": apt_id},
+            {
+                "$set": {
+                    "status": AppointmentStatus.DENIED.value,
+                    "denied_at": datetime.utcnow(),
+                    "denied_by_counselor_id": user_id_obj,
+                    "denial_reason": denial_reason,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({'error': 'Failed to deny appointment'}), 500
+        
+        # Log audit trail
+        audit_log(
+            db.db, 
+            'appointments', 
+            'denied',
+            entity_id=str(apt_id),
+            old_values={'status': current_status},
+            new_values={'status': 'DENIED', 'reason': denial_reason}
+        )
+        
+        return jsonify({
+            'message': 'Appointment denied successfully',
+            'appointment_id': str(apt_id),
+            'status': 'DENIED',
+            'denial_reason': denial_reason
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in deny_appointment: {str(e)}")
+        print(error_trace)
+        return jsonify({'error': f'Failed to deny appointment: {str(e)}'}), 500
 
 
 @appointments_bp.route('/<appointment_id>/reschedule', methods=['POST'])

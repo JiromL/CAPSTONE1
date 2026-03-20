@@ -39,6 +39,7 @@ from blueprints import (
     resources_bp,
     users_bp,
     analytics_bp,
+    client_tracking_bp,
 )
 from blueprints.google_calendar import calendar_bp
 from blueprints.mhbot_integration import mhbot_bp
@@ -107,6 +108,7 @@ def create_app(config_name=None):
     app.register_blueprint(mhbot_bp)
     app.register_blueprint(engagement_bp)
     app.register_blueprint(appointments_enh_bp)
+    app.register_blueprint(client_tracking_bp)
     
     # Health check route
     @app.route('/api/health', methods=['GET'])

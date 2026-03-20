@@ -792,13 +792,16 @@ def student_submit_intake():
     if user_email and smtp_host:
         try:
             print(f"📧 SENDING EMAIL to {user_email}...")
+            # Format appointment datetime
+            appointment_datetime_str = appointment_date.strftime('%B %d, %Y at %I:%M %p').lstrip('0').replace(' 0', ' ')
+            
             if is_emergency:
-                status_msg = "Your intake has been flagged for priority review."
-                next_step = f"You should receive an appointment confirmation within {estimated_days}."
+                status_msg = "Your intake has been flagged for review."
+                next_step = f"Your appointment is scheduled for {appointment_datetime_str}."
             else:
                 status_msg = "Your intake has been received and reviewed."
                 counselor_name = db.db.users.find_one({"_id": assigned_counselor_id}).get('name', 'A counselor') if assigned_counselor_id else 'A counselor'
-                next_step = f"You've been assigned to {counselor_name}. Expected first appointment within {estimated_days}."
+                next_step = f"You've been assigned to {counselor_name}. Your appointment is scheduled for {appointment_datetime_str}."
             
             # Build score summary (only show scores for assessments taken)
             score_summary = ""
@@ -818,92 +821,51 @@ def student_submit_intake():
             if not score_summary:
                 score_summary = "No assessments taken with this submission."
             
+            
             # Build appointment info for email
-            appointment_info = ""
             if preferred_platform == 'zoom' and meeting_link_info.get('join_url'):
-                appointment_info = f"""
-Virtual Appointment Details:
-- Platform: Zoom Video Conference
-- Join URL: {meeting_link_info.get('join_url')}
-- Meeting ID: {meeting_link_info.get('meeting_id')}
-- Passcode: {meeting_link_info.get('meeting_passcode')}
-"""
+                appointment_details = f"""Platform: Zoom Video Conference<br>
+Join URL: <a href="{meeting_link_info.get('join_url')}" style="color: #0052cc; text-decoration: none;">Click here to join</a><br>
+Meeting ID: {meeting_link_info.get('meeting_id')}<br>
+Passcode: {meeting_link_info.get('meeting_passcode')}"""
             elif preferred_platform == 'google_meet' and meeting_link_info.get('join_url'):
-                appointment_info = f"""
-Virtual Appointment Details:
-- Platform: Google Meet (via Google Calendar)
-- Calendar Invite: {meeting_link_info.get('join_url')}
-- You can also access the meeting directly from the Calendar event
-"""
+                appointment_details = f"""Platform: Google Meet (via Google Calendar)<br>
+Calendar Invite: <a href="{meeting_link_info.get('join_url')}" style="color: #0052cc; text-decoration: none;">Click here to access</a><br>
+You can also access the meeting directly from the Calendar event"""
             else:
-                appointment_info = """
-In-Person Appointment:
-- Location: Counseling & Psychology Services Office
-- Please arrive 10 minutes early
-"""
+                appointment_details = """Location: Counseling & Psychological Services Office<br>
+Please arrive 10 minutes early"""
             
-            # Convert to professional HTML email
-            score_lines = score_summary.strip().split('\n')
-            scores_html = ''.join([f'<li>{line.replace("- ", "")}</li>' for line in score_lines if line.strip()])
+            # Build next steps text
+            next_steps_text = next_step
             
-            # Clean up appointment info formatting
-            appointment_lines = appointment_info.strip().split('\n')
-            appointment_html = ''
-            for line in appointment_lines:
-                if line.strip():
-                    if line.startswith('-'):
-                        appointment_html += f'<li>{line.replace("- ", "")}</li>'
-                    else:
-                        appointment_html += f'<p><strong>{line}</strong></p>'
-            
-            html_email_body = f"""
-            <html>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                        <h2 style="color: #1B5E20;">Intake Form Received</h2>
-                        
-                        <p>Dear {user_name},</p>
-                        
-                        <p>Thank you for completing your intake form with the Counseling and Psychological Services (CPS). Your submission has been received and reviewed.</p>
-                        
-                        <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #1B5E20;">
-                            <h3 style="color: #1B5E20; margin-top: 0;">Your Counseling ID</h3>
-                            <p style="font-size: 18px; font-weight: bold; color: #0052cc; margin: 0;">{counseling_id}</p>
-                            <p style="margin: 10px 0; font-size: 12px; color: #666;">Save this ID for all future communications and appointments</p>
-                        </div>
-                        
-                        <div style="margin: 20px 0;">
-                            <h3 style="color: #1B5E20;">Assessment Results</h3>
-                            <ul style="margin: 10px 0; padding-left: 20px;">
-                                {scores_html}
-                            </ul>
-                        </div>
-                        
-                        <div style="margin: 20px 0;">
-                            <h3 style="color: #1B5E20;">Appointment Information</h3>
-                            <ul style="margin: 10px 0; padding-left: 20px;">
-                                {appointment_html}
-                            </ul>
-                            <p style="margin: 15px 0; font-size: 12px; color: #666;"><strong>Estimated Appointment Date:</strong> {appointment_date.strftime('%B %d, %Y')}</p>
-                        </div>
-                        
-                        <div style="background-color: #E8F5E9; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
-                            <h3 style="color: #2E7D32; margin-top: 0;">Next Steps</h3>
-                            <p>{next_step}</p>
-                            <p style="margin: 10px 0; font-size: 12px; color: #666;">You will receive an appointment confirmation email with additional details.</p>
-                        </div>
-                        
-                        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                        
-                        <p style="color: #999; font-size: 12px; text-align: center;">
-                            DLSU Counseling & Psychological Services<br>
-                            De La Salle University<br>
-                            Email: <a href="mailto:cps@dlsu.edu.ph" style="color: #0052cc; text-decoration: none;">cps@dlsu.edu.ph</a>
-                        </p>
-                    </div>
-                </body>
-            </html>
-            """
+            # Convert to professional HTML email with proper tags and line breaks
+            html_email_body = f"""<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333;">
+<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+
+<p style="margin: 15px 0;"><strong>Dear {user_name},</strong></p>
+
+<p style="margin: 15px 0;">Thank you for completing your intake form with Counseling & Psychological Services. Your intake has been received and reviewed.</p>
+
+<p style="margin: 15px 0;"><strong>Your Counseling ID:</strong> <span style="color: #0052cc; font-weight: bold;">{counseling_id}</span></p>
+
+<p style="margin: 15px 0;"><strong>Appointment Information:</strong><br>
+{appointment_details}</p>
+
+<p style="margin: 15px 0;"><strong>Next Steps:</strong><br>
+{next_steps_text}</p>
+
+<p style="margin: 15px 0;">Please keep your Counseling ID for all future communications.</p>
+
+<p style="margin: 15px 0;">Best regards,<br>
+<strong>Counseling & Psychological Services Team</strong><br>
+De La Salle University<br>
+<a href="mailto:cps@dlsu.edu.ph" style="color: #0052cc; text-decoration: none;">cps@dlsu.edu.ph</a></p>
+
+</div>
+</body>
+</html>"""
             
             email_integration = EmailIntegration(current_app.config)
             result = email_integration.send_email(

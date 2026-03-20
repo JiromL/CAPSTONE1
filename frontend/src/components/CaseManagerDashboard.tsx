@@ -11,12 +11,12 @@ interface DashboardProps {
 
 export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard', icon: <Users size={20} /> },
-    { label: 'My Tasks', href: '/tasks', id: 'tasks', icon: <CheckCircle size={20} />, badge: 15 },
-    { label: 'Cases', href: '/cases', id: 'cases', icon: <FileText size={20} />, badge: 32 },
-    { label: 'High-Risk', href: '/high-risk', id: 'high-risk', icon: <AlertCircle size={20} />, badge: 3 },
-    { label: 'Documentation', href: '/documentation', id: 'documentation', icon: <TrendingUp size={20} /> },
-    { label: 'Profile', href: '/profile', id: 'profile', icon: <Settings size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   return (

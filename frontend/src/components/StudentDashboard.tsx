@@ -115,8 +115,8 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const baseMenuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
     { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: taskCount },
-    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
     { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
     ...(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student', id: 'check-ins-student' }] : []),
     { label: 'Wellness Resources', href: '/resources', id: 'resources', badge: resourceCount },
     { label: 'Profile', href: '/profile', id: 'profile' },

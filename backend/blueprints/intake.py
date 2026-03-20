@@ -23,48 +23,237 @@ def generate_counseling_id():
     return f"CPS-{random_string}"
 
 
+def get_available_intake_counselors(exclude_ids: list = None):
+    """
+    Get list of available intake counselors (Role: IC - Intake Counselor).
+    
+    Returns: List of counselor documents
+    """
+    if exclude_ids is None:
+        exclude_ids = []
+    
+    query = {
+        "role": {"$in": ["IC", "INTAKE_COUNSELOR"]},
+        "is_active": True,
+        "_id": {"$nin": [ObjectId(id) if isinstance(id, str) else id for id in exclude_ids]}
+    }
+    
+    counselors = list(db.db.users.find(query))
+    return counselors
+
+
+def find_next_available_slot(risk_level: str = 'GREEN', max_wait_minutes: int = 30):
+    """
+    Find the next available appointment slot for an intake counselor based on risk level.
+    
+    Scheduling Rules:
+    - RED/CRITICAL (High Risk): Within 30 mins to end of business day (MANDATORY - no user choice)
+      * Must be first available counselor slot
+      * Can wait up to 30 mins if needed
+    
+    - YELLOW (Medium Risk): Same day or next day (LIMITED user choice)
+      * Try to fit within business day if slots available
+      * Otherwise next day morning
+      * User can choose from available slots within window
+    
+    - GREEN (Low Risk): Starting tomorrow onwards (FLEXIBLE user choice)
+      * User can pick any time from tomorrow+
+      * Can choose from upcoming available slots
+    
+    Args:
+        risk_level: 'RED', 'YELLOW', 'GREEN', or 'CRITICAL'
+        max_wait_minutes: Maximum wait time in minutes (for RED/CRITICAL priority)
+    
+    Returns: (appointment_datetime, urgency_text, availability_status, is_user_selectable)
+    """
+    now = datetime.utcnow()
+    business_hours_start = 9   # 9 AM
+    business_hours_end = 17    # 5 PM
+    
+    # Determine scheduling window based on risk level
+    if risk_level in ['RED', 'CRITICAL']:
+        # High Risk: Mandatory within 30 mins to end of business day
+        # NO USER CHOICE - auto-schedule to first available
+        end_of_day = now.replace(hour=business_hours_end, minute=0, second=0, microsecond=0)
+        
+        # If it's after business hours, schedule for start of next day
+        if now.hour >= business_hours_end:
+            appointment_date = (now + timedelta(days=1)).replace(hour=business_hours_start, minute=0, second=0, microsecond=0)
+            urgency_text = "URGENT: First available slot (start of business day)"
+            status = "urgent_next_day"
+        else:
+            # Try to fit within end of day, allowing some wait time
+            appointment_date = min(now + timedelta(minutes=max_wait_minutes), end_of_day)
+            urgency_text = f"URGENT: Must be scheduled within {max_wait_minutes} minutes or by end of business day"
+            status = "urgent_same_day"
+        
+        is_user_selectable = False  # No choice for RED - auto-assigned
+    
+    elif risk_level == 'YELLOW':
+        # Medium Risk: Same day or next day
+        # LIMITED USER CHOICE - can pick from available slots within window
+        if now.hour < business_hours_end - 1:  # If we have at least 1 hour left today
+            # Try for same day (user can pick from slots)
+            appointment_date = now.replace(hour=now.hour + 1, minute=0, second=0, microsecond=0)
+            urgency_text = "High Priority: Available slots today or tomorrow"
+            status = "high_priority_same_day"
+        else:
+            # Schedule for next business day (user picks time)
+            appointment_date = (now + timedelta(days=1)).replace(hour=business_hours_start, minute=0, second=0, microsecond=0)
+            urgency_text = "High Priority: Available slots tomorrow"
+            status = "high_priority_next_day"
+        
+        is_user_selectable = True  # User can pick from available slots
+    
+    else:  # GREEN
+        # Low Risk: Starting tomorrow onwards
+        # FULL USER CHOICE - user picks any available time from tomorrow onwards
+        days_ahead = 1  # Start from tomorrow, not today
+        appointment_date = (now + timedelta(days=days_ahead)).replace(hour=business_hours_start, minute=0, second=0, microsecond=0)
+        
+        # Skip weekends if needed
+        while appointment_date.weekday() > 4:  # 5 = Saturday, 6 = Sunday
+            appointment_date += timedelta(days=1)
+        
+        urgency_text = "Standard: Choose your preferred time starting tomorrow"
+        status = "standard_user_choice"
+        is_user_selectable = True  # Full user choice
+    
+    # Check appointments to find actual available times
+    counselors = get_available_intake_counselors()
+    counselor_ids = [c["_id"] for c in counselors]
+    
+    if not counselor_ids:
+        # No counselors available, return default time anyway
+        return appointment_date, urgency_text + " (no counselors available)", "no_counselors", is_user_selectable
+    
+    # Find existing appointments for these counselors during the target time window
+    existing_appts = list(db.db.appointments.find({
+        "counselor_id": {"$in": counselor_ids},
+        "scheduled_start": {"$gte": appointment_date, "$lt": appointment_date + timedelta(hours=8)},
+        "status": {"$in": ["MATCHED", "CONFIRMED", "REQUESTED"]}
+    }))
+    
+    occupied_times = {appt["scheduled_start"] for appt in existing_appts if appt.get("scheduled_start")}
+    
+    # Find first available 30-min slot
+    current_slot = appointment_date
+    slot_duration = timedelta(minutes=30)
+    max_slots_to_check = 20  # Check up to 20 slots
+    
+    for _ in range(max_slots_to_check):
+        if current_slot not in occupied_times:
+            return current_slot, urgency_text, status, is_user_selectable
+        current_slot += slot_duration
+    
+    # If no slots found, return next available
+    return current_slot, urgency_text + " (optimized for availability)", status, is_user_selectable
+
+
+def get_available_slots_for_risk(risk_level: str = 'GREEN', num_days: int = 7):
+    """
+    Get multiple available appointment slots that users can choose from,
+    based on their risk level.
+    
+    For GREEN: Returns slots from tomorrow through 7 days out
+    For YELLOW: Returns slots from today/tomorrow through 3 days out
+    For RED: Returns immediate slots (no choice - just shows first 3)
+    
+    Returns: List of available time slots
+    """
+    now = datetime.utcnow()
+    business_hours_start = 9
+    business_hours_end = 17
+    
+    # Determine starting point based on risk level
+    if risk_level in ['RED', 'CRITICAL']:
+        start_date = now
+        num_days = 1  # Only look for immediate (same day/next day)
+    elif risk_level == 'YELLOW':
+        start_date = now
+        num_days = 3  # Look ahead 3 days
+    else:  # GREEN
+        start_date = (now + timedelta(days=1)).replace(hour=business_hours_start, minute=0, second=0, microsecond=0)
+        num_days = 7  # User can pick from up to 7 days out
+    
+    # Get available counselors
+    counselors = get_available_intake_counselors()
+    if not counselors:
+        return []
+    
+    counselor_ids = [c["_id"] for c in counselors]
+    
+    # Get all existing appointments for these counselors
+    search_end = start_date + timedelta(days=num_days, hours=8)
+    existing_appts = list(db.db.appointments.find({
+        "counselor_id": {"$in": counselor_ids},
+        "scheduled_start": {"$gte": start_date, "$lt": search_end},
+        "status": {"$in": ["MATCHED", "CONFIRMED", "REQUESTED"]}
+    }))
+    
+    occupied_times = {appt["scheduled_start"] for appt in existing_appts if appt.get("scheduled_start")}
+    
+    available_slots = []
+    current_date = start_date
+    end_date = start_date + timedelta(days=num_days)
+    
+    while current_date < end_date:
+        # Skip weekends
+        if current_date.weekday() <= 4:  # Monday-Friday
+            # Generate 30-min slots for this day
+            slot_time = current_date.replace(hour=business_hours_start, minute=0, second=0, microsecond=0)
+            end_of_day = current_date.replace(hour=business_hours_end, minute=0, second=0, microsecond=0)
+            
+            while slot_time < end_of_day:
+                if slot_time not in occupied_times:
+                    available_slots.append({
+                        'datetime': slot_time.isoformat(),
+                        'date': slot_time.strftime("%Y-%m-%d"),
+                        'time': slot_time.strftime("%I:%M %p"),
+                        'day_of_week': slot_time.strftime("%A"),
+                        'is_today': slot_time.date() == now.date(),
+                        'is_tomorrow': slot_time.date() == (now + timedelta(days=1)).date()
+                    })
+                
+                slot_time += timedelta(minutes=30)
+        
+        current_date += timedelta(days=1)
+    
+    return available_slots[:20]  # Return up to 20 slots
+
+
 def calculate_appointment_date(is_emergency: bool, urgency_level: str = 'normal', risk_level: str = 'GREEN'):
     """
     Calculate appointment date based on risk level (CPS triage system).
     
     Risk-Based Triage Rules:
-    - RED (High Risk): Crisis management within 30 minutes; ensure client safety
-    - YELLOW (Medium Risk): Schedule intake interview within same day or next day
-    - GREEN (Low Risk): Schedule intake interview 2-3 days after triage
+    - RED/CRITICAL (High Risk): Mandatory within 30 minutes to end of day
+      * No user choice - auto-scheduled to first available
+    
+    - YELLOW (Medium Risk): Same day or next day
+      * User can choose from available slots within the window
+    
+    - GREEN (Low Risk): Tomorrow or later
+      * User has full choice - can pick any time from tomorrow onwards
     
     Returns (appointment_date, estimated_days_string, appointment_time)
     """
-    today = datetime.utcnow()
+    # Map different risk naming conventions
+    normalized_risk = risk_level
+    if normalized_risk in ['CRITICAL', 'emergency']:
+        normalized_risk = 'RED'
+    elif is_emergency:
+        normalized_risk = 'RED'
+    elif urgency_level == 'high':
+        normalized_risk = 'YELLOW'
+    elif urgency_level == 'emergency':
+        normalized_risk = 'RED'
     
-    # RED = High Risk = Critical emergency
-    if risk_level == 'RED' or is_emergency or urgency_level == 'emergency':
-        # 30 minutes for critical emergency
-        days_out = 0
-        appointment_date = today + timedelta(minutes=30)
-        urgency_text = "Immediate (within 30 minutes)"
-        appointment_time = "Immediate"
+    # Find next available appointment slot
+    appointment_dt, urgency_text, status, is_user_selectable = find_next_available_slot(normalized_risk)
+    appointment_time_str = appointment_dt.strftime("%I:%M %p") if normalized_risk != 'RED' else "ASAP"
     
-    # YELLOW = Medium Risk = High priority
-    elif risk_level == 'YELLOW' or urgency_level == 'high':
-        # Same day or next day for high priority
-        days_out = 1
-        appointment_date = today + timedelta(days=1)
-        # Set to 10:00 AM business hours
-        appointment_date = appointment_date.replace(hour=10, minute=0, second=0, microsecond=0)
-        urgency_text = "Within 1 business day"
-        appointment_time = "10:00 AM"
-    
-    # GREEN = Low Risk = Standard scheduling
-    else:
-        # 2-3 days for low risk (standard intake)
-        days_out = 2
-        appointment_date = today + timedelta(days=days_out)
-        # Set to 10:00 AM business hours
-        appointment_date = appointment_date.replace(hour=10, minute=0, second=0, microsecond=0)
-        urgency_text = "2-3 business days"
-        appointment_time = "10:00 AM"
-    
-    return appointment_date, urgency_text, appointment_time
+    return appointment_dt, urgency_text, appointment_time_str
 
 
 def get_allowed_assessments_for_concern(concern: str) -> list:
@@ -432,9 +621,6 @@ def student_submit_intake():
     elif risk_level == 'YELLOW':
         urgency_level = 'high'
     
-    # Determine if anonymous
-    is_anonymous = data.get('is_anonymous', False)
-    
     # Calculate appointment date based on risk level
     appointment_date, estimated_days, appointment_time = calculate_appointment_date(is_emergency, urgency_level, risk_level)
     
@@ -462,8 +648,7 @@ def student_submit_intake():
     # Build intake responses (handle optional assessments)
     intake_responses = {
         "counseling_id": counseling_id,
-        "is_anonymous": is_anonymous,
-        "student_name": None if is_anonymous else user_name,
+        "student_name": user_name,
         "is_emergency": is_emergency,
         "urgency_level": urgency_level,
         "risk_level": risk_level,
@@ -476,6 +661,14 @@ def student_submit_intake():
         "concerns": data.get('concerns'),
         "preferred_platform": data.get('preferred_platform', 'in-person'),
         "consent_given": True,
+        # Personal Information
+        "first_name": data.get('first_name', ''),
+        "middle_name": data.get('middle_name', ''),
+        "last_name": data.get('last_name', ''),
+        "birthday": data.get('birthday', ''),
+        "gender": data.get('gender', ''),
+        "house_address": data.get('house_address', ''),
+        "contact_number": data.get('contact_number', ''),
     }
     
     # Only include assessment responses if they were taken
@@ -503,7 +696,6 @@ def student_submit_intake():
         "$set": {
             "responses": intake_responses,
             "counseling_id": counseling_id,
-            "is_anonymous": is_anonymous,
             "is_emergency": is_emergency,
             "assigned_counselor_id": assigned_counselor_id,
             "status": IntakeStatus.COMPLETED.value,
@@ -603,9 +795,6 @@ def student_submit_intake():
             if is_emergency:
                 status_msg = "Your intake has been flagged for priority review."
                 next_step = f"You should receive an appointment confirmation within {estimated_days}."
-            elif is_anonymous:
-                status_msg = "Your intake has been submitted anonymously."
-                next_step = f"You'll receive communication using your Counseling ID. Expected first appointment within {estimated_days}."
             else:
                 status_msg = "Your intake has been received and reviewed."
                 counselor_name = db.db.users.find_one({"_id": assigned_counselor_id}).get('name', 'A counselor') if assigned_counselor_id else 'A counselor'
@@ -677,7 +866,7 @@ Counseling & Psychological Services Team"""
             
             email_integration = EmailIntegration(current_app.config)
             result = email_integration.send_email(
-                to_address=user_email if not is_anonymous else None,
+                to_address=user_email,
                 subject=f"Your Counseling ID: {counseling_id}",
                 html_body=email_body
             )
@@ -688,7 +877,7 @@ Counseling & Psychological Services Team"""
             traceback.print_exc()
     
     audit_log(db.db, 'intake', 'submit', entity_id=str(intake_id), 
-              new_values={"is_emergency": is_emergency, "is_anonymous": is_anonymous, "urgency": urgency_level})
+              new_values={"is_emergency": is_emergency, "urgency": urgency_level})
     
     # Build response with scores only if available
     scores_response = {}
@@ -730,7 +919,6 @@ Counseling & Psychological Services Team"""
         'intake_id': str(intake_id),
         'case_id': str(case_id),
         'is_emergency': is_emergency,
-        'is_anonymous': is_anonymous,
         'urgency_level': urgency_level,
         'assigned_counselor': str(assigned_counselor_id) if assigned_counselor_id else None,
         'appointment_date': appointment_date.isoformat(),
@@ -835,7 +1023,7 @@ def get_emergency_intakes():
         result.append({
             'intake_id': str(intake['_id']),
             'counseling_id': intake.get('counseling_id'),
-            'student_name': 'Anonymous' if intake.get('is_anonymous') else student.get('name', 'Unknown'),
+            'student_name': student.get('name', 'Unknown'),
             'emergency_notes': intake.get('responses', {}).get('emergency_notes', ''),
             'phq9_score': intake.get('responses', {}).get('phq9_score'),
             'gad7_score': intake.get('responses', {}).get('gad7_score'),
@@ -1176,15 +1364,13 @@ def get_assessment_dashboard():
                     'counseling_id': intake.get('counseling_id'),
                     'concern': intake.get('responses', {}).get('purpose'),
                     'is_emergency': intake.get('is_emergency'),
-                    'is_anonymous': intake.get('is_anonymous'),
                     'submitted_at': intake.get('student_submitted_at').isoformat() if intake.get('student_submitted_at') else None,
                     'assessments_taken': len([k for k in scores.keys() if k.endswith('_score')])
                 })
             
             dashboard_data['summary'] = {
                 'total_intakes': len(new_intakes),
-                'emergency_count': len([c for c in dashboard_data['recent_cases'] if c['is_emergency']]),
-                'anonymous_count': len([c for c in dashboard_data['recent_cases'] if c['is_anonymous']])
+                'emergency_count': len([c for c in dashboard_data['recent_cases'] if c['is_emergency']])
             }
         
         elif user_role in ['ADMIN', 'DPO', 'CASE_MANAGER']:
@@ -1333,7 +1519,6 @@ def get_assessment_statistics():
     try:
         total_intakes = db.db.intakes.count_documents({"status": "COMPLETED"})
         emergency_count = db.db.intakes.count_documents({"is_emergency": True})
-        anonymous_count = db.db.intakes.count_documents({"is_anonymous": True})
         
         # Efficient aggregation
         stats_pipeline = [
@@ -1356,11 +1541,267 @@ def get_assessment_statistics():
         return jsonify({
             'total_intakes': total_intakes,
             'emergency_cases': emergency_count,
-            'anonymous_submissions': anonymous_count,
             'statistics': stats
         }), 200
     
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@intake_bp.route('/available-slots', methods=['GET'])
+@jwt_required()
+def get_available_appointment_slots():
+    """
+    Get available appointment slots based on risk level.
+    
+    Query params:
+    - risk_level: 'RED', 'YELLOW', or 'GREEN' (default: GREEN)
+    - count: number of slots to return (default: 5)
+    
+    Returns list of available appointment times with counselor availability info.
+    - RED: Limited selection (no user choice) - auto-assigned to first available
+    - YELLOW: Medium selection (user picks from available slots)
+    - GREEN: Full selection (user can choose any time from tomorrow onwards)
+    """
+    try:
+        risk_level = request.args.get('risk_level', 'GREEN')
+        count = min(int(request.args.get('count', 5)), 10)  # Max 10 slots
+        
+        # Get available slots based on risk level
+        slots = get_available_slots_for_risk(risk_level, num_days=7)
+        
+        # Limit to requested count
+        slots = slots[:count]
+        
+        # Get statistics
+        counselors = get_available_intake_counselors()
+        stats = _get_priority_queue_stats()
+        
+        # Determine user selectability based on risk level
+        is_user_choice = risk_level != 'RED'
+        choice_message = {
+            'RED': '❌ Auto-assigned to first available (urgent)',
+            'YELLOW': '✓ Choose from available slots (high priority)',
+            'GREEN': '✓ Full choice - select your preferred time'
+        }.get(risk_level, '')
+        
+        return jsonify({
+            'available_slots': slots,
+            'total_slots_available': len(slots),
+            'risk_level': risk_level,
+            'is_user_choice': is_user_choice,
+            'choice_message': choice_message,
+            'counselors_available': len(counselors),
+            'counselor_names': [f"{c.get('first_name', '')} {c.get('last_name', '')}" for c in counselors[:3]],
+            'priority_queues': stats
+        }), 200
+    
+    except Exception as e:
+        print(f"Error getting available slots: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@intake_bp.route('/select-appointment-time', methods=['POST'])
+@jwt_required()
+def select_appointment_time():
+    """
+    User selects a specific appointment time for their intake.
+    Only available for YELLOW (medium risk) and GREEN (low risk).
+    RED (high risk) appointments are auto-assigned.
+    
+    Request body:
+    {
+        "appointment_datetime": "2026-03-21T10:00:00",
+        "risk_level": "GREEN" or "YELLOW"
+    }
+    """
+    user_id = get_jwt_identity()
+    
+    try:
+        data = request.get_json()
+        appointment_datetime_str = data.get('appointment_datetime')
+        risk_level = data.get('risk_level', 'GREEN')
+        
+        if not appointment_datetime_str:
+            return jsonify({'error': 'appointment_datetime is required'}), 400
+        
+        # RED risk users cannot choose - must be auto-assigned
+        if risk_level == 'RED':
+            return jsonify({'error': 'High-risk intakes are auto-assigned. No user selection allowed.'}), 403
+        
+        # Parse the appointment datetime
+        appointment_dt = datetime.fromisoformat(appointment_datetime_str.replace('Z', '+00:00'))
+        
+        # Validate the appointment time
+        # GREEN: Must be tomorrow or later
+        # YELLOW: Must be today or tomorrow
+        now = datetime.utcnow()
+        min_hours_ahead = 24 if risk_level == 'GREEN' else 0
+        hours_ahead = (appointment_dt - now).total_seconds() / 3600
+        
+        if hours_ahead < min_hours_ahead:
+            min_label = 'tomorrow' if risk_level == 'GREEN' else 'today'
+            return jsonify({'error': f'For {risk_level} risk, appointment must be {min_label} or later'}), 400
+        
+        # Check if appointment is during business hours
+        if appointment_dt.hour < 9 or appointment_dt.hour >= 17:
+            return jsonify({'error': 'Appointment must be during business hours (9 AM - 5 PM)'}), 400
+        
+        # Check if slot is actually available
+        counselors = get_available_intake_counselors()
+        counselor_ids = [c["_id"] for c in counselors]
+        
+        if not counselor_ids:
+            return jsonify({'error': 'No intake counselors available for this time'}), 503
+        
+        existing_appts = db.db.appointments.count_documents({
+            "counselor_id": {"$in": counselor_ids},
+            "scheduled_start": appointment_dt,
+            "status": {"$in": ["MATCHED", "CONFIRMED", "REQUESTED"]}
+        })
+        
+        if existing_appts > 0:
+            return jsonify({'error': 'This time slot is no longer available. Please select another.'}), 409
+        
+        # Store selected appointment time in user session or return for next step
+        return jsonify({
+            'success': True,
+            'selected_appointment': {
+                'datetime': appointment_dt.isoformat(),
+                'date': appointment_dt.strftime("%Y-%m-%d"),
+                'time': appointment_dt.strftime("%I:%M %p"),
+                'risk_level': risk_level,
+                'counselors_available': len(counselor_ids)
+            },
+            'message': f'Appointment scheduled for {appointment_dt.strftime("%B %d at %I:%M %p")}'
+        }), 200
+    
+    except ValueError as e:
+        return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
+    except Exception as e:
+        print(f"Error selecting appointment time: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+def _get_priority_queue_stats():
+    """
+    Get current queue statistics by priority level.
+    Shows how many intakes are waiting at each priority level.
+    """
+    try:
+        stats = {
+            'urgent_red': db.db.intakes.count_documents({
+                'status': IntakeStatus.COMPLETED.value,
+                'responses.risk_level': 'RED',
+                'assigned_counselor_id': None
+            }),
+            'high_priority_yellow': db.db.intakes.count_documents({
+                'status': IntakeStatus.COMPLETED.value,
+                'responses.risk_level': 'YELLOW',
+                'assigned_counselor_id': None
+            }),
+            'standard_green': db.db.intakes.count_documents({
+                'status': IntakeStatus.COMPLETED.value,
+                'responses.risk_level': 'GREEN',
+                'assigned_counselor_id': None
+            })
+        }
+        return stats
+    except:
+        return {}
+
+
+@intake_bp.route('/priority-queue', methods=['GET'])
+@jwt_required()
+def get_priority_queue():
+    """
+    Get the current priority queue of intakes waiting for scheduling.
+    Shows intakes ordered by:
+    1. Risk level (RED > YELLOW > GREEN)
+    2. Submission time (older = higher priority within same risk level)
+    
+    Returns: List of intakes in priority order with scheduling info
+    """
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({"_id": ObjectId(user_id)})
+    
+    # Only admin, DPO, IC staff can view priority queue
+    if not user or user.get('role') not in ['ADMIN', 'DPO', 'IC', 'CASE_MANAGER']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    
+    try:
+        # Get unassigned intakes ordered by priority
+        priority_order = {'RED': 1, 'YELLOW': 2, 'GREEN': 3}
+        
+        pipeline = [
+            {
+                '$match': {
+                    'status': IntakeStatus.COMPLETED.value,
+                    'assigned_counselor_id': None
+                }
+            },
+            {
+                '$addFields': {
+                    'priority_score': {
+                        '$cond': [
+                            {'$eq': ['$responses.risk_level', 'RED']}, 1,
+                            {'$cond': [
+                                {'$eq': ['$responses.risk_level', 'YELLOW']}, 2, 3
+                            ]}
+                        ]
+                    }
+                }
+            },
+            {
+                '$sort': {'priority_score': 1, 'student_submitted_at': 1}
+            },
+            {'$limit': 50}
+        ]
+        
+        queue_intakes = list(db.db.intakes.aggregate(pipeline))
+        
+        result = []
+        for intake in queue_intakes:
+            scores = intake.get('responses', {})
+            risk_level = scores.get('risk_level', 'GREEN')
+            
+            # Calculate wait time
+            submitted = intake.get('student_submitted_at')
+            if submitted:
+                wait_minutes = int((datetime.utcnow() - submitted).total_seconds() / 60)
+            else:
+                wait_minutes = 0
+            
+            result.append({
+                'intake_id': str(intake['_id']),
+                'case_id': str(intake.get('case_id', '')),
+                'counseling_id': intake.get('counseling_id'),
+                'risk_level': risk_level,
+                'urgency_icon': '🚨' if risk_level == 'RED' else ('⚠️' if risk_level == 'YELLOW' else '📋'),
+                'student_name': intake.get('responses', {}).get('student_name', 'Unknown'),
+                'concern': scores.get('purpose', 'Unknown'),
+                'phq9_score': scores.get('phq9_score'),
+                'gad7_score': scores.get('gad7_score'),
+                'is_emergency': intake.get('is_emergency', False),
+                'submitted_at': submitted.isoformat() if submitted else None,
+                'wait_time_minutes': wait_minutes,
+                'wait_time_formatted': f"{wait_minutes} mins" if wait_minutes < 60 else f"{wait_minutes // 60}h {wait_minutes % 60}m",
+                'queue_position': len(result) + 1
+            })
+        
+        # Get statistics
+        stats = _get_priority_queue_stats()
+        
+        return jsonify({
+            'priority_queue': result,
+            'total_in_queue': len(result),
+            'queue_statistics': stats,
+            'available_counselors': len(get_available_intake_counselors()),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 200
+    
+    except Exception as e:
+        print(f"Error getting priority queue: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -1497,3 +1938,114 @@ def create_walkin_intake():
     except Exception as e:
         current_app.logger.error(f"Error creating walk-in intake: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+@intake_bp.route('/draft/save', methods=['POST'])
+@jwt_required()
+def save_intake_draft():
+    """Save intake form as draft for later completion"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    try:
+        user_obj_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_obj_id = user_id
+    
+    # Check if draft already exists for this user
+    existing_draft = db.db.intake_drafts.find_one({"student_id": user_obj_id})
+    
+    draft_doc = {
+        "student_id": user_obj_id,
+        "current_step": data.get('current_step', 'personal_info'),
+        "form_data": {
+            "personalInfo": data.get('personalInfo', {}),
+            "concern": data.get('concern', ''),
+            "selectedAssessments": data.get('selectedAssessments', []),
+            "assessmentResponses": data.get('assessmentResponses', {}),
+            "assessmentScores": data.get('assessmentScores', {}),
+            "isUrgent": data.get('isUrgent'),
+            "urgencyNotes": data.get('urgencyNotes', ''),
+            "consentGiven": data.get('consentGiven', False),
+            "appointmentDate": data.get('appointmentDate', ''),
+            "appointmentTime": data.get('appointmentTime', ''),
+            "communicationMethod": data.get('communicationMethod', 'in_person'),
+            "automaticAppointmentInfo": data.get('automaticAppointmentInfo', {}),
+        },
+        "updated_at": datetime.utcnow(),
+        "created_at": datetime.utcnow() if not existing_draft else existing_draft.get('created_at', datetime.utcnow())
+    }
+    
+    if existing_draft:
+        result = db.db.intake_drafts.update_one(
+            {"_id": existing_draft['_id']},
+            {"$set": draft_doc}
+        )
+        return jsonify({
+            'message': 'Draft saved successfully',
+            'draft_id': str(existing_draft['_id']),
+            'current_step': draft_doc['current_step'],
+            'last_saved': draft_doc['updated_at'].isoformat()
+        }), 200
+    else:
+        draft_doc['_id'] = ObjectId()
+        result = db.db.intake_drafts.insert_one(draft_doc)
+        return jsonify({
+            'message': 'Draft created successfully',
+            'draft_id': str(result.inserted_id),
+            'current_step': draft_doc['current_step'],
+            'created_at': draft_doc['created_at'].isoformat()
+        }), 201
+
+
+@intake_bp.route('/draft/load', methods=['GET'])
+@jwt_required()
+def load_intake_draft():
+    """Load saved intake draft for resume"""
+    user_id = get_jwt_identity()
+    
+    try:
+        user_obj_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except:
+        user_obj_id = user_id
+    
+    draft = db.db.intake_drafts.find_one({"student_id": user_obj_id})
+    
+    if not draft:
+        return jsonify({'message': 'No draft found', 'has_draft': False}), 200
+    
+    draft['_id'] = str(draft['_id'])
+    draft['created_at'] = draft['created_at'].isoformat()
+    draft['updated_at'] = draft['updated_at'].isoformat()
+    
+    return jsonify({
+        'has_draft': True,
+        'draft': draft,
+        'message': 'Draft loaded successfully'
+    }), 200
+
+
+@intake_bp.route('/draft/<draft_id>', methods=['DELETE'])
+@jwt_required()
+def delete_intake_draft(draft_id):
+    """Delete a saved intake draft"""
+    user_id = get_jwt_identity()
+    
+    try:
+        user_obj_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        draft_obj_id = ObjectId(draft_id)
+    except:
+        return jsonify({'error': 'Invalid draft ID'}), 400
+    
+    # Verify ownership
+    draft = db.db.intake_drafts.find_one({"_id": draft_obj_id, "student_id": user_obj_id})
+    
+    if not draft:
+        return jsonify({'error': 'Draft not found or not owned by user'}), 404
+    
+    result = db.db.intake_drafts.delete_one({"_id": draft_obj_id})
+    
+    return jsonify({
+        'message': 'Draft deleted successfully',
+        'deleted': result.deleted_count > 0
+    }), 200

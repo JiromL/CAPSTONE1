@@ -12,11 +12,10 @@ interface DashboardProps {
 export function DPODashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'Analytics', href: '/admin/analytics', id: 'analytics' },
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 5 },
-    { label: 'Reports', href: '/documentation', id: 'reports' },
-    { label: 'Team', href: '/referrals', id: 'team' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
     { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 

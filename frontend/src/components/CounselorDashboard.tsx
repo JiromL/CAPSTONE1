@@ -38,11 +38,10 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   }, []);
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'Appointments', href: '/appointments', id: 'appointments', badge: dashboardData?.summary?.assigned_cases || 0 },
-    { label: 'Availability', href: '/availability', id: 'availability' },
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Referrals', href: '/referrals', id: 'referrals' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
     { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 

@@ -39,97 +39,17 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
 
   // Get menu items based on user role
   const getMenuItems = (role: string) => {
-    const baseItems = [
+    // Standard menu items for all roles
+    const standardItems = [
       { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+      { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+      { label: 'Intake Form', href: '/intake', id: 'intake' },
+      { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+      { label: 'Wellness Resources', href: '/resources', id: 'resources' },
+      { label: 'Profile', href: '/profile', id: 'profile' },
     ];
 
-    switch(role) {
-      case 'STUDENT':
-        return [
-          ...baseItems,
-          { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: 3 },
-          { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
-          { label: 'Intake Form', href: '/intake', id: 'intake' },
-          { label: 'Wellness Resources', href: '/resources', id: 'resources' },
-          { label: 'My Profile', href: '/profile', id: 'profile' },
-        ];
-      case 'ADMIN':
-        return [
-          ...baseItems,
-          { label: 'Users', href: '/admin/users', id: 'users' },
-          { label: 'Cases', href: '/cases', id: 'cases' },
-          { label: 'Documentation', href: '/documentation', id: 'documentation' },
-          { label: 'Profile', href: '/profile', id: 'profile' },
-        ];
-      case 'PSYCHOLOGIST':
-        return [
-          ...baseItems,
-          { label: 'Cases', href: '/cases', id: 'cases' },
-          { label: 'Assessments', href: '/assessments', id: 'assessments', badge: 7 },
-          { label: 'Documentation', href: '/documentation', id: 'documentation' },
-          { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 3 },
-          { label: 'Referrals', href: '/referrals', id: 'referrals' },
-          { label: 'Profile', href: '/profile', id: 'profile' },
-        ];
-      case 'COUNSELOR':
-        return [
-          ...baseItems,
-          { label: 'Appointments', href: '/appointments', id: 'appointments', badge: 4 },
-          { label: 'Availability', href: '/availability', id: 'availability' },
-          { label: 'Cases', href: '/cases', id: 'cases' },
-          { label: 'Referrals', href: '/referrals', id: 'referrals' },
-          { label: 'Documentation', href: '/documentation', id: 'documentation' },
-          { label: 'Profile', href: '/profile', id: 'profile' },
-        ];
-      case 'IC':
-        return [
-          ...baseItems,
-          { label: 'Assessments', href: '/assessments', id: 'assessments', badge: 12 },
-          { label: 'Cases', href: '/cases', id: 'cases' },
-          { label: 'Schedule Calendar', href: '/ic/schedule/calendar', id: 'schedule-calendar' },
-          { label: 'Counselor Availability', href: '/ic/schedule/counselors', id: 'counselor-availability' },
-          { label: 'Documentation', href: '/documentation', id: 'documentation' },
-          { label: 'Referrals', href: '/referrals', id: 'referrals' },
-          { label: 'Profile', href: '/profile', id: 'profile' },
-        ];
-      case 'DPO':
-        return [
-          ...baseItems,
-          { label: 'Cases', href: '/cases', id: 'cases' },
-          { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 5 },
-          { label: 'Reports', href: '/documentation', id: 'reports' },
-          { label: 'Team', href: '/referrals', id: 'team' },
-          { label: 'Profile', href: '/profile', id: 'profile' },
-        ];
-      case 'CSP':
-      case 'CSC':
-        return [
-          ...baseItems,
-          { label: 'Appointments', href: '/appointments', id: 'appointments', badge: 6 },
-          { label: 'Cases', href: '/cases', id: 'cases' },
-          { label: 'Documentation', href: '/documentation', id: 'documentation' },
-          { label: 'Tasks', href: '/tasks', id: 'tasks' },
-          { label: 'Profile', href: '/profile', id: 'profile' },
-        ];
-      case 'STAFF':
-        return [
-          ...baseItems,
-          { label: 'Batch Assignment', href: '/staff/batch-assign', id: 'batch-assign' },
-          { label: 'Workload Report', href: '/staff/workload-report', id: 'workload-report' },
-          { label: 'Counselor Availability', href: '/ic/schedule/counselors', id: 'counselor-availability' },
-          { label: 'Reassignment Suggestions', href: '/staff/reassignment-suggestions', id: 'reassignment-suggestions' },
-          { label: 'Appointments', href: '/staff/appointments', id: 'staff-appointments', badge: 12 },
-          { label: 'Staff Settings', href: '/dashboard/staff-settings', id: 'staff-settings' },
-        ];
-      default:
-        return [
-          ...baseItems,
-          { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: 3 },
-          { label: 'Intake Form', href: '/intake', id: 'intake' },
-          { label: 'Wellness Resources', href: '/resources', id: 'resources' },
-          { label: 'My Profile', href: '/profile', id: 'profile' },
-        ];
-    }
+    return standardItems;
   };
 
   // Determine active section from pathname

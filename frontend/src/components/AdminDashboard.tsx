@@ -11,9 +11,10 @@ interface DashboardProps {
 export function AdminDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'Users', href: '/admin/users', id: 'users' },
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
     { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 

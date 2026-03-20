@@ -11,11 +11,10 @@ interface DashboardProps {
 export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Assessments', href: '/assessments', id: 'assessments', badge: 7 },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'High-Risk', href: '/high-risk', id: 'high-risk', badge: 3 },
-    { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
     { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 

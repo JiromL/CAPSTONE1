@@ -13,14 +13,11 @@ interface DashboardProps {
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'Walk-in Intake', href: '/staff/walkin-intake', id: 'walkin-intake' },
-    { label: 'Non-Counseling Clients', href: '/staff/non-counseling-clients', id: 'non-counseling-clients' },
-    { label: 'Batch Assignment', href: '/staff/batch-assign', id: 'batch-assign' },
-    { label: 'Workload Report', href: '/staff/workload-report', id: 'workload-report' },
-    { label: 'Counselor Availability', href: '/ic/schedule/counselors', id: 'counselor-availability' },
-    { label: 'Reassignment Suggestions', href: '/staff/reassignment-suggestions', id: 'reassignment-suggestions' },
-    { label: 'Appointments', href: '/staff/appointments', id: 'staff-appointments', badge: 12 },
-    { label: 'Staff Settings', href: '/availability', id: 'staff-settings' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   return (

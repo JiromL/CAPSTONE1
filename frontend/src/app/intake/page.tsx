@@ -122,9 +122,13 @@ const RESPONSE_SCALE = [
 
 export default function IntakePage() {
   const router = useRouter();
-  const [step, setStep] = useState<'concern' | 'screening_selection' | 'urgency' | 'crisis' | 'screening' | 'appointment' | 'complete'>('concern');
+  const [step, setStep] = useState<'terms' | 'personal_info' | 'distress_level' | 'concern' | 'screening_selection' | 'screening' | 'appointment' | 'review' | 'complete'>('terms');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isInDistress, setIsInDistress] = useState<boolean | null>(null);
   
   // Concern selection
   const [selectedConcern, setSelectedConcern] = useState<string | null>(null);
@@ -135,7 +139,6 @@ export default function IntakePage() {
   const [isUrgent, setIsUrgent] = useState<boolean | null>(null);
   const [urgencyNotes, setUrgencyNotes] = useState('');
   const [consentGiven, setConsentGiven] = useState(false);
-  const [isAnonymous, setIsAnonymous] = useState(false);
 
   // Assessment tracking
   const [selectedAssessments, setSelectedAssessments] = useState<string[]>([]);
@@ -143,6 +146,18 @@ export default function IntakePage() {
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [assessmentResponses, setAssessmentResponses] = useState<{[key: string]: number[]}>({});
   const [assessmentScores, setAssessmentScores] = useState<{[key: string]: number}>({});
+
+  // Personal Information
+  const [personalInfo, setPersonalInfo] = useState({
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    birthday: '',
+    gender: '',
+    id_number: '',
+    contact_number: '',
+    personal_data_consent: false,
+  });
 
   // Appointment preferences
   const [autoSuggestedDate, setAutoSuggestedDate] = useState('');
@@ -171,7 +186,119 @@ export default function IntakePage() {
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
     setLoading(false);
+    
+    // Load draft if it exists
+    loadDraft();
   }, [router]);
+
+  const loadDraft = async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      if (!token) return;
+
+      const response = await fetch(api('/api/intake/draft/load'), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.has_draft && data.draft) {
+          const draft = data.draft;
+          setHasDraft(true);
+          setDraftId(draft._id);
+          
+          // Restore form data
+          if (draft.form_data.personalInfo) {
+            setPersonalInfo(draft.form_data.personalInfo);
+          }
+          if (draft.form_data.concern) setSelectedConcern(draft.form_data.concern);
+          if (draft.form_data.selectedAssessments) setSelectedAssessments(draft.form_data.selectedAssessments);
+          if (draft.form_data.assessmentResponses) setAssessmentResponses(draft.form_data.assessmentResponses);
+          if (draft.form_data.assessmentScores) setAssessmentScores(draft.form_data.assessmentScores);
+          if (draft.form_data.isUrgent !== null) setIsUrgent(draft.form_data.isUrgent);
+          if (draft.form_data.urgencyNotes) setUrgencyNotes(draft.form_data.urgencyNotes);
+          if (draft.form_data.consentGiven) setConsentGiven(draft.form_data.consentGiven);
+          if (draft.form_data.isInDistress !== null) setIsInDistress(draft.form_data.isInDistress);
+          if (draft.form_data.appointmentDate) setAppointmentDate(draft.form_data.appointmentDate);
+          if (draft.form_data.appointmentTime) setAppointmentTime(draft.form_data.appointmentTime);
+          if (draft.form_data.communicationMethod) setCommunicationMethod(draft.form_data.communicationMethod);
+          if (draft.form_data.automaticAppointmentInfo) setAutomaticAppointmentInfo(draft.form_data.automaticAppointmentInfo);
+          
+          // Resume at last saved step
+          setStep(draft.current_step);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error);
+    }
+  };
+
+  const saveDraft = async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      if (!token) {
+        alert('❌ Authentication required to save draft');
+        return;
+      }
+
+      const draftData = {
+        current_step: step,
+        personalInfo: { ...personalInfo },
+        isInDistress,
+        concern: selectedConcern,
+        selectedAssessments,
+        assessmentResponses,
+        assessmentScores,
+        isUrgent,
+        urgencyNotes,
+        consentGiven,
+        appointmentDate,
+        appointmentTime,
+        communicationMethod,
+        automaticAppointmentInfo
+      };
+
+      const response = await fetch(api('/api/intake/draft/save'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(draftData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setDraftId(result.draft_id);
+        alert('✅ Draft saved successfully!');
+      } else {
+        alert('❌ Failed to save draft');
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      alert('❌ Error saving draft');
+    }
+  };
+
+  const deleteDraft = async () => {
+    if (!draftId) return;
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      if (!token) return;
+
+      const response = await fetch(api(`/api/intake/draft/${draftId}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setHasDraft(false);
+        setDraftId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -179,11 +306,12 @@ export default function IntakePage() {
   };
 
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <BookOpen size={20} /> },
-    { label: 'My Tasks', href: '/tasks', icon: <CheckCircle size={20} />, badge: 3 },
-    { label: 'Intake Form', href: '/intake', icon: <FileText size={20} /> },
-    { label: 'Wellness Resources', href: '/resources', icon: <Heart size={20} /> },
-    { label: 'My Profile', href: '/profile', icon: <AlertCircle size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   // Determine which assessments to run based on selected concern
@@ -207,15 +335,31 @@ export default function IntakePage() {
     return 'next_week'; // Low - next week
   };
 
-  // Handle concern selection and move to urgency check
+  // Handle distress level selection
+  const handleDistressLevel = (inDistress: boolean) => {
+    setIsInDistress(inDistress);
+    if (inDistress) {
+      // If in distress: mark as RED urgency, skip assessments, go to appointment
+      setIsUrgent(true);
+      setAssessmentScores({ phq9: 30, gad7: 21, pss: 40 }); // Simulate high scores for RED risk
+      setAutoSuggestedDate('same_day');
+      // Directly move to appointment scheduling
+      setTimeout(() => setStep('appointment'), 100);
+    } else {
+      // If can wait: proceed to concern selection for assessment
+      setStep('concern');
+    }
+  };
+
+  // Handle concern selection and move to screening selection
   const handleConcernSelection = () => {
     if (!selectedConcern) {
       alert('Please select a concern');
       return;
     }
     
-    // Move directly to urgency check
-    setStep('urgency');
+    // Move directly to screening selection (skip urgency step)
+    setStep('screening_selection');
   };
 
   // Handle screening selection and move to screening questions
@@ -248,17 +392,12 @@ export default function IntakePage() {
     setSelectedScreenings(newSelected);
   };
 
-  // Step 2: Urgency check - routing decision point
+  // Step after concern: Screening selection - no more urgency routing
   const handleUrgencyResponse = (isEmergency: boolean) => {
     setIsUrgent(isEmergency);
-    if (isEmergency) {
-      // If urgent, go straight to crisis resources
-      setStep('crisis');
-    } else {
-      // If not urgent, go to screening selection to pick which screenings
-      setSelectedScreenings(new Set());
-      setStep('screening_selection');
-    }
+    // Skip crisis/urgency screens - go directly to screening selection
+    setSelectedScreenings(new Set());
+    setStep('screening_selection');
   };
 
   // Update current assessment response
@@ -283,6 +422,52 @@ export default function IntakePage() {
         setStep('appointment');
       }
     }
+  };
+
+  // Handle personal information changes
+  const handlePersonalInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setPersonalInfo({
+      ...personalInfo,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    });
+  };
+
+  // Validate personal information before proceeding
+  const validatePersonalInfo = (): boolean => {
+    if (!personalInfo.first_name.trim()) {
+      alert('Please enter your first name');
+      return false;
+    }
+    if (!personalInfo.last_name.trim()) {
+      alert('Please enter your last name');
+      return false;
+    }
+    if (!personalInfo.birthday) {
+      alert('Please enter your birthday');
+      return false;
+    }
+    if (!personalInfo.gender) {
+      alert('Please select your gender');
+      return false;
+    }
+    if (!personalInfo.id_number.trim()) {
+      alert('Please enter your ID number');
+      return false;
+    }
+    if (!/^\d{8}$/.test(personalInfo.id_number.trim())) {
+      alert('ID number must be exactly 8 digits');
+      return false;
+    }
+    if (!personalInfo.contact_number.trim()) {
+      alert('Please enter your contact number');
+      return false;
+    }
+    if (!personalInfo.personal_data_consent) {
+      alert('Please consent to the collection and use of your personal data');
+      return false;
+    }
+    return true;
   };
 
   // Calculate assessment scores (hidden from student)
@@ -403,13 +588,20 @@ export default function IntakePage() {
         purpose: selectedConcern,
         is_emergency: isUrgent,
         emergency_notes: urgencyNotes,
-        is_anonymous: isAnonymous,
         consent_given: true,
         preferred_platform: communicationMethod,
         appointment_date: appointmentDate,
         appointment_time: appointmentTime,
         appointment_override: appointmentOverridden,
         automatic_appointment_date: automaticAppointmentInfo?.automatic_date,
+        // Personal Information
+        first_name: personalInfo.first_name,
+        middle_name: personalInfo.middle_name,
+        last_name: personalInfo.last_name,
+        birthday: personalInfo.birthday,
+        gender: personalInfo.gender,
+        id_number: personalInfo.id_number,
+        contact_number: personalInfo.contact_number,
       };
 
       // Add assessment responses
@@ -512,7 +704,7 @@ export default function IntakePage() {
         <div className="max-w-2xl mx-auto">
           {/* Header Section */}
           <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 1 of 6</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 4 of 8</span>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">What brings you in today?</h1>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Select your primary concern</p>
           </div>
@@ -548,7 +740,7 @@ export default function IntakePage() {
           {/* Action Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={() => router.back()}
+              onClick={() => setStep('terms')}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
             >
               Back
@@ -559,6 +751,107 @@ export default function IntakePage() {
               className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
             >
               Continue
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ============================================
+  // STEP 0: TERMS AND CONDITIONS
+  // ============================================
+  if (step === 'terms') {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 1 of 8</span>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Terms and Conditions</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Please read and accept to proceed</p>
+          </div>
+
+          {/* Terms Content */}
+          <div className="space-y-6 mb-8 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 p-6 rounded border border-gray-200 dark:border-gray-700">
+            {/* English Section */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Terms and Conditions</h2>
+              <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <div>
+                  <p className="font-medium mb-2">Urgency-Based & First Come, First Served Basis</p>
+                  <p>This appointment and scheduling system allocates slots based on urgency level (determined by assessment responses) and then on a first come, first served basis within each priority level. Appointments with higher urgency will be prioritized. There is no guarantee that a slot will always be available for a user's first choice for an appointment schedule.</p>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">Accuracy of Information</p>
+                  <p>Users accept the responsibility for providing, checking and verifying the validity and accuracy of the information they provide on this system in connection with their registration and consent to collect and use of their personal information for Government to conduct checks and validation against existing and previous medical applications.</p>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">System Abuse</p>
+                  <p>Users who are found to have abused the system will be blocked from securing an appointment.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tagalog Section */}
+            <hr className="border-gray-300 dark:border-gray-600" />
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Mga Tuntunin at Kundisyon</h2>
+              <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <div>
+                  <p className="font-medium mb-2">Basis ng Urgency at First Come, First Served</p>
+                  <p>Ang sistema ng appointment at pag-iskedyul na ito ay nagbibigay ng mga slot batay sa antas ng urgency (na tinutukoy ng responses sa assessment) at pagkatapos ay "first come, first served" na paraan sa loob ng bawat priority level. Ang mga appointment na may mas mataas na urgency ay magiging priority. Hindi garantisado na laging may available na slot para sa unang pinili ng user na oras ng appointment.</p>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">Katumpakan ng Impormasyon</p>
+                  <p>Responsibilidad ng mga user ang magbigay, mag-check, at mag-verify ng katumpakan at kawastuhan ng impormasyong ibinibigay nila sa sistemang ito kaugnay ng kanilang rehistrasyon at pahintulot sa pagkolekta at paggamit ng kanilang personal na impormasyon para sa pagsasagawa ng mga pagsusuri at pag-validate ng Gobyerno laban sa mga kasalukuyan at nakaraang aplikasyong medika.</p>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">Paggamit ng Sistema</p>
+                  <p>Ang mga user na mapapatunayang nag-abuso sa sistema ay babawalan na makakuha ng appointment.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Acceptance Section */}
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-8">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="w-5 h-5 mt-1 rounded border-gray-300 dark:border-gray-600"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-medium block mb-1">I have read and understood the instructions and information on this page</span>
+                I agree to the Terms and Conditions on the use of this online appointment and scheduling system.
+                <span className="block mt-2 text-xs italic">Nabasa at naunawaan ko ang mga instruksyon at impormasyon sa pahinang ito, at sumasang-ayon ako sa mga Tuntunin at Kundisyon sa paggamit ng online appointment at scheduling system na ito.</span>
+                <span className="text-red-500 font-semibold"> *</span>
+              </span>
+            </label>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.back()}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+            >
+              Back
+            </button>
+            <button
+              disabled={!termsAccepted}
+              onClick={() => setStep('personal_info')}
+              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+            >
+              I Accept & Continue
             </button>
           </div>
         </div>
@@ -601,7 +894,7 @@ export default function IntakePage() {
         <div className="max-w-2xl mx-auto">
           {/* Header Section */}
           <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 2 of 6</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 5 of 8</span>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Select Assessments</h1>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Choose which screenings you'd like to complete</p>
           </div>
@@ -678,7 +971,7 @@ export default function IntakePage() {
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 3 of 6</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 6 of 8</span>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">How urgent is your situation?</h1>
             <p className="text-gray-600 dark:text-gray-400 text-sm">This helps us prioritize your support</p>
           </div>
@@ -774,7 +1067,7 @@ export default function IntakePage() {
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 4 of 6</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 6 of 7</span>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Resources Available</h1>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Multiple ways to get help</p>
           </div>
@@ -940,7 +1233,296 @@ export default function IntakePage() {
   }
 
   // ============================================
-  // STEP 5: SCHEDULE APPOINTMENT
+  // STEP 5: PERSONAL INFORMATION
+  // ============================================
+  if (step === 'personal_info') {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 2 of 8</span>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Personal Information</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Please provide your contact details to get started</p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            {/* Name Row - First, Middle, Last */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="first_name"
+                  value={personalInfo.first_name}
+                  onChange={handlePersonalInfoChange}
+                  placeholder="John"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  name="middle_name"
+                  value={personalInfo.middle_name}
+                  onChange={handlePersonalInfoChange}
+                  placeholder="Christopher (optional)"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="last_name"
+                  value={personalInfo.last_name}
+                  onChange={handlePersonalInfoChange}
+                  placeholder="Doe"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Birthday and Gender Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Birthday <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="birthday"
+                  value={personalInfo.birthday}
+                  onChange={handlePersonalInfoChange}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="gender"
+                  value={personalInfo.gender}
+                  onChange={handlePersonalInfoChange}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+
+            {/* ID Number Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  ID Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="id_number"
+                  value={personalInfo.id_number}
+                  onChange={handlePersonalInfoChange}
+                  placeholder="11234567"
+                  maxLength="8"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Must be 8 digits (e.g., 11234567)</p>
+              </div>
+            </div>
+
+            {/* Email and Contact Number Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Email (from your account)
+                </label>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This cannot be changed during intake</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Contact Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  name="contact_number"
+                  value={personalInfo.contact_number}
+                  onChange={handlePersonalInfoChange}
+                  placeholder="+63 9 XX XXX XXXX"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Consent Section */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="personal_data_consent"
+                  checked={personalInfo.personal_data_consent}
+                  onChange={handlePersonalInfoChange}
+                  className="w-5 h-5 mt-1 rounded border-gray-300 dark:border-gray-600"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-medium block mb-1">I consent to the collection and use of my personal data</span>
+                  I understand that my personal information (name, contact details, address) will be collected and securely stored. This information will be used only for counseling services administration and will not be shared outside of authorized university staff without my consent. I acknowledge the counseling center's privacy practices.
+                  <span className="text-red-500 font-semibold"> *</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep('concern')}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => {
+                if (validatePersonalInfo()) {
+                  setStep('distress_level');
+                }
+              }}
+              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
+            >
+              Continue  
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ============================================
+  // STEP 3: DISTRESS / ASSISTANCE LEVEL
+  // ============================================
+  if (step === 'distress_level') {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 3 of 8</span>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Do you need assistance right away?</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">This helps us prioritize your appointment scheduling</p>
+          </div>
+
+          {/* Options */}
+          <div className="space-y-3 mb-8">
+            {/* In Distress Option */}
+            <button
+              onClick={() => handleDistressLevel(true)}
+              className={`w-full p-6 rounded border-2 text-left transition-all ${
+                isInDistress === true
+                  ? 'bg-red-50 border-red-400 dark:bg-red-900/20 dark:border-red-600'
+                  : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 dark:text-white mb-2">Yes, I'm in distress and need assistance ASAP</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    I'm experiencing a crisis or urgent mental health concern and need immediate support within 30 minutes
+                  </p>
+                </div>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 ${
+                  isInDistress === true
+                    ? 'border-red-400 bg-red-400 dark:border-red-600 dark:bg-red-600'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}>
+                  {isInDistress === true && <span className="text-white text-lg">✓</span>}
+                </div>
+              </div>
+            </button>
+
+            {/* Can Wait Option */}
+            <button
+              onClick={() => handleDistressLevel(false)}
+              className={`w-full p-6 rounded border-2 text-left transition-all ${
+                isInDistress === false
+                  ? 'bg-blue-50 border-blue-400 dark:bg-blue-900/20 dark:border-blue-600'
+                  : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 dark:text-white mb-2">No, I can wait for an appointment</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    I'm experiencing challenges but not in immediate crisis. I'm flexible with scheduling based on availability
+                  </p>
+                </div>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 ${
+                  isInDistress === false
+                    ? 'border-blue-400 bg-blue-400 dark:border-blue-600 dark:bg-blue-600'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}>
+                  {isInDistress === false && <span className="text-white text-lg">✓</span>}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep('personal_info')}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+            >
+              Back
+            </button>
+            <button
+              disabled={isInDistress === null}
+              onClick={() => {
+                if (isInDistress === false) {
+                  setStep('concern');
+                }
+                // If true, handleDistressLevel already navigated to appointment
+              }}
+              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ============================================
+  // STEP 6: SCHEDULE APPOINTMENT
   // ============================================
   if (step === 'appointment') {
     return (
@@ -953,7 +1535,7 @@ export default function IntakePage() {
       >
         <div className="max-w-2xl mx-auto">
           <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 5 of 6</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 7 of 8</span>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Schedule Your Appointment</h1>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Choose your preferred date and time</p>
           </div>
@@ -1055,16 +1637,6 @@ export default function IntakePage() {
               </div>
             </div>
 
-            <label className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
-              <input
-                type="checkbox"
-                checked={isAnonymous}
-                onChange={(e) => setIsAnonymous(e.target.checked)}
-                className="mr-3 w-4 h-4"
-              />
-              <span className="text-gray-900 dark:text-white">Keep anonymous</span>
-            </label>
-
             <label className="flex items-start p-3 border border-gray-300 dark:border-gray-600 rounded text-xs cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
               <input
                 type="checkbox"
@@ -1079,19 +1651,157 @@ export default function IntakePage() {
           </div>
 
           {/* Navigation Buttons */}
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep('personal_info')}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep('review')}
+                disabled={!appointmentDate || !consentGiven}
+                className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+              >
+                Review & Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ============================================
+  // STEP 6: REVIEW & SUMMARY
+  // ============================================
+  if (step === 'review') {
+    return (
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        menuItems={menuItems}
+        title="Intake Form"
+        subtitle="Campus Counseling Services"
+      >
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Step 8 of 8</span>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Review Your Information</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Please verify all details before submitting</p>
+          </div>
+
+          {/* Personal Information */}
+          <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Personal Information</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">First Name</p>
+                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.first_name || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">Last Name</p>
+                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.last_name || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">Birthday</p>
+                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.birthday || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">Gender</p>
+                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.gender || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">ID Number</p>
+                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.id_number || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">Contact Number</p>
+                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.contact_number || '-'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Concern & Assessments */}
+          <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Your Concern</h3>
+            <div className="text-sm mb-4">
+              <p className="text-gray-600 dark:text-gray-400">Primary Concern</p>
+              <p className="text-gray-900 dark:text-white font-medium">{CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern || '-'}</p>
+            </div>
+            {selectedAssessments.length > 0 && (
+              <div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">Assessments Completed</p>
+                <div className="space-y-1">
+                  {selectedAssessments.map(assessment => (
+                    <div key={assessment} className="text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                      <span className="text-green-600 dark:text-green-400">✓</span>
+                      {ASSESSMENTS[assessment as keyof typeof ASSESSMENTS]?.name || assessment}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Appointment Details */}
+          <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Appointment Details</h3>
+            <div className="space-y-2 text-sm">
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">Scheduled Date</p>
+                <p className="text-gray-900 dark:text-white font-medium">{appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">Appointment Time</p>
+                <p className="text-gray-900 dark:text-white font-medium">{appointmentTime || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">Communication Method</p>
+                <p className="text-gray-900 dark:text-white font-medium capitalize">{communicationMethod.replace('_', ' ')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Consent */}
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consentGiven}
+                onChange={(e) => setConsentGiven(e.target.checked)}
+                className="w-5 h-5 mt-1 rounded"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-medium block mb-1">I verify that the information above is correct</span>
+                I confirm all details are accurate and agree to proceed with this intake submission.
+                <span className="text-red-500 font-semibold"> *</span>
+              </span>
+            </label>
+          </div>
+
+          {/* Navigation */}
           <div className="flex gap-3">
             <button
-              onClick={() => setStep(isUrgent ? 'crisis' : 'screening')}
+              onClick={() => setStep('appointment')}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
             >
-              Back
+              Back to Edit
+            </button>
+            <button
+              onClick={saveDraft}
+              className="flex-1 px-4 py-2 border border-blue-300 text-blue-700 font-medium rounded hover:bg-blue-50 transition-colors dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20"
+            >
+              💾 Save as Draft
             </button>
             <button
               onClick={handleSubmitIntake}
-              disabled={!appointmentDate || !consentGiven || isSubmitting}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+              disabled={!consentGiven || isSubmitting}
+              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-green-700 dark:hover:bg-green-600"
             >
-              {isSubmitting ? 'Submitting...' : 'Complete'}
+              {isSubmitting ? 'Submitting...' : 'Submit Intake'}
             </button>
           </div>
         </div>
@@ -1100,7 +1810,7 @@ export default function IntakePage() {
   }
 
   // ============================================
-  // STEP 6: CONFIRMATION & SUBMISSION
+  // STEP 7: COMPLETION
   // ============================================
   if (step === 'complete') {
     return (
@@ -1149,6 +1859,7 @@ export default function IntakePage() {
           {/* Appointment Summary */}
           <div className="mb-8 p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Your Appointment</h3>
+
             
             <div className="space-y-3">
               {/* Reference ID */}

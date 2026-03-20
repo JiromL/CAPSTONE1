@@ -11,12 +11,12 @@ interface DashboardProps {
 
 export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard', icon: <TrendingUp size={20} /> },
-    { label: 'Appointments', href: '/appointments', id: 'appointments', icon: <Users size={20} /> },
-    { label: 'Cases', href: '/cases', id: 'cases', icon: <Phone size={20} />, badge: 7 },
-    { label: 'Documentation', href: '/documentation', id: 'documentation', icon: <FileText size={20} /> },
-    { label: 'Tasks', href: '/tasks', id: 'tasks', icon: <MessageCircle size={20} />, badge: 5 },
-    { label: 'Profile', href: '/profile', id: 'profile', icon: <CheckCircle size={20} /> },
+    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
+    { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
   return (

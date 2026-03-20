@@ -11,12 +11,10 @@ interface DashboardProps {
 export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'Assessments', href: '/assessments', id: 'assessments', badge: 8 },
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Calendar', href: '/availability', id: 'availability' },
-    { label: 'Counselors', href: '/counselor/emergency', id: 'counselor-emergency' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
+    { label: 'Intake Form', href: '/intake', id: 'intake' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
     { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 

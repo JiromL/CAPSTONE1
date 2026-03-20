@@ -1552,6 +1552,117 @@ def get_assessment_statistics():
         return jsonify({'error': str(e)}), 500
 
 
+@intake_bp.route('/available-times-for-date', methods=['GET'])
+@jwt_required()
+def get_available_times_for_date():
+    """
+    Get available time slots for a specific date with counselor availability count.
+    Checks both counselor_availability schedule and existing appointments.
+    
+    Query params:
+    - date: Date in YYYY-MM-DD format (required)
+    
+    Returns list of available times with how many counselors are available.
+    """
+    try:
+        date_str = request.args.get('date')
+        if not date_str:
+            return jsonify({'error': 'date parameter is required (format: YYYY-MM-DD)'}), 400
+        
+        try:
+            # Parse the date string
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Get available intake counselors
+        counselors = get_available_intake_counselors()
+        if not counselors:
+            return jsonify({'error': 'No intake counselors available'}), 503
+        
+        counselor_ids = [c["_id"] for c in counselors]
+        
+        # Generate time slots for the day (9 AM to 5 PM, 30-min intervals)
+        business_hours_start = 9
+        business_hours_end = 17
+        slot_duration_minutes = 30
+        
+        available_times = []
+        
+        # Create start and end times for the day
+        day_start = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = date_obj.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        # Start from business hours
+        current_time = date_obj.replace(hour=business_hours_start, minute=0, second=0, microsecond=0)
+        end_of_day = date_obj.replace(hour=business_hours_end, minute=0, second=0, microsecond=0)
+        
+        print(f"Checking availability for date: {date_str}")
+        print(f"Business hours: {current_time} to {end_of_day}")
+        
+        while current_time < end_of_day:
+            slot_end_time = current_time + timedelta(minutes=slot_duration_minutes)
+            available_counselor_list = []
+            
+            # Check each counselor
+            for counselor_id in counselor_ids:
+                # Find availability slots that overlap with this time
+                # Check if counselor has ANY availability that covers this time slot
+                avail_check = db.db.counselor_availability.find_one({
+                    "counselor_id": counselor_id,
+                    "slot_start": {"$lte": current_time},
+                    "slot_end": {"$gte": slot_end_time},
+                    "is_available": True,
+                    # Also check that slot is on the right day
+                    "$expr": {
+                        "$and": [
+                            {"$gte": ["$slot_start", day_start]},
+                            {"$lte": ["$slot_start", day_end]}
+                        ]
+                    }
+                })
+                
+                if not avail_check:
+                    continue  # Counselor not available at this time
+                
+                # Check if counselor already has an appointment at this time
+                existing_appt = db.db.appointments.find_one({
+                    "counselor_id": counselor_id,
+                    "scheduled_start": current_time,
+                    "status": {"$in": ["MATCHED", "CONFIRMED", "REQUESTED"]}
+                })
+                
+                if not existing_appt:
+                    available_counselor_list.append(str(counselor_id))
+            
+            # Add time slot if at least one counselor is available
+            if available_counselor_list:
+                available_times.append({
+                    'time': current_time.strftime("%I:%M %p"),
+                    'datetime': current_time.isoformat(),
+                    'available_counselors': len(available_counselor_list),
+                    'counselor_ids': available_counselor_list,
+                    'counselor_availability_text': f"{len(available_counselor_list)} counselor{'s' if len(available_counselor_list) > 1 else ''} available"
+                })
+            
+            current_time += timedelta(minutes=slot_duration_minutes)
+        
+        print(f"Found {len(available_times)} available time slots for {date_str}")
+        
+        return jsonify({
+            'date': date_str,
+            'available_times': available_times,
+            'total_slots': len(available_times),
+            'counselors_available': len(counselor_ids)
+        }), 200
+    
+    except Exception as e:
+        print(f"Error getting available times for date: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @intake_bp.route('/available-slots', methods=['GET'])
 @jwt_required()
 def get_available_appointment_slots():

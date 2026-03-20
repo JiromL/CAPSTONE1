@@ -6,6 +6,7 @@ import { DashboardCalendar } from './Calendar';
 import { useState, useEffect } from 'react';
 import { fetchDashboardData, formatDate } from '@/utils/dashboard-api';
 import { api } from '@/utils/api';
+import { getMenuItemsByRole } from '@/utils/navigation';
 
 interface DashboardProps {
   user: any;
@@ -112,15 +113,13 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   }, []);
 
   // Build menu items conditionally
-  const baseMenuItems = [
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'My Tasks', href: '/tasks', id: 'tasks', badge: taskCount },
-    { label: 'Intake Form', href: '/intake', id: 'intake' },
-    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
-    ...(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student', id: 'check-ins-student' }] : []),
-    { label: 'Wellness Resources', href: '/resources', id: 'resources', badge: resourceCount },
-    { label: 'Profile', href: '/profile', id: 'profile' },
-  ];
+  const baseMenuItems = getMenuItemsByRole(user.role).map(item => {
+    if (item.id === 'tasks') return { ...item, badge: taskCount };
+    if (item.id === 'resources') return { ...item, badge: resourceCount };
+    return item;
+  })
+  .filter(item => !(isCheckInOnly && !['check-ins-student', 'profile', 'dashboard'].includes(item.id)) || item.id === 'check-ins-student')
+  .concat(isCheckInOnly ? [{ label: 'Check-In', href: '/check-ins-student', id: 'check-ins-student' }] : []);
 
   const menuItems = baseMenuItems;
 

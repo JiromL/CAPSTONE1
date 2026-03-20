@@ -44,9 +44,8 @@ def get_my_settings():
             'role': user.get('role'),
             'work_preferences': {
                 'default_session_duration': 50,  # Default 50 min sessions
-                'default_meeting_method': 'in-person',  # in-person, google-meet, zoom
-                'accepts_walk_ins': False,
-                'timezone': 'UTC'
+                'meeting_methods': ['in-person'],  # Can be: in-person, google-meet, zoom
+                'accepts_walk_ins': False
             },
             'notification_preferences': {
                 'email_on_new_request': True,
@@ -56,7 +55,7 @@ def get_my_settings():
             },
             'specialty_areas': [],
             'languages': ['English'],
-            'max_students_per_week': 0,  # 0 = unlimited
+            'max_students_per_day': 0,  # 0 = unlimited
             'bio': '',
             'tags': [],
             'created_at': None,
@@ -71,7 +70,7 @@ def get_my_settings():
         'notification_preferences': settings.get('notification_preferences', {}),
         'specialty_areas': settings.get('specialty_areas', []),
         'languages': settings.get('languages', ['English']),
-        'max_students_per_week': settings.get('max_students_per_week', 0),
+        'max_students_per_day': settings.get('max_students_per_day', 0),
         'bio': settings.get('bio', ''),
         'tags': settings.get('tags', []),
         'created_at': settings.get('created_at').isoformat() if settings.get('created_at') else None,
@@ -107,11 +106,19 @@ def update_my_settings():
     # Update work preferences if provided
     if 'work_preferences' in data:
         prefs = data['work_preferences']
+        meeting_methods = prefs.get('meeting_methods', ['in-person'])
+        # Ensure it's a list and contains valid methods
+        if isinstance(meeting_methods, str):
+            meeting_methods = [meeting_methods]
+        valid_methods = {'in-person', 'google-meet', 'zoom'}
+        meeting_methods = [m for m in meeting_methods if m in valid_methods]
+        if not meeting_methods:
+            meeting_methods = ['in-person']
+        
         update_data['work_preferences'] = {
             'default_session_duration': prefs.get('default_session_duration', 50),
-            'default_meeting_method': prefs.get('default_meeting_method', 'in-person'),
-            'accepts_walk_ins': prefs.get('accepts_walk_ins', False),
-            'timezone': prefs.get('timezone', 'UTC')
+            'meeting_methods': meeting_methods,  # Now supports multiple methods
+            'accepts_walk_ins': prefs.get('accepts_walk_ins', False)
         }
     
     # Update notification preferences if provided
@@ -131,8 +138,8 @@ def update_my_settings():
     if 'languages' in data:
         update_data['languages'] = data.get('languages', ['English'])
     
-    if 'max_students_per_week' in data:
-        update_data['max_students_per_week'] = int(data.get('max_students_per_week', 0))
+    if 'max_students_per_day' in data:
+        update_data['max_students_per_day'] = int(data.get('max_students_per_day', 0))
     
     if 'bio' in data:
         update_data['bio'] = data.get('bio', '')[:500]  # Max 500 chars
@@ -158,7 +165,7 @@ def update_my_settings():
             'notification_preferences': update_data.get('notification_preferences'),
             'specialty_areas': update_data.get('specialty_areas'),
             'languages': update_data.get('languages'),
-            'max_students_per_week': update_data.get('max_students_per_week'),
+            'max_students_per_day': update_data.get('max_students_per_day'),
             'bio': update_data.get('bio'),
             'tags': update_data.get('tags')
         }
@@ -229,7 +236,6 @@ def get_working_hours():
                 'saturday': {'start': '00:00', 'end': '00:00', 'enabled': False},
                 'sunday': {'start': '00:00', 'end': '00:00', 'enabled': False}
             },
-            'timezone': 'UTC',
             'is_default': True,
             'updated_at': None
         }), 200
@@ -237,7 +243,6 @@ def get_working_hours():
     return jsonify({
         'user_id': str(user_id_obj),
         'working_hours': working_hours.get('working_hours', {}),
-        'timezone': working_hours.get('timezone', 'UTC'),
         'is_default': False,
         'updated_at': working_hours.get('updated_at').isoformat() if working_hours.get('updated_at') else None
     }), 200
@@ -263,7 +268,6 @@ def update_working_hours():
         return jsonify({'error': 'Only staff can update this'}), 403
     
     working_hours = data.get('working_hours', {})
-    timezone = data.get('timezone', 'UTC')
     
     if not working_hours:
         return jsonify({'error': 'working_hours is required'}), 400
@@ -283,7 +287,6 @@ def update_working_hours():
     update_data = {
         'user_id': user_id_obj,
         'working_hours': working_hours,
-        'timezone': timezone,
         'updated_at': datetime.utcnow()
     }
     
@@ -299,8 +302,7 @@ def update_working_hours():
     return jsonify({
         'message': 'Working hours updated successfully',
         'user_id': str(user_id_obj),
-        'working_hours': working_hours,
-        'timezone': timezone
+        'working_hours': working_hours
     }), 200
 
 

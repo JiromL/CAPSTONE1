@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Calendar, Trash2, Plus, AlertCircle, CheckCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { getMenuItemsByRole } from '@/utils/navigation';
 
 interface CounselorAvailability {
   counselor_id: string;
@@ -206,13 +207,7 @@ export default function AdminAvailabilityPage() {
     return <div>Loading...</div>;
   }
 
-  const menuItems = [
-    { label: 'Dashboard', href: '/admin-dashboard', id: 'dashboard' },
-    { label: 'Users', href: '/admin/users', id: 'users' },
-    { label: 'Counselor Availability', href: '/availability', id: 'availability' },
-    { label: 'Cases', href: '/admin/cases', id: 'cases' },
-    { label: 'Settings', href: '/admin/settings', id: 'settings' },
-  ];
+  const menuItems = getMenuItemsByRole(user.role);
 
   return (
     <DashboardLayout

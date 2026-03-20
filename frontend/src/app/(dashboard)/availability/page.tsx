@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Plus, X, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { getMenuItemsByRole } from '@/utils/navigation';
 
-interface AvailabilitySlot {
-  slot_id: string;
-  slot_start: string;
-  slot_end: string;
-  is_available: boolean;
-  created_at: string;
+interface TimeSlot {
+  time: string; // "HH:MM" format
+  method: 'in-person' | 'online' | 'both'; // method for this time slot
 }
 
 interface User {
@@ -19,29 +17,61 @@ interface User {
   role: string;
 }
 
+interface WorkPreferences {
+  default_session_duration: number;
+  meeting_methods: ('in-person' | 'google-meet' | 'zoom')[];
+  accepts_walk_ins: boolean;
+  timezone: string;
+}
+
+const HOURS = Array.from({ length: 12 }, (_, i) => {
+  const hour = 7 + i; // 7 AM to 6 PM
+  return `${hour.toString().padStart(2, '0')}:00`;
+});
+
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_ABBREV = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Color mapping for methods
+const METHOD_COLORS = {
+  'in-person': { bg: 'bg-blue-100 dark:bg-blue-900/30', border: 'border-blue-300 dark:border-blue-700', text: 'text-blue-700 dark:text-blue-300' },
+  'online': { bg: 'bg-green-100 dark:bg-green-900/30', border: 'border-green-300 dark:border-green-700', text: 'text-green-700 dark:text-green-300' },
+  'both': { bg: 'bg-purple-100 dark:bg-purple-900/30', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-700 dark:text-purple-300' }
+};
+
+const METHOD_LABELS = {
+  'in-person': 'In-Person',
+  'online': 'Online',
+  'both': 'Both'
+};
+
+// Helper to format time for display
+const formatTimeForDisplay = (time: string): string => {
+  const [hours, minutes] = time.split(':');
+  let hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  if (hour > 12) hour -= 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${minutes} ${ampm}`;
+};
+
 export default function AvailabilityPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
+  const [selectedDay, setSelectedDay] = useState(1); // Monday
+  const [selectedMethod, setSelectedMethod] = useState<'in-person' | 'online' | 'both'>('in-person'); // method being selected
+  const [meetingMethods, setMeetingMethods] = useState<Array<'in-person' | 'google-meet' | 'zoom'>>(['in-person']); // staff's available methods
+  const [weeklyAvailability, setWeeklyAvailability] = useState<Record<number, TimeSlot[]>>({
+    0: [],
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: [],
+    6: [],
+  });
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState<'single' | 'recurring'>('single');
+  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
-  // Single slot form
-  const [singleSlot, setSingleSlot] = useState({
-    date: '',
-    startTime: '',
-    endTime: '',
-  });
-
-  // Recurring slots form
-  const [recurringSlots, setRecurringSlots] = useState({
-    startDate: '',
-    endDate: '',
-    startTime: '',
-    endTime: '',
-    daysOfWeek: [1, 3, 5], // Default: Mon, Wed, Fri
-  });
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -55,6 +85,7 @@ export default function AvailabilityPage() {
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
     fetchAvailability(token);
+    fetchMeetingMethods(token);
   }, []);
 
   const fetchAvailability = async (token: string) => {
@@ -68,9 +99,35 @@ export default function AvailabilityPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setSlots(data.slots || []);
+        const availability: Record<number, TimeSlot[]> = {
+          0: [],
+          1: [],
+          2: [],
+          3: [],
+          4: [],
+          5: [],
+          6: [],
+        };
+
+        // Convert slots to weekly format
+        (data.slots || []).forEach((slot: any) => {
+          const startDate = new Date(slot.slot_start);
+          const dayOfWeek = startDate.getDay();
+          const time = startDate.toTimeString().slice(0, 5); // "HH:MM"
+          const method = slot.meeting_method || 'in-person';
+          if (!availability[dayOfWeek].find(s => s.time === time && s.method === method)) {
+            availability[dayOfWeek].push({ time, method });
+          }
+        });
+
+        // Sort times
+        Object.keys(availability).forEach((day) => {
+          availability[parseInt(day)].sort((a, b) => a.time.localeCompare(b.time));
+        });
+
+        setWeeklyAvailability(availability);
       } else {
-        showToast('Failed to fetch availability slots', 'error');
+        showToast('Failed to fetch availability', 'error');
       }
     } catch (error) {
       console.error('Error fetching availability:', error);
@@ -80,162 +137,179 @@ export default function AvailabilityPage() {
     }
   };
 
+  const fetchMeetingMethods = async (token: string) => {
+    try {
+      const response = await fetch('http://localhost:5001/api/staff/settings/my-settings', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const methods = data.work_preferences?.meeting_methods || ['in-person'];
+        setMeetingMethods(methods);
+      }
+    } catch (error) {
+      console.error('Error fetching meeting methods:', error);
+    }
+  };
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleAddSingleSlot = async () => {
+  const addTimeSlot = (time: string) => {
+    setWeeklyAvailability((prev) => {
+      const daySlots = [...(prev[selectedDay] || [])];
+      // Check if this exact time+method combo already exists
+      const exists = daySlots.some(slot => slot.time === time && slot.method === selectedMethod);
+      if (!exists) {
+        daySlots.push({ time, method: selectedMethod });
+        daySlots.sort((a, b) => a.time.localeCompare(b.time));
+      }
+      return { ...prev, [selectedDay]: daySlots };
+    });
+  };
+
+  const removeTimeSlot = (time: string, method: 'in-person' | 'online' | 'both') => {
+    setWeeklyAvailability((prev) => ({
+      ...prev,
+      [selectedDay]: prev[selectedDay].filter((slot) => !(slot.time === time && slot.method === method)),
+    }));
+  };
+
+  const addAllTimesForDay = () => {
+    setWeeklyAvailability((prev) => {
+      const daySlots = [...(prev[selectedDay] || [])];
+      // Add all hours with the selected method, avoiding duplicates
+      HOURS.forEach((hour) => {
+        const exists = daySlots.some(slot => slot.time === hour && slot.method === selectedMethod);
+        if (!exists) {
+          daySlots.push({ time: hour, method: selectedMethod });
+        }
+      });
+      daySlots.sort((a, b) => a.time.localeCompare(b.time));
+      return { ...prev, [selectedDay]: daySlots };
+    });
+  };
+
+  const toggleMeetingMethod = (method: 'in-person' | 'google-meet' | 'zoom') => {
+    setMeetingMethods((prev: Array<'in-person' | 'google-meet' | 'zoom'>) => {
+      const updated = prev.includes(method) ? prev.filter((m: string) => m !== method) : [...prev, method];
+      // Ensure at least one method is selected
+      return updated.length === 0 ? ['in-person'] : updated;
+    });
+  };
+
+  const saveAvailability = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    if (!singleSlot.date || !singleSlot.startTime || !singleSlot.endTime) {
-      showToast('Please fill in all fields', 'error');
-      return;
-    }
-
-    const startDateTime = `${singleSlot.date}T${singleSlot.startTime}:00`;
-    const endDateTime = `${singleSlot.date}T${singleSlot.endTime}:00`;
-
+    setSaving(true);
     try {
+      // Convert weekly format to slots
+      const slots: Array<{ start: string; end: string; meeting_method: 'in-person' | 'online' | 'both' }> = [];
+      const baseDate = new Date();
+      baseDate.setDate(baseDate.getDate() - baseDate.getDay()); // Start of week (Sunday)
+
+      Object.entries(weeklyAvailability).forEach(([dayNum, timeSlots]) => {
+        const day = parseInt(dayNum);
+        timeSlots.forEach((timeSlot) => {
+          const slotDate = new Date(baseDate);
+          slotDate.setDate(slotDate.getDate() + day);
+          const [hours, minutes] = timeSlot.time.split(':');
+          slotDate.setHours(parseInt(hours), parseInt(minutes), 0);
+
+          const nextHour = new Date(slotDate);
+          nextHour.setHours(nextHour.getHours() + 1);
+
+          slots.push({
+            start: slotDate.toISOString(),
+            end: nextHour.toISOString(),
+            meeting_method: timeSlot.method,
+          });
+        });
+      });
+
+      if (slots.length === 0) {
+        showToast('Please add at least one time slot', 'error');
+        setSaving(false);
+        return;
+      }
+
+      // Delete all existing slots first
+      const existingResponse = await fetch('http://localhost:5001/api/availability/my-availability', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (existingResponse.ok) {
+        const data = await existingResponse.json();
+        for (const slot of data.slots || []) {
+          await fetch(`http://localhost:5001/api/availability/${slot.slot_id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+        }
+      }
+
+      // Create new slots
       const response = await fetch('http://localhost:5001/api/availability/set-availability', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          slots: [
-            {
-              start: startDateTime,
-              end: endDateTime,
-            },
-          ],
-        }),
+        body: JSON.stringify({ slots }),
       });
 
       if (response.ok) {
-        showToast('Availability slot added successfully', 'success');
-        setSingleSlot({ date: '', startTime: '', endTime: '' });
-        setShowForm(false);
-        fetchAvailability(token);
+        showToast(`Saved ${slots.length} availability slots successfully`, 'success');
       } else {
         const error = await response.json();
-        showToast(error.error || 'Failed to add slot', 'error');
+        showToast(error.error || 'Failed to save availability', 'error');
       }
-    } catch (error) {
-      console.error('Error adding slot:', error);
-      showToast('Error adding availability slot', 'error');
-    }
-  };
 
-  const handleAddRecurringSlots = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    if (!recurringSlots.startDate || !recurringSlots.endDate || !recurringSlots.startTime || !recurringSlots.endTime) {
-      showToast('Please fill in all fields', 'error');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:5001/api/availability/bulk-create', {
-        method: 'POST',
+      // Also save meeting methods preferences
+      await fetch('http://localhost:5001/api/staff/settings/my-settings', {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          start_date: recurringSlots.startDate,
-          end_date: recurringSlots.endDate,
-          slot_start_time: recurringSlots.startTime,
-          slot_end_time: recurringSlots.endTime,
-          days_of_week: recurringSlots.daysOfWeek,
+          work_preferences: {
+            meeting_methods: meetingMethods,
+          },
         }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast(`Created ${data.total_slots} availability slots successfully`, 'success');
-        setRecurringSlots({
-          startDate: '',
-          endDate: '',
-          startTime: '',
-          endTime: '',
-          daysOfWeek: [1, 3, 5],
-        });
-        setShowForm(false);
-        fetchAvailability(token);
-      } else {
-        const error = await response.json();
-        showToast(error.error || 'Failed to create slots', 'error');
-      }
     } catch (error) {
-      console.error('Error creating slots:', error);
-      showToast('Error creating availability slots', 'error');
+      console.error('Error saving availability:', error);
+      showToast('Error saving availability', 'error');
+    } finally {
+      setSaving(false);
     }
   };
-
-  const handleDeleteSlot = async (slotId: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    if (!confirm('Are you sure you want to delete this slot?')) return;
-
-    try {
-      const response = await fetch(`http://localhost:5001/api/availability/${slotId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        showToast('Slot deleted successfully', 'success');
-        fetchAvailability(token);
-      } else {
-        showToast('Failed to delete slot', 'error');
-      }
-    } catch (error) {
-      console.error('Error deleting slot:', error);
-      showToast('Error deleting slot', 'error');
-    }
-  };
-
-  const toggleDayOfWeek = (day: number) => {
-    setRecurringSlots((prev) => {
-      const daysOfWeek = prev.daysOfWeek;
-      if (daysOfWeek.includes(day)) {
-        return { ...prev, daysOfWeek: daysOfWeek.filter((d) => d !== day) };
-      } else {
-        return { ...prev, daysOfWeek: [...daysOfWeek, day].sort() };
-      }
-    });
-  };
-
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayShortNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   if (!user) {
     return <div>Loading...</div>;
   }
 
-  const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'Appointments', href: '/appointments', id: 'appointments' },
-    { label: 'Availability', href: '/availability', id: 'availability' },
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Referrals', href: '/referrals', id: 'referrals' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
-  ];
+  const menuItems = getMenuItemsByRole(user.role);
+  const currentDaySlots = weeklyAvailability[selectedDay] || [];
 
   return (
     <DashboardLayout
       user={user}
       onLogout={() => {
-        // Clear all caches before logout
         localStorage.removeItem('appointments_cache');
         localStorage.removeItem('cases_cache');
         localStorage.removeItem('assessments_cache');
@@ -245,8 +319,8 @@ export default function AvailabilityPage() {
         window.location.href = '/login';
       }}
       menuItems={menuItems}
-      title="Availability Management"
-      subtitle="Set your available time slots for appointments"
+      title="Availability Settings"
+      subtitle="Set your working hours for the week"
       activeSection="availability"
     >
       {/* Toast Notification */}
@@ -263,240 +337,168 @@ export default function AvailabilityPage() {
         </div>
       )}
 
-      {/* Main Content */}
       <div className="max-w-6xl mx-auto">
-        {/* Add Slot Button */}
-        <div className="mb-8">
-          {!showForm ? (
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
-            >
-              <Plus size={20} />
-              Add Availability
-            </button>
-          ) : null}
+        {/* Header */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Please Add the Availability for the Whole Week</h2>
+          <p className="text-gray-600 dark:text-gray-400">Select each day and add your available time slots</p>
         </div>
 
-        {/* Add Form */}
-        {showForm && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Add Availability</h3>
-
-            {/* Form Type Toggle */}
-            <div className="flex gap-4 mb-6">
-              <label className="flex items-center gap-2 cursor-pointer">
+        {/* Meeting Methods Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-6 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Meeting Methods</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Select all meeting methods you can conduct. These will be used for automatic appointment assignment.</p>
+          <div className="space-y-3">
+            {(['in-person', 'google-meet', 'zoom'] as const).map((method) => (
+              <label key={method} className="flex items-center gap-3 cursor-pointer">
                 <input
-                  type="radio"
-                  name="formType"
-                  value="single"
-                  checked={formType === 'single'}
-                  onChange={(e) => setFormType(e.target.value as 'single' | 'recurring')}
-                  className="w-4 h-4"
+                  type="checkbox"
+                  checked={meetingMethods.includes(method)}
+                  onChange={() => toggleMeetingMethod(method)}
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
                 />
-                <span className="text-gray-700 dark:text-gray-300">Single Slot</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">
+                  {method === 'google-meet' ? 'Google Meet' : method === 'zoom' ? 'Zoom' : 'In-Person'}
+                </span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="formType"
-                  value="recurring"
-                  checked={formType === 'recurring'}
-                  onChange={(e) => setFormType(e.target.value as 'single' | 'recurring')}
-                  className="w-4 h-4"
-                />
-                <span className="text-gray-700 dark:text-gray-300">Recurring</span>
-              </label>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            {/* Single Slot Form */}
-            {formType === 'single' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
-                  <input
-                    type="date"
-                    value={singleSlot.date}
-                    onChange={(e) => setSingleSlot({ ...singleSlot, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                  />
+        {/* Day Tabs */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+            {DAYS.map((day, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedDay(index)}
+                className={`flex-1 px-4 py-3 text-center border-b-2 transition font-medium ${
+                  selectedDay === index
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+
+          {/* Content Area */}
+          {!loading ? (
+            <div className="grid grid-cols-2 gap-8 p-8">
+              {/* Left Side: Available Times to Add */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Select Meeting Method & Times</h3>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Time</label>
-                    <input
-                      type="time"
-                      value={singleSlot.startTime}
-                      onChange={(e) => setSingleSlot({ ...singleSlot, startTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Time</label>
-                    <input
-                      type="time"
-                      value={singleSlot.endTime}
-                      onChange={(e) => setSingleSlot({ ...singleSlot, endTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddSingleSlot}
-                    className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
-                  >
-                    Add Slot
-                  </button>
-                  <button
-                    onClick={() => setShowForm(false)}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Recurring Slots Form */}
-            {formType === 'recurring' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
-                    <input
-                      type="date"
-                      value={recurringSlots.startDate}
-                      onChange={(e) => setRecurringSlots({ ...recurringSlots, startDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
-                    <input
-                      type="date"
-                      value={recurringSlots.endDate}
-                      onChange={(e) => setRecurringSlots({ ...recurringSlots, endDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Time</label>
-                    <input
-                      type="time"
-                      value={recurringSlots.startTime}
-                      onChange={(e) => setRecurringSlots({ ...recurringSlots, startTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Time</label>
-                    <input
-                      type="time"
-                      value={recurringSlots.endTime}
-                      onChange={(e) => setRecurringSlots({ ...recurringSlots, endTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Days of Week</label>
-                  <div className="flex flex-wrap gap-2">
-                    {dayNames.map((day, index) => (
+                {/* Method Selector */}
+                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">1. Choose Method</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {(['in-person', 'online', 'both'] as const).map((method) => (
                       <button
-                        key={index}
-                        onClick={() => toggleDayOfWeek(index)}
-                        className={`px-3 py-2 rounded-lg border transition ${
-                          recurringSlots.daysOfWeek.includes(index)
-                            ? 'bg-gray-900 dark:bg-gray-700 text-white border-gray-900 dark:border-gray-700'
-                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        key={method}
+                        onClick={() => setSelectedMethod(method)}
+                        className={`px-4 py-2 rounded-lg border-2 font-medium transition ${
+                          selectedMethod === method
+                            ? `${METHOD_COLORS[method].bg} ${METHOD_COLORS[method].border} ${METHOD_COLORS[method].text} border-current`
+                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                         }`}
                       >
-                        {dayShortNames[index]}
+                        {METHOD_LABELS[method]}
+                        {selectedMethod === method && <CheckCircle size={16} className="inline ml-2" />}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddRecurringSlots}
-                    className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
-                  >
-                    Create Recurring Slots
-                  </button>
-                  <button
-                    onClick={() => setShowForm(false)}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                  >
-                    Cancel
-                  </button>
+                {/* Time Selector */}
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">2. Select Times for {METHOD_LABELS[selectedMethod]}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HOURS.map((hour) => {
+                      const timeSlotExists = currentDaySlots.some(slot => slot.time === hour && slot.method === selectedMethod);
+                      return (
+                        <button
+                          key={hour}
+                          onClick={() => addTimeSlot(hour)}
+                          disabled={timeSlotExists}
+                          className={`px-3 py-2 rounded-lg border transition font-medium ${
+                            timeSlotExists
+                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
+                              : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-blue-50 dark:active:bg-blue-900/30'
+                          }`}
+                        >
+                          {formatTimeForDisplay(hour)} <Plus size={14} className="inline ml-1" />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                <button
+                  onClick={addAllTimesForDay}
+                  className="mt-4 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
+                >
+                  Add All Times for {METHOD_LABELS[selectedMethod]}
+                </button>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Availability Slots List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Your Availability Slots</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Total: {slots.length} slot{slots.length !== 1 ? 's' : ''}</p>
-          </div>
-
-          {slots.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <Calendar size={48} className="mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600 dark:text-gray-400 mb-4">No availability slots yet</p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
-              >
-                <Plus size={18} />
-                Add Your First Slot
-              </button>
+              {/* Right Side: Selected Times for This Day */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Availability for {DAYS[selectedDay]}</h3>
+                {currentDaySlots.length === 0 ? (
+                  <p className="text-gray-500 dark:text-gray-400 py-8">No times selected for {DAYS[selectedDay]}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Group by method for better organization */}
+                    {(['in-person', 'online', 'both'] as const).map((method) => {
+                      const slotsForMethod = currentDaySlots.filter(slot => slot.method === method);
+                      if (slotsForMethod.length === 0) return null;
+                      
+                      return (
+                        <div key={method}>
+                          <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">{METHOD_LABELS[method]}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {slotsForMethod.map((slot) => (
+                              <button
+                                key={`${slot.time}-${slot.method}`}
+                                onClick={() => removeTimeSlot(slot.time, slot.method)}
+                                className={`px-3 py-2 rounded-lg transition font-medium flex items-center gap-2 ${METHOD_COLORS[method].bg} ${METHOD_COLORS[method].text} border ${METHOD_COLORS[method].border} hover:opacity-80 cursor-pointer`}
+                              >
+                                {formatTimeForDisplay(slot.time)} <X size={14} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {slots.map((slot) => {
-                const startDate = new Date(slot.slot_start);
-                const endDate = new Date(slot.slot_end);
-                const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                const startTimeStr = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-                return (
-                  <div key={slot.slot_id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar size={16} className="text-gray-400" />
-                        <span className="font-medium text-gray-900 dark:text-gray-50">{dateStr}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                        <Clock size={16} />
-                        <span>
-                          {startTimeStr} - {endTimeStr}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteSlot(slot.slot_id)}
-                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                      title="Delete slot"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
           )}
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={saveAvailability}
+            disabled={saving}
+            className="px-6 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+          >
+            {saving ? 'Saving...' : 'Save Availability'}
+          </button>
+        </div>
+
+        {/* Summary */}
+        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-sm text-blue-900 dark:text-blue-300">
+            Total availability slots: {Object.values(weeklyAvailability).reduce((sum, slots) => sum + slots.length, 0)}
+          </p>
         </div>
       </div>
     </DashboardLayout>

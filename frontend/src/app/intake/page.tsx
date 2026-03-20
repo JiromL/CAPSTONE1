@@ -6,6 +6,7 @@ import { FileText, BookOpen, CheckCircle, Heart, AlertCircle } from 'lucide-reac
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { getMenuItemsByRole } from '@/utils/navigation';
 import { AppointmentConfirmation } from '@/components/AppointmentConfirmation';
 
 // Assessment questions - shown ONE AT A TIME - simple, direct format
@@ -177,6 +178,10 @@ export default function IntakePage() {
   const [minSelectableDate, setMinSelectableDate] = useState('');
   const [isCalculatingAppointment, setIsCalculatingAppointment] = useState(false);
   const [appointmentOverridden, setAppointmentOverridden] = useState(false);
+  
+  // Available times for custom date selection
+  const [availableTimes, setAvailableTimes] = useState<any[]>([]);
+  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -311,14 +316,7 @@ export default function IntakePage() {
     router.push('/login');
   };
 
-  const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
-    { label: 'Intake Form', href: '/intake', id: 'intake' },
-    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
-    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
-  ];
+  const menuItems = user ? getMenuItemsByRole(user.role) : [];
 
   // Determine which assessments to run based on selected concern
   const determineAssessments = () => {
@@ -582,6 +580,7 @@ export default function IntakePage() {
           setMinSelectableDate(minDateOnly);
           setAutoSuggestedDate(data.automatic_date_formatted);
           setAppointmentDate(automaticDateOnly); // Pre-fill with automatic date (YYYY-MM-DD)
+          setAppointmentTime(data.appointment_time || '10:00'); // Set the suggested time
           setAppointmentOverridden(false);
         } else {
           console.error('❌ Failed to calculate appointment:', response.status);
@@ -591,6 +590,48 @@ export default function IntakePage() {
       } finally {
         setIsCalculatingAppointment(false);
       }
+    }
+  };
+
+  // Fetch available times for a selected date
+  const fetchAvailableTimesForDate = async (date: string) => {
+    if (!date) {
+      setAvailableTimes([]);
+      return;
+    }
+    
+    setIsLoadingTimes(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      
+      const response = await fetch(api(`/api/intake/available-times-for-date?date=${date}`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Available times fetched:', data);
+        setAvailableTimes(data.available_times || []);
+        
+        // Auto-select first available time
+        if (data.available_times && data.available_times.length > 0) {
+          setAppointmentTime(data.available_times[0].time);
+        } else {
+          setAppointmentTime('');
+        }
+      } else {
+        console.error('❌ Failed to fetch available times:', response.status);
+        setAvailableTimes([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching available times:', error);
+      setAvailableTimes([]);
+    } finally {
+      setIsLoadingTimes(false);
     }
   };
 
@@ -630,18 +671,6 @@ export default function IntakePage() {
     if (!consentGiven) {
       alert('Please provide consent to proceed');
       return;
-    }
-
-    // Validate appointment date is not earlier than automatic date
-    if (automaticAppointmentInfo && appointmentDate) {
-      // Compare dates as strings (YYYY-MM-DD format) to avoid timezone issues
-      const selectedDateStr = appointmentDate.split('T')[0]; // Extract date part only
-      const automaticDateStr = automaticAppointmentInfo.automatic_date.split('T')[0];
-      
-      if (selectedDateStr < automaticDateStr) {
-        alert(`⚠️ Appointment date cannot be earlier than the automatically calculated date (${automaticAppointmentInfo.automatic_date_formatted}). Please select ${automaticAppointmentInfo.automatic_date_formatted} or later.`);
-        return;
-      }
     }
 
     setIsSubmitting(true);
@@ -1623,19 +1652,29 @@ export default function IntakePage() {
                 ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-600'
                 : 'border-gray-300'
             }`}>
-              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                {urgencyLevel === 'RED' ? '🔴 ' : urgencyLevel === 'YELLOW' ? '🟡 ' : '🟢 '}
-                Suggested Appointment
-              </p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {automaticAppointmentInfo.automatic_date_formatted}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    {urgencyLevel === 'RED' ? '🔴 ' : urgencyLevel === 'YELLOW' ? '🟡 ' : '🟢 '}
+                    {urgencyLevel === 'RED' || urgencyLevel === 'YELLOW' ? 'Recommended Appointment' : 'Suggested Appointment'}
+                  </p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {automaticAppointmentInfo.automatic_date_formatted}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAppointmentOverridden(!appointmentOverridden)}
+                  className="px-2 py-1 text-xs font-medium rounded bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 whitespace-nowrap transition-colors"
+                >
+                  {appointmentOverridden ? 'Use Recommended' : 'Choose Different'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 {urgencyLevel === 'RED' 
-                  ? 'High priority scheduling needed' 
+                  ? 'Earliest available - highest priority' 
                   : urgencyLevel === 'YELLOW'
-                  ? 'Scheduled based on availability'
-                  : 'Flexible scheduling available'}
+                  ? 'Earliest available - high priority'
+                  : 'Based on your assessment results - you can customize'}
               </p>
             </div>
           )}
@@ -1647,94 +1686,101 @@ export default function IntakePage() {
           )}
 
           <div className="space-y-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                Preferred Date
-              </label>
-              <input
-                type="date"
-                value={appointmentDate}
-                onChange={(e) => {
-                  const newDate = e.target.value;
-                  
-                  // For RED/YELLOW: enforce same-day only
-                  if ((urgencyLevel === 'RED' || urgencyLevel === 'YELLOW') && newDate !== minSelectableDate) {
-                    alert(`${urgencyLevel === 'RED' ? 'High-risk' : 'High-priority'} appointments must be scheduled for today (${minSelectableDate})`);
-                    return;
-                  }
-                  
-                  // For GREEN: enforce tomorrow onwards
-                  if (urgencyLevel === 'GREEN' && minSelectableDate && newDate < minSelectableDate) {
-                    alert(`Cannot select a date earlier than tomorrow`);
-                    return;
-                  }
-                  
-                  setAppointmentDate(newDate);
-                  setAppointmentOverridden(true);
-                }}
-                min={minSelectableDate}
-                max={
-                  (urgencyLevel === 'RED' || urgencyLevel === 'YELLOW')
-                    ? minSelectableDate // Same day only for RED/YELLOW
-                    : undefined // No max for GREEN
-                }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-              />
-              {minSelectableDate && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {urgencyLevel === 'RED' || urgencyLevel === 'YELLOW'
-                    ? `📅 Today: ${new Date(minSelectableDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                    : `📅 Earliest: ${new Date(minSelectableDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+            {/* Use Recommended Time (Default) */}
+            {!appointmentOverridden && automaticAppointmentInfo && (
+              <div className={`p-3 border rounded ${
+                urgencyLevel === 'RED'
+                  ? 'bg-red-50 border-red-200 dark:bg-red-900 dark:border-red-800'
+                  : urgencyLevel === 'YELLOW'
+                  ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900 dark:border-yellow-800'
+                  : 'bg-blue-50 border-blue-200 dark:bg-blue-900 dark:border-blue-800'
+              }`}>
+                <p className={`text-sm font-medium mb-2 ${
+                  urgencyLevel === 'RED'
+                    ? 'text-red-900 dark:text-red-100'
+                    : urgencyLevel === 'YELLOW'
+                    ? 'text-yellow-900 dark:text-yellow-100'
+                    : 'text-blue-900 dark:text-blue-100'
+                }`}>
+                  ✓ {urgencyLevel === 'RED' || urgencyLevel === 'YELLOW' ? 'Using Recommended' : 'Using Suggested'} Appointment
                 </p>
-              )}
-            </div>
-
-            {(urgencyLevel === 'RED' || urgencyLevel === 'YELLOW') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  {urgencyLevel === 'RED' ? '🔴 Recommended 30-min Time Slot' : '🟡 Recommended Time Slot'}
-                </label>
-                <select
-                  value={selectedTimeSlot}
-                  onChange={(e) => {
-                    setSelectedTimeSlot(e.target.value);
-                    setAppointmentTime(e.target.value);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="">Select a time...</option>
-                  {availableTimeSlots.map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {urgencyLevel === 'RED' 
-                    ? 'Recommended slots from intake counselor availability' 
-                    : 'Available times based on counselor schedule'}
+                <p className={`text-sm ${
+                  urgencyLevel === 'RED'
+                    ? 'text-red-800 dark:text-red-200'
+                    : urgencyLevel === 'YELLOW'
+                    ? 'text-yellow-800 dark:text-yellow-200'
+                    : 'text-blue-800 dark:text-blue-200'
+                }`}>
+                  📅 <strong>{automaticAppointmentInfo.automatic_date_formatted}</strong> at <strong>{automaticAppointmentInfo.appointment_time}</strong>
                 </p>
               </div>
             )}
 
-            {urgencyLevel === 'GREEN' && (
+            {/* Custom Date/Time Selection (When Overridden) */}
+            {appointmentOverridden && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Your Preferred Date
+                  </label>
+                  <input
+                    type="date"
+                    value={appointmentDate}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      setAppointmentDate(newDate);
+                      // Fetch available times for this date
+                      fetchAvailableTimesForDate(newDate);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    📅 Available times will be shown based on counselor availability
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Time Selection - Shown when date is selected */}
+            {appointmentOverridden && appointmentDate && (
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Preferred Time</label>
-                <select
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="">Select a time...</option>
-                  <option value="9:00">9:00 AM</option>
-                  <option value="10:00">10:00 AM</option>
-                  <option value="11:00">11:00 AM</option>
-                  <option value="1:00">1:00 PM</option>
-                  <option value="2:00">2:00 PM</option>
-                  <option value="3:00">3:00 PM</option>
-                  <option value="4:00">4:00 PM</option>
-                </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Schedule for next day or onwards at your convenience
-                </p>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Available Time Slots
+                </label>
+                {isLoadingTimes ? (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded text-center">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">Loading available times...</p>
+                  </div>
+                ) : availableTimes.length > 0 ? (
+                  <div className="space-y-2">
+                    {availableTimes.map(timeSlot => (
+                      <label key={timeSlot.datetime} className={`flex items-center p-3 border rounded cursor-pointer transition-colors ${
+                        appointmentTime === timeSlot.time
+                          ? 'bg-blue-50 border-blue-400 dark:bg-blue-900 dark:border-blue-600'
+                          : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-750'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="time"
+                          value={timeSlot.time}
+                          checked={appointmentTime === timeSlot.time}
+                          onChange={(e) => setAppointmentTime(e.target.value)}
+                          className="mr-3 w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-900 dark:text-white">{timeSlot.time}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">({timeSlot.counselor_availability_text})</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded">
+                    <p className="text-sm text-yellow-900 dark:text-yellow-100">
+                      No available times for this date. Please select another date.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1785,7 +1831,7 @@ export default function IntakePage() {
               </button>
               <button
                 onClick={() => setStep('review')}
-                disabled={!appointmentDate || !consentGiven}
+                disabled={!appointmentDate || !appointmentTime || !consentGiven}
                 className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
               >
                 Review & Submit

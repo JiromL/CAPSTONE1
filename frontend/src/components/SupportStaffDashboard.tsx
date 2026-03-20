@@ -11,14 +11,7 @@ interface DashboardProps {
 }
 
 export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
-  const menuItems = [
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
-    { label: 'Intake Form', href: '/intake', id: 'intake' },
-    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
-    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
-  ];
+  const menuItems = getMenuItemsByRole(user.role);
 
   return (
     <DashboardLayout

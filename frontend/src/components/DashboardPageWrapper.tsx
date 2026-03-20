@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Calendar, FileText, CheckCircle, AlertCircle, BookOpen, Heart, MessageCircle, Users, Brain, Shield, TrendingUp } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { getMenuItemsByRole, getActiveSectionFromPath } from '@/utils/navigation';
 
 interface DashboardPageWrapperProps {
   children: React.ReactNode;
@@ -39,44 +40,12 @@ export function DashboardPageWrapper({ children, title, subtitle }: DashboardPag
 
   // Get menu items based on user role
   const getMenuItems = (role: string) => {
-    // Standard menu items for all roles
-    const standardItems = [
-      { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-      { label: 'My Tasks', href: '/tasks', id: 'tasks' },
-      { label: 'Intake Form', href: '/intake', id: 'intake' },
-      { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
-      { label: 'Wellness Resources', href: '/resources', id: 'resources' },
-      { label: 'Profile', href: '/profile', id: 'profile' },
-    ];
-
-    return standardItems;
+    return getMenuItemsByRole(role);
   };
 
   // Determine active section from pathname
   const getActiveSection = (pathname: string) => {
-    const segments = pathname.split('/').filter(Boolean);
-    if (segments.length === 0) return 'dashboard';
-    
-    const lastSegment = segments[segments.length - 1];
-    
-    // Map route segments to menu item IDs
-    const routeMap: { [key: string]: string } = {
-      'appointments': 'appointments',
-      'availability': 'availability',
-      'cases': 'cases',
-      'assessments': 'assessments',
-      'referrals': 'referrals',
-      'documentation': 'documentation',
-      'profile': 'profile',
-      'tasks': 'tasks',
-      'intake': 'intake',
-      'resources': 'resources',
-      'high-risk': 'high-risk',
-      'users': 'users',
-      'dashboard': 'dashboard',
-    };
-    
-    return routeMap[lastSegment] || 'dashboard';
+    return getActiveSectionFromPath(pathname);
   };
 
   if (!user) {

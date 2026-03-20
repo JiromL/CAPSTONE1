@@ -51,10 +51,11 @@ def get_counselor_workload(counselor_id):
         return float('inf')  # Return high number if error
 
 
-def find_available_counselor(case_id, requested_start, requested_end):
+def find_available_counselor(case_id, requested_start, requested_end, preferred_method=None):
     """
     Find an available counselor for the requested time slot
     Uses load balancing - assigns to counselor with fewest appointments
+    Optionally filters by meeting method preference
     """
     try:
         # Get the case to find the assigned counselor (if any)
@@ -81,6 +82,16 @@ def find_available_counselor(case_id, requested_start, requested_end):
             if has_conflicting_appointment(counselor['_id'], requested_start, requested_end):
                 continue
             
+            # Check if meeting method is supported (if specified)
+            if preferred_method:
+                settings = db.db.staff_settings.find_one({'user_id': counselor['_id']})
+                meeting_methods = settings.get('work_preferences', {}).get('meeting_methods', ['in-person']) if settings else ['in-person']
+                # Normalize method names
+                if isinstance(meeting_methods, str):
+                    meeting_methods = [meeting_methods]
+                if preferred_method not in meeting_methods:
+                    continue  # Skip if method not supported
+            
             # Get workload
             workload = get_counselor_workload(counselor['_id'])
             
@@ -98,6 +109,7 @@ def find_available_counselor(case_id, requested_start, requested_end):
 def auto_assign_appointment(appointment_id):
     """
     Auto-assign an appointment to an available counselor and schedule it
+    Matches based on time availability and meeting method preference
     Returns: (success: bool, counselor_id: str or None, message: str)
     """
     try:
@@ -111,15 +123,21 @@ def auto_assign_appointment(appointment_id):
         if appointment.get('counselor_id'):
             return False, None, "Appointment already assigned"
         
-        # Find available counselor
+        # Get the preferred meeting method from the appointment
+        preferred_method = appointment.get('preferred_method')
+        if not preferred_method:
+            preferred_method = 'in-person'  # Default to in-person
+        
+        # Find available counselor that supports the preferred method
         counselor = find_available_counselor(
             appointment['case_id'],
             appointment['requested_start'],
-            appointment['requested_end']
+            appointment['requested_end'],
+            preferred_method  # Pass method preference
         )
         
         if not counselor:
-            return False, None, "No available counselors for requested time"
+            return False, None, f"No available counselors for requested time and method: {preferred_method}"
         
         # Assign and schedule the appointment
         db.db.appointments.update_one(
@@ -154,7 +172,8 @@ def auto_assign_appointment(appointment_id):
             new_values={
                 'counselor_id': str(counselor['_id']),
                 'counselor_name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}",
-                'status': AppointmentStatus.MATCHED.value
+                'status': AppointmentStatus.MATCHED.value,
+                'method_matched': preferred_method
             }
         )
         

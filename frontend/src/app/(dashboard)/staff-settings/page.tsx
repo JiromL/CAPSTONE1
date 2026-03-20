@@ -1,15 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, ArrowLeft, Clock, Bell, User, BookOpen, Languages, FileText, Tag } from 'lucide-react';
+import { Save, ArrowLeft, Clock, Bell, User, BookOpen, Languages, FileText, Tag, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 interface WorkPreferences {
   default_session_duration: number;
-  default_meeting_method: 'in-person' | 'google-meet' | 'zoom';
+  meeting_methods: ('in-person' | 'google-meet' | 'zoom')[];
   accepts_walk_ins: boolean;
-  timezone: string;
 }
 
 interface NotificationPreferences {
@@ -27,7 +26,7 @@ interface StaffSettings {
   notification_preferences: NotificationPreferences;
   specialty_areas: string[];
   languages: string[];
-  max_students_per_week: number;
+  max_students_per_day: number;
   bio: string;
   tags: string[];
 }
@@ -38,7 +37,7 @@ export default function StaffSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [specialtyOptions, setSpecialtyOptions] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'work' | 'notifications' | 'profile'>('work');
+  const [activeTab, setActiveTab] = useState<'work' | 'availability' | 'notifications' | 'profile'>('work');
 
   useEffect(() => {
     loadSettings();
@@ -139,6 +138,24 @@ export default function StaffSettingsPage() {
     setSettings({ ...settings, languages: updated });
   };
 
+  const handleMeetingMethodToggle = (method: 'in-person' | 'google-meet' | 'zoom') => {
+    if (!settings) return;
+    const updated = settings.work_preferences.meeting_methods.includes(method)
+      ? settings.work_preferences.meeting_methods.filter(m => m !== method)
+      : [...settings.work_preferences.meeting_methods, method];
+    // Ensure at least one method is selected
+    if (updated.length === 0) {
+      updated.push('in-person');
+    }
+    setSettings({
+      ...settings,
+      work_preferences: {
+        ...settings.work_preferences,
+        meeting_methods: updated,
+      },
+    });
+  };
+
   const handleSaveSettings = async () => {
     if (!settings) return;
 
@@ -156,7 +173,7 @@ export default function StaffSettingsPage() {
           notification_preferences: settings.notification_preferences,
           specialty_areas: settings.specialty_areas,
           languages: settings.languages,
-          max_students_per_week: settings.max_students_per_week,
+          max_students_per_day: settings.max_students_per_day,
           bio: settings.bio,
           tags: settings.tags,
         }),
@@ -231,6 +248,17 @@ export default function StaffSettingsPage() {
             Work Preferences
           </button>
           <button
+            onClick={() => setActiveTab('availability')}
+            className={`px-4 py-3 font-medium border-b-2 transition ${
+              activeTab === 'availability'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Calendar className="inline-block w-4 h-4 mr-2" />
+            Availability
+          </button>
+          <button
             onClick={() => setActiveTab('notifications')}
             className={`px-4 py-3 font-medium border-b-2 transition ${
               activeTab === 'notifications'
@@ -280,24 +308,23 @@ export default function StaffSettingsPage() {
 
               {/* Meeting Method */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Default Meeting Method
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Meeting Methods (Select all that apply)
                 </label>
                 <div className="space-y-2">
                   {(['in-person', 'google-meet', 'zoom'] as const).map((method) => (
                     <label key={method} className="flex items-center gap-3 cursor-pointer">
                       <input
-                        type="radio"
-                        name="meeting_method"
-                        value={method}
-                        checked={settings.work_preferences.default_meeting_method === method}
-                        onChange={(e) => handleWorkPreferenceChange('default_meeting_method', e.target.value)}
-                        className="w-4 h-4"
+                        type="checkbox"
+                        checked={settings.work_preferences.meeting_methods.includes(method)}
+                        onChange={() => handleMeetingMethodToggle(method)}
+                        className="w-4 h-4 rounded border-gray-300"
                       />
-                      <span className="text-gray-700 capitalize">{method.replace('-', ' ')}</span>
+                      <span className="text-gray-700 capitalize">{method === 'google-meet' ? 'Google Meet' : method === 'zoom' ? 'Zoom' : 'In-Person'}</span>
                     </label>
                   ))}
                 </div>
+                <p className="text-xs text-gray-500 mt-2">Selected methods will be used for automatic appointment assignment</p>
               </div>
 
               {/* Walk-ins */}
@@ -313,19 +340,7 @@ export default function StaffSettingsPage() {
                 </label>
               </div>
 
-              {/* Timezone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Timezone
-                </label>
-                <input
-                  type="text"
-                  value={settings.work_preferences.timezone}
-                  onChange={(e) => handleWorkPreferenceChange('timezone', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="UTC, EST, PST, etc."
-                />
-              </div>
+
             </div>
 
             {/* Capacity */}
@@ -333,13 +348,13 @@ export default function StaffSettingsPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Capacity</h3>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Students Per Week (0 = unlimited)
+                  Max Students Per Day (0 = unlimited)
                 </label>
                 <input
                   type="number"
                   min="0"
-                  value={settings.max_students_per_week}
-                  onChange={(e) => setSettings({ ...settings, max_students_per_week: parseInt(e.target.value) || 0 })}
+                  value={settings.max_students_per_day}
+                  onChange={(e) => setSettings({ ...settings, max_students_per_day: parseInt(e.target.value) || 0 })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -403,6 +418,35 @@ export default function StaffSettingsPage() {
                   <p className="text-sm text-gray-600">Receive text reminders for upcoming appointments (requires phone number)</p>
                 </div>
               </label>
+            </div>
+          </div>
+        )}
+
+        {/* Availability Tab */}
+        {activeTab === 'availability' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 border border-gray-200 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Set Your Availability
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">Define your working hours and available meeting times for each day of the week.</p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-900">
+                  📌 <strong>Note:</strong> Set your weekly availability to let students know when you can meet for appointments. This helps with automatic scheduling and reduces conflicts.
+                </p>
+              </div>
+
+              <Link href="/availability">
+                <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                  Configure Weekly Availability
+                </button>
+              </Link>
+              
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                You can also manage specific availability slots from this settings page in the future.
+              </p>
             </div>
           </div>
         )}

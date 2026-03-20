@@ -45,6 +45,7 @@ from blueprints.google_calendar import calendar_bp
 from blueprints.mhbot_integration import mhbot_bp
 from blueprints.engagement import engagement_bp
 from blueprints.appointments_enhancements import appointments_enh_bp
+from blueprints.appointments_dashboard import appointments_dashboard_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -108,6 +109,7 @@ def create_app(config_name=None):
     app.register_blueprint(mhbot_bp)
     app.register_blueprint(engagement_bp)
     app.register_blueprint(appointments_enh_bp)
+    app.register_blueprint(appointments_dashboard_bp)
     app.register_blueprint(client_tracking_bp)
     
     # Health check route

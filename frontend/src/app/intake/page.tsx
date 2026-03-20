@@ -122,7 +122,7 @@ const RESPONSE_SCALE = [
 
 export default function IntakePage() {
   const router = useRouter();
-  const [step, setStep] = useState<'terms' | 'personal_info' | 'distress_level' | 'concern' | 'screening_selection' | 'screening' | 'appointment' | 'review' | 'complete'>('terms');
+  const [step, setStep] = useState<'terms' | 'personal_info' | 'distress_level' | 'concern' | 'urgency' | 'crisis' | 'screening_selection' | 'screening' | 'appointment' | 'review' | 'complete'>('terms');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasDraft, setHasDraft] = useState(false);
@@ -335,6 +335,22 @@ export default function IntakePage() {
     return 'next_week'; // Low - next week
   };
 
+  // Calculate urgency level (RED, YELLOW, GREEN) based on assessment scores
+  const calculateUrgencyLevel = (scores: {[key: string]: number}): string => {
+    // RED: PHQ-9 > 20 OR GAD-7 > 15 OR PSS > 30
+    if ((scores.phq9 && scores.phq9 > 20) || (scores.gad7 && scores.gad7 > 15) || (scores.pss && scores.pss > 30)) {
+      return 'RED';
+    }
+    
+    // YELLOW: PHQ-9 > 15 OR GAD-7 > 12 OR PSS > 20
+    if ((scores.phq9 && scores.phq9 > 15) || (scores.gad7 && scores.gad7 > 12) || (scores.pss && scores.pss > 20)) {
+      return 'YELLOW';
+    }
+    
+    // GREEN: Below all thresholds
+    return 'GREEN';
+  };
+
   // Handle distress level selection
   const handleDistressLevel = (inDistress: boolean) => {
     setIsInDistress(inDistress);
@@ -479,6 +495,14 @@ export default function IntakePage() {
       scores[assessment] = score;
     });
     setAssessmentScores(scores);
+    
+    // Calculate urgency level based on thresholds
+    const urgencyLevel = calculateUrgencyLevel(scores);
+    console.log('🎯 Calculated Urgency Level:', urgencyLevel, 'from scores:', scores);
+    
+    // Set urgency to true if RED, false otherwise
+    const isUrgent = urgencyLevel === 'RED';
+    setIsUrgent(isUrgent);
     
     // Calculate auto-suggested appointment date based on scores
     const suggestedDateWindow = calculateAutoSuggestedDate(scores);
@@ -1341,7 +1365,7 @@ export default function IntakePage() {
                   value={personalInfo.id_number}
                   onChange={handlePersonalInfoChange}
                   placeholder="11234567"
-                  maxLength="8"
+                  maxLength={8}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Must be 8 digits (e.g., 11234567)</p>
@@ -1745,6 +1769,65 @@ export default function IntakePage() {
               </div>
             )}
           </div>
+
+          {/* Assessment Scores & Urgency Level */}
+          {Object.keys(assessmentScores).length > 0 && (
+            <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Assessment Results</h3>
+              
+              {/* Scores */}
+              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded space-y-2">
+                {assessmentScores.phq9 !== undefined && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">PHQ-9 Score</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{assessmentScores.phq9} <span className="text-gray-500">(Max: 27)</span></span>
+                  </div>
+                )}
+                {assessmentScores.gad7 !== undefined && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">GAD-7 Score</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{assessmentScores.gad7} <span className="text-gray-500">(Max: 21)</span></span>
+                  </div>
+                )}
+                {assessmentScores.pss !== undefined && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">PSS Score</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{assessmentScores.pss} <span className="text-gray-500">(Max: 40)</span></span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Urgency Level */}
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600 dark:text-gray-400 text-sm">Risk Level:</span>
+                <div className={`px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 ${
+                  calculateUrgencyLevel(assessmentScores) === 'RED' 
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    : calculateUrgencyLevel(assessmentScores) === 'YELLOW'
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                }`}>
+                  {calculateUrgencyLevel(assessmentScores) === 'RED' && '🔴'}
+                  {calculateUrgencyLevel(assessmentScores) === 'YELLOW' && '🟡'}
+                  {calculateUrgencyLevel(assessmentScores) === 'GREEN' && '🟢'}
+                  {calculateUrgencyLevel(assessmentScores)}
+                </div>
+              </div>
+              
+              {/* Risk Guidance */}
+              <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-gray-700 dark:text-gray-300">
+                {calculateUrgencyLevel(assessmentScores) === 'RED' && (
+                  '🔴 RED: Requires urgent attention. Appointment within 30 minutes.'
+                )}
+                {calculateUrgencyLevel(assessmentScores) === 'YELLOW' && (
+                  '🟡 YELLOW: High priority. Appointment within same day or next day.'
+                )}
+                {calculateUrgencyLevel(assessmentScores) === 'GREEN' && (
+                  '🟢 GREEN: Standard priority. Appointment can be scheduled for next day or later.'
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Appointment Details */}
           <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">

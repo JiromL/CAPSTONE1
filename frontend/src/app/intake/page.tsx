@@ -691,6 +691,47 @@ export default function IntakePage() {
 
   // Submit intake
   const handleSubmitIntake = async () => {
+    // Refresh appointment check before submission
+    // This catches the edge case where user booked in another tab
+    console.log('🔄 Refreshing active appointment check before submission...');
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      if (token) {
+        const response = await fetch(api('/api/appointments/active'), {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.has_active_appointment) {
+            let appointmentTimeStr = 'Unknown';
+            if (data.appointment_time) {
+              appointmentTimeStr = new Date(data.appointment_time).toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            }
+            const errorMsg = `You already have an active appointment scheduled for ${appointmentTimeStr}. Please complete or cancel your existing appointment before booking a new one.`;
+            alert('⚠️ ' + errorMsg);
+            console.warn('⚠️ Active appointment found during submission attempt:', errorMsg);
+            setActiveAppointmentError({
+              hasError: true,
+              message: errorMsg,
+              appointmentTime: appointmentTimeStr
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('⚠️ Error refreshing appointment check:', error);
+      // Don't block submission on check error, continue
+    }
+
     // Validate required fields
     if (!selectedConcern) {
       alert('❌ Please select your primary concern');
@@ -795,6 +836,14 @@ export default function IntakePage() {
             message: message,
             appointmentTime: errorData.existing_appointment_status
           });
+          alert('⚠️ ' + message);
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Handle 400 Bad Request - includes past date validation
+        if (response.status === 400) {
+          const message = errorData.error || 'Invalid request. Please check your information and try again.';
           alert('⚠️ ' + message);
           setIsSubmitting(false);
           return;
@@ -1955,143 +2004,175 @@ export default function IntakePage() {
         title="Intake Form"
         subtitle="Campus Counseling Services"
       >
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 8 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Review Your Information</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Please verify all details before submitting</p>
-          </div>
-
-          {/* Info: PDF Export Available After Submission */}
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600 rounded">
-            <p className="text-sm text-green-900 dark:text-green-200">
-              <span className="font-semibold">📄 After submission:</span> You'll receive an official appointment confirmation document that you can print or download as PDF
-            </p>
-          </div>
-
-          {/* Personal Information */}
-          <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Personal Information</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">First Name</p>
-                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.first_name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Last Name</p>
-                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.last_name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Birthday</p>
-                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.birthday || '-'}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Gender</p>
-                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.gender || '-'}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">ID Number</p>
-                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.id_number || '-'}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Contact Number</p>
-                <p className="text-gray-900 dark:text-white font-medium">{personalInfo.contact_number || '-'}</p>
-              </div>
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            {/* Header */}
+            <div className="bg-emerald-700 dark:bg-emerald-800 text-white p-6 mb-6">
+              <h1 className="text-3xl font-bold mb-2">Intake Assessment Form</h1>
+              <p className="text-emerald-50">Please review all information carefully before submitting</p>
             </div>
-          </div>
 
-          {/* Concern & Assessments */}
-          <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Your Concern</h3>
-            <div className="text-sm mb-4">
-              <p className="text-gray-600 dark:text-gray-400">Primary Concern</p>
-              {!selectedConcern ? (
-                <p className="text-red-600 dark:text-red-400 font-medium">⚠️ Required: Please select a concern</p>
-              ) : (
-                <p className="text-gray-900 dark:text-white font-medium">{CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern}</p>
-              )}
-            </div>
-            {selectedAssessments.length > 0 && (
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">Assessments Completed</p>
-                <div className="space-y-1">
-                  {selectedAssessments.map(assessment => (
-                    <div key={assessment} className="text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                      <span className="text-green-600 dark:text-green-400">✓</span>
-                      {ASSESSMENTS[assessment as keyof typeof ASSESSMENTS]?.name || assessment}
+            <div className="px-8 pb-8">
+              {/* Info: PDF Export Available After Submission */}
+              <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded">
+                <p className="text-sm text-green-900 dark:text-green-200">
+                  <span className="font-semibold">📄 After submission:</span> You'll receive an official confirmation document that you can print or download as PDF, and a confirmation email will be sent to you.
+                </p>
+              </div>
+
+              {/* Personal Information */}
+              <div className="mb-8">
+                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <h2 className="font-bold text-lg">PERSONAL INFORMATION</h2>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded">
+                  <div className="grid grid-cols-2 gap-0">
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">First Name</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.first_name || '-'}</p>
                     </div>
-                  ))}
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Last Name</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.last_name || '-'}</p>
+                    </div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Birthday</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.birthday || '-'}</p>
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Gender</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.gender || '-'}</p>
+                    </div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">ID Number</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.id_number || '-'}</p>
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Contact Number</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.contact_number || '-'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Appointment Details */}
-          <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Appointment Details</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Scheduled Date</p>
-                {!appointmentDate ? (
-                  <p className="text-red-600 dark:text-red-400 font-medium">⚠️ Required: Please select a date</p>
-                ) : (
-                  <p className="text-gray-900 dark:text-white font-medium">{new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                )}
+              {/* Appointment Details */}
+              <div className="mb-8">
+                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <h2 className="font-bold text-lg">APPOINTMENT DETAILS</h2>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded">
+                  <div className="grid grid-cols-2 gap-0">
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Scheduled Date</p>
+                      {!appointmentDate ? (
+                        <p className="text-red-600 dark:text-red-400 font-medium">Required: Select a date</p>
+                      ) : (
+                        <p className="text-gray-900 dark:text-gray-50 font-medium">{new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      )}
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Time</p>
+                      {!appointmentTime ? (
+                        <p className="text-red-600 dark:text-red-400 font-medium">Required: Select a time</p>
+                      ) : (
+                        <p className="text-gray-900 dark:text-gray-50 font-medium">{appointmentTime}</p>
+                      )}
+                    </div>
+                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Communication Method</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium capitalize">{communicationMethod.replace('_', ' ')}</p>
+                    </div>
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Concern</p>
+                      <p className="text-gray-900 dark:text-gray-50 font-medium">{selectedConcern ? (CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern) : '-'}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Appointment Time</p>
-                {!appointmentTime ? (
-                  <p className="text-red-600 dark:text-red-400 font-medium">⚠️ Required: Please select a time</p>
-                ) : (
-                  <p className="text-gray-900 dark:text-white font-medium">{appointmentTime}</p>
-                )}
+
+              {/* Assessments */}
+              {selectedAssessments.length > 0 && (
+                <div className="mb-8">
+                  <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                    <h2 className="font-bold text-lg">SCREENING ASSESSMENTS COMPLETED</h2>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-gray-50 dark:bg-gray-800">
+                    <div className="space-y-2">
+                      {selectedAssessments.map(assessment => (
+                        <div key={assessment} className="flex items-center gap-2 text-gray-900 dark:text-gray-50">
+                          <span className="text-green-600 dark:text-green-400">✓</span>
+                          {ASSESSMENTS[assessment as keyof typeof ASSESSMENTS]?.name || assessment}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Important Notes */}
+              <div className="mb-8">
+                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <h2 className="font-bold text-lg">IMPORTANT NOTES</h2>
+                </div>
+                <ul className="space-y-2 text-gray-700 dark:text-gray-300 list-none">
+                  <li>• All information provided must be accurate and complete</li>
+                  <li>• You will receive a confirmation email with appointment details and PDF document</li>
+                  <li>• Contact support at least 24 hours before for rescheduling requests</li>
+                  <li>• I agree to the terms and conditions stated in this intake form</li>
+                </ul>
               </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Communication Method</p>
-                <p className="text-gray-900 dark:text-white font-medium capitalize">{communicationMethod.replace('_', ' ')}</p>
+
+              {/* Verification Checkbox */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-8">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consentGiven}
+                    onChange={(e) => setConsentGiven(e.target.checked)}
+                    className="w-5 h-5 mt-1 rounded"
+                  />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-50">I verify that all information is correct</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">I confirm all details are accurate and agree to proceed with this intake submission. <span className="text-red-500 font-semibold">*</span></p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleSubmitIntake}
+                  disabled={!consentGiven || isSubmitting}
+                  className={`flex-1 px-6 py-3 rounded font-bold transition ${
+                    !consentGiven || isSubmitting
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                  }`}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Intake'}
+                </button>
+                <button
+                  type="button"
+                  onClick={saveDraft}
+                  disabled={isSubmitting}
+                  className={`px-6 py-3 rounded font-bold transition ${
+                    isSubmitting
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white'
+                  }`}
+                >
+                  Save for Later
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep('appointment')}
+                  disabled={isSubmitting}
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-bold"
+                >
+                  Back
+                </button>
               </div>
             </div>
-          </div>
-
-          {/* Consent */}
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consentGiven}
-                onChange={(e) => setConsentGiven(e.target.checked)}
-                className="w-5 h-5 mt-1 rounded"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                <span className="font-medium block mb-1">I verify that the information above is correct</span>
-                I confirm all details are accurate and agree to proceed with this intake submission.
-                <span className="text-red-500 font-semibold"> *</span>
-              </span>
-            </label>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex gap-3">
-            <button
-              onClick={() => setStep('appointment')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
-            >
-              Back to Edit
-            </button>
-            <button
-              onClick={saveDraft}
-              className="flex-1 px-4 py-2 border border-blue-300 text-blue-700 font-medium rounded hover:bg-blue-50 transition-colors dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20"
-            >
-              💾 Save as Draft
-            </button>
-            <button
-              onClick={handleSubmitIntake}
-              disabled={!consentGiven || isSubmitting}
-              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-green-700 dark:hover:bg-green-600"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Intake'}
-            </button>
           </div>
         </div>
       </DashboardLayout>

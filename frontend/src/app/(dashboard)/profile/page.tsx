@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, Edit2, Save, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -13,16 +13,16 @@ export default function ProfilePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@university.edu',
-    phone: '(555) 123-4567',
-    studentId: 'STU-2024-001',
-    major: 'Computer Science',
-    year: 'Junior',
-    enrollmentDate: '2022-08-15',
-    emergencyContact: 'Jane Doe',
-    emergencyPhone: '(555) 987-6543',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    studentId: '',
+    course: '',
+    major: '',
+    year: '',
+    emergencyContact: '',
+    emergencyPhone: '',
   });
 
   const [formData, setFormData] = useState(profile);
@@ -150,8 +150,7 @@ export default function ProfilePage() {
               <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl font-semibold">{profile.firstName[0]}{profile.lastName[0]}</div>
               <div>
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{profile.firstName} {profile.lastName}</h2>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{profile.studentId}</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{profile.major} • {profile.year}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{profile.course}</p>
               </div>
             </div>
             <button 
@@ -209,6 +208,49 @@ export default function ProfilePage() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student ID</label>
+                    <input 
+                      type="text" 
+                      name="studentId" 
+                      value={formData.studentId} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course</label>
+                    <input 
+                      type="text" 
+                      name="course" 
+                      value={formData.course} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
+                  </div>
+                  <div className="md:col-span-2 border-t border-gray-300 dark:border-gray-600 pt-4 mt-2">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Emergency Contact</h3>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <input 
+                      type="text" 
+                      name="emergencyContact" 
+                      value={formData.emergencyContact} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                    <input 
+                      type="tel" 
+                      name="emergencyPhone" 
+                      value={formData.emergencyPhone} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button 
@@ -236,7 +278,7 @@ export default function ProfilePage() {
                 <InfoRow icon={<Mail size={16} />} label="Email" value={profile.email} />
                 <InfoRow icon={<Phone size={16} />} label="Phone" value={profile.phone} />
                 <InfoRow icon={<User size={16} />} label="Student ID" value={profile.studentId} />
-                <InfoRow icon={<Calendar size={16} />} label="Enrollment Date" value={new Date(profile.enrollmentDate).toLocaleDateString()} />
+                <InfoRow label="Course" value={profile.course} />
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Emergency Contact</h3>
                   <InfoRow label="Name" value={profile.emergencyContact} indent={true} />

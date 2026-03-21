@@ -6,6 +6,7 @@ import { BookOpen, CheckCircle, FileText, Heart, AlertCircle, Search, X, Mail, C
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ScheduleAppointmentCalendar } from '@/components/ScheduleAppointmentCalendar';
 import { CancelNoShowModal } from '@/components/CancelNoShowModal';
+import { getApiUrl } from '@/utils/api-config';
 
 interface Appointment {
   _id: string;
@@ -71,7 +72,7 @@ export default function AppointmentsPage() {
   const fetchAppointments = async (token: string) => {
     try {
       console.log('[Appointments] Fetching with token:', token?.substring(0, 20) + '...');
-      const response = await fetch('http://localhost:5001/api/appointments/my-appointments', {
+      const response = await fetch(getApiUrl('/api/appointments/my-appointments'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -106,11 +107,11 @@ export default function AppointmentsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: { [key: string]: { bg: string; text: string; label: string } } = {
-      'SCHEDULED': { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', label: 'Scheduled' },
-      'CONFIRMED': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', label: 'Confirmed' },
-      'COMPLETED': { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-700 dark:text-gray-300', label: 'Completed' },
-      'CANCELLED': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', label: 'Cancelled' },
-      'REQUESTED': { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', label: 'Pending' },
+      'SCHEDULED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Scheduled' },
+      'CONFIRMED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Confirmed' },
+      'COMPLETED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Completed' },
+      'CANCELLED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Cancelled' },
+      'REQUESTED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Pending' },
     };
 
     const statusInfo = statusMap[status] || statusMap['REQUESTED'];
@@ -141,7 +142,7 @@ export default function AppointmentsPage() {
       const requestedStart = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
       const requestedEnd = new Date(requestedStart.getTime() + 60 * 60 * 1000); // 1 hour duration
       
-      const response = await fetch(`http://localhost:5001/api/appointments/${selectedAppointment._id}/reschedule`, {
+      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/reschedule`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -189,7 +190,7 @@ export default function AppointmentsPage() {
         ? `Your appointment has been rescheduled to ${rescheduleDate} at ${rescheduleTime}.`
         : 'Your appointment has been cancelled.';
 
-      await fetch('http://localhost:5001/api/integrations/api/email/send/gmail', {
+      await fetch(getApiUrl('/api/integrations/api/email/send/gmail'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -222,7 +223,7 @@ export default function AppointmentsPage() {
     setCancelling(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/appointments/${selectedAppointment._id}/cancel`, {
+      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/cancel`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -257,7 +258,7 @@ export default function AppointmentsPage() {
     setCancelling(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/appointments/${selectedAppointment._id}/no-show`, {
+      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/no-show`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -424,15 +425,11 @@ export default function AppointmentsPage() {
         {/* Schedule New Appointment Button */}
         <div className="mb-6">
           <button
-            onClick={() => {
-              // For now, we'll show a message to select a case first
-              // In a full implementation, this would open a case selector
-              alert('Please note: To schedule an appointment, navigate to the Cases section and select a case, then use the Schedule Appointment option there.');
-            }}
+            onClick={() => router.push('/book-appointment')}
             className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
           >
             <Plus size={20} />
-            Schedule New Appointment
+            Book Appointment
           </button>
         </div>
 
@@ -508,12 +505,13 @@ export default function AppointmentsPage() {
           {upcomingAppointments.length === 0 ? (
             <div className="p-8 border border-gray-200 rounded text-center dark:border-gray-700 dark:bg-gray-800">
               <CalendarIcon size={32} className="mx-auto mb-3 text-gray-400" />
-              <p className="text-gray-600 dark:text-gray-400">No upcoming appointments</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-1">No appointments yet</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">Book your first appointment to get started</p>
               <button
-                onClick={() => router.push('/intake')}
+                onClick={() => router.push('/book-appointment')}
                 className="mt-4 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
               >
-                Schedule an Appointment
+                Book Appointment
               </button>
             </div>
           ) : (
@@ -523,92 +521,60 @@ export default function AppointmentsPage() {
                 return (
                   <div
                     key={appointment._id}
-                    className="p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800 hover:shadow-md transition-shadow"
+                    className="p-4 border border-gray-200 rounded dark:border-gray-700"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <Clock size={16} className="text-gray-400" />
-                            {formatDate(appointment.appointment_date)}
-                          </p>
-                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusInfo.bg} ${statusInfo.text}`}>
-                            {statusInfo.label}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                          Time: <span className="font-medium text-gray-900 dark:text-white">{appointment.appointment_time || 'TBD'}</span>
-                        </p>
-                        {appointment.counselor_name && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Counselor: <span className="font-medium text-gray-900 dark:text-white">{appointment.counselor_name}</span>
-                          </p>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {formatDate(appointment.appointment_date)}
+                      </p>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusInfo.bg} ${statusInfo.text}`}>
+                        {statusInfo.label}
+                      </span>
                     </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4 text-sm">
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Platform</p>
-                        <p className="text-gray-900 dark:text-white font-medium capitalize">
-                          {appointment.preferred_platform?.replace('_', ' ') || 'TBD'}
-                        </p>
-                      </div>
-                      {appointment.counseling_id && (
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Reference ID</p>
-                          <p className="text-gray-900 dark:text-white font-mono text-xs">{appointment.counseling_id}</p>
-                        </div>
-                      )}
-                      {appointment.risk_level && (
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Risk Level</p>
-                          <p className="text-gray-900 dark:text-white font-medium capitalize">{appointment.risk_level}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Meeting Link */}
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      {appointment.appointment_time || 'TBD'} {appointment.counselor_name && `• ${appointment.counselor_name}`}
+                    </p>
+                    {appointment.preferred_platform && (
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">
+                        {appointment.preferred_platform?.replace('_', ' ')}
+                      </p>
+                    )}
+                    {appointment.risk_level && user?.role !== 'STUDENT' && (
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+                        Assessment: {appointment.risk_level}
+                      </p>
+                    )}
                     {appointment.meeting_link && (
-                      <div className="mb-4">
+                      <p className="text-sm mb-3">
                         <a
                           href={appointment.meeting_link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full px-3 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium rounded text-center text-sm transition-colors border border-blue-200 dark:border-blue-700"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
                         >
-                          🔗 Join Meeting
+                          Join meeting →
                         </a>
-                      </div>
+                      </p>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      {appointment.status !== 'CANCELLED' && (
-                        <>
-                          <button
-                            onClick={() => handleReschedule(appointment)}
-                            className="flex-1 px-3 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors text-sm dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
-                          >
-                            Reschedule
-                          </button>
-                          <button
-                            onClick={() => handleCancel(appointment)}
-                            disabled={cancelling}
-                            className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 font-medium rounded hover:bg-gray-50 transition-colors text-sm disabled:opacity-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-750"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleNoShow(appointment)}
-                            disabled={cancelling}
-                            className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 font-medium rounded hover:bg-gray-50 transition-colors text-sm disabled:opacity-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-750"
-                          >
-                            No Show
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    {appointment.status !== 'CANCELLED' && (
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={() => handleReschedule(appointment)}
+                          disabled={rescheduling}
+                          className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-900 font-medium rounded text-sm hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          Reschedule
+                        </button>
+                        <button
+                          onClick={() => handleCancel(appointment)}
+                          disabled={cancelling}
+                          className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-900 font-medium rounded text-sm hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -616,9 +582,9 @@ export default function AppointmentsPage() {
           )}
         </div>
 
-        {/* Past Appointments */}
+        {/* Past Appointments Section */}
         {pastAppointments.length > 0 && (
-          <div>
+          <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Past Appointments</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">{pastAppointments.length} appointment{pastAppointments.length !== 1 ? 's' : ''}</p>
@@ -630,23 +596,19 @@ export default function AppointmentsPage() {
                 return (
                   <div
                     key={appointment._id}
-                    className="p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800 opacity-75"
+                    className="p-4 border border-gray-200 rounded dark:border-gray-700 opacity-60"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <p className="font-semibold text-gray-900 dark:text-white">
-                            {formatDate(appointment.appointment_date)}
-                          </p>
-                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusInfo.bg} ${statusInfo.text}`}>
-                            {statusInfo.label}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {appointment.appointment_time || 'N/A'}
-                        </p>
-                      </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {formatDate(appointment.appointment_date)}
+                      </p>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusInfo.bg} ${statusInfo.text}`}>
+                        {statusInfo.label}
+                      </span>
                     </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {appointment.appointment_time || 'TBD'} {appointment.counselor_name && `• ${appointment.counselor_name}`}
+                    </p>
                   </div>
                 );
               })}
@@ -703,12 +665,12 @@ export default function AppointmentsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Reason (optional)
+                  Reason <span className="text-xs font-normal text-gray-500">(optional)</span>
                 </label>
                 <textarea
                   value={rescheduleReason}
                   onChange={(e) => setRescheduleReason(e.target.value)}
-                  placeholder="Why are you rescheduling? (e.g., conflicting class, work obligation)"
+                  placeholder="Tell us why you want to reschedule (e.g., conflicting class, work obligation)"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                   rows={3}
                 />

@@ -43,6 +43,7 @@ export default function BookAppointmentPage() {
   
   // Terms and conditions
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   
   // Draft functionality
   const [draftSaved, setDraftSaved] = useState(false);
@@ -263,7 +264,7 @@ export default function BookAppointmentPage() {
           referred_by: referralType === 'referred' ? referredBy : null,
           concern: concern,
           preferred_method: preferredMethod,
-          agreed_to_terms: agreedToTerms,
+          agreed_to_terms: termsAccepted,
         }),
       });
 
@@ -273,9 +274,11 @@ export default function BookAppointmentPage() {
         setBookingConfirmed(true);
         clearDraft();
       } else {
-        const errorData = await response.text();
+        const errorData = await response.json().catch(() => ({}));
         console.error('[BookAppointment] Booking failed:', response.status, errorData);
-        setSubmitError('Failed to book appointment. Please try again.');
+        // Display specific error message from backend if available
+        const errorMessage = errorData?.error || 'Failed to book appointment. Please try again.';
+        setSubmitError(errorMessage);
       }
     } catch (err) {
       console.error('[BookAppointment] Error booking appointment:', err);
@@ -455,14 +458,19 @@ export default function BookAppointmentPage() {
               </div>
 
               {/* Verification Checkbox */}
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-8">
-                <div className="flex gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 mb-8">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="w-5 h-5 mt-1 rounded"
+                  />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-50">Terms Accepted</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">You have agreed to the counseling services terms and conditions.</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-50">I confirm all details are correct</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">I verify the appointment information is accurate and agree to proceed with booking. <span className="text-red-500 font-semibold">*</span></p>
                   </div>
-                </div>
+                </label>
               </div>
 
               {/* Action Buttons */}

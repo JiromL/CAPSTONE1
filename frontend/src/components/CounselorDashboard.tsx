@@ -106,16 +106,6 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
             </div>
           )}
 
-          {/* Quick Actions */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900 mb-6">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Quick Links</h2>
-            <div className="flex flex-wrap gap-2">
-              <ActionButton href="/appointments" label="Appointments" />
-              <ActionButton href="/documentation" label="Documentation" />
-              <ActionButton href="/cases" label="Cases" />
-            </div>
-          </div>
-
           {/* Recent Cases */}
           {recentCases.length > 0 && (
             <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
@@ -159,15 +149,5 @@ function MetricCard({ label, value }: any) {
         </div>
       </div>
     </div>
-  );
-}
-
-function ActionButton({ href, label }: any) {
-  return (
-    <Link href={href}>
-      <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium">
-        {label}
-      </button>
-    </Link>
   );
 }

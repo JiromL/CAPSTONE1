@@ -29,17 +29,6 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
         <MetricCard label="Overdue" value="2" />
       </div>
 
-      {/* Quick Actions */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Quick Links</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <IntakeLink href="/ic/intake/pending" label="Pending Intakes" />
-          <IntakeLink href="/ic/intake/new" label="New Intake" />
-          <IntakeLink href="/ic/forms/verify" label="Verify Forms" />
-          <IntakeLink href="/ic/schedule/assign" label="Assign Slots" />
-        </div>
-      </div>
-
       {/* Performance Stats */}
       <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Weekly Performance</h2>
@@ -59,16 +48,6 @@ function MetricCard({ label, value }: any) {
       <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
       <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
     </div>
-  );
-}
-
-function IntakeLink({ href, label }: any) {
-  return (
-    <Link href={href}>
-      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
-        <span className="text-gray-900 dark:text-gray-100 font-medium text-sm">{label}</span>
-      </div>
-    </Link>
   );
 }
 

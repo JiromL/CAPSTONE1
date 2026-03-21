@@ -246,35 +246,76 @@ def get_generic_dashboard(user_id_obj, user_name):
         return jsonify({'error': str(e)}), 500
 
 def format_appointments(appointments):
-    """Convert appointments to JSON-friendly format"""
+    """Convert appointments to JSON-friendly format with enriched details"""
     formatted = []
     for apt in appointments:
         try:
             # Get student info
+            student = None
             if apt.get('student_id'):
-                student = db.db.users.find_one({"_id": ObjectId(apt['student_id'])})
-            else:
-                student = None
+                try:
+                    student_id = ObjectId(apt['student_id']) if isinstance(apt['student_id'], str) else apt['student_id']
+                    student = db.db.users.find_one({"_id": student_id})
+                except:
+                    student = None
             
             # Get counselor info
+            counselor = None
             if apt.get('counselor_id'):
-                counselor = db.db.users.find_one({"_id": ObjectId(apt['counselor_id'])})
-            else:
-                counselor = None
+                try:
+                    counselor_id = ObjectId(apt['counselor_id']) if isinstance(apt['counselor_id'], str) else apt['counselor_id']
+                    counselor = db.db.users.find_one({"_id": counselor_id})
+                except:
+                    counselor = None
+            
+            # Get case info for risk level
+            case = None
+            risk_level = None
+            if apt.get('case_id'):
+                try:
+                    case_id = ObjectId(apt['case_id']) if isinstance(apt['case_id'], str) else apt['case_id']
+                    case = db.db.cases.find_one({"_id": case_id})
+                    risk_level = case.get('risk_level', 'GREEN') if case else None
+                except:
+                    risk_level = None
+            
+            # Format appointment date/time
+            requested_start = apt.get('requested_start', '')
+            preferred_date = ''
+            preferred_time = ''
+            
+            if requested_start:
+                try:
+                    if isinstance(requested_start, str):
+                        dt = datetime.fromisoformat(requested_start.replace('Z', '+00:00'))
+                    else:
+                        dt = requested_start
+                    preferred_date = dt.isoformat()
+                    preferred_time = dt.strftime('%H:%M')
+                except:
+                    preferred_date = str(requested_start)
             
             formatted.append({
                 'appointment_id': str(apt.get('_id')),
-                'student_name': f"{student.get('first_name', '')} {student.get('last_name', '')}" if student else 'Unknown',
-                'student_email': student.get('email') if student else '',
-                'counselor_name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}" if counselor else 'Not Assigned',
+                'student_id': str(apt.get('student_id', '')),
+                'student_name': f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else 'Unknown',
+                'student_email': student.get('email', '') if student else '',
+                'student_phone': student.get('phone', '') if student else '',
+                'student_id_number': student.get('id_number', '') if student else '',
+                'counselor_id': str(apt.get('counselor_id', '')) if apt.get('counselor_id') else None,
+                'counselor_name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}".strip() if counselor else 'Not Assigned',
                 'status': apt.get('status', 'UNKNOWN'),
                 'purpose': apt.get('purpose', ''),
                 'concern': apt.get('concern', ''),
-                'preferred_date': apt.get('requested_start', ''),
-                'preferred_time': apt.get('requested_start', ''),
-                'method': apt.get('preferred_method', 'in-person'),
+                'preferred_date': preferred_date,
+                'preferred_time': preferred_time,
+                'method': apt.get('preferred_method', apt.get('appointment_method', 'in-person')),
+                'meeting_link': apt.get('meeting_link', ''),
+                'risk_level': risk_level,
                 'referral_type': apt.get('referral_type', ''),
-                'created_at': apt.get('created_at', '').isoformat() if hasattr(apt.get('created_at'), 'isoformat') else str(apt.get('created_at', ''))
+                'notes': apt.get('notes', ''),
+                'case_id': str(apt.get('case_id', '')) if apt.get('case_id') else None,
+                'created_at': apt.get('created_at').isoformat() if hasattr(apt.get('created_at'), 'isoformat') else str(apt.get('created_at', ''))
             })
         except Exception as e:
             print(f"Error formatting appointment: {e}")

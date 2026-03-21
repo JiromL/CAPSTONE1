@@ -526,21 +526,19 @@ def student_submit_intake():
     # CHECK: Student can only have ONE active appointment at a time
     # Active statuses: REQUESTED, PENDING_APPROVAL, APPROVED, MATCHED, CONFIRMED
     # Inactive statuses: COMPLETED, CANCELLED, NO_SHOW
+    # Only check future appointments
     active_appointment = db.db.appointments.find_one({
         "student_id": user_obj_id,
         "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
-        # Optionally check if appointment is in the future (if it has a scheduled_start field)
         "$or": [
-            {"scheduled_start": {"$exists": False}},  # No scheduled time yet (still pending)
-            {"scheduled_start": {"$gt": datetime.utcnow()}}  # Scheduled time is in the future
+            {"requested_start": {"$exists": False}},  # No scheduled time yet (still pending)
+            {"requested_start": {"$gt": datetime.utcnow()}}  # Scheduled time is in the future
         ]
     })
     
     if active_appointment:
         appointment_time_str = "Unknown"
-        if active_appointment.get('scheduled_start'):
-            appointment_time_str = active_appointment['scheduled_start'].strftime('%B %d, %Y at %I:%M %p').lstrip('0').replace(' 0', ' ')
-        elif active_appointment.get('requested_start'):
+        if active_appointment.get('requested_start'):
             appointment_time_str = active_appointment['requested_start'].strftime('%B %d, %Y at %I:%M %p').lstrip('0').replace(' 0', ' ')
         
         return jsonify({
@@ -756,6 +754,13 @@ def student_submit_intake():
     # CREATE APPOINTMENT WITH MEETING LINK
     preferred_platform = data.get('preferred_platform', 'in-person')
     appointment_id = ObjectId()
+    
+    # BUSINESS RULE: Prevent booking appointments in the past
+    current_time = datetime.utcnow()
+    if appointment_date < current_time:
+        return jsonify({
+            'error': 'Cannot book appointments for dates and times in the past. Please select a future date and time.'
+        }), 400
     
     try:
         meeting_link_info = generate_meeting_link(preferred_platform, str(appointment_id), counseling_id, appointment_date, student_email=user_email)
@@ -1994,6 +1999,34 @@ def create_walkin_intake():
         risk_level = 'RED' if is_urgent else 'GREEN'
         urgency_level = 'emergency' if is_urgent else 'normal'
         appointment_date, days_string, appointment_time = calculate_appointment_date(is_urgent, urgency_level, risk_level)
+        
+        # CHECK: If a student_id is provided, verify they don't already have an active appointment
+        if data.get('student_id'):
+            try:
+                student_id_obj = ObjectId(data['student_id']) if isinstance(data['student_id'], str) else data['student_id']
+                existing_active = db.db.appointments.find_one({
+                    "student_id": student_id_obj,
+                    "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
+                    "$or": [
+                        {"requested_start": {"$exists": False}},
+                        {"requested_start": {"$gt": datetime.utcnow()}}
+                    ]
+                })
+                
+                if existing_active:
+                    appointment_time_str = "Unknown"
+                    if existing_active.get('requested_start'):
+                        appointment_time_str = existing_active['requested_start'].strftime('%B %d, %Y at %I:%M %p').lstrip('0').replace(' 0', ' ')
+                    
+                    return jsonify({
+                        'error': 'Student already has an active appointment.',
+                        'message': f'This student cannot have multiple active appointments. Current appointment: {appointment_time_str}',
+                        'existing_appointment_id': str(existing_active['_id']),
+                        'status': 409
+                    }), 409
+            except Exception as id_error:
+                print(f"Warning: Could not validate student_id for walk-in: {str(id_error)}")
+                # Continue anyway - walk-in might be for non-enrolled student
         
         # Create case record
         case_id = ObjectId()

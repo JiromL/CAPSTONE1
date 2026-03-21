@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, Users, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Clock, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface Appointment {
   appointment_id: string;
@@ -123,130 +123,103 @@ export default function AppointmentsDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Appointment Requests
-        </h1>
-        <p className="text-gray-600">
-          {dashboard.user_name} • Role: {dashboard.role}
-        </p>
-      </div>
-
-      {/* Summary Cards */}
+    <div className="space-y-4">
+      {/* Summary Cards - Simplified */}
       {dashboard.summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {dashboard.summary.total && (
             <SummaryCard
               title="Total Appointments"
               value={dashboard.summary.total}
-              icon={<FileText className="w-6 h-6" />}
-              color="blue"
             />
           )}
           {dashboard.summary.total_appointments && (
             <SummaryCard
               title="All Appointments"
               value={dashboard.summary.total_appointments}
-              icon={<FileText className="w-6 h-6" />}
-              color="blue"
             />
           )}
           {dashboard.summary.unassigned_requests && (
             <SummaryCard
               title="Unassigned"
               value={dashboard.summary.unassigned_requests}
-              icon={<AlertCircle className="w-6 h-6" />}
-              color="yellow"
             />
           )}
           {dashboard.summary.awaiting_approval && (
             <SummaryCard
               title="Awaiting Approval"
               value={dashboard.summary.awaiting_approval}
-              icon={<Clock className="w-6 h-6" />}
-              color="purple"
             />
           )}
         </div>
       )}
 
       {/* Appointments Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Appointments</h2>
-            {dashboard.can_assign_counselor && (
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                Assign Counselor
-              </button>
-            )}
-          </div>
+      <div className="border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Appointments</h2>
         </div>
-
         {dashboard.appointments && dashboard.appointments.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                     Student
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                     Counselor
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                     Purpose
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                     Method
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {dashboard.appointments.map((apt) => (
-                  <tr key={apt.appointment_id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4">
+                  <tr key={apt.appointment_id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-gray-900">{apt.student_name}</p>
-                        <p className="text-sm text-gray-500">{apt.student_email}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{apt.student_name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{apt.student_email}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-700">
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                       {apt.counselor_name || <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <p className="font-medium text-gray-900 text-sm">
+                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
                           {apt.purpose || 'N/A'}
                         </p>
                         {apt.concern && (
-                          <p className="text-xs text-gray-500 truncate max-w-xs">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
                             {apt.concern}
                           </p>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                       {formatDate(apt.preferred_date)}
                     </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs capitalize">
+                    <td className="px-4 py-3 text-sm">
+                      <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded text-xs capitalize">
                         {apt.method}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium w-fit ${getStatusColor(apt.status)}`}>
-                        {getStatusIcon(apt.status)}
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-1 rounded ${getStatusColor(apt.status)}`}>
                         {apt.status.replace('_', ' ')}
-                      </div>
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -254,9 +227,8 @@ export default function AppointmentsDashboard() {
             </table>
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-500">
-            <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>No appointments found</p>
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            <p className="text-sm">No appointments found</p>
           </div>
         )}
       </div>
@@ -267,32 +239,13 @@ export default function AppointmentsDashboard() {
 interface SummaryCardProps {
   title: string;
   value: number | string;
-  icon: React.ReactNode;
-  color: string;
 }
 
-function SummaryCard({ title, value, icon, color }: SummaryCardProps) {
-  const bgColor = color === 'blue' ? 'bg-blue-50' : 
-                  color === 'green' ? 'bg-green-50' : 
-                  color === 'yellow' ? 'bg-yellow-50' : 
-                  'bg-purple-50';
-  
-  const iconColor = color === 'blue' ? 'text-blue-600' : 
-                    color === 'green' ? 'text-green-600' : 
-                    color === 'yellow' ? 'text-yellow-600' : 
-                    'text-purple-600';
-
+function SummaryCard({ title, value }: SummaryCardProps) {
   return (
-    <div className={`${bgColor} rounded-lg p-6`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-        </div>
-        <div className={`${iconColor} opacity-80`}>
-          {icon}
-        </div>
-      </div>
+    <div className="border border-gray-200 dark:border-gray-700 rounded p-3">
+      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{title}</p>
+      <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{value}</p>
     </div>
   );
 }

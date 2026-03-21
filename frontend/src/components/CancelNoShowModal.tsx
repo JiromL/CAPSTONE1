@@ -25,11 +25,6 @@ export function CancelNoShowModal({
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (!reason.trim()) {
-      setError('Please provide a reason');
-      return;
-    }
-
     setIsSubmitting(true);
     setError(null);
     try {
@@ -79,16 +74,19 @@ export function CancelNoShowModal({
 
         {/* Reason Input */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Reason {appointmentType === 'cancel' ? 'for cancellation' : 'for no show'}
-          </label>
+          <div className="flex items-baseline justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Reason {appointmentType === 'cancel' ? 'for cancellation' : 'for no show'}
+            </label>
+            <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+          </div>
           <textarea
             value={reason}
             onChange={(e) => {
               setReason(e.target.value);
               setError(null);
             }}
-            placeholder="Please explain why you're cancelling..."
+            placeholder={`${appointmentType === 'cancel' ? 'Tell us why you\'re cancelling...' : 'Provide details about the missed appointment...'}`}
             rows={4}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-gray-400 focus:border-transparent resize-none"
           />

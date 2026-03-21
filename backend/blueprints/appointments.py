@@ -445,6 +445,75 @@ def request_appointment():
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
+    # Parse preferred_date and preferred_time to check for conflicts
+    preferred_date_str = data.get('preferred_date')
+    preferred_time_str = data.get('preferred_time')
+    
+    try:
+        # Combine date and time into ISO format datetime
+        datetime_str = f"{preferred_date_str}T{preferred_time_str}:00"
+        requested_start = datetime.fromisoformat(datetime_str)
+        # Assume 1-hour appointment by default
+        requested_end = requested_start + timedelta(hours=1)
+    except (ValueError, KeyError) as e:
+        return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
+    
+    # BUSINESS RULE: Prevent booking appointments in the past
+    current_time = datetime.now()
+    if requested_start < current_time:
+        return jsonify({
+            'error': 'Cannot book appointments for dates and times in the past. Please select a future date and time.'
+        }), 400
+    
+    # RESCHEDULE HANDLING: If rescheduling, cancel the old appointment
+    reschedule_appointment_id = data.get('reschedule_appointment_id')
+    if reschedule_appointment_id:
+        try:
+            old_appt_id = ObjectId(reschedule_appointment_id) if isinstance(reschedule_appointment_id, str) else reschedule_appointment_id
+            old_appointment = db.db.appointments.find_one({'_id': old_appt_id, 'student_id': user_id_obj})
+            if old_appointment:
+                # Mark old appointment as rescheduled
+                db.db.appointments.update_one(
+                    {'_id': old_appt_id},
+                    {'$set': {'status': 'RESCHEDULED', 'rescheduled_to': None, 'updated_at': datetime.utcnow()}}
+                )
+        except:
+            pass  # If reschedule_id is invalid, just continue (old appointment stays active)
+    
+    # BUSINESS RULE: Check if student already has an active appointment (including time conflicts)
+    # Only 1 active appointment per student at any given time
+    # UNLESS: they're rescheduling, in which case we exclude the appointment being rescheduled
+    conflict_query = {
+        'student_id': user_id_obj,
+        'status': {'$in': [
+            AppointmentStatus.REQUESTED.value,
+            AppointmentStatus.PENDING_APPROVAL.value,
+            AppointmentStatus.APPROVED.value,
+            AppointmentStatus.CONFIRMED.value,
+            AppointmentStatus.MATCHED.value
+        ]},
+        # Check for time overlap: existing starts before new ends AND existing ends after new starts
+        'requested_start': {'$lt': requested_end},
+        'requested_end': {'$gt': requested_start}
+    }
+    
+    # If rescheduling, exclude the old appointment from conflict check
+    if reschedule_appointment_id:
+        try:
+            old_appt_id = ObjectId(reschedule_appointment_id) if isinstance(reschedule_appointment_id, str) else reschedule_appointment_id
+            conflict_query['_id'] = {'$ne': old_appt_id}
+        except:
+            pass
+    
+    conflicting_appointment = db.db.appointments.find_one(conflict_query)
+    
+    if conflicting_appointment:
+        return jsonify({
+            'error': 'You already have an active appointment at this time. Please complete, cancel, or reschedule your existing appointment before booking a new one.',
+            'existing_appointment': str(conflicting_appointment['_id']),
+            'existing_start': conflicting_appointment.get('requested_start', '').isoformat() if isinstance(conflicting_appointment.get('requested_start'), datetime) else str(conflicting_appointment.get('requested_start'))
+        }), 409
+    
     # Get or create case for student
     case_id = None
     case = None
@@ -483,54 +552,45 @@ def request_appointment():
             case = case_doc
     
     try:
-        # Parse preferred_date and preferred_time to create appointment start/end
-        # Format: preferred_date is ISO date (YYYY-MM-DD), preferred_time is HH:MM
-        preferred_date_str = data['preferred_date']
-        preferred_time_str = data['preferred_time']
+        appointment = {
+            "student_id": user_id_obj,
+            "case_id": case_id,
+            "appointment_type": data.get('appointment_type', 'initial'),
+            "requested_start": requested_start,
+            "requested_end": requested_end,
+            "status": AppointmentStatus.REQUESTED.value,
+            # New student booking fields
+            "purpose": data.get('purpose'),
+            "concern": data.get('concern'),
+            "referral_type": data.get('referral_type'),
+            "referred_by": data.get('referred_by'),
+            "preferred_method": data.get('preferred_method'),
+            "created_at": datetime.utcnow()
+        }
         
-        # Combine date and time into ISO format datetime
-        datetime_str = f"{preferred_date_str}T{preferred_time_str}:00"
-        requested_start = datetime.fromisoformat(datetime_str)
-        # Assume 1-hour appointment by default
-        requested_end = requested_start + timedelta(hours=1)
-    except (ValueError, KeyError) as e:
-        return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
-    
-    appointment = {
-        "student_id": user_id_obj,
-        "case_id": case_id,
-        "appointment_type": data.get('appointment_type', 'initial'),
-        "requested_start": requested_start,
-        "requested_end": requested_end,
-        "status": AppointmentStatus.REQUESTED.value,
-        # New student booking fields
-        "purpose": data.get('purpose'),
-        "concern": data.get('concern'),
-        "referral_type": data.get('referral_type'),
-        "referred_by": data.get('referred_by'),
-        "preferred_method": data.get('preferred_method'),
-        "created_at": datetime.utcnow()
-    }
-    
-    result = db.db.appointments.insert_one(appointment)
-    appointment_id = str(result.inserted_id)
-    
-    # Get the updated appointment to use in emails
-    updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
-    
-    # Attempt auto-assignment
-    auto_assigned = False
-    auto_assigned_counselor_id = None
-    auto_assigned_message = None
-    
-    success, counselor_id, message = auto_assign_appointment(result.inserted_id)
-    if success:
-        auto_assigned = True
-        auto_assigned_counselor_id = counselor_id
-        auto_assigned_message = message
-    else:
-        auto_assigned_message = message
-        print(f"Auto-assignment failed: {message}")
+        result = db.db.appointments.insert_one(appointment)
+        appointment_id = str(result.inserted_id)
+        
+        # Get the updated appointment to use in emails
+        updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
+        
+        # Attempt auto-assignment
+        auto_assigned = False
+        auto_assigned_counselor_id = None
+        auto_assigned_message = None
+        
+        success, counselor_id, message = auto_assign_appointment(result.inserted_id)
+        if success:
+            auto_assigned = True
+            auto_assigned_counselor_id = counselor_id
+            auto_assigned_message = message
+        else:
+            auto_assigned_message = message
+            print(f"Auto-assignment failed: {message}")
+        
+    except Exception as e:
+        print(f"Error creating appointment: {str(e)}")
+        return jsonify({'error': f'Error creating appointment: {str(e)}'}), 500
     
     # Send appointment request receipt email
     try:
@@ -731,10 +791,11 @@ def get_availability():
     except ValueError:
         return jsonify({'error': 'Invalid datetime format'}), 400
     
-    # Query availability slots
+    # Query availability slots - find overlapping intervals
+    # A slot overlaps if: slot_start < end_date AND slot_end > start_date
     query = {
-        "slot_start": {"$gte": start},
-        "slot_end": {"$lte": end},
+        "slot_start": {"$lt": end},
+        "slot_end": {"$gt": start},
         "is_available": True
     }
     

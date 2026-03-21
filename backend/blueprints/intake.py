@@ -1635,6 +1635,7 @@ def get_available_times_for_date():
         while current_time < end_of_day:
             slot_end_time = current_time + timedelta(minutes=slot_duration_minutes)
             available_counselor_list = []
+            available_counselor_details = []
             
             # Check each counselor
             for counselor_id in counselor_ids:
@@ -1665,16 +1666,24 @@ def get_available_times_for_date():
                 })
                 
                 if not existing_appt:
+                    counselor_obj = db.db.users.find_one({"_id": counselor_id})
+                    counselor_name = f"{counselor_obj.get('first_name', '')} {counselor_obj.get('last_name', '')}" if counselor_obj else "Unknown"
                     available_counselor_list.append(str(counselor_id))
+                    available_counselor_details.append({
+                        'counselor_id': str(counselor_id),
+                        'counselor_name': counselor_name
+                    })
             
             # Add time slot if at least one counselor is available
             if available_counselor_list:
+                count = len(available_counselor_list)
                 available_times.append({
                     'time': current_time.strftime("%I:%M %p"),
                     'datetime': current_time.isoformat(),
-                    'available_counselors': len(available_counselor_list),
+                    'available_counselors': count,
                     'counselor_ids': available_counselor_list,
-                    'counselor_availability_text': f"{len(available_counselor_list)} counselor{'s' if len(available_counselor_list) > 1 else ''} available"
+                    'counselor_details': available_counselor_details,
+                    'counselor_availability_text': f"{count} intake counselor{'s' if count > 1 else ''} available"
                 })
             
             current_time += timedelta(minutes=slot_duration_minutes)

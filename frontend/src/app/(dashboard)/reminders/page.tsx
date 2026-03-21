@@ -50,7 +50,7 @@ export default function RemindersPage() {
     const fetchReminders = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('token');
         if (!token) {
           setError('Not authenticated');
           setLoading(false);
@@ -90,7 +90,7 @@ export default function RemindersPage() {
     }
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch(`${api('/api/engagement/reminders')}`, {
         method: 'POST',
         headers: {

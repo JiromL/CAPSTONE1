@@ -47,7 +47,7 @@ export default function VideoLinksPage() {
     const fetchVideoLinks = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('token');
         if (!token) {
           setError('Not authenticated');
           setLoading(false);

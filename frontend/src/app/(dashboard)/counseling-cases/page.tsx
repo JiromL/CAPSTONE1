@@ -30,7 +30,7 @@ export default function CounselingCasesPage() {
 
   const fetchCounselingCases = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '10',
@@ -54,7 +54,7 @@ export default function CounselingCasesPage() {
 
   const handleExport = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (month) params.append('month', month);

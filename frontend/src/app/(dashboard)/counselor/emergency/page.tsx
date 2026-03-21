@@ -69,7 +69,7 @@ export default function CounselorEmergencyPage() {
     setMessage(null);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       
       const response = await fetch(api(`/api/intake/emergency/${intakeId}/assign`), {

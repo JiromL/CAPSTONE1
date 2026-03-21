@@ -37,7 +37,7 @@ export default function JournalPage() {
     const fetchJournal = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('token');
         if (!token) {
           setError('Not authenticated');
           setLoading(false);
@@ -76,7 +76,7 @@ export default function JournalPage() {
     }
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const tags = newTags.split(',').map(t => t.trim()).filter(t => t);
 
       const response = await fetch(`${api('/api/engagement/journal')}`, {
@@ -122,7 +122,7 @@ export default function JournalPage() {
     if (!editingId || !newContent.trim()) return;
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const tags = newTags.split(',').map(t => t.trim()).filter(t => t);
 
       const response = await fetch(`${api(`/api/engagement/journal/${editingId}`)}`, {
@@ -168,7 +168,7 @@ export default function JournalPage() {
     if (!window.confirm('Are you sure you want to delete this entry?')) return;
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
 
       const response = await fetch(`${api(`/api/engagement/journal/${journalId}`)}`, {
         method: 'DELETE',

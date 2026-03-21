@@ -38,7 +38,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
         `/api/intake/available-slots?risk_level=${riskLevel}&count=8`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
         }
       );
@@ -95,7 +95,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({
           appointment_datetime: appointmentDateTime,

@@ -18,6 +18,7 @@ export default function CheckInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [pendingCheckins, setPendingCheckins] = useState<any[]>([]);
   const [checkInHistory, setCheckInHistory] = useState<any[]>([]);
 
@@ -28,7 +29,10 @@ export default function CheckInPage() {
   const loadData = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setDataLoaded(true);
+        return;
+      }
 
       const [pendingRes, historyRes] = await Promise.all([
         fetch(api('/api/check-ins/student/pending-checkins'), {
@@ -48,8 +52,11 @@ export default function CheckInPage() {
         const data = await historyRes.json();
         setCheckInHistory(data.check_ins || []);
       }
+      
+      setDataLoaded(true);
     } catch (err) {
       console.error('Failed to load check-in data:', err);
+      setDataLoaded(true);
     }
   };
 
@@ -210,12 +217,26 @@ export default function CheckInPage() {
             </div>
           )}
 
-          {!pendingCheckins.length && !checkInHistory.length && (
+          {!dataLoaded && (
             <div className="border border-gray-200 dark:border-gray-700 rounded p-8 text-center bg-gray-50 dark:bg-gray-800">
-              <Loader size={32} className="mx-auto text-gray-400 mb-4" />
+              <Loader size={32} className="mx-auto text-gray-400 mb-4 animate-spin" />
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Loading your check-in information...
               </p>
+            </div>
+          )}
+
+          {dataLoaded && !pendingCheckins.length && !checkInHistory.length && (
+            <div className="border border-gray-200 dark:border-gray-700 rounded p-8 text-center bg-gray-50 dark:bg-gray-800">
+              <p className="text-gray-600 dark:text-gray-400">
+                No check-ins yet. Start by submitting one!
+              </p>
+              <button
+                onClick={() => setStep('form')}
+                className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-sm transition"
+              >
+                Submit Check-In
+              </button>
             </div>
           )}
         </>

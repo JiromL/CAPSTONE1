@@ -86,7 +86,7 @@ export default function BookAppointmentPage() {
         endDate.setDate(endDate.getDate() + 30);
 
         const response = await fetch(
-          `http://localhost:5001/api/appointments/availability?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`,
+          `http://localhost:8000/api/appointments/availability?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`,
           {
             method: 'GET',
             headers: {
@@ -244,7 +244,7 @@ export default function BookAppointmentPage() {
       const finalPurpose = purpose === 'others' ? otherPurpose : purpose;
 
       // Create appointment with preferred date and time
-      const response = await fetch('http://localhost:5001/api/appointments/request', {
+      const response = await fetch('http://localhost:8000/api/appointments/request', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -488,7 +488,7 @@ export default function BookAppointmentPage() {
                       : 'bg-amber-600 hover:bg-amber-700 text-white'
                   }`}
                 >
-                  Save Draft
+                  Save for Later
                 </button>
                 <button
                   type="button"
@@ -855,19 +855,7 @@ export default function BookAppointmentPage() {
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
-                {submitting ? 'Reserving...' : 'Reserve Your Appointment'}
-              </button>
-              <button
-                type="button"
-                onClick={saveDraft}
-                disabled={submitting}
-                className={`px-6 py-2 rounded-lg font-medium transition ${
-                  submitting
-                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                    : 'bg-amber-500 hover:bg-amber-600 text-white'
-                }`}
-              >
-                Save as Draft
+                {submitting ? 'Processing...' : 'Continue'}
               </button>
               <button
                 type="button"

@@ -47,6 +47,10 @@ from blueprints.mhbot_integration import mhbot_bp
 from blueprints.engagement import engagement_bp
 from blueprints.appointments_enhancements import appointments_enh_bp
 from blueprints.appointments_dashboard import appointments_dashboard_bp
+from blueprints.scheduling_reports import scheduling_reports_bp
+from blueprints.conflict_resolution import conflict_resolution_bp
+from blueprints.matching_algorithm import matching_algorithm_bp
+from blueprints.case_management import case_management_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -113,6 +117,10 @@ def create_app(config_name=None):
     app.register_blueprint(appointments_dashboard_bp)
     app.register_blueprint(client_tracking_bp)
     app.register_blueprint(staff_settings_bp)
+    app.register_blueprint(scheduling_reports_bp)
+    app.register_blueprint(conflict_resolution_bp)
+    app.register_blueprint(matching_algorithm_bp)
+    app.register_blueprint(case_management_bp)
     
     # Health check route
     @app.route('/api/health', methods=['GET'])

@@ -523,16 +523,15 @@ def student_submit_intake():
     user_email = user.get('email', '') if user else ''
     user_name = user.get('name', 'Student') if user else 'Student'
     
-    # CHECK: Student can only have ONE active appointment at a time
-    # Active statuses: REQUESTED, PENDING_APPROVAL, APPROVED, MATCHED, CONFIRMED
+    # RULE 1: Student can only have ONE active appointment at a time
+    # Active statuses: REQUESTED (PENDING), PENDING_APPROVAL, APPROVED, MATCHED, CONFIRMED
     # Inactive statuses: COMPLETED, CANCELLED, NO_SHOW
-    # Only check future appointments
     active_appointment = db.db.appointments.find_one({
         "student_id": user_obj_id,
-        "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
+        "status": {"$in": ["REQUESTED", "PENDING", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
         "$or": [
             {"requested_start": {"$exists": False}},  # No scheduled time yet (still pending)
-            {"requested_start": {"$gt": datetime.utcnow()}}  # Scheduled time is in the future
+            {"requested_start": {"$gte": datetime.utcnow()}}  # Scheduled time is now or in the future
         ]
     })
     
@@ -542,10 +541,27 @@ def student_submit_intake():
             appointment_time_str = active_appointment['requested_start'].strftime('%B %d, %Y at %I:%M %p').lstrip('0').replace(' 0', ' ')
         
         return jsonify({
-            'error': 'You already have an active appointment scheduled.',
-            'message': f'You cannot book a new appointment while you have an existing one. Your current appointment is scheduled for {appointment_time_str}. Please wait until after your appointment or cancel it first.',
+            'error': 'You already have a pending or active appointment.',
+            'message': f'You cannot submit a new intake while you have an existing appointment. Your current appointment is scheduled for {appointment_time_str}. Please wait until after your appointment or cancel it first.',
             'existing_appointment_id': str(active_appointment['_id']),
-            'existing_appointment_status': active_appointment.get('status')
+            'existing_appointment_status': active_appointment.get('status'),
+            'status': 409
+        }), 409
+    
+    # RULE 2: Student can only have ONE pending intake at a time
+    # Check for existing PENDING or IN_PROGRESS intakes
+    pending_intake = db.db.intakes.find_one({
+        "student_id": user_obj_id,
+        "status": {"$in": ["PENDING", "IN_PROGRESS", "SUBMITTED"]}
+    })
+    
+    if pending_intake:
+        return jsonify({
+            'error': 'You already have a pending intake assessment.',
+            'message': 'Your intake assessment is being processed. Please wait for it to be reviewed before starting a new one.',
+            'existing_intake_id': str(pending_intake['_id']),
+            'existing_intake_status': pending_intake.get('status'),
+            'status': 409
         }), 409
     
     # Check if user has an existing case
@@ -1699,6 +1715,108 @@ def get_available_times_for_date():
     
     except Exception as e:
         print(f"Error getting available times for date: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@intake_bp.route('/available-dates', methods=['GET'])
+@jwt_required()
+def get_available_dates():
+    """
+    Get list of dates that have at least one available appointment slot.
+    This filters out dates with no availability so frontend doesn't show empty dates.
+    
+    Query params:
+    - days: how many days to check from today (default: 30)
+    
+    Returns list of dates with available slots.
+    """
+    try:
+        days_to_check = min(int(request.args.get('days', 30)), 90)  # Max 90 days
+        
+        # Get available intake counselors
+        counselors = get_available_intake_counselors()
+        if not counselors:
+            return jsonify({
+                'available_dates': [],
+                'message': 'No intake counselors available'
+            }), 200
+        
+        counselor_ids = [c["_id"] for c in counselors]
+        
+        available_dates = []
+        current_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        business_hours_start = 9
+        business_hours_end = 17
+        
+        # Check each day for available slots
+        for day_offset in range(days_to_check):
+            check_date = current_date + timedelta(days=day_offset)
+            
+            # Skip weekends (Monday=0, Sunday=6)
+            if check_date.weekday() >= 5:  # Saturday and Sunday
+                continue
+            
+            day_start = check_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = check_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            has_available_slot = False
+            slot_duration_minutes = 30
+            current_time = check_date.replace(hour=business_hours_start, minute=0, second=0, microsecond=0)
+            end_of_day = check_date.replace(hour=business_hours_end, minute=0, second=0, microsecond=0)
+            
+            # Check each time slot for this day
+            while current_time < end_of_day and not has_available_slot:
+                slot_end_time = current_time + timedelta(minutes=slot_duration_minutes)
+                
+                # Check if any counselor is available at this time
+                for counselor_id in counselor_ids:
+                    # Check availability
+                    avail_check = db.db.counselor_availability.find_one({
+                        "counselor_id": counselor_id,
+                        "slot_start": {"$lte": current_time},
+                        "slot_end": {"$gte": slot_end_time},
+                        "is_available": True,
+                        "$expr": {
+                            "$and": [
+                                {"$gte": ["$slot_start", day_start]},
+                                {"$lte": ["$slot_start", day_end]}
+                            ]
+                        }
+                    })
+                    
+                    if not avail_check:
+                        continue
+                    
+                    # Check if counselor already has an appointment at this time
+                    existing_appt = db.db.appointments.find_one({
+                        "counselor_id": counselor_id,
+                        "scheduled_start": current_time,
+                        "status": {"$in": ["MATCHED", "CONFIRMED", "REQUESTED"]}
+                    })
+                    
+                    if not existing_appt:
+                        has_available_slot = True
+                        break
+                
+                current_time += timedelta(minutes=slot_duration_minutes)
+            
+            # Add this date to available list if it has slots
+            if has_available_slot:
+                available_dates.append({
+                    'date': check_date.strftime("%Y-%m-%d"),
+                    'day_name': check_date.strftime("%A"),
+                    'formatted': check_date.strftime("%B %d, %Y")
+                })
+        
+        return jsonify({
+            'available_dates': available_dates,
+            'total_available_dates': len(available_dates)
+        }), 200
+    
+    except Exception as e:
+        print(f"Error getting available dates: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500

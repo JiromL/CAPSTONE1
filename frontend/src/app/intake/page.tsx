@@ -187,6 +187,9 @@ export default function IntakePage() {
   // Available times for custom date selection
   const [availableTimes, setAvailableTimes] = useState<any[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  const [availableDates, setAvailableDates] = useState<any[]>([]);
+  const [minAvailableDate, setMinAvailableDate] = useState('');
+  const [maxAvailableDate, setMaxAvailableDate] = useState('');
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -677,10 +680,43 @@ export default function IntakePage() {
     }
   };
 
+  // Fetch available dates (only dates with slots)
+  const fetchAvailableDates = async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      
+      const response = await fetch(api(`/api/intake/available-dates?days=30`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Available dates fetched:', data);
+        setAvailableDates(data.available_dates || []);
+        
+        if (data.available_dates && data.available_dates.length > 0) {
+          setMinAvailableDate(data.available_dates[0].date);
+          setMaxAvailableDate(data.available_dates[data.available_dates.length - 1].date);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching available dates:', error);
+    }
+  };
+
   // Calculate automatic appointment when entering appointment step
   useEffect(() => {
     if (step === 'appointment' && !automaticAppointmentInfo && selectedAssessments.length > 0) {
       calculateAppointment();
+    }
+    
+    // Load available dates for selection
+    if (step === 'appointment') {
+      fetchAvailableDates();
     }
     
     // Generate available time slots for RED/YELLOW urgency
@@ -828,15 +864,20 @@ export default function IntakePage() {
         console.error('❌ API ERROR:', response.status);
         console.error('   Error response:', errorData);
         
-        // Handle 409 Conflict - student already has active appointment
+        // Handle 409 Conflict - student already has active appointment or pending intake
         if (response.status === 409) {
-          const message = errorData.message || errorData.error || 'You already have an active appointment. Please complete or cancel it before booking a new one.';
+          const mainError = errorData.error || 'Conflict detected';
+          const detailMessage = errorData.message || '';
+          const fullMessage = detailMessage || mainError;
+          
           setActiveAppointmentError({
             hasError: true,
-            message: message,
-            appointmentTime: errorData.existing_appointment_status
+            message: fullMessage,
+            appointmentTime: errorData.existing_appointment_status || errorData.existing_intake_status
           });
-          alert('⚠️ ' + message);
+          
+          alert('⚠️ ' + fullMessage);
+          console.warn('⚠️ Conflict (409) - Cannot proceed:', fullMessage);
           setIsSubmitting(false);
           return;
         }
@@ -1872,19 +1913,41 @@ export default function IntakePage() {
                   <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Your Preferred Date
                   </label>
-                  <input
-                    type="date"
-                    value={appointmentDate}
-                    onChange={(e) => {
-                      const newDate = e.target.value;
-                      setAppointmentDate(newDate);
-                      // Fetch available times for this date
-                      fetchAvailableTimesForDate(newDate);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                  />
+                  {availableDates.length > 0 ? (
+                    <select
+                      value={appointmentDate}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        setAppointmentDate(newDate);
+                        // Fetch available times for this date
+                        fetchAvailableTimesForDate(newDate);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    >
+                      <option value="">-- Select a date --</option>
+                      {availableDates.map((date_option: any) => (
+                        <option key={date_option.date} value={date_option.date}>
+                          {date_option.formatted} ({date_option.day_name})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="date"
+                      value={appointmentDate}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        setAppointmentDate(newDate);
+                        // Fetch available times for this date
+                        fetchAvailableTimesForDate(newDate);
+                      }}
+                      min={minAvailableDate}
+                      max={maxAvailableDate}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    />
+                  )}
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    📅 Available times will be shown based on counselor availability
+                    📅 Only dates with available counselor slots are shown
                   </p>
                 </div>
               </>

@@ -317,33 +317,35 @@ def login():
     email = data['email'].lower().strip()
     user = db.db.users.find_one({"email": email})
     
-    if not user or not check_password_hash(user['password_hash'], data['password']):
-        audit_log(db.db, 'access_control', 'failed_login', old_values={'email': email})
-        return jsonify({'error': 'Invalid credentials'}), 401
+    if user:
+        pwd_check = check_password_hash(user['password_hash'], data['password']) if 'password_hash' in user else False
+        if pwd_check:
+            # Password is valid
+            if not user.get('is_verified', True):
+                return jsonify({
+                    'error': 'Email not verified. Please check your email for verification code.',
+                    'user_id': str(user['_id']),
+                    'email': user['email']
+                }), 403
+            
+            if not user.get('is_active', True):
+                return jsonify({'error': 'User account is inactive'}), 403
+            
+            access_token = create_access_token(identity=str(user['_id']))
+            audit_log(db.db, 'auth', 'login', entity_id=str(user['_id']))
+            
+            return jsonify({
+                'access_token': access_token,
+                'user_id': str(user['_id']),
+                'email': user['email'],
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': user['role'],
+            }), 200
     
-    # Check if email is verified
-    if not user.get('is_verified', True):
-        return jsonify({
-            'error': 'Email not verified. Please check your email for verification code.',
-            'user_id': str(user['_id']),
-            'email': user['email']
-        }), 403
-    
-    if not user.get('is_active', True):
-        return jsonify({'error': 'User account is inactive'}), 403
-    
-    access_token = create_access_token(identity=str(user['_id']))
-    
-    audit_log(db.db, 'auth', 'login', entity_id=str(user['_id']))
-    
-    return jsonify({
-        'access_token': access_token,
-        'user_id': str(user['_id']),
-        'email': user['email'],
-        'first_name': user['first_name'],
-        'last_name': user['last_name'],
-        'role': user['role'],
-    }), 200
+    # Invalid credentials - user not found or password wrong
+    audit_log(db.db, 'access_control', 'failed_login', old_values={'email': email})
+    return jsonify({'error': 'Invalid credentials'}), 401
 
 
 

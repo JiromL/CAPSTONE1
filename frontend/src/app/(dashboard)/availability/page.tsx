@@ -90,7 +90,7 @@ export default function AvailabilityPage() {
 
   const fetchAvailability = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5001/api/availability/my-availability', {
+      const response = await fetch('http://localhost:8000/api/availability/my-availability', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -139,7 +139,7 @@ export default function AvailabilityPage() {
 
   const fetchMeetingMethods = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5001/api/staff/settings/my-settings', {
+      const response = await fetch('http://localhost:8000/api/staff/settings/my-settings', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -241,7 +241,7 @@ export default function AvailabilityPage() {
       }
 
       // Delete all existing slots first
-      const existingResponse = await fetch('http://localhost:5001/api/availability/my-availability', {
+      const existingResponse = await fetch('http://localhost:8000/api/availability/my-availability', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -251,7 +251,7 @@ export default function AvailabilityPage() {
       if (existingResponse.ok) {
         const data = await existingResponse.json();
         for (const slot of data.slots || []) {
-          await fetch(`http://localhost:5001/api/availability/${slot.slot_id}`, {
+          await fetch(`http://localhost:8000/api/availability/${slot.slot_id}`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -262,7 +262,7 @@ export default function AvailabilityPage() {
       }
 
       // Create new slots
-      const response = await fetch('http://localhost:5001/api/availability/set-availability', {
+      const response = await fetch('http://localhost:8000/api/availability/set-availability', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -279,7 +279,7 @@ export default function AvailabilityPage() {
       }
 
       // Also save meeting methods preferences
-      await fetch('http://localhost:5001/api/staff/settings/my-settings', {
+      await fetch('http://localhost:8000/api/staff/settings/my-settings', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

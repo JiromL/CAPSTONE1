@@ -50,7 +50,7 @@ export default function AdminAvailabilityPage() {
     const parsedUser = JSON.parse(userData);
     
     // Check if user is admin
-    if (parsedUser.role !== 'ADMIN') {
+    if (parsedUser.role?.toUpperCase() !== 'ADMIN') {
       window.location.href = '/dashboard';
       return;
     }
@@ -70,7 +70,7 @@ export default function AdminAvailabilityPage() {
 
   const fetchCounselors = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5001/api/users?role=COUNSELOR,PSYCHOLOGIST,CSC,CSP', {
+      const response = await fetch('http://localhost:8000/api/users?role=COUNSELOR,PSYCHOLOGIST,CSC,CSP', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ export default function AdminAvailabilityPage() {
   const fetchCounselorAvailability = async (token: string, counselorId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5001/api/availability/counselor/${counselorId}?start_date=2026-01-01T00:00:00&end_date=2026-12-31T23:59:59`,
+        `http://localhost:8000/api/availability/counselor/${counselorId}?start_date=2026-01-01T00:00:00&end_date=2026-12-31T23:59:59`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -143,7 +143,7 @@ export default function AdminAvailabilityPage() {
     try {
       // Note: This uses the counselor's own endpoint
       // In a real implementation, you might want to create an admin-only endpoint
-      const response = await fetch('http://localhost:5001/api/availability/set-availability', {
+      const response = await fetch('http://localhost:8000/api/availability/set-availability', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -181,7 +181,7 @@ export default function AdminAvailabilityPage() {
     if (!confirm('Are you sure you want to delete this slot?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5001/api/availability/${slotId}`, {
+      const response = await fetch(`http://localhost:8000/api/availability/${slotId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

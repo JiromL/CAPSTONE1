@@ -84,7 +84,8 @@ export default function CasesPage() {
 
   const getRoleSpecificTitle = () => {
     if (!user) return 'Case Management';
-    switch (user.role) {
+    const normalizedRole = user.role?.toUpperCase() || 'STUDENT';
+    switch (normalizedRole) {
       case 'COUNSELOR':
         return 'My Client Cases';
       case 'PSYCHOLOGIST':

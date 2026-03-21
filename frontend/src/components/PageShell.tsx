@@ -21,27 +21,29 @@ export default function PageShell({ title, subtitle, actions, children, hideNav 
             <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
               CPS System
             </Link>
-<nav className="flex items-center gap-6 text-sm">
-              <Link href="/dashboard" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
-                Dashboard
-              </Link>
-              <Link href="/tasks" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
-                My Tasks
-              </Link>
-              <Link href="/intake" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
-                Intake Form
-              </Link>
-              <Link href="/book-appointment" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
-                Book Appointment
-              </Link>
-              <Link href="/resources" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
-                Wellness Resources
-              </Link>
-              <Link href="/profile" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
-                Profile
-              </Link>
-            </nav>
-            {title && <div className="text-sm text-gray-600 dark:text-gray-400">{title}</div>}
+            {!hideNav && (
+              <nav className="flex items-center gap-6 text-sm">
+                <Link href="/dashboard" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
+                  Dashboard
+                </Link>
+                <Link href="/tasks" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
+                  My Tasks
+                </Link>
+                <Link href="/intake" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
+                  Intake Form
+                </Link>
+                <Link href="/book-appointment" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
+                  Book Appointment
+                </Link>
+                <Link href="/resources" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
+                  Wellness Resources
+                </Link>
+                <Link href="/profile" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50 transition">
+                  Profile
+                </Link>
+              </nav>
+            )}
+            {title && !hideNav && <div className="text-sm text-gray-600 dark:text-gray-400">{title}</div>}
           </div>
           <div className="flex items-center gap-3">
             <Suspense fallback={<div className="p-2 w-10 h-10" />}>

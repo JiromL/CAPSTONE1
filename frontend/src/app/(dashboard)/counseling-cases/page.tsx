@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { exportToExcel } from '@/utils/export';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { getMenuItemsByRole } from '@/utils/navigation';
 
 interface CounselingCase {
   _id: string;
@@ -15,7 +18,7 @@ interface CounselingCase {
   created_date: string;
 }
 
-export default function CounselingCasesPage() {
+function CounselingCasesContent() {
   const [cases, setCases] = useState<CounselingCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -39,7 +42,7 @@ export default function CounselingCasesPage() {
       if (month) params.append('month', month);
       if (status) params.append('status', status);
 
-      const res = await fetch(`http://localhost:5001/api/client-tracking/counseling-cases?${params}`, {
+      const res = await fetch(`http://localhost:8000/api/client-tracking/counseling-cases?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -60,7 +63,7 @@ export default function CounselingCasesPage() {
       if (month) params.append('month', month);
       if (status) params.append('status', status);
 
-      const res = await fetch(`http://localhost:5001/api/client-tracking/export/counseling-cases?${params}`, {
+      const res = await fetch(`http://localhost:8000/api/client-tracking/export/counseling-cases?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -270,5 +273,57 @@ export default function CounselingCasesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CounselingCasesPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    if (!userData || !token) {
+      router.push('/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    setLoading(false);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    router.push('/login');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const menuItems = getMenuItemsByRole(user.role);
+
+  return (
+    <DashboardLayout
+      user={user}
+      onLogout={handleLogout}
+      menuItems={menuItems}
+      title="Counseling Cases"
+      subtitle="Track existing clients for ongoing counseling with session metrics"
+      activeSection="cases"
+    >
+      <CounselingCasesContent />
+    </DashboardLayout>
   );
 }

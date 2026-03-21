@@ -80,8 +80,11 @@ export function canAccessPage(pathname: string, userRole: UserRole): boolean {
     return true;
   }
   
+  // Normalize user role to uppercase for comparison
+  const normalizedRole = userRole?.toUpperCase() as UserRole;
+  
   // Check if user role is in required roles
-  return requiredRoles.includes(userRole);
+  return requiredRoles.includes(normalizedRole);
 }
 
 /**

@@ -18,8 +18,17 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Only mark as mounted after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    // Skip if not mounted (prevents hydration mismatch)
+    if (!mounted) return;
+
     const loadDashboardData = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -36,7 +45,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
     };
 
     loadDashboardData();
-  }, []);
+  }, [mounted]);
   
   const menuItems = getMenuItemsByRole(user.role);
 

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import PageShell from '@/components/PageShell';
+import { useRouter } from 'next/navigation';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { getMenuItemsByRole } from '@/utils/navigation';
 import { api } from '@/utils/api';
 import { AlertCircle, Plus, Trash2, Edit2, Heart, ChevronRight } from 'lucide-react';
 
@@ -22,6 +24,9 @@ const MOOD_EMOJIS = ['😢', '😟', '😐', '🙂', '😊'];
 const MOOD_LABELS = ['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy'];
 
 export default function JournalPage() {
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [journalData, setJournalData] = useState<JournalData>({ entries: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,16 +37,29 @@ export default function JournalPage() {
   const [newMood, setNewMood] = useState(3);
   const [newTags, setNewTags] = useState('');
 
-  // Fetch journal entries
+  // Mark as mounted for hydration safety
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Fetch journal entries and user data
+  useEffect(() => {
+    if (!mounted) return;
+
     const fetchJournal = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
         if (!token) {
           setError('Not authenticated');
           setLoading(false);
           return;
+        }
+
+        if (userData) {
+          setUser(JSON.parse(userData));
         }
 
         const response = await fetch(`${api('/api/engagement/journal?limit=50')}`, {
@@ -66,7 +84,7 @@ export default function JournalPage() {
     };
 
     fetchJournal();
-  }, []);
+  }, [mounted]);
 
   // Create new entry
   const handleCreateEntry = async () => {
@@ -211,24 +229,36 @@ export default function JournalPage() {
     setNewTags('');
   };
 
-  if (loading) {
+  const handleLogout = () => {
+    localStorage.clear();
+    router.replace('/login');
+  };
+
+  if (loading || !mounted) {
     return (
-      <PageShell>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </PageShell>
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
     );
   }
 
+  const menuItems = getMenuItemsByRole(user?.role || 'student');
+
   return (
-    <PageShell>
+    <DashboardLayout
+      user={user}
+      onLogout={handleLogout}
+      menuItems={menuItems}
+      title="Journal"
+      subtitle="Reflect on your thoughts and feelings"
+      activeSection="journal"
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Journal</h1>
-            <p className="text-gray-600 dark:text-gray-400">Reflect on your thoughts and feelings</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Journal</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Your personal wellness journey</p>
           </div>
           <button
             onClick={() => {
@@ -445,6 +475,6 @@ export default function JournalPage() {
           )}
         </div>
       </div>
-    </PageShell>
+    </DashboardLayout>
   );
 }

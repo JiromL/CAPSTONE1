@@ -15,25 +15,39 @@ export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
+  // First effect: Only mark as mounted after hydration
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    setMounted(true);
+  }, []);
 
-    console.log('Dashboard loaded. Token:', token ? 'exists' : 'missing');
-    console.log('Dashboard loaded. User data:', userData ? 'exists' : 'missing');
+  // Second effect: Only check auth after hydration
+  useEffect(() => {
+    if (!mounted) return;
 
-    if (!userData || !token) {
-      console.log('No token or user data, redirecting to login');
-      router.push('/login');
-      return;
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+
+      // If no auth data, redirect to login
+      if (!token || !userData) {
+        setLoading(false);
+        router.replace('/login');
+        return;
+      }
+
+      // Parse and set user
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      setLoading(false);
+    } catch (err) {
+      console.error('Auth check failed:', err);
+      localStorage.clear();
+      setLoading(false);
+      router.replace('/login');
     }
-
-    const parsedUser = JSON.parse(userData);
-    console.log('Parsed user:', parsedUser);
-    setUser(parsedUser);
-    setLoading(false);
-  }, [router]);
+  }, [mounted, router]);
 
   const handleLogout = () => {
     // Clear all caches before clearing localStorage
@@ -47,8 +61,11 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -57,7 +74,11 @@ export default function Dashboard() {
     return null;
   }
 
-  switch (user.role) {
+  // Normalize role to uppercase for comparison
+  const normalizedRole = user.role?.toUpperCase() || 'STUDENT';
+  console.log('User role:', user.role, '| Normalized:', normalizedRole);
+
+  switch (normalizedRole) {
     case 'ADMIN':
       return <AdminDashboard user={user} onLogout={handleLogout} />;
     case 'DPO':
@@ -76,6 +97,7 @@ export default function Dashboard() {
     case 'STUDENT':
       return <StudentDashboard user={user} onLogout={handleLogout} />;
     default:
+      console.warn('Unknown role:', normalizedRole, 'Defaulting to StudentDashboard');
       return <StudentDashboard user={user} onLogout={handleLogout} />;
   }
 }

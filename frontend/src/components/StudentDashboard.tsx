@@ -28,8 +28,16 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [resourceCount, setResourceCount] = useState(0);
   const [isCheckInOnly, setIsCheckInOnly] = useState(false);
   const [taskCount, setTaskCount] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  // Only mark as mounted after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    // Skip if not mounted (prevents hydration mismatch)
+    if (!mounted) return;
     const loadDashboardData = async () => {
       try {
         // Load counseling ID from localStorage
@@ -110,7 +118,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     };
 
     loadDashboardData();
-  }, []);
+  }, [mounted]);
 
   // Build menu items conditionally
   const baseMenuItems = getMenuItemsByRole(user.role).map(item => {

@@ -91,7 +91,7 @@ export default function CounselorSchedulePage() {
     
     // Check if user is counselor/staff
     const staffRoles = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'ADMIN'];
-    if (!staffRoles.includes(parsedUser.role)) {
+    if (!staffRoles.includes(parsedUser.role?.toUpperCase())) {
       router.push('/dashboard');
       return;
     }

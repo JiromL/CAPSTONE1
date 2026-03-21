@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { LogOut, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import { getMenuIcon } from '@/utils/dashboard-icons';
 
 interface MenuItem {
   label: string;
@@ -82,7 +83,9 @@ export function DashboardLayout({
                   ? 'bg-gray-100 dark:bg-gray-800 border-gray-900 dark:border-gray-300 text-gray-900 dark:text-gray-100 font-medium' 
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-400 dark:hover:border-gray-500'
               }`}>
-                <span className={`flex-1${!sidebarOpen && 'hidden'}`}>
+                {item.icon && <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{item.icon}</span>}
+                {!item.icon && item.id && <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{getMenuIcon(item.id)}</span>}
+                <span className={`flex-1 ${!sidebarOpen && 'hidden'}`}>
                   {item.label}
                 </span>
                 {item.badge && sidebarOpen && (

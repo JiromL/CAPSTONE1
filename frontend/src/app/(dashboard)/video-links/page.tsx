@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import PageShell from '@/components/PageShell';
+import { useRouter } from 'next/navigation';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { AlertCircle, Video, ExternalLink, Lock, Copy, Check } from 'lucide-react';
 
@@ -36,25 +37,31 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export default function VideoLinksPage() {
+  const router = useRouter();
   const [videoLinks, setVideoLinks] = useState<VideoLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Fetch video links from appointments/sessions
   useEffect(() => {
+    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    if (!userData || !token) {
+      router.push('/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+
     const fetchVideoLinks = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        if (!token) {
-          setError('Not authenticated');
-          setLoading(false);
-          return;
-        }
-
-        // Get user's appointments/sessions with video links
         const appointmentsResponse = await fetch(`${api('/api/appointments?include_video_links=true')}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -101,7 +108,7 @@ export default function VideoLinksPage() {
     };
 
     fetchVideoLinks();
-  }, []);
+  }, [router]);
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -124,11 +131,11 @@ export default function VideoLinksPage() {
 
   if (loading) {
     return (
-      <PageShell>
+      <DashboardPageWrapper title="Video Meeting Links" subtitle="Join your counseling sessions">
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
-      </PageShell>
+      </DashboardPageWrapper>
     );
   }
 
@@ -137,7 +144,7 @@ export default function VideoLinksPage() {
   const pastLinks = videoLinks.filter(link => !isUpcoming(link.start_time));
 
   return (
-    <PageShell>
+    <DashboardPageWrapper title="Video Meeting Links" subtitle="Join your counseling sessions">
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -376,6 +383,6 @@ export default function VideoLinksPage() {
           </p>
         </div>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

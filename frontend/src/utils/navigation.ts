@@ -128,6 +128,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     
     // Primary Workflow
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
+    { label: 'Walk-In Intake', href: '/walk-in-intake', id: 'walk-in-intake' },
     { label: 'Check-In Tracking', href: '/check-in-tracking', id: 'check-in-tracking' },
     { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests' },
     

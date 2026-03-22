@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Users, HelpCircle, CheckCircle, BarChart3, MessageSquare, Settings, FileText, UserPlus, Stethoscope } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { getMenuItemsByRole } from '@/utils/navigation';
 import { useState } from 'react';
 
 interface DashboardProps {

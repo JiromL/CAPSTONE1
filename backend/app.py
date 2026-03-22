@@ -51,6 +51,9 @@ from blueprints.scheduling_reports import scheduling_reports_bp
 from blueprints.conflict_resolution import conflict_resolution_bp
 from blueprints.matching_algorithm import matching_algorithm_bp
 from blueprints.case_management import case_management_bp
+from blueprints.reminders import reminders_bp
+from blueprints.feedback import feedback_bp
+from blueprints.c2c_referral import c2c_referral_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -121,6 +124,9 @@ def create_app(config_name=None):
     app.register_blueprint(conflict_resolution_bp)
     app.register_blueprint(matching_algorithm_bp)
     app.register_blueprint(case_management_bp)
+    app.register_blueprint(reminders_bp)
+    app.register_blueprint(feedback_bp)
+    app.register_blueprint(c2c_referral_bp)
     
     # Health check route
     @app.route('/api/health', methods=['GET'])

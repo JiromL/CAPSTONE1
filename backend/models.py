@@ -43,7 +43,7 @@ class PermissionType(str, Enum):
 
 
 class RiskLevel(str, Enum):
-    """Risk classification levels"""
+    OFFICE_ASSISTANT = "OFFICE_ASSISTANT"  # Office assistant/support staff
     GREEN = "GREEN"      # 0-25%
     YELLOW = "YELLOW"    # 25-50%
     RED = "RED"           # 50-75%
@@ -111,7 +111,13 @@ class AssessmentType(str, Enum):
     """Types of assessment tools"""
     PHQ9 = "PHQ9"            # Depression screening
     GAD7 = "GAD7"            # Anxiety screening
-    PSS = "PSS"              # Perceived Stress Scale
+
+
+# CaseType enum for case classification
+class CaseType(str, Enum):
+    CLINICAL = "CLINICAL"              # Diagnosis, ongoing psychotherapy (PSYCHOLOGIST)
+    DEVELOPMENTAL = "DEVELOPMENTAL"    # Non-clinical counseling (COUNSELOR)
+    CHECK_IN = "CHECK_IN"              # Periodic check-ins only
 
 
 class CaseStatus(str, Enum):
@@ -122,13 +128,6 @@ class CaseStatus(str, Enum):
     PENDING_TERMINATION = "PENDING_TERMINATION"  # Client or counselor initiated end
     CLOSED = "CLOSED"                        # Case terminated & documented
     CANCELLED = "CANCELLED"                  # Case never started
-
-
-class CaseType(str, Enum):
-    """Types of cases"""
-    CLINICAL = "CLINICAL"              # Diagnosis, ongoing psychotherapy (PSYCHOLOGIST)
-    DEVELOPMENTAL = "DEVELOPMENTAL"    # Non-clinical counseling (COUNSELOR)
-    CHECK_IN = "CHECK_IN"             # Periodic check-ins only
 
 
 class ResourceUploadRole(str, Enum):
@@ -216,6 +215,9 @@ ROLE_PERMISSIONS = {
 
 
 class MongoDB:
+    @property
+    def feedback_submissions(self):
+        return self.db.feedback_submissions if self.db is not None else None
     """MongoDB connection and database manager"""
     def __init__(self):
         self.client = None
@@ -277,6 +279,19 @@ class MongoDB:
             self.db.counseling_cases.create_index("case_number")
             self.db.counseling_cases.create_index("counselor_id")
             self.db.counseling_cases.create_index("client_id_number")
+            # Add missing collection for C2C referrals
+            self.db.counselor_referrals.create_index("case_id")
+            self.db.counselor_referrals.create_index("referring_counselor_id")
+            self.db.counselor_referrals.create_index("target_counselor_id")
+            self.db.counselor_referrals.create_index("specialty_required")
+            self.db.counselor_referrals.create_index("urgency")
+            # Add missing collection for feedback submissions
+            self.db.feedback_submissions.create_index("case_id")
+            self.db.feedback_submissions.create_index("session_id")
+            self.db.feedback_submissions.create_index("counselor_id")
+            self.db.feedback_submissions.create_index("client_id")
+            self.db.feedback_submissions.create_index("feedback_type")
+            self.db.feedback_submissions.create_index("status")
         except Exception as e:
             print(f"⚠ MongoDB indexes warning: {e}")
 

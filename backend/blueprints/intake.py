@@ -2209,7 +2209,7 @@ def create_walkin_intake():
             'counseling_id': counseling_id,
             'case_id': case_id,
             'student_email': data.get('email'),
-            'status': AppointmentStatus.PENDING,
+            'status': AppointmentStatus.REQUESTED,
             'appointment_type': 'INITIAL_CONSULTATION',
             'scheduled_date': appointment_date,
             'appointment_time': appointment_time,

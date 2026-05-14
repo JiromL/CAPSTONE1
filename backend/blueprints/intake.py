@@ -2221,12 +2221,8 @@ def create_walkin_intake():
         db.db.appointments.insert_one(appointment_data)
         
         # Audit log
-        audit_log(
-            user_id,
-            'CREATE_WALKIN_INTAKE',
-            f"Created walk-in intake for {data.get('first_name')} {data.get('last_name')} ({data.get('email')})",
-            result.inserted_id
-        )
+        audit_log(db.db, 'intake', 'CREATE_WALKIN_INTAKE', entity_id=str(result.inserted_id),
+                  new_values={'student': f"{data.get('first_name')} {data.get('last_name')}", 'email': data.get('email'), 'is_urgent': is_urgent})
         
         return jsonify({
             'success': True,

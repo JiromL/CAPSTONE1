@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import Link from 'next/link';
+import { api } from '@/utils/api';
 
 interface AvailableSlot {
   slot_id: string;
@@ -87,7 +88,7 @@ export default function BookAppointmentPage() {
         endDate.setDate(endDate.getDate() + 30);
 
         const response = await fetch(
-          `http://localhost:8000/api/appointments/availability?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`,
+          api(`/api/appointments/availability?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`),
           {
             method: 'GET',
             headers: {
@@ -245,7 +246,7 @@ export default function BookAppointmentPage() {
       const finalPurpose = purpose === 'others' ? otherPurpose : purpose;
 
       // Create appointment with preferred date and time
-      const response = await fetch('http://localhost:8000/api/appointments/request', {
+      const response = await fetch(api('/api/appointments/request'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

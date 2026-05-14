@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { exportToExcel } from '@/utils/export';
+import { api } from '@/utils/api';
 
 interface CheckInClient {
   _id: string;
@@ -40,7 +41,7 @@ export default function CheckInClientsPage() {
       if (concern) params.append('concern', concern);
       if (status) params.append('status', status);
 
-      const res = await fetch(`http://localhost:5001/api/client-tracking/check-ins?${params}`, {
+      const res = await fetch(api(`/api/client-tracking/check-ins?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -62,7 +63,7 @@ export default function CheckInClientsPage() {
       if (concern) params.append('concern', concern);
       if (status) params.append('status', status);
 
-      const res = await fetch(`http://localhost:5001/api/client-tracking/export/check-ins?${params}`, {
+      const res = await fetch(api(`/api/client-tracking/export/check-ins?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

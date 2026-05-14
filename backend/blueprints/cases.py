@@ -26,8 +26,11 @@ def get_cases_for_user(user_id, user_role):
         # PSYCHOLOGIST/COUNSELOR see only cases assigned to them
         return {'assigned_counselor_id': ObjectId(user_id)}
     elif user_role == UserRole.IC:
-        # IC sees new/pending intake cases
-        return {'status': {'$in': [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]}}
+        # IC sees new/pending intake cases (query both field names for compatibility)
+        return {'$or': [
+            {'case_status': {'$in': [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]}},
+            {'status': {'$in': [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]}},
+        ]}
     elif user_role == UserRole.STUDENT:
         # STUDENT sees only their own case
         return {'student_id': ObjectId(user_id)}
@@ -96,7 +99,7 @@ def get_cases():
     # Apply filters
     filters = {}
     if request.args.get('status'):
-        filters['status'] = request.args.get('status')
+        filters['case_status'] = request.args.get('status')
     if request.args.get('case_type'):
         filters['case_type'] = request.args.get('case_type')
     if request.args.get('risk_level'):
@@ -107,14 +110,15 @@ def get_cases():
     # Get cases
     cases = []
     for case in db.db.cases.find(query).sort('created_at', -1):
-        case['_id'] = str(case['_id'])
-        if case.get('student_id'):
-            case['student_id'] = str(case['student_id'])
-        if case.get('assigned_counselor_id'):
-            case['assigned_counselor_id'] = str(case['assigned_counselor_id'])
-        if case.get('intake_counselor_id'):
-            case['intake_counselor_id'] = str(case['intake_counselor_id'])
-        cases.append(case)
+        serialized = {}
+        for k, v in case.items():
+            if isinstance(v, ObjectId):
+                serialized[k] = str(v)
+            elif isinstance(v, datetime):
+                serialized[k] = v.isoformat()
+            else:
+                serialized[k] = v
+        cases.append(serialized)
     
     return jsonify({
         'count': len(cases),
@@ -185,7 +189,7 @@ def create_checkin_case():
         'primary_concern': data.get('primary_concern', data['concern']),
         'case_type': CaseType.DEVELOPMENTAL.value,  # Non-counseling cases are DEVELOPMENTAL type
         'risk_level': RiskLevel.GREEN.value,  # Default GREEN for check-in only
-        'status': 'open',
+        'case_status': 'open',
         'created_at': datetime.utcnow(),
         'updated_at': datetime.utcnow(),
         'created_by': ObjectId(user_id) if isinstance(user_id, str) else user_id,
@@ -236,7 +240,7 @@ def create_case():
         'student_id': student_id,
         'intake_counselor_id': ObjectId(user_id) if user.get('role') == UserRole.IC else None,
         'assigned_counselor_id': None,  # Assigned after intake
-        'status': CaseStatus.NEW.value,
+        'case_status': CaseStatus.NEW.value,
         'case_type': data.get('case_type', CaseType.DEVELOPMENTAL.value),
         'presenting_issue': data.get('presenting_issue', ''),
         'risk_level': data.get('risk_level', RiskLevel.GREEN.value),
@@ -291,7 +295,7 @@ def get_case(case_id):
     elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
         if case.get('assigned_counselor_id') and str(case['assigned_counselor_id']) != user_id:
             return jsonify({'error': 'Case not assigned to you'}), 403
-    elif user_role == UserRole.IC and case['status'] not in [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]:
+    elif user_role == UserRole.IC and case.get('case_status', case.get('status')) not in [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]:
         return jsonify({'error': 'IC can only view new/pending cases'}), 403
     
     # Format response
@@ -338,7 +342,7 @@ def update_case(case_id):
     # Update allowed fields
     updates = {}
     if 'status' in data:
-        updates['status'] = data['status']
+        updates['case_status'] = data['status']
     if 'risk_level' in data:
         updates['risk_level'] = data['risk_level']
     if 'presenting_issue' in data:
@@ -394,7 +398,7 @@ def assign_case(case_id):
         {'$set': {
             'assigned_counselor_id': ObjectId(counselor_id),
             'case_type': case_type,
-            'status': CaseStatus.ACTIVE.value,
+            'case_status': CaseStatus.ACTIVE.value,
             'updated_at': datetime.utcnow()
         }}
     )
@@ -487,7 +491,7 @@ def close_case(case_id):
     db.db.cases.update_one(
         {'_id': ObjectId(case_id)},
         {'$set': {
-            'status': CaseStatus.CLOSED.value,
+            'case_status': CaseStatus.CLOSED.value,
             'termination_reason': data.get('termination_reason'),
             'termination_date': datetime.utcnow(),
             'final_notes': data.get('final_notes'),

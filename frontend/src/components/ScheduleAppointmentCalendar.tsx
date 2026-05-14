@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { api } from '@/utils/api';
 
 interface AvailableSlot {
   slot_id: string;
@@ -50,7 +51,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
       console.log('[ScheduleCalendar] Fetching case with ID:', caseId?.substring(0, 8) + '...');
 
       // For now, we'll fetch the case to get the case's assigned counselor
-      const response = await fetch(`http://localhost:5001/api/cases/${caseId}`, {
+      const response = await fetch(api(`/api/cases/${caseId}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -107,7 +108,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
       const endDate = lastDay.toISOString().split('T')[0];
 
       const response = await fetch(
-        `http://localhost:5001/api/availability/counselor/${counselorId}?start_date=${startDate}T00:00:00&end_date=${endDate}T23:59:59`,
+        api(`/api/availability/counselor/${counselorId}?start_date=${startDate}T00:00:00&end_date=${endDate}T23:59:59`),
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -138,7 +139,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/appointments/request', {
+      const response = await fetch(api('/api/appointments/request'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

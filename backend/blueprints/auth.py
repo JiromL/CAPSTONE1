@@ -103,7 +103,10 @@ def google_oauth_callback():
         })
     
     # Create JWT token
-    access_token = create_access_token(identity=str(existing_user['_id']))
+    access_token = create_access_token(
+        identity=str(existing_user['_id']),
+        additional_claims={'role': existing_user.get('role', '')}
+    )
     
     return jsonify({
         'access_token': access_token,
@@ -331,7 +334,10 @@ def login():
             if not user.get('is_active', True):
                 return jsonify({'error': 'User account is inactive'}), 403
             
-            access_token = create_access_token(identity=str(user['_id']))
+            access_token = create_access_token(
+                identity=str(user['_id']),
+                additional_claims={'role': user.get('role', '')}
+            )
             audit_log(db.db, 'auth', 'login', entity_id=str(user['_id']))
             
             return jsonify({

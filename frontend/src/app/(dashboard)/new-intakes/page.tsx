@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { exportToExcel } from '@/utils/export';
+import { api } from '@/utils/api';
 
 interface NewClientIntake {
   _id: string;
@@ -40,7 +41,7 @@ export default function NewIntakesPage() {
       if (search) params.append('search', search);
       if (month) params.append('month', month);
 
-      const res = await fetch(`http://localhost:5001/api/client-tracking/new-intakes?${params}`, {
+      const res = await fetch(api(`/api/client-tracking/new-intakes?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -60,7 +61,7 @@ export default function NewIntakesPage() {
       if (search) params.append('search', search);
       if (month) params.append('month', month);
 
-      const res = await fetch(`http://localhost:5001/api/client-tracking/export/new-intakes?${params}`, {
+      const res = await fetch(api(`/api/client-tracking/export/new-intakes?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Save, ArrowLeft, Clock, Bell, User, BookOpen, Languages, FileText, Tag, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { api } from '@/utils/api';
 
 interface WorkPreferences {
   default_session_duration: number;
@@ -62,7 +63,7 @@ export default function StaffSettingsPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/staff/settings/my-settings', {
+      const response = await fetch(api('/api/staff/settings/my-settings'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -85,7 +86,10 @@ export default function StaffSettingsPage() {
 
   const loadSpecialties = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/staff/settings/specialty-areas');
+      const token = localStorage.getItem('token');
+      const response = await fetch(api('/api/staff/settings/specialty-areas'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.ok) {
         const data = await response.json();
         setSpecialtyOptions(data.specialty_areas);
@@ -162,7 +166,7 @@ export default function StaffSettingsPage() {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/staff/settings/my-settings', {
+      const response = await fetch(api('/api/staff/settings/my-settings'), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

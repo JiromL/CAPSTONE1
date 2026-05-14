@@ -7,6 +7,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ScheduleAppointmentCalendar } from '@/components/ScheduleAppointmentCalendar';
 import { CancelNoShowModal } from '@/components/CancelNoShowModal';
 import { getApiUrl } from '@/utils/api-config';
+import { api } from '@/utils/api';
 
 interface Appointment {
   _id: string;
@@ -297,7 +298,7 @@ export default function AppointmentsPage() {
     setCancelling(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/appointments/${appointment._id}/cancel`, {
+      const response = await fetch(api(`/api/appointments/${appointment._id}/cancel`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, ArrowLeft, Search, Edit2, Trash2, Shield, Eye, X } from 'lucide-react';
 import Link from 'next/link';
 import PageShell from '@/components/PageShell';
+import { api } from '@/utils/api';
 
 export default function UserManagementPage() {
   interface User {
@@ -42,7 +43,7 @@ export default function UserManagementPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/users/all', {
+      const response = await fetch(api('/api/users/all'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -85,7 +86,7 @@ export default function UserManagementPage() {
       setUpdating(true);
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`http://localhost:5001/api/users/${selectedUser._id}/role`, {
+      const response = await fetch(api(`/api/users/${selectedUser._id}/role`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

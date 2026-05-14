@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import Link from 'next/link';
+import { api } from '@/utils/api';
 
 interface StudentInfo {
   _id: string;
@@ -104,7 +105,7 @@ export default function CounselorSchedulePage() {
     setRefreshing(true);
     try {
       const response = await fetch(
-        'http://localhost:5001/api/appointments/dashboard/role-view',
+        api('/api/appointments/dashboard/role-view'),
         {
           headers: {
             Authorization: `Bearer ${token}`,

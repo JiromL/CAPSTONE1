@@ -29,7 +29,7 @@ except Exception as e:
     exit(1)
 
 # Clear existing collections for fresh seed
-collections_to_clear = ['users', 'appointments', 'cases', 'intakes', 'resources', 'check_ins']
+collections_to_clear = ['users', 'appointments', 'cases', 'intakes', 'assessments', 'resources', 'check_ins', 'counselor_availability']
 for col_name in collections_to_clear:
     if col_name in db.list_collection_names():
         db[col_name].delete_many({})
@@ -109,9 +109,9 @@ print("="*60 + "\n")
 cases = [
     {
         'student_id': student1_id,
-        'counselor_id': counselor1_id,
+        'assigned_counselor_id': counselor1_id,
         'assigned_psychologist_id': psychologist1_id,
-        'status': 'ACTIVE',
+        'case_status': 'ACTIVE',
         'case_number': 'CPS-2024-001',
         'opening_date': now - timedelta(days=30),
         'chief_complaint': 'Academic stress and time management',
@@ -123,9 +123,9 @@ cases = [
     },
     {
         'student_id': student2_id,
-        'counselor_id': counselor1_id,
+        'assigned_counselor_id': counselor1_id,
         'assigned_psychologist_id': psychologist1_id,
-        'status': 'ACTIVE',
+        'case_status': 'ACTIVE',
         'case_number': 'CPS-2024-002',
         'opening_date': now - timedelta(days=15),
         'chief_complaint': 'Relationship issues and social anxiety',

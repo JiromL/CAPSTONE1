@@ -76,18 +76,8 @@ def create_app(config_name=None):
     app.config['ZOOM_TOKEN_SECRET'] = os.getenv('ZOOM_TOKEN_SECRET', app.config.get('ZOOM_TOKEN_SECRET'))
     
     # Initialize extensions
-    CORS(app, resources={r"/api/*": {"origins": [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:3003",
-        "http://localhost:3004",  # allow multiple ports for Next.js development
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002",
-        "http://127.0.0.1:3003",
-        "http://127.0.0.1:3004"
-    ]}})
+    # Allow all origins for development (CORS)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
     jwt = JWTManager(app)
     
     # Initialize MongoDB

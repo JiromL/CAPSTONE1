@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { exportToExcel } from '@/utils/export';
+import { api } from '@/utils/api';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { getMenuItemsByRole } from '@/utils/navigation';
 
@@ -42,7 +43,7 @@ function CounselingCasesContent() {
       if (month) params.append('month', month);
       if (status) params.append('status', status);
 
-      const res = await fetch(`http://localhost:8000/api/client-tracking/counseling-cases?${params}`, {
+      const res = await fetch(api(`/api/client-tracking/counseling-cases?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -63,7 +64,7 @@ function CounselingCasesContent() {
       if (month) params.append('month', month);
       if (status) params.append('status', status);
 
-      const res = await fetch(`http://localhost:8000/api/client-tracking/export/counseling-cases?${params}`, {
+      const res = await fetch(api(`/api/client-tracking/export/counseling-cases?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

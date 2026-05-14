@@ -63,7 +63,7 @@ def get_analytics_summary():
             'created_at': {'$gte': month_start}
         })
         
-        audit_log(db.db, 'analytics', 'view_summary', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_summary')
         
         return jsonify({
             'total_cases': total_cases,
@@ -116,7 +116,7 @@ def get_case_trends():
         
         trends = list(db.db.cases.aggregate(pipeline))
         
-        audit_log(db.db, 'analytics', 'view_case_trends', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_case_trends')
         
         return jsonify({
             'period_days': days,
@@ -167,7 +167,7 @@ def get_assessment_distribution():
         
         risk_summary = {item['_id']: item['count'] for item in all_risks}
         
-        audit_log(db.db, 'analytics', 'view_assessment_distribution', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_assessment_distribution')
         
         return jsonify({
             'assessment_types': assessment_dist,
@@ -230,7 +230,7 @@ def get_staff_workload():
         # Sort by workload
         workload_data.sort(key=lambda x: x['active_cases'], reverse=True)
         
-        audit_log(db.db, 'analytics', 'view_staff_workload', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_staff_workload')
         
         return jsonify({
             'staff_workload': workload_data,
@@ -307,7 +307,7 @@ def get_appointment_statistics():
         wait_stats = list(db.db.appointments.aggregate(pipeline_wait))
         avg_wait = wait_stats[0]['avg_wait_days'] if wait_stats else 0
         
-        audit_log(db.db, 'analytics', 'view_appointment_stats', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_appointment_stats')
         
         return jsonify({
             'period_days': days,
@@ -368,7 +368,7 @@ def get_risk_trends():
         ]):
             current_distribution[item['_id']] = item['count']
         
-        audit_log(db.db, 'analytics', 'view_risk_trends', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_risk_trends')
         
         return jsonify({
             'period_days': days,
@@ -417,7 +417,7 @@ def get_referral_summary():
         
         total = sum(status_counts.values())
         
-        audit_log(db.db, 'analytics', 'view_referral_summary', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_referral_summary')
         
         return jsonify({
             'status_breakdown': status_counts,
@@ -452,7 +452,7 @@ def get_intake_conversion():
         intake_conversion = (intake_completed / intake_started * 100) if intake_started > 0 else 0
         case_conversion = (cases_from_intake / intake_completed * 100) if intake_completed > 0 else 0
         
-        audit_log(db.db, 'analytics', 'view_intake_conversion', user_id=user_id)
+        audit_log(db.db, 'analytics', 'view_intake_conversion')
         
         return jsonify({
             'intake_started': intake_started,

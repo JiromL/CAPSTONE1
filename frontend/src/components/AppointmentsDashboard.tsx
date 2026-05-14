@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Clock, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { api } from '@/utils/api';
 
 interface Appointment {
   appointment_id: string;
@@ -41,7 +42,7 @@ export default function AppointmentsDashboard() {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:5001/api/appointments/dashboard/role-view', {
+      const response = await fetch(api('/api/appointments/dashboard/role-view'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

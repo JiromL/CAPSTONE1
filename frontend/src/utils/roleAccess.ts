@@ -39,6 +39,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
 
   // Staff pages
   '/appointment-requests': ['IC', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'ADMIN', 'DPO'],
+  '/walk-in-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/check-in-tracking': ['STAFF', 'ADMIN', 'DPO'],
   '/reschedule-requests': ['STAFF', 'ADMIN', 'DPO'],
   '/staff-settings': ['STAFF', 'ADMIN', 'DPO'],

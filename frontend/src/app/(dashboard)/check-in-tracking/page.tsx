@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { exportToExcel } from '@/utils/export';
 import { api } from '@/utils/api';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 interface CheckInClient {
   _id: string;
@@ -88,9 +89,8 @@ export default function CheckInClientsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <DashboardPageWrapper title="Check-In Tracking" subtitle="Track students requiring periodic check-ins only">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Non-Counseling Clients (Check-ins)</h1>
           <p className="text-slate-600 mt-2">Track students requiring periodic check-ins only</p>
@@ -252,6 +252,6 @@ export default function CheckInClientsPage() {
           </div>
         )}
       </div>
-    </div>
+    </DashboardPageWrapper>
   );
 }

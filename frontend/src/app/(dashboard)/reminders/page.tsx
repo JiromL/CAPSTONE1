@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { AlertCircle, Plus, Trash2, Check, Clock, Calendar } from 'lucide-react';
 
@@ -206,11 +206,11 @@ export default function RemindersPage() {
 
   if (loading) {
     return (
-      <PageShell>
+      <DashboardPageWrapper title="Reminders" subtitle="Manage your appointments and tasks">
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
-      </PageShell>
+      </DashboardPageWrapper>
     );
   }
 
@@ -218,14 +218,11 @@ export default function RemindersPage() {
   const pastCount = remindersData.reminders.filter(r => !isUpcoming(r.reminder_time)).length;
 
   return (
-    <PageShell>
+    <DashboardPageWrapper title="Reminders" subtitle="Manage your appointments and tasks">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reminders</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your appointments and tasks</p>
-          </div>
+          <div />
           <button
             onClick={() => setShowNewReminder(!showNewReminder)}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
@@ -458,6 +455,6 @@ export default function RemindersPage() {
           )}
         </div>
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { exportToExcel } from '@/utils/export';
 import { api } from '@/utils/api';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 interface NewClientIntake {
   _id: string;
@@ -101,8 +101,8 @@ export default function NewIntakesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-7xl mx-auto">
+    <DashboardPageWrapper title="New Client Intakes" subtitle="Manage new client intake requests and processing">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">New Client Intakes</h1>
@@ -239,6 +239,6 @@ export default function NewIntakesPage() {
           </div>
         )}
       </div>
-    </div>
+    </DashboardPageWrapper>
   );
 }

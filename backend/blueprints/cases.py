@@ -351,6 +351,10 @@ def update_case(case_id):
         updates['target_sessions'] = data['target_sessions']
     if 'next_appointment' in data:
         updates['next_appointment'] = data['next_appointment']
+    if 'treatment_plan' in data:
+        updates['treatment_plan'] = data['treatment_plan']
+    if 'notes' in data:
+        updates['notes'] = data['notes']
     
     updates['updated_at'] = datetime.utcnow()
     

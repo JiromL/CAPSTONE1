@@ -56,17 +56,18 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const counselorItems: MenuItem[] = [
     // Core Navigation
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
+
     // Primary Workflow
+    { label: 'Cases', href: '/cases', id: 'cases-mgmt' },
     { label: 'Counseling Cases', href: '/counseling-cases', id: 'cases' },
     { label: 'Appointments', href: '/appointments', id: 'appointments' },
     { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
-    
+
     // Clinical Tools
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },
-    
+
     // Profile & Support
     { label: 'Counselor Profile', href: '/counselor', id: 'counselor-profile' },
     { label: 'Documentation', href: '/documentation', id: 'documentation' },
@@ -106,12 +107,13 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const supportTeamItems: MenuItem[] = [
     // Core Navigation
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
+
     // Primary Workflow
     { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'Supervision', href: '/supervision', id: 'supervision' },
     { label: 'Appointments', href: '/appointments', id: 'appointments' },
     { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
-    
+
     // Support
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
@@ -144,23 +146,27 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const adminItems: MenuItem[] = [
     // Core Navigation
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
+
     // System Management (Critical)
     { label: 'User Management', href: '/admin/users', id: 'admin' },
+    { label: 'Roles', href: '/admin/roles', id: 'roles' },
+    { label: 'Permissions', href: '/admin/permissions', id: 'permissions' },
     { label: 'Availability', href: '/availability', id: 'availability' },
-    
+
     // Analytics & Monitoring
     { label: 'Analytics', href: '/admin/analytics', id: 'analytics' },
+    { label: 'Audit Logs', href: '/admin/audit-log', id: 'audit' },
+    { label: 'System Health', href: '/admin/health', id: 'health' },
     { label: 'High-Risk Cases', href: '/high-risk', id: 'high-risk' },
-    
+
     // Operational
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
     { label: 'Reminders', href: '/reminders', id: 'reminders' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    
+    { label: 'Data Export', href: '/admin/reports/export', id: 'export' },
+
     // Support
     { label: 'Resources', href: '/resources', id: 'resources' },
-    { label: 'Settings', href: '/staff-settings', id: 'settings' },
+    { label: 'Settings', href: '/admin/settings', id: 'settings' },
     { label: 'Profile', href: '/profile', id: 'profile' },
   ];
 
@@ -169,16 +175,17 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const dpoItems: MenuItem[] = [
     // Core Navigation
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
+
     // Governance (Critical - Unique to DPO)
-    { label: 'Audit Logs', href: '/admin/users', id: 'audit' },
+    { label: 'Audit Logs', href: '/admin/audit-log', id: 'audit' },
     { label: 'User Management', href: '/admin/users', id: 'admin' },
-    
+    { label: 'Data Export', href: '/admin/reports/export', id: 'export' },
+
     // Oversight
     { label: 'High-Risk Cases', href: '/high-risk', id: 'high-risk' },
     { label: 'Cases', href: '/cases', id: 'cases' },
     { label: 'Appointments', href: '/appointment-requests', id: 'appointments' },
-    
+
     // Analytics
     { label: 'Analytics', href: '/admin/analytics', id: 'analytics' },
     { label: 'Documentation', href: '/documentation', id: 'documentation' },

@@ -27,31 +27,56 @@ export default function ProfilePage() {
 
   const [formData, setFormData] = useState(profile);
 
-  // Load user data from localStorage on mount
+  // Load user data from API on mount, fall back to localStorage
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
+    const token = localStorage.getItem('token');
+    const cached = localStorage.getItem('user');
+    const cachedUser = cached ? JSON.parse(cached) : {};
+
+    // Pre-fill immediately from cache so the page isn't blank
+    const fromCache = {
+      firstName: cachedUser.first_name || '',
+      lastName: cachedUser.last_name || '',
+      email: cachedUser.email || '',
+      phone: cachedUser.phone || '',
+      studentId: cachedUser.id_number || '',
+      course: cachedUser.course || '',
+      major: cachedUser.major || '',
+      year: cachedUser.year || '',
+      emergencyContact: cachedUser.emergency_contact || '',
+      emergencyPhone: cachedUser.emergency_phone || '',
+    };
+    setProfile(fromCache);
+    setFormData(fromCache);
+    setUserRole(cachedUser.role || null);
+
+    if (!token) return;
+
+    // Fetch fresh data from the API
+    fetch(api('/api/users/profile'), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(user => {
+        const fresh = {
+          firstName: user.first_name || '',
+          lastName: user.last_name || '',
+          email: user.email || '',
+          phone: user.phone || '',
+          studentId: user.id_number || '',
+          course: user.course || '',
+          major: user.major || '',
+          year: user.year || '',
+          emergencyContact: user.emergency_contact || '',
+          emergencyPhone: user.emergency_phone || '',
+        };
+        setProfile(fresh);
+        setFormData(fresh);
         setUserRole(user.role || null);
-        setProfile(prev => ({
-          ...prev,
-          firstName: user.first_name || prev.firstName,
-          lastName: user.last_name || prev.lastName,
-          email: user.email || prev.email,
-          studentId: user.id_number || user._id || prev.studentId,
-        }));
-        setFormData(prev => ({
-          ...prev,
-          firstName: user.first_name || prev.firstName,
-          lastName: user.last_name || prev.lastName,
-          email: user.email || prev.email,
-          studentId: user.id_number || user._id || prev.studentId,
-        }));
-      } catch (err) {
-        console.error('Failed to load user data:', err);
-      }
-    }
+        // Keep localStorage in sync
+        localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...user }));
+      })
+      .catch(err => console.error('Failed to fetch profile from API:', err));
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,6 +119,12 @@ export default function ProfilePage() {
           last_name: formData.lastName,
           email: formData.email,
           phone: formData.phone,
+          id_number: formData.studentId,
+          course: formData.course,
+          major: formData.major,
+          year: formData.year,
+          emergency_contact: formData.emergencyContact,
+          emergency_phone: formData.emergencyPhone,
         }),
       });
 
@@ -102,14 +133,22 @@ export default function ProfilePage() {
         throw new Error(error.error || 'Failed to update profile');
       }
 
-      // Update localStorage with new data
-      const updatedUser = {
+      const { user: savedUser } = await response.json();
+
+      // Sync localStorage with all returned fields
+      localStorage.setItem('user', JSON.stringify({
         ...user,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+        first_name: savedUser.first_name,
+        last_name: savedUser.last_name,
+        email: savedUser.email,
+        phone: savedUser.phone,
+        id_number: savedUser.id_number,
+        course: savedUser.course,
+        major: savedUser.major,
+        year: savedUser.year,
+        emergency_contact: savedUser.emergency_contact,
+        emergency_phone: savedUser.emergency_phone,
+      }));
 
       setProfile(formData);
       setEditMode(false);

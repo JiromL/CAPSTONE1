@@ -50,11 +50,15 @@ def update_profile():
             'first_name': first_name,
             'last_name': last_name,
             'email': email,
+            'phone': phone,
             'updated_at': datetime.utcnow()
         }
-        
-        if phone:
-            update_data['phone'] = phone
+
+        optional_fields = ['id_number', 'course', 'major', 'year',
+                           'emergency_contact', 'emergency_phone']
+        for field in optional_fields:
+            if data.get(field) is not None:
+                update_data[field] = data[field]
         
         result = db.db.users.update_one(
             {'_id': user_id_obj},
@@ -78,6 +82,13 @@ def update_profile():
                 'last_name': updated_user.get('last_name'),
                 'email': updated_user.get('email'),
                 'phone': updated_user.get('phone'),
+                'role': updated_user.get('role'),
+                'id_number': updated_user.get('id_number'),
+                'course': updated_user.get('course'),
+                'major': updated_user.get('major'),
+                'year': updated_user.get('year'),
+                'emergency_contact': updated_user.get('emergency_contact'),
+                'emergency_phone': updated_user.get('emergency_phone'),
             }
         }), 200
     
@@ -109,6 +120,12 @@ def get_profile():
             'email': user.get('email'),
             'phone': user.get('phone'),
             'role': user.get('role'),
+            'id_number': user.get('id_number'),
+            'course': user.get('course'),
+            'major': user.get('major'),
+            'year': user.get('year'),
+            'emergency_contact': user.get('emergency_contact'),
+            'emergency_phone': user.get('emergency_phone'),
             'created_at': user.get('created_at').isoformat() if user.get('created_at') else None,
         }), 200
     

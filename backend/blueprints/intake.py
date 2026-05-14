@@ -2102,7 +2102,7 @@ def create_walkin_intake():
     user = db.db.users.find_one({"_id": ObjectId(user_id)})
     
     # Verify user has permission (STAFF/office assistant can create walk-ins)
-    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'IC']:
+    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'OFFICE_ASSISTANT', 'IC']:
         return jsonify({'error': 'Insufficient permissions to create walk-in intake'}), 403
     
     try:

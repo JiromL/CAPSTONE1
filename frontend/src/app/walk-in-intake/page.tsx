@@ -65,11 +65,14 @@ export default function WalkInIntakePage() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to create walk-in intake');
+        const msg = data.error || data.msg || data.message || `Server error (${response.status})`;
+        throw new Error(msg);
       }
 
       const result = await response.json();
-      setSuccess(`Walk-in intake created successfully. ID: ${result.intake_id || result._id || 'N/A'}`);
+      const counselingId = result.counseling_id || result.intake_id || result._id || 'N/A';
+      const apptDate = result.appointment_date ? new Date(result.appointment_date).toLocaleDateString() : null;
+      setSuccess(`Walk-in intake created. Counseling ID: ${counselingId}${apptDate ? `. Est. appointment: ${apptDate}` : ''}`);
 
       setFormData({
         firstName: '',
@@ -84,7 +87,8 @@ export default function WalkInIntakePage() {
 
       setTimeout(() => router.push('/appointment-requests'), 2500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred. Check that the backend is running.';
+      setError(msg);
     } finally {
       setLoading(false);
     }

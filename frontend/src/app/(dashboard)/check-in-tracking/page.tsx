@@ -132,7 +132,7 @@ export default function CheckInTrackingPage() {
                 <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                   {tab.count}
                 </span>
-                {'overdue' in tab && tab.overdue > 0 && (
+                {'overdue' in tab && (tab.overdue ?? 0) > 0 && (
                   <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
                     <AlertTriangle size={10} /> {tab.overdue} overdue
                   </span>

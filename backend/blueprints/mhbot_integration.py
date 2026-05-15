@@ -7,19 +7,91 @@ Displays student mental health status (Excelling, Surviving, etc.)
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db, PermissionType
 from utils import user_has_permission
 import os
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
 mhbot_bp = Blueprint('mhbot', __name__, url_prefix='/api/mhbot')
 
-# MHBot server URL
+# MHBot server config
 MHBOT_BASE_URL = os.getenv('MHBOT_BASE_URL', 'https://pchrd-ema.dlsu.edu.ph/backend')
+MHBOT_USERNAME = os.getenv('MHBOT_USERNAME', '')
+MHBOT_PASSWORD = os.getenv('MHBOT_PASSWORD', '')
+# Optional: pre-set static token (skips auto-login if provided)
 MHBOT_API_TOKEN = os.getenv('MHBOT_API_TOKEN', '')
+
+# ── Token cache ───────────────────────────────────────────────────────────────
+_token_lock = threading.Lock()
+_cached_token: str = ''
+_token_expires_at: datetime = datetime.min
+
+
+def _login() -> str:
+    """
+    Authenticate with MHBot using OAuth2 password flow.
+    Token URL: /api/v1/auth/login
+    Scope: dashboard
+    Returns the access token string, or '' on failure.
+    """
+    global _cached_token, _token_expires_at
+
+    # If a static token is configured, use it directly
+    if MHBOT_API_TOKEN:
+        return MHBOT_API_TOKEN
+
+    if not MHBOT_USERNAME or not MHBOT_PASSWORD:
+        logger.error('MHBOT_USERNAME and MHBOT_PASSWORD not set in .env')
+        return ''
+
+    url = f"{MHBOT_BASE_URL}/api/v1/auth/login"
+    try:
+        # OAuth2 password flow uses application/x-www-form-urlencoded
+        resp = requests.post(url, data={
+            'grant_type': 'password',
+            'username': MHBOT_USERNAME,
+            'password': MHBOT_PASSWORD,
+            'scope': 'dashboard',
+        }, headers={'accept': 'application/json'}, timeout=10)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            token = data.get('access_token', '')
+            # Cache for slightly less than expires_in (default 30 min)
+            expires_in = int(data.get('expires_in', 1800))
+            _cached_token = token
+            _token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in - 60)
+            logger.info('MHBot login successful')
+            return token
+        else:
+            logger.error(f'MHBot login failed {resp.status_code}: {resp.text[:200]}')
+            return ''
+    except Exception as e:
+        logger.error(f'MHBot login error: {e}')
+        return ''
+
+
+def _get_token() -> str:
+    """Return a valid token, refreshing via login if expired."""
+    global _cached_token, _token_expires_at
+
+    # Static token takes priority
+    if MHBOT_API_TOKEN:
+        return MHBOT_API_TOKEN
+
+    with _token_lock:
+        if _cached_token and datetime.utcnow() < _token_expires_at:
+            return _cached_token
+        return _login()
+
+
+def _auth_headers() -> dict:
+    token = _get_token()
+    return {'accept': 'application/json', 'Authorization': f'Bearer {token}'} if token else {'accept': 'application/json'}
 
 
 def get_perma_history(username: str, limit: int = 5) -> dict:
@@ -34,27 +106,25 @@ def get_perma_history(username: str, limit: int = 5) -> dict:
         dict with 'success', 'data', and optional 'error'
     """
     try:
-        # Check if token is configured
-        if not MHBOT_API_TOKEN:
-            logger.error('MHBOT_API_TOKEN not configured in .env')
+        token = _get_token()
+        if not token:
             return {
                 'success': False,
-                'error': 'MHBot API token not configured',
+                'error': 'MHBot credentials not configured. Set MHBOT_USERNAME + MHBOT_PASSWORD (or MHBOT_API_TOKEN) in .env',
                 'data': []
             }
-        
+
         url = f"{MHBOT_BASE_URL}/api/v1/dashboard/user_perma_history/{username}"
-        headers = {
-            'accept': 'application/json',
-            'Authorization': f'Bearer {MHBOT_API_TOKEN}'
-        }
-        params = {
-            'offset': 0,
-            'limit': limit
-        }
-        
+        params = {'offset': 0, 'limit': limit}
+
         logger.info(f'Fetching PERMA for {username} from {url}')
-        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response = requests.get(url, headers=_auth_headers(), params=params, timeout=10)
+
+        # Token may have expired mid-session — retry once after re-login
+        if response.status_code == 401 and not MHBOT_API_TOKEN:
+            global _cached_token
+            _cached_token = ''
+            response = requests.get(url, headers=_auth_headers(), params=params, timeout=10)
         
         if response.status_code == 200:
             history = response.json()
@@ -372,52 +442,54 @@ def get_perma_distribution():
 def check_mhbot_health():
     """Check if MHBot server is accessible and token is configured"""
     try:
-        # Check configuration
-        if not MHBOT_API_TOKEN:
+        # Try to get a token — this also validates credentials
+        token = _get_token()
+        creds_ok = bool(token)
+
+        if not creds_ok:
             return jsonify({
                 'status': 'error',
                 'mhbot_server': MHBOT_BASE_URL,
-                'error': 'MHBOT_API_TOKEN not configured in .env file'
+                'error': 'No credentials. Set MHBOT_USERNAME + MHBOT_PASSWORD (or MHBOT_API_TOKEN) in .env',
+                'token_configured': False,
             }), 500
-        
+
         url = f"{MHBOT_BASE_URL}/ping"
-        headers = {'Authorization': f'Bearer {MHBOT_API_TOKEN}'}
-        
-        response = requests.get(url, headers=headers, timeout=5)
-        
+        response = requests.get(url, headers=_auth_headers(), timeout=5)
+
         if response.status_code == 200:
             return jsonify({
                 'status': 'healthy',
                 'mhbot_server': MHBOT_BASE_URL,
                 'message': 'MHBot server is reachable',
-                'token_configured': bool(MHBOT_API_TOKEN)
+                'token_configured': True,
             }), 200
         else:
             return jsonify({
                 'status': 'unhealthy',
                 'mhbot_server': MHBOT_BASE_URL,
                 'error': f'HTTP {response.status_code}: {response.text[:100]}',
-                'token_configured': bool(MHBOT_API_TOKEN)
+                'token_configured': True,
             }), 503
-    
+
     except requests.exceptions.Timeout:
         return jsonify({
             'status': 'timeout',
             'mhbot_server': MHBOT_BASE_URL,
             'error': 'MHBot server not responding',
-            'token_configured': bool(MHBOT_API_TOKEN)
+            'token_configured': bool(_get_token()),
         }), 503
     except requests.exceptions.ConnectionError as e:
         return jsonify({
             'status': 'error',
             'mhbot_server': MHBOT_BASE_URL,
             'error': f'Cannot connect: {str(e)[:100]}',
-            'token_configured': bool(MHBOT_API_TOKEN)
+            'token_configured': bool(_get_token()),
         }), 503
     except Exception as e:
         return jsonify({
             'status': 'error',
             'mhbot_server': MHBOT_BASE_URL,
             'error': str(e),
-            'token_configured': bool(MHBOT_API_TOKEN)
+            'token_configured': False,
         }), 500

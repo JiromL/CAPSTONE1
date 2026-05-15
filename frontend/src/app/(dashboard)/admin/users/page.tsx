@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ArrowLeft, Search, Edit2, Trash2, Shield, Eye, X } from 'lucide-react';
 import Link from 'next/link';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
 export default function UserManagementPage() {
@@ -145,17 +145,17 @@ export default function UserManagementPage() {
 
   if (loading) {
     return (
-      <PageShell title="User Management" subtitle="Manage staff and user accounts">
+      <DashboardPageWrapper title="User Management" subtitle="Manage staff and user accounts">
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </PageShell>
+      </DashboardPageWrapper>
     );
   }
 
   if (error) {
     return (
-      <PageShell title="User Management" subtitle="Manage staff and user accounts">
+      <DashboardPageWrapper title="User Management" subtitle="Manage staff and user accounts">
         <div className="w-full max-w-2xl mx-auto">
           <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-2">Error Loading Users</h3>
@@ -168,12 +168,12 @@ export default function UserManagementPage() {
             </button>
           </div>
         </div>
-      </PageShell>
+      </DashboardPageWrapper>
     );
   }
 
   return (
-    <PageShell title="User Management" subtitle="Manage staff and user accounts">
+    <DashboardPageWrapper title="User Management" subtitle="Manage staff and user accounts">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">User Management</h1>
@@ -297,6 +297,6 @@ export default function UserManagementPage() {
           ))}
         </div>
       </section>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

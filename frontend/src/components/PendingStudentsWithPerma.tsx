@@ -2,332 +2,189 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/utils/api';
-import PageShell from '@/components/PageShell';
-import { Search, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { Search, Loader2, AlertCircle, Link2 } from 'lucide-react';
 
-interface PermaStatus {
-  label: string | null;
-  date: string;
-}
-
+interface PermaStatus { label: string | null; date: string; }
 interface PendingStudent {
-  appointment_id: string;
-  case_id: string;
-  student_id: string;
-  student_name: string;
-  student_email: string;
-  mhbot_username: string | null;
-  requested_start: string;
-  requested_end: string;
-  appointment_type: string;
-  perma_status: PermaStatus | null;
-  case_status: string;
+  appointment_id: string; case_id: string; student_id: string;
+  student_name: string; student_email: string; mhbot_username: string | null;
+  requested_start: string; appointment_type: string; perma_status: PermaStatus | null;
 }
 
-interface PermaLookup {
-  username: string;
-  latest_label: string | null;
-  latest_date: string;
-  history: any[];
-}
-
-const PERMA_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
-  Excelling: { bg: 'bg-green-100', text: 'text-green-800', icon: '✨' },
-  Thriving: { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: '🌟' },
-  Stable: { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🔵' },
-  Managing: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '⚠️' },
-  Struggling: { bg: 'bg-orange-100', text: 'text-orange-800', icon: '😟' },
-  Surviving: { bg: 'bg-red-100', text: 'text-red-800', icon: '🆘' },
-  Crisis: { bg: 'bg-red-200', text: 'text-red-900', icon: '🚨' },
-  'No Data': { bg: 'bg-gray-100', text: 'text-gray-800', icon: '❓' },
+export const PERMA_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
+  'Excelling':  { bg: 'bg-green-100 dark:bg-green-900/30',   text: 'text-green-700 dark:text-green-400',   dot: 'bg-green-500'  },
+  'Thriving':   { bg: 'bg-teal-100 dark:bg-teal-900/30',     text: 'text-teal-700 dark:text-teal-400',     dot: 'bg-teal-500'   },
+  'Surviving':  { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400', dot: 'bg-yellow-500' },
+  'Struggling': { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500' },
+  'In Crisis':  { bg: 'bg-red-100 dark:bg-red-900/30',       text: 'text-red-700 dark:text-red-400',       dot: 'bg-red-500'    },
 };
+
+export function PermaBadge({ label }: { label: string | null }) {
+  const cfg = label ? (PERMA_CONFIG[label] ?? null) : null;
+  if (!cfg) return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+      No data
+    </span>
+  );
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0`} />
+      {label}
+    </span>
+  );
+}
 
 export default function PendingStudentsWithPerma() {
   const [students, setStudents] = useState<PendingStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchUsername, setSearchUsername] = useState('');
-  const [lookupResult, setLookupResult] = useState<PermaLookup | null>(null);
+  const [lookupResult, setLookupResult] = useState<any>(null);
   const [searching, setSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [linkingMhbot, setLinkingMhbot] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchPendingStudents();
-  }, []);
+  useEffect(() => { fetchStudents(); }, []);
 
-  const fetchPendingStudents = async () => {
+  async function fetchStudents() {
     setLoading(true);
+    const token = localStorage.getItem('token');
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(api('/api/mhbot/students/pending'), {
+      const r = await fetch(api('/api/mhbot/students/pending'), {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStudents(data.students || []);
-        setError(null);
-      } else {
-        setError('Failed to fetch pending students');
-      }
-    } catch (err) {
-      setError('Error loading pending students');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLookupPerma = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchUsername.trim()) return;
-
-    setSearching(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(api('/api/mhbot/lookup'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ username: searchUsername }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setLookupResult(data);
-        setError(null);
-      } else {
-        setError(data.error || 'Username not found');
-        setLookupResult(null);
-      }
-    } catch (err) {
-      setError('Error looking up PERMA data');
-      setLookupResult(null);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const handleLinkMhbot = async (caseId: string, username: string) => {
-    setLinkingMhbot(caseId);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(api(`/api/mhbot/case/${caseId}/link-mhbot`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ mhbot_username: username }),
-      });
-
-      if (response.ok) {
-        // Refresh the list
-        fetchPendingStudents();
-        setSearchUsername('');
-        setLookupResult(null);
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to link MHBot account');
-      }
-    } catch (err) {
-      setError('Error linking MHBot account');
-    } finally {
-      setLinkingMhbot(null);
-    }
-  };
-
-  const getPermaColor = (label: string | null) => {
-    if (!label) return PERMA_COLORS['No Data'];
-    return PERMA_COLORS[label] || PERMA_COLORS['No Data'];
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  if (loading) {
-    return (
-      <PageShell title="Pending Students" subtitle="With MHBot PERMA Status">
-        <div className="flex justify-center items-center h-64">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
-      </PageShell>
-    );
+      if (r.ok) { const d = await r.json(); setStudents(d.students ?? []); }
+      else setError('Failed to load pending students');
+    } catch { setError('Network error'); }
+    finally { setLoading(false); }
   }
 
-  const permaColor = lookupResult ? getPermaColor(lookupResult.latest_label) : null;
+  async function lookup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!searchUsername.trim()) return;
+    setSearching(true); setError(''); setLookupResult(null);
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api('/api/mhbot/lookup'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: searchUsername }),
+      });
+      const d = await r.json();
+      if (r.ok) setLookupResult(d);
+      else setError(d.error || 'Username not found in MHBot');
+    } catch { setError('Network error'); }
+    finally { setSearching(false); }
+  }
+
+  async function linkAccount(caseId: string, username: string) {
+    setLinkingId(caseId);
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/mhbot/case/${caseId}/link-mhbot`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mhbot_username: username }),
+      });
+      const d = await r.json();
+      if (r.ok) { fetchStudents(); setSearchUsername(''); setLookupResult(null); }
+      else setError(d.error || 'Failed to link account');
+    } catch { setError('Network error'); }
+    finally { setLinkingId(null); }
+  }
 
   return (
-    <PageShell title="Pending Students" subtitle="View pending appointments with mental health status">
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
-
-      {/* PERMA Lookup Section */}
-      <div className="mb-8 bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-900">Lookup Student PERMA Status</h2>
-
-        <form onSubmit={handleLookupPerma} className="flex gap-2 mb-6">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Enter MHBot username (e.g., ema_lVk)"
-              value={searchUsername}
-              onChange={(e) => setSearchUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
+    <div className="space-y-5">
+      {/* Lookup */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Lookup MHBot Username</p>
+        <form onSubmit={lookup} className="flex gap-2">
+          <input
+            type="text"
+            value={searchUsername}
+            onChange={e => setSearchUsername(e.target.value)}
+            placeholder="e.g. ema_lVk"
+            className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
           <button
             type="submit"
-            disabled={searching}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition flex items-center gap-2"
+            disabled={searching || !searchUsername.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
           >
-            {searching ? <Loader className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            Search
+            {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            Lookup
           </button>
         </form>
 
-        {/* Lookup Result */}
-        {lookupResult && permaColor && (
-          <div className={`p-4 rounded-lg border-2 ${permaColor.bg}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm font-medium ${permaColor.text}`}>MHBot Username</p>
-                <p className="text-lg font-bold text-gray-900 mt-1">{lookupResult.username}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-4xl mb-2">{permaColor.icon}</p>
-                <p className={`text-xl font-bold ${permaColor.text}`}>
-                  {lookupResult.latest_label || 'No Data'}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {formatDate(lookupResult.latest_date)}
-                </p>
-              </div>
-            </div>
+        {error && (
+          <div className="mt-3 flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
+            <AlertCircle size={14} className="mt-0.5 flex-shrink-0" /> {error}
+          </div>
+        )}
 
-            {/* History */}
-            {lookupResult.history && lookupResult.history.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-300">
-                <p className="text-sm font-medium text-gray-700 mb-3">Recent History</p>
-                <div className="space-y-2">
-                  {lookupResult.history.slice(0, 5).map((entry, idx) => (
-                    <div key={idx} className="flex justify-between text-sm text-gray-600">
-                      <span>{entry.perma_label || 'No Data'}</span>
-                      <span className="text-gray-500">{formatDate(entry.date)}</span>
-                    </div>
-                  ))}
-                </div>
+        {lookupResult && (
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-1.5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{lookupResult.username}</p>
+              <PermaBadge label={lookupResult.latest_label} />
+            </div>
+            {lookupResult.history?.slice(0, 4).map((h: any, i: number) => (
+              <div key={i} className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>{h.perma_label || '—'}</span>
+                <span>{new Date(h.date).toLocaleDateString()}</span>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
 
-      {/* Pending Students List */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">
-            Pending Appointments ({students.length})
-          </h2>
+      {/* Pending students */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+            Pending Appointments <span className="ml-1 text-xs font-normal text-gray-400">({students.length})</span>
+          </p>
         </div>
 
-        {students.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <p>No pending appointments at this time</p>
+        {loading ? (
+          <div className="flex justify-center py-12 text-gray-400">
+            <Loader2 size={20} className="animate-spin mr-2" /> Loading…
           </div>
+        ) : students.length === 0 ? (
+          <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">No pending appointments</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Student
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Appointment
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    MHBot Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {students.map((student) => {
-                  const permaColorData = getPermaColor(student.perma_status?.label || null);
-                  return (
-                    <tr key={student.appointment_id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-gray-900">{student.student_name}</p>
-                          <p className="text-sm text-gray-600">{student.student_email}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatDate(student.requested_start)}
-                          </p>
-                          <p className="text-sm text-gray-600">{student.appointment_type}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {student.mhbot_username ? (
-                          <div className={`inline-block px-3 py-1 rounded-full ${permaColorData.bg}`}>
-                            <p className={`text-sm font-medium ${permaColorData.text}`}>
-                              {permaColorData.icon} {student.perma_status?.label || 'Loading...'}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500">Not linked</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {!student.mhbot_username && lookupResult && (
-                          <button
-                            onClick={() =>
-                              handleLinkMhbot(student.case_id, lookupResult.username)
-                            }
-                            disabled={linkingMhbot === student.case_id}
-                            className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded transition flex items-center gap-2"
-                          >
-                            {linkingMhbot === student.case_id ? (
-                              <>
-                                <Loader className="w-3 h-3 animate-spin" />
-                                Linking...
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle className="w-3 h-3" />
-                                Link {lookupResult.username}
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {students.map(s => (
+              <div key={s.appointment_id} className="px-5 py-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{s.student_name}</p>
+                  <p className="text-xs text-gray-400">{s.student_email}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {s.appointment_type} · {new Date(s.requested_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  {s.mhbot_username
+                    ? <PermaBadge label={s.perma_status?.label ?? null} />
+                    : lookupResult
+                      ? (
+                        <button
+                          onClick={() => linkAccount(s.case_id, lookupResult.username)}
+                          disabled={linkingId === s.case_id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg disabled:opacity-50"
+                        >
+                          {linkingId === s.case_id ? <Loader2 size={11} className="animate-spin" /> : <Link2 size={11} />}
+                          Link {lookupResult.username}
+                        </button>
+                      )
+                      : <span className="text-xs text-gray-400">Not linked</span>
+                  }
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
-    </PageShell>
+    </div>
   );
 }

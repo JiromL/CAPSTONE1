@@ -67,6 +67,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
 
     // Clinical Tools
     { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
+    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },
 
@@ -94,6 +95,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     
     // Clinical Tools
     { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
+    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },

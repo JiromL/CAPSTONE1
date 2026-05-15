@@ -5,8 +5,9 @@ import { useParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
+import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 
 interface SessionNote {
   note_id: string;
@@ -47,7 +48,12 @@ export default function CaseDetailPage() {
   const [caseData, setCaseData] = useState<any>(null);
   const [checkInHistory, setCheckInHistory] = useState<any[]>([]);
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
-  const [activeTab, setActiveTab] = useState<'details' | 'session-notes' | 'treatment-plan' | 'check-ins'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'session-notes' | 'treatment-plan' | 'check-ins' | 'perma'>('details');
+  const [permaHistory, setPermaHistory] = useState<Array<{ date: string; perma_label: string | null }>>([]);
+  const [permaLoading, setPermaLoading] = useState(false);
+  const [mhbotUsername, setMhbotUsername] = useState('');
+  const [linkingMhbot, setLinkingMhbot] = useState(false);
+  const [mhbotError, setMhbotError] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -98,7 +104,82 @@ export default function CaseDetailPage() {
 
   useEffect(() => {
     if (activeTab === 'session-notes') loadSessionNotes();
+    if (activeTab === 'perma') loadPermaHistory();
   }, [activeTab]);
+
+  const loadPermaHistory = async () => {
+    if (!caseData) return;
+    const student = caseData.student || {};
+    const username = student.mhbot_username;
+    if (!username) return;
+    setPermaLoading(true);
+    setMhbotError('');
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/mhbot/perma/${encodeURIComponent(username)}?limit=20`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setPermaHistory(d.history ?? []);
+      } else {
+        setMhbotError('Failed to fetch PERMA history');
+      }
+    } catch {
+      setMhbotError('Network error fetching PERMA data');
+    } finally {
+      setPermaLoading(false);
+    }
+  };
+
+  const linkMhbot = async () => {
+    if (!mhbotUsername.trim()) return;
+    setLinkingMhbot(true);
+    setMhbotError('');
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/mhbot/case/${caseId}/link-mhbot`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mhbot_username: mhbotUsername.trim() }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setMhbotUsername('');
+        // Refresh case data to get updated mhbot_username on student
+        const caseRes = await fetch(api(`/api/cases/${caseId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (caseRes.ok) setCaseData(await caseRes.json());
+        setPermaHistory([]);
+        loadPermaHistory();
+      } else {
+        setMhbotError(d.error || 'Failed to link MHBot account');
+      }
+    } catch {
+      setMhbotError('Network error');
+    } finally {
+      setLinkingMhbot(false);
+    }
+  };
+
+  const unlinkMhbot = async () => {
+    if (!confirm('Unlink this student from MHBot? PERMA history will no longer sync.')) return;
+    setLinkingMhbot(true);
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(api(`/api/mhbot/case/${caseId}/unlink-mhbot`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPermaHistory([]);
+      const caseRes = await fetch(api(`/api/cases/${caseId}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (caseRes.ok) setCaseData(await caseRes.json());
+    } catch {}
+    finally { setLinkingMhbot(false); }
+  };
 
   const showSuccess = (msg: string) => {
     setSuccess(msg);
@@ -186,6 +267,7 @@ export default function CaseDetailPage() {
     { id: 'session-notes' as const, label: `Session Notes (${sessionNotes.length})` },
     { id: 'treatment-plan' as const, label: 'Treatment Plan' },
     { id: 'check-ins' as const, label: `Check-Ins (${checkInHistory.length})` },
+    { id: 'perma' as const,     label: 'PERMA / MHBot' },
   ];
 
   return (
@@ -533,6 +615,94 @@ export default function CaseDetailPage() {
             <div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Check-In History</h3>
               <CheckInHistory checkIns={checkInHistory} isLoading={checkInLoading} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── PERMA / MHBot Tab ──────────────────────────────────── */}
+      {activeTab === 'perma' && (
+        <div className="space-y-5 max-w-2xl">
+          {/* Link / Unlink MHBot account */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+              <Activity size={14} className="text-indigo-500" /> MHBot Account
+            </p>
+            {caseData?.student?.mhbot_username ? (
+              <div className="flex items-center justify-between mt-3">
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Linked username</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white font-mono mt-0.5">
+                    {caseData.student.mhbot_username}
+                  </p>
+                </div>
+                <button
+                  onClick={unlinkMhbot}
+                  disabled={linkingMhbot}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 transition-colors"
+                >
+                  {linkingMhbot ? <Loader2 size={11} className="animate-spin" /> : <Unlink size={11} />}
+                  Unlink
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Enter the student's MHBot username to pull PERMA history.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={mhbotUsername}
+                    onChange={e => setMhbotUsername(e.target.value)}
+                    placeholder="e.g. ema_lVk"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    onClick={linkMhbot}
+                    disabled={linkingMhbot || !mhbotUsername.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    {linkingMhbot ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
+                    Link
+                  </button>
+                </div>
+                {mhbotError && (
+                  <p className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <AlertCircle size={11} /> {mhbotError}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* PERMA history */}
+          {caseData?.student?.mhbot_username && (
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">PERMA History</p>
+              {permaLoading ? (
+                <div className="flex justify-center py-8 text-gray-400">
+                  <Loader2 size={18} className="animate-spin mr-2" /> Loading…
+                </div>
+              ) : permaHistory.length === 0 ? (
+                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No PERMA records found</p>
+              ) : (
+                <div className="space-y-2">
+                  {permaHistory.map((h, i) => (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(h.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                      <PermaBadge label={h.perma_label} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {mhbotError && (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <AlertCircle size={11} /> {mhbotError}
+                </p>
+              )}
             </div>
           )}
         </div>

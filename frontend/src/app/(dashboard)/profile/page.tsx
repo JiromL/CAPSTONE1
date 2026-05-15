@@ -328,8 +328,8 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="mt-6 border border-gray-200 rounded p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Account Settings</h3>
+        <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded p-6 bg-white dark:bg-gray-800">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Account Settings</h3>
           <div className="space-y-2">
             <AccountOption label="Change Password" description="Update password" />
             <AccountOption label="Notification Preferences" description="Manage notifications" />
@@ -350,10 +350,10 @@ export default function ProfilePage() {
 function InfoRow({ icon, label, value, indent }: any) {
   return (
     <div className={`flex items-center gap-3 text-sm ${indent ? 'ml-4' : ''}`}>
-      {icon && <div className="text-gray-400 flex-shrink-0">{icon}</div>}
+      {icon && <div className="text-gray-400 dark:text-gray-500 flex-shrink-0">{icon}</div>}
       <div className="flex-1">
-        <p className="text-xs text-gray-600">{label}</p>
-        <p className="text-sm text-gray-900">{value}</p>
+        <p className="text-xs text-gray-600 dark:text-gray-400">{label}</p>
+        <p className="text-sm text-gray-900 dark:text-gray-100">{value}</p>
       </div>
     </div>
   );
@@ -361,12 +361,12 @@ function InfoRow({ icon, label, value, indent }: any) {
 
 function AccountOption({ label, description, isEnabled }: any) {
   return (
-    <div className="flex items-center justify-between p-3 border border-gray-200 rounded hover:bg-gray-50 transition cursor-pointer">
+    <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
       <div>
-        <p className="text-sm text-gray-900">{label}</p>
-        <p className="text-xs text-gray-600">{description}</p>
+        <p className="text-sm text-gray-900 dark:text-gray-100">{label}</p>
+        <p className="text-xs text-gray-600 dark:text-gray-400">{description}</p>
       </div>
-      {isEnabled && <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">Enabled</span>}
+      {isEnabled && <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs">Enabled</span>}
     </div>
   );
 }

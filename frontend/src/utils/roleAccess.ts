@@ -44,6 +44,8 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/check-in-tracking': ['STAFF', 'ADMIN', 'DPO'],
   '/reschedule-requests': ['STAFF', 'ADMIN', 'DPO'],
   '/staff-settings': ['STAFF', 'ADMIN', 'DPO'],
+  '/waitlist': ['STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'ADMIN', 'DPO'],
+  '/recurring-appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'ADMIN'],
 
   // Counselor/Psychologist pages
   '/appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'ADMIN', 'DPO'],

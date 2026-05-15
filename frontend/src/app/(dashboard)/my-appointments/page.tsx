@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
-import { Calendar, Clock, MapPin, User, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, CheckCircle, XCircle, AlertCircle, Loader2, Video, Repeat } from 'lucide-react';
 
 interface Appointment {
   _id: string;
@@ -16,6 +16,14 @@ interface Appointment {
   location: string;
   notes: string;
   created_at: string;
+  meeting_link?: string;
+  is_telehealth?: boolean;
+  preferred_method?: string;
+  is_recurring?: boolean;
+  recurrence?: string;
+  recurrence_index?: number;
+  recurrence_total?: number;
+  late_cancellation?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -149,6 +157,28 @@ function AppointmentCard({ appt, highlight }: { appt: Appointment; highlight?: b
           </div>
         )}
       </div>
+
+      {/* Recurring badge */}
+      {appt.is_recurring && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400">
+          <Repeat size={11} />
+          Session {appt.recurrence_index} of {appt.recurrence_total} · {appt.recurrence === 'weekly' ? 'Weekly' : 'Bi-weekly'} series
+        </div>
+      )}
+
+      {/* Telehealth join button */}
+      {appt.meeting_link && isUpcoming(appt.datetime) && (
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+          <a
+            href={appt.meeting_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors"
+          >
+            <Video size={13} /> Join Session
+          </a>
+        </div>
+      )}
 
       {appt.notes && (
         <p className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400">

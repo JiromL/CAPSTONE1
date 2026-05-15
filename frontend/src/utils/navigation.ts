@@ -66,6 +66,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
 
     // Clinical Tools
+    { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },
 
@@ -92,10 +93,11 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
     
     // Clinical Tools
+    { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },
-    
+
     // Profile & Support
     { label: 'Counselor Profile', href: '/counselor', id: 'counselor-profile' },
     { label: 'Documentation', href: '/documentation', id: 'documentation' },
@@ -128,13 +130,14 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const staffItems: MenuItem[] = [
     // Core Navigation
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
+
     // Primary Workflow
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
     { label: 'Walk-In Intake', href: '/walk-in-intake', id: 'walk-in-intake' },
     { label: 'Check-In Tracking', href: '/check-in-tracking', id: 'check-in-tracking' },
     { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests' },
-    
+    { label: 'Waitlist', href: '/waitlist', id: 'waitlist' },
+
     // Administrative
     { label: 'My Tasks', href: '/tasks', id: 'tasks' },
     { label: 'Settings', href: '/staff-settings', id: 'staff-settings' },

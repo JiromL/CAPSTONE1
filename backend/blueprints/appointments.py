@@ -902,7 +902,32 @@ def confirm_appointment(appointment_id):
             "updated_at": datetime.utcnow()
         }}
     )
-    
+
+    # Auto-create 24h and 1h reminder records on confirmation
+    try:
+        appt_start = appointment.get('requested_start')
+        if appt_start and isinstance(appt_start, datetime):
+            student = db.db.users.find_one({'_id': appointment.get('student_id')})
+            s_email = student.get('email', '') if student else ''
+            s_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else ''
+            appt_time_str = appt_start.strftime('%B %d, %Y at %I:%M %p')
+            for label, offset in [('24h', timedelta(hours=24)), ('1h', timedelta(hours=1))]:
+                if not db.db.reminders.find_one({'appointment_id': appointment['_id'], 'reminder_type': label}):
+                    db.db.reminders.insert_one({
+                        'appointment_id': appointment['_id'],
+                        'student_id': appointment.get('student_id'),
+                        'student_email': s_email,
+                        'student_name': s_name,
+                        'reminder_type': label,
+                        'message': f"Reminder: Your counseling appointment is on {appt_time_str}.",
+                        'scheduled_for': appt_start - offset,
+                        'status': 'pending',
+                        'auto_generated': True,
+                        'created_at': datetime.utcnow(),
+                    })
+    except Exception as e:
+        print(f"Auto-reminder creation error: {e}")
+
     # Prepare appointment data for email and PDF
     try:
         # Get student info
@@ -1079,9 +1104,9 @@ def mark_no_show(appointment_id):
         }}
     )
     
-    # Track missed appointment
+    # Track missed appointment (case-level)
     tracker = db.db.missed_appointment_tracker.find_one({"case_id": appointment.get('case_id')})
-    
+
     if tracker:
         db.db.missed_appointment_tracker.update_one(
             {"_id": tracker['_id']},
@@ -1097,12 +1122,26 @@ def mark_no_show(appointment_id):
         }
         db.db.missed_appointment_tracker.insert_one(doc)
         no_show_count = 1
-    
+
+    # Track no-show on user record
+    student_id = appointment.get('student_id')
+    if student_id:
+        db.db.users.update_one(
+            {'_id': student_id},
+            {'$inc': {'no_show_count': 1}}
+        )
+        updated_student = db.db.users.find_one({'_id': student_id})
+        if updated_student and updated_student.get('no_show_count', 0) >= 3:
+            db.db.users.update_one(
+                {'_id': student_id},
+                {'$set': {'no_show_flagged': True}}
+            )
+
     audit_log(db.db, 'appointment', 'mark_no_show', entity_id=str(appointment['_id']), new_values={
         'status': AppointmentStatus.NO_SHOW.value,
         'no_show_count': no_show_count
     })
-    
+
     return jsonify({
         'message': 'Appointment marked as no-show',
         'appointment_id': str(appointment['_id']),
@@ -1815,11 +1854,30 @@ def cancel_appointment(appointment_id):
     current_status = appointment.get('status', '').upper()
     if current_status in ['COMPLETED', 'CANCELLED']:
         return jsonify({'error': f'Cannot cancel appointment with status {current_status}'}), 400
-    
+
     try:
         data = request.get_json() or {}
         reason = data.get('reason', 'No reason provided')
-        
+
+        # Cancellation policy: check 24h notice window
+        appt_start = appointment.get('requested_start')
+        late_cancel = False
+        if appt_start and isinstance(appt_start, datetime):
+            hours_until = (appt_start - datetime.utcnow()).total_seconds() / 3600
+            if hours_until < 24:
+                late_cancel = True
+                # Track late cancellation on user
+                db.db.users.update_one(
+                    {'_id': user_id_obj},
+                    {'$inc': {'late_cancellation_count': 1}}
+                )
+                updated_user = db.db.users.find_one({'_id': user_id_obj})
+                if updated_user and updated_user.get('late_cancellation_count', 0) >= 3:
+                    db.db.users.update_one(
+                        {'_id': user_id_obj},
+                        {'$set': {'late_cancel_flagged': True}}
+                    )
+
         # Update appointment status
         result = db.db.appointments.update_one(
             {"_id": apt_id},
@@ -1828,7 +1886,8 @@ def cancel_appointment(appointment_id):
                     "status": AppointmentStatus.CANCELLED.value,
                     "cancelled_at": datetime.utcnow(),
                     "cancellation_reason": reason,
-                    "cancelled_by_user_id": user_id_obj
+                    "cancelled_by_user_id": user_id_obj,
+                    "late_cancellation": late_cancel,
                 }
             }
         )
@@ -1846,11 +1905,14 @@ def cancel_appointment(appointment_id):
             new_values={'status': 'CANCELLED', 'reason': reason}
         )
         
-        return jsonify({
+        resp = {
             'message': 'Appointment cancelled successfully',
             'appointment_id': str(apt_id),
-            'status': 'CANCELLED'
-        }), 200
+            'status': 'CANCELLED',
+        }
+        if late_cancel:
+            resp['warning'] = 'Late cancellation recorded (less than 24 hours notice). Repeated late cancellations may affect your booking privileges.'
+        return jsonify(resp), 200
         
     except Exception as e:
         import traceback
@@ -2244,3 +2306,168 @@ def deny_reschedule_request(request_id):
     )
     audit_log(db.db, 'appointments', 'reschedule_denied', entity_id=str(apt_id))
     return jsonify({'message': 'Reschedule denied', 'appointment_id': str(apt_id)}), 200
+
+
+# ── Recurring Appointments (COUNSELOR / PSYCHOLOGIST only) ────────────────────
+
+@appointments_bp.route('/recurring', methods=['POST'])
+@jwt_required()
+def create_recurring_appointments():
+    """Create a series of recurring sessions. Only COUNSELOR/PSYCHOLOGIST/ADMIN."""
+    user_id = get_jwt_identity()
+    claims = get_jwt()
+    role = claims.get('role', '')
+
+    if role not in ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'ADMIN']:
+        return jsonify({'error': 'Only counselors and psychologists can create recurring appointments'}), 403
+
+    data = request.get_json() or {}
+    required = ['student_id', 'start_date', 'time', 'recurrence', 'sessions', 'purpose']
+    missing = [f for f in required if not data.get(f)]
+    if missing:
+        return jsonify({'error': f'Missing fields: {", ".join(missing)}'}), 400
+
+    recurrence = data['recurrence']  # 'weekly' | 'biweekly'
+    if recurrence not in ('weekly', 'biweekly'):
+        return jsonify({'error': 'recurrence must be weekly or biweekly'}), 400
+
+    sessions = int(data['sessions'])
+    if not (2 <= sessions <= 24):
+        return jsonify({'error': 'sessions must be between 2 and 24'}), 400
+
+    try:
+        counselor_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        student_id_obj = ObjectId(data['student_id']) if isinstance(data['student_id'], str) else data['student_id']
+    except Exception:
+        return jsonify({'error': 'Invalid ID format'}), 400
+
+    try:
+        start_dt = datetime.fromisoformat(f"{data['start_date']}T{data['time']}:00")
+    except ValueError:
+        return jsonify({'error': 'Invalid start_date or time format'}), 400
+
+    if start_dt < datetime.utcnow():
+        return jsonify({'error': 'Start date must be in the future'}), 400
+
+    duration = int(data.get('duration_minutes', 60))
+    step = timedelta(weeks=1 if recurrence == 'weekly' else 2)
+    method = data.get('preferred_method', 'in_person')
+    meeting_link = data.get('meeting_link', '')
+    is_telehealth = method.lower() in ('zoom', 'google_meet', 'teams')
+
+    # Resolve case_id if provided
+    case_id = None
+    if data.get('case_id'):
+        try:
+            case_id = ObjectId(data['case_id'])
+        except Exception:
+            pass
+
+    created = []
+    parent_id = None
+
+    for i in range(sessions):
+        slot_start = start_dt + step * i
+        slot_end = slot_start + timedelta(minutes=duration)
+
+        doc = {
+            'student_id': student_id_obj,
+            'counselor_id': counselor_id_obj,
+            'case_id': case_id,
+            'status': AppointmentStatus.CONFIRMED.value,
+            'appointment_type': data.get('appointment_type', 'Counseling Session'),
+            'purpose': data['purpose'],
+            'concern': data.get('concern', ''),
+            'preferred_method': method,
+            'is_telehealth': is_telehealth,
+            'meeting_link': meeting_link,
+            'requested_start': slot_start,
+            'requested_end': slot_end,
+            'duration_minutes': duration,
+            'notes': data.get('notes', ''),
+            'recurrence': recurrence,
+            'recurrence_index': i + 1,
+            'recurrence_total': sessions,
+            'is_recurring': True,
+            'parent_appointment_id': parent_id,
+            'created_by': counselor_id_obj,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        }
+
+        result = db.db.appointments.insert_one(doc)
+        new_id = result.inserted_id
+
+        # First session is the parent
+        if i == 0:
+            parent_id = new_id
+            db.db.appointments.update_one({'_id': new_id}, {'$set': {'parent_appointment_id': new_id}})
+
+        created.append({
+            'id': str(new_id),
+            'session': i + 1,
+            'date': slot_start.isoformat(),
+        })
+
+        # Auto-create 24h and 1h reminder records
+        student = db.db.users.find_one({'_id': student_id_obj})
+        student_email = student.get('email', '') if student else ''
+        student_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else ''
+        appt_time_str = slot_start.strftime('%B %d, %Y at %I:%M %p')
+        for label, offset in [('24h', timedelta(hours=24)), ('1h', timedelta(hours=1))]:
+            db.db.reminders.insert_one({
+                'appointment_id': new_id,
+                'student_id': student_id_obj,
+                'student_email': student_email,
+                'student_name': student_name,
+                'reminder_type': label,
+                'message': f"Reminder: Your counseling session #{i+1} is on {appt_time_str}.",
+                'scheduled_for': slot_start - offset,
+                'status': 'pending',
+                'auto_generated': True,
+                'created_at': datetime.utcnow(),
+            })
+
+    audit_log(db.db, 'appointment', 'create_recurring', new_values={
+        'sessions': sessions, 'recurrence': recurrence, 'student_id': str(student_id_obj)
+    })
+
+    return jsonify({
+        'message': f'Created {sessions} recurring {recurrence} sessions',
+        'appointments': created,
+        'parent_id': str(parent_id) if parent_id else None,
+    }), 201
+
+
+# ── Set / Update Meeting Link ─────────────────────────────────────────────────
+
+@appointments_bp.route('/<appointment_id>/meeting-link', methods=['PATCH'])
+@jwt_required()
+def set_meeting_link(appointment_id):
+    """Counselor sets or updates the telehealth meeting link for an appointment."""
+    user_id = get_jwt_identity()
+    claims = get_jwt()
+    role = claims.get('role', '')
+
+    if role not in ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'STAFF', 'ADMIN']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt_id = ObjectId(appointment_id)
+    except Exception:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+
+    data = request.get_json() or {}
+    meeting_link = data.get('meeting_link', '').strip()
+
+    db.db.appointments.update_one(
+        {'_id': apt_id},
+        {'$set': {
+            'meeting_link': meeting_link,
+            'is_telehealth': bool(meeting_link),
+            'updated_at': datetime.utcnow(),
+        }}
+    )
+
+    audit_log(db.db, 'appointment', 'set_meeting_link', entity_id=appointment_id)
+    return jsonify({'message': 'Meeting link updated', 'meeting_link': meeting_link}), 200

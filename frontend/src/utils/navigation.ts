@@ -45,7 +45,8 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
     { label: 'Reminders', href: '/reminders', id: 'reminders' },
-    
+    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
+
     // Support
     { label: 'Documentation', href: '/documentation', id: 'documentation' },
     { label: 'Resources', href: '/resources', id: 'resources' },
@@ -69,6 +70,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
     { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },
 
     // Profile & Support
@@ -98,6 +100,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },
 
     // Profile & Support
@@ -115,13 +118,20 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
 
     // Primary Workflow
     { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
     { label: 'Supervision', href: '/supervision', id: 'supervision' },
     { label: 'Appointments', href: '/appointments', id: 'appointments' },
     { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
 
-    // Support
+    // Clinical Tools
+    { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
+    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
+    { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
+    { label: 'Video Links', href: '/video-links', id: 'video-links' },
+
+    // Support
     { label: 'Documentation', href: '/documentation', id: 'documentation' },
     { label: 'Resources', href: '/resources', id: 'resources' },
     { label: 'Profile', href: '/profile', id: 'profile' },

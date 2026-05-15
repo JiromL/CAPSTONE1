@@ -11,7 +11,7 @@ from bson import ObjectId
 import random
 
 client = MongoClient('mongodb://localhost:27017')
-db = client['cps_system']
+db = client['cps_system_dev']
 
 now = datetime.utcnow()
 

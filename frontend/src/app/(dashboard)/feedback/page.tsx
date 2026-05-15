@@ -29,7 +29,7 @@ function FeedbackForm() {
         return;
       }
 
-      const response = await fetch(api('/api/engagement/submit-feedback'), {
+      const response = await fetch(api('/api/engagement/feedback'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

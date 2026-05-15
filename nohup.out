@@ -1,2 +1,0 @@
-{"t":{"$date":"2026-02-27T01:42:10.854+08:00"},"s":"I",  "c":"-",        "id":8991200, "ctx":"thread1","msg":"Shuffling initializers","attr":{"seed":2572458501}}
-{"t":{"$date":"2026-02-27T01:42:10.883+08:00"},"s":"I",  "c":"CONTROL",  "id":20697,   "ctx":"thread1","msg":"Renamed existing log file","attr":{"oldLogPath":"/tmp/mongo.log","newLogPath":"/tmp/mongo.log.2026-02-26T17-42-10"}}

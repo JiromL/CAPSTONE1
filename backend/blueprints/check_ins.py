@@ -206,7 +206,10 @@ def get_pending_check_ins():
         )
         
         student = db.db.users.find_one({"_id": case.get('student_id')})
-        student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else "Unknown"
+        if student:
+            student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}".strip()
+        else:
+            student_name = case.get('student_name') or "Unknown"
         
         # Determine if overdue
         days_since_last_check_in = None

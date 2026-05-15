@@ -12,7 +12,7 @@ from datetime import datetime
 
 staff_settings_bp = Blueprint('staff_settings', __name__, url_prefix='/api/staff/settings')
 
-STAFF_ROLES = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP']
+STAFF_ROLES = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'STAFF', 'ADMIN']
 
 
 @staff_settings_bp.route('/my-settings', methods=['GET'])

@@ -28,6 +28,7 @@ Thumbs.db
 *.log
 *.swp
 *.swo
+nohup.out
 
 # IDE
 *.vscode

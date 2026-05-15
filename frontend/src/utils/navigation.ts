@@ -20,6 +20,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     
     // Primary Workflow
     { label: 'Intake Assessment', href: '/intake', id: 'intake' },
+    { label: 'My Appointments', href: '/my-appointments', id: 'my-appointments' },
     { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
     { label: 'My Tasks', href: '/tasks', id: 'tasks' },
     

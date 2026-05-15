@@ -29,6 +29,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/intake': ['STUDENT'],
   '/tasks': ['STUDENT', 'STAFF'],
   '/book-appointment': ['STUDENT'],
+  '/my-appointments': ['STUDENT'],
   '/check-ins-student': ['STUDENT'],
   '/journal': ['STUDENT'],
   '/feedback': ['STUDENT'],

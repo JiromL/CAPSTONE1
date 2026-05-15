@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PageShell from '@/components/PageShell';
 import { api } from '@/utils/api';
 
 export default function LoginPage() {
@@ -226,188 +225,145 @@ export default function LoginPage() {
   };
 
   return (
-    <PageShell title="Login" subtitle="Sign in to your CPS account" hideNav={true}>
-      <div className="min-h-[80vh] flex flex-col lg:flex-row">
-        {/* Left carousel area */}
-        <div className="hidden lg:block lg:w-1/2 relative">
-          <div className="h-full w-full overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
-            <span className="text-gray-500 dark:text-gray-400">Image area</span>
+    <div className="min-h-screen flex bg-white dark:bg-gray-950">
+      {/* Left panel */}
+      <div className="hidden lg:flex lg:w-[45%] bg-indigo-600 flex-col justify-between p-10">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <span className="text-white text-sm font-bold">CPS</span>
           </div>
+          <span className="text-white font-semibold text-lg">CPS System</span>
         </div>
+        <div>
+          <h2 className="text-white text-3xl font-bold leading-snug mb-4">
+            Supporting student wellness, one session at a time.
+          </h2>
+          <p className="text-indigo-200 text-sm leading-relaxed">
+            De La Salle University's integrated counseling and psychological services platform — connecting students with care.
+          </p>
+        </div>
+        <p className="text-indigo-300 text-xs">© {new Date().getFullYear()} DLSU Counseling & Psychological Services</p>
+      </div>
 
-        {/* Right login area */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
-          <div className="w-full max-w-md border border-gray-200 dark:border-gray-700 rounded p-6 bg-white dark:bg-gray-900">
-            <div className="flex items-center justify-center mb-4">
-              <div className="h-10 w-10 bg-gray-300 dark:bg-gray-700 rounded" />
+      {/* Right panel */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-8 lg:hidden">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">CPS</span>
             </div>
-            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-1 text-center">
-              Sign In
-            </h1>
-            <p className="text-center text-gray-600 dark:text-gray-400 text-xs mb-6">Campus Counseling Services</p>
-
-            {/* DLSU Domain Notice */}
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-xs text-blue-700 dark:text-blue-300">
-              <p className="font-medium mb-1">DLSU Account Required</p>
-              <p>Only @dlsu.edu.ph email addresses are allowed</p>
-            </div>
-
-            {/* Error message */}
-            {error && (
-              <div className="mb-4 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded text-xs">
-                {error}
-              </div>
-            )}
-
-            {/* Login method tabs */}
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setLoginMethod('email')}
-                className={`flex-1 px-3 py-2 rounded text-xs font-medium transition ${
-                  loginMethod === 'email'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Email
-              </button>
-              <button
-                onClick={() => setLoginMethod('oauth')}
-                className={`flex-1 px-3 py-2 rounded text-xs font-medium transition ${
-                  loginMethod === 'oauth'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Google
-              </button>
-            </div>
-
-            {/* Email/Password Login */}
-            {loginMethod === 'email' && (
-              <form onSubmit={handleEmailLogin} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your.email@dlsu.edu.ph"
-                    className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-1.5 pr-10 border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 transition"
-                      title={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-4.803m5.596-3.856a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white font-medium py-1.5 px-4 rounded disabled:opacity-50 transition text-sm"
-                >
-                  {loading ? 'Signing in...' : 'Sign In'}
-                </button>
-              </form>
-            )}
-
-            {/* Google OAuth Login */}
-            {loginMethod === 'oauth' && (
-              <div className="space-y-3">
-                {googleError ? (
-                  <div className="text-center py-6 px-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                    <p className="text-sm text-red-700 dark:text-red-300 font-medium mb-2">⚠️ Google Sign-In Unavailable</p>
-                    <p className="text-xs text-red-600 dark:text-red-400 mb-3">{googleError}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Try using email login instead</p>
-                  </div>
-                ) : (
-                  <div>
-                    {!googleReady && (
-                      <div className="text-center py-8">
-                        <div className="inline-block mb-3">
-                          <div className="w-10 h-10 border-4 border-gray-300 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin"></div>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Loading Google Sign-In...
-                        </p>
-                      </div>
-                    )}
-                    {googleReady && (
-                      <div className="text-center text-xs text-gray-600 dark:text-gray-400 mb-3">
-                        Sign in with your DLSU email
-                      </div>
-                    )}
-                    <div
-                      id="google-signin-button"
-                      className="w-full flex justify-center min-h-[44px] bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600"
-                    />
-                    {googleReady && (
-                      <div className="text-xs text-center text-gray-500 dark:text-gray-500 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
-                        Secure sign-in powered by Google
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Footer */}
-            <div className="mt-6 space-y-3">
-              <div className="text-center">
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3 text-center">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                  Don't have an account?
-                </p>
-                <Link
-                  href="/register"
-                  className="inline-block text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition"
-                >
-                  Create Account
-                </Link>
-              </div>
-            </div>
+            <span className="font-semibold text-gray-900 dark:text-white">CPS System</span>
           </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Welcome back</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Sign in to your DLSU CPS account</p>
+
+          {/* Error */}
+          {error && (
+            <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="flex gap-1 mb-5 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            {(['email', 'oauth'] as const).map((method) => (
+              <button
+                key={method}
+                onClick={() => setLoginMethod(method)}
+                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
+                  loginMethod === method
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                {method === 'email' ? 'Email' : 'Google'}
+              </button>
+            ))}
+          </div>
+
+          {/* Email form */}
+          {loginMethod === 'email' && (
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@dlsu.edu.ph"
+                  required
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    {showPassword ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-4.803m5.596-3.856a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Link href="/forgot-password" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Forgot password?</Link>
+              </div>
+              <button type="submit" disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                {loading ? 'Signing in…' : 'Sign in'}
+              </button>
+            </form>
+          )}
+
+          {/* Google OAuth */}
+          {loginMethod === 'oauth' && (
+            <div>
+              {googleError ? (
+                <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-center">
+                  <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">Google Sign-In Unavailable</p>
+                  <p className="text-xs text-red-500 dark:text-red-500">{googleError}</p>
+                </div>
+              ) : (
+                <div>
+                  {!googleReady && (
+                    <div className="flex flex-col items-center gap-3 py-8">
+                      <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Loading Google Sign-In…</p>
+                    </div>
+                  )}
+                  <div id="google-signin-button" className="w-full flex justify-center min-h-[44px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" />
+                  {googleReady && (
+                    <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-3">Use your @dlsu.edu.ph Google account</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No account?{' '}
+              <Link href="/register" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">Create one</Link>
+            </p>
+          </div>
+
+          <p className="mt-8 text-xs text-center text-gray-400 dark:text-gray-600">
+            Only @dlsu.edu.ph accounts are permitted
+          </p>
         </div>
       </div>
-    </PageShell>
+    </div>
   );
 }

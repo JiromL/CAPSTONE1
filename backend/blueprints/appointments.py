@@ -2124,3 +2124,123 @@ def reschedule_appointment(appointment_id):
         print(f"Error in reschedule_appointment: {str(e)}")
         print(error_trace)
         return jsonify({'error': f'Failed to reschedule appointment: {str(e)}'}), 500
+
+
+@appointments_bp.route('/reschedule-requests', methods=['GET'])
+@jwt_required()
+def list_reschedule_requests():
+    """List all pending reschedule requests (appointments rescheduled by students awaiting approval)"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({"_id": ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+        return jsonify({'error': 'Access denied'}), 403
+
+    status_filter = request.args.get('status', 'pending')
+
+    if status_filter == 'pending':
+        query = {"rescheduled_at": {"$exists": True}, "status": AppointmentStatus.REQUESTED.value}
+    elif status_filter == 'approved':
+        query = {"rescheduled_at": {"$exists": True}, "reschedule_approved": True}
+    elif status_filter == 'denied':
+        query = {"rescheduled_at": {"$exists": True}, "reschedule_denied": True}
+    else:
+        query = {"rescheduled_at": {"$exists": True}}
+
+    raw = list(db.db.appointments.find(query).sort("rescheduled_at", -1).limit(100))
+
+    results = []
+    for apt in raw:
+        # Resolve student name
+        student_name = apt.get('student_name', '')
+        if not student_name and apt.get('student_email'):
+            student_name = apt['student_email']
+        if not student_name and apt.get('rescheduled_by_user_id'):
+            try:
+                s = db.db.users.find_one({"_id": apt['rescheduled_by_user_id']})
+                if s:
+                    student_name = f"{s.get('first_name','')} {s.get('last_name','')}".strip()
+            except Exception:
+                pass
+
+        results.append({
+            '_id': str(apt['_id']),
+            'appointment_id': str(apt['_id']),
+            'student_name': student_name or 'Unknown',
+            'student_email': apt.get('student_email', ''),
+            'appointment_type': apt.get('appointment_type', 'General'),
+            'current_time': apt.get('scheduled_start').isoformat() if isinstance(apt.get('scheduled_start'), datetime) else apt.get('scheduled_start'),
+            'requested_start': apt.get('requested_start').isoformat() if isinstance(apt.get('requested_start'), datetime) else str(apt.get('requested_start', '')),
+            'requested_end': apt.get('requested_end').isoformat() if isinstance(apt.get('requested_end'), datetime) else str(apt.get('requested_end', '')),
+            'reason': apt.get('reschedule_reason', ''),
+            'status': 'approved' if apt.get('reschedule_approved') else ('denied' if apt.get('reschedule_denied') else 'pending'),
+            'created_at': apt.get('rescheduled_at').isoformat() if isinstance(apt.get('rescheduled_at'), datetime) else str(apt.get('rescheduled_at', '')),
+        })
+
+    return jsonify({'requests': results, 'total': len(results)}), 200
+
+
+@appointments_bp.route('/reschedule-requests/<request_id>/approve', methods=['POST'])
+@jwt_required()
+def approve_reschedule_request(request_id):
+    """Approve a reschedule request — moves requested time to scheduled time"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({"_id": ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        apt_id = ObjectId(request_id)
+    except Exception:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+
+    apt = db.db.appointments.find_one({"_id": apt_id})
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    new_start = apt.get('requested_start')
+    new_end = apt.get('requested_end')
+
+    db.db.appointments.update_one(
+        {"_id": apt_id},
+        {"$set": {
+            "status": AppointmentStatus.CONFIRMED.value,
+            "scheduled_start": new_start,
+            "scheduled_end": new_end,
+            "reschedule_approved": True,
+            "reschedule_approved_at": datetime.utcnow(),
+            "reschedule_approved_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
+        }}
+    )
+    audit_log(db.db, 'appointments', 'reschedule_approved', entity_id=str(apt_id))
+    return jsonify({'message': 'Reschedule approved', 'appointment_id': str(apt_id)}), 200
+
+
+@appointments_bp.route('/reschedule-requests/<request_id>/deny', methods=['POST'])
+@jwt_required()
+def deny_reschedule_request(request_id):
+    """Deny a reschedule request"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({"_id": ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        apt_id = ObjectId(request_id)
+    except Exception:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+
+    apt = db.db.appointments.find_one({"_id": apt_id})
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    db.db.appointments.update_one(
+        {"_id": apt_id},
+        {"$set": {
+            "status": AppointmentStatus.DENIED.value,
+            "reschedule_denied": True,
+            "reschedule_denied_at": datetime.utcnow(),
+            "reschedule_denied_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
+        }}
+    )
+    audit_log(db.db, 'appointments', 'reschedule_denied', entity_id=str(apt_id))
+    return jsonify({'message': 'Reschedule denied', 'appointment_id': str(apt_id)}), 200

@@ -464,3 +464,93 @@ def get_intake_conversion():
     
     except Exception as e:
         return jsonify({'error': f'Failed to get intake conversion: {str(e)}'}), 500
+
+
+@analytics_bp.route('/appointments/monthly', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_appointments_monthly():
+    """Get monthly appointment counts for the last 6 months"""
+    try:
+        result = []
+        now = datetime.utcnow()
+
+        for i in range(5, -1, -1):
+            # Build month boundaries
+            year = now.year
+            month = now.month - i
+            while month <= 0:
+                month += 12
+                year -= 1
+            month_start = datetime(year, month, 1)
+            if month == 12:
+                month_end = datetime(year + 1, 1, 1)
+            else:
+                month_end = datetime(year, month + 1, 1)
+
+            query_range = {'created_at': {'$gte': month_start, '$lt': month_end}}
+            total = db.db.appointments.count_documents(query_range)
+            completed = db.db.appointments.count_documents({**query_range, 'status': {'$in': ['completed', 'COMPLETED']}})
+            cancelled = db.db.appointments.count_documents({**query_range, 'status': {'$in': ['cancelled', 'CANCELLED']}})
+            no_show = db.db.appointments.count_documents({**query_range, 'status': {'$in': ['no_show', 'NO_SHOW']}})
+
+            result.append({
+                'month': month_start.strftime('%Y-%m'),
+                'label': month_start.strftime('%b %Y'),
+                'short': month_start.strftime('%b'),
+                'total': total,
+                'completed': completed,
+                'cancelled': cancelled,
+                'no_show': no_show,
+            })
+
+        return jsonify({'months': result}), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to get monthly appointments: {str(e)}'}), 500
+
+
+@analytics_bp.route('/cases/monthly', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_cases_monthly():
+    """Get monthly new case and closure counts for the last 6 months"""
+    try:
+        result = []
+        now = datetime.utcnow()
+
+        for i in range(5, -1, -1):
+            year = now.year
+            month = now.month - i
+            while month <= 0:
+                month += 12
+                year -= 1
+            month_start = datetime(year, month, 1)
+            if month == 12:
+                month_end = datetime(year + 1, 1, 1)
+            else:
+                month_end = datetime(year, month + 1, 1)
+
+            new_cases = db.db.cases.count_documents({'created_at': {'$gte': month_start, '$lt': month_end}})
+            closed_cases = db.db.cases.count_documents({
+                'updated_at': {'$gte': month_start, '$lt': month_end},
+                'status': {'$in': ['closed', 'CLOSED']}
+            })
+            high_risk = db.db.cases.count_documents({
+                'created_at': {'$gte': month_start, '$lt': month_end},
+                'risk_level': {'$in': ['RED', 'CRITICAL']}
+            })
+
+            result.append({
+                'month': month_start.strftime('%Y-%m'),
+                'label': month_start.strftime('%b %Y'),
+                'short': month_start.strftime('%b'),
+                'new_cases': new_cases,
+                'closed_cases': closed_cases,
+                'high_risk': high_risk,
+            })
+
+        return jsonify({'months': result}), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to get monthly cases: {str(e)}'}), 500

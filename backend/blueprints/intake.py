@@ -2347,3 +2347,50 @@ def delete_intake_draft(draft_id):
         'message': 'Draft deleted successfully',
         'deleted': result.deleted_count > 0
     }), 200
+
+
+@intake_bp.route('/my-status', methods=['GET'])
+@jwt_required()
+def get_my_intake_status():
+    """Return intake/appointment status for the current student to drive smart routing."""
+    user_id = get_jwt_identity()
+
+    try:
+        user_obj_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    except Exception:
+        user_obj_id = user_id
+
+    active_appointment = db.db.appointments.find_one({
+        "student_id": user_obj_id,
+        "status": {"$in": ["REQUESTED", "PENDING", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
+    })
+
+    pending_intake = db.db.intakes.find_one({
+        "student_id": user_obj_id,
+        "status": {"$in": ["PENDING", "IN_PROGRESS"]},
+    })
+
+    completed_intake = db.db.intakes.find_one({
+        "student_id": user_obj_id,
+        "status": {"$in": ["COMPLETED", "ENDORSED"]},
+    })
+
+    draft = db.db.intake_drafts.find_one({"student_id": user_obj_id})
+
+    appt_info = None
+    if active_appointment:
+        appt_info = {
+            "id": str(active_appointment["_id"]),
+            "status": active_appointment.get("status"),
+            "scheduled_at": active_appointment["requested_start"].isoformat() if active_appointment.get("requested_start") else None,
+        }
+
+    return jsonify({
+        "has_active_appointment": active_appointment is not None,
+        "appointment": appt_info,
+        "has_pending_intake": pending_intake is not None,
+        "pending_intake_status": pending_intake.get("status") if pending_intake else None,
+        "has_completed_intake": completed_intake is not None,
+        "has_draft": draft is not None,
+        "draft_id": str(draft["_id"]) if draft else None,
+    }), 200

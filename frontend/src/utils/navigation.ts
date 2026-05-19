@@ -19,9 +19,8 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
     
     // Primary Workflow
-    { label: 'Intake Assessment', href: '/intake', id: 'intake' },
+    { label: 'Get Counseling', href: '/counseling', id: 'counseling' },
     { label: 'My Appointments', href: '/my-appointments', id: 'my-appointments' },
-    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
     { label: 'My Tasks', href: '/tasks', id: 'tasks' },
     
     // Engagement
@@ -249,6 +248,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     'documentation': 'documentation',
     'profile': 'profile',
     'tasks': 'tasks',
+    'counseling': 'counseling',
     'intake': 'intake',
     'book-appointment': 'book-appointment',
     'resources': 'resources',

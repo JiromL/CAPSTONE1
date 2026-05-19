@@ -1,119 +1,172 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, HelpCircle, CheckCircle, BarChart3, MessageSquare, Settings, FileText, UserPlus, Stethoscope } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
+import { useState, useEffect } from 'react';
+import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { useState } from 'react';
+import { Calendar, Users, ClipboardList, ChevronRight, Loader2, UserPlus, ListChecks, RefreshCw, Clock } from 'lucide-react';
 
-interface DashboardProps {
-  user: any;
-  onLogout: () => void;
-}
+interface DashboardProps { user: any; onLogout: () => void; }
 
-export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
-  const menuItems = getMenuItemsByRole(user.role);
-
+function KpiCard({ label, value, sub, iconBg, icon, urgent }: any) {
   return (
-    <DashboardLayout
-      user={user}
-      onLogout={onLogout}
-      menuItems={menuItems}
-      title="Office Assistant Dashboard"
-      subtitle="Appointment & Staff Management"
-      activeSection="dashboard"
-    >
-      {/* Quick Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        <SupportCard label="Pending Appointments" value="12" />
-        <SupportCard label="Counselor Workload" value="24" color="orange" />
-        <SupportCard label="Batch Assignments Today" value="5" color="green" />
-        <SupportCard label="Calendar Connected" value="8/12" color="blue" />
+    <div className={`bg-white dark:bg-gray-900 border rounded-xl p-4 flex items-start gap-3 ${urgent ? 'border-orange-200 dark:border-orange-700' : 'border-gray-200 dark:border-gray-700'}`}>
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
+      <div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
+        <p className={`text-2xl font-bold leading-tight ${urgent ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>{value}</p>
+        {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>}
       </div>
-
-      {/* Quick Actions */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <SupportLink href="/staff/walkin-intake" label="Add Walk-in Student" />
-          <SupportLink href="/staff/non-counseling-clients" label="Add Check-In Client" />
-          <SupportLink href="/staff/batch-assign" label="Batch Assign Appointments" />
-          <SupportLink href="/staff/workload-report" label="View Workload Report" />
-          <SupportLink href="/staff/reassignment-suggestions" label="Reassignment Suggestions" />
-          <SupportLink href="/availability" label="Calendar Settings" />
-        </div>
-      </div>
-
-      {/* Pending Appointments */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 mb-4 bg-white dark:bg-gray-900">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Unassigned Appointments</h2>
-        <div className="space-y-2">
-          <TicketItem id="APT-2340" title="Initial consultation request" client="Student" priority="high" status="open" />
-          <TicketItem id="APT-2339" title="Follow-up appointment" client="Counselor" priority="medium" status="open" />
-          <TicketItem id="APT-2338" title="Crisis assessment needed" client="Student" priority="high" status="open" />
-        </div>
-      </div>
-
-      {/* Counselor Workload */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Counselor Workload Overview</h2>
-        <div className="space-y-1">
-          <TaskCheckbox label="Dr. Sarah Smith: 8/10 slots filled" completed={false} />
-          <TaskCheckbox label="Dr. James Cohen: 10/10 slots filled (FULL)" completed={true} />
-          <TaskCheckbox label="Marcus Johnson: 5/10 slots filled" completed={false} />
-          <TaskCheckbox label="Elena Rodriguez: 9/10 slots filled" completed={true} />
-        </div>
-      </div>
-    </DashboardLayout>
-  );
-}
-
-function SupportCard({ label, value, color = "blue" }: any) {
-  const colorStyles = {
-    blue: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700",
-    red: "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700",
-    orange: "bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700",
-    green: "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700",
-  };
-
-  return (
-    <div className={`border ${colorStyles[color as keyof typeof colorStyles]} rounded p-4`}>
-      <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-gray-50 mt-1">{value}</p>
     </div>
   );
 }
 
-function SupportLink({ href, label, badge }: any) {
+function ActionCard({ href, label, desc, iconBg, icon, badge }: any) {
   return (
     <Link href={href}>
-      <div className="p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
-        <span className="text-gray-900 dark:text-gray-50 font-medium text-sm">{label}</span>
+      <div className="flex items-center gap-3 p-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors cursor-pointer group">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+          {desc && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{desc}</p>}
+        </div>
+        {badge != null && badge > 0 && (
+          <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-5 h-5 flex items-center justify-center px-1">{badge}</span>
+        )}
+        <ChevronRight size={13} className="text-gray-400 group-hover:text-indigo-500 flex-shrink-0" />
       </div>
     </Link>
   );
 }
 
-function TicketItem({ id, title, client, priority, status }: any) {
-  return (
-    <div className="border border-gray-200 rounded p-3 flex items-center justify-between">
-      <div>
-        <p className="font-semibold text-gray-900 text-xs">{id} - {title}</p>
-        <div className="flex items-center gap-3 mt-1">
-          <span className="text-gray-600 text-xs">{client}</span>
-          <span className="text-xs font-medium text-gray-700">{priority.toUpperCase()}</span>
-        </div>
-      </div>
-      <span className="text-xs font-medium text-gray-600">{status.toUpperCase()}</span>
-    </div>
-  );
-}
+export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
+  const [summary, setSummary]       = useState<any>(null);
+  const [pendingList, setPendingList] = useState<any[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [mounted, setMounted]       = useState(false);
 
-function TaskCheckbox({ label, completed }: any) {
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const token = localStorage.getItem('token');
+    if (!token) { setLoading(false); return; }
+
+    (async () => {
+      try {
+        const r = await fetch(api('/api/appointments/dashboard/role-view'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (r.ok) {
+          const d = await r.json();
+          // Generic dashboard returns a flat appointments array
+          const appts = d.appointments || [];
+          const pending = appts.filter((a: any) => ['REQUESTED','PENDING_APPROVAL'].includes((a.status||'').toUpperCase()));
+          setSummary({ total: appts.length, pending: pending.length });
+          setPendingList(pending.slice(0, 5));
+        }
+      } finally { setLoading(false); }
+    })();
+  }, [mounted]);
+
+  const menuItems = getMenuItemsByRole(user.role);
+  const firstName = user.first_name || user.name?.split(' ')[0] || 'Staff';
+
+  const fmtDate = (s: string) => {
+    try { return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric'}); } catch { return '—'; }
+  };
+
+  const METHOD_LABEL: Record<string, string> = {
+    'in-person': 'In-person', 'walk_in': 'Walk-in', 'online': 'Online',
+    'gmeet': 'Google Meet', 'zoom': 'Zoom', 'phone': 'Phone',
+  };
+
   return (
-    <div className="flex items-center gap-2 p-2 border border-gray-200 rounded">
-      <input type="checkbox" checked={completed} readOnly className="w-4 h-4" />
-      <span className={completed ? "line-through text-gray-400 text-sm" : "text-gray-900 text-sm"}>{label}</span>
-    </div>
+    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="Appointment & office management" activeSection="dashboard">
+
+      <div className="mb-5">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Welcome, {firstName}.</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Here's today's operational overview.</p>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-40 text-gray-400 gap-2">
+          <Loader2 size={20} className="animate-spin" /> Loading…
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+            <KpiCard label="Pending Requests" value={summary?.pending ?? 0}  sub="need assignment" iconBg="bg-orange-50 dark:bg-orange-900/30" icon={<ClipboardList size={16} className="text-orange-600 dark:text-orange-400"/>} urgent />
+            <KpiCard label="All Appointments" value={summary?.total ?? 0}    sub="in system"       iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Calendar size={16} className="text-indigo-600 dark:text-indigo-400"/>} />
+            <KpiCard label="Waitlist"         value={0}                       sub="view waitlist"   iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Clock size={16} className="text-blue-600 dark:text-blue-400"/>} />
+            <KpiCard label="Reschedule"       value={0}                       sub="requests"        iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<RefreshCw size={16} className="text-teal-600 dark:text-teal-400"/>} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Quick Actions */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Actions</p>
+              <div className="space-y-2">
+                <ActionCard href="/staff/walkin-intake"           label="Walk-In Intake"          desc="Register a walk-in student"       iconBg="bg-indigo-50 dark:bg-indigo-900/30"  icon={<UserPlus size={14} className="text-indigo-600"/>} />
+                <ActionCard href="/appointment-requests"          label="Appointment Requests"    desc="Assign counselors"                iconBg="bg-orange-50 dark:bg-orange-900/30"  icon={<Calendar size={14} className="text-orange-600"/>} badge={summary?.pending} />
+                <ActionCard href="/reschedule-requests"           label="Reschedule Requests"     desc="Handle rescheduling"              iconBg="bg-teal-50 dark:bg-teal-900/30"      icon={<RefreshCw size={14} className="text-teal-600"/>} />
+                <ActionCard href="/waitlist"                      label="Waitlist"                desc="Manage waitlist queue"            iconBg="bg-blue-50 dark:bg-blue-900/30"      icon={<Clock size={14} className="text-blue-600"/>} />
+                <ActionCard href="/staff/batch-assign"            label="Batch Assign"            desc="Assign multiple at once"          iconBg="bg-purple-50 dark:bg-purple-900/30"  icon={<ListChecks size={14} className="text-purple-600"/>} />
+                <ActionCard href="/check-in-tracking"             label="Check-In Tracking"       desc="Monitor client check-ins"         iconBg="bg-green-50 dark:bg-green-900/30"    icon={<Users size={14} className="text-green-600"/>} />
+              </div>
+            </div>
+
+            {/* Pending appointment requests */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending Assignments</p>
+                <Link href="/appointment-requests" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View all</Link>
+              </div>
+              {pendingList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-36 text-center">
+                  <ListChecks size={28} className="text-green-500 mb-2" />
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Queue is clear!</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">All appointments have been assigned.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {pendingList.map((req: any, i: number) => (
+                    <div key={i} className="flex items-start gap-3 p-2.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-lg">
+                      <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                        <Calendar size={12} className="text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{req.student_name || 'Student'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {fmtDate(req.preferred_date || req.created_at)} · {METHOD_LABEL[req.method] || req.method || 'in-person'}
+                        </p>
+                        <span className="inline-block mt-1 text-xs px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded">
+                          {req.status}
+                        </span>
+                      </div>
+                      <Link href="/appointment-requests">
+                        <button className="text-xs px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors flex-shrink-0">Assign</button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Secondary tools */}
+          <div className="mt-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">More Tools</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <ActionCard href="/staff/workload-report"        label="Workload Report"       iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<ClipboardList size={13} className="text-blue-600"/>} />
+              <ActionCard href="/staff/reassignment-suggestions" label="Reassign Suggestions" iconBg="bg-purple-50 dark:bg-purple-900/30" icon={<RefreshCw size={13} className="text-purple-600"/>} />
+              <ActionCard href="/availability"                 label="Calendar Settings"     iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<Calendar size={13} className="text-teal-600"/>} />
+              <ActionCard href="/tasks"                        label="My Tasks"              iconBg="bg-gray-100 dark:bg-gray-800"     icon={<ListChecks size={13} className="text-gray-600"/>} />
+            </div>
+          </div>
+        </>
+      )}
+    </DashboardLayout>
   );
 }

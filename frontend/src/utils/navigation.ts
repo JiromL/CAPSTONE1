@@ -22,7 +22,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Get Counseling', href: '/counseling', id: 'counseling' },
     { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
     { label: 'My Appointments', href: '/my-appointments', id: 'my-appointments' },
-    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
     
     // Engagement
     { label: 'Check-Ins', href: '/check-ins-student', id: 'check-ins' },

@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '' })
+  const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '', id_number: '' })
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -45,7 +45,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <PageShell title="Register" subtitle="Create a CPS account">
+    <PageShell title="Register" subtitle="Create a CPS account" hideNav>
       <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-800 p-6">
         <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-50">Register</h1>
         
@@ -64,17 +64,27 @@ export default function RegisterPage() {
             required
           />
           
-          <input 
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400" 
-            placeholder="Last name" 
-            value={form.last_name} 
-            onChange={e => setForm({ ...form, last_name: e.target.value })} 
+          <input
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400"
+            placeholder="Last name"
+            value={form.last_name}
+            onChange={e => setForm({ ...form, last_name: e.target.value })}
             required
           />
-          
-          <input 
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400" 
-            placeholder="Email (must be @dlsu.edu.ph)" 
+
+          <input
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400"
+            placeholder="Student ID (8 digits, e.g. 11234567)"
+            inputMode="numeric"
+            maxLength={8}
+            value={form.id_number}
+            onChange={e => setForm({ ...form, id_number: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+            required
+          />
+
+          <input
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400"
+            placeholder="Email (must be @dlsu.edu.ph)"
             type="email"
             value={form.email} 
             onChange={e => setForm({ ...form, email: e.target.value })} 

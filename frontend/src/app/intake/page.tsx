@@ -216,6 +216,7 @@ export default function IntakePage() {
       first_name: parsedUser.first_name || '',
       last_name: parsedUser.last_name || '',
       contact_number: parsedUser.phone || '',
+      id_number: parsedUser.id_number || '',
     }));
 
     // Check for active appointments

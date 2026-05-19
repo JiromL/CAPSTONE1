@@ -93,7 +93,7 @@ function VerifyEmailContent() {
   }
 
   return (
-    <PageShell title="Verify Email" subtitle="Confirm your DLSU email address">
+    <PageShell title="Verify Email" subtitle="Confirm your DLSU email address" hideNav>
       <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-800 p-6">
         <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-50">Verify Your Email</h1>
 

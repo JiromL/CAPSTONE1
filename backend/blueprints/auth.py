@@ -127,13 +127,24 @@ def register():
     # Validate required fields
     if not data.get('email') or not data.get('password') or not data.get('first_name') or not data.get('last_name'):
         return jsonify({'error': 'Missing required fields: email, password, first_name, last_name'}), 400
-    
+
+    # Validate student ID number (required, 8 digits)
+    id_number = data.get('id_number', '').strip()
+    if not id_number:
+        return jsonify({'error': 'Student ID number is required'}), 400
+    if not id_number.isdigit() or len(id_number) != 8:
+        return jsonify({'error': 'Student ID must be exactly 8 digits (e.g. 11234567)'}), 400
+
+    # Check if student ID already exists
+    if db.db.users.find_one({"id_number": id_number}):
+        return jsonify({'error': 'Student ID already registered'}), 409
+
     email = data['email'].lower().strip()
-    
+
     # Validate DLSU email domain
     if not email.endswith('@dlsu.edu.ph'):
         return jsonify({'error': 'Only DLSU email addresses (@dlsu.edu.ph) are allowed'}), 400
-    
+
     # Check if email already exists
     existing_user = db.db.users.find_one({"email": email})
     if existing_user:
@@ -173,6 +184,7 @@ def register():
     user_doc = {
         "_id": ObjectId(),
         "email": email,
+        "id_number": id_number,
         "password_hash": generate_password_hash(data['password']),
         "first_name": data['first_name'],
         "last_name": data['last_name'],
@@ -311,46 +323,51 @@ def resend_code():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Login user with email/password and return JWT token"""
+    """Login user with email or student ID + password, return JWT token"""
     data = request.get_json()
-    
-    if not data.get('email') or not data.get('password'):
-        return jsonify({'error': 'Missing email or password'}), 400
-    
-    email = data['email'].lower().strip()
-    user = db.db.users.find_one({"email": email})
-    
+
+    # Accept 'identifier' (email or student ID) or legacy 'email' field
+    identifier = (data.get('identifier') or data.get('email', '')).strip()
+    if not identifier or not data.get('password'):
+        return jsonify({'error': 'Missing email/student ID or password'}), 400
+
+    # Look up user by email or student ID
+    if '@' in identifier:
+        user = db.db.users.find_one({"email": identifier.lower()})
+    else:
+        user = db.db.users.find_one({"id_number": identifier})
+
     if user:
         pwd_check = check_password_hash(user['password_hash'], data['password']) if 'password_hash' in user else False
         if pwd_check:
-            # Password is valid
             if not user.get('is_verified', True):
                 return jsonify({
                     'error': 'Email not verified. Please check your email for verification code.',
                     'user_id': str(user['_id']),
                     'email': user['email']
                 }), 403
-            
+
             if not user.get('is_active', True):
                 return jsonify({'error': 'User account is inactive'}), 403
-            
+
             access_token = create_access_token(
                 identity=str(user['_id']),
                 additional_claims={'role': user.get('role', '')}
             )
             audit_log(db.db, 'auth', 'login', entity_id=str(user['_id']))
-            
+
             return jsonify({
                 'access_token': access_token,
                 'user_id': str(user['_id']),
                 'email': user['email'],
+                'id_number': user.get('id_number', ''),
                 'first_name': user['first_name'],
                 'last_name': user['last_name'],
                 'role': user['role'],
+                'phone': user.get('phone', ''),
             }), 200
-    
-    # Invalid credentials - user not found or password wrong
-    audit_log(db.db, 'access_control', 'failed_login', old_values={'email': email})
+
+    audit_log(db.db, 'access_control', 'failed_login', old_values={'identifier': identifier})
     return jsonify({'error': 'Invalid credentials'}), 401
 
 

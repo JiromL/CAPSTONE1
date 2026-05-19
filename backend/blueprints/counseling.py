@@ -42,12 +42,22 @@ def create_session_note(case_id):
     except ValueError:
         return jsonify({'error': 'Invalid datetime format'}), 400
     
+    note_format = data.get('note_format', 'freeform')
     note = {
         "case_id": case['_id'],
         "appointment_id": ObjectId(data['appointment_id']) if data.get('appointment_id') else None,
         "counselor_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
         "session_date": session_date,
         "session_type": data['session_type'],
+        "note_format": note_format,
+        # SOAP fields (populated when note_format == 'SOAP')
+        "soap": {
+            "subjective": data.get('soap_subjective', ''),
+            "objective":  data.get('soap_objective', ''),
+            "assessment": data.get('soap_assessment', ''),
+            "plan":       data.get('soap_plan', ''),
+        } if note_format == 'SOAP' else None,
+        # Freeform fields
         "topics_discussed": data.get('topics_discussed'),
         "interventions": data.get('interventions'),
         "client_response": data.get('client_response'),
@@ -58,6 +68,7 @@ def create_session_note(case_id):
         "risk_flagged": data.get('risk_flagged', False),
         "risk_notes": data.get('risk_notes'),
         "mandatory_submitted": True,
+        "supervisor_approved": False,
         "created_at": datetime.utcnow()
     }
     
@@ -174,8 +185,50 @@ def update_session_note(note_id):
     )
     
     audit_log(db.db, 'session_note', 'update', entity_id=str(note['_id']), new_values=data)
-    
+
     return jsonify({'message': 'Session note updated', 'note_id': str(note['_id'])}), 200
+
+
+@counseling_bp.route('/session-note/<note_id>/approve', methods=['PATCH'])
+@jwt_required()
+def approve_session_note(note_id):
+    """Supervisor approves or rejects a session note."""
+    user_id = get_jwt_identity()
+
+    user = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    allowed_roles = {'PSYCHOLOGIST', 'CSP', 'ADMIN'}
+    if user.get('role') not in allowed_roles:
+        return jsonify({'error': 'Only supervisors (PSYCHOLOGIST/CSP/ADMIN) can approve notes'}), 403
+
+    try:
+        nid = ObjectId(note_id)
+        note = db.db.session_notes.find_one({'_id': nid})
+    except Exception:
+        note = db.db.session_notes.find_one({'_id': note_id})
+
+    if not note:
+        return jsonify({'error': 'Session note not found'}), 404
+
+    data = request.get_json() or {}
+    action = data.get('action')  # 'approve' | 'reject'
+    if action not in ('approve', 'reject'):
+        return jsonify({'error': "action must be 'approve' or 'reject'"}), 400
+
+    approved = action == 'approve'
+    update_fields = {
+        'supervisor_approved': approved,
+        'supervisor_id': user_id,
+        'supervisor_name': f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
+        'supervisor_action_at': datetime.utcnow(),
+        'supervisor_comment': data.get('comment', ''),
+    }
+    db.db.session_notes.update_one({'_id': note['_id']}, {'$set': update_fields})
+    audit_log(db.db, 'session_note', action, entity_id=str(note['_id']),
+              new_values={'supervisor': user_id, 'comment': data.get('comment', '')})
+
+    return jsonify({'message': f'Note {action}d', 'note_id': note_id, 'approved': approved}), 200
 
 
 @counseling_bp.route('/case/<case_id>/session-history', methods=['GET'])
@@ -198,6 +251,23 @@ def get_case_session_history(case_id):
         return jsonify({'error': 'Case not found'}), 404
     
     notes = list(db.db.session_notes.find({"case_id": case['_id']}).sort("session_date", -1))
+
+    result = []
+    for n in notes:
+        result.append({
+            'note_id': str(n['_id']),
+            'session_date': n['session_date'].isoformat() if isinstance(n.get('session_date'), datetime) else n.get('session_date'),
+            'session_type': n.get('session_type', ''),
+            'note_content': n.get('note_content', ''),
+            'note_format': n.get('note_format', 'freeform'),
+            'soap': n.get('soap'),
+            'risk_level': n.get('risk_level', ''),
+            'supervisor_approved': n.get('supervisor_approved', False),
+            'supervisor_name': n.get('supervisor_name', ''),
+            'supervisor_comment': n.get('supervisor_comment', ''),
+            'supervisor_action_at': n['supervisor_action_at'].isoformat() if isinstance(n.get('supervisor_action_at'), datetime) else n.get('supervisor_action_at'),
+        })
+    return jsonify({'notes': result, 'total': len(result)}), 200
 
 
 # ---------------------------------------------------------------------------

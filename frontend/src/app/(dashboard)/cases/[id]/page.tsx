@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon } from 'lucide-react';
 import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 
@@ -13,20 +13,35 @@ interface SessionNote {
   note_id: string;
   session_date: string;
   session_type: string;
+  note_content?: string;
+  note_format?: 'SOAP' | 'freeform';
+  soap?: { subjective?: string; objective?: string; assessment?: string; plan?: string };
   mood_rating?: number;
   symptom_severity?: string;
   risk_flagged?: boolean;
+  risk_level?: string;
   counselor?: string;
   topics_discussed?: string;
   interventions?: string;
   client_response?: string;
   homework_assigned?: string;
   progress_on_goals?: string;
+  supervisor_approved?: boolean;
+  supervisor_name?: string;
+  supervisor_comment?: string;
+  supervisor_action_at?: string;
 }
 
 const emptyNote = {
   session_date: '',
   session_type: 'INDIVIDUAL',
+  note_format: 'SOAP' as 'SOAP' | 'freeform',
+  // SOAP fields
+  soap_subjective: '',
+  soap_objective: '',
+  soap_assessment: '',
+  soap_plan: '',
+  // Freeform fields (kept for backward compatibility)
   topics_discussed: '',
   interventions: '',
   client_response: '',
@@ -38,6 +53,148 @@ const emptyNote = {
   risk_notes: '',
 };
 
+/* ── Supervisor sign-off helper ─────────────────────────────────────────── */
+
+function SupervisorActions({ noteId, onAction }: {
+  noteId: string;
+  onAction: (noteId: string, action: 'approve' | 'reject', comment?: string) => Promise<void>;
+}) {
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  const act = async (action: 'approve' | 'reject') => {
+    setBusy(true);
+    await onAction(noteId, action, comment);
+    setBusy(false);
+  };
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
+      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Supervisor Review</p>
+      <textarea
+        value={comment}
+        onChange={e => setComment(e.target.value)}
+        rows={2}
+        placeholder="Optional feedback comment…"
+        className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-1 focus:ring-indigo-500"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={() => act('approve')}
+          disabled={busy}
+          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition disabled:opacity-50"
+        >Approve</button>
+        <button
+          onClick={() => act('reject')}
+          disabled={busy}
+          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition disabled:opacity-50"
+        >Reject</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Safety Plan helper components ──────────────────────────────────────── */
+
+function SafetyListSection({ label, hint, items, onAdd, onRemove }: {
+  label: string; hint: string; items: string[];
+  onAdd: (v: string) => void; onRemove: (i: number) => void;
+}) {
+  const [val, setVal] = useState('');
+  const commit = () => { if (val.trim()) { onAdd(val.trim()); setVal(''); } };
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-xs text-gray-400 mb-2">{hint}</p>
+      <div className="flex gap-2 mb-2">
+        <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), commit())}
+          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          placeholder="Add item…" />
+        <button onClick={commit} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"><Plus size={14} /></button>
+      </div>
+      <ul className="space-y-1">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+            <span>{item}</span>
+            <button onClick={() => onRemove(i)} className="text-gray-300 hover:text-red-500 ml-2"><XIcon size={13} /></button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ContactSection({ label, hint, items, fields, onAdd, onRemove }: {
+  label: string; hint: string;
+  items: Array<{ name: string; phone: string }>;
+  fields: string[];
+  onAdd: (v: { name: string; phone: string }) => void;
+  onRemove: (i: number) => void;
+}) {
+  const [form, setForm] = useState({ name: '', phone: '' });
+  const commit = () => {
+    if (form.name.trim()) { onAdd({ ...form }); setForm({ name: '', phone: '' }); }
+  };
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-xs text-gray-400 mb-2">{hint}</p>
+      <div className="flex gap-2 mb-2">
+        <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          placeholder="Name" />
+        <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          placeholder="Phone" />
+        <button onClick={commit} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"><Plus size={14} /></button>
+      </div>
+      <ul className="space-y-1">
+        {items.map((c, i) => (
+          <li key={i} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+            <span>{c.name} <span className="text-gray-400 text-xs ml-1">{c.phone}</span></span>
+            <button onClick={() => onRemove(i)} className="text-gray-300 hover:text-red-500 ml-2"><XIcon size={13} /></button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ProfessionalContactSection({ items, onAdd, onRemove }: {
+  items: Array<{ name: string; phone: string; role: string }>;
+  onAdd: (v: { name: string; phone: string; role: string }) => void;
+  onRemove: (i: number) => void;
+}) {
+  const [form, setForm] = useState({ name: '', phone: '', role: '' });
+  const commit = () => {
+    if (form.name.trim()) { onAdd({ ...form }); setForm({ name: '', phone: '', role: '' }); }
+  };
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">Professional / Crisis Contacts</p>
+      <p className="text-xs text-gray-400 mb-2">Counselors, psychiatrists, crisis hotlines the client can reach out to.</p>
+      <div className="flex gap-2 mb-2 flex-wrap">
+        <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+          className="flex-1 min-w-[120px] border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          placeholder="Name" />
+        <input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+          className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          placeholder="Role / org" />
+        <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          placeholder="Phone / hotline" />
+        <button onClick={commit} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"><Plus size={14} /></button>
+      </div>
+      <ul className="space-y-1">
+        {items.map((c, i) => (
+          <li key={i} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+            <span>{c.name} <span className="text-gray-400 text-xs">{c.role}</span> <span className="text-gray-400 text-xs ml-1">{c.phone}</span></span>
+            <button onClick={() => onRemove(i)} className="text-gray-300 hover:text-red-500 ml-2"><XIcon size={13} /></button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function CaseDetailPage() {
   const params = useParams();
   const caseId = params.id as string;
@@ -45,10 +202,14 @@ export default function CaseDetailPage() {
   const { getCase, updateCaseStatus, loading: intakeLoading } = useIntakeApi();
   const { createCheckIn, getCheckInHistory, loading: checkInLoading } = useCheckInApi();
 
+  const [currentUser, setCurrentUser] = useState<{ role?: string } | null>(null);
   const [caseData, setCaseData] = useState<any>(null);
   const [checkInHistory, setCheckInHistory] = useState<any[]>([]);
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
-  const [activeTab, setActiveTab] = useState<'details' | 'session-notes' | 'treatment-plan' | 'check-ins' | 'perma'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'session-notes' | 'treatment-plan' | 'diagnoses' | 'safety-plan' | 'assessments' | 'check-ins' | 'perma'>('details');
+  const [diagnoses, setDiagnoses] = useState<Array<{ code: string; description: string; type: string; system: string; added_at: string }>>([]);
+  const [diagForm, setDiagForm] = useState({ code: '', description: '', type: 'primary', system: 'DSM-5' });
+  const [savingDiag, setSavingDiag] = useState(false);
   const [permaHistory, setPermaHistory] = useState<Array<{ date: string; perma_label: string | null }>>([]);
   const [permaLoading, setPermaLoading] = useState(false);
   const [mhbotUsername, setMhbotUsername] = useState('');
@@ -61,9 +222,39 @@ export default function CaseDetailPage() {
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
   const [savingNote, setSavingNote] = useState(false);
 
-  const [treatmentPlan, setTreatmentPlan] = useState('');
+  const [treatmentPlan, setTreatmentPlan] = useState<{
+    goals: Array<{ goal: string; target_date: string; status: 'not_started' | 'in_progress' | 'achieved' }>;
+    interventions: string[];
+    progress_summary: string;
+    estimated_duration: string;
+    next_review_date: string;
+  }>({ goals: [], interventions: [], progress_summary: '', estimated_duration: '', next_review_date: '' });
   const [editingPlan, setEditingPlan] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
+
+  const emptySafetyPlan = {
+    warning_signs: [] as string[],
+    internal_coping: [] as string[],
+    social_distractions: [] as string[],
+    social_contacts: [] as Array<{ name: string; phone: string }>,
+    professional_contacts: [] as Array<{ name: string; phone: string; role: string }>,
+    reasons_to_live: [] as string[],
+    means_restriction: '',
+    follow_up_date: '',
+    counselor_signature: '',
+  };
+  const [safetyPlan, setSafetyPlan] = useState(emptySafetyPlan);
+  const [safetyPlanExists, setSafetyPlanExists] = useState(false);
+  const [editingSafetyPlan, setEditingSafetyPlan] = useState(false);
+  const [savingSafetyPlan, setSavingSafetyPlan] = useState(false);
+  const [safetyPlanLoaded, setSafetyPlanLoaded] = useState(false);
+
+  const [assessmentSchedules, setAssessmentSchedules] = useState<Array<{
+    schedule_id: string; assessment_type: string; interval_days: number; next_due: string; active: boolean;
+  }>>([]);
+  const [scheduleForm, setScheduleForm] = useState({ assessment_type: 'PHQ9', interval_days: 14, start_date: '' });
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [schedulesLoaded, setSchedulesLoaded] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -75,13 +266,22 @@ export default function CaseDetailPage() {
   const loadCaseData = async () => {
     try {
       setError(null);
+      const raw = localStorage.getItem('user');
+      if (raw) setCurrentUser(JSON.parse(raw));
       const [caseRes, historyRes] = await Promise.all([
         getCase(caseId),
         getCheckInHistory(caseId),
       ]);
       setCaseData(caseRes);
       setCheckInHistory(historyRes?.check_ins || []);
-      if (caseRes?.treatment_plan) setTreatmentPlan(caseRes.treatment_plan);
+      if (caseRes?.treatment_plan) {
+        const tp = caseRes.treatment_plan;
+        if (typeof tp === 'object' && tp !== null) {
+          setTreatmentPlan({ goals: tp.goals || [], interventions: tp.interventions || [], progress_summary: tp.progress_summary || '', estimated_duration: tp.estimated_duration || '', next_review_date: tp.next_review_date || '' });
+        } else if (typeof tp === 'string' && tp) {
+          setTreatmentPlan(prev => ({ ...prev, progress_summary: tp }));
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load case data');
     }
@@ -105,7 +305,125 @@ export default function CaseDetailPage() {
   useEffect(() => {
     if (activeTab === 'session-notes') loadSessionNotes();
     if (activeTab === 'perma') loadPermaHistory();
+    if (activeTab === 'diagnoses') loadDiagnoses();
+    if (activeTab === 'safety-plan' && !safetyPlanLoaded) loadSafetyPlan();
+    if (activeTab === 'assessments' && !schedulesLoaded) loadAssessmentSchedules();
   }, [activeTab]);
+
+  const loadSafetyPlan = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/high-risk/case/${caseId}/safety-plan`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) {
+        const d = await r.json();
+        setSafetyPlan({
+          warning_signs: d.warning_signs || [],
+          internal_coping: d.internal_coping || [],
+          social_distractions: d.social_distractions || [],
+          social_contacts: d.social_contacts || [],
+          professional_contacts: d.professional_contacts || [],
+          reasons_to_live: d.reasons_to_live || [],
+          means_restriction: d.means_restriction || '',
+          follow_up_date: d.follow_up_date || '',
+          counselor_signature: d.counselor_signature || '',
+        });
+        setSafetyPlanExists(true);
+      } else {
+        setSafetyPlanExists(false);
+        setEditingSafetyPlan(true);
+      }
+    } catch {
+      setSafetyPlanExists(false);
+      setEditingSafetyPlan(true);
+    }
+    setSafetyPlanLoaded(true);
+  };
+
+  const saveSafetyPlan = async () => {
+    const token = localStorage.getItem('token');
+    setSavingSafetyPlan(true);
+    try {
+      const r = await fetch(api(`/api/high-risk/case/${caseId}/safety-plan`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(safetyPlan),
+      });
+      if (r.ok) {
+        setSafetyPlanExists(true);
+        setEditingSafetyPlan(false);
+        setSuccess('Safety plan saved.');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to save safety plan.');
+      }
+    } finally { setSavingSafetyPlan(false); }
+  };
+
+  const loadAssessmentSchedules = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/assessments/case/${caseId}/schedule`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setAssessmentSchedules(d.schedules || []); }
+    } catch {}
+    setSchedulesLoaded(true);
+  };
+
+  const handleAddSchedule = async () => {
+    const token = localStorage.getItem('token');
+    setSavingSchedule(true);
+    try {
+      const r = await fetch(api(`/api/assessments/case/${caseId}/schedule`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(scheduleForm),
+      });
+      if (r.ok) { await loadAssessmentSchedules(); setScheduleForm({ assessment_type: 'PHQ9', interval_days: 14, start_date: '' }); }
+    } finally { setSavingSchedule(false); }
+  };
+
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    const token = localStorage.getItem('token');
+    await fetch(api(`/api/assessments/schedule/${scheduleId}`), { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    await loadAssessmentSchedules();
+  };
+
+  const addSafetyPlanItem = (field: keyof typeof safetyPlan, value: string | object) => {
+    setSafetyPlan(prev => ({ ...prev, [field]: [...(prev[field] as any[]), value] }));
+  };
+
+  const removeSafetyPlanItem = (field: keyof typeof safetyPlan, index: number) => {
+    setSafetyPlan(prev => ({ ...prev, [field]: (prev[field] as any[]).filter((_: any, i: number) => i !== index) }));
+  };
+
+  const loadDiagnoses = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/cases/${caseId}/diagnoses`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setDiagnoses(d.diagnoses || []); }
+    } catch {}
+  };
+
+  const handleAddDiagnosis = async () => {
+    if (!diagForm.code || !diagForm.description) return;
+    const token = localStorage.getItem('token');
+    setSavingDiag(true);
+    try {
+      const r = await fetch(api(`/api/cases/${caseId}/diagnoses`), {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(diagForm),
+      });
+      if (r.ok) {
+        setDiagForm({ code: '', description: '', type: 'primary', system: 'DSM-5' });
+        await loadDiagnoses();
+      }
+    } finally { setSavingDiag(false); }
+  };
+
+  const handleRemoveDiagnosis = async (index: number) => {
+    const token = localStorage.getItem('token');
+    await fetch(api(`/api/cases/${caseId}/diagnoses/${index}`), { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    await loadDiagnoses();
+  };
 
   const loadPermaHistory = async () => {
     if (!caseData) return;
@@ -233,6 +551,24 @@ export default function CaseDetailPage() {
     }
   };
 
+  const handleApproveNote = async (noteId: string, action: 'approve' | 'reject', comment?: string) => {
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/counseling/session-note/${noteId}/approve`), {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, comment: comment || '' }),
+      });
+      if (r.ok) {
+        showSuccess(`Note ${action}d.`);
+        await loadSessionNotes();
+      } else {
+        const e = await r.json();
+        setError(e.error || `Failed to ${action} note`);
+      }
+    } catch (e: any) { setError(e.message); }
+  };
+
   const handleSaveTreatmentPlan = async () => {
     try {
       setSavingPlan(true);
@@ -266,6 +602,9 @@ export default function CaseDetailPage() {
     { id: 'details' as const, label: 'Case Details' },
     { id: 'session-notes' as const, label: `Session Notes (${sessionNotes.length})` },
     { id: 'treatment-plan' as const, label: 'Treatment Plan' },
+    { id: 'diagnoses' as const, label: `Diagnoses (${diagnoses.length})` },
+    { id: 'safety-plan' as const, label: 'Safety Plan' },
+    { id: 'assessments' as const, label: 'Assessments' },
     { id: 'check-ins' as const, label: `Check-Ins (${checkInHistory.length})` },
     { id: 'perma' as const,     label: 'PERMA / MHBot' },
   ];
@@ -414,7 +753,6 @@ export default function CaseDetailPage() {
                     className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
                   >
                     <option value="INDIVIDUAL">Individual</option>
-                    <option value="GROUP">Group</option>
                     <option value="CRISIS">Crisis</option>
                     <option value="FOLLOW_UP">Follow-up</option>
                     <option value="INTAKE">Intake</option>
@@ -442,28 +780,69 @@ export default function CaseDetailPage() {
                     <option value="SEVERE">Severe</option>
                   </select>
                 </div>
-                {(['topics_discussed', 'interventions', 'client_response', 'progress_on_goals'] as const).map((field) => (
-                  <div key={field} className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      {field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </label>
-                    <textarea
-                      value={noteForm[field] as string}
-                      onChange={(e) => setNoteForm({ ...noteForm, [field]: e.target.value })}
-                      rows={2}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                ))}
+
+                {/* Note format toggle */}
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Homework / Tasks Assigned</label>
-                  <input
-                    type="text"
-                    value={noteForm.homework_assigned}
-                    onChange={(e) => setNoteForm({ ...noteForm, homework_assigned: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                  />
+                  <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit">
+                    {(['SOAP', 'freeform'] as const).map(fmt => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => setNoteForm({ ...noteForm, note_format: fmt })}
+                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                      >
+                        {fmt === 'SOAP' ? 'SOAP Template' : 'Freeform'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {noteForm.note_format === 'SOAP' ? (
+                  <>
+                    {([
+                      { key: 'soap_subjective', label: 'S — Subjective', hint: "Client's own words, feelings, and complaints" },
+                      { key: 'soap_objective', label: 'O — Objective', hint: 'Observable data: behavior, appearance, test scores' },
+                      { key: 'soap_assessment', label: 'A — Assessment', hint: 'Clinician interpretation, risk level, diagnosis impression' },
+                      { key: 'soap_plan', label: 'P — Plan', hint: 'Next steps, homework, referrals, follow-up schedule' },
+                    ] as const).map(({ key, label, hint }) => (
+                      <div key={key} className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-0.5">{label}</label>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{hint}</p>
+                        <textarea
+                          value={noteForm[key] as string}
+                          onChange={(e) => setNoteForm({ ...noteForm, [key]: e.target.value })}
+                          rows={3}
+                          className="w-full px-3 py-2 text-sm border border-indigo-200 dark:border-indigo-800 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {(['topics_discussed', 'interventions', 'client_response', 'progress_on_goals'] as const).map((field) => (
+                      <div key={field} className="md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          {field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </label>
+                        <textarea
+                          value={noteForm[field] as string}
+                          onChange={(e) => setNoteForm({ ...noteForm, [field]: e.target.value })}
+                          rows={2}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+                        />
+                      </div>
+                    ))}
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Homework / Tasks Assigned</label>
+                      <input
+                        type="text"
+                        value={noteForm.homework_assigned}
+                        onChange={(e) => setNoteForm({ ...noteForm, homework_assigned: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="md:col-span-2 flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -521,7 +900,7 @@ export default function CaseDetailPage() {
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">{note.session_type}{note.counselor ? ` · ${note.counselor}` : ''}</p>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {note.risk_flagged && (
                         <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">Risk</span>
                       )}
@@ -530,6 +909,15 @@ export default function CaseDetailPage() {
                       )}
                       {note.symptom_severity && note.symptom_severity !== 'NONE' && (
                         <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">{note.symptom_severity}</span>
+                      )}
+                      {note.supervisor_approved === true && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium rounded-full">✓ Approved</span>
+                      )}
+                      {note.supervisor_approved === false && note.supervisor_name && (
+                        <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium rounded-full">✗ Rejected</span>
+                      )}
+                      {note.supervisor_approved === false && !note.supervisor_name && (
+                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-medium rounded-full">Pending review</span>
                       )}
                     </div>
                   </div>
@@ -544,6 +932,23 @@ export default function CaseDetailPage() {
                       <p className="text-xs text-gray-500 uppercase tracking-wide">Interventions</p>
                       <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">{note.interventions}</p>
                     </div>
+                  )}
+                  {/* Supervisor comment if rejected */}
+                  {note.supervisor_approved === false && note.supervisor_comment && (
+                    <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-700 dark:text-red-300">
+                      <span className="font-semibold">Feedback:</span> {note.supervisor_comment}
+                    </div>
+                  )}
+                  {/* Supervisor sign-off actions */}
+                  {['PSYCHOLOGIST', 'CSP', 'ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name && (
+                    <SupervisorActions noteId={note.note_id} onAction={handleApproveNote} />
+                  )}
+                  {/* Approval info */}
+                  {note.supervisor_approved && note.supervisor_name && (
+                    <p className="mt-2 text-xs text-gray-400">
+                      Approved by <span className="font-medium">{note.supervisor_name}</span>
+                      {note.supervisor_action_at && ` · ${new Date(note.supervisor_action_at).toLocaleDateString()}`}
+                    </p>
                   )}
                 </div>
               ))}
@@ -567,40 +972,470 @@ export default function CaseDetailPage() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="space-y-4">
             {editingPlan ? (
-              <>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Treatment Plan</label>
-                <textarea
-                  value={treatmentPlan}
-                  onChange={(e) => setTreatmentPlan(e.target.value)}
-                  rows={12}
-                  placeholder="Describe the treatment goals, planned interventions, and expected outcomes…"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                />
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={handleSaveTreatmentPlan}
-                    disabled={savingPlan}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition"
-                  >
+              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+                {/* Goals */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Goals</label>
+                    <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, goals: [...tp.goals, { goal: '', target_date: '', status: 'not_started' }] }))}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add Goal</button>
+                  </div>
+                  <div className="space-y-2">
+                    {treatmentPlan.goals.map((g, i) => (
+                      <div key={i} className="flex gap-2 items-start">
+                        <input type="text" value={g.goal} placeholder="Goal description"
+                          onChange={e => setTreatmentPlan(tp => { const gs = [...tp.goals]; gs[i] = { ...gs[i], goal: e.target.value }; return { ...tp, goals: gs }; })}
+                          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                        <input type="date" value={g.target_date}
+                          onChange={e => setTreatmentPlan(tp => { const gs = [...tp.goals]; gs[i] = { ...gs[i], target_date: e.target.value }; return { ...tp, goals: gs }; })}
+                          className="w-36 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                        <select value={g.status}
+                          onChange={e => setTreatmentPlan(tp => { const gs = [...tp.goals]; gs[i] = { ...gs[i], status: e.target.value as any }; return { ...tp, goals: gs }; })}
+                          className="w-32 px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50">
+                          <option value="not_started">Not started</option>
+                          <option value="in_progress">In progress</option>
+                          <option value="achieved">Achieved</option>
+                        </select>
+                        <button onClick={() => setTreatmentPlan(tp => ({ ...tp, goals: tp.goals.filter((_, j) => j !== i) }))}
+                          className="text-red-400 hover:text-red-600 p-1"><XIcon size={14} /></button>
+                      </div>
+                    ))}
+                    {treatmentPlan.goals.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500 italic">No goals added yet.</p>}
+                  </div>
+                </div>
+
+                {/* Interventions */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Interventions</label>
+                    <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, interventions: [...tp.interventions, ''] }))}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add</button>
+                  </div>
+                  <div className="space-y-2">
+                    {treatmentPlan.interventions.map((iv, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input type="text" value={iv} placeholder="e.g. CBT, mindfulness, psychoeducation"
+                          onChange={e => setTreatmentPlan(tp => { const ivs = [...tp.interventions]; ivs[i] = e.target.value; return { ...tp, interventions: ivs }; })}
+                          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                        <button onClick={() => setTreatmentPlan(tp => ({ ...tp, interventions: tp.interventions.filter((_, j) => j !== i) }))}
+                          className="text-red-400 hover:text-red-600 p-1"><XIcon size={14} /></button>
+                      </div>
+                    ))}
+                    {treatmentPlan.interventions.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500 italic">No interventions listed.</p>}
+                  </div>
+                </div>
+
+                {/* Meta */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Estimated Duration</label>
+                    <input type="text" value={treatmentPlan.estimated_duration} placeholder="e.g. 12 sessions over 3 months"
+                      onChange={e => setTreatmentPlan(tp => ({ ...tp, estimated_duration: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Next Review Date</label>
+                    <input type="date" value={treatmentPlan.next_review_date}
+                      onChange={e => setTreatmentPlan(tp => ({ ...tp, next_review_date: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Progress Summary</label>
+                  <textarea value={treatmentPlan.progress_summary} rows={3} placeholder="Overall progress notes and clinical impressions…"
+                    onChange={e => setTreatmentPlan(tp => ({ ...tp, progress_summary: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={handleSaveTreatmentPlan} disabled={savingPlan}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition">
                     {savingPlan ? 'Saving…' : 'Save Plan'}
                   </button>
-                  <button
-                    onClick={() => { setEditingPlan(false); setTreatmentPlan(caseData?.treatment_plan || ''); }}
-                    className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                  >
+                  <button onClick={() => setEditingPlan(false)}
+                    className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                     Cancel
                   </button>
                 </div>
-              </>
-            ) : treatmentPlan ? (
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{treatmentPlan}</p>
+              </div>
+            ) : treatmentPlan.goals.length > 0 || treatmentPlan.interventions.length > 0 || treatmentPlan.progress_summary ? (
+              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-5">
+                {treatmentPlan.goals.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Goals</p>
+                    <div className="space-y-1.5">
+                      {treatmentPlan.goals.map((g, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${g.status === 'achieved' ? 'bg-green-500' : g.status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-300'}`} />
+                          <span className="flex-1 text-gray-800 dark:text-gray-200">{g.goal}</span>
+                          {g.target_date && <span className="text-xs text-gray-400">{new Date(g.target_date).toLocaleDateString()}</span>}
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${g.status === 'achieved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : g.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{g.status.replace('_', ' ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {treatmentPlan.interventions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Interventions</p>
+                    <div className="flex flex-wrap gap-2">
+                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">{iv}</span>)}
+                    </div>
+                  </div>
+                )}
+                {(treatmentPlan.estimated_duration || treatmentPlan.next_review_date) && (
+                  <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400">
+                    {treatmentPlan.estimated_duration && <span><span className="font-medium">Duration:</span> {treatmentPlan.estimated_duration}</span>}
+                    {treatmentPlan.next_review_date && <span><span className="font-medium">Next review:</span> {new Date(treatmentPlan.next_review_date).toLocaleDateString()}</span>}
+                  </div>
+                )}
+                {treatmentPlan.progress_summary && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Progress</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{treatmentPlan.progress_summary}</p>
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="text-center py-10">
+              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
                 <Target size={28} className="mx-auto mb-3 text-gray-400" />
                 <p className="text-gray-600 dark:text-gray-400">No treatment plan on file.</p>
-                <p className="text-xs text-gray-500 mt-1">Click "Create Plan" to add a treatment plan for this case.</p>
+                <p className="text-xs text-gray-500 mt-1">Click "Create Plan" to add goals, interventions, and a progress summary.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Diagnoses Tab ──────────────────────────────────────── */}
+      {activeTab === 'diagnoses' && (
+        <div className="space-y-5">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Diagnoses</h3>
+
+          {/* Add form */}
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Add Diagnosis</p>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="md:col-span-1">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
+                <input type="text" value={diagForm.code} placeholder="e.g. F41.1" onChange={e => setDiagForm(f => ({ ...f, code: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+              </div>
+              <div className="md:col-span-1">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">System</label>
+                <select value={diagForm.system} onChange={e => setDiagForm(f => ({ ...f, system: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50">
+                  <option value="DSM-5">DSM-5</option>
+                  <option value="ICD-10">ICD-10</option>
+                </select>
+              </div>
+              <div className="md:col-span-1">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                <select value={diagForm.type} onChange={e => setDiagForm(f => ({ ...f, type: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50">
+                  <option value="primary">Primary</option>
+                  <option value="secondary">Secondary</option>
+                  <option value="rule_out">Rule Out</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button onClick={handleAddDiagnosis} disabled={savingDiag || !diagForm.code || !diagForm.description}
+                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition">
+                  {savingDiag ? 'Adding…' : 'Add'}
+                </button>
+              </div>
+              <div className="md:col-span-4">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                <input type="text" value={diagForm.description} placeholder="e.g. Generalized Anxiety Disorder" onChange={e => setDiagForm(f => ({ ...f, description: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+              </div>
+            </div>
+          </div>
+
+          {/* Diagnosis list */}
+          {diagnoses.length === 0 ? (
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-10 text-center">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No diagnoses recorded.</p>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
+              {diagnoses.map((d, i) => (
+                <div key={i} className="flex items-center gap-3 px-5 py-3">
+                  <span className="font-mono text-sm font-bold text-indigo-700 dark:text-indigo-400 w-20 flex-shrink-0">{d.code}</span>
+                  <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{d.description}</span>
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">{d.system}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
+                  <button onClick={() => handleRemoveDiagnosis(i)} className="text-gray-300 hover:text-red-500 transition ml-1"><XIcon size={14} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Safety Plan Tab ────────────────────────────────────── */}
+      {activeTab === 'safety-plan' && (
+        <div className="space-y-6 max-w-3xl">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield size={16} className="text-red-500" />
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                {safetyPlanExists ? 'Safety Plan' : 'Create Safety Plan'}
+              </h2>
+              {safetyPlanExists && !editingSafetyPlan && (
+                <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded">On file</span>
+              )}
+            </div>
+            {safetyPlanExists && !editingSafetyPlan && (
+              <button onClick={() => setEditingSafetyPlan(true)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
+            )}
+          </div>
+
+          {!editingSafetyPlan ? (
+            /* ── Read-only view ── */
+            <div className="space-y-4">
+              {[
+                { label: 'Warning Signs', items: safetyPlan.warning_signs, color: 'orange' },
+                { label: 'Internal Coping Strategies', items: safetyPlan.internal_coping, color: 'blue' },
+                { label: 'Social Distractions', items: safetyPlan.social_distractions, color: 'purple' },
+                { label: 'Reasons for Living', items: safetyPlan.reasons_to_live, color: 'green' },
+              ].map(sec => (
+                <div key={sec.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{sec.label}</p>
+                  {sec.items.length === 0 ? (
+                    <p className="text-xs text-gray-400 italic">None recorded</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {sec.items.map((item, i) => (
+                        <li key={i} className="text-sm text-gray-800 dark:text-gray-200 flex items-start gap-2">
+                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                          {item as string}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+
+              {/* Social contacts */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Social Contacts (People to Call)</p>
+                {safetyPlan.social_contacts.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">None recorded</p>
+                ) : (
+                  <div className="space-y-1">
+                    {safetyPlan.social_contacts.map((c, i) => (
+                      <div key={i} className="flex items-center gap-3 text-sm text-gray-800 dark:text-gray-200">
+                        <span className="font-medium">{c.name}</span>
+                        <span className="text-gray-400">{c.phone}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Professional contacts */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Professional / Crisis Contacts</p>
+                {safetyPlan.professional_contacts.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">None recorded</p>
+                ) : (
+                  <div className="space-y-1">
+                    {safetyPlan.professional_contacts.map((c, i) => (
+                      <div key={i} className="flex items-center gap-3 text-sm text-gray-800 dark:text-gray-200">
+                        <span className="font-medium">{c.name}</span>
+                        <span className="text-gray-400 text-xs">{c.role}</span>
+                        <span className="text-gray-400">{c.phone}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Means restriction + follow-up */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Means Restriction</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200">{safetyPlan.means_restriction || <span className="italic text-gray-400">Not recorded</span>}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Follow-Up Date</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200">{safetyPlan.follow_up_date || <span className="italic text-gray-400">Not set</span>}</p>
+                </div>
+              </div>
+
+              {safetyPlan.counselor_signature && (
+                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-xs text-gray-500 dark:text-gray-400">
+                  Counselor: <span className="font-medium text-gray-700 dark:text-gray-300">{safetyPlan.counselor_signature}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ── Edit form ── */
+            <div className="space-y-5">
+              {/* Simple list sections */}
+              {([
+                { field: 'warning_signs' as const, label: 'Warning Signs', hint: 'e.g. feeling hopeless, isolating, giving away possessions' },
+                { field: 'internal_coping' as const, label: 'Internal Coping Strategies', hint: 'e.g. deep breathing, journaling, going for a walk' },
+                { field: 'social_distractions' as const, label: 'Social Distractions', hint: 'e.g. watching a movie with family, calling a friend' },
+                { field: 'reasons_to_live' as const, label: 'Reasons for Living', hint: 'e.g. family, pets, future goals' },
+              ] as Array<{ field: keyof typeof safetyPlan; label: string; hint: string }>).map(sec => (
+                <SafetyListSection
+                  key={sec.field}
+                  label={sec.label}
+                  hint={sec.hint}
+                  items={safetyPlan[sec.field] as string[]}
+                  onAdd={val => addSafetyPlanItem(sec.field, val)}
+                  onRemove={i => removeSafetyPlanItem(sec.field, i)}
+                />
+              ))}
+
+              {/* Social contacts */}
+              <ContactSection
+                label="Social Contacts (People to Call)"
+                hint="Friends or family the client can contact during a crisis"
+                items={safetyPlan.social_contacts}
+                fields={['name', 'phone']}
+                onAdd={v => addSafetyPlanItem('social_contacts', v)}
+                onRemove={i => removeSafetyPlanItem('social_contacts', i)}
+              />
+
+              {/* Professional contacts */}
+              <ProfessionalContactSection
+                items={safetyPlan.professional_contacts}
+                onAdd={v => addSafetyPlanItem('professional_contacts', v)}
+                onRemove={i => removeSafetyPlanItem('professional_contacts', i)}
+              />
+
+              {/* Means restriction */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  Means Restriction
+                </label>
+                <p className="text-xs text-gray-400 mb-2">Describe agreed actions to limit access to lethal means.</p>
+                <textarea
+                  value={safetyPlan.means_restriction}
+                  onChange={e => setSafetyPlan(p => ({ ...p, means_restriction: e.target.value }))}
+                  rows={2}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="e.g. Client agreed to have family remove firearms from home."
+                />
+              </div>
+
+              {/* Follow-up + Signature */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Follow-Up Date</label>
+                  <input
+                    type="date"
+                    value={safetyPlan.follow_up_date}
+                    onChange={e => setSafetyPlan(p => ({ ...p, follow_up_date: e.target.value }))}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Counselor Name</label>
+                  <input
+                    type="text"
+                    value={safetyPlan.counselor_signature}
+                    onChange={e => setSafetyPlan(p => ({ ...p, counselor_signature: e.target.value }))}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Counselor full name"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={saveSafetyPlan}
+                  disabled={savingSafetyPlan}
+                  className={`px-5 py-2 rounded text-sm font-semibold transition ${savingSafetyPlan ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                >
+                  {savingSafetyPlan ? 'Saving…' : 'Save Safety Plan'}
+                </button>
+                {safetyPlanExists && (
+                  <button onClick={() => setEditingSafetyPlan(false)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Assessments Tab ────────────────────────────────────── */}
+      {activeTab === 'assessments' && (
+        <div className="space-y-6 max-w-2xl">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Repeating Assessment Schedules</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Schedule PHQ-9, GAD-7, or PSS re-administrations at regular intervals. The system will automatically queue assessments when they come due.</p>
+          </div>
+
+          {/* Add schedule form */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Add Schedule</p>
+            <div className="flex flex-wrap gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">Assessment</label>
+                <select value={scheduleForm.assessment_type}
+                  onChange={e => setScheduleForm(f => ({ ...f, assessment_type: e.target.value }))}
+                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                  <option value="PHQ9">PHQ-9 (Depression)</option>
+                  <option value="GAD7">GAD-7 (Anxiety)</option>
+                  <option value="PSS">PSS (Stress)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">Every (days)</label>
+                <input type="number" min={1} max={90} value={scheduleForm.interval_days}
+                  onChange={e => setScheduleForm(f => ({ ...f, interval_days: parseInt(e.target.value) || 14 }))}
+                  className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">First due date</label>
+                <input type="date" value={scheduleForm.start_date}
+                  onChange={e => setScheduleForm(f => ({ ...f, start_date: e.target.value }))}
+                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div className="self-end">
+                <button onClick={handleAddSchedule} disabled={savingSchedule}
+                  className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
+                  <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Active schedules */}
+          <div>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">Active Schedules</p>
+            {assessmentSchedules.filter(s => s.active).length === 0 ? (
+              <p className="text-sm text-gray-400 italic">No active schedules. Add one above.</p>
+            ) : (
+              <div className="space-y-2">
+                {assessmentSchedules.filter(s => s.active).map(s => (
+                  <div key={s.schedule_id} className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+                    <div>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{s.assessment_type}</span>
+                      <span className="text-xs text-gray-500 ml-2">every {s.interval_days} days</span>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Next due: <span className="font-medium text-gray-700 dark:text-gray-300">
+                          {new Date(s.next_due).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </p>
+                    </div>
+                    <button onClick={() => handleDeleteSchedule(s.schedule_id)}
+                      className="text-xs text-red-500 hover:text-red-700 transition px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20">
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

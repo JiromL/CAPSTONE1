@@ -7,7 +7,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Calendar, Clock, MapPin, User, CheckCircle, XCircle, AlertCircle,
-  Loader2, Video, Repeat, X, Edit, ChevronDown, ChevronUp, Mail, FileText,
+  Loader2, Video, Repeat, X, Edit, ChevronDown, ChevronUp, Mail, FileText, QrCode,
 } from 'lucide-react';
 
 interface Appointment {
@@ -391,6 +391,53 @@ export default function MyAppointmentsPage() {
   );
 }
 
+function QrModal({ apptId, onClose }: { apptId: string; onClose: () => void }) {
+  const [qrSrc, setQrSrc] = useState<string | null>(null);
+  const [expires, setExpires] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch(api(`/api/qr/appointment/${apptId}`), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.qr_image) {
+          setQrSrc(d.qr_image);
+          setExpires(d.expires_at);
+        } else {
+          setErr(d.error || 'Could not generate QR code');
+        }
+      })
+      .catch(() => setErr('Failed to fetch QR code'));
+  }, [apptId]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-xs shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white">Check-In QR Code</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X size={18} /></button>
+        </div>
+        {err ? (
+          <p className="text-sm text-red-600 dark:text-red-400 text-center py-6">{err}</p>
+        ) : !qrSrc ? (
+          <div className="flex justify-center py-10"><Loader2 size={28} className="animate-spin text-indigo-500" /></div>
+        ) : (
+          <>
+            <img src={qrSrc} alt="Check-in QR Code" className="w-full rounded-lg border border-gray-200 dark:border-gray-700" />
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+              Show this to staff at the office to check in.
+              {expires && <><br />Valid until {new Date(expires).toLocaleTimeString()}</>}
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AppointmentCard({
   appt, highlight, onCancel, onReschedule,
 }: {
@@ -400,6 +447,7 @@ function AppointmentCard({
   onReschedule?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const cfg = STATUS_CONFIG[appt.status] ?? { label: appt.status, color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400', icon: null };
   const canAct = onCancel && !INACTIVE.has(appt.status);
   const dt = getApptDatetime(appt);
@@ -510,6 +558,15 @@ function AppointmentCard({
               <Video size={13} /> Join Session
             </a>
           )}
+          {['CONFIRMED', 'APPROVED'].includes(appt.status) && isUpcoming(dt) && (
+            <button
+              onClick={() => setShowQr(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              <QrCode size={13} /> Check-In QR
+            </button>
+          )}
+          {showQr && <QrModal apptId={appt._id} onClose={() => setShowQr(false)} />}
           {canAct && (
             <>
               <button

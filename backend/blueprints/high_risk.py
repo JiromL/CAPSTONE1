@@ -155,30 +155,39 @@ def create_safety_plan(case_id):
     
     safety_plan = db.db.safety_plans.find_one({"case_id": case['_id']})
     
+    structured_fields = {
+        "risk_factors": data.get('risk_factors'),
+        "warning_signs": data.get('warning_signs'),
+        "coping_strategies": data.get('coping_strategies'),
+        "support_people": data.get('support_people'),
+        "crisis_resources": data.get('crisis_resources'),
+        # Stanley-Brown structured fields
+        "reasons_to_live": data.get('reasons_to_live', []),
+        "internal_coping": data.get('internal_coping', []),
+        "social_distractions": data.get('social_distractions', []),
+        "social_contacts": data.get('social_contacts', []),
+        "professional_contacts": data.get('professional_contacts', []),
+        "means_restriction": data.get('means_restriction', ''),
+        "follow_up_date": data.get('follow_up_date'),
+        "counselor_signature": data.get('counselor_signature', ''),
+        "client_signature": data.get('client_signature', ''),
+        "updated_by": user_id,
+        "updated_at": datetime.utcnow(),
+    }
+
     if safety_plan:
         # Update existing
         db.db.safety_plans.update_one(
             {"_id": safety_plan['_id']},
-            {"$set": {
-                "risk_factors": data.get('risk_factors'),
-                "warning_signs": data.get('warning_signs'),
-                "coping_strategies": data.get('coping_strategies'),
-                "support_people": data.get('support_people'),
-                "crisis_resources": data.get('crisis_resources'),
-                "updated_at": datetime.utcnow()
-            }}
+            {"$set": structured_fields}
         )
         plan_id = str(safety_plan['_id'])
     else:
         # Create new
         safety_plan_doc = {
             "case_id": case['_id'],
-            "risk_factors": data.get('risk_factors'),
-            "warning_signs": data.get('warning_signs'),
-            "coping_strategies": data.get('coping_strategies'),
-            "support_people": data.get('support_people'),
-            "crisis_resources": data.get('crisis_resources'),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            **structured_fields,
         }
         result = db.db.safety_plans.insert_one(safety_plan_doc)
         plan_id = str(result.inserted_id)
@@ -279,6 +288,9 @@ def get_safety_plan(case_id):
     
     audit_log(db.db, 'safety_plan', 'view', entity_id=str(safety_plan['_id']))
     
+    def _iso(v):
+        return v.isoformat() if isinstance(v, datetime) else v
+
     return jsonify({
         'safety_plan_id': str(safety_plan['_id']),
         'case_id': str(case['_id']),
@@ -287,8 +299,17 @@ def get_safety_plan(case_id):
         'coping_strategies': safety_plan.get('coping_strategies'),
         'support_people': safety_plan.get('support_people'),
         'crisis_resources': safety_plan.get('crisis_resources'),
-        'created_at': safety_plan['created_at'].isoformat() if isinstance(safety_plan['created_at'], datetime) else safety_plan['created_at'],
-        'updated_at': safety_plan['updated_at'].isoformat() if isinstance(safety_plan.get('updated_at'), datetime) else safety_plan.get('updated_at')
+        'reasons_to_live': safety_plan.get('reasons_to_live', []),
+        'internal_coping': safety_plan.get('internal_coping', []),
+        'social_distractions': safety_plan.get('social_distractions', []),
+        'social_contacts': safety_plan.get('social_contacts', []),
+        'professional_contacts': safety_plan.get('professional_contacts', []),
+        'means_restriction': safety_plan.get('means_restriction', ''),
+        'follow_up_date': safety_plan.get('follow_up_date'),
+        'counselor_signature': safety_plan.get('counselor_signature', ''),
+        'client_signature': safety_plan.get('client_signature', ''),
+        'created_at': _iso(safety_plan.get('created_at')),
+        'updated_at': _iso(safety_plan.get('updated_at')),
     }), 200
 
 

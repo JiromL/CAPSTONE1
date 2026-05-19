@@ -291,3 +291,79 @@ def get_high_risk_clients():
         'high_risk_count': len(high_risk_cases),
         'cases': high_risk_cases
     }), 200
+
+
+@assessments_bp.route('/case/<case_id>/schedule', methods=['GET'])
+@jwt_required()
+def get_assessment_schedule(case_id):
+    """Get repeating assessment schedule for a case."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Permission denied'}), 403
+    try:
+        cid = ObjectId(case_id)
+    except Exception:
+        cid = case_id
+    schedules = list(db.db.assessment_schedules.find({'case_id': cid}))
+    result = []
+    for s in schedules:
+        result.append({
+            'schedule_id': str(s['_id']),
+            'assessment_type': s.get('assessment_type'),
+            'interval_days': s.get('interval_days'),
+            'next_due': s['next_due'].isoformat() if isinstance(s.get('next_due'), datetime) else s.get('next_due'),
+            'active': s.get('active', True),
+            'created_at': s['created_at'].isoformat() if isinstance(s.get('created_at'), datetime) else s.get('created_at'),
+        })
+    return jsonify({'schedules': result}), 200
+
+
+@assessments_bp.route('/case/<case_id>/schedule', methods=['POST'])
+@jwt_required()
+def create_assessment_schedule(case_id):
+    """Create a repeating assessment schedule for a case."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Permission denied'}), 403
+    try:
+        cid = ObjectId(case_id)
+    except Exception:
+        cid = case_id
+    data = request.get_json() or {}
+    assessment_type = data.get('assessment_type')  # 'PHQ9', 'GAD7', 'PSS'
+    interval_days = data.get('interval_days')
+    if not assessment_type or not interval_days:
+        return jsonify({'error': 'assessment_type and interval_days are required'}), 400
+    now = datetime.utcnow()
+    doc = {
+        'case_id': cid,
+        'assessment_type': assessment_type,
+        'interval_days': int(interval_days),
+        'next_due': data.get('start_date') or now.isoformat(),
+        'active': True,
+        'created_by': user_id,
+        'created_at': now,
+    }
+    # Convert next_due to datetime
+    if isinstance(doc['next_due'], str):
+        try:
+            doc['next_due'] = datetime.fromisoformat(doc['next_due'].replace('Z', '+00:00')).replace(tzinfo=None)
+        except Exception:
+            doc['next_due'] = now
+    result = db.db.assessment_schedules.insert_one(doc)
+    return jsonify({'schedule_id': str(result.inserted_id), 'message': 'Schedule created'}), 201
+
+
+@assessments_bp.route('/schedule/<schedule_id>', methods=['DELETE'])
+@jwt_required()
+def delete_assessment_schedule(schedule_id):
+    """Deactivate a repeating assessment schedule."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Permission denied'}), 403
+    try:
+        sid = ObjectId(schedule_id)
+    except Exception:
+        sid = schedule_id
+    db.db.assessment_schedules.update_one({'_id': sid}, {'$set': {'active': False}})
+    return jsonify({'message': 'Schedule deactivated'}), 200

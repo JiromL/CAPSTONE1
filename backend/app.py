@@ -55,6 +55,8 @@ from blueprints.reminders import reminders_bp
 from blueprints.feedback import feedback_bp
 from blueprints.c2c_referral import c2c_referral_bp
 from blueprints.waitlist import waitlist_bp
+from blueprints.qr_checkin import qr_bp
+from blueprints.consent import consent_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -119,6 +121,8 @@ def create_app(config_name=None):
     app.register_blueprint(feedback_bp)
     app.register_blueprint(c2c_referral_bp)
     app.register_blueprint(waitlist_bp)
+    app.register_blueprint(qr_bp)
+    app.register_blueprint(consent_bp)
 
     # Start background reminder scheduler
     from scheduler import start_scheduler

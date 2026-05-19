@@ -108,7 +108,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Actions</p>
               <div className="space-y-2">
-                <ActionCard href="/staff/walkin-intake"           label="Walk-In Intake"          desc="Register a walk-in student"       iconBg="bg-indigo-50 dark:bg-indigo-900/30"  icon={<UserPlus size={14} className="text-indigo-600"/>} />
+                <ActionCard href="/new-intakes"                   label="Walk-In Intake"          desc="Register a walk-in student"       iconBg="bg-indigo-50 dark:bg-indigo-900/30"  icon={<UserPlus size={14} className="text-indigo-600"/>} />
                 <ActionCard href="/appointment-requests"          label="Appointment Requests"    desc="Assign counselors"                iconBg="bg-orange-50 dark:bg-orange-900/30"  icon={<Calendar size={14} className="text-orange-600"/>} badge={summary?.pending} />
                 <ActionCard href="/reschedule-requests"           label="Reschedule Requests"     desc="Handle rescheduling"              iconBg="bg-teal-50 dark:bg-teal-900/30"      icon={<RefreshCw size={14} className="text-teal-600"/>} />
                 <ActionCard href="/waitlist"                      label="Waitlist"                desc="Manage waitlist queue"            iconBg="bg-blue-50 dark:bg-blue-900/30"      icon={<Clock size={14} className="text-blue-600"/>} />

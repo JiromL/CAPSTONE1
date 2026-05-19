@@ -141,7 +141,7 @@ case_ids = {}
 for i, case_data in enumerate(cases):
     result = db.cases.insert_one(case_data)
     case_ids[i] = result.inserted_id
-    print(f"✓ Case: {case_data['case_number']} - {case_data['status']}")
+    print(f"✓ Case: {case_data['case_number']} - {case_data['case_status']}")
 
 print(f"\n✅ Created {len(cases)} cases\n")
 

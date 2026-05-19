@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { AppointmentConfirmation } from '@/components/AppointmentConfirmation';
 import Link from 'next/link';
@@ -48,6 +48,12 @@ export default function BookAppointmentPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // Informed consent gate
+  const [consentGiven, setConsentGiven] = useState<boolean | null>(null);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentChecks, setConsentChecks] = useState({ counseling: false, privacy: false });
+  const [submittingConsent, setSubmittingConsent] = useState(false);
+
   // Show/hide personal info editing
   const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
   
@@ -87,6 +93,17 @@ export default function BookAppointmentPage() {
           setHasDraft(true);
         }
 
+        // Check consent status
+        const consentRes = await fetch(api('/api/consent/status'), { headers: { Authorization: `Bearer ${token}` } });
+        if (consentRes.ok) {
+          const cd = await consentRes.json();
+          setConsentGiven(cd.consent_given);
+          if (!cd.consent_given) setShowConsentModal(true);
+        } else {
+          setConsentGiven(false);
+          setShowConsentModal(true);
+        }
+
         // Fetch available slots for next 30 days
         const startDate = new Date();
         const endDate = new Date();
@@ -123,6 +140,20 @@ export default function BookAppointmentPage() {
 
     loadData();
   }, [router]);
+
+  const handleSubmitConsent = async () => {
+    if (!consentChecks.counseling || !consentChecks.privacy) return;
+    const token = localStorage.getItem('token');
+    setSubmittingConsent(true);
+    try {
+      const r = await fetch(api('/api/consent/submit'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent_types: ['counseling_services', 'data_privacy'], version: '1.0' }),
+      });
+      if (r.ok) { setConsentGiven(true); setShowConsentModal(false); }
+    } finally { setSubmittingConsent(false); }
+  };
 
   const saveDraft = () => {
     const draftData = {
@@ -599,6 +630,87 @@ export default function BookAppointmentPage() {
 
   return (
     <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session">
+      {/* Informed Consent Modal */}
+      {showConsentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-lg w-full p-8">
+            <div className="mb-6 text-center">
+              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Informed Consent</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Before booking an appointment, please review and acknowledge the following.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {/* Counseling consent */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="mt-0.5 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={consentChecks.counseling}
+                    onChange={e => setConsentChecks(c => ({ ...c, counseling: e.target.checked }))}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Consent to Counseling &amp; Psychological Services
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    I voluntarily consent to receive counseling and psychological services from the DLSU Center for
+                    Psychology and Counseling (CPS). I understand that sessions are confidential except when required
+                    by law or when there is an imminent risk of harm.
+                  </p>
+                </div>
+              </label>
+
+              {/* Data privacy consent */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="mt-0.5 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={consentChecks.privacy}
+                    onChange={e => setConsentChecks(c => ({ ...c, privacy: e.target.checked }))}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Acknowledgment of Data Privacy Rights (R.A. 10173)
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    I acknowledge that my personal and sensitive information will be collected, stored, and processed
+                    solely for the purpose of delivering counseling services, in accordance with the Data Privacy Act
+                    of 2012. I have the right to access, correct, or withdraw my data at any time.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <button
+              onClick={handleSubmitConsent}
+              disabled={!consentChecks.counseling || !consentChecks.privacy || submittingConsent}
+              className={`w-full py-3 rounded-lg font-semibold text-sm transition-colors ${
+                consentChecks.counseling && consentChecks.privacy && !submittingConsent
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {submittingConsent ? 'Recording consent…' : 'I Agree & Continue'}
+            </button>
+
+            <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-3">
+              Your consent is recorded with a timestamp and is required to proceed.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto">
         {/* Error Banner */}
         {submitError && (

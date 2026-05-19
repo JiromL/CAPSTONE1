@@ -568,3 +568,79 @@ def update_client_status(case_id):
         'message': f'Client status updated to {new_status}'
     }), 200
 
+
+# ── DSM-5 / ICD-10 Diagnosis endpoints ──────────────────────────────────────
+
+@cases_bp.route('/<case_id>/diagnoses', methods=['GET'])
+@jwt_required()
+def get_diagnoses(case_id):
+    """Get all diagnoses for a case."""
+    try:
+        cid = ObjectId(case_id)
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+    case = db.db.cases.find_one({'_id': cid})
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+    diagnoses = case.get('diagnoses', [])
+    return jsonify({'diagnoses': diagnoses}), 200
+
+
+@cases_bp.route('/<case_id>/diagnoses', methods=['POST'])
+@jwt_required()
+def add_diagnosis(case_id):
+    """Add a diagnosis (DSM-5 or ICD-10) to a case."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not user or user.get('role') not in ('COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'ADMIN'):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    data = request.get_json() or {}
+    code = data.get('code', '').strip()
+    description = data.get('description', '').strip()
+    if not code or not description:
+        return jsonify({'error': 'code and description are required'}), 400
+
+    diagnosis = {
+        'code': code,
+        'description': description,
+        'type': data.get('type', 'primary'),         # primary | secondary | rule_out
+        'system': data.get('system', 'DSM-5'),       # DSM-5 | ICD-10
+        'added_by': str(user_id),
+        'added_at': datetime.utcnow().isoformat(),
+    }
+    try:
+        db.db.cases.update_one(
+            {'_id': ObjectId(case_id)},
+            {'$push': {'diagnoses': diagnosis}, '$set': {'updated_at': datetime.utcnow()}}
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify({'success': True, 'diagnosis': diagnosis}), 201
+
+
+@cases_bp.route('/<case_id>/diagnoses/<int:index>', methods=['DELETE'])
+@jwt_required()
+def remove_diagnosis(case_id, index):
+    """Remove a diagnosis by its index in the array."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not user or user.get('role') not in ('COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'ADMIN'):
+        return jsonify({'error': 'Forbidden'}), 403
+    try:
+        case = db.db.cases.find_one({'_id': ObjectId(case_id)})
+        if not case:
+            return jsonify({'error': 'Case not found'}), 404
+        diagnoses = case.get('diagnoses', [])
+        if index < 0 or index >= len(diagnoses):
+            return jsonify({'error': 'Index out of range'}), 400
+        diagnoses.pop(index)
+        db.db.cases.update_one(
+            {'_id': ObjectId(case_id)},
+            {'$set': {'diagnoses': diagnoses, 'updated_at': datetime.utcnow()}}
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'success': True}), 200
+

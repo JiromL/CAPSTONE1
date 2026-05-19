@@ -320,6 +320,51 @@ class EmailService:
             return False
 
 
+    def send_reminder_email(self, recipient_email: str, student_name: str, reminder_type: str, appointment_time: str):
+        """Send appointment reminder email (24h or 1h before)."""
+        label = '24 hours' if reminder_type == '24h' else '1 hour'
+        subject = f"Reminder: Your CPS appointment is in {label}"
+        html_body = f"""
+        <html><body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4F46E5;">Appointment Reminder</h2>
+            <p>Dear {student_name},</p>
+            <p>This is a reminder that your counseling appointment is coming up in <strong>{label}</strong>.</p>
+            <div style="background:#F0F0FF; padding:16px; border-radius:8px; border-left:4px solid #4F46E5; margin:16px 0;">
+                <p style="margin:0;"><strong>Appointment time:</strong> {appointment_time}</p>
+            </div>
+            <p>Please arrive or log in on time. If you need to reschedule, do so at least 24 hours in advance via the CPS portal.</p>
+            <hr style="border:none; border-top:1px solid #eee; margin:20px 0;">
+            <p style="color:#999; font-size:12px; text-align:center;">
+                DLSU Counseling &amp; Psychological Services &bull;
+                <a href="mailto:cps@dlsu.edu.ph" style="color:#4F46E5;">cps@dlsu.edu.ph</a>
+            </p>
+        </div></body></html>"""
+
+        if self.dev_mode:
+            print(f"\n[EmailService DEV] REMINDER EMAIL")
+            print(f"  To:      {recipient_email}")
+            print(f"  Subject: {subject}")
+            print(f"  Body:    Reminder for {student_name} — {appointment_time}\n")
+            return True
+
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = self.from_email
+            msg['To'] = recipient_email
+            msg.attach(MIMEText(html_body, 'html'))
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.send_message(msg)
+            print(f"✓ Reminder email sent to {recipient_email}")
+            return True
+        except Exception as e:
+            print(f"✗ Failed to send reminder email: {e}")
+            return False
+
+
 # Helper functions for use in other modules
 def create_email_service():
     """Factory function to create email service"""

@@ -59,8 +59,8 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
 
     // Primary Workflow
-    { label: 'Cases', href: '/cases', id: 'cases-mgmt' },
-    { label: 'Counseling Cases', href: '/counseling-cases', id: 'cases' },
+    { label: 'Cases', href: '/cases', id: 'cases' },
+    { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
     { label: 'Appointments', href: '/appointments', id: 'appointments' },
     { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
     { label: 'Assessments', href: '/assessments', id: 'assessments' },
@@ -144,7 +144,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
 
     // Primary Workflow
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'Walk-In Intake', href: '/walk-in-intake', id: 'walk-in-intake' },
+    { label: 'Walk-In Intake', href: '/new-intakes', id: 'new-intakes' },
     { label: 'Check-In Tracking', href: '/check-in-tracking', id: 'check-in-tracking' },
     { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests' },
     { label: 'Waitlist', href: '/waitlist', id: 'waitlist' },
@@ -239,24 +239,59 @@ export function getActiveSectionFromPath(pathname: string): string {
   const lastSegment = segments[segments.length - 1];
   
   const routeMap: { [key: string]: string } = {
+    // Core
+    'dashboard': 'dashboard',
+    'profile': 'profile',
+    'resources': 'resources',
+    'documentation': 'documentation',
+
+    // Student
+    'counseling': 'counseling',
+    'book-appointment': 'book-appointment',
+    'my-appointments': 'my-appointments',
+    'check-ins-student': 'check-ins',
+    'journal': 'journal',
+    'feedback': 'feedback',
+
+    // Appointments
     'appointments': 'appointments',
     'appointment-requests': 'appointments',
+    'reschedule-requests': 'reschedule-requests',
+    'waitlist': 'waitlist',
     'availability': 'availability',
+    'recurring-appointments': 'recurring-appointments',
+
+    // Cases
     'cases': 'cases',
-    'assessments': 'assessments',
-    'referrals': 'referrals',
-    'documentation': 'documentation',
-    'profile': 'profile',
-    'tasks': 'tasks',
-    'counseling': 'counseling',
-    'intake': 'intake',
-    'book-appointment': 'book-appointment',
-    'resources': 'resources',
+    'counseling-cases': 'counseling-cases',
     'high-risk': 'high-risk',
-    'users': 'users',
-    'analytics': 'analytics',
+
+    // Clinical
+    'assessments': 'assessments',
+    'check-ins': 'check-ins',
+    'check-in-tracking': 'check-in-tracking',
+    'referrals': 'referrals',
+    'c2c-referrals': 'c2c-referrals',
+    'video-links': 'video-links',
+    'mhbot': 'mhbot',
+    'supervision': 'supervision',
+    'counselor': 'counselor-profile',
+
+    // IC / Staff
+    'new-intakes': 'new-intakes',
+    'reminders': 'reminders',
+    'tasks': 'tasks',
     'staff-settings': 'staff-settings',
-    'dashboard': 'dashboard',
+
+    // Admin / DPO
+    'users': 'admin',
+    'roles': 'roles',
+    'permissions': 'permissions',
+    'analytics': 'analytics',
+    'audit-log': 'audit',
+    'health': 'health',
+    'export': 'export',
+    'settings': 'settings',
   };
   
   return routeMap[lastSegment] || routeMap[firstSegment] || 'dashboard';

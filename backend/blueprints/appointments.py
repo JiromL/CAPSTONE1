@@ -794,8 +794,11 @@ def get_availability():
         return jsonify({'error': 'start_date and end_date are required'}), 400
     
     try:
-        start = datetime.fromisoformat(start_date)
-        end = datetime.fromisoformat(end_date)
+        start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        # Strip timezone info for naive datetime comparison with MongoDB
+        start = start.replace(tzinfo=None)
+        end = end.replace(tzinfo=None)
     except ValueError:
         return jsonify({'error': 'Invalid datetime format'}), 400
     

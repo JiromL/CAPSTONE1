@@ -32,45 +32,100 @@ class EmailService:
         """Generate a random 6-digit verification code"""
         return ''.join(random.choices(string.digits, k=length))
     
-    def send_verification_email(self, recipient_email, first_name, verification_code):
-        """Send email with verification code"""
-        
+    def send_verification_email(self, recipient_email, first_name, verification_code, verify_url=None):
+        """Send verification email with a clickable button and code fallback"""
+
         subject = "Verify Your DLSU CPS Account"
-        
-        html_body = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #0052cc;">Welcome to DLSU Counseling & Psychological Services</h2>
-                    
-                    <p>Hi {first_name},</p>
-                    
-                    <p>Thank you for registering! To complete your registration, please verify your email address using the code below:</p>
-                    
-                    <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 5px;">
-                        <p style="font-size: 14px; margin: 0 0 10px 0; color: #666;">Your Verification Code:</p>
-                        <p style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 0; color: #0052cc;">
-                            {verification_code}
-                        </p>
-                    </div>
-                    
-                    <p>This code will expire in <strong>24 hours</strong>.</p>
-                    
-                    <p style="color: #999; font-size: 12px;">
-                        If you didn't register for this account, please ignore this email.
-                    </p>
-                    
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    
-                    <p style="color: #999; font-size: 12px; text-align: center;">
-                        DLSU Counseling & Psychological Services<br>
-                        De La Salle University
-                    </p>
-                </div>
-            </body>
-        </html>
-        """
-        
+
+        button_section = f"""
+            <div style="text-align:center; margin:32px 0;">
+              <a href="{verify_url}"
+                 style="display:inline-block; background-color:#4f46e5; color:#ffffff;
+                        font-size:15px; font-weight:600; text-decoration:none;
+                        padding:14px 36px; border-radius:8px; letter-spacing:0.3px;">
+                Verify Email
+              </a>
+            </div>
+            <p style="font-size:13px; color:#6b7280; margin-bottom:4px;">
+              If the button above doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="font-size:12px; word-break:break-all;">
+              <a href="{verify_url}" style="color:#4f46e5;">{verify_url}</a>
+            </p>
+            <hr style="border:none; border-top:1px solid #e5e7eb; margin:24px 0;">
+            <p style="font-size:13px; color:#6b7280;">
+              Or enter this code manually on the verification page:
+            </p>
+        """ if verify_url else ""
+
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color:#4f46e5;padding:32px 40px;">
+            <p style="margin:0;font-size:13px;color:#c7d2fe;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
+              DLSU Counseling &amp; Psychological Services
+            </p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:36px 40px 28px;">
+            <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;">
+              Welcome, {first_name}!
+            </h1>
+            <p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.6;">
+              Hi {first_name},<br><br>
+              Thank you for signing up for DLSU CPS. To complete your registration,
+              please verify your email address by clicking the button below:
+            </p>
+
+            {button_section}
+
+            <!-- Code box -->
+            <div style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;
+                        padding:20px;text-align:center;margin:16px 0;">
+              <p style="margin:0 0 8px;font-size:12px;color:#6b7280;font-weight:600;
+                         text-transform:uppercase;letter-spacing:0.8px;">
+                Verification Code
+              </p>
+              <p style="margin:0;font-size:34px;font-weight:800;letter-spacing:8px;color:#4f46e5;">
+                {verification_code}
+              </p>
+            </div>
+
+            <p style="margin:16px 0 0;font-size:13px;color:#6b7280;">
+              This code will expire in <strong>24 hours</strong>.
+            </p>
+            <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">
+              If you did not create this account, you can safely ignore this email.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background-color:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+              DLSU Counseling &amp; Psychological Services &bull; De La Salle University<br>
+              This is an automated email — please do not reply.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
         return self._send_email(recipient_email, subject, html_body)
     
     def send_welcome_email(self, recipient_email, first_name):

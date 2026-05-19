@@ -13,6 +13,8 @@ from services.oauth_service import OAuthService
 from services.email_service import EmailService
 from datetime import datetime, timedelta
 from bson import ObjectId
+import uuid
+import os
 from integrations.token_store import get_tokens
 
 # Initialize services
@@ -176,8 +178,9 @@ def register():
     
     # Create unverified user account
     verification_code = EmailService.generate_verification_code()
+    verification_token = str(uuid.uuid4())
     code_expiry = datetime.utcnow() + timedelta(hours=24)
-    
+
     user_doc = {
         "_id": ObjectId(),
         "email": email,
@@ -192,19 +195,25 @@ def register():
         "is_active": True,
         "is_verified": False,
         "verification_code": verification_code,
+        "verification_token": verification_token,
         "verification_code_expires": code_expiry,
         "verification_attempts": 0,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
     }
-    
+
     result = db.db.users.insert_one(user_doc)
-    
-    # Send verification email
+
+    # Build clickable verify URL
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+    verify_url = f"{frontend_url}/verify-email?token={verification_token}&email={email}"
+
+    # Send verification email with button + code fallback
     email_service.send_verification_email(
         email,
         data['first_name'],
-        verification_code
+        verification_code,
+        verify_url=verify_url
     )
     
     audit_log(db.db, 'user', 'create', entity_id=str(result.inserted_id), new_values={
@@ -279,6 +288,41 @@ def verify_email():
     return jsonify({'message': 'Email verified successfully. You can now login.'}), 200
 
 
+@auth_bp.route('/verify-email-link', methods=['GET'])
+def verify_email_link():
+    """Verify email via one-click link (token from email button)"""
+    token = request.args.get('token', '').strip()
+    if not token:
+        return jsonify({'error': 'Missing verification token'}), 400
+
+    user = db.db.users.find_one({"verification_token": token})
+    if not user:
+        return jsonify({'error': 'Invalid or expired verification link'}), 404
+
+    if user.get('is_verified'):
+        return jsonify({'message': 'Email already verified. You can log in.'}), 200
+
+    if user.get('verification_code_expires') and user['verification_code_expires'] < datetime.utcnow():
+        return jsonify({'error': 'Verification link has expired. Please request a new code.'}), 400
+
+    db.db.users.update_one(
+        {"_id": user['_id']},
+        {"$set": {
+            "is_verified": True,
+            "verification_code": None,
+            "verification_token": None,
+            "verification_code_expires": None,
+            "verification_attempts": 0,
+            "updated_at": datetime.utcnow(),
+        }}
+    )
+
+    email_service.send_welcome_email(user['email'], user['first_name'])
+    audit_log(db.db, 'user', 'email_verified', entity_id=str(user['_id']), new_values={'is_verified': True, 'method': 'link'})
+
+    return jsonify({'message': 'Email verified successfully. You can now log in.'}), 200
+
+
 @auth_bp.route('/resend-code', methods=['POST'])
 def resend_code():
     """Resend verification code"""
@@ -296,21 +340,26 @@ def resend_code():
     if user.get('is_verified'):
         return jsonify({'error': 'Email already verified'}), 400
     
-    # Generate new code
+    # Generate new code and token
     verification_code = EmailService.generate_verification_code()
+    verification_token = str(uuid.uuid4())
     code_expiry = datetime.utcnow() + timedelta(hours=24)
-    
+
     db.db.users.update_one(
         {"_id": user['_id']},
         {"$set": {
             "verification_code": verification_code,
+            "verification_token": verification_token,
             "verification_code_expires": code_expiry,
-            "verification_attempts": 0
+            "verification_attempts": 0,
         }}
     )
-    
-    # Send email
-    email_service.send_code_reminder_email(email, user['first_name'], verification_code)
+
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+    verify_url = f"{frontend_url}/verify-email?token={verification_token}&email={email}"
+
+    # Send email with button + code fallback
+    email_service.send_verification_email(email, user['first_name'], verification_code, verify_url=verify_url)
     
     audit_log(db.db, 'user', 'resend_code', entity_id=str(user['_id']))
     

@@ -8,7 +8,7 @@ import { api } from '@/utils/api';
 function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   const [email, setEmail] = useState('')
   const [userId, setUserId] = useState('')
   const [code, setCode] = useState('')
@@ -17,13 +17,32 @@ function VerifyEmailContent() {
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
+  const [autoVerifying, setAutoVerifying] = useState(false)
 
   useEffect(() => {
     const emailParam = searchParams.get('email')
     const userIdParam = searchParams.get('user_id')
-    
+    const tokenParam = searchParams.get('token')
+
     if (emailParam) setEmail(emailParam)
     if (userIdParam) setUserId(userIdParam)
+
+    // Auto-verify when arriving from the email button link
+    if (tokenParam) {
+      setAutoVerifying(true)
+      fetch(api(`/api/auth/verify-email-link?token=${tokenParam}`))
+        .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+        .then(({ ok, data }) => {
+          if (ok) {
+            setMsg('Email verified! Redirecting to login…')
+            setTimeout(() => router.push('/login'), 2000)
+          } else {
+            setError(data.error || 'Verification failed')
+          }
+        })
+        .catch(() => setError('Network error'))
+        .finally(() => setAutoVerifying(false))
+    }
   }, [searchParams])
 
   useEffect(() => {
@@ -92,6 +111,17 @@ function VerifyEmailContent() {
     }
   }
 
+  if (autoVerifying) {
+    return (
+      <PageShell title="Verify Email" subtitle="Confirm your DLSU email address" hideNav>
+        <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-800 p-10 text-center">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Verifying your email…</p>
+        </div>
+      </PageShell>
+    )
+  }
+
   return (
     <PageShell title="Verify Email" subtitle="Confirm your DLSU email address" hideNav>
       <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-800 p-6">
@@ -99,7 +129,7 @@ function VerifyEmailContent() {
 
         <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            We sent a verification code to <strong>{email}</strong>
+            We sent a verification code to <strong>{email || 'your email'}</strong>. Click the button in the email or enter the code below.
           </p>
         </div>
 

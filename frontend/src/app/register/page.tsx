@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '', id_number: '' })
+  const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '' })
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -69,16 +69,6 @@ export default function RegisterPage() {
             placeholder="Last name"
             value={form.last_name}
             onChange={e => setForm({ ...form, last_name: e.target.value })}
-            required
-          />
-
-          <input
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="Student ID (8 digits, e.g. 11234567)"
-            inputMode="numeric"
-            maxLength={8}
-            value={form.id_number}
-            onChange={e => setForm({ ...form, id_number: e.target.value.replace(/\D/g, '').slice(0, 8) })}
             required
           />
 

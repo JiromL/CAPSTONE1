@@ -128,16 +128,13 @@ def register():
     if not data.get('email') or not data.get('password') or not data.get('first_name') or not data.get('last_name'):
         return jsonify({'error': 'Missing required fields: email, password, first_name, last_name'}), 400
 
-    # Validate student ID number (required, 8 digits)
+    # Validate student ID number (optional at registration, set later via profile)
     id_number = data.get('id_number', '').strip()
-    if not id_number:
-        return jsonify({'error': 'Student ID number is required'}), 400
-    if not id_number.isdigit() or len(id_number) != 8:
-        return jsonify({'error': 'Student ID must be exactly 8 digits (e.g. 11234567)'}), 400
-
-    # Check if student ID already exists
-    if db.db.users.find_one({"id_number": id_number}):
-        return jsonify({'error': 'Student ID already registered'}), 409
+    if id_number:
+        if not id_number.isdigit() or len(id_number) != 8:
+            return jsonify({'error': 'Student ID must be exactly 8 digits (e.g. 11234567)'}), 400
+        if db.db.users.find_one({"id_number": id_number}):
+            return jsonify({'error': 'Student ID already registered'}), 409
 
     email = data['email'].lower().strip()
 

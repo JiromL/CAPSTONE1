@@ -7,28 +7,31 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Calendar, Clock, MapPin, User, CheckCircle, XCircle, AlertCircle,
-  Loader2, Video, Repeat, X, Edit,
+  Loader2, Video, Repeat, X, Edit, ChevronDown, ChevronUp, Mail, FileText,
 } from 'lucide-react';
 
 interface Appointment {
   _id: string;
   appointment_type: string;
   status: string;
-  datetime: string;
-  duration_minutes: number;
-  counselor_name: string;
-  counselor_email: string;
-  location: string;
-  notes: string;
+  requested_start?: string;
+  scheduled_start?: string;
+  requested_end?: string;
+  duration_minutes?: number;
+  counselor_name?: string;
+  counselor_email?: string;
+  location?: string;
+  notes?: string;
   created_at: string;
   meeting_link?: string;
-  is_telehealth?: boolean;
   preferred_method?: string;
+  concern?: string;
+  purpose?: string;
   is_recurring?: boolean;
   recurrence?: string;
   recurrence_index?: number;
   recurrence_total?: number;
-  late_cancellation?: boolean;
+  counseling_id?: string;
 }
 
 interface Draft {
@@ -59,14 +62,34 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
 
-function formatDate(dt: string) {
-  return new Date(dt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+function getApptDatetime(appt: Appointment): string | undefined {
+  return appt.scheduled_start || appt.requested_start;
 }
-function formatTime(dt: string) {
-  return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+function formatDate(dt: string | undefined) {
+  if (!dt) return '—';
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
-function isUpcoming(dt: string) {
+function formatTime(dt: string | undefined) {
+  if (!dt) return '—';
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+function isUpcoming(dt: string | undefined) {
+  if (!dt) return false;
   return new Date(dt) > new Date();
+}
+function formatTypeName(type: string) {
+  return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+function formatMethodName(method: string) {
+  if (method === 'in_person') return 'In Person';
+  if (method === 'google_meet') return 'Google Meet';
+  if (method === 'zoom') return 'Zoom';
+  return method;
 }
 
 export default function MyAppointmentsPage() {
@@ -89,11 +112,9 @@ export default function MyAppointmentsPage() {
     const token = localStorage.getItem('token');
     if (!token) { setError('Not authenticated'); setLoading(false); return; }
 
-    // Load draft from localStorage
     const raw = localStorage.getItem('bookAppointmentDraft');
     if (raw) { try { setDraft(JSON.parse(raw)); } catch {} }
 
-    // Fetch appointments + check-in case in parallel
     Promise.all([
       fetch(api('/api/appointments/my-appointments'), { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : Promise.reject()),
@@ -111,8 +132,8 @@ export default function MyAppointmentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const upcoming = appointments.filter(a => isUpcoming(a.datetime) && !INACTIVE.has(a.status));
-  const past     = appointments.filter(a => !isUpcoming(a.datetime) || INACTIVE.has(a.status));
+  const upcoming = appointments.filter(a => isUpcoming(getApptDatetime(a)) && !INACTIVE.has(a.status));
+  const past     = appointments.filter(a => !isUpcoming(getApptDatetime(a)) || INACTIVE.has(a.status));
 
   async function handleCancel() {
     if (!cancelTarget) return;
@@ -152,7 +173,7 @@ export default function MyAppointmentsPage() {
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed'); }
       const updated = await r.json();
       setAppointments(prev => prev.map(a => a._id === rescheduleTarget._id
-        ? { ...a, status: 'REQUESTED', datetime: updated.requested_start || a.datetime }
+        ? { ...a, status: 'REQUESTED', requested_start: updated.requested_start || a.requested_start }
         : a
       ));
       setRescheduleTarget(null);
@@ -285,8 +306,9 @@ export default function MyAppointmentsPage() {
           onClose={() => { setCancelTarget(null); setCancelReason(''); setActionError(''); }}
         >
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-            Are you sure you want to cancel your <strong>{cancelTarget.appointment_type}</strong> appointment on{' '}
-            <strong>{formatDate(cancelTarget.datetime)}</strong>?
+            Are you sure you want to cancel your{' '}
+            <strong>{formatTypeName(cancelTarget.appointment_type)}</strong> appointment on{' '}
+            <strong>{formatDate(getApptDatetime(cancelTarget))}</strong>?
           </p>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason (optional)</label>
           <textarea
@@ -323,7 +345,7 @@ export default function MyAppointmentsPage() {
           onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); setRescheduleTime(''); setActionError(''); }}
         >
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-            Choose a new time for your <strong>{rescheduleTarget.appointment_type}</strong> appointment.
+            Choose a new time for your <strong>{formatTypeName(rescheduleTarget.appointment_type)}</strong> appointment.
           </p>
           <div className="space-y-3">
             <div>
@@ -377,64 +399,108 @@ function AppointmentCard({
   onCancel?: () => void;
   onReschedule?: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[appt.status] ?? { label: appt.status, color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400', icon: null };
   const canAct = onCancel && !INACTIVE.has(appt.status);
+  const dt = getApptDatetime(appt);
+
+  const hasDetails = !!(appt.concern || appt.purpose || appt.preferred_method || appt.counselor_email || appt.notes || appt.counseling_id);
 
   return (
-    <div className={`rounded-xl border p-5 ${highlight
+    <div className={`rounded-xl border ${highlight
       ? 'border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30'
       : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
     }`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <p className="font-semibold text-gray-900 dark:text-white text-sm">{appt.appointment_type}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Booked {new Date(appt.created_at).toLocaleDateString()}</p>
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-white text-sm">{formatTypeName(appt.appointment_type)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Booked {new Date(appt.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {appt.counseling_id ? ` · ${appt.counseling_id}` : ''}
+            </p>
+          </div>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${cfg.color}`}>
+            {cfg.icon} {cfg.label}
+          </span>
         </div>
-        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${cfg.color}`}>
-          {cfg.icon} {cfg.label}
-        </span>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-          <Calendar size={14} className="text-gray-400 flex-shrink-0" />
-          <span>{formatDate(appt.datetime)}</span>
-        </div>
-        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-          <Clock size={14} className="text-gray-400 flex-shrink-0" />
-          <span>{formatTime(appt.datetime)}{appt.duration_minutes ? ` · ${appt.duration_minutes} min` : ''}</span>
-        </div>
-        {appt.counselor_name && appt.counselor_name !== 'Unknown Counselor' && (
+        {/* Core details */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <User size={14} className="text-gray-400 flex-shrink-0" />
-            <span>{appt.counselor_name}</span>
+            <Calendar size={14} className="text-gray-400 flex-shrink-0" />
+            <span>{formatDate(dt)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+            <Clock size={14} className="text-gray-400 flex-shrink-0" />
+            <span>{formatTime(dt)}{appt.duration_minutes ? ` · ${appt.duration_minutes} min` : ''}</span>
+          </div>
+          {appt.counselor_name && appt.counselor_name !== 'Unknown Counselor' && (
+            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <User size={14} className="text-gray-400 flex-shrink-0" />
+              <span>{appt.counselor_name}</span>
+            </div>
+          )}
+          {appt.location && (
+            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+              <span>{appt.location}</span>
+            </div>
+          )}
+        </div>
+
+        {appt.is_recurring && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400">
+            <Repeat size={11} />
+            Session {appt.recurrence_index} of {appt.recurrence_total} · {appt.recurrence === 'weekly' ? 'Weekly' : 'Bi-weekly'}
           </div>
         )}
-        {appt.location && (
-          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-            <span>{appt.location}</span>
+
+        {/* Expanded details */}
+        {expanded && hasDetails && (
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2.5">
+            {appt.concern && (
+              <div className="flex gap-2 text-sm">
+                <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5">Concern</span>
+                <span className="text-gray-700 dark:text-gray-300">{appt.concern}</span>
+              </div>
+            )}
+            {appt.purpose && appt.purpose !== appt.concern && (
+              <div className="flex gap-2 text-sm">
+                <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5">Purpose</span>
+                <span className="text-gray-700 dark:text-gray-300 capitalize">{appt.purpose}</span>
+              </div>
+            )}
+            {appt.preferred_method && (
+              <div className="flex gap-2 text-sm">
+                <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5">Format</span>
+                <span className="text-gray-700 dark:text-gray-300">{formatMethodName(appt.preferred_method)}</span>
+              </div>
+            )}
+            {appt.counselor_email && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5">Counselor</span>
+                <a
+                  href={`mailto:${appt.counselor_email}`}
+                  className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  <Mail size={12} /> {appt.counselor_email}
+                </a>
+              </div>
+            )}
+            {appt.notes && (
+              <div className="flex gap-2 text-sm">
+                <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5 flex items-center gap-1"><FileText size={12}/> Notes</span>
+                <span className="text-gray-700 dark:text-gray-300">{appt.notes}</span>
+              </div>
+            )}
           </div>
         )}
-      </div>
 
-      {appt.is_recurring && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400">
-          <Repeat size={11} />
-          Session {appt.recurrence_index} of {appt.recurrence_total} · {appt.recurrence === 'weekly' ? 'Weekly' : 'Bi-weekly'}
-        </div>
-      )}
-
-      {appt.notes && (
-        <p className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400">
-          {appt.notes}
-        </p>
-      )}
-
-      {/* Actions row */}
-      {(canAct || (appt.meeting_link && isUpcoming(appt.datetime))) && (
+        {/* Actions row */}
         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2 flex-wrap">
-          {appt.meeting_link && isUpcoming(appt.datetime) && (
+          {appt.meeting_link && isUpcoming(dt) && (
             <a
               href={appt.meeting_link}
               target="_blank"
@@ -460,8 +526,16 @@ function AppointmentCard({
               </button>
             </>
           )}
+          {hasDetails && (
+            <button
+              onClick={() => setExpanded(e => !e)}
+              className="ml-auto inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              {expanded ? <><ChevronUp size={13} /> Hide details</> : <><ChevronDown size={13} /> View details</>}
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

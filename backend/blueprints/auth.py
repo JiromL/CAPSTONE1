@@ -529,3 +529,74 @@ def get_roles():
     """Get available roles"""
     roles = [role.value for role in UserRole]
     return jsonify(roles), 200
+
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """Send password reset link to email"""
+    data = request.get_json() or {}
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    user = db.db.users.find_one({'email': email})
+    # Always return 200 to avoid user enumeration
+    if not user:
+        return jsonify({'message': 'If that email is registered, a reset link has been sent'}), 200
+
+    reset_token = str(uuid.uuid4())
+    expiry = datetime.utcnow() + timedelta(hours=1)
+    db.db.users.update_one(
+        {'_id': user['_id']},
+        {'$set': {'reset_token': reset_token, 'reset_token_expiry': expiry}}
+    )
+
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+    reset_url = f"{frontend_url}/reset-password?token={reset_token}"
+    first_name = user.get('first_name', 'User')
+
+    html_body = f"""<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;background:#f3f4f6;padding:40px 16px;">
+  <table width="100%" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
+    <tr><td style="background:#4f46e5;padding:32px 40px;">
+      <p style="margin:0;color:#c7d2fe;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">DLSU Counseling &amp; Psychological Services</p>
+    </td></tr>
+    <tr><td style="padding:36px 40px;">
+      <h1 style="margin:0 0 16px;font-size:22px;color:#111827;">Reset your password</h1>
+      <p style="color:#4b5563;font-size:14px;line-height:1.6;">Hi {first_name},<br><br>We received a request to reset your password. Click the button below to choose a new one. This link expires in 1 hour.</p>
+      <div style="text-align:center;margin:32px 0;">
+        <a href="{reset_url}" style="display:inline-block;background:#4f46e5;color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:8px;">Reset Password</a>
+      </div>
+      <p style="font-size:12px;color:#9ca3af;">If you didn't request this, you can safely ignore this email.</p>
+    </td></tr>
+  </table>
+</body></html>"""
+
+    email_service._send_email(email, 'Reset Your DLSU CPS Password', html_body)
+    return jsonify({'message': 'If that email is registered, a reset link has been sent'}), 200
+
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """Reset password using token"""
+    data = request.get_json() or {}
+    token = data.get('token', '').strip()
+    new_password = data.get('password', '').strip()
+
+    if not token or not new_password:
+        return jsonify({'error': 'Token and new password are required'}), 400
+    if len(new_password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+
+    user = db.db.users.find_one({'reset_token': token})
+    if not user:
+        return jsonify({'error': 'Invalid or expired reset link'}), 400
+    if user.get('reset_token_expiry') and datetime.utcnow() > user['reset_token_expiry']:
+        return jsonify({'error': 'Reset link has expired. Please request a new one.'}), 400
+
+    db.db.users.update_one(
+        {'_id': user['_id']},
+        {'$set': {'password': generate_password_hash(new_password)},
+         '$unset': {'reset_token': '', 'reset_token_expiry': ''}}
+    )
+    return jsonify({'message': 'Password reset successfully'}), 200

@@ -10,6 +10,8 @@ from models import db, AppointmentStatus, PermissionType
 from utils import audit_log, user_has_permission
 from datetime import datetime, timedelta
 import os
+import random
+import string
 from services.pdf_service import generate_appointment_confirmation_pdf
 from services.email_service import EmailService
 
@@ -336,7 +338,9 @@ def get_my_appointments():
                 try:
                     counselor = db.db.users.find_one({"_id": ObjectId(apt['counselor_id'])})
                     if counselor:
-                        apt['counselor_name'] = counselor.get('name', 'Unknown Counselor')
+                        fn = counselor.get('first_name', '')
+                        ln = counselor.get('last_name', '')
+                        apt['counselor_name'] = f"{fn} {ln}".strip() or counselor.get('name', 'Unknown Counselor')
                         apt['counselor_email'] = counselor.get('email', '')
                 except:
                     pass
@@ -551,6 +555,8 @@ def request_appointment():
             case_id = result.inserted_id
             case = case_doc
     
+    reference_id = 'CPS-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
     try:
         appointment = {
             "student_id": user_id_obj,
@@ -559,6 +565,7 @@ def request_appointment():
             "requested_start": requested_start,
             "requested_end": requested_end,
             "status": AppointmentStatus.REQUESTED.value,
+            "reference_id": reference_id,
             # New student booking fields
             "purpose": data.get('purpose'),
             "concern": data.get('concern'),
@@ -650,6 +657,7 @@ def request_appointment():
     
     return jsonify({
         'appointment_id': appointment_id,
+        'reference_id': reference_id,
         'status': updated_appointment.get('status', AppointmentStatus.REQUESTED.value),
         'requested_start': requested_start.isoformat(),
         'requested_end': requested_end.isoformat(),

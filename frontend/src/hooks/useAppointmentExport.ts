@@ -75,15 +75,21 @@ export const useAppointmentExport = () => {
         return;
       }
 
+      if (typeof window === 'undefined') return;
+
       // Try to load html2pdf from window first (global script)
       let html2pdf = (window as any).html2pdf;
-      
-      // If not available globally, try dynamic import
+
+      // If not available globally, try dynamic import (browser-only)
       if (!html2pdf) {
-        const module = await import('html2pdf.js');
-        html2pdf = module.default;
+        try {
+          const module = await import('html2pdf.js');
+          html2pdf = module.default || module;
+        } catch {
+          html2pdf = null;
+        }
       }
-      
+
       if (!html2pdf) {
         throw new Error('PDF library could not be loaded');
       }

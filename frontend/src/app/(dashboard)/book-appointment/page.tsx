@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, AlertCircle } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { AppointmentConfirmation } from '@/components/AppointmentConfirmation';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 
@@ -25,6 +26,7 @@ export default function BookAppointmentPage() {
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [bookingResult, setBookingResult] = useState<any>(null);
 
   // Booking form state
   const [purpose, setPurpose] = useState('');
@@ -188,11 +190,6 @@ export default function BookAppointmentPage() {
       return;
     }
 
-    if (!phone.trim()) {
-      setSubmitError('Please enter your phone number');
-      return;
-    }
-
     if (!purpose) {
       setSubmitError('Please select a purpose');
       return;
@@ -275,6 +272,7 @@ export default function BookAppointmentPage() {
       if (response.ok) {
         const data = await response.json();
         console.log('[BookAppointment] Appointment created:', data);
+        setBookingResult(data);
         setBookingConfirmed(true);
         clearDraft();
       } else {
@@ -317,23 +315,104 @@ export default function BookAppointmentPage() {
   }
 
   if (bookingConfirmed) {
+    const apptDate = bookingResult?.requested_start ? new Date(bookingResult.requested_start) : null;
+    const apptDateStr = apptDate ? apptDate.toISOString().split('T')[0] : preferredDate;
+    const apptTimeStr = apptDate
+      ? apptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      : preferredTime;
+    const platformMap: Record<string, string> = { 'in-person': 'in_person', 'gmeet': 'google_meet', 'zoom': 'zoom' };
+
     return (
-      <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session">
+      <DashboardPageWrapper title="Appointment Confirmed" subtitle="Your booking has been submitted">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-8 text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 dark:text-green-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-green-900 dark:text-green-50 mb-2">
-              Appointment Booked Successfully!
-            </h2>
-            <p className="text-green-700 dark:text-green-300 mb-6">
-              Your appointment request has been submitted. You will receive a confirmation email shortly.
-            </p>
-            <Link href="../tasks">
-              <button className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
-                View My Tasks
-              </button>
-            </Link>
+          {/* Success Header */}
+          <div className="text-center mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Appointment Requested</h1>
+            <p className="text-gray-600 dark:text-gray-400">Your appointment request has been submitted successfully</p>
           </div>
+
+          {/* Next Steps */}
+          <div className="mb-8">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">What happens next</h3>
+            <div className="space-y-3">
+              {[
+                { n: '1', title: 'Check your email', desc: "You'll receive confirmation with your appointment details" },
+                { n: '2', title: 'Staff will confirm', desc: 'Our office assistant will confirm your slot based on counselor availability' },
+                { n: '3', title: 'Join your appointment', desc: "You'll receive details on how to attend your session" },
+              ].map(s => (
+                <div key={s.n} className="flex gap-3">
+                  <span className="font-semibold text-gray-900 dark:text-white flex-shrink-0">{s.n}</span>
+                  <div>
+                    <p className="text-gray-900 dark:text-white font-medium">{s.title}</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Confirmation Document */}
+          <div className="mb-8">
+            <AppointmentConfirmation
+              studentName={`${firstName} ${lastName}`}
+              studentId={user?.id_number || ''}
+              studentContact={phone || ''}
+              appointmentDate={apptDateStr}
+              appointmentTime={apptTimeStr}
+              platform={platformMap[preferredMethod] || preferredMethod}
+              screeningsCompleted={[]}
+              referenceId={bookingResult?.reference_id || ''}
+              concern={concern}
+            />
+          </div>
+
+          {/* Summary card */}
+          <div className="mb-8 p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Your Appointment</h3>
+            <div className="space-y-3">
+              {bookingResult?.reference_id && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reference ID</p>
+                  <p className="text-sm font-mono text-gray-900 dark:text-white">{bookingResult.reference_id}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Purpose</p>
+                <p className="text-gray-900 dark:text-white font-medium capitalize">{purpose === 'others' ? otherPurpose : purpose}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Preferred Date</p>
+                <p className="text-gray-900 dark:text-white font-medium">
+                  {new Date(preferredDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Preferred Time</p>
+                <p className="text-gray-900 dark:text-white font-medium">{preferredTime}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Format</p>
+                <p className="text-gray-900 dark:text-white font-medium capitalize">{preferredMethod.replace('-', ' ')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Support */}
+          <div className="mb-8 p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Need support?</h3>
+            <div className="space-y-2">
+              <a href="tel:988" className="block p-3 border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors">
+                <p className="text-gray-900 dark:text-white font-medium">Crisis Support: Call 988</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Available 24/7</p>
+              </a>
+            </div>
+          </div>
+
+          <Link href="/dashboard">
+            <button className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600">
+              Return to Dashboard
+            </button>
+          </Link>
         </div>
       </DashboardPageWrapper>
     );
@@ -643,7 +722,7 @@ export default function BookAppointmentPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Phone <span className="text-red-600">*</span>
+                        Phone <span className="text-gray-400 font-normal">(optional)</span>
                       </label>
                       <input
                         type="tel"
@@ -875,9 +954,9 @@ export default function BookAppointmentPage() {
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
-                disabled={submitting || !preferredDate || !preferredTime || !agreedToTerms || !firstName || !lastName || !email || !phone}
+                disabled={submitting || !preferredDate || !preferredTime || !agreedToTerms || !firstName || !lastName || !email}
                 className={`flex-1 px-6 py-2 rounded-lg font-medium transition ${
-                  submitting || !preferredDate || !preferredTime || !agreedToTerms || !firstName || !lastName || !email || !phone
+                  submitting || !preferredDate || !preferredTime || !agreedToTerms || !firstName || !lastName || !email
                     ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}

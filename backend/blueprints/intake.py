@@ -66,9 +66,9 @@ def find_next_available_slot(risk_level: str = 'GREEN', max_wait_minutes: int = 
     
     Returns: (appointment_datetime, urgency_text, availability_status, is_user_selectable)
     """
-    now = datetime.utcnow()
-    business_hours_start = 9   # 9 AM
-    business_hours_end = 17    # 5 PM
+    now = datetime.utcnow() + timedelta(hours=8)  # PHT = UTC+8
+    business_hours_start = 9   # 9 AM PHT
+    business_hours_end = 17    # 5 PM PHT
     
     # Determine scheduling window based on risk level
     if risk_level in ['RED', 'CRITICAL']:
@@ -161,10 +161,10 @@ def get_available_slots_for_risk(risk_level: str = 'GREEN', num_days: int = 7):
     
     Returns: List of available time slots
     """
-    now = datetime.utcnow()
+    now = datetime.utcnow() + timedelta(hours=8)  # PHT = UTC+8
     business_hours_start = 9
     business_hours_end = 17
-    
+
     # Determine starting point based on risk level
     if risk_level in ['RED', 'CRITICAL']:
         start_date = now
@@ -1024,9 +1024,9 @@ def calculate_appointment():
     
     # Calculate appointment date
     appointment_date, estimated_days, appointment_time = calculate_appointment_date(is_emergency, urgency_level, risk_level)
-    
-    # Get minimum selectable date
-    today = datetime.utcnow()
+
+    # Get minimum selectable date (use PHT for today reference)
+    today = datetime.utcnow() + timedelta(hours=8)
     min_date = appointment_date - timedelta(days=1)
     
     return jsonify({
@@ -1655,32 +1655,24 @@ def get_available_times_for_date():
             
             # Check each counselor
             for counselor_id in counselor_ids:
-                # Find availability slots that overlap with this time
-                # Check if counselor has ANY availability that covers this time slot
-                avail_check = db.db.counselor_availability.find_one({
+                # Check explicit unavailability (blocked slots) — if counselor marked themselves
+                # unavailable at this time, skip. Otherwise default to available during business hours.
+                blocked = db.db.counselor_availability.find_one({
                     "counselor_id": counselor_id,
                     "slot_start": {"$lte": current_time},
                     "slot_end": {"$gte": slot_end_time},
-                    "is_available": True,
-                    # Also check that slot is on the right day
-                    "$expr": {
-                        "$and": [
-                            {"$gte": ["$slot_start", day_start]},
-                            {"$lte": ["$slot_start", day_end]}
-                        ]
-                    }
+                    "is_available": False,
                 })
-                
-                if not avail_check:
-                    continue  # Counselor not available at this time
-                
+                if blocked:
+                    continue
+
                 # Check if counselor already has an appointment at this time
                 existing_appt = db.db.appointments.find_one({
                     "counselor_id": counselor_id,
                     "scheduled_start": current_time,
                     "status": {"$in": ["MATCHED", "CONFIRMED", "REQUESTED"]}
                 })
-                
+
                 if not existing_appt:
                     counselor_obj = db.db.users.find_one({"_id": counselor_id})
                     counselor_name = f"{counselor_obj.get('first_name', '')} {counselor_obj.get('last_name', '')}" if counselor_obj else "Unknown"
@@ -1746,7 +1738,7 @@ def get_available_dates():
         counselor_ids = [c["_id"] for c in counselors]
         
         available_dates = []
-        current_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        current_date = (datetime.utcnow() + timedelta(hours=8)).replace(hour=0, minute=0, second=0, microsecond=0)
         business_hours_start = 9
         business_hours_end = 17
         
@@ -1772,30 +1764,23 @@ def get_available_dates():
                 
                 # Check if any counselor is available at this time
                 for counselor_id in counselor_ids:
-                    # Check availability
-                    avail_check = db.db.counselor_availability.find_one({
+                    # Skip if counselor explicitly marked this slot unavailable
+                    blocked = db.db.counselor_availability.find_one({
                         "counselor_id": counselor_id,
                         "slot_start": {"$lte": current_time},
                         "slot_end": {"$gte": slot_end_time},
-                        "is_available": True,
-                        "$expr": {
-                            "$and": [
-                                {"$gte": ["$slot_start", day_start]},
-                                {"$lte": ["$slot_start", day_end]}
-                            ]
-                        }
+                        "is_available": False,
                     })
-                    
-                    if not avail_check:
+                    if blocked:
                         continue
-                    
+
                     # Check if counselor already has an appointment at this time
                     existing_appt = db.db.appointments.find_one({
                         "counselor_id": counselor_id,
                         "scheduled_start": current_time,
                         "status": {"$in": ["MATCHED", "CONFIRMED", "REQUESTED"]}
                     })
-                    
+
                     if not existing_appt:
                         has_available_slot = True
                         break

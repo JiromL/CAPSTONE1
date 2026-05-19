@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { DashboardLayout } from '@/components/DashboardLayout';
-import { getMenuItemsByRole } from '@/utils/navigation';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
-import { AlertCircle, Plus, Trash2, Edit2, Heart, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, BookOpen, Flame, ChevronDown, ChevronUp, Tag, Loader2 } from 'lucide-react';
 
 interface JournalEntry {
   journal_id: string;
@@ -15,466 +13,283 @@ interface JournalEntry {
   created_at: string;
 }
 
-interface JournalData {
-  entries: JournalEntry[];
-  total: number;
+const MOODS = [
+  { value: 1, emoji: '😢', label: 'Very Sad',   color: '#ef4444', bg: '#fee2e2' },
+  { value: 2, emoji: '😟', label: 'Sad',         color: '#f97316', bg: '#ffedd5' },
+  { value: 3, emoji: '😐', label: 'Neutral',     color: '#eab308', bg: '#fef9c3' },
+  { value: 4, emoji: '🙂', label: 'Happy',       color: '#22c55e', bg: '#dcfce7' },
+  { value: 5, emoji: '😊', label: 'Very Happy',  color: '#6366f1', bg: '#e0e7ff' },
+];
+
+function getMood(v: number) { return MOODS[Math.max(0, Math.min(4, v - 1))]; }
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtTime(d: string) {
+  return new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-const MOOD_EMOJIS = ['😢', '😟', '😐', '🙂', '😊'];
-const MOOD_LABELS = ['Very Sad', 'Sad', 'Neutral', 'Happy', 'Very Happy'];
-
 export default function JournalPage() {
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [journalData, setJournalData] = useState<JournalData>({ entries: [], total: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showNewEntry, setShowNewEntry] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [entries, setEntries]     = useState<JournalEntry[]>([]);
+  const [total, setTotal]         = useState(0);
+  const [loading, setLoading]     = useState(true);
+  const [composing, setComposing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newContent, setNewContent] = useState('');
-  const [newMood, setNewMood] = useState(3);
-  const [newTags, setNewTags] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [content, setContent]     = useState('');
+  const [mood, setMood]           = useState(3);
+  const [tags, setTags]           = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState('');
 
-  // Mark as mounted for hydration safety
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const h = () => {
+    const t = localStorage.getItem('token');
+    return { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' };
+  };
 
-  // Fetch journal entries and user data
-  useEffect(() => {
-    if (!mounted) return;
-
-    const fetchJournal = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
-        
-        if (!token) {
-          setError('Not authenticated');
-          setLoading(false);
-          return;
-        }
-
-        if (userData) {
-          setUser(JSON.parse(userData));
-        }
-
-        const response = await fetch(`${api('/api/engagement/journal?limit=50')}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch journal entries');
-        }
-
-        const data = await response.json();
-        setJournalData(data);
-        setError('');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load journal');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJournal();
-  }, [mounted]);
-
-  // Create new entry
-  const handleCreateEntry = async () => {
-    if (!newContent.trim()) {
-      setError('Please write something in your entry');
-      return;
-    }
-
+  const load = async () => {
+    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const tags = newTags.split(',').map(t => t.trim()).filter(t => t);
-
-      const response = await fetch(`${api('/api/engagement/journal')}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          mood: newMood,
-          content: newContent,
-          tags: tags,
-          is_private: true
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create entry');
-      }
-
-      // Refresh journal list
-      const listResponse = await fetch(`${api('/api/engagement/journal?limit=50')}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await listResponse.json();
-      setJournalData(data);
-      setShowNewEntry(false);
-      setNewContent('');
-      setNewMood(3);
-      setNewTags('');
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create entry');
-    }
+      const r = await fetch(api('/api/engagement/journal?limit=50'), { headers: h() });
+      if (r.ok) { const d = await r.json(); setEntries(d.entries ?? []); setTotal(d.total ?? 0); }
+    } finally { setLoading(false); }
   };
 
-  // Update entry
-  const handleUpdateEntry = async () => {
-    if (!editingId || !newContent.trim()) return;
+  useEffect(() => { load(); }, []);
 
+  const openCompose = () => {
+    setContent(''); setMood(3); setTags(''); setEditingId(null); setError(''); setComposing(true);
+  };
+  const openEdit = (e: JournalEntry) => {
+    setContent(e.content); setMood(e.mood); setTags(e.tags.join(', '));
+    setEditingId(e.journal_id); setError(''); setComposing(true); setExpandedId(null);
+  };
+  const closeCompose = () => { setComposing(false); setEditingId(null); setError(''); };
+
+  const handleSave = async () => {
+    if (!content.trim()) { setError('Write something first'); return; }
+    setSaving(true); setError('');
     try {
-      const token = localStorage.getItem('token');
-      const tags = newTags.split(',').map(t => t.trim()).filter(t => t);
+      const tagList = tags.split(',').map(t => t.trim()).filter(Boolean);
+      const body = JSON.stringify({ mood, content, tags: tagList, is_private: true });
+      const url    = editingId ? api(`/api/engagement/journal/${editingId}`) : api('/api/engagement/journal');
+      const method = editingId ? 'PATCH' : 'POST';
+      const r = await fetch(url, { method, headers: h(), body });
+      if (!r.ok) throw new Error('Failed to save');
+      await load();
+      closeCompose();
+    } catch { setError('Failed to save entry'); }
+    finally { setSaving(false); }
+  };
 
-      const response = await fetch(`${api(`/api/engagement/journal/${editingId}`)}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          mood: newMood,
-          content: newContent,
-          tags: tags
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update entry');
-      }
-
-      // Refresh journal list
-      const listResponse = await fetch(`${api('/api/engagement/journal?limit=50')}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await listResponse.json();
-      setJournalData(data);
-      setEditingId(null);
-      setNewContent('');
-      setNewMood(3);
-      setNewTags('');
-      setSelectedEntry(null);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update entry');
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this entry?')) return;
+    const r = await fetch(api(`/api/engagement/journal/${id}`), { method: 'DELETE', headers: h() });
+    if (r.ok) {
+      setEntries(prev => prev.filter(e => e.journal_id !== id));
+      setTotal(t => t - 1);
+      if (expandedId === id) setExpandedId(null);
     }
   };
 
-  // Delete entry
-  const handleDeleteEntry = async (journalId: string) => {
-    if (!window.confirm('Are you sure you want to delete this entry?')) return;
-
-    try {
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`${api(`/api/engagement/journal/${journalId}`)}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete entry');
-      }
-
-      // Remove from list
-      setJournalData({
-        ...journalData,
-        entries: journalData.entries.filter(e => e.journal_id !== journalId),
-        total: journalData.total - 1
-      });
-
-      setSelectedEntry(null);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete entry');
+  // Stats
+  const streak = (() => {
+    if (!entries.length) return 0;
+    let s = 0;
+    let prev = new Date();
+    for (const e of entries) {
+      const d = new Date(e.created_at);
+      if (Math.floor((prev.getTime() - d.getTime()) / 86400000) <= 1) { s++; prev = d; }
+      else break;
     }
-  };
-
-  const startEdit = (entry: JournalEntry) => {
-    setEditingId(entry.journal_id);
-    setNewContent(entry.content);
-    setNewMood(entry.mood);
-    setNewTags(entry.tags.join(', '));
-    setSelectedEntry(null);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setNewContent('');
-    setNewMood(3);
-    setNewTags('');
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    router.replace('/login');
-  };
-
-  if (loading || !mounted) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  const menuItems = getMenuItemsByRole(user?.role || 'student');
+    return s;
+  })();
+  const latestMood = entries.length ? getMood(entries[0].mood) : getMood(3);
 
   return (
-    <DashboardLayout
-      user={user}
-      onLogout={handleLogout}
-      menuItems={menuItems}
-      title="Journal"
-      subtitle="Reflect on your thoughts and feelings"
-      activeSection="journal"
-    >
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <DashboardPageWrapper title="My Journal" subtitle="Reflect on your thoughts and feelings">
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {[
+          { icon: <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />, bg: 'bg-indigo-50 dark:bg-indigo-900/30', label: 'Total Entries', value: total },
+          { icon: <Flame size={18} className="text-orange-500" />, bg: 'bg-orange-50 dark:bg-orange-900/30', label: 'Day Streak', value: streak },
+        ].map(({ icon, bg, label, value }) => (
+          <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${bg}`}>{icon}</div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{value}</p>
+            </div>
+          </div>
+        ))}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: latestMood.bg }}>
+            <span className="text-xl">{latestMood.emoji}</span>
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Journal</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Your personal wellness journey</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Latest Mood</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{entries.length ? latestMood.label : '—'}</p>
           </div>
-          <button
-            onClick={() => {
-              setShowNewEntry(!showNewEntry);
-              setEditingId(null);
-            }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-          >
-            <Plus size={20} />
-            New Entry
-          </button>
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
-            <p className="text-red-700 dark:text-red-300">{error}</p>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Entries</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{journalData.total}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Current Mood</p>
-            <p className="text-4xl">{journalData.entries.length > 0 ? MOOD_EMOJIS[journalData.entries[0].mood - 1] : '😐'}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Last Entry</p>
-            <p className="text-gray-900 dark:text-white font-medium">
-              {journalData.entries.length > 0
-                ? new Date(journalData.entries[0].created_at).toLocaleDateString()
-                : 'No entries yet'}
-            </p>
-          </div>
-        </div>
-
-        {/* New/Edit Entry Form */}
-        {(showNewEntry || editingId) && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {editingId ? 'Edit Entry' : 'Write a New Entry'}
-            </h2>
-
-            {/* Mood Selector */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                How are you feeling?
-              </label>
-              <div className="flex gap-2 justify-center">
-                {MOOD_EMOJIS.map((emoji, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setNewMood(idx + 1)}
-                    className={`text-3xl p-2 rounded-lg transition ${
-                      newMood === idx + 1
-                        ? 'bg-blue-200 dark:bg-blue-900 scale-110'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                    title={MOOD_LABELS[idx]}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-                {MOOD_LABELS[newMood - 1]}
-              </p>
-            </div>
-
-            {/* Content */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Your thoughts
-              </label>
-              <textarea
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                placeholder="Write what's on your mind..."
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Tags */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Tags (optional, comma-separated)
-              </label>
-              <input
-                type="text"
-                value={newTags}
-                onChange={(e) => setNewTags(e.target.value)}
-                placeholder="e.g., stress, family, school"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={cancelEdit}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={editingId ? handleUpdateEntry : handleCreateEntry}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
-              >
-                {editingId ? 'Update Entry' : 'Save Entry'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Journal Entries List */}
-        <div className="space-y-4">
-          {journalData.entries.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
-              <Heart className="mx-auto text-gray-400 dark:text-gray-600 mb-4" size={48} />
-              <p className="text-gray-700 dark:text-gray-300 font-medium">No journal entries yet</p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Start your journaling journey by creating your first entry</p>
-            </div>
-          ) : (
-            journalData.entries.map((entry) => (
-              <div
-                key={entry.journal_id}
-                className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer transition hover:shadow-md dark:hover:shadow-lg ${
-                  selectedEntry?.journal_id === entry.journal_id ? 'ring-2 ring-blue-500' : ''
-                }`}
-                onClick={() => {
-                  if (editingId !== entry.journal_id) {
-                    setSelectedEntry(selectedEntry?.journal_id === entry.journal_id ? null : entry);
-                  }
-                }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-3xl">{MOOD_EMOJIS[entry.mood - 1]}</span>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {new Date(entry.created_at).toLocaleDateString()} at{' '}
-                          {new Date(entry.created_at).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {MOOD_LABELS[entry.mood - 1]}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 line-clamp-2">{entry.content}</p>
-                    {entry.tags.length > 0 && (
-                      <div className="flex gap-2 mt-3 flex-wrap">
-                        {entry.tags.map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <ChevronRight
-                    className={`text-gray-400 transition ${
-                      selectedEntry?.journal_id === entry.journal_id ? 'rotate-90' : ''
-                    }`}
-                    size={20}
-                  />
-                </div>
-
-                {/* Expanded Detail View */}
-                {selectedEntry?.journal_id === entry.journal_id && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Full Entry</h4>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{entry.content}</p>
-                    </div>
-                    <div className="flex gap-3 justify-end">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(entry);
-                        }}
-                        className="flex items-center gap-2 px-3 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition"
-                      >
-                        <Edit2 size={16} />
-                        Edit
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteEntry(entry.journal_id);
-                        }}
-                        className="flex items-center gap-2 px-3 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition"
-                      >
-                        <Trash2 size={16} />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
         </div>
       </div>
-    </DashboardLayout>
+
+      {/* Toolbar */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={openCompose}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={15} /> New Entry
+        </button>
+      </div>
+
+      {/* Compose / Edit panel */}
+      {composing && (
+        <div className="mb-5 bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-800 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              {editingId ? 'Edit Entry' : 'New Entry'}
+            </p>
+            <button onClick={closeCompose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+              <X size={15} className="text-gray-500" />
+            </button>
+          </div>
+
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">How are you feeling?</p>
+          <div className="flex gap-2 mb-4">
+            {MOODS.map(m => (
+              <button
+                key={m.value}
+                onClick={() => setMood(m.value)}
+                title={m.label}
+                className={`flex-1 py-2.5 rounded-xl flex flex-col items-center gap-1 border-2 transition-all ${
+                  mood === m.value ? 'scale-105' : 'border-transparent bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                style={mood === m.value ? { background: m.bg, borderColor: m.color } : {}}
+              >
+                <span className="text-xl">{m.emoji}</span>
+                <span className="text-xs font-medium hidden sm:block" style={{ color: mood === m.value ? m.color : '#9ca3af' }}>
+                  {m.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder="What's on your mind today?"
+            rows={5}
+            className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none mb-3"
+          />
+
+          <div className="flex items-center gap-2 mb-4">
+            <Tag size={13} className="text-gray-400 flex-shrink-0" />
+            <input
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="Tags: stress, family, school (comma-separated)"
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            />
+          </div>
+
+          {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+
+          <div className="flex gap-2 justify-end">
+            <button onClick={closeCompose} className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-lg flex items-center gap-2 transition-colors"
+            >
+              {saving && <Loader2 size={13} className="animate-spin" />}
+              {editingId ? 'Update' : 'Save Entry'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Entries list */}
+      {loading ? (
+        <div className="flex items-center justify-center h-40 text-gray-400 gap-2">
+          <Loader2 size={20} className="animate-spin" /> Loading entries…
+        </div>
+      ) : entries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-48 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
+            <BookOpen size={24} className="text-indigo-400" />
+          </div>
+          <p className="font-medium text-gray-900 dark:text-white mb-1">No entries yet</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Start your journaling journey today</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {entries.map(entry => {
+            const m        = getMood(entry.mood);
+            const expanded = expandedId === entry.journal_id;
+            return (
+              <div key={entry.journal_id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                <div className="h-1 w-full" style={{ background: m.color }} />
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: m.bg }}>
+                      <span className="text-lg">{m.emoji}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold" style={{ color: m.color }}>{m.label}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            {fmtDate(entry.created_at)} · {fmtTime(entry.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={() => openEdit(entry)}
+                            className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(entry.journal_id)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-gray-400 hover:text-red-500"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                          <button
+                            onClick={() => setExpandedId(expanded ? null : entry.journal_id)}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-400"
+                          >
+                            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className={`text-sm text-gray-700 dark:text-gray-300 mt-2 leading-relaxed ${expanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
+                        {entry.content}
+                      </p>
+
+                      {entry.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {entry.tags.map((tag, i) => (
+                            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </DashboardPageWrapper>
   );
 }

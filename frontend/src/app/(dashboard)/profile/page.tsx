@@ -6,6 +6,18 @@ import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
+const DLSU_COLLEGES: { abbr: string; name: string; sampleCourses: string[] }[] = [
+  { abbr: 'CCS', name: 'College of Computer Studies',       sampleCourses: ['BS Computer Science', 'BS Information Technology', 'BS Information Systems'] },
+  { abbr: 'COB', name: 'College of Business',               sampleCourses: ['BS Accountancy', 'BS Business Administration', 'BS Entrepreneurship', 'BS Management of Financial Institutions'] },
+  { abbr: 'COE', name: 'College of Engineering',            sampleCourses: ['BS Chemical Engineering', 'BS Civil Engineering', 'BS Electronics Engineering', 'BS Industrial Engineering', 'BS Mechanical Engineering'] },
+  { abbr: 'CLA', name: 'College of Liberal Arts',           sampleCourses: ['BA Communication Arts', 'BA Political Science', 'BA Psychology', 'BA Filipino', 'BA Literature'] },
+  { abbr: 'COS', name: 'College of Science',                sampleCourses: ['BS Biology', 'BS Chemistry', 'BS Mathematics', 'BS Physics'] },
+  { abbr: 'SOE', name: 'School of Economics',               sampleCourses: ['BS Economics', 'BS Applied Economics'] },
+  { abbr: 'BAGCED', name: 'College of Education',           sampleCourses: ['BS Education (major in English)', 'BS Education (major in Mathematics)', 'BS Education (major in Filipino)'] },
+  { abbr: 'SOM', name: 'School of Medicine',                sampleCourses: ['Doctor of Medicine'] },
+  { abbr: 'GCOE', name: 'Graduate School',                  sampleCourses: ['Masters / Doctoral program'] },
+];
+
 export default function ProfilePage() {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -18,6 +30,7 @@ export default function ProfilePage() {
     email: '',
     phone: '',
     studentId: '',
+    college: '',
     course: '',
     major: '',
     year: '',
@@ -40,6 +53,7 @@ export default function ProfilePage() {
       email: cachedUser.email || '',
       phone: cachedUser.phone || '',
       studentId: cachedUser.id_number || '',
+      college: cachedUser.college || '',
       course: cachedUser.course || '',
       major: cachedUser.major || '',
       year: cachedUser.year || '',
@@ -64,6 +78,7 @@ export default function ProfilePage() {
           email: user.email || '',
           phone: user.phone || '',
           studentId: user.id_number || '',
+          college: user.college || '',
           course: user.course || '',
           major: user.major || '',
           year: user.year || '',
@@ -79,9 +94,14 @@ export default function ProfilePage() {
       .catch(err => console.error('Failed to fetch profile from API:', err));
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    // Reset course when college changes
+    if (name === 'college') {
+      setFormData({ ...formData, college: value, course: '' });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSave = async () => {
@@ -120,6 +140,7 @@ export default function ProfilePage() {
           email: formData.email,
           phone: formData.phone,
           id_number: formData.studentId,
+          college: formData.college,
           course: formData.course,
           major: formData.major,
           year: formData.year,
@@ -143,6 +164,7 @@ export default function ProfilePage() {
         email: savedUser.email,
         phone: savedUser.phone,
         id_number: savedUser.id_number,
+        college: savedUser.college,
         course: savedUser.course,
         major: savedUser.major,
         year: savedUser.year,
@@ -189,7 +211,9 @@ export default function ProfilePage() {
               <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl font-semibold">{profile.firstName[0]}{profile.lastName[0]}</div>
               <div>
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{profile.firstName} {profile.lastName}</h2>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{profile.course}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {[profile.college, profile.course].filter(Boolean).join(' · ') || 'No course set'}
+                </p>
               </div>
             </div>
             <button 
@@ -258,14 +282,47 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course</label>
-                    <input 
-                      type="text" 
-                      name="course" 
-                      value={formData.course} 
-                      onChange={handleChange} 
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">College</label>
+                    <select
+                      name="college"
+                      value={formData.college}
+                      onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
+                    >
+                      <option value="">— Select college —</option>
+                      {DLSU_COLLEGES.map(c => (
+                        <option key={c.abbr} value={c.abbr}>{c.abbr} · {c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course / Program</label>
+                    <input
+                      type="text"
+                      name="course"
+                      value={formData.course}
+                      onChange={handleChange}
+                      placeholder={
+                        formData.college
+                          ? `e.g. ${DLSU_COLLEGES.find(c => c.abbr === formData.college)?.sampleCourses[0] ?? 'your program'}`
+                          : 'Select a college first'
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                     />
+                    {formData.college && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {DLSU_COLLEGES.find(c => c.abbr === formData.college)?.sampleCourses.map(sc => (
+                          <button
+                            key={sc}
+                            type="button"
+                            onClick={() => setFormData(f => ({ ...f, course: sc }))}
+                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                          >
+                            {sc}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="md:col-span-2 border-t border-gray-300 dark:border-gray-600 pt-4 mt-2">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Emergency Contact</h3>
@@ -317,6 +374,7 @@ export default function ProfilePage() {
                 <InfoRow icon={<Mail size={16} />} label="Email" value={profile.email} />
                 <InfoRow icon={<Phone size={16} />} label="Phone" value={profile.phone} />
                 <InfoRow icon={<User size={16} />} label="Student ID" value={profile.studentId} />
+                <InfoRow label="College" value={profile.college ? `${profile.college} · ${DLSU_COLLEGES.find(c => c.abbr === profile.college)?.name ?? ''}` : ''} />
                 <InfoRow label="Course" value={profile.course} />
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Emergency Contact</h3>

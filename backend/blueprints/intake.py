@@ -2375,7 +2375,16 @@ def get_my_intake_status():
         "status": {"$in": ["COMPLETED", "ENDORSED"]},
     })
 
+    # Walk-in students have appointments created by staff with no digital intake.
+    # A completed appointment means they've been seen before and can book directly.
+    completed_appointment = db.db.appointments.find_one({
+        "student_id": user_obj_id,
+        "status": {"$in": ["COMPLETED"]},
+    })
+
     draft = db.db.intake_drafts.find_one({"student_id": user_obj_id})
+
+    has_been_seen = completed_intake is not None or completed_appointment is not None
 
     appt_info = None
     if active_appointment:
@@ -2390,7 +2399,7 @@ def get_my_intake_status():
         "appointment": appt_info,
         "has_pending_intake": pending_intake is not None,
         "pending_intake_status": pending_intake.get("status") if pending_intake else None,
-        "has_completed_intake": completed_intake is not None,
+        "has_completed_intake": has_been_seen,
         "has_draft": draft is not None,
         "draft_id": str(draft["_id"]) if draft else None,
     }), 200

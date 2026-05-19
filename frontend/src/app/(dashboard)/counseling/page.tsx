@@ -119,8 +119,8 @@ function StatusCard({ status, router }: { status: CounselingStatus; router: Retu
     return (
       <Card
         icon={<RefreshIcon className="text-green-500" />}
-        title="Book a follow-up session"
-        description="You've been through the intake process before. You can book your next counseling appointment directly."
+        title="Book your next session"
+        description="You've already been seen by CPS (walk-in or prior intake). You can book your next appointment directly."
       >
         <button
           onClick={() => router.push('/book-appointment')}

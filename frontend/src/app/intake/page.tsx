@@ -184,6 +184,12 @@ export default function IntakePage() {
     appointmentTime?: string;
   }>({ hasError: false, message: '' });
   
+  // Inline validation error for personal info step
+  const [personalInfoError, setPersonalInfoError] = useState('');
+
+  // Draft save status ('idle' | 'saving' | 'saved' | 'error')
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
   // Available times for custom date selection
   const [availableTimes, setAvailableTimes] = useState<any[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
@@ -203,10 +209,18 @@ export default function IntakePage() {
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
     setLoading(false);
-    
+
+    // Pre-fill known profile fields so the student doesn't re-type them
+    setPersonalInfo(prev => ({
+      ...prev,
+      first_name: parsedUser.first_name || '',
+      last_name: parsedUser.last_name || '',
+      contact_number: parsedUser.phone || '',
+    }));
+
     // Check for active appointments
     checkForActiveAppointments();
-    
+
     // Load draft if it exists
     loadDraft();
   }, [router]);
@@ -289,10 +303,11 @@ export default function IntakePage() {
   };
 
   const saveDraft = async () => {
+    setDraftStatus('saving');
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('access_token');
       if (!token) {
-        alert('❌ Authentication required to save draft');
+        setDraftStatus('error');
         return;
       }
 
@@ -326,13 +341,16 @@ export default function IntakePage() {
       if (response.ok) {
         const result = await response.json();
         setDraftId(result.draft_id);
-        alert('✅ Draft saved successfully!');
+        setDraftStatus('saved');
+        setTimeout(() => setDraftStatus('idle'), 3000);
       } else {
-        alert('❌ Failed to save draft');
+        setDraftStatus('error');
+        setTimeout(() => setDraftStatus('idle'), 4000);
       }
     } catch (error) {
       console.error('Error saving draft:', error);
-      alert('❌ Error saving draft');
+      setDraftStatus('error');
+      setTimeout(() => setDraftStatus('idle'), 4000);
     }
   };
 
@@ -500,36 +518,37 @@ export default function IntakePage() {
 
   // Validate personal information before proceeding
   const validatePersonalInfo = (): boolean => {
+    setPersonalInfoError('');
     if (!personalInfo.first_name.trim()) {
-      alert('Please enter your first name');
+      setPersonalInfoError('Please enter your first name');
       return false;
     }
     if (!personalInfo.last_name.trim()) {
-      alert('Please enter your last name');
+      setPersonalInfoError('Please enter your last name');
       return false;
     }
     if (!personalInfo.birthday) {
-      alert('Please enter your birthday');
+      setPersonalInfoError('Please enter your birthday');
       return false;
     }
     if (!personalInfo.gender) {
-      alert('Please select your gender');
+      setPersonalInfoError('Please select your gender');
       return false;
     }
     if (!personalInfo.id_number.trim()) {
-      alert('Please enter your ID number');
+      setPersonalInfoError('Please enter your ID number');
       return false;
     }
     if (!/^\d{8}$/.test(personalInfo.id_number.trim())) {
-      alert('ID number must be exactly 8 digits');
+      setPersonalInfoError('ID number must be exactly 8 digits (e.g. 11234567)');
       return false;
     }
     if (!personalInfo.contact_number.trim()) {
-      alert('Please enter your contact number');
+      setPersonalInfoError('Please enter your contact number');
       return false;
     }
     if (!personalInfo.personal_data_consent) {
-      alert('Please consent to the collection and use of your personal data');
+      setPersonalInfoError('Please consent to the collection and use of your personal data to continue');
       return false;
     }
     return true;
@@ -1217,9 +1236,14 @@ export default function IntakePage() {
                   {selectedScreenings.has(assessment) && <span className="text-white text-xs">✓</span>}
                 </div>
                 <div className="flex-1 ml-3">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
-                    {assessmentLabels[assessment] || assessment}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {assessmentLabels[assessment] || assessment}
+                    </p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">
+                      {ASSESSMENTS[assessment as keyof typeof ASSESSMENTS]?.questions.length ?? 0} questions
+                    </span>
+                  </div>
                   <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
                     {assessmentDescriptions[assessment]}
                   </p>
@@ -1689,6 +1713,14 @@ export default function IntakePage() {
             </div>
           </div>
 
+          {/* Inline validation error */}
+          {personalInfoError && (
+            <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 text-sm">
+              <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" /></svg>
+              {personalInfoError}
+            </div>
+          )}
+
           {/* Navigation Buttons */}
           <div className="flex gap-3">
             <button
@@ -1700,12 +1732,13 @@ export default function IntakePage() {
             <button
               onClick={() => {
                 if (validatePersonalInfo()) {
+                  setPersonalInfoError('');
                   setStep('distress_level');
                 }
               }}
               className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
             >
-              Continue  
+              Continue
             </button>
           </div>
         </div>
@@ -2354,14 +2387,18 @@ export default function IntakePage() {
                 <button
                   type="button"
                   onClick={saveDraft}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || draftStatus === 'saving'}
                   className={`px-6 py-3 rounded font-bold transition ${
-                    isSubmitting
+                    isSubmitting || draftStatus === 'saving'
                       ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : draftStatus === 'saved'
+                      ? 'bg-green-600 text-white'
+                      : draftStatus === 'error'
+                      ? 'bg-red-500 text-white'
                       : 'bg-amber-600 hover:bg-amber-700 text-white'
                   }`}
                 >
-                  Save for Later
+                  {draftStatus === 'saving' ? 'Saving…' : draftStatus === 'saved' ? '✓ Saved' : draftStatus === 'error' ? 'Save failed' : 'Save for Later'}
                 </button>
                 <button
                   type="button"

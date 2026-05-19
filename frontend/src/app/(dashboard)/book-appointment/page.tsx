@@ -45,6 +45,9 @@ export default function BookAppointmentPage() {
   // Terms and conditions
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Show/hide personal info editing
+  const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
   
   // Draft functionality
   const [draftSaved, setDraftSaved] = useState(false);
@@ -582,61 +585,76 @@ export default function BookAppointmentPage() {
           )}
 
           <form onSubmit={handleBookAppointment} className="space-y-6">
-            {/* Personal Information */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">
-                Personal Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Personal Information — compact card, expandable if needed */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    First Name <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Enter your first name"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Booking as</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{firstName} {lastName}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">{email}</span>
+                    {phone && <span className="text-gray-500 dark:text-gray-400 text-sm">{phone}</span>}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Last Name <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Enter your last name"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Email Address <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Phone Number <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Enter your phone number"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingPersonalInfo(!editingPersonalInfo)}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex-shrink-0 ml-4"
+                >
+                  {editingPersonalInfo ? 'Done' : 'Edit'}
+                </button>
               </div>
+
+              {editingPersonalInfo && (
+                <div className="px-5 pb-5 pt-1 border-t border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        First Name <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Last Name <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Email <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Phone <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Purpose of Visit */}

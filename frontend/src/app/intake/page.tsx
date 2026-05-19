@@ -194,6 +194,7 @@ export default function IntakePage() {
   const [availableTimes, setAvailableTimes] = useState<any[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   const [availableDates, setAvailableDates] = useState<any[]>([]);
+  const [isLoadingDates, setIsLoadingDates] = useState(false);
   const [minAvailableDate, setMinAvailableDate] = useState('');
   const [maxAvailableDate, setMaxAvailableDate] = useState('');
 
@@ -702,9 +703,10 @@ export default function IntakePage() {
 
   // Fetch available dates (only dates with slots)
   const fetchAvailableDates = async () => {
+    setIsLoadingDates(true);
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      
+
       const response = await fetch(api(`/api/intake/available-dates?days=30`), {
         method: 'GET',
         headers: {
@@ -712,12 +714,11 @@ export default function IntakePage() {
           'Content-Type': 'application/json',
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Available dates fetched:', data);
         setAvailableDates(data.available_dates || []);
-        
+
         if (data.available_dates && data.available_dates.length > 0) {
           setMinAvailableDate(data.available_dates[0].date);
           setMaxAvailableDate(data.available_dates[data.available_dates.length - 1].date);
@@ -725,6 +726,8 @@ export default function IntakePage() {
       }
     } catch (error) {
       console.error('❌ Error fetching available dates:', error);
+    } finally {
+      setIsLoadingDates(false);
     }
   };
 
@@ -1947,18 +1950,23 @@ export default function IntakePage() {
                   <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Your Preferred Date
                   </label>
-                  {availableDates.length > 0 ? (
+
+                  {isLoadingDates ? (
+                    <div className="px-3 py-3 border border-gray-200 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                      <svg className="w-4 h-4 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      Loading available dates…
+                    </div>
+                  ) : availableDates.length > 0 ? (
                     <select
                       value={appointmentDate}
                       onChange={(e) => {
                         const newDate = e.target.value;
                         setAppointmentDate(newDate);
-                        // Fetch available times for this date
                         fetchAvailableTimesForDate(newDate);
                       }}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                     >
-                      <option value="">-- Select a date --</option>
+                      <option value="">— Select a date —</option>
                       {availableDates.map((date_option: any) => (
                         <option key={date_option.date} value={date_option.date}>
                           {date_option.formatted} ({date_option.day_name})
@@ -1966,23 +1974,23 @@ export default function IntakePage() {
                       ))}
                     </select>
                   ) : (
-                    <input
-                      type="date"
-                      value={appointmentDate}
-                      onChange={(e) => {
-                        const newDate = e.target.value;
-                        setAppointmentDate(newDate);
-                        // Fetch available times for this date
-                        fetchAvailableTimesForDate(newDate);
-                      }}
-                      min={minAvailableDate}
-                      max={maxAvailableDate}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                    />
+                    <div className="px-4 py-3 border border-amber-200 dark:border-amber-700 rounded bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-200 flex items-center justify-between gap-3">
+                      <span>No available dates found in the next 30 days.</span>
+                      <button
+                        type="button"
+                        onClick={fetchAvailableDates}
+                        className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap"
+                      >
+                        Retry
+                      </button>
+                    </div>
                   )}
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    📅 Only dates with available counselor slots are shown
-                  </p>
+
+                  {!isLoadingDates && availableDates.length > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Only dates with available counselor slots are shown
+                    </p>
+                  )}
                 </div>
               </>
             )}
@@ -2042,10 +2050,17 @@ export default function IntakePage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded">
-                    <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                      No available times for this date. Please select another date.
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded flex items-center justify-between gap-3">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Slots for this date just filled up. Please choose another date.
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => { setAppointmentDate(''); setAvailableTimes([]); fetchAvailableDates(); }}
+                      className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap"
+                    >
+                      Pick another
+                    </button>
                   </div>
                 )}
               </div>

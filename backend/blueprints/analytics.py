@@ -50,13 +50,18 @@ def get_analytics_summary():
         total_counselors = db.db.users.count_documents({'role': 'COUNSELOR'})
         total_psychologists = db.db.users.count_documents({'role': 'PSYCHOLOGIST'})
         
-        # Appointments this week
+        # Appointments this week (use requested_start — the actual datetime field)
         week_start = datetime.utcnow() - timedelta(days=7)
         week_appointments = db.db.appointments.count_documents({
-            'appointment_date': {'$gte': week_start},
-            'status': 'completed'
+            'requested_start': {'$gte': week_start},
+            'status': {'$in': ['COMPLETED', 'completed']}
         })
-        
+
+        # Appointments pending/requested (waiting to be confirmed)
+        pending_appointments = db.db.appointments.count_documents({
+            'status': {'$in': ['REQUESTED', 'requested', 'PENDING_APPROVAL']}
+        })
+
         # Assessments this month
         month_start = datetime.utcnow() - timedelta(days=30)
         month_assessments = db.db.assessments.count_documents({
@@ -74,6 +79,7 @@ def get_analytics_summary():
             'total_counselors': total_counselors,
             'total_psychologists': total_psychologists,
             'week_appointments': week_appointments,
+            'pending_appointments': pending_appointments,
             'month_assessments': month_assessments,
             'timestamp': datetime.utcnow().isoformat()
         }), 200
@@ -189,38 +195,44 @@ def get_staff_workload():
     try:
         # Get all staff
         staff = list(db.db.users.find(
-            {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER']}},
-            {'_id': 1, 'name': 1, 'role': 1}
+            {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC']}},
+            {'_id': 1, 'first_name': 1, 'last_name': 1, 'name': 1, 'role': 1}
         ))
-        
+
         workload_data = []
-        
+
         for staff_member in staff:
             staff_id = staff_member['_id']
-            
-            # Cases assigned
+            fn = staff_member.get('first_name', '')
+            ln = staff_member.get('last_name', '')
+            display_name = f"{fn} {ln}".strip() or staff_member.get('name', 'Unknown')
+
+            # Active cases assigned (try both field names)
             cases_assigned = db.db.cases.count_documents({
-                'assigned_counselor_id': staff_id,
-                'status': 'active'
+                '$or': [
+                    {'counselor_id': staff_id},
+                    {'assigned_counselor_id': staff_id},
+                ],
+                'status': {'$in': ['active', 'ACTIVE']}
             })
-            
-            # Appointments scheduled
+
+            # Total appointments
             appointments = db.db.appointments.count_documents({
                 'counselor_id': staff_id,
-                'status': {'$in': ['scheduled', 'completed']}
+                'status': {'$in': ['MATCHED', 'CONFIRMED', 'COMPLETED', 'completed']}
             })
-            
-            # Completed appointments this week
+
+            # Completed this week
             week_start = datetime.utcnow() - timedelta(days=7)
             week_completed = db.db.appointments.count_documents({
                 'counselor_id': staff_id,
-                'status': 'completed',
-                'appointment_date': {'$gte': week_start}
+                'status': {'$in': ['COMPLETED', 'completed']},
+                'requested_start': {'$gte': week_start}
             })
-            
+
             workload_data.append({
                 'staff_id': str(staff_id),
-                'name': staff_member.get('name', 'Unknown'),
+                'name': display_name,
                 'role': staff_member.get('role'),
                 'active_cases': cases_assigned,
                 'total_appointments': appointments,
@@ -283,15 +295,15 @@ def get_appointment_statistics():
                 'foreignField': '_id',
                 'as': 'case_info'
             }},
-            {'$match': {'case_info': {'$ne': []}}},
+            {'$match': {'case_info': {'$ne': []}, 'requested_start': {'$exists': True}}},
             {'$project': {
                 'case_created': {'$arrayElemAt': ['$case_info.created_at', 0]},
-                'appointment_date': 1
+                'requested_start': 1
             }},
             {'$project': {
                 'wait_days': {
                     '$divide': [
-                        {'$subtract': ['$appointment_date', '$case_created']},
+                        {'$subtract': ['$requested_start', '$case_created']},
                         86400000
                     ]
                 }
@@ -554,3 +566,143 @@ def get_cases_monthly():
 
     except Exception as e:
         return jsonify({'error': f'Failed to get monthly cases: {str(e)}'}), 500
+
+
+@analytics_bp.route('/concerns/distribution', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_concern_distribution():
+    """Breakdown of concern types across intakes and direct bookings"""
+    try:
+        LABEL_MAP = {
+            'personal': 'Personal / Mental Health',
+            'academic': 'Academic',
+            'career': 'Career',
+            'social': 'Social / Relationships',
+            'other': 'Other',
+            'others': 'Other',
+        }
+
+        # Concerns from intakes
+        intake_pipeline = [
+            {'$group': {'_id': '$primary_concern', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}}
+        ]
+        intake_concerns = {
+            LABEL_MAP.get((item['_id'] or '').lower(), item['_id'] or 'Unknown'): item['count']
+            for item in db.db.intakes.aggregate(intake_pipeline) if item['_id']
+        }
+
+        # Concerns from direct bookings
+        appt_pipeline = [
+            {'$match': {'concern': {'$exists': True, '$ne': None, '$ne': ''}}},
+            {'$group': {'_id': '$concern', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}}
+        ]
+        appt_concerns = {}
+        for item in db.db.appointments.aggregate(appt_pipeline):
+            label = LABEL_MAP.get((item['_id'] or '').lower(), item['_id'] or 'Unknown')
+            appt_concerns[label] = appt_concerns.get(label, 0) + item['count']
+
+        # Merge both sources
+        combined = {}
+        for label, count in {**intake_concerns, **appt_concerns}.items():
+            combined[label] = combined.get(label, 0) + count
+
+        result = [{'concern': k, 'count': v} for k, v in sorted(combined.items(), key=lambda x: -x[1])]
+
+        return jsonify({
+            'concerns': result,
+            'total': sum(r['count'] for r in result)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@analytics_bp.route('/assessments/score-trends', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_assessment_score_trends():
+    """Monthly average PHQ-9 and GAD-7 scores for the last 6 months"""
+    try:
+        now = datetime.utcnow()
+        result = []
+
+        for i in range(5, -1, -1):
+            year, month = now.year, now.month - i
+            while month <= 0:
+                month += 12
+                year -= 1
+            month_start = datetime(year, month, 1)
+            month_end = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
+
+            row = {
+                'short': month_start.strftime('%b'),
+                'label': month_start.strftime('%b %Y'),
+            }
+
+            for key, types in [('phq9', ['phq9', 'PHQ9', 'PHQ-9']), ('gad7', ['gad7', 'GAD7', 'GAD-7'])]:
+                agg = list(db.db.assessments.aggregate([
+                    {'$match': {
+                        'assessment_type': {'$in': types},
+                        'created_at': {'$gte': month_start, '$lt': month_end},
+                        'raw_score': {'$exists': True, '$type': 'number'}
+                    }},
+                    {'$group': {'_id': None, 'avg': {'$avg': '$raw_score'}, 'count': {'$sum': 1}}}
+                ]))
+                row[key] = round(agg[0]['avg'], 1) if agg else None
+                row[f'{key}_count'] = agg[0]['count'] if agg else 0
+
+            result.append(row)
+
+        return jsonify({'months': result}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@analytics_bp.route('/appointments/by-day', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_appointments_by_day():
+    """Appointment volume by day of week and top booking hours"""
+    try:
+        days_back = int(request.args.get('days', 90))
+        start_date = datetime.utcnow() - timedelta(days=days_back)
+
+        # By day of week (0=Sunday in $dayOfWeek)
+        day_pipeline = [
+            {'$match': {'requested_start': {'$gte': start_date, '$exists': True}}},
+            {'$group': {
+                '_id': {'$dayOfWeek': '$requested_start'},
+                'count': {'$sum': 1}
+            }},
+            {'$sort': {'_id': 1}}
+        ]
+        day_map = {1: 'Sun', 2: 'Mon', 3: 'Tue', 4: 'Wed', 5: 'Thu', 6: 'Fri', 7: 'Sat'}
+        by_day_raw = {item['_id']: item['count'] for item in db.db.appointments.aggregate(day_pipeline)}
+        by_day = [{'day': day_map[d], 'count': by_day_raw.get(d, 0)} for d in range(1, 8)]
+
+        # By hour
+        hour_pipeline = [
+            {'$match': {'requested_start': {'$gte': start_date, '$exists': True}}},
+            {'$group': {
+                '_id': {'$hour': '$requested_start'},
+                'count': {'$sum': 1}
+            }},
+            {'$sort': {'_id': 1}}
+        ]
+        hour_raw = {item['_id']: item['count'] for item in db.db.appointments.aggregate(hour_pipeline)}
+        # PHT = UTC+8, only show 9-17
+        by_hour = []
+        for h_utc in range(1, 10):  # 1-9 UTC = 9AM-5PM PHT
+            h_pht = h_utc + 8
+            label = f"{h_pht % 12 or 12}{'AM' if h_pht < 12 else 'PM'}"
+            by_hour.append({'hour': label, 'count': hour_raw.get(h_utc, 0)})
+
+        return jsonify({
+            'by_day': by_day,
+            'by_hour': by_hour,
+            'period_days': days_back
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

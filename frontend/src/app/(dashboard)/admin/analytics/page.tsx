@@ -20,8 +20,12 @@ interface Summary {
   total_cases: number; active_cases: number; closed_cases: number;
   high_risk_cases: number; total_students: number;
   total_counselors: number; total_psychologists: number;
-  week_appointments: number; month_assessments: number;
+  week_appointments: number; pending_appointments: number; month_assessments: number;
 }
+interface ConcernItem { concern: string; count: number; }
+interface ScoreTrend { short: string; label: string; phq9: number | null; gad7: number | null; phq9_count: number; gad7_count: number; }
+interface DayCount { day: string; count: number; }
+interface HourCount { hour: string; count: number; }
 interface MonthlyAppt { short: string; label: string; total: number; completed: number; cancelled: number; no_show: number; }
 interface MonthlyCase { short: string; label: string; new_cases: number; closed_cases: number; high_risk: number; }
 interface RiskDist { [key: string]: number; }
@@ -143,6 +147,10 @@ export default function AnalyticsDashboardPage() {
   const [intake, setIntake]             = useState<IntakeFunnel | null>(null);
   const [assessments, setAssessments]   = useState<AssessmentType[]>([]);
   const [apptStats, setApptStats]       = useState<ApptStats | null>(null);
+  const [concerns, setConcerns]         = useState<ConcernItem[]>([]);
+  const [scoreTrends, setScoreTrends]   = useState<ScoreTrend[]>([]);
+  const [byDay, setByDay]               = useState<DayCount[]>([]);
+  const [byHour, setByHour]             = useState<HourCount[]>([]);
 
   const fetchAll = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -157,7 +165,7 @@ export default function AnalyticsDashboardPage() {
       catch { return null; }
     };
 
-    const [s, ma, mc, risk, workload, ref, funnel, assess, aStats] = await Promise.all([
+    const [s, ma, mc, risk, workload, ref, funnel, assess, aStats, cData, sTrends, dayData] = await Promise.all([
       safe('/api/analytics/summary'),
       safe('/api/analytics/appointments/monthly'),
       safe('/api/analytics/cases/monthly'),
@@ -167,6 +175,9 @@ export default function AnalyticsDashboardPage() {
       safe('/api/analytics/intake/conversion'),
       safe('/api/analytics/assessments/distribution'),
       safe('/api/analytics/appointments/statistics'),
+      safe('/api/analytics/concerns/distribution'),
+      safe('/api/analytics/assessments/score-trends'),
+      safe('/api/analytics/appointments/by-day'),
     ]);
 
     if (s)        setSummary(s);
@@ -178,6 +189,9 @@ export default function AnalyticsDashboardPage() {
     if (funnel)   setIntake(funnel);
     if (assess)   setAssessments(assess.assessment_types ?? []);
     if (aStats)   setApptStats(aStats);
+    if (cData)    setConcerns(cData.concerns ?? []);
+    if (sTrends)  setScoreTrends(sTrends.months ?? []);
+    if (dayData)  { setByDay(dayData.by_day ?? []); setByHour(dayData.by_hour ?? []); }
 
     setLoading(false);
     setRefreshing(false);
@@ -255,7 +269,7 @@ export default function AnalyticsDashboardPage() {
           <KpiCard label="High Risk"         value={summary.high_risk_cases}   sub="RED / CRITICAL"                                        icon={<AlertTriangle size={16}/>} accent={C.red}    />
           <KpiCard label="Students"          value={summary.total_students}    sub="registered"                                            icon={<Users size={16}/>}         accent={C.blue}   />
           <KpiCard label="Clinical Staff"    value={summary.total_counselors + summary.total_psychologists} sub={`${summary.total_counselors}C · ${summary.total_psychologists}P`} icon={<Users size={16}/>} accent={C.teal} />
-          <KpiCard label="Appts This Week"   value={summary.week_appointments} sub="completed"                                             icon={<Calendar size={16}/>}      accent={C.green}  />
+          <KpiCard label="Appts This Week"   value={summary.week_appointments} sub={`${summary.pending_appointments ?? 0} pending`}   icon={<Calendar size={16}/>}      accent={C.green}  />
           <KpiCard label="Assessments / Mo"  value={summary.month_assessments} sub="last 30 days"                                          icon={<Activity size={16}/>}      accent={C.purple} />
         </div>
       )}
@@ -467,6 +481,74 @@ export default function AnalyticsDashboardPage() {
           </div>
         </div>
       )}
+
+
+      {/* ── Row 7: Concern Distribution ───────────────────────────────── */}
+      <div className="mt-4 mb-4">
+        <ChartCard title="Top Presenting Concerns" subtitle="Most common concerns across intakes and appointments">
+          {concerns.length === 0 ? <EmptyChart /> : (
+            <ResponsiveContainer width="100%" height={Math.max(200, concerns.slice(0, 12).length * 30)}>
+              <BarChart data={concerns.slice(0, 12)} layout="vertical" margin={{ top: 4, right: 24, left: 16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} horizontal={false} />
+                <XAxis type="number" tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="concern" tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} width={150} />
+                <Tooltip content={<CustomTooltip isDark={isDark} />} />
+                <Bar dataKey="count" name="Count" fill={C.purple} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* ── Row 8: PHQ-9 / GAD-7 Score Trends ────────────────────────── */}
+      <div className="mb-4">
+        <ChartCard title="PHQ-9 / GAD-7 Score Trends" subtitle="Monthly average assessment scores (last 6 months)">
+          {scoreTrends.length === 0 ? <EmptyChart /> : (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={scoreTrends} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                <XAxis dataKey="short" tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                <Tooltip content={<CustomTooltip isDark={isDark} />} />
+                <Legend wrapperStyle={{ fontSize: 11, color: ct.text }} />
+                <Line type="monotone" dataKey="phq9" name="PHQ-9 Avg" stroke={C.indigo} strokeWidth={2} dot={{ r: 3 }} connectNulls activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="gad7" name="GAD-7 Avg" stroke={C.orange} strokeWidth={2} dot={{ r: 3 }} connectNulls activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* ── Row 9: Appointments by Day / Hour ────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <ChartCard title="Appointments by Day of Week" subtitle="Volume distribution across weekdays">
+          {byDay.length === 0 ? <EmptyChart /> : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={byDay} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip isDark={isDark} />} />
+                <Bar dataKey="count" name="Appointments" fill={C.blue} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        <ChartCard title="Appointments by Hour" subtitle="Peak scheduling hours (PHT)">
+          {byHour.length === 0 ? <EmptyChart /> : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={byHour} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                <XAxis dataKey="hour" tick={{ fill: ct.text, fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip isDark={isDark} />} />
+                <Bar dataKey="count" name="Appointments" fill={C.teal} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
 
     </DashboardPageWrapper>
   );

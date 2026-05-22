@@ -186,6 +186,33 @@ def get_all_users():
         return jsonify({'error': f'Failed to fetch users: {str(e)}'}), 500
 
 
+@users_bp.route('', methods=['GET'])
+@jwt_required()
+def list_users_by_role():
+    """List users filtered by role. Accessible to STAFF and ADMIN."""
+    user_id = get_jwt_identity()
+    try:
+        current = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    except Exception:
+        current = None
+    if not current or current.get('role') not in ('STAFF', 'ADMIN', 'CSP', 'CSC', 'PSYCHOLOGIST'):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    role = request.args.get('role')
+    query = {'role': role} if role else {}
+    users = list(db.db.users.find(query, {'password_hash': 0}).limit(200))
+    result = []
+    for u in users:
+        result.append({
+            '_id': str(u['_id']),
+            'first_name': u.get('first_name', ''),
+            'last_name': u.get('last_name', ''),
+            'email': u.get('email', ''),
+            'role': u.get('role', ''),
+        })
+    return jsonify({'users': result, 'count': len(result)}), 200
+
+
 @users_bp.route('/<user_id>/role', methods=['PUT'])
 @jwt_required()
 def update_user_role(user_id):

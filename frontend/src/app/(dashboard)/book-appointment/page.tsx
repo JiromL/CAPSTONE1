@@ -48,6 +48,10 @@ export default function BookAppointmentPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // Active appointment gate
+  const [activeAppointment, setActiveAppointment] = useState<any>(null);
+  const [activeApptChecked, setActiveApptChecked] = useState(false);
+
   // Informed consent gate
   const [consentGiven, setConsentGiven] = useState<boolean | null>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
@@ -103,6 +107,14 @@ export default function BookAppointmentPage() {
           setConsentGiven(false);
           setShowConsentModal(true);
         }
+
+        // Check if student already has an active appointment
+        const activeRes = await fetch(api('/api/appointments/check-active'), { headers: { Authorization: `Bearer ${token}` } });
+        if (activeRes.ok) {
+          const ad = await activeRes.json();
+          if (ad.has_active_appointment) setActiveAppointment(ad);
+        }
+        setActiveApptChecked(true);
 
         // Fetch available slots for next 30 days
         const startDate = new Date();
@@ -340,6 +352,45 @@ export default function BookAppointmentPage() {
       <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session">
         <div className="flex items-center justify-center p-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-50"></div>
+        </div>
+      </DashboardPageWrapper>
+    );
+  }
+
+  if (activeApptChecked && activeAppointment) {
+    const apptTime = activeAppointment.appointment_time
+      ? new Date(activeAppointment.appointment_time).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : null;
+    return (
+      <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session">
+        <div className="max-w-lg mx-auto mt-8">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-xl p-6 text-center">
+            <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">You already have an active appointment</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+              You can only have one active appointment at a time.
+            </p>
+            {apptTime && (
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                Scheduled for: {apptTime}
+              </p>
+            )}
+            {activeAppointment.status && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Status: <span className="font-semibold capitalize">{activeAppointment.status.toLowerCase().replace('_', ' ')}</span>
+              </p>
+            )}
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Please complete, cancel, or reschedule your existing appointment before booking a new one.
+            </p>
+            <Link href="/my-appointments">
+              <button className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition text-sm">
+                View My Appointments
+              </button>
+            </Link>
+          </div>
         </div>
       </DashboardPageWrapper>
     );

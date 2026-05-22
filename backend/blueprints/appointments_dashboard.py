@@ -41,6 +41,8 @@ def get_role_based_dashboard():
             return get_intake_coordinator_requests(user_id_obj, user_name)
         elif role == 'CSC':  # Case Study Coordinator
             return get_case_coordinator_requests(user_id_obj, user_name)
+        elif role == 'STAFF':
+            return get_staff_dashboard(user_id_obj, user_name)
         else:
             return get_generic_dashboard(user_id_obj, user_name)
     
@@ -158,7 +160,7 @@ def get_admin_dashboard(user_id_obj, user_name):
                 'by_status': status_map,
                 'by_counselor': counselor_data
             },
-            'can_assign': True,
+            'can_assign_counselor': True,
             'can_view_all': True
         }), 200
     except Exception as e:
@@ -227,6 +229,28 @@ def get_case_coordinator_requests(user_id_obj, user_name):
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def get_staff_dashboard(user_id_obj, user_name):
+    """STAFF: View all appointments, with ability to assign counselors to REQUESTED ones"""
+    try:
+        all_appointments = list(db.db.appointments.find({}).sort("created_at", -1).limit(100))
+
+        requested = [a for a in all_appointments if a.get('status') == AppointmentStatus.REQUESTED.value]
+
+        return jsonify({
+            'role': 'STAFF',
+            'user_name': user_name,
+            'view_type': 'staff_assignment',
+            'appointments': format_appointments(all_appointments),
+            'summary': {
+                'total_appointments': len(all_appointments),
+                'unassigned_requests': len(requested),
+            },
+            'can_assign_counselor': True,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 def get_generic_dashboard(user_id_obj, user_name):
     """Generic view for other roles"""

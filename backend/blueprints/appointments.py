@@ -207,22 +207,29 @@ def list_appointments():
         # Determine query based on user role
         role = user.get('role', '').upper()
         
+        status_filter = request.args.get('status')
+        limit = int(request.args.get('limit', 100))
+
         if role == 'STUDENT':
             # For students: find appointments through their cases
             student_cases = list(db.db.cases.find({"student_id": user_id_obj}))
             case_ids = [case['_id'] for case in student_cases]
-            
-            if case_ids:
-                appointments = list(db.db.appointments.find(
-                    {"case_id": {"$in": case_ids}}
-                ).sort("_id", -1).limit(100))
-            else:
-                appointments = []
+            query = {"case_id": {"$in": case_ids}} if case_ids else {"_id": None}
+            if status_filter:
+                query["status"] = status_filter
+            appointments = list(db.db.appointments.find(query).sort("_id", -1).limit(limit))
+        elif role in ('STAFF', 'ADMIN'):
+            # Staff/Admin: see all appointments, optionally filtered by status
+            query = {}
+            if status_filter:
+                query["status"] = status_filter
+            appointments = list(db.db.appointments.find(query).sort("_id", -1).limit(limit))
         else:
-            # For counselors/staff: find appointments where they are the counselor
-            appointments = list(db.db.appointments.find(
-                {"counselor_id": user_id_obj}
-            ).sort("_id", -1).limit(100))
+            # Counselors: appointments where they are assigned
+            query = {"counselor_id": user_id_obj}
+            if status_filter:
+                query["status"] = status_filter
+            appointments = list(db.db.appointments.find(query).sort("_id", -1).limit(limit))
         
         # Helper function to convert ObjectIds to strings recursively
         def convert_objectids(obj):
@@ -250,10 +257,25 @@ def list_appointments():
                             pass
             return obj
         
+        # Enrich with student name for STAFF/ADMIN view
+        if role in ('STAFF', 'ADMIN'):
+            for apt in appointments:
+                sid = apt.get('student_id')
+                if sid:
+                    try:
+                        student = db.db.users.find_one({'_id': sid if isinstance(sid, ObjectId) else ObjectId(str(sid))},
+                                                       {'first_name': 1, 'last_name': 1, 'email': 1, 'id_number': 1})
+                        if student:
+                            apt['student_name'] = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
+                            apt['student_email'] = student.get('email', '')
+                            apt['student_id_number'] = student.get('id_number', '')
+                    except Exception:
+                        pass
+
         # Convert all appointments
         for apt in appointments:
             convert_objectids(apt)
-        
+
         return jsonify({
             'appointments': appointments,
             'count': len(appointments)
@@ -712,32 +734,186 @@ def match_counselor(appointment_id):
         counselor = db.db.users.find_one({"_id": ObjectId(counselor_id_str)})
     
     # If we get here with manual assignment, update the appointment
+    meeting_link = None
     if not data.get('counselor_id'):
         # Already updated by auto_assign_appointment
         pass
     else:
-        # Manual assignment - update status to CONFIRMED directly
+        # Parse scheduled times from request
+        scheduled_start = None
+        scheduled_end = None
+        if data.get('scheduled_start'):
+            try:
+                scheduled_start = datetime.fromisoformat(
+                    data['scheduled_start'].replace('Z', '+00:00')
+                ).replace(tzinfo=None)
+                if data.get('scheduled_end'):
+                    scheduled_end = datetime.fromisoformat(
+                        data['scheduled_end'].replace('Z', '+00:00')
+                    ).replace(tzinfo=None)
+                else:
+                    scheduled_end = scheduled_start + timedelta(hours=1)
+            except Exception as e:
+                print(f"⚠ Could not parse scheduled times: {e}")
+
+        # Auto-create Zoom meeting if student requested Zoom
+        meeting_link = None
+        meeting_id_str = None
+        meeting_passcode = None
+        preferred_method = appointment.get('preferred_method', '')
+        if preferred_method == 'zoom' and scheduled_start:
+            try:
+                from integrations.zoom import ZoomIntegration
+                zoom = ZoomIntegration(current_app.config)
+                student_doc = db.db.users.find_one({"_id": appointment.get('student_id')})
+                s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip() if student_doc else 'Student'
+                c_name = f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
+                zoom_result = zoom.create_meeting(
+                    topic=f"Counseling Session – {s_name} with {c_name}",
+                    start_time=scheduled_start.isoformat()
+                )
+                meeting_link = zoom_result.get('join_url')
+                meeting_id_str = str(zoom_result.get('meeting_id', ''))
+                meeting_passcode = zoom_result.get('meeting_passcode')
+                print(f"✓ Zoom meeting created: {meeting_link}")
+            except Exception as e:
+                print(f"⚠ Zoom meeting creation failed: {e}")
+
+        # Build update fields
+        update_fields = {
+            "counselor_id": counselor['_id'],
+            "status": AppointmentStatus.CONFIRMED.value,
+            "confirmation_sent": True,
+            "updated_at": datetime.utcnow()
+        }
+        if scheduled_start:
+            update_fields["scheduled_start"] = scheduled_start
+        if scheduled_end:
+            update_fields["scheduled_end"] = scheduled_end
+        if meeting_link:
+            update_fields["meeting_link"] = meeting_link
+            update_fields["meeting_id"] = meeting_id_str
+            update_fields["meeting_passcode"] = meeting_passcode
+            update_fields["is_telehealth"] = True
+
         db.db.appointments.update_one(
             {"_id": appointment['_id']},
-            {"$set": {
-                "counselor_id": counselor['_id'],
-                "status": AppointmentStatus.CONFIRMED.value,
-                "confirmation_sent": True,
-                "updated_at": datetime.utcnow()
-            }}
+            {"$set": update_fields}
         )
-    
+
+        # Auto-create 24h and 1h reminder records
+        try:
+            appt_time = scheduled_start or appointment.get('requested_start')
+            if appt_time and isinstance(appt_time, datetime):
+                student_doc = db.db.users.find_one({'_id': appointment.get('student_id')})
+                s_email = student_doc.get('email', '') if student_doc else ''
+                s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip() if student_doc else ''
+                appt_time_str = appt_time.strftime('%B %d, %Y at %I:%M %p')
+                for label, offset in [('24h', timedelta(hours=24)), ('1h', timedelta(hours=1))]:
+                    if not db.db.reminders.find_one({'appointment_id': appointment['_id'], 'reminder_type': label}):
+                        db.db.reminders.insert_one({
+                            'appointment_id': appointment['_id'],
+                            'student_id': appointment.get('student_id'),
+                            'student_email': s_email,
+                            'student_name': s_name,
+                            'reminder_type': label,
+                            'message': f"Reminder: Your counseling appointment is on {appt_time_str}.",
+                            'scheduled_for': appt_time - offset,
+                            'status': 'pending',
+                            'auto_generated': True,
+                            'created_at': datetime.utcnow(),
+                        })
+        except Exception as e:
+            print(f"Auto-reminder creation error: {e}")
+
+        # Send confirmation email
+        try:
+            student_doc = db.db.users.find_one({'_id': appointment.get('student_id')})
+            if student_doc:
+                s_email = student_doc.get('email', '')
+                s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip()
+                c_name = f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
+                appt_display_time = (scheduled_start or appointment.get('requested_start'))
+                date_str = appt_display_time.strftime('%B %d, %Y') if appt_display_time else 'TBD'
+                time_str = appt_display_time.strftime('%I:%M %p') if appt_display_time else 'TBD'
+                platform_map = {'zoom': 'Zoom', 'google_meet': 'Google Meet', 'in_person': 'In-Person', 'in-person': 'In-Person', 'phone': 'Phone'}
+                platform_label = platform_map.get(preferred_method, preferred_method or 'In-Person')
+
+                meeting_section = ''
+                if meeting_link:
+                    meeting_section = f"""
+                    <p style="margin:8px 0;"><strong>Meeting Link:</strong>
+                      <a href="{meeting_link}" style="color:#1B5E20;">{meeting_link}</a></p>"""
+                    if meeting_passcode:
+                        meeting_section += f'<p style="margin:8px 0;"><strong>Passcode:</strong> {meeting_passcode}</p>'
+
+                confirmation_html = f"""
+                <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
+                  <div style="max-width:600px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#1B5E20;">Appointment Confirmed</h2>
+                    <p>Dear {s_name},</p>
+                    <p>Your counseling appointment has been confirmed.</p>
+                    <div style="background:#f5f5f5;padding:15px;margin:20px 0;border-radius:5px;border-left:4px solid #1B5E20;">
+                      <h3 style="color:#1B5E20;margin-top:0;">Appointment Details</h3>
+                      <p style="margin:8px 0;"><strong>Date:</strong> {date_str}</p>
+                      <p style="margin:8px 0;"><strong>Time:</strong> {time_str}</p>
+                      <p style="margin:8px 0;"><strong>Counselor:</strong> {c_name}</p>
+                      <p style="margin:8px 0;"><strong>Format:</strong> {platform_label}</p>
+                      {meeting_section}
+                    </div>
+                    <p>Please log in to the CPS portal to view your appointment details.</p>
+                    <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
+                    <p style="color:#999;font-size:12px;text-align:center;">
+                      DLSU Counseling &amp; Psychological Services<br>De La Salle University
+                    </p>
+                  </div>
+                </body></html>"""
+
+                email_svc = EmailService()
+                email_svc._send_email(s_email, "Your CPS Appointment is Confirmed", confirmation_html)
+                print(f"✓ Confirmation email sent to {s_email}")
+
+                # Notify counselor of new assignment
+                c_email = counselor.get('email', '')
+                if c_email:
+                    counselor_html = f"""
+                    <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
+                      <div style="max-width:600px;margin:0 auto;padding:20px;">
+                        <h2 style="color:#1B5E20;">New Appointment Assigned</h2>
+                        <p>Dear {c_name},</p>
+                        <p>A new counseling appointment has been assigned to you.</p>
+                        <div style="background:#f5f5f5;padding:15px;margin:20px 0;border-radius:5px;border-left:4px solid #1B5E20;">
+                          <h3 style="color:#1B5E20;margin-top:0;">Appointment Details</h3>
+                          <p style="margin:8px 0;"><strong>Student:</strong> {s_name}</p>
+                          <p style="margin:8px 0;"><strong>Date:</strong> {date_str}</p>
+                          <p style="margin:8px 0;"><strong>Time:</strong> {time_str}</p>
+                          <p style="margin:8px 0;"><strong>Format:</strong> {platform_label}</p>
+                          {meeting_section}
+                        </div>
+                        <p>Please log in to the CPS portal to view full details.</p>
+                        <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
+                        <p style="color:#999;font-size:12px;text-align:center;">
+                          DLSU Counseling &amp; Psychological Services<br>De La Salle University
+                        </p>
+                      </div>
+                    </body></html>"""
+                    email_svc._send_email(c_email, f"New Appointment: {s_name} on {date_str}", counselor_html)
+                    print(f"✓ Counselor notification sent to {c_email}")
+        except Exception as e:
+            print(f"⚠ Could not send confirmation email: {e}")
+
     audit_log(db.db, 'appointment', 'assign_counselor', entity_id=str(appointment['_id']), new_values={
         'counselor_id': str(counselor['_id']),
         'status': AppointmentStatus.CONFIRMED.value if data.get('counselor_id') else AppointmentStatus.MATCHED.value
     })
-    
+
     return jsonify({
         'message': 'Counselor matched',
         'appointment_id': str(appointment['_id']),
         'counselor_id': str(counselor['_id']),
         'counselor_name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}",
-        'status': AppointmentStatus.CONFIRMED.value if data.get('counselor_id') else AppointmentStatus.MATCHED.value
+        'status': AppointmentStatus.CONFIRMED.value if data.get('counselor_id') else AppointmentStatus.MATCHED.value,
+        'meeting_link': meeting_link if data.get('counselor_id') else None,
     }), 200
 
 

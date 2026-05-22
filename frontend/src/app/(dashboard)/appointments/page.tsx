@@ -44,6 +44,14 @@ export default function AppointmentsPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
 
+  // STAFF management state
+  const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
+  const [counselors, setCounselors] = useState<any[]>([]);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [assignCounselorMap, setAssignCounselorMap] = useState<Record<string, string>>({});
+  const [assignDateMap, setAssignDateMap] = useState<Record<string, string>>({});
+  const [assignTimeMap, setAssignTimeMap] = useState<Record<string, string>>({});
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -68,6 +76,12 @@ export default function AppointmentsPage() {
     
     // Fetch fresh data
     fetchAppointments(token);
+
+    // STAFF / ADMIN: load pending requests + counselor list
+    if (['STAFF', 'ADMIN'].includes(parsedUser.role)) {
+      fetchPendingAppointments(token);
+      fetchCounselors(token);
+    }
   }, [router]);
 
   const fetchAppointments = async (token: string) => {
@@ -103,6 +117,65 @@ export default function AppointmentsPage() {
       console.error('[Appointments] Exception:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingAppointments = async (token: string) => {
+    try {
+      const r = await fetch(getApiUrl('/api/appointments?status=REQUESTED&limit=100'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setPendingAppointments(d.appointments || d.items || []);
+      }
+    } catch {}
+  };
+
+  const fetchCounselors = async (token: string) => {
+    try {
+      const r = await fetch(getApiUrl('/api/users?role=COUNSELOR'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setCounselors(d.users || d.items || []);
+      }
+    } catch {}
+  };
+
+  const handleAssign = async (appointmentId: string) => {
+    const token = localStorage.getItem('token');
+    const counselorId = assignCounselorMap[appointmentId];
+    const date = assignDateMap[appointmentId];
+    const time = assignTimeMap[appointmentId];
+    if (!counselorId || !date || !time) {
+      setNotificationMessage({ type: 'error', text: 'Select a counselor, date, and time before assigning.' });
+      return;
+    }
+    setAssigningId(appointmentId);
+    try {
+      const [h, m] = time.split(':');
+      const start = new Date(`${date}T${h.padStart(2,'0')}:${m.padStart(2,'0')}:00`);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      const r = await fetch(getApiUrl(`/api/appointments/${appointmentId}/match-counselor`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          counselor_id: counselorId,
+          scheduled_start: start.toISOString(),
+          scheduled_end: end.toISOString(),
+        }),
+      });
+      if (r.ok) {
+        setNotificationMessage({ type: 'success', text: 'Appointment assigned and confirmed.' });
+        fetchPendingAppointments(token!);
+      } else {
+        const e = await r.json();
+        setNotificationMessage({ type: 'error', text: e.error || 'Failed to assign.' });
+      }
+    } finally {
+      setAssigningId(null);
     }
   };
 
@@ -423,7 +496,102 @@ export default function AppointmentsPage() {
           </div>
         )}
 
+        {/* ── STAFF / ADMIN: Pending Requests Panel ── */}
+        {['STAFF', 'ADMIN'].includes(user?.role) && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Pending Appointment Requests</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Assign a counselor and schedule each request below.</p>
+              </div>
+              <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded font-semibold">
+                {pendingAppointments.length} pending
+              </span>
+            </div>
+
+            {pendingAppointments.length === 0 ? (
+              <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-lg text-center text-sm text-gray-500 dark:text-gray-400">
+                No pending requests right now.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingAppointments.map((appt) => (
+                  <div key={appt._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+                    {/* Student info */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                          {appt.student_name || appt.student_id || 'Student'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {appt.purpose || appt.appointment_type || '—'} · {appt.preferred_platform || appt.platform || 'in-person'}
+                        </p>
+                        {appt.concern && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">"{appt.concern}"</p>
+                        )}
+                      </div>
+                      <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded font-medium flex-shrink-0 ml-2">
+                        Pending
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+                      Preferred: {appt.preferred_date
+                        ? new Date(appt.preferred_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                        : '—'
+                      } {appt.preferred_time && `at ${appt.preferred_time}`}
+                    </p>
+
+                    {/* Assignment controls */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                      <select
+                        value={assignCounselorMap[appt._id] || ''}
+                        onChange={e => setAssignCounselorMap(m => ({ ...m, [appt._id]: e.target.value }))}
+                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">Select counselor…</option>
+                        {counselors.map(c => (
+                          <option key={c._id} value={c._id}>
+                            {c.first_name} {c.last_name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="date"
+                        value={assignDateMap[appt._id] || (appt.preferred_date ? appt.preferred_date.split('T')[0] : '')}
+                        onChange={e => setAssignDateMap(m => ({ ...m, [appt._id]: e.target.value }))}
+                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <input
+                        type="time"
+                        value={assignTimeMap[appt._id] || (appt.preferred_time || '')}
+                        onChange={e => setAssignTimeMap(m => ({ ...m, [appt._id]: e.target.value }))}
+                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => handleAssign(appt._id)}
+                      disabled={assigningId === appt._id || !assignCounselorMap[appt._id]}
+                      className={`w-full py-2 rounded text-sm font-semibold transition ${
+                        assigningId === appt._id || !assignCounselorMap[appt._id]
+                          ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      }`}
+                    >
+                      {assigningId === appt._id ? 'Assigning…' : 'Assign & Confirm'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <hr className="my-8 border-gray-200 dark:border-gray-700" />
+          </div>
+        )}
+
         {/* Schedule New Appointment Button */}
+        {user?.role === 'STUDENT' && (
         <div className="mb-6">
           <button
             onClick={() => router.push('/book-appointment')}
@@ -433,6 +601,7 @@ export default function AppointmentsPage() {
             Book Appointment
           </button>
         </div>
+        )}
 
         {/* Search and Filter Controls */}
         <div className="mb-6 space-y-3">

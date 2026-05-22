@@ -452,7 +452,7 @@ function AppointmentCard({
   const canAct = onCancel && !INACTIVE.has(appt.status);
   const dt = getApptDatetime(appt);
 
-  const hasDetails = !!(appt.concern || appt.purpose || appt.preferred_method || appt.counselor_email || appt.notes || appt.counseling_id);
+  const hasDetails = !!(appt.concern || appt.purpose || appt.counselor_email || appt.notes || appt.counseling_id);
 
   return (
     <div className={`rounded-xl border ${highlight
@@ -490,12 +490,28 @@ function AppointmentCard({
               <span>{appt.counselor_name}</span>
             </div>
           )}
-          {appt.location && (
+          {/* Location: show actual location, or "CPS Office" for in-person, or video platform */}
+          {appt.location ? (
             <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
               <MapPin size={14} className="text-gray-400 flex-shrink-0" />
               <span>{appt.location}</span>
             </div>
-          )}
+          ) : (appt.preferred_method === 'in_person' || appt.preferred_method === 'in-person') ? (
+            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+              <span>CPS Office</span>
+            </div>
+          ) : appt.preferred_method === 'zoom' ? (
+            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <Video size={14} className="text-gray-400 flex-shrink-0" />
+              <span>Zoom {appt.meeting_link ? '' : '· Link pending confirmation'}</span>
+            </div>
+          ) : appt.preferred_method === 'google_meet' || appt.preferred_method === 'google-meet' ? (
+            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <Video size={14} className="text-gray-400 flex-shrink-0" />
+              <span>Google Meet {appt.meeting_link ? '' : '· Link pending confirmation'}</span>
+            </div>
+          ) : null}
         </div>
 
         {appt.is_recurring && (
@@ -518,12 +534,6 @@ function AppointmentCard({
               <div className="flex gap-2 text-sm">
                 <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5">Purpose</span>
                 <span className="text-gray-700 dark:text-gray-300 capitalize">{appt.purpose}</span>
-              </div>
-            )}
-            {appt.preferred_method && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5">Format</span>
-                <span className="text-gray-700 dark:text-gray-300">{formatMethodName(appt.preferred_method)}</span>
               </div>
             )}
             {appt.counselor_email && (

@@ -515,7 +515,7 @@ export default function BookAppointmentPage() {
       <DashboardPageWrapper title="Appointment Verification" subtitle="Review and confirm your appointment request">
         <div className="max-w-4xl mx-auto">
           {submitError && (
-            <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4">
+            <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-4">
               <div className="flex gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
@@ -526,7 +526,7 @@ export default function BookAppointmentPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             {/* Header */}
             <div className="bg-emerald-700 dark:bg-emerald-800 text-white p-6 mb-6">
               <h1 className="text-3xl font-bold mb-2">Appointment Request Form</h1>
@@ -623,7 +623,7 @@ export default function BookAppointmentPage() {
               </div>
 
               {/* Verification Checkbox */}
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 mb-8">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-8">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -765,7 +765,7 @@ export default function BookAppointmentPage() {
       <div className="max-w-2xl mx-auto">
         {/* Error Banner */}
         {submitError && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4">
+          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-4">
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <div>
@@ -777,14 +777,14 @@ export default function BookAppointmentPage() {
         )}
 
         {/* Booking Form */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-8">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-6">
             Reserve Your Appointment
           </h2>
 
           {/* Draft Save Success Message */}
           {draftSaved && (
-            <div className="mb-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4">
+            <div className="mb-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl p-4">
               <div className="flex gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                 <div>
@@ -797,7 +797,7 @@ export default function BookAppointmentPage() {
 
           {/* Saved Draft Info */}
           {hasDraft && (
-            <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+            <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
               <div className="flex gap-3 justify-between items-start">
                 <div className="flex gap-3 flex-1">
                   <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
@@ -828,7 +828,7 @@ export default function BookAppointmentPage() {
 
           <form onSubmit={handleBookAppointment} className="space-y-6">
             {/* Personal Information — compact card, expandable if needed */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3">
                 <div>
                   <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Booking as</span>
@@ -1075,7 +1075,7 @@ export default function BookAppointmentPage() {
             </p>
 
             {/* Terms and Conditions */}
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-6">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">
                 Terms & Conditions
               </h3>
@@ -1139,7 +1139,7 @@ export default function BookAppointmentPage() {
 
         {/* Info Section */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
             <h3 className="font-semibold text-blue-900 dark:text-blue-50 text-sm mb-2">
               What Happens Next?
             </h3>
@@ -1148,7 +1148,7 @@ export default function BookAppointmentPage() {
             </p>
           </div>
 
-          <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
+          <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-xl p-4">
             <h3 className="font-semibold text-purple-900 dark:text-purple-50 text-sm mb-2">
               How to Prepare
             </h3>
@@ -1157,7 +1157,7 @@ export default function BookAppointmentPage() {
             </p>
           </div>
 
-          <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4">
+          <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl p-4">
             <h3 className="font-semibold text-green-900 dark:text-green-50 text-sm mb-2">
               Need Help?
             </h3>

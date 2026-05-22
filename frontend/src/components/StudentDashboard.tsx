@@ -6,7 +6,7 @@ import { DashboardCalendar } from './Calendar';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Calendar, BookOpen, CheckCircle, Heart, ChevronRight, Loader2 } from 'lucide-react';
+import { Calendar, BookOpen, CheckCircle, Heart, ChevronRight } from 'lucide-react';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -91,8 +91,23 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2">
-          <Loader2 size={20} className="animate-spin" /> Loading…
+        <div className="animate-pulse space-y-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-7 w-10 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {[1,2,3].map(i => (
+              <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 h-40" />
+            ))}
+          </div>
         </div>
       ) : (
         <>

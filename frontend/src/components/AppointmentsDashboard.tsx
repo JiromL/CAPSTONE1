@@ -131,7 +131,7 @@ export default function AppointmentsDashboard() {
 
   if (error || !dashboard) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
         <p className="text-red-700">Error: {error || 'No data available'}</p>
       </div>
     );
@@ -154,14 +154,14 @@ export default function AppointmentsDashboard() {
 
       {/* Pending assignment alert */}
       {dashboard.can_assign_counselor && pendingCount > 0 && (
-        <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg px-4 py-2.5 text-sm text-yellow-800 dark:text-yellow-300">
+        <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-xl px-4 py-2.5 text-sm text-yellow-800 dark:text-yellow-300">
           <AlertCircle size={15} />
           <span><strong>{pendingCount}</strong> appointment{pendingCount !== 1 ? 's' : ''} waiting to be assigned. Use the controls in the table below.</span>
         </div>
       )}
 
       {/* Appointments Table */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 dark:text-gray-100">Appointments</h2>
           {dashboard.can_assign_counselor && (
@@ -295,7 +295,7 @@ function SummaryCard({ title, value, color }: SummaryCardProps) {
     : color === 'green' ? 'text-green-600 dark:text-green-400'
     : 'text-gray-900 dark:text-gray-100';
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3">
       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{title}</p>
       <p className={`text-2xl font-semibold ${accent}`}>{value}</p>
     </div>

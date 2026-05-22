@@ -48,8 +48,13 @@ def generate_qr(appointment_id):
         upsert=True,
     )
 
-    # Embed the token in a full check-in URL that staff will scan
-    frontend_base = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+    # Resolve frontend base URL: env var → request Origin → fallback
+    frontend_base = (
+        os.environ.get('FRONTEND_URL')
+        or request.headers.get('Origin')
+        or request.headers.get('Referer', '').rstrip('/').rsplit('/', 1)[0]
+        or 'http://localhost:3000'
+    ).rstrip('/')
     checkin_url = f"{frontend_base}/check-in?token={token}&appt={appointment_id}"
 
     img = qrcode.make(checkin_url)

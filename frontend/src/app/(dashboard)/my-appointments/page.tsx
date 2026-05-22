@@ -7,7 +7,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Calendar, Clock, MapPin, User, CheckCircle, XCircle, AlertCircle,
-  Loader2, Video, Repeat, X, Edit, ChevronDown, ChevronUp, Mail, FileText, QrCode,
+  Loader2, Video, Repeat, X, Edit, ChevronDown, ChevronUp, Mail, FileText, QrCode, Printer,
 } from 'lucide-react';
 
 interface Appointment {
@@ -617,6 +617,14 @@ function AppointmentCard({
             </button>
           )}
           {showQr && <QrModal apptId={appt._id} onClose={() => setShowQr(false)} />}
+
+          {/* Print slip */}
+          <Link
+            href={`/appointment-slip/${appt._id}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <Printer size={13} /> Confirmation Slip
+          </Link>
 
           {/* Reschedule button or 24h block notice */}
           {isActive && onReschedule && (

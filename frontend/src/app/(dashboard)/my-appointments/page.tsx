@@ -345,11 +345,19 @@ export default function MyAppointmentsPage() {
           title="Reschedule Appointment"
           onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); setRescheduleTime(''); setActionError(''); }}
         >
-          {rescheduleTarget.appointment_type?.toLowerCase().includes('initial') && (
+          {(rescheduleTarget.reschedule_count ?? 0) >= 2 && (
             <div className="flex gap-2 p-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
               <AlertCircle size={15} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                <strong>Initial assessments are important.</strong> Rescheduling delays your access to counseling services. You have <strong>{Math.max(0, 2 - (rescheduleTarget.reschedule_count ?? 0))}</strong> reschedule{2 - (rescheduleTarget.reschedule_count ?? 0) !== 1 ? 's' : ''} remaining.
+                You've rescheduled this appointment {rescheduleTarget.reschedule_count} time{rescheduleTarget.reschedule_count !== 1 ? 's' : ''}. Frequent rescheduling may be noted by your counselor. If you're having trouble committing to a time, consider contacting the CPS office directly.
+              </p>
+            </div>
+          )}
+          {rescheduleTarget.appointment_type?.toLowerCase().includes('initial') && (rescheduleTarget.reschedule_count ?? 0) < 2 && (
+            <div className="flex gap-2 p-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+              <AlertCircle size={15} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                <strong>Initial assessments are important.</strong> Rescheduling delays your access to counseling services. Please only reschedule if absolutely necessary.
               </p>
             </div>
           )}
@@ -464,10 +472,9 @@ function AppointmentCard({
 
   // Reschedule guards
   const rescheduleCount = appt.reschedule_count ?? 0;
-  const rescheduleLimit = 2;
-  const rescheduleExhausted = rescheduleCount >= rescheduleLimit;
   const within24h = dt ? (new Date(dt).getTime() - Date.now()) / 3600000 < 24 : false;
-  const canReschedule = !!(onReschedule && isActive && !rescheduleExhausted && !within24h);
+  const canReschedule = !!(onReschedule && isActive && !within24h);
+  const rescheduleWarning = rescheduleCount >= 2;
   const isInitialAssessment = appt.appointment_type?.toLowerCase().includes('initial');
 
   const hasDetails = !!(appt.concern || appt.purpose || appt.counselor_email || appt.notes || appt.counseling_id);
@@ -596,22 +603,18 @@ function AppointmentCard({
           )}
           {showQr && <QrModal apptId={appt._id} onClose={() => setShowQr(false)} />}
 
-          {/* Reschedule button or limit notice */}
+          {/* Reschedule button or 24h block notice */}
           {isActive && onReschedule && (
-            rescheduleExhausted ? (
-              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                <AlertCircle size={12} /> Reschedule limit reached — contact CPS office
-              </span>
-            ) : within24h ? (
+            within24h ? (
               <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                <Clock size={12} /> Cannot reschedule within 24h
+                <Clock size={12} /> Cannot reschedule within 24h of session
               </span>
             ) : (
               <button
                 onClick={onReschedule}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <Edit size={13} /> Reschedule {rescheduleCount > 0 ? `(${rescheduleLimit - rescheduleCount} left)` : ''}
+                <Edit size={13} /> Reschedule
               </button>
             )
           )}

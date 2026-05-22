@@ -2291,10 +2291,7 @@ def reschedule_appointment(appointment_id):
     if current_status in ['COMPLETED', 'CANCELLED']:
         return jsonify({'error': f'Cannot reschedule appointment with status {current_status}'}), 400
 
-    # Reschedule cap: max 2 times
     reschedule_count = appointment.get('reschedule_count', 0)
-    if reschedule_count >= 2:
-        return jsonify({'error': 'Reschedule limit reached. Please contact the CPS office directly to reschedule.', 'reschedule_limit_reached': True}), 400
 
     # 24h notice requirement
     appt_start = appointment.get('scheduled_start') or appointment.get('requested_start')
@@ -2369,6 +2366,11 @@ def reschedule_appointment(appointment_id):
             }
         )
         
+        new_count = reschedule_count + 1
+        # Flag for staff follow-up after repeated rescheduling
+        if new_count >= 2:
+            db.db.appointments.update_one({"_id": apt_id}, {"$set": {"reschedule_flagged": True}})
+
         return jsonify({
             'message': 'Reschedule request submitted successfully',
             'detail': 'Your request has been submitted. Staff will confirm your new time.',
@@ -2377,8 +2379,8 @@ def reschedule_appointment(appointment_id):
             'requested_start': new_start.isoformat(),
             'requested_end': (new_end or new_start + timedelta(hours=1)).isoformat(),
             'reason': reason,
-            'reschedule_count': reschedule_count + 1,
-            'reschedules_remaining': max(0, 2 - (reschedule_count + 1))
+            'reschedule_count': new_count,
+            'flagged': new_count >= 2
         }), 200
         
     except Exception as e:

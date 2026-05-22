@@ -144,6 +144,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
 
     // Primary Workflow
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
+    { label: 'Counselor Schedules', href: '/counselor-schedules', id: 'counselor-schedules' },
     { label: 'Walk-In Intake', href: '/walk-in-intake', id: 'walk-in-intake' },
     { label: 'Check-In Tracking', href: '/check-in-tracking', id: 'check-in-tracking' },
     { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests' },
@@ -256,6 +257,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     // Appointments
     'appointments': 'appointments',
     'appointment-requests': 'appointments',
+    'counselor-schedules': 'counselor-schedules',
     'reschedule-requests': 'reschedule-requests',
     'waitlist': 'waitlist',
     'availability': 'availability',

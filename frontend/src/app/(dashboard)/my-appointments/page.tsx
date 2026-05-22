@@ -32,6 +32,7 @@ interface Appointment {
   recurrence_index?: number;
   recurrence_total?: number;
   counseling_id?: string;
+  reschedule_count?: number;
 }
 
 interface Draft {
@@ -173,7 +174,7 @@ export default function MyAppointmentsPage() {
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed'); }
       const updated = await r.json();
       setAppointments(prev => prev.map(a => a._id === rescheduleTarget._id
-        ? { ...a, status: 'REQUESTED', requested_start: updated.requested_start || a.requested_start }
+        ? { ...a, status: 'REQUESTED', requested_start: updated.requested_start || a.requested_start, reschedule_count: updated.reschedule_count ?? (a.reschedule_count ?? 0) + 1 }
         : a
       ));
       setRescheduleTarget(null);
@@ -344,6 +345,14 @@ export default function MyAppointmentsPage() {
           title="Reschedule Appointment"
           onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); setRescheduleTime(''); setActionError(''); }}
         >
+          {rescheduleTarget.appointment_type?.toLowerCase().includes('initial') && (
+            <div className="flex gap-2 p-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+              <AlertCircle size={15} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                <strong>Initial assessments are important.</strong> Rescheduling delays your access to counseling services. You have <strong>{Math.max(0, 2 - (rescheduleTarget.reschedule_count ?? 0))}</strong> reschedule{2 - (rescheduleTarget.reschedule_count ?? 0) !== 1 ? 's' : ''} remaining.
+              </p>
+            </div>
+          )}
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Choose a new time for your <strong>{formatTypeName(rescheduleTarget.appointment_type)}</strong> appointment.
           </p>
@@ -449,8 +458,17 @@ function AppointmentCard({
   const [expanded, setExpanded] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const cfg = STATUS_CONFIG[appt.status] ?? { label: appt.status, color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400', icon: null };
-  const canAct = onCancel && !INACTIVE.has(appt.status);
+  const isActive = !INACTIVE.has(appt.status);
+  const canCancel = !!(onCancel && isActive);
   const dt = getApptDatetime(appt);
+
+  // Reschedule guards
+  const rescheduleCount = appt.reschedule_count ?? 0;
+  const rescheduleLimit = 2;
+  const rescheduleExhausted = rescheduleCount >= rescheduleLimit;
+  const within24h = dt ? (new Date(dt).getTime() - Date.now()) / 3600000 < 24 : false;
+  const canReschedule = !!(onReschedule && isActive && !rescheduleExhausted && !within24h);
+  const isInitialAssessment = appt.appointment_type?.toLowerCase().includes('initial');
 
   const hasDetails = !!(appt.concern || appt.purpose || appt.counselor_email || appt.notes || appt.counseling_id);
 
@@ -577,22 +595,37 @@ function AppointmentCard({
             </button>
           )}
           {showQr && <QrModal apptId={appt._id} onClose={() => setShowQr(false)} />}
-          {canAct && (
-            <>
+
+          {/* Reschedule button or limit notice */}
+          {isActive && onReschedule && (
+            rescheduleExhausted ? (
+              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <AlertCircle size={12} /> Reschedule limit reached — contact CPS office
+              </span>
+            ) : within24h ? (
+              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                <Clock size={12} /> Cannot reschedule within 24h
+              </span>
+            ) : (
               <button
                 onClick={onReschedule}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <Edit size={13} /> Reschedule
+                <Edit size={13} /> Reschedule {rescheduleCount > 0 ? `(${rescheduleLimit - rescheduleCount} left)` : ''}
               </button>
-              <button
-                onClick={onCancel}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
-              >
-                <X size={13} /> Cancel
-              </button>
-            </>
+            )
           )}
+
+          {/* Cancel button */}
+          {canCancel && (
+            <button
+              onClick={onCancel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+            >
+              <X size={13} /> Cancel
+            </button>
+          )}
+
           {hasDetails && (
             <button
               onClick={() => setExpanded(e => !e)}

@@ -2290,7 +2290,19 @@ def reschedule_appointment(appointment_id):
     current_status = appointment.get('status', '').upper()
     if current_status in ['COMPLETED', 'CANCELLED']:
         return jsonify({'error': f'Cannot reschedule appointment with status {current_status}'}), 400
-    
+
+    # Reschedule cap: max 2 times
+    reschedule_count = appointment.get('reschedule_count', 0)
+    if reschedule_count >= 2:
+        return jsonify({'error': 'Reschedule limit reached. Please contact the CPS office directly to reschedule.', 'reschedule_limit_reached': True}), 400
+
+    # 24h notice requirement
+    appt_start = appointment.get('scheduled_start') or appointment.get('requested_start')
+    if appt_start and isinstance(appt_start, datetime):
+        hours_until = (appt_start - datetime.utcnow()).total_seconds() / 3600
+        if hours_until < 24:
+            return jsonify({'error': 'Appointments cannot be rescheduled within 24 hours of the session. Please contact the CPS office.', 'too_late': True}), 400
+
     try:
         data = request.get_json()
         if not data:
@@ -2317,21 +2329,21 @@ def reschedule_appointment(appointment_id):
         old_end = appointment.get('requested_end')
         old_status = appointment.get('status')
         
-        # Update appointment with new times
+        # Update appointment with new times and increment reschedule counter
         result = db.db.appointments.update_one(
             {"_id": apt_id},
             {
                 "$set": {
                     "requested_start": new_start,
                     "requested_end": new_end or new_start + timedelta(hours=1),
-                    "status": AppointmentStatus.REQUESTED.value,  # Reset to requested status
+                    "status": AppointmentStatus.REQUESTED.value,
                     "rescheduled_at": datetime.utcnow(),
                     "reschedule_reason": reason,
                     "rescheduled_by_user_id": user_id_obj,
-                    # Clear the scheduled times when rescheduling
                     "scheduled_start": None,
                     "scheduled_end": None
-                }
+                },
+                "$inc": {"reschedule_count": 1}
             }
         )
         
@@ -2359,12 +2371,14 @@ def reschedule_appointment(appointment_id):
         
         return jsonify({
             'message': 'Reschedule request submitted successfully',
-            'detail': 'Your counselor has been notified and will review your reschedule request',
+            'detail': 'Your request has been submitted. Staff will confirm your new time.',
             'appointment_id': str(apt_id),
             'status': 'REQUESTED',
             'requested_start': new_start.isoformat(),
             'requested_end': (new_end or new_start + timedelta(hours=1)).isoformat(),
-            'reason': reason
+            'reason': reason,
+            'reschedule_count': reschedule_count + 1,
+            'reschedules_remaining': max(0, 2 - (reschedule_count + 1))
         }), 200
         
     except Exception as e:

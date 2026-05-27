@@ -208,6 +208,7 @@ def list_appointments():
         role = user.get('role', '').upper()
         
         status_filter = request.args.get('status')
+        case_id_filter = request.args.get('case_id')
         limit = int(request.args.get('limit', 100))
 
         if role == 'STUDENT':
@@ -223,12 +224,22 @@ def list_appointments():
             query = {}
             if status_filter:
                 query["status"] = status_filter
+            if case_id_filter:
+                try:
+                    query["case_id"] = ObjectId(case_id_filter)
+                except Exception:
+                    pass
             appointments = list(db.db.appointments.find(query).sort("_id", -1).limit(limit))
         else:
             # Counselors: appointments where they are assigned
             query = {"counselor_id": user_id_obj}
             if status_filter:
                 query["status"] = status_filter
+            if case_id_filter:
+                try:
+                    query["case_id"] = ObjectId(case_id_filter)
+                except Exception:
+                    pass
             appointments = list(db.db.appointments.find(query).sort("_id", -1).limit(limit))
         
         # Helper function to convert ObjectIds to strings recursively

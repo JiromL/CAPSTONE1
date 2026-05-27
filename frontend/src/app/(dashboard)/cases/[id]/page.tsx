@@ -222,6 +222,12 @@ export default function CaseDetailPage() {
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
   const [savingNote, setSavingNote] = useState(false);
 
+  const [caseAppointments, setCaseAppointments] = useState<Array<{
+    _id: string; status: string; scheduled_at?: string; preferred_date?: string;
+    counselor_name?: string; reference_id?: string;
+  }>>([]);
+  const [completingAppt, setCompletingAppt] = useState<string | null>(null);
+
   const [treatmentPlan, setTreatmentPlan] = useState<{
     goals: Array<{ goal: string; target_date: string; status: 'not_started' | 'in_progress' | 'achieved' }>;
     interventions: string[];
@@ -261,7 +267,53 @@ export default function CaseDetailPage() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     setNoteForm((f) => ({ ...f, session_date: now.toISOString().slice(0, 16) }));
     loadCaseData();
+    loadCaseAppointments();
   }, [caseId]);
+
+  const loadCaseAppointments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api(`/api/appointments?case_id=${caseId}&limit=20`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const active = (data.appointments || []).filter((a: any) =>
+          !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'DENIED'].includes(a.status)
+        );
+        setCaseAppointments(active);
+      }
+    } catch (err) {
+      console.error('Failed to load case appointments:', err);
+    }
+  };
+
+  const handleCompleteAndDocument = async (appointmentId: string) => {
+    setCompletingAppt(appointmentId);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/${appointmentId}/complete`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) {
+        const e = await r.json();
+        setError(e.error || 'Failed to mark appointment complete');
+        return;
+      }
+      await loadCaseAppointments();
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      setNoteForm({ ...emptyNote, session_date: now.toISOString().slice(0, 16) });
+      setShowNoteForm(true);
+      setActiveTab('session-notes');
+      showSuccess('Appointment marked complete — fill in the session note below.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to complete appointment');
+    } finally {
+      setCompletingAppt(null);
+    }
+  };
 
   const loadCaseData = async () => {
     try {
@@ -692,6 +744,40 @@ export default function CaseDetailPage() {
               )}
             </div>
           </div>
+
+          {caseAppointments.length > 0 && (
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Active Appointments</h3>
+              <div className="space-y-3">
+                {caseAppointments.map((appt) => {
+                  const dateStr = appt.scheduled_at || appt.preferred_date;
+                  const displayDate = dateStr
+                    ? new Date(dateStr).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                    : 'No date set';
+                  return (
+                    <div key={appt._id} className="flex items-center justify-between gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{displayDate}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {appt.reference_id && <span className="mr-2">{appt.reference_id}</span>}
+                          <span className="capitalize">{appt.status.toLowerCase().replace(/_/g, ' ')}</span>
+                        </p>
+                      </div>
+                      {['CONFIRMED', 'MATCHED', 'CHECKED_IN'].includes(appt.status) && (
+                        <button
+                          onClick={() => handleCompleteAndDocument(appt._id)}
+                          disabled={completingAppt === appt._id}
+                          className="flex-shrink-0 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition disabled:opacity-50"
+                        >
+                          {completingAppt === appt._id ? 'Completing…' : 'Complete & Document'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-3">Update Client Status</h3>

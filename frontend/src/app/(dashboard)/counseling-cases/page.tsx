@@ -20,6 +20,7 @@ interface CounselingCase {
 }
 
 function CounselingCasesContent() {
+  const router = useRouter();
   const [cases, setCases] = useState<CounselingCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -206,8 +207,12 @@ function CounselingCasesContent() {
                         counselingCase.target_sessions
                       );
                       return (
-                        <tr key={counselingCase._id} className="border-b border-slate-200 hover:bg-slate-50">
-                          <td className="px-6 py-3 text-sm font-medium text-blue-600">{counselingCase.case_number}</td>
+                        <tr
+                          key={counselingCase._id}
+                          className="border-b border-slate-200 hover:bg-slate-50 cursor-pointer"
+                          onClick={() => router.push(`/cases/${counselingCase._id}`)}
+                        >
+                          <td className="px-6 py-3 text-sm font-medium text-green-700 hover:underline">{counselingCase.case_number}</td>
                           <td className="px-6 py-3 text-sm text-slate-900">{counselingCase.client_name}</td>
                           <td className="px-6 py-3 text-sm text-slate-600">{counselingCase.client_id_number}</td>
                           <td className="px-6 py-3 text-sm text-slate-600">

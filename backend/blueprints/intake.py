@@ -907,9 +907,9 @@ Please arrive 10 minutes early"""
 <p style="margin: 15px 0;">Please keep your Counseling ID for all future communications.</p>
 
 <p style="margin: 15px 0;">Best regards,<br>
-<strong>Counseling & Psychological Services Team</strong><br>
-De La Salle University<br>
-<a href="mailto:cps@dlsu.edu.ph" style="color: #0052cc; text-decoration: none;">cps@dlsu.edu.ph</a></p>
+<strong>{current_app.config.get('ORG_NAME','Counseling &amp; Psychological Services')} Team</strong><br>
+{current_app.config.get('ORG_UNIVERSITY','De La Salle University')}<br>
+<a href="mailto:{current_app.config.get('SUPPORT_EMAIL','cps@dlsu.edu.ph')}" style="color: #0052cc; text-decoration: none;">{current_app.config.get('SUPPORT_EMAIL','cps@dlsu.edu.ph')}</a></p>
 
 </div>
 </body>

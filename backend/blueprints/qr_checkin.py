@@ -14,8 +14,9 @@ from models import db
 
 qr_bp = Blueprint('qr', __name__, url_prefix='/api/qr')
 
-# Token expiry window (minutes the QR code is valid once generated)
-QR_EXPIRY_MINUTES = 30
+
+def _qr_expiry_minutes():
+    return current_app.config.get('QR_EXPIRY_MINUTES', 30)
 
 
 @qr_bp.route('/appointment/<appointment_id>', methods=['GET'])
@@ -40,7 +41,7 @@ def generate_qr(appointment_id):
 
     # Upsert a check-in token (rotate each time this endpoint is called)
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(minutes=QR_EXPIRY_MINUTES)
+    expires_at = datetime.utcnow() + timedelta(minutes=_qr_expiry_minutes())
 
     db.db.checkin_tokens.update_one(
         {'appointment_id': ObjectId(appointment_id)},

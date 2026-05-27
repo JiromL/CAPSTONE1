@@ -14,9 +14,14 @@ from email import encoders
 from datetime import datetime, timedelta
 
 
+def _org(key, default):
+    """Read org identity strings from environment at call time."""
+    return os.getenv(key, default)
+
+
 class EmailService:
     """Handle email sending for verification codes and notifications"""
-    
+
     def __init__(self, smtp_host=None, smtp_port=None, smtp_user=None, smtp_password=None):
         self.smtp_host = smtp_host or os.getenv('SMTP_HOST')
         self.smtp_port = smtp_port or int(os.getenv('SMTP_PORT', 587))
@@ -35,7 +40,8 @@ class EmailService:
     def send_verification_email(self, recipient_email, first_name, verification_code, verify_url=None):
         """Send verification email with a clickable button and code fallback"""
 
-        subject = "Verify Your DLSU CPS Account"
+        org_short = _org('ORG_SHORT', 'DLSU CPS')
+        subject = f"Verify Your {org_short} Account"
 
         button_section = f"""
             <div style="text-align:center; margin:32px 0;">
@@ -70,7 +76,7 @@ class EmailService:
         <tr>
           <td style="background-color:#4f46e5;padding:32px 40px;">
             <p style="margin:0;font-size:13px;color:#c7d2fe;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
-              DLSU Counseling &amp; Psychological Services
+              {_org('ORG_UNIVERSITY', 'De La Salle University')} &mdash; {_org('ORG_NAME', 'Counseling &amp; Psychological Services')}
             </p>
           </td>
         </tr>
@@ -83,7 +89,7 @@ class EmailService:
             </h1>
             <p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.6;">
               Hi {first_name},<br><br>
-              Thank you for signing up for DLSU CPS. To complete your registration,
+              Thank you for signing up for {_org('ORG_SHORT', 'DLSU CPS')}. To complete your registration,
               please verify your email address by clicking the button below:
             </p>
 
@@ -114,7 +120,7 @@ class EmailService:
         <tr>
           <td style="background-color:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;">
             <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
-              DLSU Counseling &amp; Psychological Services &bull; De La Salle University<br>
+              {_org('ORG_UNIVERSITY', 'De La Salle University')} &mdash; {_org('ORG_NAME', 'Counseling &amp; Psychological Services')}<br>
               This is an automated email — please do not reply.
             </p>
           </td>
@@ -131,7 +137,7 @@ class EmailService:
     def send_welcome_email(self, recipient_email, first_name):
         """Send welcome email after successful verification"""
         
-        subject = "Welcome to DLSU CPS"
+        subject = f"Welcome to {_org('ORG_SHORT', 'DLSU CPS')}"
         
         html_body = f"""
         <html>
@@ -154,20 +160,19 @@ class EmailService:
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
                     
                     <p style="color: #999; font-size: 12px; text-align: center;">
-                        DLSU Counseling & Psychological Services<br>
-                        De La Salle University
+                        {_org('ORG_UNIVERSITY', 'De La Salle University')} &mdash; {_org('ORG_NAME', 'Counseling &amp; Psychological Services')}
                     </p>
                 </div>
             </body>
         </html>
         """
-        
+
         return self._send_email(recipient_email, subject, html_body)
-    
+
     def send_code_reminder_email(self, recipient_email, first_name, verification_code):
         """Resend verification code"""
         
-        subject = "Your DLSU CPS Verification Code"
+        subject = f"Your {_org('ORG_SHORT', 'DLSU CPS')} Verification Code"
         
         html_body = f"""
         <html>
@@ -253,10 +258,8 @@ class EmailService:
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
                     
                     <p style="color: #999; font-size: 12px; text-align: center;">
-                        DLSU Counseling & Psychological Services<br>
-                        De La Salle University<br>
-                        <a href="mailto:cps@dlsu.edu.ph" style="color: #0052cc; text-decoration: none;">cps@dlsu.edu.ph</a><br>
-                        Phone: +63 2 XXXX-XXXX
+                        {_org('ORG_UNIVERSITY', 'De La Salle University')} &mdash; {_org('ORG_NAME', 'Counseling &amp; Psychological Services')}<br>
+                        <a href="mailto:{_org('SUPPORT_EMAIL', 'cps@dlsu.edu.ph')}" style="color: #0052cc; text-decoration: none;">{_org('SUPPORT_EMAIL', 'cps@dlsu.edu.ph')}</a>
                     </p>
                 </div>
             </body>
@@ -336,8 +339,8 @@ class EmailService:
             <p>Please arrive or log in on time. If you need to reschedule, do so at least 24 hours in advance via the CPS portal.</p>
             <hr style="border:none; border-top:1px solid #eee; margin:20px 0;">
             <p style="color:#999; font-size:12px; text-align:center;">
-                DLSU Counseling &amp; Psychological Services &bull;
-                <a href="mailto:cps@dlsu.edu.ph" style="color:#4F46E5;">cps@dlsu.edu.ph</a>
+                {_org('ORG_UNIVERSITY', 'De La Salle University')} &mdash; {_org('ORG_NAME', 'Counseling &amp; Psychological Services')} &bull;
+                <a href="mailto:{_org('SUPPORT_EMAIL', 'cps@dlsu.edu.ph')}" style="color:#4F46E5;">{_org('SUPPORT_EMAIL', 'cps@dlsu.edu.ph')}</a>
             </p>
         </div></body></html>"""
 

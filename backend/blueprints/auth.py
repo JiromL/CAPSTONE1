@@ -140,9 +140,9 @@ def register():
 
     email = data['email'].lower().strip()
 
-    # Validate DLSU email domain
-    if not email.endswith('@dlsu.edu.ph'):
-        return jsonify({'error': 'Only DLSU email addresses (@dlsu.edu.ph) are allowed'}), 400
+    allowed_domain = current_app.config.get('ALLOWED_EMAIL_DOMAIN', '@dlsu.edu.ph')
+    if not email.endswith(allowed_domain):
+        return jsonify({'error': f'Only {allowed_domain} email addresses are allowed'}), 400
 
     # Check if email already exists
     existing_user = db.db.users.find_one({"email": email})
@@ -559,7 +559,7 @@ def forgot_password():
 <html><body style="font-family:Arial,sans-serif;background:#f3f4f6;padding:40px 16px;">
   <table width="100%" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
     <tr><td style="background:#4f46e5;padding:32px 40px;">
-      <p style="margin:0;color:#c7d2fe;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">DLSU Counseling &amp; Psychological Services</p>
+      <p style="margin:0;color:#c7d2fe;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">{current_app.config.get('ORG_UNIVERSITY','De La Salle University')} &mdash; {current_app.config.get('ORG_NAME','Counseling &amp; Psychological Services')}</p>
     </td></tr>
     <tr><td style="padding:36px 40px;">
       <h1 style="margin:0 0 16px;font-size:22px;color:#111827;">Reset your password</h1>
@@ -572,7 +572,7 @@ def forgot_password():
   </table>
 </body></html>"""
 
-    email_service._send_email(email, 'Reset Your DLSU CPS Password', html_body)
+    email_service._send_email(email, f"Reset Your {current_app.config.get('ORG_SHORT','DLSU CPS')} Password", html_body)
     return jsonify({'message': 'If that email is registered, a reset link has been sent'}), 200
 
 

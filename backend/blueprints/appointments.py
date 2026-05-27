@@ -18,6 +18,18 @@ from services.email_service import EmailService
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/appointments')
 
 
+def _cfg(key, default):
+    """Read a config value from the Flask app config at request time."""
+    return current_app.config.get(key, default)
+
+
+def _email_footer():
+    """HTML footer block for inline emails."""
+    uni = _cfg('ORG_UNIVERSITY', 'De La Salle University')
+    org = _cfg('ORG_NAME', 'Counseling &amp; Psychological Services')
+    return f"{uni} &mdash; {org}"
+
+
 # ============================================================================
 # AUTO-ASSIGNMENT HELPER FUNCTIONS
 # ============================================================================
@@ -490,8 +502,7 @@ def request_appointment():
         # Combine date and time into ISO format datetime
         datetime_str = f"{preferred_date_str}T{preferred_time_str}:00"
         requested_start = datetime.fromisoformat(datetime_str)
-        # Assume 1-hour appointment by default
-        requested_end = requested_start + timedelta(hours=1)
+        requested_end = requested_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
     except (ValueError, KeyError) as e:
         return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
     
@@ -588,7 +599,7 @@ def request_appointment():
             case_id = result.inserted_id
             case = case_doc
     
-    reference_id = 'CPS-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    reference_id = _cfg('REFERENCE_ID_PREFIX', 'CPS-') + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
     try:
         appointment = {
@@ -665,8 +676,7 @@ def request_appointment():
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
                     
                     <p style="color: #999; font-size: 12px; text-align: center;">
-                        DLSU Counseling & Psychological Services<br>
-                        De La Salle University
+                        {_email_footer()}
                     </p>
                 </div>
             </body>
@@ -763,7 +773,7 @@ def match_counselor(appointment_id):
                         data['scheduled_end'].replace('Z', '+00:00')
                     ).replace(tzinfo=None)
                 else:
-                    scheduled_end = scheduled_start + timedelta(hours=1)
+                    scheduled_end = scheduled_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
             except Exception as e:
                 print(f"⚠ Could not parse scheduled times: {e}")
 
@@ -820,7 +830,7 @@ def match_counselor(appointment_id):
                 s_email = student_doc.get('email', '') if student_doc else ''
                 s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip() if student_doc else ''
                 appt_time_str = appt_time.strftime('%B %d, %Y at %I:%M %p')
-                for label, offset in [('24h', timedelta(hours=24)), ('1h', timedelta(hours=1))]:
+                for label, offset in [('24h', timedelta(hours=_cfg('REMINDER_HOURS_24', 24))), ('1h', timedelta(hours=_cfg('REMINDER_HOURS_1', 1)))]:
                     if not db.db.reminders.find_one({'appointment_id': appointment['_id'], 'reminder_type': label}):
                         db.db.reminders.insert_one({
                             'appointment_id': appointment['_id'],
@@ -875,7 +885,7 @@ def match_counselor(appointment_id):
                     <p>Please log in to the CPS portal to view your appointment details.</p>
                     <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
                     <p style="color:#999;font-size:12px;text-align:center;">
-                      DLSU Counseling &amp; Psychological Services<br>De La Salle University
+                      {_email_footer()}
                     </p>
                   </div>
                 </body></html>"""
@@ -904,7 +914,7 @@ def match_counselor(appointment_id):
                         <p>Please log in to the CPS portal to view full details.</p>
                         <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
                         <p style="color:#999;font-size:12px;text-align:center;">
-                          DLSU Counseling &amp; Psychological Services<br>De La Salle University
+                          {_email_footer()}
                         </p>
                       </div>
                     </body></html>"""
@@ -1109,7 +1119,7 @@ def confirm_appointment(appointment_id):
             s_email = student.get('email', '') if student else ''
             s_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else ''
             appt_time_str = appt_start.strftime('%B %d, %Y at %I:%M %p')
-            for label, offset in [('24h', timedelta(hours=24)), ('1h', timedelta(hours=1))]:
+            for label, offset in [('24h', timedelta(hours=_cfg('REMINDER_HOURS_24', 24))), ('1h', timedelta(hours=_cfg('REMINDER_HOURS_1', 1)))]:
                 if not db.db.reminders.find_one({'appointment_id': appointment['_id'], 'reminder_type': label}):
                     db.db.reminders.insert_one({
                         'appointment_id': appointment['_id'],
@@ -1329,7 +1339,7 @@ def mark_no_show(appointment_id):
             {'$inc': {'no_show_count': 1}}
         )
         updated_student = db.db.users.find_one({'_id': student_id})
-        if updated_student and updated_student.get('no_show_count', 0) >= 3:
+        if updated_student and updated_student.get('no_show_count', 0) >= _cfg('NO_SHOW_THRESHOLD', 3):
             db.db.users.update_one(
                 {'_id': student_id},
                 {'$set': {'no_show_flagged': True}}
@@ -2070,7 +2080,7 @@ def cancel_appointment(appointment_id):
                     {'$inc': {'late_cancellation_count': 1}}
                 )
                 updated_user = db.db.users.find_one({'_id': user_id_obj})
-                if updated_user and updated_user.get('late_cancellation_count', 0) >= 3:
+                if updated_user and updated_user.get('late_cancellation_count', 0) >= _cfg('LATE_CANCEL_THRESHOLD', 3):
                     db.db.users.update_one(
                         {'_id': user_id_obj},
                         {'$set': {'late_cancel_flagged': True}}
@@ -2343,7 +2353,7 @@ def reschedule_appointment(appointment_id):
             {
                 "$set": {
                     "requested_start": new_start,
-                    "requested_end": new_end or new_start + timedelta(hours=1),
+                    "requested_end": new_end or new_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60)),
                     "status": AppointmentStatus.REQUESTED.value,
                     "rescheduled_at": datetime.utcnow(),
                     "reschedule_reason": reason,
@@ -2388,7 +2398,7 @@ def reschedule_appointment(appointment_id):
             'appointment_id': str(apt_id),
             'status': 'REQUESTED',
             'requested_start': new_start.isoformat(),
-            'requested_end': (new_end or new_start + timedelta(hours=1)).isoformat(),
+            'requested_end': (new_end or new_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))).isoformat(),
             'reason': reason,
             'reschedule_count': new_count,
             'flagged': new_count >= 2
@@ -2628,7 +2638,7 @@ def create_recurring_appointments():
         student_email = student.get('email', '') if student else ''
         student_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else ''
         appt_time_str = slot_start.strftime('%B %d, %Y at %I:%M %p')
-        for label, offset in [('24h', timedelta(hours=24)), ('1h', timedelta(hours=1))]:
+        for label, offset in [('24h', timedelta(hours=_cfg('REMINDER_HOURS_24', 24))), ('1h', timedelta(hours=_cfg('REMINDER_HOURS_1', 1)))]:
             db.db.reminders.insert_one({
                 'appointment_id': new_id,
                 'student_id': student_id_obj,

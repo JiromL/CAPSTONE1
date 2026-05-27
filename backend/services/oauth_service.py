@@ -15,7 +15,8 @@ class OAuthService:
     def __init__(self):
         self.google_client_id = os.getenv('GOOGLE_CLIENT_ID')
         self.google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
-        self.allowed_domains = ['dlsu.edu.ph']
+        _domain = os.getenv('ALLOWED_EMAIL_DOMAIN', '@dlsu.edu.ph').lstrip('@')
+        self.allowed_domains = [_domain]
         
     def verify_token(self, token):
         """
@@ -37,10 +38,11 @@ class OAuthService:
             
             email = idinfo.get('email', '')
             
-            # Check DLSU domain
-            if not self._is_dlsu_email(email):
+            # Check allowed domain
+            if not self._is_allowed_email(email):
+                domain = '@' + (self.allowed_domains[0] if self.allowed_domains else 'dlsu.edu.ph')
                 return {
-                    'error': 'Only DLSU email addresses (@dlsu.edu.ph) are allowed',
+                    'error': f'Only {domain} email addresses are allowed',
                     'email': email
                 }
             
@@ -62,12 +64,12 @@ class OAuthService:
             print(f"OAuth error: {e}")
             return None
     
-    @staticmethod
-    def _is_dlsu_email(email):
-        """Check if email is from DLSU domain"""
+    def _is_allowed_email(self, email):
+        """Check if email is from an allowed domain."""
         if not email:
             return False
-        return email.lower().endswith('@dlsu.edu.ph')
+        lower = email.lower()
+        return any(lower.endswith('@' + d) for d in self.allowed_domains)
     
     def get_google_client_id(self):
         """Get Google Client ID for frontend"""

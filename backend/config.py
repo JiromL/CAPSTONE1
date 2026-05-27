@@ -40,6 +40,23 @@ class Config:
     S3_REGION = os.getenv('S3_REGION')
     S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
     S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
+
+    # Organisation identity
+    ORG_NAME = os.getenv('ORG_NAME', 'Counseling & Psychological Services')
+    ORG_UNIVERSITY = os.getenv('ORG_UNIVERSITY', 'De La Salle University')
+    ORG_SHORT = os.getenv('ORG_SHORT', 'DLSU CPS')
+    SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'cps@dlsu.edu.ph')
+    ALLOWED_EMAIL_DOMAIN = os.getenv('ALLOWED_EMAIL_DOMAIN', '@dlsu.edu.ph')
+    SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL', 'noreply@dlsu-cps.edu.ph')
+    REFERENCE_ID_PREFIX = os.getenv('REFERENCE_ID_PREFIX', 'CPS-')
+
+    # Appointment business logic
+    APPOINTMENT_DURATION_MINUTES = int(os.getenv('APPOINTMENT_DURATION_MINUTES', '60'))
+    QR_EXPIRY_MINUTES = int(os.getenv('QR_EXPIRY_MINUTES', '30'))
+    REMINDER_HOURS_24 = int(os.getenv('REMINDER_HOURS_24', '24'))
+    REMINDER_HOURS_1 = int(os.getenv('REMINDER_HOURS_1', '1'))
+    NO_SHOW_THRESHOLD = int(os.getenv('NO_SHOW_THRESHOLD', '3'))
+    LATE_CANCEL_THRESHOLD = int(os.getenv('LATE_CANCEL_THRESHOLD', '3'))
     
     def __init__(self):
         """Initialize config with environment variables"""

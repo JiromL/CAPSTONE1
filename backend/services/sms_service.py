@@ -43,16 +43,18 @@ class SMSService:
     def send_appointment_reminder(self, phone: str, student_name: str,
                                   appointment_time: str, reminder_type: str = '24h') -> bool:
         label = '24 hours' if reminder_type == '24h' else '1 hour'
+        org_short = os.getenv('ORG_SHORT', 'DLSU CPS')
         msg = (
-            f"Hi {student_name}, this is a reminder that your DLSU CPS counseling "
+            f"Hi {student_name}, this is a reminder that your {org_short} counseling "
             f"appointment is in {label} ({appointment_time}). "
             f"Reply STOP to opt out."
         )
         return self.send_sms(phone, msg)
 
     def send_safety_plan_follow_up(self, phone: str, student_name: str, counselor_name: str) -> bool:
+        org_short = os.getenv('ORG_SHORT', 'DLSU CPS')
         msg = (
-            f"Hi {student_name}, your counselor {counselor_name} at DLSU CPS is checking in on you. "
+            f"Hi {student_name}, your counselor {counselor_name} at {org_short} is checking in on you. "
             f"Please reach out if you need support. Crisis line: 1553."
         )
         return self.send_sms(phone, msg)

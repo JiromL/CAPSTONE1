@@ -70,7 +70,10 @@ export default function AppointmentsDashboard() {
   };
 
   const setAssignField = (id: string, field: 'counselorId' | 'date' | 'time', value: string) => {
-    setAssignMap(prev => ({ ...prev, [id]: { counselorId: '', date: '', time: '', ...prev[id], [field]: value } }));
+    setAssignMap(prev => {
+      const current = prev[id] ?? { counselorId: '', date: '', time: '' };
+      return { ...prev, [id]: { ...current, [field]: value } };
+    });
   };
 
   const handleAssign = async (aptId: string) => {

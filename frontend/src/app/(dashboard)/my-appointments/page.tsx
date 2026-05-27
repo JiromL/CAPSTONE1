@@ -309,7 +309,13 @@ export default function MyAppointmentsPage() {
           <section>
             <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Past</h2>
             <div className="space-y-3">
-              {past.map(appt => <AppointmentCard key={appt._id} appt={appt} />)}
+              {past.map(appt => (
+                <AppointmentCard
+                  key={appt._id}
+                  appt={appt}
+                  onCancel={!INACTIVE.has(appt.status) ? () => { setCancelTarget(appt); setActionError(''); } : undefined}
+                />
+              ))}
             </div>
           </section>
         )}
@@ -321,6 +327,11 @@ export default function MyAppointmentsPage() {
           title="Cancel Appointment"
           onClose={() => { setCancelTarget(null); setCancelReason(''); setActionError(''); }}
         >
+          {cancelTarget && !isUpcoming(getApptDatetime(cancelTarget)) && (
+            <div className="mb-4 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
+              This appointment's preferred date has already passed but was never confirmed by CPS. Cancelling it will allow you to book a new appointment.
+            </div>
+          )}
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Are you sure you want to cancel your{' '}
             <strong>{formatTypeName(cancelTarget.appointment_type)}</strong> appointment on{' '}

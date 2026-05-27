@@ -142,6 +142,16 @@ export default function AppointmentSlipPage() {
             </div>
           </div>
 
+          {/* Pending notice */}
+          {!isConfirmed && (
+            <div className="px-8 py-3 print:px-6 bg-amber-50 border-b border-amber-200 flex items-start gap-2">
+              <AlertCircle size={15} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">
+                <span className="font-semibold">This appointment is not yet confirmed.</span> The schedule shown below reflects your preferred date and time. CPS staff will review your request and confirm a final schedule.
+              </p>
+            </div>
+          )}
+
           {/* Reference banner */}
           <div className="flex items-center justify-between px-8 py-3 print:px-6 bg-gray-50 border-b border-gray-200">
             <div className="flex items-center gap-4">

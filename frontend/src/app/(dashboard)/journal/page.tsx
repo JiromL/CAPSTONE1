@@ -113,7 +113,7 @@ export default function JournalPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { icon: <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />, bg: 'bg-indigo-50 dark:bg-indigo-900/30', label: 'Total Entries', value: total },
+          { icon: <BookOpen size={18} className="text-green-600 dark:text-green-400" />, bg: 'bg-green-50 dark:bg-green-900/30', label: 'Total Entries', value: total },
           { icon: <Flame size={18} className="text-orange-500" />, bg: 'bg-orange-50 dark:bg-orange-900/30', label: 'Day Streak', value: streak },
         ].map(({ icon, bg, label, value }) => (
           <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
@@ -139,7 +139,7 @@ export default function JournalPage() {
       <div className="flex justify-end mb-4">
         <button
           onClick={openCompose}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Plus size={15} /> New Entry
         </button>
@@ -147,7 +147,7 @@ export default function JournalPage() {
 
       {/* Compose / Edit panel */}
       {composing && (
-        <div className="mb-5 bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-800 rounded-xl p-5 shadow-sm">
+        <div className="mb-5 bg-white dark:bg-gray-900 border border-green-200 dark:border-green-800 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
               {editingId ? 'Edit Entry' : 'New Entry'}
@@ -182,7 +182,7 @@ export default function JournalPage() {
             onChange={e => setContent(e.target.value)}
             placeholder="What's on your mind today?"
             rows={5}
-            className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none mb-3"
+            className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none mb-3"
           />
 
           <div className="flex items-center gap-2 mb-4">
@@ -191,7 +191,7 @@ export default function JournalPage() {
               value={tags}
               onChange={e => setTags(e.target.value)}
               placeholder="Tags: stress, family, school (comma-separated)"
-              className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
             />
           </div>
 
@@ -204,7 +204,7 @@ export default function JournalPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-lg flex items-center gap-2 transition-colors"
+              className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-lg flex items-center gap-2 transition-colors"
             >
               {saving && <Loader2 size={13} className="animate-spin" />}
               {editingId ? 'Update' : 'Save Entry'}
@@ -220,8 +220,8 @@ export default function JournalPage() {
         </div>
       ) : entries.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
-            <BookOpen size={24} className="text-indigo-400" />
+          <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center mb-4">
+            <BookOpen size={24} className="text-green-400" />
           </div>
           <p className="font-medium text-gray-900 dark:text-white mb-1">No entries yet</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Start your journaling journey today</p>
@@ -250,7 +250,7 @@ export default function JournalPage() {
                         <div className="flex items-center gap-0.5">
                           <button
                             onClick={() => openEdit(entry)}
-                            className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                            className="p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition text-gray-400 hover:text-green-600 dark:hover:text-green-400"
                           >
                             <Edit2 size={13} />
                           </button>
@@ -276,7 +276,7 @@ export default function JournalPage() {
                       {entry.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {entry.tags.map((tag, i) => (
-                            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium">
+                            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">
                               #{tag}
                             </span>
                           ))}

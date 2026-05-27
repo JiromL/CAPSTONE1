@@ -25,7 +25,7 @@ function KpiCard({ label, value, sub, iconBg, icon, urgent }: any) {
 function ActionCard({ href, label, desc, iconBg, icon, badge }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center gap-3 p-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors cursor-pointer group">
+      <div className="flex items-center gap-3 p-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-green-300 dark:hover:border-green-700 transition-colors cursor-pointer group">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
@@ -34,7 +34,7 @@ function ActionCard({ href, label, desc, iconBg, icon, badge }: any) {
         {badge != null && badge > 0 && (
           <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-5 h-5 flex items-center justify-center px-1">{badge}</span>
         )}
-        <ChevronRight size={13} className="text-gray-400 group-hover:text-indigo-500 flex-shrink-0" />
+        <ChevronRight size={13} className="text-gray-400 group-hover:text-green-500 flex-shrink-0" />
       </div>
     </Link>
   );
@@ -98,7 +98,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             <KpiCard label="Pending Requests" value={summary?.pending ?? 0}  sub="need assignment" iconBg="bg-orange-50 dark:bg-orange-900/30" icon={<ClipboardList size={16} className="text-orange-600 dark:text-orange-400"/>} urgent />
-            <KpiCard label="All Appointments" value={summary?.total ?? 0}    sub="in system"       iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Calendar size={16} className="text-indigo-600 dark:text-indigo-400"/>} />
+            <KpiCard label="All Appointments" value={summary?.total ?? 0}    sub="in system"       iconBg="bg-green-50 dark:bg-green-900/30" icon={<Calendar size={16} className="text-green-600 dark:text-green-400"/>} />
             <KpiCard label="Waitlist"         value={0}                       sub="view waitlist"   iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Clock size={16} className="text-blue-600 dark:text-blue-400"/>} />
             <KpiCard label="Reschedule"       value={0}                       sub="requests"        iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<RefreshCw size={16} className="text-teal-600 dark:text-teal-400"/>} />
           </div>
@@ -108,7 +108,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Actions</p>
               <div className="space-y-2">
-                <ActionCard href="/new-intakes"                   label="Walk-In Intake"          desc="Register a walk-in student"       iconBg="bg-indigo-50 dark:bg-indigo-900/30"  icon={<UserPlus size={14} className="text-indigo-600"/>} />
+                <ActionCard href="/new-intakes"                   label="Walk-In Intake"          desc="Register a walk-in student"       iconBg="bg-green-50 dark:bg-green-900/30"  icon={<UserPlus size={14} className="text-green-600"/>} />
                 <ActionCard href="/appointment-requests"          label="Appointment Requests"    desc="Assign counselors"                iconBg="bg-orange-50 dark:bg-orange-900/30"  icon={<Calendar size={14} className="text-orange-600"/>} badge={summary?.pending} />
                 <ActionCard href="/reschedule-requests"           label="Reschedule Requests"     desc="Handle rescheduling"              iconBg="bg-teal-50 dark:bg-teal-900/30"      icon={<RefreshCw size={14} className="text-teal-600"/>} />
                 <ActionCard href="/waitlist"                      label="Waitlist"                desc="Manage waitlist queue"            iconBg="bg-blue-50 dark:bg-blue-900/30"      icon={<Clock size={14} className="text-blue-600"/>} />
@@ -121,7 +121,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending Assignments</p>
-                <Link href="/appointment-requests" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View all</Link>
+                <Link href="/appointment-requests" className="text-xs text-green-600 dark:text-green-400 hover:underline">View all</Link>
               </div>
               {pendingList.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-36 text-center">

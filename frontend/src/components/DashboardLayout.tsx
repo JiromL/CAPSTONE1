@@ -85,7 +85,7 @@ export function DashboardLayout({
       <div className={`flex items-center h-16 px-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 ${desktopCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!desktopCollapsed && (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-bold">CPS</span>
             </div>
             <div>
@@ -95,7 +95,7 @@ export function DashboardLayout({
           </div>
         )}
         {desktopCollapsed && (
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">C</span>
           </div>
         )}
@@ -126,18 +126,18 @@ export function DashboardLayout({
               title={desktopCollapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-medium'
+                  ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 font-medium'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
               } ${desktopCollapsed ? 'lg:justify-center' : ''}`}
             >
               {icon && (
-                <span className={`flex-shrink-0 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
+                <span className={`flex-shrink-0 ${isActive ? 'text-green-600 dark:text-green-400' : ''}`}>
                   {icon}
                 </span>
               )}
               <span className={`flex-1 truncate ${desktopCollapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
               {item.badge != null && item.badge > 0 && (
-                <span className={`bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium ${desktopCollapsed ? 'lg:hidden' : ''}`}>
+                <span className={`bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium ${desktopCollapsed ? 'lg:hidden' : ''}`}>
                   {item.badge}
                 </span>
               )}
@@ -162,7 +162,7 @@ export function DashboardLayout({
       {/* User + Logout */}
       <div className="border-t border-gray-200 dark:border-gray-800 p-3 space-y-1 flex-shrink-0">
         <div className={`flex items-center gap-3 px-2 py-2 rounded-lg ${desktopCollapsed ? 'lg:justify-center' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
             {initials}
           </div>
           <div className={`flex-1 min-w-0 ${desktopCollapsed ? 'lg:hidden' : ''}`}>

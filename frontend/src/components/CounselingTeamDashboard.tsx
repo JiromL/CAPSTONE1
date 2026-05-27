@@ -25,16 +25,16 @@ function KpiCard({ label, value, sub, iconBg, icon }: any) {
 function ActionCard({ href, label, desc, iconBg, icon, badge }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center gap-3 p-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors cursor-pointer group">
+      <div className="flex items-center gap-3 p-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-green-300 dark:hover:border-green-700 transition-colors cursor-pointer group">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
           {desc && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{desc}</p>}
         </div>
         {badge != null && badge > 0 && (
-          <span className="text-xs font-bold bg-indigo-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center px-1">{badge}</span>
+          <span className="text-xs font-bold bg-green-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center px-1">{badge}</span>
         )}
-        <ChevronRight size={13} className="text-gray-400 group-hover:text-indigo-500 flex-shrink-0" />
+        <ChevronRight size={13} className="text-gray-400 group-hover:text-green-500 flex-shrink-0" />
       </div>
     </Link>
   );
@@ -84,7 +84,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            <KpiCard label="Active Cases"       value={summary?.total_cases ?? 0}        sub="with appointments" iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Layers size={16} className="text-indigo-600 dark:text-indigo-400"/>} />
+            <KpiCard label="Active Cases"       value={summary?.total_cases ?? 0}        sub="with appointments" iconBg="bg-green-50 dark:bg-green-900/30" icon={<Layers size={16} className="text-green-600 dark:text-green-400"/>} />
             <KpiCard label="Total Appointments" value={summary?.total_appointments ?? 0} sub="all records"       iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Calendar size={16} className="text-blue-600 dark:text-blue-400"/>} />
             <KpiCard label="Referrals"          value={0}                                sub="view referrals"    iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<ArrowRightLeft size={16} className="text-teal-600 dark:text-teal-400"/>} />
             <KpiCard label="C2C Referrals"      value={0}                                sub="peer referrals"    iconBg="bg-purple-50 dark:bg-purple-900/30" icon={<MessageSquare size={16} className="text-purple-600 dark:text-purple-400"/>} />
@@ -95,7 +95,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Actions</p>
               <div className="space-y-2">
-                <ActionCard href="/cases"                label="Cases"               desc="View all active cases"          iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<FileText size={14} className="text-indigo-600"/>} />
+                <ActionCard href="/cases"                label="Cases"               desc="View all active cases"          iconBg="bg-green-50 dark:bg-green-900/30" icon={<FileText size={14} className="text-green-600"/>} />
                 <ActionCard href="/counseling-cases"     label="Counseling Cases"    desc="Cases under your team"          iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Users size={14} className="text-blue-600"/>} />
                 <ActionCard href="/appointments"         label="Appointments"        desc="Scheduled sessions"             iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<Calendar size={14} className="text-teal-600"/>} />
                 <ActionCard href="/check-ins"            label="Check-Ins"           desc="Monitor client wellness"        iconBg="bg-green-50 dark:bg-green-900/30" icon={<Users size={14} className="text-green-600"/>} />
@@ -108,7 +108,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Clinical Tools</p>
               <div className="space-y-2">
-                <ActionCard href="/supervision"          label="Supervision"         desc="Case supervision sessions"      iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Users size={14} className="text-indigo-600"/>} />
+                <ActionCard href="/supervision"          label="Supervision"         desc="Case supervision sessions"      iconBg="bg-green-50 dark:bg-green-900/30" icon={<Users size={14} className="text-green-600"/>} />
                 <ActionCard href="/recurring-appointments" label="Recurring Sessions" desc="Manage recurring appointments" iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Calendar size={14} className="text-blue-600"/>} />
                 <ActionCard href="/assessments"          label="Assessments"         desc="Review client assessments"      iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<FileText size={14} className="text-teal-600"/>} />
                 <ActionCard href="/mhbot"                label="MHBot / PERMA"       desc="Mental health tracking"         iconBg="bg-purple-50 dark:bg-purple-900/30" icon={<MessageSquare size={14} className="text-purple-600"/>} />

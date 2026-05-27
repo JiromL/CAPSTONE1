@@ -44,7 +44,7 @@ function ResetPasswordContent() {
 
   return (
     <div className="min-h-screen flex bg-white dark:bg-gray-950">
-      <div className="hidden lg:flex lg:w-[45%] bg-indigo-600 flex-col justify-between p-10">
+      <div className="hidden lg:flex lg:w-[45%] bg-green-600 flex-col justify-between p-10">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
             <span className="text-white text-sm font-bold">CPS</span>
@@ -53,9 +53,9 @@ function ResetPasswordContent() {
         </div>
         <div>
           <h2 className="text-white text-3xl font-bold leading-snug mb-4">Choose a new password</h2>
-          <p className="text-indigo-200 text-sm leading-relaxed">Make it strong and something you'll remember.</p>
+          <p className="text-green-200 text-sm leading-relaxed">Make it strong and something you'll remember.</p>
         </div>
-        <p className="text-indigo-300 text-xs">© {new Date().getFullYear()} DLSU Counseling & Psychological Services</p>
+        <p className="text-green-300 text-xs">© {new Date().getFullYear()} DLSU Counseling & Psychological Services</p>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6">
@@ -69,7 +69,7 @@ function ResetPasswordContent() {
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Password reset!</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Redirecting you to login…</p>
-              <Link href="/login" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Go to login now</Link>
+              <Link href="/login" className="text-sm text-green-600 dark:text-green-400 hover:underline">Go to login now</Link>
             </div>
           ) : (
             <div>
@@ -81,7 +81,7 @@ function ResetPasswordContent() {
                   {error}
                   {!token && (
                     <div className="mt-2">
-                      <Link href="/forgot-password" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+                      <Link href="/forgot-password" className="text-green-600 dark:text-green-400 hover:underline font-medium">
                         Request a new reset link
                       </Link>
                     </div>
@@ -99,7 +99,7 @@ function ResetPasswordContent() {
                     required
                     minLength={8}
                     disabled={!token}
-                    className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition disabled:opacity-50"
                   />
                 </div>
                 <div>
@@ -110,20 +110,20 @@ function ResetPasswordContent() {
                     onChange={e => setConfirm(e.target.value)}
                     required
                     disabled={!token}
-                    className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition disabled:opacity-50"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading || !token}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
                 >
                   {loading ? 'Resetting…' : 'Reset password'}
                 </button>
               </form>
 
               <div className="mt-6 text-center">
-                <Link href="/login" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Back to login</Link>
+                <Link href="/login" className="text-sm text-green-600 dark:text-green-400 hover:underline">Back to login</Link>
               </div>
             </div>
           )}
@@ -135,7 +135,7 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-green-200 border-t-green-600 rounded-full animate-spin" /></div>}>
       <ResetPasswordContent />
     </Suspense>
   );

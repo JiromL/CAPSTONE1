@@ -92,7 +92,7 @@ export default function FeedbackPage() {
           </p>
           <button
             onClick={reset}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
             Submit Another
           </button>
@@ -126,12 +126,12 @@ export default function FeedbackPage() {
                   onClick={() => { setCategory(c.value); if (c.value !== 'session') setSessionFormat(''); }}
                   className={`text-left p-3 rounded-xl border-2 transition-all ${
                     category === c.value
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   <span className="text-xl block mb-1">{c.icon}</span>
-                  <p className={`text-sm font-semibold ${category === c.value ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>{c.label}</p>
+                  <p className={`text-sm font-semibold ${category === c.value ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>{c.label}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-tight">{c.desc}</p>
                 </button>
               ))}
@@ -152,8 +152,8 @@ export default function FeedbackPage() {
                     onClick={() => setSessionFormat(sessionFormat === f.value ? '' : f.value)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all ${
                       sessionFormat === f.value
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-600'
+                        ? 'bg-green-600 border-green-600 text-white'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-green-600'
                     }`}
                   >
                     <span>{f.icon}</span> {f.label}
@@ -227,7 +227,7 @@ export default function FeedbackPage() {
               placeholder="Share any comments, suggestions, or specific experiences…"
               maxLength={1000}
               rows={4}
-              className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none"
+              className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none"
             />
             <div className="flex justify-end mt-1.5">
               <span className="text-xs text-gray-400">{content.length}/1000</span>
@@ -237,7 +237,7 @@ export default function FeedbackPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
             {loading ? 'Submitting…' : 'Submit Feedback'}

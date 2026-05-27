@@ -53,8 +53,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   CONFIRMED:        { label: 'Confirmed',     color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',    icon: <CheckCircle size={13} /> },
   REQUESTED:        { label: 'Pending',        color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <AlertCircle size={13} /> },
   PENDING_APPROVAL: { label: 'Under Review',   color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',        icon: <AlertCircle size={13} /> },
-  APPROVED:         { label: 'Approved',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', icon: <CheckCircle size={13} /> },
-  MATCHED:          { label: 'Matched',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', icon: <CheckCircle size={13} /> },
+  APPROVED:         { label: 'Approved',       color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle size={13} /> },
+  MATCHED:          { label: 'Matched',        color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle size={13} /> },
   COMPLETED:        { label: 'Completed',      color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',           icon: <CheckCircle size={13} /> },
   CANCELLED:        { label: 'Cancelled',      color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',            icon: <XCircle size={13} /> },
   DENIED:           { label: 'Denied',         color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',            icon: <XCircle size={13} /> },
@@ -279,7 +279,7 @@ export default function MyAppointmentsPage() {
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Your scheduled sessions will appear here.</p>
             <Link
               href="/counseling"
-              className="inline-block mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="inline-block mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Get Started
             </Link>
@@ -398,7 +398,7 @@ export default function MyAppointmentsPage() {
                 value={rescheduleDate}
                 min={new Date().toISOString().split('T')[0]}
                 onChange={e => setRescheduleDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
             <div>
@@ -407,7 +407,7 @@ export default function MyAppointmentsPage() {
                 type="time"
                 value={rescheduleTime}
                 onChange={e => setRescheduleTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
           </div>
@@ -423,7 +423,7 @@ export default function MyAppointmentsPage() {
             <button
               onClick={handleReschedule}
               disabled={actionLoading || !rescheduleDate || !rescheduleTime}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white transition disabled:opacity-50"
             >
               {actionLoading ? 'Saving…' : 'Reschedule'}
             </button>
@@ -466,7 +466,7 @@ function QrModal({ apptId, onClose }: { apptId: string; onClose: () => void }) {
         {err ? (
           <p className="text-sm text-red-600 dark:text-red-400 text-center py-6">{err}</p>
         ) : !qrSrc ? (
-          <div className="flex justify-center py-10"><Loader2 size={28} className="animate-spin text-indigo-500" /></div>
+          <div className="flex justify-center py-10"><Loader2 size={28} className="animate-spin text-green-500" /></div>
         ) : (
           <>
             <img src={qrSrc} alt="Check-in QR Code" className="w-full rounded-lg border border-gray-200 dark:border-gray-700" />
@@ -507,7 +507,7 @@ function AppointmentCard({
 
   return (
     <div className={`rounded-xl border ${highlight
-      ? 'border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30'
+      ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/30'
       : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
     }`}>
       <div className="p-5">
@@ -566,7 +566,7 @@ function AppointmentCard({
         </div>
 
         {appt.is_recurring && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400">
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
             <Repeat size={11} />
             Session {appt.recurrence_index} of {appt.recurrence_total} · {appt.recurrence === 'weekly' ? 'Weekly' : 'Bi-weekly'}
           </div>
@@ -592,7 +592,7 @@ function AppointmentCard({
                 <span className="text-gray-400 dark:text-gray-500 w-24 flex-shrink-0 text-xs pt-0.5">Counselor</span>
                 <a
                   href={`mailto:${appt.counselor_email}`}
-                  className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="flex items-center gap-1 text-green-600 dark:text-green-400 hover:underline"
                 >
                   <Mail size={12} /> {appt.counselor_email}
                 </a>
@@ -614,7 +614,7 @@ function AppointmentCard({
               href={appt.meeting_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
             >
               <Video size={13} /> Join Session
             </a>

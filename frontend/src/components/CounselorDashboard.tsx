@@ -33,10 +33,10 @@ function KpiCard({ label, value, sub, iconBg, icon }: any) {
 function ActionCard({ href, label, iconBg, icon }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors cursor-pointer group">
+      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-green-300 dark:hover:border-green-700 transition-colors cursor-pointer group">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
         <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white">{label}</span>
-        <ChevronRight size={13} className="text-gray-400 group-hover:text-indigo-500 flex-shrink-0" />
+        <ChevronRight size={13} className="text-gray-400 group-hover:text-green-500 flex-shrink-0" />
       </div>
     </Link>
   );
@@ -99,7 +99,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            <KpiCard label="Assigned Cases"     value={summary.assigned_cases ?? 0}    sub="active"          iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Users size={16} className="text-indigo-600 dark:text-indigo-400"/>} />
+            <KpiCard label="Assigned Cases"     value={summary.assigned_cases ?? 0}    sub="active"          iconBg="bg-green-50 dark:bg-green-900/30" icon={<Users size={16} className="text-green-600 dark:text-green-400"/>} />
             <KpiCard label="Recent Assessments" value={summary.recent_assessments ?? 0} sub="last 30 days"   iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Activity size={16} className="text-blue-600 dark:text-blue-400"/>} />
             <KpiCard label="High-Risk Alerts"   value={summary.high_risk_alerts ?? alerts.length} sub="need attention" iconBg="bg-red-50 dark:bg-red-900/30" icon={<AlertTriangle size={16} className="text-red-600 dark:text-red-400"/>} />
             <KpiCard label="Today's Sessions"   value={todayAppts.length}              sub="confirmed"       iconBg="bg-green-50 dark:bg-green-900/30"  icon={<Calendar size={16} className="text-green-600 dark:text-green-400"/>} />
@@ -110,7 +110,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Access</p>
               <div className="space-y-2">
-                <ActionCard href="/cases"                   label="My Cases"             iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<FileText size={13} className="text-indigo-600"/>} />
+                <ActionCard href="/cases"                   label="My Cases"             iconBg="bg-green-50 dark:bg-green-900/30" icon={<FileText size={13} className="text-green-600"/>} />
                 <ActionCard href="/appointments"            label="Appointments"         iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Calendar size={13} className="text-blue-600"/>} />
                 <ActionCard href="/assessments"             label="Assessments"          iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<Activity size={13} className="text-teal-600"/>} />
                 <ActionCard href="/check-ins"               label="Check-Ins"            iconBg="bg-green-50 dark:bg-green-900/30" icon={<Users size={13} className="text-green-600"/>} />
@@ -127,8 +127,8 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
                 <div className="space-y-2">
                   {todayAppts.map((a, i) => (
                     <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                        <Calendar size={13} className="text-indigo-600 dark:text-indigo-400" />
+                      <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                        <Calendar size={13} className="text-green-600 dark:text-green-400" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{a.student_name || 'Student'}</p>

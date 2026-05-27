@@ -37,7 +37,7 @@ export default function CounselingPage() {
     return (
       <DashboardPageWrapper title="Get Counseling" requiredRoles={['STUDENT']}>
         <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" />
         </div>
       </DashboardPageWrapper>
     );
@@ -76,18 +76,18 @@ function StatusCard({ status, router }: { status: CounselingStatus; router: Retu
 
     return (
       <Card
-        icon={<CalendarIcon className="text-indigo-500" />}
+        icon={<CalendarIcon className="text-green-500" />}
         title="You have an upcoming appointment"
         description={
           scheduledAt
             ? `Your appointment is confirmed for ${scheduledAt}.`
             : `Your appointment request is currently ${apptStatus.toLowerCase().replace(/_/g, ' ')}.`
         }
-        badge={{ label: apptStatus.replace(/_/g, ' '), color: 'indigo' }}
+        badge={{ label: apptStatus.replace(/_/g, ' '), color: 'green' }}
       >
         <button
           onClick={() => router.push('/my-appointments')}
-          className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           View My Appointments
         </button>
@@ -124,7 +124,7 @@ function StatusCard({ status, router }: { status: CounselingStatus; router: Retu
       >
         <button
           onClick={() => router.push('/book-appointment')}
-          className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           Book Appointment
         </button>
@@ -148,7 +148,7 @@ function StatusCard({ status, router }: { status: CounselingStatus; router: Retu
       >
         <button
           onClick={() => router.push('/intake')}
-          className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           Resume Draft
         </button>
@@ -159,7 +159,7 @@ function StatusCard({ status, router }: { status: CounselingStatus; router: Retu
   // Case 5: first time — no history
   return (
     <Card
-      icon={<SparkleIcon className="text-indigo-500" />}
+      icon={<SparkleIcon className="text-green-500" />}
       title="Start your counseling journey"
       description="To book your first appointment, you'll complete a short intake assessment. It helps us match you with the right counselor and schedule appropriately."
     >
@@ -184,11 +184,11 @@ function Card({
   icon: React.ReactNode;
   title: string;
   description: string;
-  badge?: { label: string; color: 'indigo' | 'amber' | 'green' };
+  badge?: { label: string; color: 'green' | 'amber' | 'green' };
   children?: React.ReactNode;
 }) {
   const badgeColors = {
-    indigo: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+    indigo: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
     amber: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
     green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
   };
@@ -219,7 +219,7 @@ function Card({
 function Step({ n, text }: { n: number; text: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 text-xs font-bold flex items-center justify-center flex-shrink-0">
+      <span className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-300 text-xs font-bold flex items-center justify-center flex-shrink-0">
         {n}
       </span>
       <span>{text}</span>

@@ -38,7 +38,7 @@ function statusBadge(status: string) {
     CONFIRMED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     REQUESTED: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
     PENDING_APPROVAL: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    MATCHED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+    MATCHED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     COMPLETED: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
     CANCELLED: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
   };
@@ -159,7 +159,7 @@ export default function CounselorSchedulesPage() {
         <div className="flex gap-2">
           {(['thisWeek', 'load', 'name'] as const).map(s => (
             <button key={s} onClick={() => setSortBy(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${sortBy === s ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${sortBy === s ? 'bg-green-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
               {s === 'thisWeek' ? 'This Week' : s === 'load' ? 'Total Load' : 'Name'}
             </button>
           ))}
@@ -185,7 +185,7 @@ export default function CounselorSchedulesPage() {
                 <div key={row.counselor_id} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                   {/* Header row */}
                   <div className="px-5 py-4 flex items-center gap-4 bg-white dark:bg-gray-900">
-                    <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-semibold text-sm flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-700 dark:text-green-300 font-semibold text-sm flex-shrink-0">
                       {row.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">

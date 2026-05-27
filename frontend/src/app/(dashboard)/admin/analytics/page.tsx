@@ -39,7 +39,7 @@ interface ApptStats { completion_rate: number; no_show_rate: number; avg_wait_da
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
 const C = {
-  indigo:  '#6366f1',
+  indigo:  '#166534',
   green:   '#22c55e',
   red:     '#ef4444',
   yellow:  '#f59e0b',
@@ -428,7 +428,7 @@ export default function AnalyticsDashboardPage() {
                 <div className="mt-3 grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                   <div className="text-center">
                     <p className="text-xs text-gray-500 dark:text-gray-400">Completion Rate</p>
-                    <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{intake.intake_completion_rate}%</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400">{intake.intake_completion_rate}%</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-gray-500 dark:text-gray-400">Case Creation Rate</p>

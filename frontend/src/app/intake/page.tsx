@@ -1953,7 +1953,7 @@ export default function IntakePage() {
 
                   {isLoadingDates ? (
                     <div className="px-3 py-3 border border-gray-200 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                      <svg className="w-4 h-4 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      <svg className="w-4 h-4 animate-spin text-green-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                       Loading available dates…
                     </div>
                   ) : availableDates.length > 0 ? (
@@ -1979,7 +1979,7 @@ export default function IntakePage() {
                       <button
                         type="button"
                         onClick={fetchAvailableDates}
-                        className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap"
+                        className="text-xs font-medium text-green-600 dark:text-green-400 hover:underline whitespace-nowrap"
                       >
                         Retry
                       </button>
@@ -2057,7 +2057,7 @@ export default function IntakePage() {
                     <button
                       type="button"
                       onClick={() => { setAppointmentDate(''); setAvailableTimes([]); fetchAvailableDates(); }}
-                      className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap"
+                      className="text-xs font-medium text-green-600 dark:text-green-400 hover:underline whitespace-nowrap"
                     >
                       Pick another
                     </button>

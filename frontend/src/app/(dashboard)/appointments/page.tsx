@@ -547,7 +547,7 @@ export default function AppointmentsPage() {
                       <select
                         value={assignCounselorMap[appt._id] || ''}
                         onChange={e => setAssignCounselorMap(m => ({ ...m, [appt._id]: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
                       >
                         <option value="">Select counselor…</option>
                         {counselors.map(c => (
@@ -560,13 +560,13 @@ export default function AppointmentsPage() {
                         type="date"
                         value={assignDateMap[appt._id] || (appt.preferred_date ? appt.preferred_date.split('T')[0] : '')}
                         onChange={e => setAssignDateMap(m => ({ ...m, [appt._id]: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
                       />
                       <input
                         type="time"
                         value={assignTimeMap[appt._id] || (appt.preferred_time || '')}
                         onChange={e => setAssignTimeMap(m => ({ ...m, [appt._id]: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
                       />
                     </div>
 
@@ -576,7 +576,7 @@ export default function AppointmentsPage() {
                       className={`w-full py-2 rounded text-sm font-semibold transition ${
                         assigningId === appt._id || !assignCounselorMap[appt._id]
                           ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                          : 'bg-green-600 hover:bg-green-700 text-white'
                       }`}
                     >
                       {assigningId === appt._id ? 'Assigning…' : 'Assign & Confirm'}

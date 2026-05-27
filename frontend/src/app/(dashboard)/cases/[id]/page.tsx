@@ -74,7 +74,7 @@ function SupervisorActions({ noteId, onAction }: {
         onChange={e => setComment(e.target.value)}
         rows={2}
         placeholder="Optional feedback comment…"
-        className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-1 focus:ring-indigo-500"
+        className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-1 focus:ring-green-500"
       />
       <div className="flex gap-2">
         <button
@@ -106,9 +106,9 @@ function SafetyListSection({ label, hint, items, onAdd, onRemove }: {
       <p className="text-xs text-gray-400 mb-2">{hint}</p>
       <div className="flex gap-2 mb-2">
         <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), commit())}
-          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
           placeholder="Add item…" />
-        <button onClick={commit} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"><Plus size={14} /></button>
+        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm"><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((item, i) => (
@@ -139,12 +139,12 @@ function ContactSection({ label, hint, items, fields, onAdd, onRemove }: {
       <p className="text-xs text-gray-400 mb-2">{hint}</p>
       <div className="flex gap-2 mb-2">
         <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
           placeholder="Name" />
         <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
           placeholder="Phone" />
-        <button onClick={commit} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"><Plus size={14} /></button>
+        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm"><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((c, i) => (
@@ -173,15 +173,15 @@ function ProfessionalContactSection({ items, onAdd, onRemove }: {
       <p className="text-xs text-gray-400 mb-2">Counselors, psychiatrists, crisis hotlines the client can reach out to.</p>
       <div className="flex gap-2 mb-2 flex-wrap">
         <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          className="flex-1 min-w-[120px] border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          className="flex-1 min-w-[120px] border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
           placeholder="Name" />
         <input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-          className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
           placeholder="Role / org" />
         <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
           placeholder="Phone / hotline" />
-        <button onClick={commit} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"><Plus size={14} /></button>
+        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm"><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((c, i) => (
@@ -789,7 +789,7 @@ export default function CaseDetailPage() {
                         key={fmt}
                         type="button"
                         onClick={() => setNoteForm({ ...noteForm, note_format: fmt })}
-                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                       >
                         {fmt === 'SOAP' ? 'SOAP Template' : 'Freeform'}
                       </button>
@@ -806,13 +806,13 @@ export default function CaseDetailPage() {
                       { key: 'soap_plan', label: 'P — Plan', hint: 'Next steps, homework, referrals, follow-up schedule' },
                     ] as const).map(({ key, label, hint }) => (
                       <div key={key} className="md:col-span-2">
-                        <label className="block text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-0.5">{label}</label>
+                        <label className="block text-xs font-semibold text-green-700 dark:text-green-400 mb-0.5">{label}</label>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{hint}</p>
                         <textarea
                           value={noteForm[key] as string}
                           onChange={(e) => setNoteForm({ ...noteForm, [key]: e.target.value })}
                           rows={3}
-                          className="w-full px-3 py-2 text-sm border border-indigo-200 dark:border-indigo-800 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-green-200 dark:border-green-800 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-green-500 outline-none"
                         />
                       </div>
                     ))}
@@ -980,7 +980,7 @@ export default function CaseDetailPage() {
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Goals</label>
                     <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, goals: [...tp.goals, { goal: '', target_date: '', status: 'not_started' }] }))}
-                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add Goal</button>
+                      className="text-xs text-green-600 dark:text-green-400 hover:underline">+ Add Goal</button>
                   </div>
                   <div className="space-y-2">
                     {treatmentPlan.goals.map((g, i) => (
@@ -1011,7 +1011,7 @@ export default function CaseDetailPage() {
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Interventions</label>
                     <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, interventions: [...tp.interventions, ''] }))}
-                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add</button>
+                      className="text-xs text-green-600 dark:text-green-400 hover:underline">+ Add</button>
                   </div>
                   <div className="space-y-2">
                     {treatmentPlan.interventions.map((iv, i) => (
@@ -1082,7 +1082,7 @@ export default function CaseDetailPage() {
                   <div>
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Interventions</p>
                     <div className="flex flex-wrap gap-2">
-                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">{iv}</span>)}
+                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">{iv}</span>)}
                     </div>
                   </div>
                 )}
@@ -1143,7 +1143,7 @@ export default function CaseDetailPage() {
               </div>
               <div className="flex items-end">
                 <button onClick={handleAddDiagnosis} disabled={savingDiag || !diagForm.code || !diagForm.description}
-                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition">
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition">
                   {savingDiag ? 'Adding…' : 'Add'}
                 </button>
               </div>
@@ -1164,10 +1164,10 @@ export default function CaseDetailPage() {
             <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
               {diagnoses.map((d, i) => (
                 <div key={i} className="flex items-center gap-3 px-5 py-3">
-                  <span className="font-mono text-sm font-bold text-indigo-700 dark:text-indigo-400 w-20 flex-shrink-0">{d.code}</span>
+                  <span className="font-mono text-sm font-bold text-green-700 dark:text-green-400 w-20 flex-shrink-0">{d.code}</span>
                   <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{d.description}</span>
                   <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">{d.system}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
                   <button onClick={() => handleRemoveDiagnosis(i)} className="text-gray-300 hover:text-red-500 transition ml-1"><XIcon size={14} /></button>
                 </div>
               ))}
@@ -1191,7 +1191,7 @@ export default function CaseDetailPage() {
               )}
             </div>
             {safetyPlanExists && !editingSafetyPlan && (
-              <button onClick={() => setEditingSafetyPlan(true)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
+              <button onClick={() => setEditingSafetyPlan(true)} className="text-xs text-green-600 dark:text-green-400 hover:underline">Edit</button>
             )}
           </div>
 
@@ -1321,7 +1321,7 @@ export default function CaseDetailPage() {
                   value={safetyPlan.means_restriction}
                   onChange={e => setSafetyPlan(p => ({ ...p, means_restriction: e.target.value }))}
                   rows={2}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   placeholder="e.g. Client agreed to have family remove firearms from home."
                 />
               </div>
@@ -1334,7 +1334,7 @@ export default function CaseDetailPage() {
                     type="date"
                     value={safetyPlan.follow_up_date}
                     onChange={e => setSafetyPlan(p => ({ ...p, follow_up_date: e.target.value }))}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -1343,7 +1343,7 @@ export default function CaseDetailPage() {
                     type="text"
                     value={safetyPlan.counselor_signature}
                     onChange={e => setSafetyPlan(p => ({ ...p, counselor_signature: e.target.value }))}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="Counselor full name"
                   />
                 </div>
@@ -1385,7 +1385,7 @@ export default function CaseDetailPage() {
                 <label className="block text-xs text-gray-500 mb-0.5">Assessment</label>
                 <select value={scheduleForm.assessment_type}
                   onChange={e => setScheduleForm(f => ({ ...f, assessment_type: e.target.value }))}
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
                   <option value="PHQ9">PHQ-9 (Depression)</option>
                   <option value="GAD7">GAD-7 (Anxiety)</option>
                   <option value="PSS">PSS (Stress)</option>
@@ -1395,17 +1395,17 @@ export default function CaseDetailPage() {
                 <label className="block text-xs text-gray-500 mb-0.5">Every (days)</label>
                 <input type="number" min={1} max={90} value={scheduleForm.interval_days}
                   onChange={e => setScheduleForm(f => ({ ...f, interval_days: parseInt(e.target.value) || 14 }))}
-                  className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500" />
+                  className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-0.5">First due date</label>
                 <input type="date" value={scheduleForm.start_date}
                   onChange={e => setScheduleForm(f => ({ ...f, start_date: e.target.value }))}
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500" />
+                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500" />
               </div>
               <div className="self-end">
                 <button onClick={handleAddSchedule} disabled={savingSchedule}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
+                  className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
                   <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
                 </button>
               </div>
@@ -1461,7 +1461,7 @@ export default function CaseDetailPage() {
           {/* Link / Unlink MHBot account */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-              <Activity size={14} className="text-indigo-500" /> MHBot Account
+              <Activity size={14} className="text-green-500" /> MHBot Account
             </p>
             {caseData?.student?.mhbot_username ? (
               <div className="flex items-center justify-between mt-3">
@@ -1491,12 +1491,12 @@ export default function CaseDetailPage() {
                     value={mhbotUsername}
                     onChange={e => setMhbotUsername(e.target.value)}
                     placeholder="e.g. ema_lVk"
-                    className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                   <button
                     onClick={linkMhbot}
                     disabled={linkingMhbot || !mhbotUsername.trim()}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
                   >
                     {linkingMhbot ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
                     Link

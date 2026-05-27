@@ -33,10 +33,10 @@ function KpiCard({ label, value, sub, iconBg, icon, accent }: any) {
 function ActionCard({ href, label, iconBg, icon }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors cursor-pointer group">
+      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-green-300 dark:hover:border-green-700 transition-colors cursor-pointer group">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
         <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white">{label}</span>
-        <ChevronRight size={13} className="text-gray-400 group-hover:text-indigo-500 flex-shrink-0" />
+        <ChevronRight size={13} className="text-gray-400 group-hover:text-green-500 flex-shrink-0" />
       </div>
     </Link>
   );
@@ -86,7 +86,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            <KpiCard label="Assigned Cases"   value={summary.assigned_cases ?? cases.length}   sub="active caseload"  iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Users size={16} className="text-indigo-600 dark:text-indigo-400"/>} />
+            <KpiCard label="Assigned Cases"   value={summary.assigned_cases ?? cases.length}   sub="active caseload"  iconBg="bg-green-50 dark:bg-green-900/30" icon={<Users size={16} className="text-green-600 dark:text-green-400"/>} />
             <KpiCard label="Critical Cases"   value={criticalCount}   sub="immediate review needed" iconBg="bg-red-50 dark:bg-red-900/30"    icon={<AlertTriangle size={16} className="text-red-600 dark:text-red-400"/>} accent="text-red-600 dark:text-red-400" />
             <KpiCard label="High-Risk Total"  value={highRiskCount}   sub="RED + CRITICAL"          iconBg="bg-orange-50 dark:bg-orange-900/30" icon={<Shield size={16} className="text-orange-600 dark:text-orange-400"/>} />
             <KpiCard label="High-Risk Alerts" value={summary.high_risk_alerts ?? alerts.length} sub="pending action" iconBg="bg-yellow-50 dark:bg-yellow-900/30" icon={<Activity size={16} className="text-yellow-600 dark:text-yellow-400"/>} />
@@ -98,7 +98,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Access</p>
               <div className="space-y-2">
                 <ActionCard href="/high-risk"              label="High-Risk Monitoring" iconBg="bg-red-50 dark:bg-red-900/30"      icon={<AlertTriangle size={13} className="text-red-600"/>} />
-                <ActionCard href="/cases"                  label="All Cases"            iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<FileText size={13} className="text-indigo-600"/>} />
+                <ActionCard href="/cases"                  label="All Cases"            iconBg="bg-green-50 dark:bg-green-900/30" icon={<FileText size={13} className="text-green-600"/>} />
                 <ActionCard href="/counseling-cases"       label="Counseling Cases"     iconBg="bg-blue-50 dark:bg-blue-900/30"   icon={<Users size={13} className="text-blue-600"/>} />
                 <ActionCard href="/appointments"           label="Appointments"         iconBg="bg-green-50 dark:bg-green-900/30" icon={<Calendar size={13} className="text-green-600"/>} />
                 <ActionCard href="/assessments"            label="Assessments"          iconBg="bg-teal-50 dark:bg-teal-900/30"   icon={<Activity size={13} className="text-teal-600"/>} />
@@ -109,7 +109,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Alerts</p>
-                {alerts.length > 0 && <Link href="/high-risk" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View all</Link>}
+                {alerts.length > 0 && <Link href="/high-risk" className="text-xs text-green-600 dark:text-green-400 hover:underline">View all</Link>}
               </div>
               {alerts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-center">
@@ -138,7 +138,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Recent Cases</p>
-                <Link href="/cases" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View all</Link>
+                <Link href="/cases" className="text-xs text-green-600 dark:text-green-400 hover:underline">View all</Link>
               </div>
               {cases.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">No recent cases.</p>

@@ -133,7 +133,7 @@ export default function CheckInPage() {
               </button>
               <button
                 onClick={() => setStep('form')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 + New Check-In
               </button>
@@ -146,10 +146,10 @@ export default function CheckInPage() {
             </div>
           ) : checkInHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-52 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4 text-2xl">✓</div>
+              <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center mb-4 text-2xl">✓</div>
               <p className="font-medium text-gray-900 dark:text-white mb-1">No check-ins yet</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Let your support team know how you're doing</p>
-              <button onClick={() => setStep('form')} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
+              <button onClick={() => setStep('form')} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
                 Submit Check-In
               </button>
             </div>
@@ -194,9 +194,9 @@ export default function CheckInPage() {
                           {ci.concern && <p className="text-xs text-gray-600 dark:text-gray-400"><span className="font-medium">Concern: </span>{ci.concern}</p>}
                           {ci.notes   && <p className="text-xs text-gray-600 dark:text-gray-400"><span className="font-medium">Notes: </span>{ci.notes}</p>}
                           {ci.staff_notes && (
-                            <div className="mt-2 p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800">
-                              <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-1">Staff Response</p>
-                              <p className="text-xs text-indigo-600 dark:text-indigo-400">{ci.staff_notes}</p>
+                            <div className="mt-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
+                              <p className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Staff Response</p>
+                              <p className="text-xs text-green-600 dark:text-green-400">{ci.staff_notes}</p>
                             </div>
                           )}
                         </div>
@@ -292,8 +292,8 @@ export default function CheckInPage() {
                       onClick={() => toggleMood(m)}
                       className={`px-3 py-1 rounded-full text-sm border transition-all ${
                         selectedMoods.includes(m)
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-700'
+                          ? 'bg-green-600 border-green-600 text-white'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-green-700'
                       }`}
                     >
                       {m}
@@ -312,7 +312,7 @@ export default function CheckInPage() {
                   onChange={e => setConcern(e.target.value)}
                   placeholder="Share any challenges you're facing…"
                   rows={3}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition resize-none"
                 />
               </div>
 
@@ -324,7 +324,7 @@ export default function CheckInPage() {
                 >
                   <div
                     className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                      needsSupport ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 dark:border-gray-600'
+                      needsSupport ? 'bg-green-600 border-green-600' : 'border-gray-300 dark:border-gray-600'
                     }`}
                   >
                     {needsSupport && <CheckCircle size={12} className="text-white" />}
@@ -336,7 +336,7 @@ export default function CheckInPage() {
                     <select
                       value={supportType}
                       onChange={e => setSupportType(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       <option value="">Type of support…</option>
                       <option value="COUNSELING">Counseling / Therapy</option>
@@ -349,7 +349,7 @@ export default function CheckInPage() {
                       onChange={e => setSupportDetails(e.target.value)}
                       placeholder="What specific support would help?"
                       rows={2}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition resize-none"
                     />
                   </div>
                 )}
@@ -365,7 +365,7 @@ export default function CheckInPage() {
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Anything else you'd like to share?"
                   rows={2}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition resize-none"
                 />
               </div>
 
@@ -380,7 +380,7 @@ export default function CheckInPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-2.5 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
+                  className="flex-1 py-2.5 text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
                 >
                   {loading && <Loader2 size={14} className="animate-spin" />}
                   {loading ? 'Submitting…' : 'Submit Check-In'}

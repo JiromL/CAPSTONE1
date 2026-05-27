@@ -26,13 +26,13 @@ function KpiCard({ label, value, sub, iconBg, icon }: any) {
 function ActionCard({ href, label, desc, iconBg, icon }: any) {
   return (
     <Link href={href}>
-      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors cursor-pointer group">
+      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 rounded-xl hover:border-green-300 dark:hover:border-green-700 transition-colors cursor-pointer group">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
           {desc && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{desc}</p>}
         </div>
-        <ChevronRight size={13} className="text-gray-400 group-hover:text-indigo-500 flex-shrink-0" />
+        <ChevronRight size={13} className="text-gray-400 group-hover:text-green-500 flex-shrink-0" />
       </div>
     </Link>
   );
@@ -112,7 +112,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            <KpiCard label="Upcoming"   value={upcoming.length} sub="appointments" iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Calendar size={16} className="text-indigo-600 dark:text-indigo-400"/>} />
+            <KpiCard label="Upcoming"   value={upcoming.length} sub="appointments" iconBg="bg-green-50 dark:bg-green-900/30" icon={<Calendar size={16} className="text-green-600 dark:text-green-400"/>} />
             <KpiCard label="Completed"  value={completed} sub="sessions" iconBg="bg-green-50 dark:bg-green-900/30" icon={<CheckCircle size={16} className="text-green-600 dark:text-green-400"/>} />
             <KpiCard label="Resources"  value={resourceCount} sub="available" iconBg="bg-teal-50 dark:bg-teal-900/30" icon={<BookOpen size={16} className="text-teal-600 dark:text-teal-400"/>} />
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl p-4">
@@ -129,9 +129,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               {nextAppt ? (
                 <>
                   <p className="text-base font-bold text-gray-900 dark:text-white">{fmtDate(nextAppt.requested_start)}</p>
-                  <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{fmtTime(nextAppt.requested_start)}</p>
+                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">{fmtTime(nextAppt.requested_start)}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{nextAppt.counselor_name || 'Assigned Counselor'}</p>
-                  <span className="inline-block mt-2 px-2 py-0.5 text-xs rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium border border-indigo-100 dark:border-indigo-800">
+                  <span className="inline-block mt-2 px-2 py-0.5 text-xs rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium border border-green-100 dark:border-green-800">
                     {nextAppt.status}
                   </span>
                 </>
@@ -140,7 +140,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               )}
               {!isCheckInOnly && (
                 <Link href="/book-appointment">
-                  <button className="mt-3 w-full py-2 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
+                  <button className="mt-3 w-full py-2 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
                     Book Appointment
                   </button>
                 </Link>
@@ -152,7 +152,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Actions</p>
               <div className="space-y-2">
                 {!isCheckInOnly && <>
-                  <ActionCard href="/book-appointment" label="Book Appointment" desc="Schedule a new session" iconBg="bg-indigo-50 dark:bg-indigo-900/30" icon={<Calendar size={14} className="text-indigo-600 dark:text-indigo-400"/>} />
+                  <ActionCard href="/book-appointment" label="Book Appointment" desc="Schedule a new session" iconBg="bg-green-50 dark:bg-green-900/30" icon={<Calendar size={14} className="text-green-600 dark:text-green-400"/>} />
                   <ActionCard href="/my-appointments" label="My Appointments" desc="View and manage" iconBg="bg-blue-50 dark:bg-blue-900/30" icon={<CheckCircle size={14} className="text-blue-600 dark:text-blue-400"/>} />
                 </>}
                 <ActionCard href="/check-ins-student" label="Wellness Check-In" desc="How are you doing today?" iconBg="bg-green-50 dark:bg-green-900/30" icon={<Heart size={14} className="text-green-600 dark:text-green-400"/>} />

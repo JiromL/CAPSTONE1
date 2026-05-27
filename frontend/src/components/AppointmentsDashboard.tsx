@@ -227,7 +227,7 @@ export default function AppointmentsDashboard() {
                             <select
                               value={assignMap[apt.appointment_id]?.counselorId || ''}
                               onChange={e => setAssignField(apt.appointment_id, 'counselorId', e.target.value)}
-                              className="w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
+                              className="w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500"
                             >
                               <option value="">Select counselor…</option>
                               {counselors.map(c => (
@@ -239,13 +239,13 @@ export default function AppointmentsDashboard() {
                                 type="date"
                                 value={assignMap[apt.appointment_id]?.date || (apt.preferred_date ? apt.preferred_date.split('T')[0] : '')}
                                 onChange={e => setAssignField(apt.appointment_id, 'date', e.target.value)}
-                                className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
+                                className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500"
                               />
                               <input
                                 type="time"
                                 value={assignMap[apt.appointment_id]?.time || (apt.preferred_time || '')}
                                 onChange={e => setAssignField(apt.appointment_id, 'time', e.target.value)}
-                                className="w-24 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
+                                className="w-24 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500"
                               />
                             </div>
                             <button
@@ -254,7 +254,7 @@ export default function AppointmentsDashboard() {
                               className={`w-full py-1.5 rounded text-xs font-semibold transition ${
                                 assigningId === apt.appointment_id || !assignMap[apt.appointment_id]?.counselorId
                                   ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                  : 'bg-green-600 hover:bg-green-700 text-white'
                               }`}
                             >
                               {assigningId === apt.appointment_id ? 'Assigning…' : 'Assign & Confirm'}

@@ -77,7 +77,7 @@ export default function CounselorProfilePage() {
       <DashboardPageWrapper title="Counselor Profile" subtitle="Your profile information">
         <div className="flex items-center justify-center h-96">
           <div className="flex flex-col items-center gap-3">
-            <Loader className="animate-spin text-indigo-600" size={32} />
+            <Loader className="animate-spin text-green-600" size={32} />
             <p className="text-gray-600">Loading profile...</p>
           </div>
         </div>
@@ -119,14 +119,14 @@ export default function CounselorProfilePage() {
           {/* Header */}
           <div className="flex items-start justify-between mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-6">
-              <div className="w-24 h-24 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+              <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                 {displayProfile.first_name?.charAt(0).toUpperCase()}{displayProfile.last_name?.charAt(0).toUpperCase()}
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{fullName}</h1>
                 <p className="text-gray-600 dark:text-gray-400">Licensed Counselor</p>
                 {displayProfile.specialization && (
-                  <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-2">{displayProfile.specialization}</p>
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">{displayProfile.specialization}</p>
                 )}
               </div>
             </div>
@@ -135,7 +135,7 @@ export default function CounselorProfilePage() {
           {/* Contact Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="flex items-center gap-4">
-              <Mail className="text-indigo-600 dark:text-indigo-400" size={24} />
+              <Mail className="text-green-600 dark:text-green-400" size={24} />
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Email</p>
                 <p className="text-gray-900 dark:text-white font-medium break-all">{displayProfile.email}</p>
@@ -144,7 +144,7 @@ export default function CounselorProfilePage() {
 
             {displayProfile.phone && (
               <div className="flex items-center gap-4">
-                <Phone className="text-indigo-600 dark:text-indigo-400" size={24} />
+                <Phone className="text-green-600 dark:text-green-400" size={24} />
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">Phone</p>
                   <p className="text-gray-900 dark:text-white font-medium">{displayProfile.phone}</p>
@@ -154,7 +154,7 @@ export default function CounselorProfilePage() {
 
             {displayProfile.office_location && (
               <div className="flex items-center gap-4">
-                <MapPin className="text-indigo-600 dark:text-indigo-400" size={24} />
+                <MapPin className="text-green-600 dark:text-green-400" size={24} />
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">Office Location</p>
                   <p className="text-gray-900 dark:text-white font-medium">{displayProfile.office_location}</p>
@@ -164,7 +164,7 @@ export default function CounselorProfilePage() {
 
             {displayProfile.availability && (
               <div className="flex items-center gap-4">
-                <Clock className="text-indigo-600 dark:text-indigo-400" size={24} />
+                <Clock className="text-green-600 dark:text-green-400" size={24} />
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">Availability</p>
                   <p className="text-gray-900 dark:text-white font-medium">{displayProfile.availability}</p>
@@ -222,13 +222,13 @@ export default function CounselorProfilePage() {
           {displayProfile.qualifications && displayProfile.qualifications.length > 0 && (
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Award size={20} className="text-indigo-600" />
+                <Award size={20} className="text-green-600" />
                 Qualifications & Certifications
               </h3>
               <ul className="space-y-2">
                 {displayProfile.qualifications.map((qual, idx) => (
                   <li key={idx} className="flex items-start gap-3 text-gray-700 dark:text-gray-300">
-                    <span className="text-indigo-600 dark:text-indigo-400 mt-1">✓</span>
+                    <span className="text-green-600 dark:text-green-400 mt-1">✓</span>
                     {qual}
                   </li>
                 ))}

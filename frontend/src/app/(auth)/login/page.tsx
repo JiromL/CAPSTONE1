@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/utils/api';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -115,7 +116,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-white dark:bg-gray-950">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-[45%] bg-indigo-600 flex-col justify-between p-10">
+      <div className="hidden lg:flex lg:w-[45%] bg-green-600 flex-col justify-between p-10">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
             <span className="text-white text-sm font-bold">CPS</span>
@@ -126,19 +127,22 @@ export default function LoginPage() {
           <h2 className="text-white text-3xl font-bold leading-snug mb-4">
             Supporting student wellness, one session at a time.
           </h2>
-          <p className="text-indigo-200 text-sm leading-relaxed">
+          <p className="text-green-200 text-sm leading-relaxed">
             De La Salle University's integrated counseling and psychological services platform — connecting students with care.
           </p>
         </div>
-        <p className="text-indigo-300 text-xs">© {new Date().getFullYear()} DLSU Counseling & Psychological Services</p>
+        <p className="text-green-300 text-xs">© {new Date().getFullYear()} DLSU Counseling & Psychological Services</p>
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 relative">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
               <span className="text-white text-xs font-bold">CPS</span>
             </div>
             <span className="font-semibold text-gray-900 dark:text-white">CPS System</span>
@@ -164,7 +168,7 @@ export default function LoginPage() {
                 placeholder="you@dlsu.edu.ph"
                 required
                 autoComplete="email"
-                className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
               />
             </div>
 
@@ -177,7 +181,7 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -191,13 +195,13 @@ export default function LoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <Link href="/forgot-password" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+              <Link href="/forgot-password" className="text-xs text-green-600 dark:text-green-400 hover:underline">
                 Forgot password?
               </Link>
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
@@ -218,7 +222,7 @@ export default function LoginPage() {
             <div>
               {!googleReady && (
                 <div className="flex items-center justify-center gap-2 py-2.5 text-xs text-gray-400 dark:text-gray-500">
-                  <div className="w-4 h-4 border-2 border-gray-200 border-t-indigo-500 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-gray-200 border-t-green-500 rounded-full animate-spin" />
                   Loading Google Sign-In…
                 </div>
               )}
@@ -237,7 +241,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               No account?{' '}
-              <Link href="/register" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+              <Link href="/register" className="text-green-600 dark:text-green-400 font-medium hover:underline">
                 Create one
               </Link>
             </p>

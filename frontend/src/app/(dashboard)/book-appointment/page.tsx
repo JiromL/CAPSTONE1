@@ -386,7 +386,7 @@ export default function BookAppointmentPage() {
               Please complete, cancel, or reschedule your existing appointment before booking a new one.
             </p>
             <Link href="/my-appointments">
-              <button className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition text-sm">
+              <button className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm">
                 View My Appointments
               </button>
             </Link>
@@ -524,7 +524,7 @@ export default function BookAppointmentPage() {
           <div className="flex items-center gap-2 mb-6 text-xs text-gray-400 dark:text-gray-500">
             <span>Fill in details</span>
             <span>›</span>
-            <span className="font-semibold text-indigo-600 dark:text-indigo-400">Review</span>
+            <span className="font-semibold text-green-600 dark:text-green-400">Review</span>
             <span>›</span>
             <span>Confirmed</span>
           </div>
@@ -539,10 +539,10 @@ export default function BookAppointmentPage() {
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
 
             {/* Document header */}
-            <div className="bg-indigo-700 px-7 py-5">
-              <p className="text-indigo-300 text-xs font-medium uppercase tracking-wider mb-0.5">De La Salle University · CPS</p>
+            <div className="bg-green-700 px-7 py-5">
+              <p className="text-green-300 text-xs font-medium uppercase tracking-wider mb-0.5">De La Salle University · CPS</p>
               <h1 className="text-white text-lg font-bold">Appointment Request — Review</h1>
-              <p className="text-indigo-300 text-xs mt-1">Please verify all information before submitting</p>
+              <p className="text-green-300 text-xs mt-1">Please verify all information before submitting</p>
             </div>
 
             <div className="px-7 py-6 space-y-6">
@@ -586,7 +586,7 @@ export default function BookAppointmentPage() {
                     type="checkbox"
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500"
                   />
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">I confirm all details are correct</p>
@@ -605,7 +605,7 @@ export default function BookAppointmentPage() {
                   className={`flex-1 px-5 py-2.5 rounded-lg text-sm font-semibold transition ${
                     submitting || !termsAccepted
                       ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
                   }`}
                 >
                   {submitting ? 'Submitting…' : 'Submit Appointment Request'}
@@ -634,8 +634,8 @@ export default function BookAppointmentPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-lg w-full p-8">
             <div className="mb-6 text-center">
-              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -653,7 +653,7 @@ export default function BookAppointmentPage() {
                     type="checkbox"
                     checked={consentChecks.counseling}
                     onChange={e => setConsentChecks(c => ({ ...c, counseling: e.target.checked }))}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                   />
                 </div>
                 <div>
@@ -675,7 +675,7 @@ export default function BookAppointmentPage() {
                     type="checkbox"
                     checked={consentChecks.privacy}
                     onChange={e => setConsentChecks(c => ({ ...c, privacy: e.target.checked }))}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                   />
                 </div>
                 <div>
@@ -696,7 +696,7 @@ export default function BookAppointmentPage() {
               disabled={!consentChecks.counseling || !consentChecks.privacy || submittingConsent}
               className={`w-full py-3 rounded-lg font-semibold text-sm transition-colors ${
                 consentChecks.counseling && consentChecks.privacy && !submittingConsent
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -789,7 +789,7 @@ export default function BookAppointmentPage() {
                 <button
                   type="button"
                   onClick={() => setEditingPersonalInfo(!editingPersonalInfo)}
-                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex-shrink-0 ml-4"
+                  className="text-xs text-green-600 dark:text-green-400 hover:underline flex-shrink-0 ml-4"
                 >
                   {editingPersonalInfo ? 'Done' : 'Edit'}
                 </button>
@@ -806,7 +806,7 @@ export default function BookAppointmentPage() {
                         type="text"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       />
                     </div>
                     <div>
@@ -817,7 +817,7 @@ export default function BookAppointmentPage() {
                         type="text"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       />
                     </div>
                     <div>
@@ -828,7 +828,7 @@ export default function BookAppointmentPage() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       />
                     </div>
                     <div>
@@ -839,7 +839,7 @@ export default function BookAppointmentPage() {
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       />
                     </div>
                   </div>

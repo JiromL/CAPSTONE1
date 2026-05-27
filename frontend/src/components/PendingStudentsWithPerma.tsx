@@ -104,12 +104,12 @@ export default function PendingStudentsWithPerma() {
             value={searchUsername}
             onChange={e => setSearchUsername(e.target.value)}
             placeholder="e.g. ema_lVk"
-            className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
           />
           <button
             type="submit"
             disabled={searching || !searchUsername.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
           >
             {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
             Lookup
@@ -171,7 +171,7 @@ export default function PendingStudentsWithPerma() {
                         <button
                           onClick={() => linkAccount(s.case_id, lookupResult.username)}
                           disabled={linkingId === s.case_id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50"
                         >
                           {linkingId === s.case_id ? <Loader2 size={11} className="animate-spin" /> : <Link2 size={11} />}
                           Link {lookupResult.username}

@@ -31,7 +31,7 @@ def _process_reminders(app):
             student = db.db.users.find_one({'_id': appt.get('student_id')})
             email = student.get('email', '') if student else ''
             name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else 'Student'
-            appt_time = appt.get('requested_start', now)
+            appt_time = appt.get('scheduled_start') or appt.get('requested_start', now)
             if isinstance(appt_time, datetime):
                 appt_time_str = appt_time.strftime('%B %d, %Y at %I:%M %p')
             else:
@@ -53,23 +53,37 @@ def _process_reminders(app):
             print(f"[Scheduler] Created {label} reminder for {name} ({email})")
 
         # Active appointment statuses that need reminders
-        active = ['CONFIRMED', 'confirmed']
+        active = ['CONFIRMED', 'confirmed', 'CHECKED_IN']
 
-        # 24-hour reminders
+        def appt_time(appt):
+            """Return the confirmed session time, falling back to the requested time."""
+            return appt.get('scheduled_start') or appt.get('requested_start')
+
+        # 24-hour reminders — match on scheduled_start first, fall back to requested_start
         appts_24h = db.db.appointments.find({
             'status': {'$in': active},
-            'requested_start': {'$gte': window_24h_start, '$lte': window_24h_end},
+            '$or': [
+                {'scheduled_start': {'$gte': window_24h_start, '$lte': window_24h_end}},
+                {'scheduled_start': {'$exists': False}, 'requested_start': {'$gte': window_24h_start, '$lte': window_24h_end}},
+            ],
         })
         for appt in appts_24h:
-            make_reminder(appt, '24h', appt.get('requested_start') - timedelta(hours=24))
+            t = appt_time(appt)
+            if t:
+                make_reminder(appt, '24h', t - timedelta(hours=24))
 
         # 1-hour reminders
         appts_1h = db.db.appointments.find({
             'status': {'$in': active},
-            'requested_start': {'$gte': window_1h_start, '$lte': window_1h_end},
+            '$or': [
+                {'scheduled_start': {'$gte': window_1h_start, '$lte': window_1h_end}},
+                {'scheduled_start': {'$exists': False}, 'requested_start': {'$gte': window_1h_start, '$lte': window_1h_end}},
+            ],
         })
         for appt in appts_1h:
-            make_reminder(appt, '1h', appt.get('requested_start') - timedelta(hours=1))
+            t = appt_time(appt)
+            if t:
+                make_reminder(appt, '1h', t - timedelta(hours=1))
 
         # Send overdue pending reminders via email
         due = db.db.reminders.find({

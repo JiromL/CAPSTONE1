@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, CheckCircle, FileText, Heart, AlertCircle, Search, X, Mail, Clock, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { BookOpen, CheckCircle, FileText, Heart, AlertCircle, Search, X, Mail, Clock, Plus, Calendar as CalendarIcon, Link as LinkIcon, Video } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ScheduleAppointmentCalendar } from '@/components/ScheduleAppointmentCalendar';
 import { CancelNoShowModal } from '@/components/CancelNoShowModal';
@@ -51,6 +51,10 @@ export default function AppointmentsPage() {
   const [assignCounselorMap, setAssignCounselorMap] = useState<Record<string, string>>({});
   const [assignDateMap, setAssignDateMap] = useState<Record<string, string>>({});
   const [assignTimeMap, setAssignTimeMap] = useState<Record<string, string>>({});
+
+  // Meeting link state (for COUNSELOR / STAFF setting Google Meet links)
+  const [meetLinkMap, setMeetLinkMap] = useState<Record<string, string>>({});
+  const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -176,6 +180,31 @@ export default function AppointmentsPage() {
       }
     } finally {
       setAssigningId(null);
+    }
+  };
+
+  const handleSaveMeetingLink = async (appointmentId: string) => {
+    const token = localStorage.getItem('token');
+    const link = meetLinkMap[appointmentId]?.trim();
+    if (!link) return;
+    setSavingLinkId(appointmentId);
+    try {
+      const r = await fetch(getApiUrl(`/api/appointments/${appointmentId}/set-meeting-link`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meeting_link: link }),
+      });
+      if (r.ok) {
+        setNotificationMessage({ type: 'success', text: 'Meeting link saved — student has been notified.' });
+        setAppointments(prev => prev.map(a => a._id === appointmentId ? { ...a, meeting_link: link } : a));
+      } else {
+        const e = await r.json();
+        setNotificationMessage({ type: 'error', text: e.error || 'Failed to save link.' });
+      }
+    } catch {
+      setNotificationMessage({ type: 'error', text: 'Failed to save link.' });
+    } finally {
+      setSavingLinkId(null);
     }
   };
 
@@ -496,6 +525,70 @@ export default function AppointmentsPage() {
           </div>
         )}
 
+        {/* ── COUNSELOR: Today's Sessions ── */}
+        {['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP'].includes(user?.role) && (() => {
+          const todayStr = new Date().toDateString();
+          const todaySessions = appointments.filter(a => {
+            if (['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status)) return false;
+            const dt = (a as any).scheduled_start || a.appointment_date;
+            return dt && new Date(dt).toDateString() === todayStr;
+          });
+          if (todaySessions.length === 0) return null;
+          return (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <Video size={16} className="text-green-600 dark:text-green-400" />
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">Today&apos;s Sessions</h2>
+                <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-semibold">{todaySessions.length}</span>
+              </div>
+              <div className="space-y-3">
+                {todaySessions.map(appt => {
+                  const dt = (appt as any).scheduled_start || appt.appointment_date;
+                  const timeLabel = dt ? new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD';
+                  const needsLink = !appt.meeting_link && ['zoom', 'google_meet', 'online'].includes((appt as any).preferred_method || appt.preferred_platform || '');
+                  return (
+                    <div key={appt._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white text-sm">{(appt as any).student_name || 'Student'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{timeLabel} · {((appt as any).preferred_method || appt.preferred_platform || 'in-person').replace('_', ' ')}</p>
+                        </div>
+                        <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-medium">
+                          {appt.status === 'CHECKED_IN' ? 'Checked In' : 'Confirmed'}
+                        </span>
+                      </div>
+                      {appt.meeting_link ? (
+                        <a href={appt.meeting_link} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 hover:underline mt-1">
+                          <LinkIcon size={12} /> Join Session
+                        </a>
+                      ) : needsLink ? (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            type="url"
+                            placeholder="Paste Google Meet / Zoom link…"
+                            value={meetLinkMap[appt._id] || ''}
+                            onChange={e => setMeetLinkMap(m => ({ ...m, [appt._id]: e.target.value }))}
+                            className="flex-1 px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleSaveMeetingLink(appt._id)}
+                            disabled={savingLinkId === appt._id || !meetLinkMap[appt._id]?.trim()}
+                            className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white font-semibold rounded-lg transition"
+                          >
+                            {savingLinkId === appt._id ? '…' : 'Save & Notify'}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+              <hr className="my-6 border-gray-200 dark:border-gray-700" />
+            </div>
+          );
+        })()}
+
         {/* ── STAFF / ADMIN: Pending Requests Panel ── */}
         {['STAFF', 'ADMIN'].includes(user?.role) && (
           <div className="mb-10">
@@ -714,7 +807,7 @@ export default function AppointmentsPage() {
                         Assessment: {appointment.risk_level}
                       </p>
                     )}
-                    {appointment.meeting_link && (
+                    {appointment.meeting_link ? (
                       <p className="text-sm mb-3">
                         <a
                           href={appointment.meeting_link}
@@ -725,7 +818,26 @@ export default function AppointmentsPage() {
                           Join meeting →
                         </a>
                       </p>
-                    )}
+                    ) : ['COUNSELOR','PSYCHOLOGIST','CSC','CSP','STAFF','ADMIN'].includes(user?.role) &&
+                        ['CONFIRMED','CHECKED_IN','MATCHED'].includes(appointment.status) &&
+                        ['zoom','google_meet','online'].includes((appointment as any).preferred_method || appointment.preferred_platform || '') ? (
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="url"
+                          placeholder="Paste meeting link…"
+                          value={meetLinkMap[appointment._id] || ''}
+                          onChange={e => setMeetLinkMap(m => ({ ...m, [appointment._id]: e.target.value }))}
+                          className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500 focus:outline-none"
+                        />
+                        <button
+                          onClick={() => handleSaveMeetingLink(appointment._id)}
+                          disabled={savingLinkId === appointment._id || !meetLinkMap[appointment._id]?.trim()}
+                          className="px-2.5 py-1.5 text-xs bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white font-semibold rounded transition"
+                        >
+                          {savingLinkId === appointment._id ? '…' : 'Save & Notify'}
+                        </button>
+                      </div>
+                    ) : null}
 
                     {appointment.status !== 'CANCELLED' && (
                       <div className="flex gap-2 pt-2">

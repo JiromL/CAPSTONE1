@@ -1376,16 +1376,20 @@ def complete_appointment(appointment_id):
     if not appointment:
         return jsonify({'error': 'Appointment not found'}), 404
     
+    actual_start = appointment.get('scheduled_start') or appointment.get('requested_start') or datetime.utcnow()
+    actual_end = appointment.get('scheduled_end') or appointment.get('requested_end') or datetime.utcnow()
+
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
         {"$set": {
             "status": AppointmentStatus.COMPLETED.value,
-            "actual_start": datetime.utcnow(),
-            "actual_end": datetime.utcnow(),
+            "actual_start": actual_start,
+            "actual_end": actual_end,
+            "completed_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }}
     )
-    
+
     return jsonify({
         'message': 'Appointment completed',
         'appointment_id': str(appointment['_id']),
@@ -2684,6 +2688,10 @@ def set_meeting_link(appointment_id):
     data = request.get_json() or {}
     meeting_link = data.get('meeting_link', '').strip()
 
+    appt = db.db.appointments.find_one({'_id': apt_id})
+    if not appt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
     db.db.appointments.update_one(
         {'_id': apt_id},
         {'$set': {
@@ -2692,6 +2700,36 @@ def set_meeting_link(appointment_id):
             'updated_at': datetime.utcnow(),
         }}
     )
+
+    # Notify student that the meeting link is ready
+    if meeting_link:
+        try:
+            student = db.db.users.find_one({'_id': appt.get('student_id')})
+            if student:
+                s_email = student.get('email', '')
+                s_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
+                appt_time = appt.get('scheduled_start') or appt.get('requested_start')
+                time_str = appt_time.strftime('%B %d, %Y at %I:%M %p') if isinstance(appt_time, datetime) else 'your scheduled time'
+                platform = appt.get('preferred_method', 'online').replace('_', ' ').title()
+                email_svc = EmailService()
+                html = f"""
+                <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
+                  <div style="max-width:560px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#1B5E20;">Your Meeting Link is Ready</h2>
+                    <p>Dear {s_name},</p>
+                    <p>Your {platform} link for the counseling session on <strong>{time_str}</strong> is now available:</p>
+                    <div style="text-align:center;margin:24px 0;">
+                      <a href="{meeting_link}" style="display:inline-block;background:#1B5E20;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Join Session</a>
+                    </div>
+                    <p style="font-size:13px;color:#6b7280;">If the button doesn't work, copy and paste this link into your browser:<br>
+                    <a href="{meeting_link}" style="color:#1B5E20;">{meeting_link}</a></p>
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
+                    <p style="color:#999;font-size:12px;text-align:center;">{_email_footer()}</p>
+                  </div>
+                </body></html>"""
+                email_svc._send_email(s_email, f"Meeting Link Ready — {time_str}", html)
+        except Exception as e:
+            print(f"⚠ Could not send meeting link email: {e}")
 
     audit_log(db.db, 'appointment', 'set_meeting_link', entity_id=appointment_id)
     return jsonify({'message': 'Meeting link updated', 'meeting_link': meeting_link}), 200

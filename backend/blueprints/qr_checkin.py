@@ -101,10 +101,10 @@ def verify_checkin():
         {'$set': {'used': True, 'used_at': datetime.utcnow()}}
     )
 
-    # Mark appointment as checked in
+    # Mark appointment as checked in and update status
     db.db.appointments.update_one(
         {'_id': ObjectId(appointment_id)},
-        {'$set': {'checked_in': True, 'checked_in_at': datetime.utcnow()}}
+        {'$set': {'checked_in': True, 'checked_in_at': datetime.utcnow(), 'status': 'CHECKED_IN'}}
     )
 
     appt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
@@ -146,10 +146,10 @@ def verify_checkin_public():
         {'$set': {'used': True, 'used_at': datetime.utcnow()}}
     )
 
-    # Mark appointment as checked in
+    # Mark appointment as checked in and update status
     db.db.appointments.update_one(
         {'_id': ObjectId(appointment_id)},
-        {'$set': {'checked_in': True, 'checked_in_at': datetime.utcnow()}}
+        {'$set': {'checked_in': True, 'checked_in_at': datetime.utcnow(), 'status': 'CHECKED_IN'}}
     )
 
     appt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})

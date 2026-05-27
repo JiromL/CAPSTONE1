@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { Star, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
@@ -31,6 +31,13 @@ const RATING_LABELS: Record<number, string> = {
   1: 'Very Poor', 2: 'Poor', 3: 'Okay', 4: 'Good', 5: 'Excellent',
 };
 
+interface CompletedAppt {
+  _id: string;
+  counselor_name?: string;
+  scheduled_start?: string;
+  requested_start?: string;
+}
+
 export default function FeedbackPage() {
   const [rating, setRating]             = useState(0);
   const [hover, setHover]               = useState(0);
@@ -42,6 +49,23 @@ export default function FeedbackPage() {
   const [loading, setLoading]           = useState(false);
   const [submitted, setSubmitted]       = useState(false);
   const [error, setError]               = useState<string | null>(null);
+  const [completedAppts, setCompletedAppts] = useState<CompletedAppt[]>([]);
+  const [appointmentId, setAppointmentId]   = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+    if (!token) return;
+    fetch(api('/api/appointments/my-appointments'), { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        const done: CompletedAppt[] = (data.appointments || []).filter(
+          (a: CompletedAppt & { status: string }) => a.status === 'COMPLETED'
+        );
+        setCompletedAppts(done);
+      })
+      .catch(() => {});
+  }, []);
 
   const showSessionFormat = category === 'session';
   const displayRating     = hover || rating;
@@ -64,6 +88,7 @@ export default function FeedbackPage() {
           would_recommend: wouldRecommend,
           session_format:  showSessionFormat ? sessionFormat || null : null,
           had_session:     hadSession,
+          appointment_id:  showSessionFormat && appointmentId ? appointmentId : undefined,
         }),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed to submit'); }
@@ -76,7 +101,7 @@ export default function FeedbackPage() {
   const reset = () => {
     setRating(0); setHover(0); setCategory(''); setSessionFormat('');
     setHadSession(null); setContent(''); setWouldRecommend('yes');
-    setSubmitted(false); setError(null);
+    setAppointmentId(''); setSubmitted(false); setError(null);
   };
 
   if (submitted) {
@@ -138,28 +163,53 @@ export default function FeedbackPage() {
             </div>
           </div>
 
-          {/* ── Session format (only when Counseling Session selected) ── */}
+          {/* ── Session format + appointment link (only when Counseling Session selected) ── */}
           {showSessionFormat && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                Session format <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {SESSION_FORMATS.map(f => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    onClick={() => setSessionFormat(sessionFormat === f.value ? '' : f.value)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all ${
-                      sessionFormat === f.value
-                        ? 'bg-green-600 border-green-600 text-white'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-green-600'
-                    }`}
-                  >
-                    <span>{f.icon}</span> {f.label}
-                  </button>
-                ))}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  Session format <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SESSION_FORMATS.map(f => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setSessionFormat(sessionFormat === f.value ? '' : f.value)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                        sessionFormat === f.value
+                          ? 'bg-green-600 border-green-600 text-white'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-green-600'
+                      }`}
+                    >
+                      <span>{f.icon}</span> {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {completedAppts.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Which session are you rating? <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+                  </p>
+                  <select
+                    value={appointmentId}
+                    onChange={e => setAppointmentId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Select a session…</option>
+                    {completedAppts.map(a => {
+                      const dt = a.scheduled_start || a.requested_start;
+                      const label = dt
+                        ? new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : 'Session';
+                      const counselor = a.counselor_name ? ` · ${a.counselor_name}` : '';
+                      return <option key={a._id} value={a._id}>{label}{counselor}</option>;
+                    })}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 

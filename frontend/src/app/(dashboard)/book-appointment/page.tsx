@@ -16,12 +16,36 @@ interface AvailableSlot {
   counselor_name: string;
 }
 
+interface BookingRules {
+  operating_days: number[];
+  operating_hours_start: string;
+  operating_hours_end: string;
+  slot_duration_minutes: number;
+  min_days_ahead: number;
+  max_days_ahead: number;
+  blackout_dates: string[];
+  last_slot_start: string;
+}
+
+const DEFAULT_RULES: BookingRules = {
+  operating_days: [1, 2, 3, 4, 5],
+  operating_hours_start: '08:00',
+  operating_hours_end: '17:00',
+  slot_duration_minutes: 60,
+  min_days_ahead: 1,
+  max_days_ahead: 30,
+  blackout_dates: [],
+  last_slot_start: '16:00',
+};
+
 export default function BookAppointmentPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   
+  const [bookingRules, setBookingRules] = useState<BookingRules>(DEFAULT_RULES);
+
   // Available slots
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
@@ -96,6 +120,12 @@ export default function BookAppointmentPage() {
         if (draftData) {
           setHasDraft(true);
         }
+
+        // Fetch booking rules
+        try {
+          const rulesRes = await fetch(api('/api/staff/settings/booking-rules'), { headers: { Authorization: `Bearer ${token}` } });
+          if (rulesRes.ok) setBookingRules(await rulesRes.json());
+        } catch {}
 
         // Check consent status
         const consentRes = await fetch(api('/api/consent/status'), { headers: { Authorization: `Bearer ${token}` } });
@@ -255,6 +285,16 @@ export default function BookAppointmentPage() {
 
     if (!preferredDate) {
       setSubmitError('Please select a preferred appointment date');
+      return;
+    }
+
+    if (bookingRules.blackout_dates.includes(preferredDate)) {
+      setSubmitError('The selected date is a CPS holiday or closure. Please choose a different date.');
+      return;
+    }
+
+    if (!bookingRules.operating_days.includes(new Date(preferredDate + 'T00:00:00').getDay())) {
+      setSubmitError('CPS is closed on the selected day. Please choose a weekday.');
       return;
     }
 
@@ -984,11 +1024,28 @@ export default function BookAppointmentPage() {
                   type="date"
                   value={preferredDate}
                   onChange={(e) => setPreferredDate(e.target.value)}
-                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  max={new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min={new Date(Date.now() + bookingRules.min_days_ahead * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  max={new Date(Date.now() + bookingRules.max_days_ahead * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    preferredDate && (
+                      bookingRules.blackout_dates.includes(preferredDate) ||
+                      !bookingRules.operating_days.includes(new Date(preferredDate + 'T00:00:00').getDay())
+                    )
+                      ? 'border-red-400 dark:border-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From tomorrow onwards</p>
+                {preferredDate && bookingRules.blackout_dates.includes(preferredDate) && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">This date is a CPS holiday or closure — please choose another date.</p>
+                )}
+                {preferredDate && !bookingRules.blackout_dates.includes(preferredDate) && !bookingRules.operating_days.includes(new Date(preferredDate + 'T00:00:00').getDay()) && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">CPS is closed on this day — please select a weekday.</p>
+                )}
+                {(!preferredDate || (bookingRules.operating_days.includes(new Date(preferredDate + 'T00:00:00').getDay()) && !bookingRules.blackout_dates.includes(preferredDate))) && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {bookingRules.min_days_ahead === 1 ? 'From tomorrow' : `At least ${bookingRules.min_days_ahead} days ahead`}, up to {bookingRules.max_days_ahead} days out
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -1000,26 +1057,29 @@ export default function BookAppointmentPage() {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select a time</option>
-                  {Array.from({ length: 9 }, (_, i) => {
-                    const hour = 9 + i;
-                    const timeStr = `${String(hour).padStart(2, '0')}:00`;
-                    const displayTime = new Date(0, 0, 0, hour).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    });
-                    return (
-                      <option key={timeStr} value={timeStr}>
-                        {displayTime}
+                  {(() => {
+                    const slots: string[] = [];
+                    const [startH, startM] = bookingRules.operating_hours_start.split(':').map(Number);
+                    const [lastH, lastM] = bookingRules.last_slot_start.split(':').map(Number);
+                    let cur = startH * 60 + startM;
+                    const last = lastH * 60 + lastM;
+                    while (cur <= last) {
+                      slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
+                      cur += bookingRules.slot_duration_minutes;
+                    }
+                    return slots.map(t => (
+                      <option key={t} value={t}>
+                        {new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                       </option>
-                    );
-                  })}
+                    ));
+                  })()}
                 </select>
               </div>
             </div>
 
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Please select your preferred date (from tomorrow onwards, up to 30 days) and time. Our office assistant will confirm your appointment based on counselor availability.
+              CPS office hours: {new Date(`1970-01-01T${bookingRules.operating_hours_start}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} – {new Date(`1970-01-01T${bookingRules.operating_hours_end}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}, {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_, i) => bookingRules.operating_days.includes(i)).join(' / ')}.
+              Our office will confirm your slot based on counselor availability.
             </p>
 
             {/* Terms and Conditions */}

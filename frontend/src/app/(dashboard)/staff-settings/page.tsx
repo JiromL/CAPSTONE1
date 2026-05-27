@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, ArrowLeft, Clock, Bell, User, BookOpen, Languages, FileText, Tag, Calendar } from 'lucide-react';
+import { Save, ArrowLeft, Clock, Bell, User, BookOpen, Languages, FileText, Tag, Calendar, Settings, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -32,17 +32,50 @@ interface StaffSettings {
   tags: string[];
 }
 
+interface BookingRules {
+  operating_days: number[];
+  operating_hours_start: string;
+  operating_hours_end: string;
+  slot_duration_minutes: number;
+  min_days_ahead: number;
+  max_days_ahead: number;
+  blackout_dates: string[];
+  last_slot_start: string;
+}
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
+  `${String(h).padStart(2, '0')}:00`
+);
+
 export default function StaffSettingsPage() {
   const [settings, setSettings] = useState<StaffSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [specialtyOptions, setSpecialtyOptions] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'work' | 'availability' | 'notifications' | 'profile'>('work');
+  const [activeTab, setActiveTab] = useState<'work' | 'availability' | 'notifications' | 'profile' | 'booking-rules'>('work');
+  const [userRole, setUserRole] = useState('');
+
+  const [bookingRules, setBookingRules] = useState<BookingRules>({
+    operating_days: [1, 2, 3, 4, 5],
+    operating_hours_start: '08:00',
+    operating_hours_end: '17:00',
+    slot_duration_minutes: 60,
+    min_days_ahead: 1,
+    max_days_ahead: 30,
+    blackout_dates: [],
+    last_slot_start: '16:00',
+  });
+  const [savingRules, setSavingRules] = useState(false);
+  const [newBlackout, setNewBlackout] = useState('');
 
   useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) setUserRole(JSON.parse(user).role || '');
     loadSettings();
     loadSpecialties();
+    loadBookingRules();
   }, []);
 
   const loadSettings = async () => {
@@ -96,6 +129,37 @@ export default function StaffSettingsPage() {
       }
     } catch (error) {
       console.error('Error loading specialties:', error);
+    }
+  };
+
+  const loadBookingRules = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api('/api/staff/settings/booking-rules'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setBookingRules(await res.json());
+    } catch {}
+  };
+
+  const handleSaveBookingRules = async () => {
+    setSavingRules(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api('/api/staff/settings/booking-rules'), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingRules),
+      });
+      if (res.ok) showToast('Booking rules saved', 'success');
+      else {
+        const e = await res.json();
+        showToast(e.error || 'Failed to save', 'error');
+      }
+    } catch {
+      showToast('Error saving rules', 'error');
+    } finally {
+      setSavingRules(false);
     }
   };
 
@@ -284,6 +348,19 @@ export default function StaffSettingsPage() {
             <BookOpen className="inline-block w-4 h-4 mr-2" />
             Profile
           </button>
+          {['ADMIN', 'STAFF'].includes(userRole) && (
+            <button
+              onClick={() => setActiveTab('booking-rules')}
+              className={`px-4 py-3 font-medium border-b-2 transition ${
+                activeTab === 'booking-rules'
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Settings className="inline-block w-4 h-4 mr-2" />
+              Booking Rules
+            </button>
+          )}
         </div>
 
         {/* Work Preferences Tab */}
@@ -534,6 +611,162 @@ export default function StaffSettingsPage() {
                 placeholder="Enter tags separated by commas (e.g., LGBTQ+, First-Gen, Athletes)"
               />
             </div>
+          </div>
+        )}
+
+        {/* Booking Rules Tab */}
+        {activeTab === 'booking-rules' && (
+          <div className="space-y-6">
+            {/* Operating Days */}
+            <div className="bg-white p-6 border border-gray-200 rounded-lg">
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Operating Days</h3>
+              <p className="text-xs text-gray-500 mb-4">Which days of the week can students book appointments?</p>
+              <div className="flex gap-2 flex-wrap">
+                {DAY_LABELS.map((label, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      const days = bookingRules.operating_days.includes(i)
+                        ? bookingRules.operating_days.filter(d => d !== i)
+                        : [...bookingRules.operating_days, i].sort();
+                      if (days.length > 0) setBookingRules({ ...bookingRules, operating_days: days });
+                    }}
+                    className={`w-12 h-12 rounded-lg text-sm font-medium border-2 transition ${
+                      bookingRules.operating_days.includes(i)
+                        ? 'bg-green-600 border-green-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Operating Hours */}
+            <div className="bg-white p-6 border border-gray-200 rounded-lg">
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Operating Hours</h3>
+              <p className="text-xs text-gray-500 mb-4">The window students can see and select time slots within.</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Opens at</label>
+                  <select
+                    value={bookingRules.operating_hours_start}
+                    onChange={e => setBookingRules({ ...bookingRules, operating_hours_start: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Last slot starts at</label>
+                  <select
+                    value={bookingRules.last_slot_start}
+                    onChange={e => setBookingRules({ ...bookingRules, last_slot_start: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Closes at</label>
+                  <select
+                    value={bookingRules.operating_hours_end}
+                    onChange={e => setBookingRules({ ...bookingRules, operating_hours_end: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Booking Window & Slot Duration */}
+            <div className="bg-white p-6 border border-gray-200 rounded-lg">
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Booking Window</h3>
+              <p className="text-xs text-gray-500 mb-4">How far in advance can students book?</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Min days ahead</label>
+                  <input
+                    type="number" min="0" max="30"
+                    value={bookingRules.min_days_ahead}
+                    onChange={e => setBookingRules({ ...bookingRules, min_days_ahead: Number(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">e.g. 1 = tomorrow earliest</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Max days ahead</label>
+                  <input
+                    type="number" min="1" max="365"
+                    value={bookingRules.max_days_ahead}
+                    onChange={e => setBookingRules({ ...bookingRules, max_days_ahead: Number(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">e.g. 30 = up to a month out</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Slot duration (min)</label>
+                  <select
+                    value={bookingRules.slot_duration_minutes}
+                    onChange={e => setBookingRules({ ...bookingRules, slot_duration_minutes: Number(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    {[30, 45, 50, 60, 90].map(v => <option key={v} value={v}>{v} min</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Blackout Dates */}
+            <div className="bg-white p-6 border border-gray-200 rounded-lg">
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Blackout Dates</h3>
+              <p className="text-xs text-gray-500 mb-4">Dates when CPS is closed — students cannot book these days (holidays, school breaks, etc.)</p>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="date"
+                  value={newBlackout}
+                  onChange={e => setNewBlackout(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newBlackout && !bookingRules.blackout_dates.includes(newBlackout)) {
+                      setBookingRules({ ...bookingRules, blackout_dates: [...bookingRules.blackout_dates, newBlackout].sort() });
+                      setNewBlackout('');
+                    }
+                  }}
+                  className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition"
+                >
+                  <Plus size={14} /> Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {bookingRules.blackout_dates.length === 0 && (
+                  <p className="text-xs text-gray-400">No blackout dates set.</p>
+                )}
+                {bookingRules.blackout_dates.map(d => (
+                  <span key={d} className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-700 text-xs rounded-full">
+                    {new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <button onClick={() => setBookingRules({ ...bookingRules, blackout_dates: bookingRules.blackout_dates.filter(x => x !== d) })}>
+                      <X size={12} className="hover:text-red-900" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveBookingRules}
+              disabled={savingRules}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition"
+            >
+              <Save size={15} />
+              {savingRules ? 'Saving…' : 'Save Booking Rules'}
+            </button>
           </div>
         )}
 

@@ -33,7 +33,6 @@ from blueprints import (
     dashboard_bp,
     referrals_bp,
     check_ins_bp,
-    reservations_bp,
     integrations_bp,
     cases_bp,
     resources_bp,
@@ -100,7 +99,6 @@ def create_app(config_name=None):
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(referrals_bp)
     app.register_blueprint(check_ins_bp)
-    app.register_blueprint(reservations_bp)
     app.register_blueprint(integrations_bp)
     app.register_blueprint(cases_bp)
     app.register_blueprint(resources_bp)

@@ -576,6 +576,38 @@ def forgot_password():
     return jsonify({'message': 'If that email is registered, a reset link has been sent'}), 200
 
 
+@auth_bp.route('/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    """Change password for a logged-in user (requires current password)"""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    current_password = data.get('current_password', '').strip()
+    new_password = data.get('new_password', '').strip()
+
+    if not current_password or not new_password:
+        return jsonify({'error': 'current_password and new_password are required'}), 400
+    if len(new_password) < 8:
+        return jsonify({'error': 'New password must be at least 8 characters'}), 400
+
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if not user.get('password_hash'):
+        return jsonify({'error': 'This account uses Google login — password cannot be changed here'}), 400
+
+    if not check_password_hash(user['password_hash'], current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+
+    db.db.users.update_one(
+        {'_id': user['_id']},
+        {'$set': {'password_hash': generate_password_hash(new_password), 'updated_at': datetime.utcnow()}}
+    )
+    audit_log(db.db, 'auth', 'change_password', entity_id=user_id)
+    return jsonify({'message': 'Password changed successfully'}), 200
+
+
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
     """Reset password using token"""

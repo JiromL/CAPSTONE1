@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Edit2, Save, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -23,6 +23,47 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Change password modal state
+  const [showPwModal, setShowPwModal] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const openPwModal = () => {
+    setPwForm({ current: '', newPw: '', confirm: '' });
+    setPwError(null); setPwSuccess(false);
+    setShowPwModal(true);
+  };
+
+  const handleChangePassword = async () => {
+    setPwError(null);
+    if (!pwForm.current) { setPwError('Enter your current password'); return; }
+    if (pwForm.newPw.length < 8) { setPwError('New password must be at least 8 characters'); return; }
+    if (pwForm.newPw !== pwForm.confirm) { setPwError('New passwords do not match'); return; }
+    if (pwForm.newPw === pwForm.current) { setPwError('New password must be different from current password'); return; }
+    setPwSaving(true);
+    try {
+      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+      const r = await fetch(api('/api/auth/change-password'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.newPw }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPwError(d.error || 'Failed to change password'); return; }
+      setPwSuccess(true);
+      setTimeout(() => setShowPwModal(false), 1800);
+    } catch {
+      setPwError('Something went wrong. Please try again.');
+    } finally {
+      setPwSaving(false);
+    }
+  };
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState({
     firstName: '',
@@ -389,7 +430,7 @@ export default function ProfilePage() {
         <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded p-6 bg-white dark:bg-gray-800">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Account Settings</h3>
           <div className="space-y-2">
-            <AccountOption label="Change Password" description="Update password" />
+            <div onClick={openPwModal}><AccountOption label="Change Password" description="Update your account password" /></div>
             <AccountOption label="Notification Preferences" description="Manage notifications" />
             <AccountOption label="Privacy Settings" description="Control information visibility" />
             <AccountOption label="Two-Factor Authentication" description="Secure with 2FA" isEnabled={true} />
@@ -401,6 +442,93 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Change Password Modal ── */}
+      {showPwModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                <Lock size={16} className="text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Change Password</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Choose a strong password of at least 8 characters</p>
+              </div>
+            </div>
+
+            {pwSuccess ? (
+              <div className="flex flex-col items-center py-6 gap-3">
+                <CheckCircle size={40} className="text-green-500" />
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Password changed successfully</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pwError && (
+                  <div className="flex gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3">
+                    <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-700 dark:text-red-300">{pwError}</p>
+                  </div>
+                )}
+
+                {[
+                  { label: 'Current Password', key: 'current' as const, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
+                  { label: 'New Password',     key: 'newPw'   as const, show: showNew,     toggle: () => setShowNew(v => !v) },
+                  { label: 'Confirm New Password', key: 'confirm' as const, show: showConfirm, toggle: () => setShowConfirm(v => !v) },
+                ].map(({ label, key, show, toggle }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">{label}</label>
+                    <div className="relative">
+                      <input
+                        type={show ? 'text' : 'password'}
+                        value={pwForm[key]}
+                        onChange={e => setPwForm(f => ({ ...f, [key]: e.target.value }))}
+                        onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
+                        className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white dark:focus:bg-gray-900"
+                        placeholder={key === 'current' ? 'Enter current password' : key === 'newPw' ? 'At least 8 characters' : 'Re-enter new password'}
+                      />
+                      <button type="button" onClick={toggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        {show ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {pwForm.newPw.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[
+                      { ok: pwForm.newPw.length >= 8,                       label: '8+ chars' },
+                      { ok: /[A-Z]/.test(pwForm.newPw),                     label: 'Uppercase' },
+                      { ok: /[0-9]/.test(pwForm.newPw),                     label: 'Number' },
+                      { ok: pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0, label: 'Match' },
+                    ].map(({ ok, label }) => (
+                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
+                        {ok ? '✓' : '○'} {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowPwModal(false)}
+                    className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={pwSaving}
+                    className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition"
+                  >
+                    {pwSaving ? 'Saving…' : 'Update Password'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </DashboardPageWrapper>
   );
 }

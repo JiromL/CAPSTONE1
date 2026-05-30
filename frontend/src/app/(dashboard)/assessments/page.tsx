@@ -2,207 +2,156 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { AlertCircle, TrendingUp, BarChart3, FileText } from 'lucide-react';
+import { BarChart3, FileText, Info } from 'lucide-react';
 import { api } from '@/utils/api';
 
-interface Assessment {
-  counseling_id: string;
-  submitted_at: string;
-  risk_level: string;
-  scores: {
-    phq9_score?: number;
-    gad7_score?: number;
-    pss_score?: number;
-    acad_score?: number;
-  };
-  appointment_date?: string;
-}
-
 export default function AssessmentsPage() {
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('STUDENT');
+  const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadAssessments = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('No authentication token found. Please log in again.');
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(api('/api/intake/assessments/dashboard'), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch assessments: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setDashboardData(data);
-        // Cache the assessments data
-        localStorage.setItem('assessments_cache', JSON.stringify(data));
-        setError(null);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load assessments';
-        console.error('Error loading assessments:', err);
-        setError(errorMessage);
-        // Try to load from cache on error
-        const cached = localStorage.getItem('assessments_cache');
-        if (cached) {
-          try {
-            setDashboardData(JSON.parse(cached));
-          } catch (e) {
-            console.error('Failed to load cached assessments');
-          }
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      try { setUserRole(JSON.parse(raw).role || 'STUDENT'); } catch {}
+    }
     loadAssessments();
   }, []);
 
-  const getRiskColor = (level: string) => {
-    switch (level?.toUpperCase()) {
-      case 'CRITICAL':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
-      case 'RED':
-        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300';
-      case 'YELLOW':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
-      default:
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-    }
+  const loadAssessments = async () => {
+    try {
+      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+      if (!token) { setLoading(false); return; }
+
+      const r = await fetch(api('/api/intake/assessments/dashboard'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setAssessments(data.recent_cases || []);
+      }
+    } catch {}
+    setLoading(false);
   };
+
+  const CLINICAL_ROLES = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'DPO', 'ADMIN', 'STAFF'];
+  const isClinical = CLINICAL_ROLES.includes(userRole);
 
   if (loading) {
     return (
-      <DashboardPageWrapper title="Assessments & Results" subtitle="View your assessment history and scores">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <DashboardPageWrapper title="Assessments" subtitle="">
+        <div className="flex items-center justify-center py-16">
+          <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
         </div>
       </DashboardPageWrapper>
     );
   }
 
+  /* ── Student view: no clinical scores ─────────────────────────────────── */
+  if (!isClinical) {
+    return (
+      <DashboardPageWrapper title="Assessments" subtitle="Your counseling history">
+        <div className="max-w-lg mx-auto space-y-4">
+          {/* Explainer card */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 flex gap-3">
+            <Info size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              Assessments (PHQ-9, GAD-7, PSS) are administered by your counselor during sessions.
+              Your counselor interprets the results with you. If you have questions about your assessment,
+              please speak with your assigned counselor.
+            </p>
+          </div>
+
+          {/* Summary count (no scores) */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <BarChart3 size={22} className="text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{assessments.length}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Assessment session{assessments.length !== 1 ? 's' : ''} on file</p>
+            </div>
+          </div>
+
+          {/* Session list — date only, no scores */}
+          {assessments.length > 0 && (
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+              <p className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800">
+                Sessions
+              </p>
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {assessments.map((a: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3">
+                    <FileText size={14} className="text-gray-400 flex-shrink-0" />
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {a.submitted_at
+                        ? new Date(a.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                        : 'Date unknown'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </DashboardPageWrapper>
+    );
+  }
+
+  /* ── Clinical view: full data ──────────────────────────────────────────── */
   return (
-    <DashboardPageWrapper title="Assessments & Results" subtitle="View your assessment history and scores">
-      <div className="space-y-6">
+    <DashboardPageWrapper title="Assessment Overview" subtitle="Intake assessment data">
+      <div className="space-y-5">
         {error && (
-          <div className="border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 rounded p-4 flex gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 text-sm text-red-700 dark:text-red-300">
+            {error}
           </div>
         )}
 
-        {dashboardData && (
-          <>
-            {/* Summary Cards */}
-            {dashboardData.summary && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {dashboardData.summary.total_intakes !== undefined && (
-                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Assessments</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-                          {dashboardData.summary.total_intakes}
-                        </p>
-                      </div>
-                      <BarChart3 className="text-blue-600 dark:text-blue-400" size={32} />
-                    </div>
-                  </div>
-                )}
-
-                {dashboardData.summary.high_risk_count !== undefined && (
-                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">High Risk Cases</p>
-                        <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                          {dashboardData.summary.high_risk_count}
-                        </p>
-                      </div>
-                      <TrendingUp className="text-red-600 dark:text-red-400" size={32} />
-                    </div>
-                  </div>
-                )}
-
-                {dashboardData.summary.emergency_count !== undefined && (
-                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Emergency Cases</p>
-                        <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                          {dashboardData.summary.emergency_count}
-                        </p>
-                      </div>
-                      <AlertCircle className="text-orange-600 dark:text-orange-400" size={32} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Assessments List */}
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Recent Assessments</h2>
-              </div>
-
-              {dashboardData.recent_cases && dashboardData.recent_cases.length > 0 ? (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {dashboardData.recent_cases.map((item: Assessment, index: number) => (
-                    <div key={index} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <FileText size={16} className="text-gray-400 dark:text-gray-500" />
-                            <span className="font-semibold text-gray-900 dark:text-gray-50">
-                              Assessment #{index + 1}
-                            </span>
-                            {item.counseling_id && (
-                              <code className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
-                                {item.counseling_id}
-                              </code>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            Submitted: {item.submitted_at ? new Date(item.submitted_at).toLocaleDateString() : 'N/A'}
-                          </p>
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            {item.scores && Object.entries(item.scores).map(([key, value]) => (
-                              <span key={key} className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
-                                {key.replace('_score', '').toUpperCase()}: {value}
-                              </span>
-                            ))}
-                          </div>
-                          {item.appointment_date && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Appointment: {new Date(item.appointment_date).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                        <span className={`px-3 py-1 rounded-full font-medium text-sm whitespace-nowrap ${getRiskColor(item.risk_level)}`}>
-                          {item.risk_level}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                  <FileText className="mx-auto mb-2 text-gray-400" size={32} />
-                  <p>No assessments found</p>
-                </div>
-              )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+            <BarChart3 size={24} className="text-blue-500" />
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{assessments.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total intakes</p>
             </div>
-          </>
+          </div>
+        </div>
+
+        {assessments.length > 0 && (
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+            <p className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800">
+              Recent Intakes
+            </p>
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {assessments.slice(0, 20).map((a: any, i: number) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-3">
+                  <FileText size={14} className="text-gray-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {a.counseling_id || `Case ${i + 1}`}
+                    </p>
+                    {a.submitted_at && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {new Date(a.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                  {a.is_emergency && (
+                    <span className="text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full">Emergency</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {assessments.length === 0 && (
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-12 text-center">
+            <FileText size={28} className="mx-auto mb-3 text-gray-400" />
+            <p className="text-sm text-gray-500 dark:text-gray-400">No intake assessments on file</p>
+          </div>
         )}
       </div>
     </DashboardPageWrapper>

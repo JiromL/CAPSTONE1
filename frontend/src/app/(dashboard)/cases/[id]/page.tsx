@@ -262,6 +262,25 @@ export default function CaseDetailPage() {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [schedulesLoaded, setSchedulesLoaded] = useState(false);
 
+  // Assessment recording state
+  interface AssessmentTemplate {
+    assessment_type: string; name: string; instruction: string;
+    questions: string[]; scale: Array<{ value: number; label: string }>;
+    max_score: number; severity_guide: Array<{ range: string; label: string }>;
+    reversed_items?: number[];
+  }
+  interface AssessmentRecord {
+    _id: string; assessment_type: string; raw_score: number; max_score: number;
+    severity: string; risk_level: string | null; created_at: string;
+  }
+  const [assessmentHistory, setAssessmentHistory] = useState<AssessmentRecord[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [recordingType, setRecordingType] = useState<string | null>(null);
+  const [assessmentTemplate, setAssessmentTemplate] = useState<AssessmentTemplate | null>(null);
+  const [assessmentResponses, setAssessmentResponses] = useState<Record<string, number>>({});
+  const [savingAssessment, setSavingAssessment] = useState(false);
+  const [assessmentResult, setAssessmentResult] = useState<{ score: number; max: number; severity: string; risk: string | null } | null>(null);
+
   useEffect(() => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -359,7 +378,10 @@ export default function CaseDetailPage() {
     if (activeTab === 'perma') loadPermaHistory();
     if (activeTab === 'diagnoses') loadDiagnoses();
     if (activeTab === 'safety-plan' && !safetyPlanLoaded) loadSafetyPlan();
-    if (activeTab === 'assessments' && !schedulesLoaded) loadAssessmentSchedules();
+    if (activeTab === 'assessments') {
+      if (!schedulesLoaded) loadAssessmentSchedules();
+      if (!historyLoaded) loadAssessmentHistory();
+    }
   }, [activeTab]);
 
   const loadSafetyPlan = async () => {
@@ -437,6 +459,58 @@ export default function CaseDetailPage() {
     const token = localStorage.getItem('token');
     await fetch(api(`/api/assessments/schedule/${scheduleId}`), { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     await loadAssessmentSchedules();
+  };
+
+  const loadAssessmentHistory = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/assessments/case/${caseId}/history`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setAssessmentHistory(d.assessments || []); }
+    } catch {}
+    setHistoryLoaded(true);
+  };
+
+  const startRecording = async (type: string) => {
+    const token = localStorage.getItem('token');
+    const key = type.toLowerCase().replace('9', '9').replace('7', '7');
+    const path = type === 'PHQ9' ? 'phq9' : type === 'GAD7' ? 'gad7' : 'pss';
+    try {
+      const r = await fetch(api(`/api/assessments/${path}/template`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) {
+        const tmpl = await r.json();
+        setAssessmentTemplate(tmpl);
+        setAssessmentResponses({});
+        setAssessmentResult(null);
+        setRecordingType(type);
+      }
+    } catch { setError('Failed to load assessment template'); }
+  };
+
+  const handleSubmitAssessment = async () => {
+    if (!assessmentTemplate) return;
+    const total = assessmentTemplate.questions.length;
+    for (let i = 0; i < total; i++) {
+      if (assessmentResponses[String(i)] === undefined) {
+        setError('Please answer all questions before submitting.'); return;
+      }
+    }
+    setSavingAssessment(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/assessments/${caseId}/triage`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assessment_type: recordingType, responses: assessmentResponses }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to save');
+      setAssessmentResult({ score: d.raw_score, max: d.max_score, severity: d.severity, risk: d.risk_level });
+      setRecordingType(null);
+      setAssessmentTemplate(null);
+      await loadAssessmentHistory();
+    } catch (err: any) {
+      setError(err.message);
+    } finally { setSavingAssessment(false); }
   };
 
   const addSafetyPlanItem = (field: keyof typeof safetyPlan, value: string | object) => {
@@ -1458,53 +1532,185 @@ export default function CaseDetailPage() {
       {/* ── Assessments Tab ────────────────────────────────────── */}
       {activeTab === 'assessments' && (
         <div className="space-y-6 max-w-2xl">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Repeating Assessment Schedules</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Schedule PHQ-9, GAD-7, or PSS re-administrations at regular intervals. The system will automatically queue assessments when they come due.</p>
-          </div>
 
-          {/* Add schedule form */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Add Schedule</p>
-            <div className="flex flex-wrap gap-3">
+          {/* ── Assessment result banner ── */}
+          {assessmentResult && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-4 flex items-start gap-3">
+              <Activity size={16} className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Assessment</label>
-                <select value={scheduleForm.assessment_type}
-                  onChange={e => setScheduleForm(f => ({ ...f, assessment_type: e.target.value }))}
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
-                  <option value="PHQ9">PHQ-9 (Depression)</option>
-                  <option value="GAD7">GAD-7 (Anxiety)</option>
-                  <option value="PSS">PSS (Stress)</option>
-                </select>
+                <p className="text-sm font-semibold text-green-800 dark:text-green-300">Assessment recorded</p>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                  Score: <span className="font-bold">{assessmentResult.score}/{assessmentResult.max}</span>
+                  <span className="mx-1.5">·</span>
+                  Severity: <span className="font-bold">{assessmentResult.severity}</span>
+                </p>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Every (days)</label>
-                <input type="number" min={1} max={90} value={scheduleForm.interval_days}
-                  onChange={e => setScheduleForm(f => ({ ...f, interval_days: parseInt(e.target.value) || 14 }))}
-                  className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500" />
+              <button onClick={() => setAssessmentResult(null)} className="ml-auto text-green-400 hover:text-green-600"><XIcon size={14} /></button>
+            </div>
+          )}
+
+          {/* ── Record assessment form ── */}
+          {recordingType && assessmentTemplate ? (
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{assessmentTemplate.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{assessmentTemplate.instruction}</p>
+                </div>
+                <button onClick={() => { setRecordingType(null); setAssessmentTemplate(null); }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"><XIcon size={16} /></button>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-0.5">First due date</label>
-                <input type="date" value={scheduleForm.start_date}
-                  onChange={e => setScheduleForm(f => ({ ...f, start_date: e.target.value }))}
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500" />
+
+              <div className="space-y-4">
+                {assessmentTemplate.questions.map((q, i) => (
+                  <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                    <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                      <span className="font-medium text-gray-500 dark:text-gray-400 mr-1.5">{i + 1}.</span>
+                      {q}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {assessmentTemplate.scale.map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setAssessmentResponses(r => ({ ...r, [String(i)]: opt.value }))}
+                          className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
+                            assessmentResponses[String(i)] === opt.value
+                              ? 'bg-green-600 border-green-600 text-white font-medium'
+                              : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-green-400'
+                          }`}
+                        >
+                          {opt.value} — {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="self-end">
-                <button onClick={handleAddSchedule} disabled={savingSchedule}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
-                  <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSubmitAssessment}
+                  disabled={savingAssessment || Object.keys(assessmentResponses).length < assessmentTemplate.questions.length}
+                  className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition"
+                >
+                  {savingAssessment ? 'Saving…' : 'Save Assessment'}
                 </button>
+                <p className="text-xs text-gray-400">{Object.keys(assessmentResponses).length}/{assessmentTemplate.questions.length} answered</p>
               </div>
             </div>
+          ) : (
+            /* ── Pick assessment to record ── */
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Record Assessment</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Administer and record a standardized assessment for this client. Results are for clinical use only — not shared with the student.</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { type: 'PHQ9', label: 'PHQ-9', desc: 'Depression (27 pts)', color: 'blue' },
+                  { type: 'GAD7', label: 'GAD-7', desc: 'Anxiety (21 pts)', color: 'purple' },
+                  { type: 'PSS',  label: 'PSS-10', desc: 'Stress (40 pts)',  color: 'orange' },
+                ].map(t => (
+                  <button
+                    key={t.type}
+                    onClick={() => startRecording(t.type)}
+                    className="flex flex-col items-start px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 transition text-left"
+                  >
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">{t.label}</span>
+                    <span className="text-xs text-gray-400 mt-0.5">{t.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Assessment history ── */}
+          <div>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">Assessment History</p>
+            {!historyLoaded ? (
+              <p className="text-sm text-gray-400 italic">Loading…</p>
+            ) : assessmentHistory.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">No assessments recorded yet.</p>
+            ) : (
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      <th className="text-left px-4 py-2">Date</th>
+                      <th className="text-left px-4 py-2">Tool</th>
+                      <th className="text-left px-4 py-2">Score</th>
+                      <th className="text-left px-4 py-2">Severity</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {assessmentHistory.map(a => {
+                      const severityColor =
+                        a.severity === 'Severe' || a.severity === 'High stress' ? 'text-red-600 dark:text-red-400' :
+                        a.severity === 'Moderately Severe' ? 'text-orange-600 dark:text-orange-400' :
+                        a.severity === 'Moderate' || a.severity === 'Moderate stress' ? 'text-yellow-600 dark:text-yellow-400' :
+                        a.severity === 'Mild' ? 'text-blue-600 dark:text-blue-400' :
+                        'text-green-600 dark:text-green-400';
+                      return (
+                        <tr key={a._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                          <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                            {new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="font-medium text-gray-900 dark:text-white">{a.assessment_type === 'PSS' ? 'PSS-10' : a.assessment_type.replace('9', '-9').replace('7', '-7')}</span>
+                          </td>
+                          <td className="px-4 py-2.5 font-mono text-gray-900 dark:text-white">
+                            {a.raw_score}<span className="text-gray-400 text-xs">/{a.max_score ?? '?'}</span>
+                          </td>
+                          <td className={`px-4 py-2.5 font-medium ${severityColor}`}>{a.severity ?? '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          {/* Active schedules */}
+          {/* ── Repeating Schedules ── */}
           <div>
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">Active Schedules</p>
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Repeating Schedules</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Auto-queue assessments at regular intervals.</p>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+              <div className="flex flex-wrap gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-0.5">Assessment</label>
+                  <select value={scheduleForm.assessment_type}
+                    onChange={e => setScheduleForm(f => ({ ...f, assessment_type: e.target.value }))}
+                    className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
+                    <option value="PHQ9">PHQ-9 (Depression)</option>
+                    <option value="GAD7">GAD-7 (Anxiety)</option>
+                    <option value="PSS">PSS-10 (Stress)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-0.5">Every (days)</label>
+                  <input type="number" min={1} max={90} value={scheduleForm.interval_days}
+                    onChange={e => setScheduleForm(f => ({ ...f, interval_days: parseInt(e.target.value) || 14 }))}
+                    className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-0.5">First due date</label>
+                  <input type="date" value={scheduleForm.start_date}
+                    onChange={e => setScheduleForm(f => ({ ...f, start_date: e.target.value }))}
+                    className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div className="self-end">
+                  <button onClick={handleAddSchedule} disabled={savingSchedule}
+                    className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
+                    <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {assessmentSchedules.filter(s => s.active).length === 0 ? (
-              <p className="text-sm text-gray-400 italic">No active schedules. Add one above.</p>
+              <p className="text-sm text-gray-400 italic mt-3">No active schedules.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 mt-3">
                 {assessmentSchedules.filter(s => s.active).map(s => (
                   <div key={s.schedule_id} className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
                     <div>

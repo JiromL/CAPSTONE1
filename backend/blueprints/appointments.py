@@ -474,44 +474,65 @@ def request_appointment():
     user_id = get_jwt_identity()
     data = request.get_json()
     
-    # Validate required fields (case_id is optional - will be created if missing)
-    required_fields = ['preferred_date', 'preferred_time', 'purpose', 'concern', 'referral_type', 'preferred_method']
-    missing_fields = [field for field in required_fields if not data.get(field)]
-    if missing_fields:
-        return jsonify({'error': f'Missing required fields: {", ".join(missing_fields)}'}), 400
-    
-    # Validate referred_by if referral_type is 'referred'
+    # slot_id path: student picks a real counselor slot → confirmed immediately
+    slot_id = data.get('slot_id')
+
+    # Always-required fields regardless of path
+    always_required = ['purpose', 'concern', 'referral_type', 'preferred_method']
+    missing = [f for f in always_required if not data.get(f)]
+    if missing:
+        return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
     if data.get('referral_type') == 'referred' and not data.get('referred_by'):
         return jsonify({'error': 'Please specify who referred you'}), 400
-    
+
     # Load user early (needed for email notifications)
     try:
         user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
     except:
         user_id_obj = user_id
-    
+
     user = db.db.users.find_one({"_id": user_id_obj})
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    
-    # Parse preferred_date and preferred_time to check for conflicts
-    preferred_date_str = data.get('preferred_date')
-    preferred_time_str = data.get('preferred_time')
-    
-    try:
-        # Combine date and time into ISO format datetime
-        datetime_str = f"{preferred_date_str}T{preferred_time_str}:00"
-        requested_start = datetime.fromisoformat(datetime_str)
-        requested_end = requested_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
-    except (ValueError, KeyError) as e:
-        return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
-    
-    # BUSINESS RULE: Prevent booking appointments in the past
-    current_time = datetime.now()
-    if requested_start < current_time:
-        return jsonify({
-            'error': 'Cannot book appointments for dates and times in the past. Please select a future date and time.'
-        }), 400
+
+    # --- Slot-based booking (preferred) ---
+    booked_slot = None
+    slot_counselor_id = None
+    if slot_id:
+        try:
+            slot_oid = ObjectId(slot_id)
+        except Exception:
+            return jsonify({'error': 'Invalid slot_id'}), 400
+        booked_slot = db.db.counselor_availability.find_one({'_id': slot_oid, 'is_available': True})
+        if not booked_slot:
+            return jsonify({'error': 'Slot not found or already booked. Please choose another slot.'}), 409
+        requested_start = booked_slot['slot_start']
+        requested_end   = booked_slot['slot_end']
+        slot_counselor_id = booked_slot['counselor_id']
+    else:
+        # Open request path (no slot, no specific date) or legacy date/time path
+        preferred_date_str = data.get('preferred_date')
+        preferred_time_str = data.get('preferred_time')
+        if preferred_date_str and preferred_time_str:
+            try:
+                datetime_str = f"{preferred_date_str}T{preferred_time_str}:00"
+                requested_start = datetime.fromisoformat(datetime_str)
+                requested_end = requested_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
+            except (ValueError, KeyError) as e:
+                return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
+        else:
+            # Open request — no specific time; staff will schedule
+            requested_start = None
+            requested_end = None
+
+    # BUSINESS RULE: Prevent booking appointments in the past (only when a specific time is given)
+    if requested_start:
+        current_time = datetime.now()
+        if requested_start < current_time:
+            return jsonify({
+                'error': 'Cannot book appointments for dates and times in the past. Please select a future date and time.'
+            }), 400
     
     # RESCHEDULE HANDLING: If rescheduling, cancel the old appointment
     reschedule_appointment_id = data.get('reschedule_appointment_id')
@@ -528,39 +549,51 @@ def request_appointment():
         except:
             pass  # If reschedule_id is invalid, just continue (old appointment stays active)
     
-    # BUSINESS RULE: Check if student already has an active appointment (including time conflicts)
-    # Only 1 active appointment per student at any given time
-    # UNLESS: they're rescheduling, in which case we exclude the appointment being rescheduled
-    conflict_query = {
-        'student_id': user_id_obj,
-        'status': {'$in': [
-            AppointmentStatus.REQUESTED.value,
-            AppointmentStatus.PENDING_APPROVAL.value,
-            AppointmentStatus.APPROVED.value,
-            AppointmentStatus.CONFIRMED.value,
-            AppointmentStatus.MATCHED.value
-        ]},
-        # Check for time overlap: existing starts before new ends AND existing ends after new starts
-        'requested_start': {'$lt': requested_end},
-        'requested_end': {'$gt': requested_start}
-    }
-    
-    # If rescheduling, exclude the old appointment from conflict check
-    if reschedule_appointment_id:
-        try:
-            old_appt_id = ObjectId(reschedule_appointment_id) if isinstance(reschedule_appointment_id, str) else reschedule_appointment_id
-            conflict_query['_id'] = {'$ne': old_appt_id}
-        except:
-            pass
-    
-    conflicting_appointment = db.db.appointments.find_one(conflict_query)
-    
-    if conflicting_appointment:
-        return jsonify({
-            'error': 'You already have an active appointment at this time. Please complete, cancel, or reschedule your existing appointment before booking a new one.',
-            'existing_appointment': str(conflicting_appointment['_id']),
-            'existing_start': conflicting_appointment.get('requested_start', '').isoformat() if isinstance(conflicting_appointment.get('requested_start'), datetime) else str(conflicting_appointment.get('requested_start'))
-        }), 409
+    # BUSINESS RULE: Check if student already has an active appointment
+    # Skip time-overlap check for open requests (no specific time); still block duplicate open requests
+    if requested_start:
+        conflict_query = {
+            'student_id': user_id_obj,
+            'status': {'$in': [
+                AppointmentStatus.REQUESTED.value,
+                AppointmentStatus.PENDING_APPROVAL.value,
+                AppointmentStatus.APPROVED.value,
+                AppointmentStatus.CONFIRMED.value,
+                AppointmentStatus.MATCHED.value
+            ]},
+            'requested_start': {'$lt': requested_end},
+            'requested_end': {'$gt': requested_start}
+        }
+        if reschedule_appointment_id:
+            try:
+                old_appt_id = ObjectId(reschedule_appointment_id) if isinstance(reschedule_appointment_id, str) else reschedule_appointment_id
+                conflict_query['_id'] = {'$ne': old_appt_id}
+            except:
+                pass
+        conflicting_appointment = db.db.appointments.find_one(conflict_query)
+        if conflicting_appointment:
+            return jsonify({
+                'error': 'You already have an active appointment at this time. Please complete, cancel, or reschedule your existing appointment before booking a new one.',
+                'existing_appointment': str(conflicting_appointment['_id']),
+                'existing_start': conflicting_appointment.get('requested_start', '').isoformat() if isinstance(conflicting_appointment.get('requested_start'), datetime) else str(conflicting_appointment.get('requested_start'))
+            }), 409
+    else:
+        # Open request: block if student already has any active untimed request
+        existing_open = db.db.appointments.find_one({
+            'student_id': user_id_obj,
+            'status': {'$in': [
+                AppointmentStatus.REQUESTED.value,
+                AppointmentStatus.PENDING_APPROVAL.value,
+                AppointmentStatus.APPROVED.value,
+                AppointmentStatus.CONFIRMED.value,
+                AppointmentStatus.MATCHED.value,
+            ]},
+        })
+        if existing_open:
+            return jsonify({
+                'error': 'You already have an active appointment or pending request. Please complete or cancel it before submitting a new request.',
+                'existing_appointment': str(existing_open['_id']),
+            }), 409
     
     # Get or create case for student
     case_id = None
@@ -602,42 +635,70 @@ def request_appointment():
     reference_id = _cfg('REFERENCE_ID_PREFIX', 'CPS-') + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
     try:
+        # Slot-based bookings are confirmed immediately; manual requests stay REQUESTED
+        initial_status = AppointmentStatus.CONFIRMED.value if booked_slot else AppointmentStatus.REQUESTED.value
+
+        preferred_counselor_id = None
+        if data.get('preferred_counselor_id'):
+            try:
+                preferred_counselor_id = ObjectId(data['preferred_counselor_id'])
+            except Exception:
+                pass
+
         appointment = {
             "student_id": user_id_obj,
             "case_id": case_id,
             "appointment_type": data.get('appointment_type', 'initial'),
             "requested_start": requested_start,
             "requested_end": requested_end,
-            "status": AppointmentStatus.REQUESTED.value,
+            "scheduled_start": requested_start if booked_slot else None,
+            "scheduled_end":   requested_end   if booked_slot else None,
+            "status": initial_status,
             "reference_id": reference_id,
-            # New student booking fields
             "purpose": data.get('purpose'),
             "concern": data.get('concern'),
             "referral_type": data.get('referral_type'),
             "referred_by": data.get('referred_by'),
             "preferred_method": data.get('preferred_method'),
+            "preferred_counselor_id": preferred_counselor_id,
             "created_at": datetime.utcnow()
         }
-        
+
+        # Attach counselor when booking via slot
+        if booked_slot and slot_counselor_id:
+            appointment["counselor_id"] = slot_counselor_id
+            counselor_doc = db.db.users.find_one({"_id": slot_counselor_id})
+            if counselor_doc:
+                appointment["counselor_name"] = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip()
+
         result = db.db.appointments.insert_one(appointment)
         appointment_id = str(result.inserted_id)
-        
+
+        # Mark the slot as booked so no one else can take it
+        if booked_slot:
+            db.db.counselor_availability.update_one(
+                {"_id": booked_slot["_id"]},
+                {"$set": {"is_available": False, "booked_by": user_id_obj,
+                           "appointment_id": result.inserted_id}}
+            )
+
         # Get the updated appointment to use in emails
         updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
-        
-        # Attempt auto-assignment
-        auto_assigned = False
-        auto_assigned_counselor_id = None
-        auto_assigned_message = None
-        
-        success, counselor_id, message = auto_assign_appointment(result.inserted_id)
-        if success:
-            auto_assigned = True
-            auto_assigned_counselor_id = counselor_id
-            auto_assigned_message = message
-        else:
-            auto_assigned_message = message
-            print(f"Auto-assignment failed: {message}")
+
+        # Only attempt auto-assignment for manual (non-slot) requests
+        auto_assigned = bool(booked_slot)
+        auto_assigned_counselor_id = str(slot_counselor_id) if booked_slot and slot_counselor_id else None
+        auto_assigned_message = "Slot booking — counselor pre-assigned" if booked_slot else None
+
+        if not booked_slot:
+            success, counselor_id, message = auto_assign_appointment(result.inserted_id)
+            if success:
+                auto_assigned = True
+                auto_assigned_counselor_id = counselor_id
+                auto_assigned_message = message
+            else:
+                auto_assigned_message = message
+                print(f"Auto-assignment failed: {message}")
         
     except Exception as e:
         print(f"Error creating appointment: {str(e)}")
@@ -691,8 +752,9 @@ def request_appointment():
     
     audit_log(db.db, 'appointment', 'request', entity_id=appointment_id, new_values={
         'case_id': str(case_id),
-        'preferred_date': data['preferred_date'],
-        'preferred_time': data['preferred_time'],
+        'preferred_date': data.get('preferred_date'),
+        'preferred_time': data.get('preferred_time'),
+        'slot_id': data.get('slot_id'),
         'purpose': data.get('purpose'),
         'auto_assigned': auto_assigned,
         'counselor_id': auto_assigned_counselor_id
@@ -971,6 +1033,72 @@ def trigger_auto_assign(appointment_id):
         }), 200
     else:
         return jsonify({'error': message}), 409
+
+
+@appointments_bp.route('/counselors', methods=['GET'])
+@jwt_required()
+def list_counselors():
+    """Return active counselors and psychologists for student counselor-preference selection."""
+    counselors = list(db.db.users.find(
+        {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}, 'is_active': True},
+        {'first_name': 1, 'last_name': 1, 'role': 1, 'specialization': 1}
+    ))
+    result = []
+    for c in counselors:
+        result.append({
+            'counselor_id': str(c['_id']),
+            'name': f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
+            'role': c.get('role', 'COUNSELOR'),
+            'specialization': c.get('specialization', ''),
+        })
+    return jsonify({'counselors': result}), 200
+
+
+@appointments_bp.route('/open-slots', methods=['GET'])
+@jwt_required()
+def get_open_slots():
+    """Return upcoming available counselor slots grouped by counselor, for student booking."""
+    now = datetime.utcnow()
+    days_ahead = int(request.args.get('days', 30))
+    cutoff = now + timedelta(days=days_ahead)
+
+    raw_slots = list(db.db.counselor_availability.find({
+        'slot_start': {'$gt': now, '$lt': cutoff},
+        'is_available': True,
+    }).sort('slot_start', 1))
+
+    open_slots = []
+    for s in raw_slots:
+        conflict = db.db.appointments.find_one({
+            'counselor_id': s['counselor_id'],
+            'status': {'$in': ['CONFIRMED', 'MATCHED', 'CHECKED_IN']},
+            'scheduled_start': {'$lt': s['slot_end']},
+            'scheduled_end':   {'$gt': s['slot_start']},
+        })
+        if not conflict:
+            open_slots.append(s)
+
+    counselor_map: dict = {}
+    for s in open_slots:
+        cid = str(s['counselor_id'])
+        if cid not in counselor_map:
+            counselor = db.db.users.find_one({'_id': s['counselor_id']})
+            counselor_map[cid] = {
+                'counselor_id': cid,
+                'counselor_name': (f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
+                                   if counselor else 'Unknown'),
+                'slots': [],
+            }
+        counselor_map[cid]['slots'].append({
+            'slot_id':    str(s['_id']),
+            'slot_start': s['slot_start'].isoformat(),
+            'slot_end':   s['slot_end'].isoformat(),
+        })
+
+    return jsonify({
+        'counselors': list(counselor_map.values()),
+        'total_slots': len(open_slots),
+    }), 200
 
 
 @appointments_bp.route('/availability', methods=['GET'])

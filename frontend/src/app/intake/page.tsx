@@ -198,6 +198,13 @@ export default function IntakePage() {
   const [minAvailableDate, setMinAvailableDate] = useState('');
   const [maxAvailableDate, setMaxAvailableDate] = useState('');
 
+  // Distress-path slot selection
+  type DistressSlot = { slot_id: string; slot_start: string; slot_end: string; counselor_id: string; counselor_name: string };
+  const [distressSlots, setDistressSlots] = useState<DistressSlot[]>([]);
+  const [distressSelectedSlotId, setDistressSelectedSlotId] = useState<string | null>(null);
+  const [distressSlotsLoading, setDistressSlotsLoading] = useState(false);
+  const [distressShowAllSlots, setDistressShowAllSlots] = useState(false);
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -421,14 +428,49 @@ export default function IntakePage() {
   };
 
   // Handle distress level selection
-  const handleDistressLevel = (inDistress: boolean) => {
+  const handleDistressLevel = async (inDistress: boolean) => {
     setIsInDistress(inDistress);
     if (inDistress) {
-      // If in distress: mark as RED urgency, skip assessments, go to appointment
+      setSelectedConcern('personal');
       setIsUrgent(true);
-      setAssessmentScores({ phq9: 30, gad7: 21, pss: 40 }); // Simulate high scores for RED risk
+      setUrgencyLevel('RED');
+      setAssessmentScores({ phq9: 30, gad7: 21, pss: 40 });
       setAutoSuggestedDate('same_day');
-      // Directly move to appointment scheduling
+      setAppointmentOverridden(true);
+
+      // Fetch open counselor slots and auto-select the earliest
+      setDistressSlotsLoading(true);
+      try {
+        const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+        const r = await fetch(api('/api/appointments/open-slots?days=7'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (r.ok) {
+          const d = await r.json();
+          const flat: DistressSlot[] = (d.counselors || [])
+            .flatMap((c: any) =>
+              (c.slots || []).map((s: any) => ({
+                slot_id: s.slot_id,
+                slot_start: s.slot_start,
+                slot_end: s.slot_end,
+                counselor_id: c.counselor_id,
+                counselor_name: c.counselor_name,
+              }))
+            )
+            .sort((a: DistressSlot, b: DistressSlot) =>
+              new Date(a.slot_start).getTime() - new Date(b.slot_start).getTime()
+            );
+          setDistressSlots(flat);
+          if (flat.length > 0) {
+            const earliest = flat[0];
+            setDistressSelectedSlotId(earliest.slot_id);
+            setAppointmentDate(earliest.slot_start.split('T')[0]);
+            setAppointmentTime(earliest.slot_start.split('T')[1]?.slice(0, 5) || '09:00');
+          }
+        }
+      } catch {}
+      setDistressSlotsLoading(false);
+
       setTimeout(() => setStep('appointment'), 100);
     } else {
       // If can wait: proceed to concern selection for assessment
@@ -839,6 +881,7 @@ export default function IntakePage() {
         appointment_time: appointmentTime,
         appointment_override: appointmentOverridden,
         automatic_appointment_date: automaticAppointmentInfo?.automatic_date,
+        distress_slot_id: distressSelectedSlotId || undefined,
         // Personal Information
         first_name: personalInfo.first_name,
         middle_name: personalInfo.middle_name,
@@ -1913,8 +1956,88 @@ export default function IntakePage() {
           )}
 
           <div className="space-y-4 mb-6">
-            {/* Use Recommended Time (Default) */}
-            {!appointmentOverridden && automaticAppointmentInfo && (
+
+            {/* ── Distress path: slot picker ───────────────────── */}
+            {isInDistress && (
+              <div className="space-y-3">
+                {distressSlotsLoading ? (
+                  <div className="p-4 border border-red-200 dark:border-red-700 rounded bg-red-50 dark:bg-red-900/20 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    Finding earliest available slot…
+                  </div>
+                ) : distressSlots.length === 0 ? (
+                  <div className="p-4 border border-amber-200 dark:border-amber-700 rounded bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-200">
+                    No available slots found in the next 7 days. Please contact CPS directly or call 988 for immediate support.
+                  </div>
+                ) : (
+                  <>
+                    {/* Auto-selected earliest slot */}
+                    {(() => {
+                      const sel = distressSlots.find(s => s.slot_id === distressSelectedSlotId) || distressSlots[0];
+                      const start = new Date(sel.slot_start);
+                      return (
+                        <div className="p-4 border-2 border-red-400 dark:border-red-500 rounded-lg bg-red-50 dark:bg-red-900/20">
+                          <p className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide mb-2">🔴 Earliest Available</p>
+                          <p className="text-base font-bold text-gray-900 dark:text-white">
+                            {start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                          </p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
+                            {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · {sel.counselor_name}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Toggle to see all slots */}
+                    <button
+                      type="button"
+                      onClick={() => setDistressShowAllSlots(v => !v)}
+                      className="text-sm text-green-700 dark:text-green-400 font-medium hover:underline"
+                    >
+                      {distressShowAllSlots ? '▲ Hide other slots' : '▼ Choose a different slot (optional)'}
+                    </button>
+
+                    {distressShowAllSlots && (
+                      <div className="grid gap-2 max-h-64 overflow-y-auto pr-1">
+                        {distressSlots.map(slot => {
+                          const start = new Date(slot.slot_start);
+                          const isSelected = slot.slot_id === distressSelectedSlotId;
+                          return (
+                            <button
+                              key={slot.slot_id}
+                              type="button"
+                              onClick={() => {
+                                setDistressSelectedSlotId(slot.slot_id);
+                                setAppointmentDate(slot.slot_start.split('T')[0]);
+                                setAppointmentTime(slot.slot_start.split('T')[1]?.slice(0, 5) || '09:00');
+                              }}
+                              className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 text-left transition-all ${
+                                isSelected
+                                  ? 'border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-500'
+                                  : 'border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600'
+                              }`}
+                            >
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                  {start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · {slot.counselor_name}
+                                </p>
+                              </div>
+                              {isSelected && <span className="text-red-500 dark:text-red-400 text-sm font-bold">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Use Recommended Time (Default) — non-distress path */}
+            {!isInDistress && !appointmentOverridden && automaticAppointmentInfo && (
               <div className={`p-3 border rounded ${
                 urgencyLevel === 'RED'
                   ? 'bg-red-50 border-red-200 dark:bg-red-900 dark:border-red-800'
@@ -1943,8 +2066,8 @@ export default function IntakePage() {
               </div>
             )}
 
-            {/* Custom Date/Time Selection (When Overridden) */}
-            {appointmentOverridden && (
+            {/* Custom Date/Time Selection (When Overridden) — non-distress path only */}
+            {!isInDistress && appointmentOverridden && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -1995,8 +2118,8 @@ export default function IntakePage() {
               </>
             )}
 
-            {/* Time Selection - Shown when date is selected */}
-            {appointmentOverridden && appointmentDate && (
+            {/* Time Selection - Shown when date is selected — non-distress path only */}
+            {!isInDistress && appointmentOverridden && appointmentDate && (
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   Available Time Slots

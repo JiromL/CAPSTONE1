@@ -81,6 +81,7 @@ export default function BookAppointmentPage() {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentChecks, setConsentChecks] = useState({ counseling: false, privacy: false });
   const [submittingConsent, setSubmittingConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   // Show/hide personal info editing
   const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
@@ -129,6 +130,12 @@ export default function BookAppointmentPage() {
 
         // Check consent status
         const consentRes = await fetch(api('/api/consent/status'), { headers: { Authorization: `Bearer ${token}` } });
+        if (consentRes.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.replace('/login');
+          return;
+        }
         if (consentRes.ok) {
           const cd = await consentRes.json();
           setConsentGiven(cd.consent_given);
@@ -185,16 +192,32 @@ export default function BookAppointmentPage() {
 
   const handleSubmitConsent = async () => {
     if (!consentChecks.counseling || !consentChecks.privacy) return;
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
     setSubmittingConsent(true);
+    setConsentError(null);
     try {
       const r = await fetch(api('/api/consent/submit'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ consent_types: ['counseling_services', 'data_privacy'], version: '1.0' }),
       });
-      if (r.ok) { setConsentGiven(true); setShowConsentModal(false); }
-    } finally { setSubmittingConsent(false); }
+      if (r.ok) {
+        setConsentGiven(true);
+        setShowConsentModal(false);
+      } else if (r.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.replace('/login');
+        return;
+      } else {
+        const d = await r.json().catch(() => ({}));
+        setConsentError(d.error || 'Could not record consent. Please try again.');
+      }
+    } catch {
+      setConsentError('Network error. Please check your connection and try again.');
+    } finally {
+      setSubmittingConsent(false);
+    }
   };
 
   const saveDraft = () => {
@@ -358,10 +381,14 @@ export default function BookAppointmentPage() {
         setBookingResult(data);
         setBookingConfirmed(true);
         clearDraft();
+      } else if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.replace('/login');
+        return;
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('[BookAppointment] Booking failed:', response.status, errorData);
-        // Display specific error message from backend if available
         const errorMessage = errorData?.error || 'Failed to book appointment. Please try again.';
         setSubmitError(errorMessage);
       }
@@ -730,6 +757,10 @@ export default function BookAppointmentPage() {
                 </div>
               </label>
             </div>
+
+            {consentError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mb-3 text-center">{consentError}</p>
+            )}
 
             <button
               onClick={handleSubmitConsent}

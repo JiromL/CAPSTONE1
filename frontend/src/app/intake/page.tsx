@@ -926,10 +926,17 @@ export default function IntakePage() {
       console.log('📤 Response status:', response.status, response.ok);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.replace('/login');
+          return;
+        }
+
         const errorData = await response.json();
         console.error('❌ API ERROR:', response.status);
         console.error('   Error response:', errorData);
-        
+
         // Handle 409 Conflict - student already has active appointment or pending intake
         if (response.status === 409) {
           const mainError = errorData.error || 'Conflict detected';

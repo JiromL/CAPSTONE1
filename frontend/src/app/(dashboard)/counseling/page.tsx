@@ -35,7 +35,7 @@ export default function CounselingPage() {
 
   if (loading) {
     return (
-      <DashboardPageWrapper title="Get Counseling" requiredRoles={['STUDENT']}>
+      <DashboardPageWrapper title="Book Appointment" requiredRoles={['STUDENT']}>
         <div className="flex items-center justify-center min-h-[40vh]">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" />
         </div>
@@ -44,9 +44,9 @@ export default function CounselingPage() {
   }
 
   return (
-    <DashboardPageWrapper title="Get Counseling" requiredRoles={['STUDENT']}>
+    <DashboardPageWrapper title="Book Appointment" requiredRoles={['STUDENT']}>
       <div className="max-w-2xl mx-auto py-8 px-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Get Counseling</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Book Appointment</h1>
         <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">
           We'll guide you to the right next step based on your current status.
         </p>

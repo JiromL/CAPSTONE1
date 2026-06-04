@@ -19,8 +19,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
     
     // Primary Workflow
-    { label: 'Get Counseling', href: '/counseling', id: 'counseling' },
-    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
+    { label: 'Book Appointment', href: '/counseling', id: 'counseling' },
     { label: 'My Appointments', href: '/my-appointments', id: 'my-appointments' },
     
     // Engagement

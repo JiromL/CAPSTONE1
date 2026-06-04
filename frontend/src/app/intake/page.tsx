@@ -1973,8 +1973,39 @@ export default function IntakePage() {
                     Finding earliest available slot…
                   </div>
                 ) : distressSlots.length === 0 ? (
-                  <div className="p-4 border border-amber-200 dark:border-amber-700 rounded bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-200">
-                    No available slots found in the next 7 days. Please contact CPS directly or call 988 for immediate support.
+                  <div className="space-y-3">
+                    <div className="p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-200">
+                      No counselor slots are currently open. Enter your preferred date and time — CPS will prioritize your request as urgent.
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Preferred Date</label>
+                        <input
+                          type="date"
+                          value={appointmentDate}
+                          onChange={e => setAppointmentDate(e.target.value)}
+                          min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                          max={new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Preferred Time</label>
+                        <select
+                          value={appointmentTime}
+                          onChange={e => setAppointmentTime(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        >
+                          <option value="">Select a time</option>
+                          {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'].map(t => (
+                            <option key={t} value={t}>
+                              {new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">For immediate crisis support, call <strong>988</strong> anytime.</p>
                   </div>
                 ) : (
                   <>

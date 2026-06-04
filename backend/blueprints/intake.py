@@ -2388,3 +2388,61 @@ def get_my_intake_status():
         "has_draft": draft is not None,
         "draft_id": str(draft["_id"]) if draft else None,
     }), 200
+
+
+@intake_bp.route('/list', methods=['GET'])
+@jwt_required()
+def list_intakes():
+    """IC/Staff: List intakes filtered by status"""
+    from datetime import timedelta
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)}) if user_id else None
+    allowed_roles = {'IC', 'STAFF', 'CSC', 'CSP', 'ADMIN', 'DPO', 'PSYCHOLOGIST', 'COUNSELOR'}
+    if not user or user.get('role') not in allowed_roles:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    status_param = request.args.get('status', 'pending').upper()
+
+    # Map frontend status names to DB values
+    OVERDUE_DAYS = 3
+    now = datetime.utcnow()
+
+    if status_param == 'OVERDUE':
+        cutoff = now - timedelta(days=OVERDUE_DAYS)
+        query = {'status': {'$in': ['PENDING', 'IN_PROGRESS']}, 'created_at': {'$lt': cutoff}}
+    elif status_param == 'PENDING':
+        query = {'status': 'PENDING'}
+    elif status_param == 'IN_PROGRESS':
+        query = {'status': 'IN_PROGRESS'}
+    elif status_param == 'COMPLETED':
+        query = {'status': 'COMPLETED'}
+    else:
+        query = {}
+
+    intakes = list(db.db.intakes.find(query).sort('created_at', -1).limit(100))
+    result = []
+    for intake in intakes:
+        student_id = intake.get('student_id') or intake.get('user_id')
+        student = None
+        if student_id:
+            try:
+                student = db.db.users.find_one({'_id': ObjectId(str(student_id))})
+            except Exception:
+                pass
+        student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else 'Unknown'
+        created_at = intake.get('created_at', now)
+        deadline = created_at + timedelta(days=OVERDUE_DAYS)
+        result.append({
+            '_id': str(intake['_id']),
+            'student_id': str(student_id) if student_id else '',
+            'student_name': student_name,
+            'student_email': student.get('email', '') if student else '',
+            'status': intake.get('status', ''),
+            'concern': intake.get('responses', {}).get('concern') or intake.get('concern', ''),
+            'risk_level': intake.get('responses', {}).get('risk_level') or intake.get('risk_level', 'GREEN'),
+            'is_emergency': intake.get('is_emergency', False),
+            'created_at': created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at),
+            'deadline': deadline.isoformat() if hasattr(deadline, 'isoformat') else str(deadline),
+        })
+
+    return jsonify({'intakes': result, 'total': len(result), 'status_filter': status_param}), 200

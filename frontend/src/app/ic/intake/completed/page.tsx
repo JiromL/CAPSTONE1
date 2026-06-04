@@ -23,7 +23,7 @@ export default function CompletedIntakesPage() {
     const loadIntakes = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(api('/api/intakes?status=completed'), {
+        const response = await fetch(api('/api/intake/list?status=completed'), {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await response.json();

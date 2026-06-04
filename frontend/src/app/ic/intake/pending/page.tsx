@@ -24,7 +24,7 @@ export default function PendingIntakesPage() {
     const loadIntakes = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(api('/api/intakes?status=pending'), {
+        const response = await fetch(api('/api/intake/list?status=pending'), {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await response.json();

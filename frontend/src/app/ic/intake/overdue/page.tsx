@@ -21,7 +21,7 @@ export default function OverdueIntakesPage() {
     const loadIntakes = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(api('/api/intakes?status=overdue'), {
+        const response = await fetch(api('/api/intake/list?status=overdue'), {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await response.json();

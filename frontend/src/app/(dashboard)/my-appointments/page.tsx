@@ -613,14 +613,33 @@ function AppointmentCard({
         {/* Actions row */}
         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2 flex-wrap">
           {appt.meeting_link && isUpcoming(dt) && (
-            <a
-              href={appt.meeting_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
-            >
-              <Video size={13} /> Join Session
-            </a>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <a
+                href={appt.meeting_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+              >
+                <Video size={13} /> Join Session
+              </a>
+              <button
+                onClick={() => navigator.clipboard.writeText(appt.meeting_link!)}
+                title="Copy link"
+                className="inline-flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                Copy link
+              </button>
+              <a
+                href={appt.meeting_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:underline truncate max-w-[180px]"
+                title={appt.meeting_link}
+              >
+                {appt.meeting_link}
+              </a>
+            </div>
           )}
           {['CONFIRMED', 'APPROVED'].includes(appt.status) && isUpcoming(dt) && (
             <button

@@ -211,8 +211,31 @@ def update_journal_entry(journal_id):
     audit_log(db.db, 'journal', 'update', entity_id=journal_id, old_values={
         'mood': entry.get('mood')
     }, new_values=update_data)
-    
+
     return jsonify({'message': 'Journal entry updated', 'journal_id': journal_id}), 200
+
+
+@engagement_bp.route('/journal/<journal_id>', methods=['DELETE'])
+@jwt_required()
+def delete_journal_entry(journal_id):
+    """Delete a journal entry (owner only)"""
+    user_id = get_jwt_identity()
+
+    try:
+        entry = db.db.journal_entries.find_one({
+            '_id': ObjectId(journal_id),
+            'student_id': ObjectId(user_id)
+        })
+    except:
+        return jsonify({'error': 'Invalid journal ID'}), 400
+
+    if not entry:
+        return jsonify({'error': 'Journal entry not found or not yours'}), 404
+
+    db.db.journal_entries.delete_one({'_id': ObjectId(journal_id)})
+    audit_log(db.db, 'journal', 'delete', entity_id=journal_id)
+
+    return jsonify({'message': 'Journal entry deleted'}), 200
 
 
 # ============ REMINDERS ============

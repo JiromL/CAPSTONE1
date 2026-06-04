@@ -38,7 +38,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     
     // Primary Workflow
     { label: 'New Intakes', href: '/new-intakes', id: 'new-intakes' },
-    { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
     { label: 'Reminders', href: '/reminders', id: 'reminders' },
     { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
@@ -59,8 +58,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases', href: '/cases', id: 'cases' },
     { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
     { label: 'Appointments', href: '/appointments', id: 'appointments' },
-    { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
-    { label: 'Assessments', href: '/assessments', id: 'assessments' },
 
     // Clinical Tools
     { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
@@ -89,12 +86,10 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases', href: '/cases', id: 'cases' },
     { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
     { label: 'Appointments', href: '/appointments', id: 'appointments' },
-    { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
-    
+
     // Clinical Tools
     { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
     { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
-    { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
     { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },
@@ -117,12 +112,10 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
     { label: 'Supervision', href: '/supervision', id: 'supervision' },
     { label: 'Appointments', href: '/appointments', id: 'appointments' },
-    { label: 'Check-Ins', href: '/check-ins', id: 'check-ins' },
 
     // Clinical Tools
     { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
     { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
-    { label: 'Assessments', href: '/assessments', id: 'assessments' },
     { label: 'Referrals', href: '/referrals', id: 'referrals' },
     { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
     { label: 'Video Links', href: '/video-links', id: 'video-links' },

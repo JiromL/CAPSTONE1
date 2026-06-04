@@ -572,42 +572,32 @@ def get_cases_monthly():
 @jwt_required()
 @dpo_admin_only
 def get_concern_distribution():
-    """Breakdown of concern types across intakes and direct bookings"""
+    """Breakdown of concern types across intakes using categorical purpose field"""
     try:
         LABEL_MAP = {
             'personal': 'Personal / Mental Health',
+            'mental_health': 'Personal / Mental Health',
             'academic': 'Academic',
             'career': 'Career',
+            'relationship': 'Relationships',
             'social': 'Social / Relationships',
+            'crisis': 'Crisis',
+            'family': 'Family',
             'other': 'Other',
             'others': 'Other',
         }
 
-        # Concerns from intakes
+        # Use responses.purpose from intakes (categorical dropdown, not free-text)
         intake_pipeline = [
-            {'$group': {'_id': '$primary_concern', 'count': {'$sum': 1}}},
+            {'$match': {'responses.purpose': {'$exists': True, '$ne': None, '$ne': ''}}},
+            {'$group': {'_id': '$responses.purpose', 'count': {'$sum': 1}}},
             {'$sort': {'count': -1}}
         ]
-        intake_concerns = {
-            LABEL_MAP.get((item['_id'] or '').lower(), item['_id'] or 'Unknown'): item['count']
-            for item in db.db.intakes.aggregate(intake_pipeline) if item['_id']
-        }
-
-        # Concerns from direct bookings
-        appt_pipeline = [
-            {'$match': {'concern': {'$exists': True, '$ne': None, '$ne': ''}}},
-            {'$group': {'_id': '$concern', 'count': {'$sum': 1}}},
-            {'$sort': {'count': -1}}
-        ]
-        appt_concerns = {}
-        for item in db.db.appointments.aggregate(appt_pipeline):
-            label = LABEL_MAP.get((item['_id'] or '').lower(), item['_id'] or 'Unknown')
-            appt_concerns[label] = appt_concerns.get(label, 0) + item['count']
-
-        # Merge both sources
         combined = {}
-        for label, count in {**intake_concerns, **appt_concerns}.items():
-            combined[label] = combined.get(label, 0) + count
+        for item in db.db.intakes.aggregate(intake_pipeline):
+            raw = (item['_id'] or '').lower().strip()
+            label = LABEL_MAP.get(raw, raw.replace('_', ' ').title() if raw else 'Other')
+            combined[label] = combined.get(label, 0) + item['count']
 
         result = [{'concern': k, 'count': v} for k, v in sorted(combined.items(), key=lambda x: -x[1])]
 

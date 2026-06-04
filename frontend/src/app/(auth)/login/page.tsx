@@ -229,7 +229,7 @@ export default function LoginPage() {
               )}
               <div
                 id="google-signin-button"
-                className="w-full flex justify-center min-h-[44px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                className="w-full flex justify-center min-h-[44px]"
               />
               {googleReady && (
                 <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2">

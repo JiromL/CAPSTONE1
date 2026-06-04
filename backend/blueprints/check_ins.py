@@ -410,8 +410,9 @@ def student_self_checkin():
         except:
             return jsonify({'error': 'Invalid appointment_id'}), 400
 
-    # Try to find an existing case (optional)
-    case = db.db.cases.find_one({'student_id': str(user_id_obj)})
+    # Try to find an existing case (optional) — student_id may be stored as ObjectId or string
+    case = db.db.cases.find_one({'student_id': user_id_obj}) or \
+           db.db.cases.find_one({'student_id': str(user_id_obj)})
     if not case and not appointment_id_obj:
         return jsonify({
             'error': 'No active case or appointment found',
@@ -458,17 +459,17 @@ def student_self_checkin():
     }
     
     result = db.db.check_ins.insert_one(check_in)
-    
-    audit_log(db.db, 'check_ins', 'student_self_checkin', 
-              entity_id=str(result.inserted_id), 
+
+    audit_log(db.db, 'check_ins', 'student_self_checkin',
+              entity_id=str(result.inserted_id),
               user_id=str(user_id_obj),
               entity_type='case',
-              related_id=str(case['_id']))
-    
+              related_id=str(case['_id']) if case else str(appointment_id_obj or ''))
+
     return jsonify({
         'message': 'Check-in submitted successfully',
         'check_in_id': str(result.inserted_id),
-        'case_id': str(case['_id']),
+        'case_id': str(case['_id']) if case else None,
         'status': 'SUBMITTED_FOR_REVIEW',
         'timestamp': datetime.utcnow().isoformat()
     }), 201

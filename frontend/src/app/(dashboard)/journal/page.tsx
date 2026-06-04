@@ -96,11 +96,20 @@ export default function JournalPage() {
   // Stats
   const streak = (() => {
     if (!entries.length) return 0;
-    let s = 0;
-    let prev = new Date();
+    // Deduplicate to one entry per calendar day (entries sorted newest first)
+    const days: string[] = [];
     for (const e of entries) {
-      const d = new Date(e.created_at);
-      if (Math.floor((prev.getTime() - d.getTime()) / 86400000) <= 1) { s++; prev = d; }
+      const day = new Date(e.created_at).toDateString();
+      if (!days.includes(day)) days.push(day);
+    }
+    // Count consecutive days going backwards from today
+    let s = 0;
+    let cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    for (const day of days) {
+      const d = new Date(day);
+      const diff = Math.round((cursor.getTime() - d.getTime()) / 86400000);
+      if (diff === 0 || diff === 1) { s++; cursor = d; }
       else break;
     }
     return s;

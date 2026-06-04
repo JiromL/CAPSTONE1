@@ -199,8 +199,8 @@ export default function AppointmentsPage() {
     if (!link) return;
     setSavingLinkId(appointmentId);
     try {
-      const r = await fetch(getApiUrl(`/api/appointments/${appointmentId}/set-meeting-link`), {
-        method: 'POST',
+      const r = await fetch(getApiUrl(`/api/appointments/${appointmentId}/meeting-link`), {
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ meeting_link: link }),
       });
@@ -371,7 +371,7 @@ export default function AppointmentsPage() {
     setCancelling(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/no-show`), {
+      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/mark-no-show`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

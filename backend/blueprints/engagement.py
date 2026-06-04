@@ -335,6 +335,27 @@ def acknowledge_reminder(reminder_id):
     return jsonify({'message': 'Reminder acknowledged', 'reminder_id': reminder_id}), 200
 
 
+@engagement_bp.route('/reminders/<reminder_id>', methods=['DELETE'])
+@jwt_required()
+def delete_reminder(reminder_id):
+    """Delete a reminder (owner only)"""
+    user_id = get_jwt_identity()
+
+    try:
+        reminder = db.db.reminders.find_one({
+            '_id': ObjectId(reminder_id),
+            'user_id': ObjectId(user_id)
+        })
+    except:
+        return jsonify({'error': 'Invalid reminder ID'}), 400
+
+    if not reminder:
+        return jsonify({'error': 'Reminder not found'}), 404
+
+    db.db.reminders.delete_one({'_id': ObjectId(reminder_id)})
+    return jsonify({'message': 'Reminder deleted'}), 200
+
+
 # ============ FEEDBACK COLLECTION ============
 
 @engagement_bp.route('/feedback', methods=['POST'])

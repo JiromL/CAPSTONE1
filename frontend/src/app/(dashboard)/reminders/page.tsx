@@ -136,7 +136,7 @@ export default function RemindersPage() {
   // Acknowledge reminder
   const handleAcknowledge = async (reminderId: string) => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch(`${api(`/api/engagement/reminders/${reminderId}/acknowledge`)}`, {
         method: 'PATCH',
         headers: {
@@ -170,7 +170,7 @@ export default function RemindersPage() {
     if (!window.confirm('Are you sure you want to delete this reminder?')) return;
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch(`${api(`/api/engagement/reminders/${reminderId}`)}`, {
         method: 'DELETE',
         headers: {

@@ -377,7 +377,7 @@ def get_my_appointments():
         # Convert all appointments
         for apt in appointments:
             convert_objectids(apt)
-            
+
             # Add counselor name if counselor_id exists
             if apt.get('counselor_id'):
                 try:
@@ -389,6 +389,24 @@ def get_my_appointments():
                         apt['counselor_email'] = counselor.get('email', '')
                 except:
                     pass
+
+            # Add student name for counselor/staff views
+            if not apt.get('student_name'):
+                if apt.get('student_id'):
+                    try:
+                        student = db.db.users.find_one({"_id": ObjectId(apt['student_id'])})
+                        if student:
+                            apt['student_name'] = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
+                    except:
+                        pass
+                if not apt.get('student_name') and apt.get('case_id'):
+                    try:
+                        case = db.db.cases.find_one({"_id": ObjectId(apt['case_id'])})
+                        if case:
+                            apt['student_name'] = case.get('student_name', '')
+                            apt['student_email'] = apt.get('student_email') or case.get('student_email', '')
+                    except:
+                        pass
         
         return jsonify({
             'appointments': appointments,

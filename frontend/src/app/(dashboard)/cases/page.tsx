@@ -74,13 +74,21 @@ export default function CasesPage() {
     loadCases();
   }, [user, filterStatus]);
 
-  const filteredCases = cases.filter((c) =>
-    (filterStatus === 'all' || c.status === filterStatus) &&
-    (filterClientStatus === 'all' || c.client_status === filterClientStatus) &&
-    (c.presenting_issue?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c._id?.includes(searchTerm) ||
-      c.student_id?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredCases = cases.filter((c) => {
+    const matchesStatus = filterStatus === 'all' || c.status === filterStatus || c.case_status === filterStatus;
+    const matchesClientStatus = filterClientStatus === 'all' || c.client_status === filterClientStatus;
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = !term || (
+      c.student_name?.toLowerCase().includes(term) ||
+      c.student_email?.toLowerCase().includes(term) ||
+      c.chief_complaint?.toLowerCase().includes(term) ||
+      c.presenting_issue?.toLowerCase().includes(term) ||
+      c.case_number?.toLowerCase().includes(term) ||
+      c.counseling_id?.toLowerCase().includes(term) ||
+      c._id?.includes(term)
+    );
+    return matchesStatus && matchesClientStatus && matchesSearch;
+  });
 
   const getRoleSpecificTitle = () => {
     if (!user) return 'Case Management';
@@ -182,26 +190,29 @@ export default function CasesPage() {
                   <div className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="mb-2">
-                          <span className="font-medium text-gray-900 dark:text-gray-50">
-                            {caseItem.presenting_issue || 'N/A'}
+                        <div className="mb-1">
+                          <span className="font-semibold text-gray-900 dark:text-gray-50">
+                            {caseItem.student_name || caseItem.student_email || 'Unknown Student'}
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-2 items-center mb-2">
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            ID: {caseItem.student_id || caseItem._id}
+                        {(caseItem.chief_complaint || caseItem.presenting_issue) && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1 line-clamp-1">
+                            {caseItem.chief_complaint || caseItem.presenting_issue}
                           </p>
-                          {caseItem.transaction_type && (
-                            <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
-                              {caseItem.transaction_type}
-                            </span>
+                        )}
+                        <div className="flex flex-wrap gap-2 items-center mb-1">
+                          {caseItem.case_number && (
+                            <p className="text-xs text-gray-500 dark:text-gray-500">{caseItem.case_number}</p>
+                          )}
+                          {caseItem.counseling_id && (
+                            <p className="text-xs text-gray-500 dark:text-gray-500">{caseItem.counseling_id}</p>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
                           Created: {new Date(caseItem.created_at).toLocaleDateString()}
                         </p>
                         {caseItem.session_count && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 mt-1">
                             Sessions: {caseItem.session_count}/{caseItem.target_sessions || 'N/A'}
                           </p>
                         )}

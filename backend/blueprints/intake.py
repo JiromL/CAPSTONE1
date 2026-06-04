@@ -2193,6 +2193,7 @@ def create_walkin_intake():
             '_id': ObjectId(),
             'counseling_id': counseling_id,
             'case_id': case_id,
+            'student_name': f"{data.get('first_name')} {data.get('last_name')}",
             'student_email': data.get('email'),
             'status': AppointmentStatus.REQUESTED,
             'appointment_type': 'INITIAL_CONSULTATION',

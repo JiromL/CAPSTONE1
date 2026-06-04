@@ -324,11 +324,26 @@ def format_appointments(appointments):
                 except:
                     preferred_date = str(date_source)
             
+            # For walk-ins the appointment has no student_id (unregistered visitor);
+            # fall back to name/email stored directly on the appointment or its case.
+            resolved_name = (
+                (f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else None)
+                or apt.get('student_name', '')
+                or (case.get('student_name', '') if case else '')
+                or apt.get('student_email', '')
+                or 'Unknown'
+            )
+            resolved_email = (
+                (student.get('email', '') if student else None)
+                or apt.get('student_email', '')
+                or (case.get('student_email', '') if case else '')
+            ) or ''
+
             formatted.append({
                 'appointment_id': str(apt.get('_id')),
                 'student_id': str(apt.get('student_id', '')),
-                'student_name': f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else 'Unknown',
-                'student_email': student.get('email', '') if student else '',
+                'student_name': resolved_name,
+                'student_email': resolved_email,
                 'student_phone': student.get('phone', '') if student else '',
                 'student_id_number': student.get('id_number', '') if student else '',
                 'counselor_id': str(apt.get('counselor_id', '')) if apt.get('counselor_id') else None,

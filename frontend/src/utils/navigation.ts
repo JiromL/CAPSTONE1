@@ -143,12 +143,10 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
     { label: 'Counselor Schedules', href: '/counselor-schedules', id: 'counselor-schedules' },
     { label: 'Walk-In Intake', href: '/walk-in-intake', id: 'walk-in-intake' },
-    { label: 'Check-In Tracking', href: '/check-in-tracking', id: 'check-in-tracking' },
     { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests' },
     { label: 'Waitlist', href: '/waitlist', id: 'waitlist' },
 
     // Administrative
-    { label: 'My Tasks', href: '/tasks', id: 'tasks' },
     { label: 'Settings', href: '/staff-settings', id: 'staff-settings' },
     { label: 'Resources', href: '/resources', id: 'resources' },
     { label: 'Profile', href: '/profile', id: 'profile' },

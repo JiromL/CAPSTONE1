@@ -22,10 +22,10 @@ export default function HealthPage() {
   useEffect(() => { fetchHealth(); }, []);
 
   const isOk = health?.status === 'Backend is running' || health?.status === 'ok';
-  const mongoOk = health?.mongodb === 'connected';
+  const mongoOk = (health?.mongodb_status || health?.mongodb) === 'connected';
   const checks = [
     { label: 'API Server', ok: isOk, detail: health?.status || '—' },
-    { label: 'MongoDB', ok: mongoOk, detail: health?.mongodb || '—' },
+    { label: 'MongoDB', ok: mongoOk, detail: health?.mongodb_status || health?.mongodb || '—' },
     { label: 'JWT Auth', ok: isOk, detail: 'Enabled' },
     { label: 'Email Service', ok: true, detail: 'Configured' },
   ];

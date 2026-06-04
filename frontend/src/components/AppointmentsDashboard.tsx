@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, FileText, CheckCircle, AlertCircle, UserCheck, MessageSquare, ChevronDown, ChevronUp, Plus, X, Search, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
 
@@ -327,8 +327,8 @@ export default function AppointmentsDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {sortedAppointments.map((apt) => (
-                  <>
-                  <tr key={apt.appointment_id} className={`transition-colors ${
+                  <React.Fragment key={apt.appointment_id}>
+                  <tr className={`transition-colors ${
                     apt.status === 'REQUESTED'
                       ? 'bg-yellow-50/50 dark:bg-yellow-900/10 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'
@@ -455,7 +455,7 @@ export default function AppointmentsDashboard() {
                       </td>
                     </tr>
                   )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

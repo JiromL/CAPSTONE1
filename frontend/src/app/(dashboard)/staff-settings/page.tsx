@@ -74,6 +74,55 @@ export default function StaffSettingsPage() {
   const [connectingCalendar, setConnectingCalendar] = useState(false);
   const [disconnectingCalendar, setDisconnectingCalendar] = useState(false);
 
+  const loadCalendarStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api('/api/calendar/status'), { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const d = await res.json();
+        setCalendarConnected(d.connected);
+      }
+    } catch {}
+  };
+
+  const handleConnectCalendar = async () => {
+    setConnectingCalendar(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api('/api/calendar/authorize'), { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const d = await res.json();
+        window.location.href = d.auth_url;
+      } else {
+        showToast('Failed to get authorization URL', 'error');
+      }
+    } catch {
+      showToast('Error connecting to Google Calendar', 'error');
+    } finally {
+      setConnectingCalendar(false);
+    }
+  };
+
+  const handleDisconnectCalendar = async () => {
+    if (!confirm('Disconnect Google Calendar? New appointments will no longer sync.')) return;
+    setDisconnectingCalendar(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api('/api/calendar/disconnect'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setCalendarConnected(false);
+        showToast('Google Calendar disconnected', 'success');
+      }
+    } catch {
+      showToast('Error disconnecting', 'error');
+    } finally {
+      setDisconnectingCalendar(false);
+    }
+  };
+
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) setUserRole(JSON.parse(user).role || '');
@@ -274,55 +323,6 @@ export default function StaffSettingsPage() {
       </DashboardPageWrapper>
     );
   }
-
-  const loadCalendarStatus = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(api('/api/calendar/status'), { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) {
-        const d = await res.json();
-        setCalendarConnected(d.connected);
-      }
-    } catch {}
-  };
-
-  const handleConnectCalendar = async () => {
-    setConnectingCalendar(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(api('/api/calendar/authorize'), { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) {
-        const d = await res.json();
-        window.location.href = d.auth_url;
-      } else {
-        showToast('Failed to get authorization URL', 'error');
-      }
-    } catch {
-      showToast('Error connecting to Google Calendar', 'error');
-    } finally {
-      setConnectingCalendar(false);
-    }
-  };
-
-  const handleDisconnectCalendar = async () => {
-    if (!confirm('Disconnect Google Calendar? New appointments will no longer sync.')) return;
-    setDisconnectingCalendar(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(api('/api/calendar/disconnect'), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setCalendarConnected(false);
-        showToast('Google Calendar disconnected', 'success');
-      }
-    } catch {
-      showToast('Error disconnecting', 'error');
-    } finally {
-      setDisconnectingCalendar(false);
-    }
-  };
 
   if (!settings) {
     return (

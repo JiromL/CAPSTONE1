@@ -555,7 +555,7 @@ export default function AppointmentsPage() {
                 {todaySessions.map(appt => {
                   const dt = (appt as any).scheduled_start || appt.appointment_date;
                   const timeLabel = dt ? new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD';
-                  const needsLink = !appt.meeting_link && ['zoom', 'google_meet', 'online'].includes((appt as any).preferred_method || appt.preferred_platform || '');
+                  const needsLink = !appt.meeting_link;
                   return (
                     <div key={appt._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
                       <div className="flex items-start justify-between mb-2">
@@ -838,8 +838,7 @@ export default function AppointmentsPage() {
                         </a>
                       </p>
                     ) : ['COUNSELOR','PSYCHOLOGIST','CSC','CSP','STAFF','ADMIN'].includes(user?.role) &&
-                        ['CONFIRMED','CHECKED_IN','MATCHED'].includes(appointment.status) &&
-                        ['zoom','google_meet','online'].includes((appointment as any).preferred_method || appointment.preferred_platform || '') ? (
+                        ['CONFIRMED','CHECKED_IN','MATCHED'].includes(appointment.status) ? (
                       <div className="flex gap-2 mb-3">
                         <input
                           type="url"

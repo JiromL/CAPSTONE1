@@ -286,6 +286,48 @@ def seed():
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
         },
+        # STAFF (Office Assistant / Scheduler)
+        {
+            'email': 'staff@university.edu',
+            'password_hash': generate_password_hash('staff123'),
+            'first_name': 'Alex',
+            'last_name': 'Staff',
+            'role': 'STAFF',
+            'phone': '555-0040',
+            'department': 'Counseling',
+            'specializations': [],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        # CSC (Continuing Session Counselor Supervisor)
+        {
+            'email': 'csc@university.edu',
+            'password_hash': generate_password_hash('csc123'),
+            'first_name': 'Dana',
+            'last_name': 'CSC',
+            'role': 'CSC',
+            'phone': '555-0041',
+            'department': 'Counseling',
+            'specializations': ['Supervision', 'Case Management'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
+        # CSP (Continuing Session Psychologist Supervisor)
+        {
+            'email': 'csp@university.edu',
+            'password_hash': generate_password_hash('csp123'),
+            'first_name': 'Morgan',
+            'last_name': 'CSP',
+            'role': 'CSP',
+            'phone': '555-0042',
+            'department': 'Counseling',
+            'specializations': ['Clinical Supervision', 'Psychotherapy'],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
         # TEST STUDENTS
         {
             'email': 'student1@university.edu',
@@ -357,6 +399,12 @@ if __name__ == '__main__':
     print("   └─ rose.t@university.edu / roset123")
     print("   └─ bia@university.edu / bia123")
     print("   └─ chelly@university.edu / chelly123")
+    print("\n   STAFF (Office Assistant/Scheduler):")
+    print("   └─ staff@university.edu / staff123")
+    print("\n   CSC (Counselor Supervisor):")
+    print("   └─ csc@university.edu / csc123")
+    print("\n   CSP (Psychologist Supervisor):")
+    print("   └─ csp@university.edu / csp123")
     print("\n   STUDENTS:")
     print("   └─ student1@university.edu / student123")
     print("   └─ student2@university.edu / student456")

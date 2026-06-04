@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, FileText, CheckCircle, AlertCircle, UserCheck, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, FileText, CheckCircle, AlertCircle, UserCheck, MessageSquare, ChevronDown, ChevronUp, Plus, X, Search, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
 
 interface Appointment {
@@ -42,6 +42,21 @@ export default function AppointmentsDashboard() {
   // Per-row check-in expansion
   const [checkinRow, setCheckinRow] = useState<string | null>(null);
   const [checkinData, setCheckinData] = useState<Record<string, any[]>>({});
+
+  // Schedule-for-student modal
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [studentQuery, setStudentQuery] = useState('');
+  const [studentResults, setStudentResults] = useState<any[]>([]);
+  const [searchingStudents, setSearchingStudents] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [schedPurpose, setSchedPurpose] = useState('personal');
+  const [schedConcern, setSchedConcern] = useState('');
+  const [schedMethod, setSchedMethod] = useState('in-person');
+  const [schedCounselor, setSchedCounselor] = useState('');
+  const [schedDate, setSchedDate] = useState('');
+  const [schedTime, setSchedTime] = useState('');
+  const [submittingSchedule, setSubmittingSchedule] = useState(false);
+  const [scheduleMsg, setScheduleMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   useEffect(() => {
     fetchDashboard();
@@ -107,6 +122,55 @@ export default function AppointmentsDashboard() {
     } finally {
       setAssigningId(null);
     }
+  };
+
+  const searchStudents = async (q: string) => {
+    setStudentQuery(q);
+    if (q.trim().length < 2) { setStudentResults([]); return; }
+    setSearchingStudents(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/users?role=STUDENT&q=${encodeURIComponent(q)}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) { const d = await r.json(); setStudentResults(d.users || []); }
+    } finally { setSearchingStudents(false); }
+  };
+
+  const handleScheduleSubmit = async () => {
+    if (!selectedStudent) { setScheduleMsg({ type: 'err', text: 'Select a student first.' }); return; }
+    setSubmittingSchedule(true);
+    setScheduleMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const body: any = {
+        student_id: selectedStudent._id,
+        purpose: schedPurpose,
+        concern: schedConcern,
+        preferred_method: schedMethod,
+      };
+      if (schedCounselor) body.counselor_id = schedCounselor;
+      if (schedDate) body.preferred_date = schedDate;
+      if (schedTime) body.preferred_time = schedTime;
+      const r = await fetch(api('/api/appointments/staff/schedule-for-student'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setScheduleMsg({ type: 'ok', text: `Appointment created (${d.status}).` });
+        setTimeout(() => { setShowScheduleModal(false); resetScheduleForm(); fetchDashboard(); }, 1200);
+      } else {
+        setScheduleMsg({ type: 'err', text: d.error || 'Failed to create appointment.' });
+      }
+    } finally { setSubmittingSchedule(false); }
+  };
+
+  const resetScheduleForm = () => {
+    setSelectedStudent(null); setStudentQuery(''); setStudentResults([]);
+    setSchedPurpose('personal'); setSchedConcern(''); setSchedMethod('in-person');
+    setSchedCounselor(''); setSchedDate(''); setSchedTime(''); setScheduleMsg(null);
   };
 
   const toggleCheckins = async (aptId: string) => {
@@ -229,11 +293,19 @@ export default function AppointmentsDashboard() {
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">New requests are shown first — assign a counselor using the inline controls.</p>
             )}
           </div>
-          {dashboard.can_assign_counselor && (
-            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-              <UserCheck size={12} /> {pendingCount} need assignment
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {dashboard.can_assign_counselor && (
+              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                <UserCheck size={12} /> {pendingCount} need assignment
+              </span>
+            )}
+            <button
+              onClick={() => { resetScheduleForm(); setShowScheduleModal(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              <Plus size={13} /> Schedule for Student
+            </button>
+          </div>
         </div>
 
         {sortedAppointments.length > 0 ? (
@@ -394,6 +466,140 @@ export default function AppointmentsDashboard() {
           </div>
         )}
       </div>
+
+      {/* Schedule for Student Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Schedule Appointment for Existing Student</h3>
+              <button onClick={() => { setShowScheduleModal(false); resetScheduleForm(); }}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+                <X size={15} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Student Search */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Student</label>
+                {selectedStudent ? (
+                  <div className="flex items-center justify-between px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedStudent.first_name} {selectedStudent.last_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{selectedStudent.email}</p>
+                    </div>
+                    <button onClick={() => { setSelectedStudent(null); setStudentQuery(''); setStudentResults([]); }}
+                      className="text-xs text-red-500 hover:text-red-700 transition">
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-green-500">
+                      <Search size={13} className="text-gray-400 flex-shrink-0" />
+                      <input
+                        value={studentQuery}
+                        onChange={e => searchStudents(e.target.value)}
+                        placeholder="Search by name or email…"
+                        className="flex-1 text-sm bg-transparent outline-none text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                      {searchingStudents && <Loader2 size={13} className="animate-spin text-gray-400" />}
+                    </div>
+                    {studentResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                        {studentResults.map(s => (
+                          <button
+                            key={s._id}
+                            onClick={() => { setSelectedStudent(s); setStudentResults([]); setStudentQuery(''); }}
+                            className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                          >
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{s.first_name} {s.last_name}</p>
+                            <p className="text-xs text-gray-400">{s.email}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {studentQuery.length >= 2 && !searchingStudents && studentResults.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1 px-1">No students found.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Purpose */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Purpose</label>
+                <select value={schedPurpose} onChange={e => setSchedPurpose(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                  <option value="personal">Personal / Mental Health</option>
+                  <option value="academic">Academic Concerns</option>
+                  <option value="career">Career Counseling</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Concern */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Concern / Notes</label>
+                <textarea value={schedConcern} onChange={e => setSchedConcern(e.target.value)}
+                  placeholder="Brief description of the concern…"
+                  rows={2}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none" />
+              </div>
+
+              {/* Method */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">Mode</label>
+                <select value={schedMethod} onChange={e => setSchedMethod(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                  <option value="in-person">In Person</option>
+                  <option value="google-meet">Google Meet</option>
+                  <option value="zoom">Zoom</option>
+                </select>
+              </div>
+
+              {/* Optional: Counselor + Date/Time */}
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Optional — assign a counselor and/or set a time now, or leave blank to assign later.</p>
+                <div className="space-y-2">
+                  <select value={schedCounselor} onChange={e => setSchedCounselor(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                    <option value="">Assign counselor later…</option>
+                    {counselors.map(c => (
+                      <option key={c._id} value={c._id}>{c.first_name} {c.last_name}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
+                      className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                    <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
+                      className="w-28 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  </div>
+                </div>
+              </div>
+
+              {scheduleMsg && (
+                <p className={`text-xs px-3 py-2 rounded-lg ${scheduleMsg.type === 'ok' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
+                  {scheduleMsg.text}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setShowScheduleModal(false); resetScheduleForm(); }}
+                  className="flex-1 px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                  Cancel
+                </button>
+                <button onClick={handleScheduleSubmit} disabled={submittingSchedule || !selectedStudent}
+                  className="flex-1 px-4 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors">
+                  {submittingSchedule && <Loader2 size={13} className="animate-spin" />}
+                  Create Appointment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

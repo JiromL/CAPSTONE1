@@ -195,12 +195,21 @@ def list_users_by_role():
         current = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
     except Exception:
         current = None
-    if not current or current.get('role') not in ('STAFF', 'ADMIN', 'CSP', 'CSC', 'PSYCHOLOGIST'):
+    if not current or current.get('role') not in ('STAFF', 'ADMIN', 'CSP', 'CSC', 'PSYCHOLOGIST', 'COUNSELOR', 'IC'):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     role = request.args.get('role')
+    q = request.args.get('q', '').strip()
     query = {'role': role} if role else {}
-    users = list(db.db.users.find(query, {'password_hash': 0}).limit(200))
+    if q:
+        import re
+        pattern = re.compile(re.escape(q), re.IGNORECASE)
+        query['$or'] = [
+            {'first_name': {'$regex': pattern}},
+            {'last_name': {'$regex': pattern}},
+            {'email': {'$regex': pattern}},
+        ]
+    users = list(db.db.users.find(query, {'password_hash': 0}).limit(50))
     result = []
     for u in users:
         result.append({

@@ -1964,6 +1964,117 @@ def get_appointment_details(appointment_id):
 # OFFICE STAFF MANAGEMENT ENDPOINTS
 # ============================================================================
 
+@appointments_bp.route('/staff/schedule-for-student', methods=['POST'])
+@jwt_required()
+def staff_schedule_for_student():
+    """Staff/counselor creates an appointment for an existing student (skips intake)."""
+    user_id = get_jwt_identity()
+    try:
+        actor = db.db.users.find_one({'_id': ObjectId(user_id)})
+    except Exception:
+        actor = None
+    allowed = ('STAFF', 'ADMIN', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP')
+    if not actor or actor.get('role') not in allowed:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    data = request.get_json() or {}
+    student_id = data.get('student_id')
+    purpose = data.get('purpose', 'personal')
+    concern = data.get('concern', '')
+    preferred_method = data.get('preferred_method', 'in-person')
+    counselor_id = data.get('counselor_id')
+    slot_id = data.get('slot_id')
+    preferred_date = data.get('preferred_date')
+    preferred_time = data.get('preferred_time')
+
+    if not student_id:
+        return jsonify({'error': 'student_id is required'}), 400
+
+    try:
+        student_oid = ObjectId(student_id)
+    except Exception:
+        return jsonify({'error': 'Invalid student_id'}), 400
+
+    student = db.db.users.find_one({'_id': student_oid})
+    if not student or student.get('role') != 'STUDENT':
+        return jsonify({'error': 'Student not found'}), 404
+
+    # Find existing case, or create a minimal one
+    case = db.db.cases.find_one({'student_id': student_oid}) or \
+           db.db.cases.find_one({'student_id': str(student_oid)})
+    if not case:
+        case_doc = {
+            '_id': ObjectId(),
+            'student_id': student_oid,
+            'student_name': f"{student.get('first_name','')} {student.get('last_name','')}".strip(),
+            'student_email': student.get('email', ''),
+            'case_status': 'open',
+            'chief_complaint': concern,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        }
+        db.db.cases.insert_one(case_doc)
+        case = case_doc
+
+    case_id = case['_id']
+
+    # Resolve timing
+    scheduled_start = None
+    scheduled_end = None
+    booked_slot = None
+    counselor_oid = None
+
+    if slot_id:
+        try:
+            slot_oid = ObjectId(slot_id)
+            booked_slot = db.db.counselor_availability.find_one({'_id': slot_oid, 'is_available': True})
+        except Exception:
+            pass
+        if booked_slot:
+            scheduled_start = booked_slot['slot_start']
+            scheduled_end = booked_slot['slot_end']
+            counselor_oid = booked_slot['counselor_id']
+    elif preferred_date and preferred_time:
+        try:
+            scheduled_start = datetime.fromisoformat(f"{preferred_date}T{preferred_time}:00")
+            scheduled_end = scheduled_start + timedelta(hours=1)
+        except ValueError:
+            return jsonify({'error': 'Invalid date/time format'}), 400
+
+    if counselor_id and not counselor_oid:
+        try:
+            counselor_oid = ObjectId(counselor_id)
+        except Exception:
+            pass
+
+    status = 'CONFIRMED' if (counselor_oid and scheduled_start) else 'REQUESTED'
+
+    apt = {
+        '_id': ObjectId(),
+        'case_id': case_id,
+        'student_id': student_oid,
+        'counselor_id': counselor_oid,
+        'status': status,
+        'purpose': purpose,
+        'concern': concern,
+        'preferred_method': preferred_method,
+        'requested_start': scheduled_start,
+        'requested_end': scheduled_end,
+        'scheduled_start': scheduled_start,
+        'scheduled_end': scheduled_end,
+        'referral_type': 'staff_scheduled',
+        'referred_by': actor.get('first_name', '') + ' ' + actor.get('last_name', ''),
+        'created_at': datetime.utcnow(),
+        'updated_at': datetime.utcnow(),
+    }
+    if booked_slot:
+        db.db.counselor_availability.update_one({'_id': booked_slot['_id']}, {'$set': {'is_available': False}})
+
+    db.db.appointments.insert_one(apt)
+    audit_log(db.db, 'appointment', 'staff_schedule', entity_id=str(apt['_id']))
+    return jsonify({'appointment_id': str(apt['_id']), 'status': status}), 201
+
+
 @appointments_bp.route('/staff/batch-assign', methods=['POST'])
 @jwt_required()
 def batch_auto_assign():

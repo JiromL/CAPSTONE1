@@ -82,27 +82,22 @@ export function DashboardLayout({
   const SidebarContent = () => (
     <>
       {/* Logo */}
-      <div className={`flex items-center h-16 px-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 ${desktopCollapsed ? 'justify-center' : 'justify-between'}`}>
+      <div className="flex items-center justify-between h-16 px-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
         {!desktopCollapsed && (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-bold">CPS</span>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">CPS System</p>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none truncate">CPS System</p>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Counseling Services</p>
             </div>
-          </div>
-        )}
-        {desktopCollapsed && (
-          <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">C</span>
           </div>
         )}
         {/* Desktop collapse toggle */}
         <button
           onClick={handleToggleDesktop}
-          className="hidden lg:flex p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className={`hidden lg:flex p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0 ${desktopCollapsed ? 'mx-auto' : ''}`}
         >
           {desktopCollapsed ? <Menu size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -199,7 +194,7 @@ export function DashboardLayout({
         bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
         transition-all duration-300 ease-in-out
         w-64
-        lg:${desktopCollapsed ? 'w-[70px]' : 'w-64'}
+        ${desktopCollapsed ? 'lg:w-[70px]' : 'lg:w-64'}
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <SidebarContent />

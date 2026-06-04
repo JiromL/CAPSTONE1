@@ -51,18 +51,20 @@ interface CheckInCase {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  CONFIRMED:        { label: 'Confirmed',     color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',    icon: <CheckCircle size={13} /> },
-  REQUESTED:        { label: 'Pending',        color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <AlertCircle size={13} /> },
-  PENDING_APPROVAL: { label: 'Under Review',   color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',        icon: <AlertCircle size={13} /> },
-  APPROVED:         { label: 'Approved',       color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle size={13} /> },
-  MATCHED:          { label: 'Matched',        color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle size={13} /> },
-  COMPLETED:        { label: 'Completed',      color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',           icon: <CheckCircle size={13} /> },
-  CANCELLED:        { label: 'Cancelled',      color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',            icon: <XCircle size={13} /> },
-  DENIED:           { label: 'Denied',         color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',            icon: <XCircle size={13} /> },
-  NO_SHOW:          { label: 'No Show',        color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400', icon: <XCircle size={13} /> },
+  CONFIRMED:            { label: 'Confirmed',          color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',    icon: <CheckCircle size={13} /> },
+  APPROVED:             { label: 'Confirmed',          color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',    icon: <CheckCircle size={13} /> },
+  MATCHED:              { label: 'Confirmed',          color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',    icon: <CheckCircle size={13} /> },
+  REQUESTED:            { label: 'Pending Review',     color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <AlertCircle size={13} /> },
+  PENDING_APPROVAL:     { label: 'Under Review',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <AlertCircle size={13} /> },
+  RESCHEDULE_REQUESTED: { label: 'Reschedule Pending', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <AlertCircle size={13} /> },
+  COMPLETED:            { label: 'Completed',          color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',           icon: <CheckCircle size={13} /> },
+  CANCELLED:            { label: 'Cancelled',          color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',            icon: <XCircle size={13} /> },
+  DENIED:               { label: 'Denied',             color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',            icon: <XCircle size={13} /> },
+  NO_SHOW:              { label: 'No Show',            color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',            icon: <XCircle size={13} /> },
 };
 
 const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
+const ACTIVE_STATUSES = new Set(['REQUESTED', 'PENDING_APPROVAL', 'APPROVED', 'MATCHED', 'CONFIRMED', 'RESCHEDULE_REQUESTED']);
 
 function getApptDatetime(appt: Appointment): string | undefined {
   return appt.scheduled_start || appt.requested_start;
@@ -175,7 +177,7 @@ export default function MyAppointmentsPage() {
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed'); }
       const updated = await r.json();
       setAppointments(prev => prev.map(a => a._id === rescheduleTarget._id
-        ? { ...a, status: 'REQUESTED', requested_start: updated.requested_start || a.requested_start, reschedule_count: updated.reschedule_count ?? (a.reschedule_count ?? 0) + 1 }
+        ? { ...a, status: 'RESCHEDULE_REQUESTED', reschedule_count: updated.reschedule_count ?? (a.reschedule_count ?? 0) + 1 }
         : a
       ));
       setRescheduleTarget(null);
@@ -502,7 +504,8 @@ function AppointmentCard({
   // Reschedule guards
   const rescheduleCount = appt.reschedule_count ?? 0;
   const within24h = dt ? (new Date(dt).getTime() - Date.now()) / 3600000 < 24 : false;
-  const canReschedule = !!(onReschedule && isActive && !within24h);
+  const reschedulePending = appt.status === 'RESCHEDULE_REQUESTED';
+  const canReschedule = !!(onReschedule && isActive && !within24h && !reschedulePending);
   const rescheduleWarning = rescheduleCount >= 2;
   const isInitialAssessment = appt.appointment_type?.toLowerCase().includes('initial');
 
@@ -659,9 +662,13 @@ function AppointmentCard({
             <Printer size={13} /> Confirmation Slip
           </Link>
 
-          {/* Reschedule button or 24h block notice */}
+          {/* Reschedule button or blocking notices */}
           {isActive && onReschedule && (
-            within24h ? (
+            reschedulePending ? (
+              <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <Clock size={12} /> Reschedule pending review
+              </span>
+            ) : within24h ? (
               <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
                 <Clock size={12} /> Cannot reschedule within 24h of session
               </span>

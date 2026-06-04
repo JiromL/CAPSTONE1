@@ -122,16 +122,44 @@ export default function AppointmentsDashboard() {
     }
   };
 
+  const STATUS_LABEL: Record<string, string> = {
+    REQUESTED: 'New Request',
+    PENDING_APPROVAL: 'Pending Approval',
+    CONFIRMED: 'Confirmed',
+    APPROVED: 'Confirmed',
+    MATCHED: 'Confirmed',
+    COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled',
+    DENIED: 'Denied',
+    NO_SHOW: 'No Show',
+    RESCHEDULE_REQUESTED: 'Reschedule Pending',
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'REQUESTED': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'PENDING_APPROVAL': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'CONFIRMED': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'APPROVED': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'COMPLETED': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-      case 'CANCELLED': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      case 'REQUESTED':
+      case 'PENDING_APPROVAL':
+      case 'RESCHEDULE_REQUESTED':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'CONFIRMED':
+      case 'APPROVED':
+      case 'MATCHED':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'CANCELLED':
+      case 'DENIED':
+      case 'NO_SHOW':
+        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      case 'COMPLETED':
+      default:
+        return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
     }
+  };
+
+  const getRowPriority = (status: string) => {
+    if (status === 'REQUESTED') return 0;
+    if (status === 'PENDING_APPROVAL') return 1;
+    if (status === 'CONFIRMED' || status === 'APPROVED' || status === 'MATCHED') return 2;
+    return 3;
   };
 
   const formatDate = (dateString: string) => {
@@ -158,83 +186,107 @@ export default function AppointmentsDashboard() {
   }
 
   const pendingCount = dashboard.appointments?.filter(a => a.status === 'REQUESTED').length || 0;
+  const pendingReschedules = dashboard.summary?.pending_reschedules ?? 0;
+  const sortedAppointments = [...(dashboard.appointments || [])].sort(
+    (a, b) => getRowPriority(a.status) - getRowPriority(b.status)
+  );
 
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
       {dashboard.summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {dashboard.summary.total != null && <SummaryCard title="Total" value={dashboard.summary.total} />}
-          {dashboard.summary.total_appointments != null && <SummaryCard title="All Appointments" value={dashboard.summary.total_appointments} />}
-          {dashboard.summary.unassigned_requests != null && <SummaryCard title="Unassigned" value={dashboard.summary.unassigned_requests} color="yellow" />}
-          {dashboard.summary.awaiting_approval != null && <SummaryCard title="Awaiting Approval" value={dashboard.summary.awaiting_approval} color="blue" />}
-          {pendingCount > 0 && dashboard.can_assign_counselor && <SummaryCard title="Need Assignment" value={pendingCount} color="red" />}
+          {dashboard.summary.total_appointments != null && <SummaryCard title="Total" value={dashboard.summary.total_appointments} />}
+          {dashboard.summary.unassigned_requests != null && <SummaryCard title="New Requests" value={dashboard.summary.unassigned_requests} color="yellow" />}
+          {dashboard.summary.awaiting_approval != null && <SummaryCard title="Awaiting Approval" value={dashboard.summary.awaiting_approval} color="yellow" />}
+          {pendingReschedules > 0 && <SummaryCard title="Reschedule Pending" value={pendingReschedules} color="yellow" />}
         </div>
       )}
 
-      {/* Pending assignment alert */}
+      {/* Action banners */}
       {dashboard.can_assign_counselor && pendingCount > 0 && (
-        <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-xl px-4 py-2.5 text-sm text-yellow-800 dark:text-yellow-300">
+        <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl px-4 py-2.5 text-sm text-yellow-800 dark:text-yellow-300">
           <AlertCircle size={15} />
-          <span><strong>{pendingCount}</strong> appointment{pendingCount !== 1 ? 's' : ''} waiting to be assigned. Use the controls in the table below.</span>
+          <span><strong>{pendingCount}</strong> new appointment{pendingCount !== 1 ? 's' : ''} need a counselor assigned — shown at the top of the table.</span>
         </div>
+      )}
+      {pendingReschedules > 0 && (
+        <a href="/reschedule-requests" className="flex items-center justify-between gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl px-4 py-2.5 text-sm text-yellow-800 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors">
+          <span className="flex items-center gap-2">
+            <AlertCircle size={15} />
+            <strong>{pendingReschedules}</strong> student{pendingReschedules !== 1 ? 's' : ''} requested to reschedule an existing appointment.
+          </span>
+          <span className="text-xs font-semibold underline underline-offset-2">Review →</span>
+        </a>
       )}
 
       {/* Appointments Table */}
       <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Appointments</h2>
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Appointments</h2>
+            {dashboard.can_assign_counselor && pendingCount > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">New requests are shown first — assign a counselor using the inline controls.</p>
+            )}
+          </div>
           {dashboard.can_assign_counselor && (
-            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <UserCheck size={12} /> Assign counselors to REQUESTED rows below
+            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+              <UserCheck size={12} /> {pendingCount} need assignment
             </span>
           )}
         </div>
 
-        {dashboard.appointments && dashboard.appointments.length > 0 ? (
+        {sortedAppointments.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Student</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Counselor</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Purpose</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Preferred Date</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Method</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Check-ins</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Student</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Counselor</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Purpose</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Date / Time</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Mode</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Check-ins</th>
                   {dashboard.can_assign_counselor && (
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Assign</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Assign Counselor</th>
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {dashboard.appointments.map((apt) => (
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                {sortedAppointments.map((apt) => (
                   <>
-                  <tr key={apt.appointment_id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 ${apt.status === 'REQUESTED' ? 'bg-yellow-50/40 dark:bg-yellow-900/10' : ''}`}>
+                  <tr key={apt.appointment_id} className={`transition-colors ${
+                    apt.status === 'REQUESTED'
+                      ? 'bg-yellow-50/50 dark:bg-yellow-900/10 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'
+                  }`}>
                     <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{apt.student_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{apt.student_email}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">{apt.student_name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{apt.student_email}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                      {apt.counselor_name || <span className="text-gray-400 italic text-xs">Not Assigned</span>}
+                      {apt.counselor_name && apt.counselor_name !== 'Not Assigned'
+                        ? apt.counselor_name
+                        : <span className="text-xs text-gray-400 italic">Unassigned</span>
+                      }
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{apt.purpose ? apt.purpose.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'N/A'}</p>
-                      {apt.concern && <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">{apt.concern}</p>}
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{apt.purpose ? apt.purpose.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—'}</p>
+                      {apt.concern && <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[160px] mt-0.5">"{apt.concern}"</p>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                      {formatDate(apt.preferred_date)}
-                      {apt.preferred_time && <span className="text-xs text-gray-400 block">{apt.preferred_time}</span>}
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      <p>{formatDate(apt.preferred_date)}</p>
+                      {apt.preferred_time && <p className="text-xs text-gray-400">{apt.preferred_time}</p>}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded text-xs capitalize">
-                        {apt.method?.replace('_', ' ')}
+                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs capitalize">
+                        {apt.method?.replace(/_/g, ' ') || '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded font-medium ${getStatusColor(apt.status)}`}>
-                        {apt.status.replace('_', ' ')}
+                      <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${getStatusColor(apt.status)}`}>
+                        {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
                       </span>
                     </td>
 
@@ -349,19 +401,17 @@ export default function AppointmentsDashboard() {
 interface SummaryCardProps {
   title: string;
   value: number | string;
-  color?: 'yellow' | 'blue' | 'red' | 'green';
+  color?: 'yellow' | 'red';
 }
 
 function SummaryCard({ title, value, color }: SummaryCardProps) {
-  const accent = color === 'yellow' ? 'text-yellow-600 dark:text-yellow-400'
-    : color === 'blue' ? 'text-blue-600 dark:text-blue-400'
+  const valueColor = color === 'yellow' ? 'text-yellow-700 dark:text-yellow-400'
     : color === 'red' ? 'text-red-600 dark:text-red-400'
-    : color === 'green' ? 'text-green-600 dark:text-green-400'
     : 'text-gray-900 dark:text-gray-100';
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3">
-      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{title}</p>
-      <p className={`text-2xl font-semibold ${accent}`}>{value}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{title}</p>
+      <p className={`text-2xl font-semibold ${valueColor}`}>{value}</p>
     </div>
   );
 }

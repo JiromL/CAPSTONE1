@@ -66,7 +66,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
           const d = await apptRes.json();
           const today = new Date().toDateString();
           const confirmed = (d.appointments?.confirmed || []).filter((a: any) => {
-            const dt = a.preferred_date || a.requested_start || '';
+            const dt = a.preferred_date || a.scheduled_start || a.requested_start || '';
             try { return new Date(dt).toDateString() === today; } catch { return false; }
           });
           setTodayAppts(confirmed.slice(0, 5));

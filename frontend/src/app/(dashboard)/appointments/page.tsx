@@ -104,7 +104,17 @@ export default function AppointmentsPage() {
       if (response.ok) {
         const data = await response.json();
         console.log('[Appointments] Success:', data);
-        const appointments = data.appointments || [];
+        const raw = data.appointments || [];
+        const appointments = raw.map((apt: any) => {
+          const dateSource = apt.scheduled_start || apt.requested_start || apt.preferred_date || '';
+          const dateObj = dateSource ? new Date(dateSource) : null;
+          const isValid = dateObj && !isNaN(dateObj.getTime());
+          return {
+            ...apt,
+            appointment_date: apt.appointment_date || dateSource,
+            appointment_time: apt.appointment_time || (isValid ? dateObj!.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : 'TBD'),
+          };
+        });
         setAppointments(appointments);
         // Cache the appointments
         localStorage.setItem('appointments_cache', JSON.stringify(appointments));
@@ -841,13 +851,15 @@ export default function AppointmentsPage() {
 
                     {appointment.status !== 'CANCELLED' && (
                       <div className="flex gap-2 pt-2">
-                        <button
-                          onClick={() => handleReschedule(appointment)}
-                          disabled={rescheduling}
-                          className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-900 font-medium rounded text-sm hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
-                        >
-                          Reschedule
-                        </button>
+                        {user?.role === 'STUDENT' && (
+                          <button
+                            onClick={() => handleReschedule(appointment)}
+                            disabled={rescheduling}
+                            className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-900 font-medium rounded text-sm hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
+                          >
+                            Reschedule
+                          </button>
+                        )}
                         <button
                           onClick={() => handleCancel(appointment)}
                           disabled={cancelling}

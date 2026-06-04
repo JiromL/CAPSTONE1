@@ -66,6 +66,7 @@ class AppointmentStatus(str, Enum):
     DENIED = "DENIED"                      # Counselor denied, student can resubmit
     MATCHED = "MATCHED"
     CONFIRMED = "CONFIRMED"
+    RESCHEDULE_REQUESTED = "RESCHEDULE_REQUESTED"  # Student asked to move a confirmed appointment
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
     NO_SHOW = "NO_SHOW"

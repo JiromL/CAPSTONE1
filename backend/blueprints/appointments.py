@@ -2479,19 +2479,20 @@ def reschedule_appointment(appointment_id):
         old_end = appointment.get('requested_end')
         old_status = appointment.get('status')
         
-        # Update appointment with new times and increment reschedule counter
+        new_end_resolved = new_end or new_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
+
+        # Update to RESCHEDULE_REQUESTED — keeps counselor + original confirmed time intact.
+        # New requested times stored separately so staff can compare old vs. new.
         result = db.db.appointments.update_one(
             {"_id": apt_id},
             {
                 "$set": {
-                    "requested_start": new_start,
-                    "requested_end": new_end or new_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60)),
-                    "status": AppointmentStatus.REQUESTED.value,
+                    "status": AppointmentStatus.RESCHEDULE_REQUESTED.value,
+                    "reschedule_requested_start": new_start,
+                    "reschedule_requested_end": new_end_resolved,
                     "rescheduled_at": datetime.utcnow(),
                     "reschedule_reason": reason,
                     "rescheduled_by_user_id": user_id_obj,
-                    "scheduled_start": None,
-                    "scheduled_end": None
                 },
                 "$inc": {"reschedule_count": 1}
             }
@@ -2528,9 +2529,9 @@ def reschedule_appointment(appointment_id):
             'message': 'Reschedule request submitted successfully',
             'detail': 'Your request has been submitted. Staff will confirm your new time.',
             'appointment_id': str(apt_id),
-            'status': 'REQUESTED',
-            'requested_start': new_start.isoformat(),
-            'requested_end': (new_end or new_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))).isoformat(),
+            'status': AppointmentStatus.RESCHEDULE_REQUESTED.value,
+            'reschedule_requested_start': new_start.isoformat(),
+            'reschedule_requested_end': new_end_resolved.isoformat(),
             'reason': reason,
             'reschedule_count': new_count,
             'flagged': new_count >= 2
@@ -2556,11 +2557,11 @@ def list_reschedule_requests():
     status_filter = request.args.get('status', 'pending')
 
     if status_filter == 'pending':
-        query = {"rescheduled_at": {"$exists": True}, "status": AppointmentStatus.REQUESTED.value}
+        query = {"status": AppointmentStatus.RESCHEDULE_REQUESTED.value}
     elif status_filter == 'approved':
-        query = {"rescheduled_at": {"$exists": True}, "reschedule_approved": True}
+        query = {"reschedule_approved": True}
     elif status_filter == 'denied':
-        query = {"rescheduled_at": {"$exists": True}, "reschedule_denied": True}
+        query = {"reschedule_denied": True}
     else:
         query = {"rescheduled_at": {"$exists": True}}
 
@@ -2580,18 +2581,21 @@ def list_reschedule_requests():
             except Exception:
                 pass
 
+        def _iso(v):
+            return v.isoformat() if isinstance(v, datetime) else (str(v) if v else None)
+
         results.append({
             '_id': str(apt['_id']),
             'appointment_id': str(apt['_id']),
             'student_name': student_name or 'Unknown',
             'student_email': apt.get('student_email', ''),
             'appointment_type': apt.get('appointment_type', 'General'),
-            'current_time': apt.get('scheduled_start').isoformat() if isinstance(apt.get('scheduled_start'), datetime) else apt.get('scheduled_start'),
-            'requested_start': apt.get('requested_start').isoformat() if isinstance(apt.get('requested_start'), datetime) else str(apt.get('requested_start', '')),
-            'requested_end': apt.get('requested_end').isoformat() if isinstance(apt.get('requested_end'), datetime) else str(apt.get('requested_end', '')),
+            'current_time': _iso(apt.get('scheduled_start') or apt.get('requested_start')),
+            'requested_start': _iso(apt.get('reschedule_requested_start') or apt.get('requested_start')),
+            'requested_end': _iso(apt.get('reschedule_requested_end') or apt.get('requested_end')),
             'reason': apt.get('reschedule_reason', ''),
             'status': 'approved' if apt.get('reschedule_approved') else ('denied' if apt.get('reschedule_denied') else 'pending'),
-            'created_at': apt.get('rescheduled_at').isoformat() if isinstance(apt.get('rescheduled_at'), datetime) else str(apt.get('rescheduled_at', '')),
+            'created_at': _iso(apt.get('rescheduled_at') or apt.get('created_at')),
         })
 
     return jsonify({'requests': results, 'total': len(results)}), 200
@@ -2615,19 +2619,27 @@ def approve_reschedule_request(request_id):
     if not apt:
         return jsonify({'error': 'Appointment not found'}), 404
 
-    new_start = apt.get('requested_start')
-    new_end = apt.get('requested_end')
+    new_start = apt.get('reschedule_requested_start') or apt.get('requested_start')
+    new_end = apt.get('reschedule_requested_end') or apt.get('requested_end')
 
     db.db.appointments.update_one(
         {"_id": apt_id},
-        {"$set": {
-            "status": AppointmentStatus.CONFIRMED.value,
-            "scheduled_start": new_start,
-            "scheduled_end": new_end,
-            "reschedule_approved": True,
-            "reschedule_approved_at": datetime.utcnow(),
-            "reschedule_approved_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
-        }}
+        {
+            "$set": {
+                "status": AppointmentStatus.CONFIRMED.value,
+                "scheduled_start": new_start,
+                "scheduled_end": new_end,
+                "requested_start": new_start,
+                "requested_end": new_end,
+                "reschedule_approved": True,
+                "reschedule_approved_at": datetime.utcnow(),
+                "reschedule_approved_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
+            },
+            "$unset": {
+                "reschedule_requested_start": "",
+                "reschedule_requested_end": "",
+            }
+        }
     )
     audit_log(db.db, 'appointments', 'reschedule_approved', entity_id=str(apt_id))
     return jsonify({'message': 'Reschedule approved', 'appointment_id': str(apt_id)}), 200
@@ -2653,15 +2665,21 @@ def deny_reschedule_request(request_id):
 
     db.db.appointments.update_one(
         {"_id": apt_id},
-        {"$set": {
-            "status": AppointmentStatus.DENIED.value,
-            "reschedule_denied": True,
-            "reschedule_denied_at": datetime.utcnow(),
-            "reschedule_denied_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
-        }}
+        {
+            "$set": {
+                "status": AppointmentStatus.CONFIRMED.value,
+                "reschedule_denied": True,
+                "reschedule_denied_at": datetime.utcnow(),
+                "reschedule_denied_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
+            },
+            "$unset": {
+                "reschedule_requested_start": "",
+                "reschedule_requested_end": "",
+            }
+        }
     )
     audit_log(db.db, 'appointments', 'reschedule_denied', entity_id=str(apt_id))
-    return jsonify({'message': 'Reschedule denied', 'appointment_id': str(apt_id)}), 200
+    return jsonify({'message': 'Reschedule request denied. Original appointment remains confirmed.', 'appointment_id': str(apt_id)}), 200
 
 
 # ── Recurring Appointments (COUNSELOR / PSYCHOLOGIST only) ────────────────────

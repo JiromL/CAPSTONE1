@@ -169,7 +169,7 @@ def get_admin_dashboard(user_id_obj, user_name):
 def get_intake_coordinator_requests(user_id_obj, user_name):
     """IC: View pending appointment requests that need assignment"""
     try:
-        # Get REQUESTED status appointments (not yet assigned to counselor)
+        # Get REQUESTED status appointments (new bookings only — reschedule requests are separate)
         pending_requests = list(db.db.appointments.find({
             "status": AppointmentStatus.REQUESTED.value
         }).sort("created_at", -1))
@@ -179,6 +179,8 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
             "status": AppointmentStatus.PENDING_APPROVAL.value
         }).sort("created_at", -1))
         
+        reschedule_count = db.db.appointments.count_documents({"status": "RESCHEDULE_REQUESTED"})
+
         return jsonify({
             'role': 'IC',
             'user_name': user_name,
@@ -188,7 +190,8 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
             'summary': {
                 'unassigned_requests': len(pending_requests),
                 'awaiting_approval': len(pending_approval),
-                'action_required': len(pending_requests) + len(pending_approval)
+                'action_required': len(pending_requests) + len(pending_approval),
+                'pending_reschedules': reschedule_count,
             },
             'can_assign_counselor': True,
             'can_approve': True
@@ -236,15 +239,17 @@ def get_staff_dashboard(user_id_obj, user_name):
         all_appointments = list(db.db.appointments.find({}).sort("created_at", -1).limit(100))
 
         requested = [a for a in all_appointments if a.get('status') == AppointmentStatus.REQUESTED.value]
+        reschedule_pending = [a for a in all_appointments if a.get('status') == 'RESCHEDULE_REQUESTED']
 
         return jsonify({
             'role': 'STAFF',
             'user_name': user_name,
             'view_type': 'staff_assignment',
-            'appointments': format_appointments(all_appointments),
+            'appointments': format_appointments([a for a in all_appointments if a.get('status') != 'RESCHEDULE_REQUESTED']),
             'summary': {
                 'total_appointments': len(all_appointments),
                 'unassigned_requests': len(requested),
+                'pending_reschedules': len(reschedule_pending),
             },
             'can_assign_counselor': True,
         }), 200
@@ -303,21 +308,21 @@ def format_appointments(appointments):
                 except:
                     risk_level = None
             
-            # Format appointment date/time
-            requested_start = apt.get('requested_start', '')
+            # Format appointment date/time — prefer scheduled_start (set on confirmation)
+            date_source = apt.get('scheduled_start') or apt.get('requested_start', '')
             preferred_date = ''
             preferred_time = ''
-            
-            if requested_start:
+
+            if date_source:
                 try:
-                    if isinstance(requested_start, str):
-                        dt = datetime.fromisoformat(requested_start.replace('Z', '+00:00'))
+                    if isinstance(date_source, str):
+                        dt = datetime.fromisoformat(date_source.replace('Z', '+00:00'))
                     else:
-                        dt = requested_start
+                        dt = date_source
                     preferred_date = dt.isoformat()
                     preferred_time = dt.strftime('%H:%M')
                 except:
-                    preferred_date = str(requested_start)
+                    preferred_date = str(date_source)
             
             formatted.append({
                 'appointment_id': str(apt.get('_id')),

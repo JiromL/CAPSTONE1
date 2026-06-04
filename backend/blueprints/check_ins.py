@@ -400,18 +400,28 @@ def student_self_checkin():
         return jsonify({'error': 'Only students can submit self check-ins'}), 403
     
     data = request.get_json()
-    
-    # Find student's case
+
+    # Allow check-ins tied to an appointment (no case required yet)
+    appointment_id = data.get('appointment_id')
+    appointment_id_obj = None
+    if appointment_id:
+        try:
+            appointment_id_obj = ObjectId(appointment_id)
+        except:
+            return jsonify({'error': 'Invalid appointment_id'}), 400
+
+    # Try to find an existing case (optional)
     case = db.db.cases.find_one({'student_id': str(user_id_obj)})
-    if not case:
+    if not case and not appointment_id_obj:
         return jsonify({
-            'error': 'No active case found',
-            'message': 'Complete your intake first to enable check-ins'
+            'error': 'No active case or appointment found',
+            'message': 'Provide an appointment_id or complete your intake first'
         }), 404
-    
+
     # Create student self check-in record
     check_in = {
-        "case_id": case['_id'],
+        "case_id": case['_id'] if case else None,
+        "appointment_id": appointment_id_obj,
         "client_id": user_id_obj,
         "checked_in_by": user_id_obj,  # Student self-checkin
         "is_self_checkin": True,
@@ -501,6 +511,43 @@ def get_student_checkins():
         'check_ins': formatted_checkins,
         'total': len(formatted_checkins)
     }), 200
+
+
+@check_ins_bp.route('/for-appointment/<appointment_id>', methods=['GET'])
+@jwt_required()
+def get_checkins_for_appointment(appointment_id):
+    """Get all check-ins for a specific appointment (student or CPS staff)"""
+    user_id = get_jwt_identity()
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        appt_id_obj = ObjectId(appointment_id)
+    except:
+        return jsonify({'error': 'Invalid ID'}), 400
+
+    user = db.db.users.find_one({'_id': user_id_obj})
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    role = user.get('role', '')
+    # Students can only see their own; staff/counselors can see any
+    query = {'appointment_id': appt_id_obj}
+    if role == 'STUDENT':
+        query['client_id'] = user_id_obj
+
+    checkins = list(db.db.check_ins.find(query).sort('created_at', -1).limit(50))
+    result = []
+    for c in checkins:
+        result.append({
+            '_id': str(c['_id']),
+            'submitted_at': c.get('created_at').isoformat() if c.get('created_at') else None,
+            'status': c.get('reported_status'),
+            'wellness_rating': c.get('wellness_rating'),
+            'mood': c.get('mood'),
+            'notes': c.get('notes', ''),
+            'needs_support': c.get('needs_support', False),
+            'staff_notes': c.get('staff_notes'),
+        })
+    return jsonify({'check_ins': result, 'total': len(result)}), 200
 
 
 @check_ins_bp.route('/student/pending-checkins', methods=['GET'])

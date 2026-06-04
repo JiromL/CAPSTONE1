@@ -8,6 +8,7 @@ import { api } from '@/utils/api';
 import {
   Calendar, Clock, MapPin, User, CheckCircle, XCircle, AlertCircle,
   Loader2, Video, Repeat, X, Edit, ChevronDown, ChevronUp, Mail, FileText, QrCode, Printer,
+  MessageSquare, Star,
 } from 'lucide-react';
 
 interface Appointment {
@@ -491,6 +492,8 @@ function AppointmentCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [showCheckins, setShowCheckins] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const cfg = STATUS_CONFIG[appt.status] ?? { label: appt.status, color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400', icon: null };
   const isActive = !INACTIVE.has(appt.status);
   const canCancel = !!(onCancel && isActive);
@@ -663,6 +666,26 @@ function AppointmentCard({
             </button>
           )}
 
+          {/* Check-in button — available on all active + completed appointments */}
+          {appt.status !== 'CANCELLED' && appt.status !== 'DENIED' && (
+            <button
+              onClick={() => setShowCheckins(v => !v)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-colors"
+            >
+              <MessageSquare size={13} /> {showCheckins ? 'Hide Check-ins' : 'Check-ins'}
+            </button>
+          )}
+
+          {/* Feedback button — only on completed */}
+          {appt.status === 'COMPLETED' && (
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-lg transition-colors"
+            >
+              <Star size={13} /> Leave Feedback
+            </button>
+          )}
+
           {hasDetails && (
             <button
               onClick={() => setExpanded(e => !e)}
@@ -672,8 +695,228 @@ function AppointmentCard({
             </button>
           )}
         </div>
+
+        {/* Check-in section */}
+        {showCheckins && <CheckInSection appointmentId={appt._id} />}
       </div>
+
+      {/* Feedback modal */}
+      {showFeedback && <FeedbackModal appointmentId={appt._id} onClose={() => setShowFeedback(false)} />}
     </div>
+  );
+}
+
+const STATUS_OPTS = [
+  { value: 'DOING_WELL', label: 'Doing well', emoji: '😊' },
+  { value: 'MANAGING', label: 'Managing', emoji: '😐' },
+  { value: 'STRUGGLING', label: 'Struggling', emoji: '😔' },
+  { value: 'IN_CRISIS', label: 'In crisis', emoji: '😰' },
+];
+
+function CheckInSection({ appointmentId }: { appointmentId: string }) {
+  const [checkins, setCheckins] = useState<any[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [status, setStatus] = useState('');
+  const [rating, setRating] = useState<number | null>(null);
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch(api(`/api/check-ins/for-appointment/${appointmentId}`), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : { check_ins: [] })
+      .then(d => setCheckins(d.check_ins || []))
+      .finally(() => setLoadingList(false));
+  }, [appointmentId, submitted]);
+
+  async function handleSubmit() {
+    if (!status || !rating) { setError('Please select a status and rating.'); return; }
+    setSubmitting(true);
+    setError('');
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api('/api/check-ins/student/self-checkin'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointment_id: appointmentId, status, wellness_rating: rating, notes }),
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed'); }
+      setStatus(''); setRating(null); setNotes(''); setSubmitted(v => !v);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to submit');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Daily Check-in</p>
+
+      {/* Submit form */}
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">How are you feeling today?</p>
+        <div className="flex gap-2 flex-wrap mb-3">
+          {STATUS_OPTS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setStatus(opt.value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                status === opt.value
+                  ? 'bg-green-600 border-green-600 text-white'
+                  : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-green-400'
+              }`}
+            >
+              {opt.emoji} {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-gray-500 dark:text-gray-400 w-20">Wellness</span>
+          <div className="flex gap-1">
+            {[1,2,3,4,5,6,7,8,9,10].map(n => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setRating(n)}
+                className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
+                  rating === n
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-green-400'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Optional note for your counselor…"
+          rows={2}
+          className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+        />
+        {error && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>}
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="mt-2 px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Submitting…' : 'Submit Check-in'}
+        </button>
+      </div>
+
+      {/* History */}
+      {loadingList ? (
+        <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-gray-400" /></div>
+      ) : checkins.length === 0 ? (
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-3">No check-ins yet — submit your first one above.</p>
+      ) : (
+        <div className="space-y-2">
+          {checkins.map(c => {
+            const opt = STATUS_OPTS.find(o => o.value === c.status);
+            return (
+              <div key={c._id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <span className="text-lg leading-none mt-0.5">{opt?.emoji ?? '📝'}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{opt?.label ?? c.status}</span>
+                    {c.wellness_rating && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">· {c.wellness_rating}/10</span>
+                    )}
+                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+                      {c.submitted_at ? new Date(c.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
+                    </span>
+                  </div>
+                  {c.notes && <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{c.notes}</p>}
+                  {c.staff_notes && (
+                    <p className="text-xs text-green-700 dark:text-green-400 mt-1 italic">CPS: {c.staff_notes}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeedbackModal({ appointmentId, onClose }: { appointmentId: string; onClose: () => void }) {
+  const [rating, setRating] = useState<number | null>(null);
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit() {
+    if (!rating) { setError('Please select a rating.'); return; }
+    setSubmitting(true);
+    setError('');
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api('/api/engagement/feedback'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'COUNSELING_SESSION', rating, message, appointment_id: appointmentId }),
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed'); }
+      setDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to submit');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Modal title="Session Feedback" onClose={onClose}>
+      {done ? (
+        <div className="text-center py-4">
+          <CheckCircle size={32} className="text-green-500 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">Thank you for your feedback!</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Your response helps us improve our services.</p>
+          <button onClick={onClose} className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors">Close</button>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">How would you rate your counseling session?</p>
+          <div className="flex gap-2 justify-center mb-4">
+            {[1,2,3,4,5].map(n => (
+              <button
+                key={n}
+                onClick={() => setRating(n)}
+                className={`w-10 h-10 rounded-lg text-lg transition-colors ${
+                  rating && rating >= n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'
+                } hover:text-amber-400`}
+              >
+                ★
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder="Share anything about your experience (optional)…"
+            rows={3}
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+          />
+          {error && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>}
+          <div className="flex justify-end gap-2 mt-4">
+            <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Skip</button>
+            <button onClick={handleSubmit} disabled={submitting} className="px-4 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white transition disabled:opacity-50">
+              {submitting ? 'Submitting…' : 'Submit'}
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }
 

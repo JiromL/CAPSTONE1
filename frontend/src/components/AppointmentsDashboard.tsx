@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, FileText, CheckCircle, AlertCircle, UserCheck } from 'lucide-react';
+import { Clock, FileText, CheckCircle, AlertCircle, UserCheck, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { api } from '@/utils/api';
 
 interface Appointment {
@@ -38,6 +38,10 @@ export default function AppointmentsDashboard() {
   const [assignMap, setAssignMap] = useState<Record<string, { counselorId: string; date: string; time: string }>>({});
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [assignMsg, setAssignMsg] = useState<{ id: string; type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Per-row check-in expansion
+  const [checkinRow, setCheckinRow] = useState<string | null>(null);
+  const [checkinData, setCheckinData] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     fetchDashboard();
@@ -102,6 +106,19 @@ export default function AppointmentsDashboard() {
       }
     } finally {
       setAssigningId(null);
+    }
+  };
+
+  const toggleCheckins = async (aptId: string) => {
+    if (checkinRow === aptId) { setCheckinRow(null); return; }
+    setCheckinRow(aptId);
+    if (!checkinData[aptId]) {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/check-ins/for-appointment/${aptId}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = r.ok ? await r.json() : { check_ins: [] };
+      setCheckinData(prev => ({ ...prev, [aptId]: d.check_ins || [] }));
     }
   };
 
@@ -185,6 +202,7 @@ export default function AppointmentsDashboard() {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Preferred Date</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Method</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Check-ins</th>
                   {dashboard.can_assign_counselor && (
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Assign</th>
                   )}
@@ -192,6 +210,7 @@ export default function AppointmentsDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {dashboard.appointments.map((apt) => (
+                  <>
                   <tr key={apt.appointment_id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 ${apt.status === 'REQUESTED' ? 'bg-yellow-50/40 dark:bg-yellow-900/10' : ''}`}>
                     <td className="px-4 py-3">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{apt.student_name}</p>
@@ -217,6 +236,18 @@ export default function AppointmentsDashboard() {
                       <span className={`text-xs px-2 py-1 rounded font-medium ${getStatusColor(apt.status)}`}>
                         {apt.status.replace('_', ' ')}
                       </span>
+                    </td>
+
+                    {/* Check-ins column */}
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleCheckins(apt.appointment_id)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+                      >
+                        <MessageSquare size={11} />
+                        {checkinRow === apt.appointment_id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                        {checkinData[apt.appointment_id] ? `${checkinData[apt.appointment_id].length}` : 'View'}
+                      </button>
                     </td>
 
                     {/* Assign column */}
@@ -271,6 +302,36 @@ export default function AppointmentsDashboard() {
                       </td>
                     )}
                   </tr>
+                  {checkinRow === apt.appointment_id && (
+                    <tr key={`${apt.appointment_id}-checkins`} className="bg-green-50/50 dark:bg-green-950/20">
+                      <td colSpan={dashboard.can_assign_counselor ? 8 : 7} className="px-6 py-3">
+                        {!checkinData[apt.appointment_id] ? (
+                          <p className="text-xs text-gray-400">Loading…</p>
+                        ) : checkinData[apt.appointment_id].length === 0 ? (
+                          <p className="text-xs text-gray-400 italic">No check-ins submitted yet.</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Student Check-ins</p>
+                            {checkinData[apt.appointment_id].map((c: any) => {
+                              const statusEmoji: Record<string, string> = { DOING_WELL: '😊', MANAGING: '😐', STRUGGLING: '😔', IN_CRISIS: '😰' };
+                              return (
+                                <div key={c._id} className="flex items-start gap-3 text-xs bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-700">
+                                  <span>{statusEmoji[c.status] ?? '📝'}</span>
+                                  <div className="flex-1">
+                                    <span className="font-medium text-gray-800 dark:text-gray-200">{c.status?.replace(/_/g, ' ')}</span>
+                                    {c.wellness_rating && <span className="text-gray-400 ml-2">· {c.wellness_rating}/10</span>}
+                                    {c.notes && <p className="text-gray-500 dark:text-gray-400 mt-0.5">{c.notes}</p>}
+                                  </div>
+                                  <span className="text-gray-400 whitespace-nowrap">{c.submitted_at ? new Date(c.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </>
                 ))}
               </tbody>
             </table>

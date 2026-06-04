@@ -49,6 +49,9 @@ export default function BookAppointmentPage() {
   // Available slots
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+  const [showAllSlots, setShowAllSlots] = useState(false);
+  const [showCustomDateTime, setShowCustomDateTime] = useState(false);
+  const [slotsLoaded, setSlotsLoaded] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
 
@@ -153,31 +156,30 @@ export default function BookAppointmentPage() {
         }
         setActiveApptChecked(true);
 
-        // Fetch available slots for next 30 days
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() + 30);
-
-        const response = await fetch(
-          api(`/api/appointments/availability?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`),
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
+        // Fetch available counselor slots for next 30 days
+        try {
+          const slotsRes = await fetch(api('/api/appointments/open-slots?days=30'), {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (slotsRes.ok) {
+            const d = await slotsRes.json();
+            const flat: AvailableSlot[] = ((d.counselors || []) as any[])
+              .flatMap((c: any) =>
+                (c.slots || []).map((s: any) => ({
+                  slot_id: s.slot_id,
+                  slot_start: s.slot_start,
+                  slot_end: s.slot_end,
+                  counselor_id: c.counselor_id,
+                  counselor_name: c.counselor_name,
+                }))
+              )
+              .sort((a: AvailableSlot, b: AvailableSlot) =>
+                new Date(a.slot_start).getTime() - new Date(b.slot_start).getTime()
+              );
+            setAvailableSlots(flat);
           }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('[BookAppointment] Available slots:', data);
-          setAvailableSlots(data.available_slots || []);
-        } else {
-          const errorData = await response.text();
-          console.error('[BookAppointment] Failed to fetch slots:', response.status, errorData);
-          setLoadError('Failed to load available appointment slots');
-        }
+        } catch {}
+        setSlotsLoaded(true);
 
         setLoading(false);
       } catch (err) {
@@ -372,6 +374,7 @@ export default function BookAppointmentPage() {
           concern: concern,
           preferred_method: preferredMethod,
           agreed_to_terms: termsAccepted,
+          ...(selectedSlot && { slot_id: selectedSlot.slot_id, counselor_id: selectedSlot.counselor_id }),
         }),
       });
 
@@ -398,6 +401,13 @@ export default function BookAppointmentPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSelectSlot = (slot: AvailableSlot) => {
+    setSelectedSlot(slot);
+    setPreferredDate(slot.slot_start.split('T')[0]);
+    setPreferredTime(slot.slot_start.split('T')[1]?.slice(0, 5) || '');
+    setShowCustomDateTime(false);
   };
 
   const formatDateTime = (dateString: string) => {
@@ -1045,73 +1055,99 @@ export default function BookAppointmentPage() {
               </div>
             </div>
 
-            {/* Preferred Date and Time */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Preferred Date <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={preferredDate}
-                  onChange={(e) => setPreferredDate(e.target.value)}
-                  min={new Date(Date.now() + bookingRules.min_days_ahead * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  max={new Date(Date.now() + bookingRules.max_days_ahead * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    preferredDate && (
-                      bookingRules.blackout_dates.includes(preferredDate) ||
-                      !bookingRules.operating_days.includes(new Date(preferredDate + 'T00:00:00').getDay())
-                    )
-                      ? 'border-red-400 dark:border-red-500'
-                      : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                />
-                {preferredDate && bookingRules.blackout_dates.includes(preferredDate) && (
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">This date is a CPS holiday or closure — please choose another date.</p>
-                )}
-                {preferredDate && !bookingRules.blackout_dates.includes(preferredDate) && !bookingRules.operating_days.includes(new Date(preferredDate + 'T00:00:00').getDay()) && (
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">CPS is closed on this day — please select a weekday.</p>
-                )}
-                {(!preferredDate || (bookingRules.operating_days.includes(new Date(preferredDate + 'T00:00:00').getDay()) && !bookingRules.blackout_dates.includes(preferredDate))) && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {bookingRules.min_days_ahead === 1 ? 'From tomorrow' : `At least ${bookingRules.min_days_ahead} days ahead`}, up to {bookingRules.max_days_ahead} days out
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Preferred Time <span className="text-red-600">*</span>
-                </label>
-                <select
-                  value={preferredTime}
-                  onChange={(e) => setPreferredTime(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select a time</option>
-                  {(() => {
-                    const slots: string[] = [];
-                    const [startH, startM] = bookingRules.operating_hours_start.split(':').map(Number);
-                    const [lastH, lastM] = bookingRules.last_slot_start.split(':').map(Number);
-                    let cur = startH * 60 + startM;
-                    const last = lastH * 60 + lastM;
-                    while (cur <= last) {
-                      slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
-                      cur += bookingRules.slot_duration_minutes;
-                    }
-                    return slots.map(t => (
-                      <option key={t} value={t}>
-                        {new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                      </option>
-                    ));
-                  })()}
-                </select>
-              </div>
-            </div>
+            {/* Preferred Date and Time — slot picker + free-form fallback */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Preferred Date &amp; Time <span className="text-red-600">*</span>
+              </label>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              CPS office hours: {new Date(`1970-01-01T${bookingRules.operating_hours_start}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} – {new Date(`1970-01-01T${bookingRules.operating_hours_end}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}, {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_, i) => bookingRules.operating_days.includes(i)).join(' / ')}.
-              Our office will confirm your slot based on counselor availability.
-            </p>
+              {!slotsLoaded ? (
+                <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500 py-3">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400" />
+                  <span>Checking available slots…</span>
+                </div>
+              ) : availableSlots.length > 0 ? (
+                <>
+                  {/* Slot cards */}
+                  <div className="space-y-2">
+                    {(showAllSlots ? availableSlots : availableSlots.slice(0, 5)).map(slot => {
+                      const start = new Date(slot.slot_start);
+                      const end = new Date(slot.slot_end);
+                      const isSelected = selectedSlot?.slot_id === slot.slot_id;
+                      return (
+                        <button
+                          key={slot.slot_id}
+                          type="button"
+                          onClick={() => handleSelectSlot(slot)}
+                          className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                            isSelected
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20 dark:border-green-500'
+                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {' · '}
+                                {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                {' – '}
+                                {end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{slot.counselor_name}</p>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {availableSlots.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllSlots(v => !v)}
+                      className="mt-2 text-xs text-green-600 dark:text-green-400 hover:underline"
+                    >
+                      {showAllSlots ? '▲ Show fewer' : `▼ Show ${availableSlots.length - 5} more slots`}
+                    </button>
+                  )}
+
+                  {/* Custom date/time toggle */}
+                  <button
+                    type="button"
+                    onClick={() => { setShowCustomDateTime(v => !v); if (showCustomDateTime) { setSelectedSlot(null); setPreferredDate(''); setPreferredTime(''); } }}
+                    className="mt-3 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:underline"
+                  >
+                    {showCustomDateTime ? '▲ Hide custom date/time' : '▼ None of these work? Enter a different date/time'}
+                  </button>
+
+                  {showCustomDateTime && (
+                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <DatePicker value={preferredDate} onChange={v => { setPreferredDate(v); setSelectedSlot(null); }} bookingRules={bookingRules} />
+                      <TimePicker value={preferredTime} onChange={v => { setPreferredTime(v); setSelectedSlot(null); }} bookingRules={bookingRules} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* No slots — show notice + free-form */}
+                  <div className="mb-3 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300">
+                    No counselor slots are currently open. Enter your preferred date and time — CPS staff will review and confirm your request.
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <DatePicker value={preferredDate} onChange={setPreferredDate} bookingRules={bookingRules} />
+                    <TimePicker value={preferredTime} onChange={setPreferredTime} bookingRules={bookingRules} />
+                  </div>
+                </>
+              )}
+
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                Office hours: {new Date(`1970-01-01T${bookingRules.operating_hours_start}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} – {new Date(`1970-01-01T${bookingRules.operating_hours_end}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}, {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_, i) => bookingRules.operating_days.includes(i)).join(' / ')}
+              </p>
+            </div>
 
             {/* Terms and Conditions */}
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-6">
@@ -1200,6 +1236,63 @@ function ReviewRow({ label, value }: { label: string; value?: string }) {
     <div className="flex gap-4">
       <span className="text-xs text-gray-400 dark:text-gray-500 w-32 flex-shrink-0 pt-0.5">{label}</span>
       <span className="text-sm text-gray-900 dark:text-gray-100 font-medium flex-1">{value}</span>
+    </div>
+  );
+}
+
+function DatePicker({ value, onChange, bookingRules }: { value: string; onChange: (v: string) => void; bookingRules: BookingRules }) {
+  const isInvalid = value && (
+    bookingRules.blackout_dates.includes(value) ||
+    !bookingRules.operating_days.includes(new Date(value + 'T00:00:00').getDay())
+  );
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Date</label>
+      <input
+        type="date"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        min={new Date(Date.now() + bookingRules.min_days_ahead * 86400000).toISOString().split('T')[0]}
+        max={new Date(Date.now() + bookingRules.max_days_ahead * 86400000).toISOString().split('T')[0]}
+        className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+          isInvalid ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+        }`}
+      />
+      {value && bookingRules.blackout_dates.includes(value) && (
+        <p className="text-xs text-red-600 dark:text-red-400 mt-1">CPS holiday — choose another date.</p>
+      )}
+      {value && !bookingRules.blackout_dates.includes(value) && !bookingRules.operating_days.includes(new Date(value + 'T00:00:00').getDay()) && (
+        <p className="text-xs text-red-600 dark:text-red-400 mt-1">CPS is closed this day — choose a weekday.</p>
+      )}
+    </div>
+  );
+}
+
+function TimePicker({ value, onChange, bookingRules }: { value: string; onChange: (v: string) => void; bookingRules: BookingRules }) {
+  const slots: string[] = [];
+  const [startH, startM] = bookingRules.operating_hours_start.split(':').map(Number);
+  const [lastH, lastM] = bookingRules.last_slot_start.split(':').map(Number);
+  let cur = startH * 60 + startM;
+  const last = lastH * 60 + lastM;
+  while (cur <= last) {
+    slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
+    cur += bookingRules.slot_duration_minutes;
+  }
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Time</label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+      >
+        <option value="">Select a time</option>
+        {slots.map(t => (
+          <option key={t} value={t}>
+            {new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

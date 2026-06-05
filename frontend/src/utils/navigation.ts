@@ -19,7 +19,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
     
     // Primary Workflow
-    { label: 'Book Appointment', href: '/counseling', id: 'counseling' },
+    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
     { label: 'My Appointments', href: '/my-appointments', id: 'my-appointments' },
     
     // Engagement
@@ -235,7 +235,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     'documentation': 'documentation',
 
     // Student
-    'counseling': 'counseling',
+    'counseling': 'book-appointment',
     'book-appointment': 'book-appointment',
     'my-appointments': 'my-appointments',
     'check-ins-student': 'check-ins',

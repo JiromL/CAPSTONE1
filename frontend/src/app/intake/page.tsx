@@ -124,7 +124,7 @@ const RESPONSE_SCALE = [
 
 export default function IntakePage() {
   const router = useRouter();
-  const [step, setStep] = useState<'terms' | 'personal_info' | 'distress_level' | 'concern' | 'urgency' | 'crisis' | 'screening_selection' | 'screening' | 'appointment' | 'red_confirmation' | 'review' | 'complete'>('terms');
+  const [step, setStep] = useState<'terms' | 'personal_info' | 'distress_level' | 'concern' | 'urgency' | 'crisis' | 'appointment' | 'red_confirmation' | 'review' | 'complete'>('terms');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasDraft, setHasDraft] = useState(false);
@@ -478,53 +478,22 @@ export default function IntakePage() {
     }
   };
 
-  // Handle concern selection and move to screening selection
+  // Handle concern selection and move directly to appointment scheduling
   const handleConcernSelection = () => {
     if (!selectedConcern) {
       alert('Please select a concern');
       return;
     }
-    
-    // Move directly to screening selection (skip urgency step)
-    setStep('screening_selection');
+    // Assessments are conducted by the intake counselor, not the student
+    if (!urgencyLevel) setUrgencyLevel('GREEN');
+    setStep('appointment');
   };
 
-  // Handle screening selection and move to screening questions
-  const handleScreeningSelection = () => {
-    if (selectedScreenings.size === 0) {
-      alert('Please select at least one screening');
-      return;
-    }
-    
-    const assessments = Array.from(selectedScreenings);
-    setSelectedAssessments(assessments);
-    
-    // Initialize assessment responses
-    const initialResponses: {[key: string]: number[]} = {};
-    assessments.forEach(assessment => {
-      initialResponses[assessment] = new Array(ASSESSMENTS[assessment as keyof typeof ASSESSMENTS].questions.length).fill(-1);
-    });
-    setAssessmentResponses(initialResponses);
-    setStep('screening');
-  };
-  
-  // Toggle screening checkbox
-  const toggleScreening = (screening: string) => {
-    const newSelected = new Set(selectedScreenings);
-    if (newSelected.has(screening)) {
-      newSelected.delete(screening);
-    } else {
-      newSelected.add(screening);
-    }
-    setSelectedScreenings(newSelected);
-  };
-
-  // Step after concern: Screening selection - no more urgency routing
+  // Step after concern: go to appointment (assessments removed from student flow)
   const handleUrgencyResponse = (isEmergency: boolean) => {
     setIsUrgent(isEmergency);
-    // Skip crisis/urgency screens - go directly to screening selection
-    setSelectedScreenings(new Set());
-    setStep('screening_selection');
+    if (!urgencyLevel) setUrgencyLevel('GREEN');
+    setStep('appointment');
   };
 
   // Update current assessment response
@@ -1226,108 +1195,6 @@ export default function IntakePage() {
   }
 
   // ============================================
-  // STEP 1.5: SCREENING SELECTION (Choose which screenings to take)
-  // ============================================
-  if (step === 'screening_selection') {
-    const allowedAssessments = determineAssessments();
-    
-    const assessmentLabels: {[key: string]: string} = {
-      phq9: 'Depression Screening (PHQ-9)',
-      gad7: 'Anxiety Screening (GAD-7)',
-      pss: 'Stress Assessment (PSS)',
-      acad: 'Academic Stress Screening',
-      career: 'Career Readiness Screening',
-      social: 'Social Functioning Screening'
-    };
-
-    const assessmentDescriptions: {[key: string]: string} = {
-      phq9: 'Quick assessment for depressive symptoms',
-      gad7: 'Evaluate anxiety levels and worries',
-      pss: 'Measure perceived stress levels',
-      acad: 'Assess academic-related concerns',
-      career: 'Evaluate career clarity and confidence',
-      social: 'Understand social and relationship concerns'
-    };
-    
-    return (
-      <DashboardLayout
-        user={user}
-        onLogout={handleLogout}
-        menuItems={menuItems}
-        title="Intake Form"
-        subtitle="Campus Counseling Services"
-      >
-        <div className="max-w-2xl mx-auto">
-          {/* Header Section */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 5 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Select Assessments</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Choose which screenings you'd like to complete</p>
-          </div>
-
-          {/* Screening Cards */}
-          <div className="space-y-2 mb-6">
-            {allowedAssessments.map((assessment) => (
-              <label
-                key={assessment}
-                className={`flex items-start p-4 rounded border cursor-pointer transition-colors ${
-                  selectedScreenings.has(assessment)
-                    ? 'bg-gray-100 border-gray-400 dark:bg-gray-700 dark:border-gray-500'
-                    : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedScreenings.has(assessment)}
-                  onChange={() => toggleScreening(assessment)}
-                  className="sr-only"
-                />
-                <div className={`mt-1 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                  selectedScreenings.has(assessment)
-                    ? 'border-gray-400 bg-gray-400 dark:border-gray-500 dark:bg-gray-500'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}>
-                  {selectedScreenings.has(assessment) && <span className="text-white text-xs">✓</span>}
-                </div>
-                <div className="flex-1 ml-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {assessmentLabels[assessment] || assessment}
-                    </p>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">
-                      {ASSESSMENTS[assessment as keyof typeof ASSESSMENTS]?.questions.length ?? 0} questions
-                    </span>
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                    {assessmentDescriptions[assessment]}
-                  </p>
-                </div>
-              </label>
-            ))}
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={() => setStep('concern')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
-            >
-              Back
-            </button>
-            <button
-              disabled={selectedScreenings.size === 0}
-              onClick={handleScreeningSelection}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // ============================================
   // STEP 2: URGENCY CHECK
   // ============================================
   if (step === 'urgency') {
@@ -1511,91 +1378,6 @@ export default function IntakePage() {
               className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
             >
               Continue
-            </button>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // ============================================
-  // STEP 4: PROGRESSIVE SCREENING (ONE QUESTION AT A TIME)
-  // ============================================
-  if (step === 'screening') {
-    const currentAssessment = selectedAssessments[currentAssessmentIdx];
-    const assessmentInfo = ASSESSMENTS[currentAssessment as keyof typeof ASSESSMENTS];
-    const currentQuestion = assessmentInfo.questions[currentQuestionIdx];
-    const totalQuestions = selectedAssessments.reduce((sum, a) => sum + ASSESSMENTS[a as keyof typeof ASSESSMENTS].questions.length, 0);
-    const completedQuestions = selectedAssessments.slice(0, currentAssessmentIdx).reduce((sum, a) => sum + ASSESSMENTS[a as keyof typeof ASSESSMENTS].questions.length, 0) + currentQuestionIdx;
-    const progressPercent = ((completedQuestions) / totalQuestions) * 100;
-
-    return (
-      <DashboardLayout
-        user={user}
-        onLogout={handleLogout}
-        menuItems={menuItems}
-        title="Intake Form"
-        subtitle="Campus Counseling Services"
-      >
-        <div className="max-w-2xl mx-auto">
-          {/* Progress Section */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  {assessmentInfo.name}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Question {completedQuestions + 1} of {totalQuestions}
-                </div>
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                {Math.round(progressPercent)}%
-              </div>
-            </div>
-            <div className="w-full bg-gray-300 dark:bg-gray-600 h-1.5 rounded overflow-hidden">
-              <div
-                className="bg-gray-800 dark:bg-gray-400 h-1.5 rounded transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Question */}
-          <div className="mb-8">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white leading-relaxed">
-              {currentQuestion}
-            </h2>
-          </div>
-
-          {/* Response Options */}
-          <div className="space-y-2 mb-6">
-            {RESPONSE_SCALE.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleAnswerQuestion(option.value)}
-                className="w-full p-3 bg-white border border-gray-200 hover:bg-gray-50 rounded text-center transition-colors dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750"
-              >
-                <p className="text-gray-900 dark:text-white font-medium text-sm">{option.label}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* Navigation */}
-          <div className="flex gap-3">
-            <button
-              disabled={completedQuestions === 0}
-              onClick={handlePreviousQuestion}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 rounded hover:bg-gray-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
-            >
-              Previous
-            </button>
-            <button
-              disabled={completedQuestions === 0}
-              onClick={() => setStep('appointment')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 rounded hover:bg-gray-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
-            >
-              Skip Ahead
             </button>
           </div>
         </div>

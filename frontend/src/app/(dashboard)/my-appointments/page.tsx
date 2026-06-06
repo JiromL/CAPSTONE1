@@ -146,7 +146,12 @@ export default function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading]           = useState(true);
   const [activeTab, setActiveTab]       = useState<TabKey>('all');
-  const [seenTabs, setSeenTabs]         = useState<Set<TabKey>>(new Set(['all']));
+  const [seenTabs, setSeenTabs]         = useState<Set<TabKey>>(() => {
+    try {
+      const stored = sessionStorage.getItem('appt_seen_tabs');
+      return stored ? new Set(JSON.parse(stored)) : new Set(['all']);
+    } catch { return new Set(['all']); }
+  });
   const [error, setError]               = useState<string | null>(null);
 
   const [cancelTarget, setCancelTarget]   = useState<Appointment | null>(null);
@@ -318,7 +323,14 @@ export default function MyAppointmentsPage() {
             const cnt = counts[tab.key];
             const Icon = tab.icon;
             return (
-              <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSeenTabs(prev => new Set([...prev, tab.key])); }}
+              <button key={tab.key} onClick={() => {
+                setActiveTab(tab.key);
+                setSeenTabs(prev => {
+                  const next = new Set([...prev, tab.key]);
+                  try { sessionStorage.setItem('appt_seen_tabs', JSON.stringify([...next])); } catch {}
+                  return next;
+                });
+              }}
                 className={`flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
                   isActive ? TAB_ACTIVE_CLS[tab.key] : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}>

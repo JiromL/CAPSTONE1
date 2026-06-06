@@ -194,7 +194,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             <div className="absolute inset-0 bg-black/40" onClick={() => setOpenAnnouncement(null)} />
 
             {/* Panel */}
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
               {/* Top color strip */}
               <div className="h-1.5 w-full" style={{ backgroundColor:
                 a.event_type === 'webinar' ? '#3b82f6' :
@@ -202,47 +202,47 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 a.event_type === 'notice'  ? '#f97316' : '#9ca3af'
               }} />
 
-              <div className="p-6">
+              <div className="p-7">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-start justify-between gap-3 mb-5">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${style.bg} ${style.text}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`text-sm font-medium px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
                         {typeLabel}
                       </span>
-                      {a.pinned && <span className="text-xs text-gray-400">📌 Pinned</span>}
+                      {a.pinned && <span className="text-sm text-gray-400">📌 Pinned</span>}
                     </div>
-                    <h3 className="text-base font-semibold text-gray-900 leading-snug">{a.title}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 leading-snug">{a.title}</h3>
                   </div>
                   <button onClick={() => setOpenAnnouncement(null)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition flex-shrink-0 mt-0.5">
-                    <X size={16} className="text-gray-400" />
+                    className="p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0 mt-0.5">
+                    <X size={18} className="text-gray-400" />
                   </button>
                 </div>
 
                 {/* Body */}
                 {a.body && (
-                  <p className="text-sm text-gray-600 leading-relaxed mb-4">{a.body}</p>
+                  <p className="text-base text-gray-600 leading-relaxed mb-5">{a.body}</p>
                 )}
 
                 {/* Event date */}
                 {a.event_date && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                  <div className="flex items-center gap-2 text-base text-gray-500 mb-5 bg-gray-50 rounded-lg px-4 py-3">
                     <span>📅</span>
-                    <span>{fmtEventDate(a.event_date)}</span>
+                    <span className="font-medium">{fmtEventDate(a.event_date)}</span>
                   </div>
                 )}
 
                 {/* Link button */}
                 {a.link ? (
                   <a href={a.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-medium text-white rounded-lg transition"
+                    className="flex items-center justify-center gap-2 w-full py-3 text-base font-medium text-white rounded-lg transition"
                     style={{ backgroundColor: '#1a5228' }}>
-                    <ExternalLink size={14} /> Open Link
+                    <ExternalLink size={16} /> Open Link
                   </a>
                 ) : (
                   <button onClick={() => setOpenAnnouncement(null)}
-                    className="w-full py-2.5 text-sm font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                    className="w-full py-3 text-base font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
                     Close
                   </button>
                 )}

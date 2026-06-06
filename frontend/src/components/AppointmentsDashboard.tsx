@@ -453,16 +453,16 @@ export default function AppointmentsDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Student</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Counselor</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Purpose</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date / Time</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Mode</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Check-ins</th>
-                    {showActions && <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>}
+                  <tr className="border-b border-gray-100 bg-gray-50/60">
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-10">#</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Student</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[140px]">Counselor</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Purpose</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[130px]">Date / Time</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[110px]">Mode</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[130px]">Status</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[90px]">Check-ins</th>
+                    {showActions && <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -475,66 +475,68 @@ export default function AppointmentsDashboard() {
                     const rowCls = isNew ? 'bg-amber-50/30 hover:bg-amber-50/60'
                       : isEval ? 'bg-amber-50/40 hover:bg-amber-50/70'
                       : isHighRisk ? 'bg-red-50/30 hover:bg-red-50/60'
-                      : 'hover:bg-gray-50/80';
+                      : 'hover:bg-gray-50/60';
 
                     return (
                       <React.Fragment key={apt.appointment_id}>
-                        <tr className={`border-b border-gray-50 transition-colors ${rowCls}`}>
-                          <td className="px-5 py-4 text-gray-400 text-xs">{i + 1}.</td>
-                          <td className="px-5 py-4">
-                            <p className="font-medium text-gray-900">{apt.student_name}</p>
-                            <p className="text-xs text-gray-400">{apt.student_email}</p>
+                        <tr className={`border-b border-gray-100 transition-colors ${rowCls}`}>
+                          <td className="px-5 py-4 text-gray-400 text-xs align-middle">{i + 1}.</td>
+                          <td className="px-5 py-4 align-middle">
+                            <p className="font-semibold text-gray-900 text-sm leading-snug">{apt.student_name}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{apt.student_email}</p>
                           </td>
-                          <td className="px-5 py-4 text-sm">
+                          <td className="px-5 py-4 align-middle">
                             {apt.counselor_name && apt.counselor_name !== 'Not Assigned'
-                              ? <span className="text-gray-700">{apt.counselor_name}</span>
-                              : <span className="text-gray-300 italic">Unassigned</span>}
+                              ? <span className="text-sm text-gray-700">{apt.counselor_name}</span>
+                              : <span className="text-xs text-gray-300 italic">Unassigned</span>}
                           </td>
-                          <td className="px-5 py-4">
-                            <p className="text-xs text-gray-700">{fmtPurpose(apt.purpose)}</p>
+                          <td className="px-5 py-4 align-middle">
+                            <p className="text-sm text-gray-700">{fmtPurpose(apt.purpose)}</p>
                             {apt.concern && (
-                              <p className="text-xs text-gray-400 truncate max-w-[160px] mt-0.5">"{apt.concern}"</p>
+                              <p className="text-xs text-gray-400 truncate max-w-[180px] mt-0.5">"{apt.concern}"</p>
                             )}
                           </td>
-                          <td className="px-5 py-4 whitespace-nowrap">
-                            <p className="text-xs text-gray-700">{fmtDate(apt.preferred_date)}</p>
+                          <td className="px-5 py-4 whitespace-nowrap align-middle">
+                            <p className="text-sm text-gray-700">{fmtDate(apt.preferred_date)}</p>
                             {(apt.preferred_time || apt.preferred_date) && (
-                              <p className="text-xs text-gray-400">{fmtTime(apt.preferred_date, apt.preferred_time)}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{fmtTime(apt.preferred_date, apt.preferred_time)}</p>
                             )}
                           </td>
-                          <td className="px-5 py-4">
-                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
+                          <td className="px-5 py-4 align-middle">
+                            <span className="inline-flex items-center whitespace-nowrap text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
                               {fmtMethod(apt.method)}
                             </span>
                           </td>
-                          <td className="px-5 py-4">
-                            <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${badgeCls}`}>
-                              {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
-                            </span>
-                            {apt.risk_level && apt.risk_level !== 'GREEN' && (
-                              <span className={`ml-1 inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full font-medium ${RISK_BADGE[apt.risk_level.toUpperCase()] ?? ''}`}>
-                                {apt.risk_level}
+                          <td className="px-5 py-4 align-middle">
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className={`inline-flex items-center whitespace-nowrap text-xs px-2 py-0.5 rounded-full font-medium ${badgeCls}`}>
+                                {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
                               </span>
-                            )}
+                              {apt.risk_level && apt.risk_level !== 'GREEN' && (
+                                <span className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${RISK_BADGE[apt.risk_level.toUpperCase()] ?? ''}`}>
+                                  ⚠ {apt.risk_level}
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-4 align-middle">
                             <button
                               onClick={() => toggleCheckins(apt.appointment_id)}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
                             >
-                              <MessageSquare size={15} />
+                              <MessageSquare size={13} />
                               {checkinData[apt.appointment_id]
                                 ? checkinData[apt.appointment_id].length
                                 : <span className="text-gray-400">View</span>}
                               {checkinRow === apt.appointment_id
-                                ? <ChevronUp size={15} />
-                                : <ChevronDown size={15} />}
+                                ? <ChevronUp size={13} />
+                                : <ChevronDown size={13} />}
                             </button>
                           </td>
 
                           {/* Actions */}
                           {showActions && (
-                            <td className="px-5 py-4 align-top">
+                            <td className="px-5 py-4 align-middle">
                               <div className="space-y-1.5">
                                 {/* Assign counselor */}
                                 {canAssign && isNew && (
@@ -679,8 +681,11 @@ export default function AppointmentsDashboard() {
                 </tbody>
               </table>
             </div>
-            <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
-              <p className="text-xs text-gray-400">Showing {filtered.length} of {apts.length} appointments</p>
+            <div className="px-5 py-3.5 bg-gray-50/60 border-t border-gray-100 flex items-center justify-between">
+              <p className="text-xs text-gray-400">Showing <strong className="text-gray-600">{filtered.length}</strong> of {apts.length} appointments</p>
+              {filtered.length < apts.length && (
+                <button onClick={() => setActiveTab('all')} className="text-xs text-[#1a5228] hover:underline">Show all</button>
+              )}
             </div>
           </>
         )}

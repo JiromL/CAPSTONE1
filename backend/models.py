@@ -67,6 +67,9 @@ class AppointmentStatus(str, Enum):
     MATCHED = "MATCHED"
     CONFIRMED = "CONFIRMED"
     RESCHEDULE_REQUESTED = "RESCHEDULE_REQUESTED"  # Student asked to move a confirmed appointment
+    EVALUATION = "EVALUATION"              # Session done, student fills evaluation survey
+    FOLLOW_UP = "FOLLOW_UP"               # Follow-up session scheduled by counselor
+    REFERRAL = "REFERRAL"                  # Referred to another counselor / service
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
     NO_SHOW = "NO_SHOW"

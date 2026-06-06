@@ -257,35 +257,26 @@ export default function AppointmentsPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
         {/* Tabs */}
-        <div className="flex items-end overflow-x-auto border-b border-gray-200 px-2 pt-2 gap-0.5 scrollbar-hide">
+        <div className="flex items-end overflow-x-auto border-b border-gray-100 px-2 pt-1.5 gap-0.5 scrollbar-hide">
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
             const cnt = counts[tab.key];
-            const Icon = tab.icon;
             return (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                className={`flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
-                  isActive ? TAB_ACTIVE[tab.key] : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap flex-shrink-0 ${
+                  isActive
+                    ? 'bg-[#1a5228]/5 text-[#1a5228] border-b-2 border-[#1a5228]'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}>
-                <Icon size={18} className={isActive ? TAB_ICON[tab.key] : 'text-gray-400'} />
-                <span>{tab.label}</span>
+                {tab.label}
                 {cnt > 0 && (
-                  <span className={`absolute -top-1 -right-0.5 text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none ${
-                    isActive ? 'bg-white text-gray-700 ring-1 ring-gray-300' : 'bg-gray-700 text-white'
-                  }`}>
-                    {cnt}
-                  </span>
+                  <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 ${
+                    isActive ? 'bg-[#1a5228] text-white' : 'bg-gray-200 text-gray-600'
+                  }`}>{cnt}</span>
                 )}
               </button>
             );
           })}
-        </div>
-
-        {/* Section label */}
-        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-            {TABS.find(t => t.key === activeTab)?.label}
-          </p>
         </div>
 
         {filtered.length === 0 ? (
@@ -346,8 +337,8 @@ export default function AppointmentsPage() {
                             <span className="text-sm text-gray-300">—</span>
                           )}
                         </td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
+                        <td className="px-5 py-4 align-middle">
+                          <span className={`inline-flex items-center whitespace-nowrap text-xs px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>
                             {cfg.label}
                           </span>
                         </td>

@@ -87,35 +87,43 @@ def get_student_appointments(user_id_obj, user_name):
         return jsonify({'error': str(e)}), 500
 
 def get_counselor_appointments(user_id_obj, user_name):
-    """COUNSELOR/PSYCHOLOGIST: View their assigned appointments"""
+    """COUNSELOR/PSYCHOLOGIST: View their assigned appointments across all active statuses"""
     try:
-        # Get appointments assigned to this counselor
         appointments = list(db.db.appointments.find({
             "counselor_id": user_id_obj
-        }).sort("requested_start", 1))
-        
-        # Separate by status
-        pending_approval = [a for a in appointments if a.get('status') == AppointmentStatus.PENDING_APPROVAL.value]
-        confirmed = [a for a in appointments if a.get('status') == AppointmentStatus.CONFIRMED.value]
-        completed = [a for a in appointments if a.get('status') == AppointmentStatus.COMPLETED.value]
-        
+        }).sort("created_at", -1))
+
+        active_statuses = {
+            AppointmentStatus.PENDING_APPROVAL.value,
+            AppointmentStatus.APPROVED.value,
+            AppointmentStatus.MATCHED.value,
+            AppointmentStatus.CONFIRMED.value,
+            AppointmentStatus.EVALUATION.value,
+            AppointmentStatus.FOLLOW_UP.value,
+            AppointmentStatus.REFERRAL.value,
+        }
+
+        confirmed_count   = sum(1 for a in appointments if a.get('status') in {AppointmentStatus.CONFIRMED.value, AppointmentStatus.APPROVED.value, AppointmentStatus.MATCHED.value})
+        evaluation_count  = sum(1 for a in appointments if a.get('status') == AppointmentStatus.EVALUATION.value)
+        follow_up_count   = sum(1 for a in appointments if a.get('status') == AppointmentStatus.FOLLOW_UP.value)
+        referral_count    = sum(1 for a in appointments if a.get('status') == AppointmentStatus.REFERRAL.value)
+        completed_count   = sum(1 for a in appointments if a.get('status') == AppointmentStatus.COMPLETED.value)
+
         return jsonify({
             'role': 'COUNSELOR',
             'user_name': user_name,
             'view_type': 'assigned_appointments',
-            'appointments': {
-                'pending_approval': format_appointments(pending_approval),
-                'confirmed': format_appointments(confirmed),
-                'completed': format_appointments(completed)
-            },
+            'appointments': format_appointments(appointments),
             'summary': {
-                'pending_approval': len(pending_approval),
-                'confirmed': len(confirmed),
-                'completed': len(completed),
-                'total': len(appointments)
+                'total_appointments': len(appointments),
+                'confirmed': confirmed_count,
+                'awaiting_evaluation': evaluation_count,
+                'follow_up': follow_up_count,
+                'referral': referral_count,
+                'completed': completed_count,
             },
-            'can_approve': True,
-            'can_reschedule': True
+            'can_manage_sessions': True,
+            'can_reschedule': True,
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -181,10 +189,27 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
         
         reschedule_count = db.db.appointments.count_documents({"status": "RESCHEDULE_REQUESTED"})
 
+        # Include all actionable appointments for AppointmentsDashboard (flat list)
+        all_actionable = list(db.db.appointments.find({
+            "status": {"$in": [
+                AppointmentStatus.REQUESTED.value,
+                AppointmentStatus.PENDING_APPROVAL.value,
+                AppointmentStatus.CONFIRMED.value,
+                AppointmentStatus.APPROVED.value,
+                AppointmentStatus.MATCHED.value,
+                AppointmentStatus.EVALUATION.value,
+                AppointmentStatus.FOLLOW_UP.value,
+                AppointmentStatus.REFERRAL.value,
+            ]}
+        }).sort("created_at", -1).limit(100))
+
+        evaluation_count = db.db.appointments.count_documents({"status": AppointmentStatus.EVALUATION.value})
+
         return jsonify({
             'role': 'IC',
             'user_name': user_name,
             'view_type': 'pending_requests',
+            'appointments': format_appointments(all_actionable),
             'pending_requests': format_appointments(pending_requests),
             'pending_approval': format_appointments(pending_approval),
             'summary': {
@@ -192,6 +217,7 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
                 'awaiting_approval': len(pending_approval),
                 'action_required': len(pending_requests) + len(pending_approval),
                 'pending_reschedules': reschedule_count,
+                'awaiting_evaluation': evaluation_count,
             },
             'can_assign_counselor': True,
             'can_approve': True
@@ -200,34 +226,39 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
         return jsonify({'error': str(e)}), 500
 
 def get_case_coordinator_requests(user_id_obj, user_name):
-    """CSC: View case-related appointment requests"""
+    """CSC/CSP: View active/ongoing appointments assigned to them plus all follow-up/referral sessions"""
     try:
-        # Get all appointments (similar to admin but focused on cases)
-        appointments = list(db.db.appointments.find({}))
-        
-        # Group by case for better overview
-        cases = list(db.db.cases.find({}))
-        
-        case_appointment_map = {}
-        for case in cases:
-            case_appts = [a for a in appointments if str(a.get('case_id')) == str(case['_id'])]
-            if case_appts:
-                case_appointment_map[str(case['_id'])] = {
-                    'case_name': case.get('student_name', 'Unknown'),
-                    'student_id': str(case.get('student_id')),
-                    'appointments': format_appointments(case_appts),
-                    'count': len(case_appts)
-                }
-        
+        # Appointments directly assigned to this counselor
+        assigned = list(db.db.appointments.find({
+            "counselor_id": user_id_obj
+        }).sort("created_at", -1))
+
+        # Also include unassigned FOLLOW_UP / REFERRAL sessions so nothing falls through
+        followup_referral = list(db.db.appointments.find({
+            "status": {"$in": [AppointmentStatus.FOLLOW_UP.value, AppointmentStatus.REFERRAL.value]},
+            "counselor_id": {"$exists": False}
+        }).sort("created_at", -1).limit(50))
+
+        all_apts = assigned + followup_referral
+
+        confirmed_count   = sum(1 for a in all_apts if a.get('status') in {AppointmentStatus.CONFIRMED.value, AppointmentStatus.APPROVED.value, AppointmentStatus.MATCHED.value})
+        evaluation_count  = sum(1 for a in all_apts if a.get('status') == AppointmentStatus.EVALUATION.value)
+        follow_up_count   = sum(1 for a in all_apts if a.get('status') == AppointmentStatus.FOLLOW_UP.value)
+        referral_count    = sum(1 for a in all_apts if a.get('status') == AppointmentStatus.REFERRAL.value)
+
         return jsonify({
             'role': 'CSC',
             'user_name': user_name,
-            'view_type': 'case_appointments',
-            'cases_with_appointments': case_appointment_map,
+            'view_type': 'ongoing_sessions',
+            'appointments': format_appointments(all_apts),
             'summary': {
-                'total_cases': len(case_appointment_map),
-                'total_appointments': len(appointments)
+                'total_appointments': len(all_apts),
+                'confirmed': confirmed_count,
+                'awaiting_evaluation': evaluation_count,
+                'follow_up': follow_up_count,
+                'referral': referral_count,
             },
+            'can_manage_sessions': True,
             'can_manage_cases': True
         }), 200
     except Exception as e:
@@ -240,6 +271,7 @@ def get_staff_dashboard(user_id_obj, user_name):
 
         requested = [a for a in all_appointments if a.get('status') == AppointmentStatus.REQUESTED.value]
         reschedule_pending = [a for a in all_appointments if a.get('status') == 'RESCHEDULE_REQUESTED']
+        awaiting_eval = [a for a in all_appointments if a.get('status') == AppointmentStatus.EVALUATION.value]
 
         return jsonify({
             'role': 'STAFF',
@@ -250,6 +282,7 @@ def get_staff_dashboard(user_id_obj, user_name):
                 'total_appointments': len(all_appointments),
                 'unassigned_requests': len(requested),
                 'pending_reschedules': len(reschedule_pending),
+                'awaiting_evaluation': len(awaiting_eval),
             },
             'can_assign_counselor': True,
         }), 200

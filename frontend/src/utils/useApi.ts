@@ -90,7 +90,7 @@ export function useIntakeApi(options: UseIntakeApiOptions = {}) {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch case');
+          throw new Error(errorData.error || errorData.message || 'Failed to fetch case');
         }
 
         const result = await response.json();

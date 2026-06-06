@@ -23,8 +23,9 @@ def get_cases_for_user(user_id, user_role):
         # DPO and ADMIN see all cases
         return {}
     elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
-        # PSYCHOLOGIST/COUNSELOR see only cases assigned to them
         return {'assigned_counselor_id': ObjectId(user_id)}
+    elif user_role in [UserRole.CSC, UserRole.CSP]:
+        return {}
     elif user_role == UserRole.IC:
         # IC sees new/pending intake cases (query both field names for compatibility)
         return {'$or': [
@@ -292,9 +293,8 @@ def get_case(case_id):
     user_role = user.get('role')
     if user_role == UserRole.STUDENT and str(case['student_id']) != user_id:
         return jsonify({'error': 'Cannot view other student cases'}), 403
-    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
-        if case.get('assigned_counselor_id') and str(case['assigned_counselor_id']) != user_id:
-            return jsonify({'error': 'Case not assigned to you'}), 403
+    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.CSC, UserRole.CSP]:
+        pass  # clinical staff can view any case
     elif user_role == UserRole.IC and case.get('case_status', case.get('status')) not in [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]:
         return jsonify({'error': 'IC can only view new/pending cases'}), 403
     

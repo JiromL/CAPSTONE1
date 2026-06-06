@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { exportToExcel } from '@/utils/export';
 import { api } from '@/utils/api';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { Search, Loader2, Download, RefreshCw, AlertCircle, Users, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface NewClientIntake {
   _id: string;
@@ -19,224 +20,246 @@ interface NewClientIntake {
   created_date: string;
 }
 
-export default function NewIntakesPage() {
-  const [intakes, setIntakes] = useState<NewClientIntake[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [month, setMonth] = useState('');
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+const STATUS_BADGE: Record<string, string> = {
+  NEW:        'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+  COMPLETED:  'bg-green-50 text-green-700 ring-1 ring-green-200',
+  IN_PROGRESS:'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+  PENDING:    'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+  CANCELLED:  'bg-red-50 text-red-600 ring-1 ring-red-200',
+};
 
-  useEffect(() => {
-    fetchIntakes();
-  }, [search, month, page]);
+function fmt(d?: string) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch { return d; }
+}
+
+const PAGE_SIZE = 10;
+
+export default function NewIntakesPage() {
+  const [intakes, setIntakes]   = useState<NewClientIntake[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
+  const [search, setSearch]     = useState('');
+  const [month, setMonth]       = useState('');
+  const [page, setPage]         = useState(1);
+  const [total, setTotal]       = useState(0);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => { fetchIntakes(); }, [search, month, page]);
 
   const fetchIntakes = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('token');
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-      });
+      const params = new URLSearchParams({ page: page.toString(), limit: PAGE_SIZE.toString() });
       if (search) params.append('search', search);
-      if (month) params.append('month', month);
-
-      const res = await fetch(api(`/api/client-tracking/new-intakes?${params}`), {
+      if (month)  params.append('month', month);
+      const r = await fetch(api(`/api/client-tracking/new-intakes?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-      setIntakes(data.data || []);
-      setTotal(data.total || 0);
-    } catch (error) {
-      console.error('Failed to fetch intakes:', error);
-    } finally {
-      setLoading(false);
-    }
+      if (!r.ok) throw new Error(`${r.status}`);
+      const d = await r.json();
+      setIntakes(d.data || []);
+      setTotal(d.total || 0);
+    } catch (e) {
+      setError('Failed to load intakes.');
+    } finally { setLoading(false); }
   };
 
   const handleExport = async () => {
+    setExporting(true);
     try {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (search) params.append('search', search);
-      if (month) params.append('month', month);
-
-      const res = await fetch(api(`/api/client-tracking/export/new-intakes?${params}`), {
+      if (month)  params.append('month', month);
+      const r = await fetch(api(`/api/client-tracking/export/new-intakes?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-
-      const rows = (data.data || []).map((intake: NewClientIntake) => [
-        new Date(intake.created_date).toLocaleDateString(),
-        intake.client_name,
-        intake.client_id_number,
-        intake.college_unit,
-        intake.program || '',
-        intake.service_requested,
-        intake.source,
-        intake.intake_counselor_name,
-        intake.action_taken || '',
-        intake.status,
-      ]);
-
+      const d = await r.json();
       exportToExcel({
-        headers: [
-          'Date',
-          'Client Name',
-          'ID Number',
-          'College/Unit',
-          'Program',
-          'Service',
-          'Source',
-          'Counselor',
-          'Action Taken',
-          'Status',
-        ],
-        rows,
+        headers: ['Date', 'Client Name', 'ID Number', 'College/Unit', 'Program', 'Service', 'Source', 'Counselor', 'Action Taken', 'Status'],
+        rows: (d.data || []).map((i: NewClientIntake) => [
+          fmt(i.created_date), i.client_name, i.client_id_number, i.college_unit,
+          i.program || '', i.service_requested, i.source, i.intake_counselor_name,
+          i.action_taken || '', i.status,
+        ]),
         filename: 'new-intakes',
       });
-    } catch (error) {
-      console.error('Failed to export:', error);
-    }
+    } catch {} finally { setExporting(false); }
   };
 
-  return (
-    <DashboardPageWrapper title="New Client Intakes" subtitle="Manage new client intake requests and processing">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">New Client Intakes</h1>
-          <p className="text-slate-600 mt-2">Manage new client intake requests and processing</p>
-        </div>
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const start = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(page * PAGE_SIZE, total);
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
-              <input
-                type="text"
-                placeholder="Name, ID, or Email..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Month</label>
-              <input
-                type="month"
-                value={month}
-                onChange={(e) => {
-                  setMonth(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="flex items-end gap-2">
-              <button
-                onClick={fetchIntakes}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              >
-                Refresh
-              </button>
-              <button
-                onClick={handleExport}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-              >
-                Export
-              </button>
-            </div>
+  const newCount       = intakes.filter(i => i.status === 'NEW').length;
+  const completedCount = intakes.filter(i => i.status === 'COMPLETED').length;
+
+  return (
+    <DashboardPageWrapper title="New Client Intakes" subtitle="Track and manage new counseling intake requests">
+
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <ClipboardList size={18} className="text-gray-500" />
+          <div>
+            <p className="text-xs text-gray-400">Total (page)</p>
+            <p className="text-xl font-semibold text-gray-800">{total}</p>
           </div>
         </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <AlertCircle size={18} className={newCount > 0 ? 'text-blue-500' : 'text-gray-300'} />
+          <div>
+            <p className="text-xs text-gray-400">New</p>
+            <p className={`text-xl font-semibold ${newCount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>{newCount}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <Users size={18} className="text-[#1a5228]" />
+          <div>
+            <p className="text-xs text-gray-400">Completed</p>
+            <p className="text-xl font-semibold text-[#1a5228]">{completedCount}</p>
+          </div>
+        </div>
+      </div>
 
-        {/* Table */}
+      {/* Table card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+
+        {/* Search + filters header */}
+        <div className="flex flex-wrap items-center gap-2 px-5 py-4 border-b border-gray-100">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search name, ID, counselor…"
+              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none"
+            />
+          </div>
+          <input
+            type="month"
+            value={month}
+            onChange={e => { setMonth(e.target.value); setPage(1); }}
+            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none"
+          />
+          <button
+            onClick={fetchIntakes}
+            className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition"
+            title="Refresh"
+          >
+            <RefreshCw size={14} />
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50"
+            style={{ backgroundColor: '#1a5228' }}
+          >
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            Export
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 mx-5 my-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
+            <AlertCircle size={15} /> {error}
+          </div>
+        )}
+
+        {/* Table body */}
         {loading ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <p className="text-slate-600">Loading...</p>
+          <div className="flex items-center justify-center h-44 gap-2 text-gray-400 text-sm">
+            <Loader2 size={16} className="animate-spin" /> Loading intakes…
+          </div>
+        ) : intakes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-44 text-center">
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+              <ClipboardList size={18} className="text-gray-400" />
+            </div>
+            <p className="text-sm font-medium text-gray-600">No intakes found</p>
+            <p className="text-xs text-gray-400 mt-1">Try a different search or month filter.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Client Name</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">ID Number</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">College/Unit</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Service</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Source</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Counselor</th>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Client</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">College / Unit</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Service</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Source</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Counselor</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {intakes.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-4 text-center text-slate-600">
-                        No records found
-                      </td>
-                    </tr>
-                  ) : (
-                    intakes.map((intake) => (
-                      <tr key={intake._id} className="border-b border-slate-200 hover:bg-slate-50">
-                        <td className="px-6 py-3 text-sm text-slate-900">
-                          {new Date(intake.created_date).toLocaleDateString()}
+                  {intakes.map((intake, i) => {
+                    const badgeCls = STATUS_BADGE[intake.status] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
+                    return (
+                      <tr key={intake._id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
+                        <td className="px-5 py-4 text-gray-400 text-xs">{start + i}.</td>
+                        <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{fmt(intake.created_date)}</td>
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-gray-900 text-sm">{intake.client_name}</p>
+                          {intake.client_id_number && (
+                            <p className="text-xs text-gray-400 font-mono">{intake.client_id_number}</p>
+                          )}
                         </td>
-                        <td className="px-6 py-3 text-sm text-slate-900">{intake.client_name}</td>
-                        <td className="px-6 py-3 text-sm text-slate-600">{intake.client_id_number}</td>
-                        <td className="px-6 py-3 text-sm text-slate-600">{intake.college_unit}</td>
-                        <td className="px-6 py-3 text-sm text-slate-600">{intake.service_requested}</td>
-                        <td className="px-6 py-3 text-sm text-slate-600">{intake.source}</td>
-                        <td className="px-6 py-3 text-sm">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              intake.status === 'NEW'
-                                ? 'bg-blue-100 text-blue-800'
-                                : intake.status === 'COMPLETED'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}
-                          >
-                            {intake.status}
+                        <td className="px-5 py-4">
+                          <p className="text-xs text-gray-700">{intake.college_unit || '—'}</p>
+                          {intake.program && <p className="text-xs text-gray-400">{intake.program}</p>}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-600 max-w-[150px]">
+                          <p className="truncate">{intake.service_requested || '—'}</p>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-500">{intake.source || '—'}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700">{intake.intake_counselor_name || '—'}</td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${badgeCls}`}>
+                            {intake.status?.replace(/_/g, ' ') || '—'}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-sm text-slate-600">{intake.intake_counselor_name}</td>
                       </tr>
-                    ))
-                  )}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Pagination */}
-            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-              <p className="text-sm text-slate-600">
-                Showing {intakes.length > 0 ? (page - 1) * 10 + 1 : 0} to {Math.min(page * 10, total)} of {total}
+            <div className="flex items-center justify-between px-5 py-3 bg-gray-50/50 border-t border-gray-100">
+              <p className="text-xs text-gray-400">
+                {total === 0 ? 'No records' : `Showing ${start}–${end} of ${total}`}
               </p>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
                 >
-                  Previous
+                  <ChevronLeft size={14} />
                 </button>
+                <span className="text-xs text-gray-500 px-2">
+                  Page {page} of {totalPages}
+                </span>
                 <button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page * 10 >= total}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
                 >
-                  Next
+                  <ChevronRight size={14} />
                 </button>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </DashboardPageWrapper>

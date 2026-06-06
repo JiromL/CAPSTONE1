@@ -19,6 +19,7 @@ interface SessionNote {
   mood_rating?: number;
   symptom_severity?: string;
   risk_flagged?: boolean;
+  risk_notes?: string;
   risk_level?: string;
   counselor?: string;
   topics_discussed?: string;
@@ -26,7 +27,7 @@ interface SessionNote {
   client_response?: string;
   homework_assigned?: string;
   progress_on_goals?: string;
-  supervisor_approved?: boolean;
+  supervisor_approved?: boolean | null;
   supervisor_name?: string;
   supervisor_comment?: string;
   supervisor_action_at?: string;
@@ -366,7 +367,7 @@ export default function CaseDetailPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setSessionNotes(data.sessions || []);
+        setSessionNotes(data.sessions || data.notes || []);
       }
     } catch (err) {
       console.error('Failed to load session notes:', err);
@@ -735,34 +736,71 @@ export default function CaseDetailPage() {
     { id: 'perma' as const,     label: 'PERMA / MHBot' },
   ];
 
+  const RISK_BADGE: Record<string, string> = {
+    GREEN:    'bg-green-50 text-green-700 ring-1 ring-green-200',
+    YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+    RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
+    CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
+  };
+
+  const studentName = caseData?.student?.name || caseData?.student_name || '—';
+  const studentSchoolId = caseData?.student?.school_id || caseData?.student_id || '—';
+  const studentEmail = caseData?.student?.email || '';
+  const riskLevel = (caseData?.risk_level || 'GREEN').toUpperCase();
+
   return (
     <DashboardPageWrapper
-      title={`Case: ${caseData?.case_number || caseData?.student_id || 'Unknown'}`}
-      subtitle={`Status: ${caseData?.client_status || caseData?.case_status || 'N/A'}`}
+      title="Case Details"
+      subtitle={caseData?.case_number ? `Case ${caseData.case_number}` : 'Loading…'}
     >
       {error && (
-        <div className="mb-4 flex gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
-          <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={18} />
-          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        <div className="mb-4 flex gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
+          <AlertCircle className="text-red-600 flex-shrink-0" size={18} />
+          <p className="text-sm text-red-700">{error}</p>
           <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700 text-lg leading-none">×</button>
         </div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded text-sm text-green-700 dark:text-green-300">
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
           {success}
         </div>
       )}
 
+      {/* ── Student identity banner — always visible ─────────────── */}
+      {caseData && (
+        <div className="mb-5 bg-white rounded-xl border border-gray-200 px-5 py-4 flex flex-wrap items-center gap-4">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold flex-shrink-0"
+            style={{ backgroundColor: '#1a5228' }}>
+            {studentName.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-semibold text-gray-900 leading-tight">{studentName}</p>
+            <p className="text-xs text-gray-500 mt-0.5 font-mono">{studentSchoolId}{studentEmail ? ` · ${studentEmail}` : ''}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium ${RISK_BADGE[riskLevel] ?? RISK_BADGE['GREEN']}`}>
+              {riskLevel === 'GREEN' ? 'Low Risk' : riskLevel === 'YELLOW' ? 'Moderate' : riskLevel === 'RED' ? 'High Risk' : 'Critical'}
+            </span>
+            <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+              {(caseData.client_status || caseData.case_status || 'ACTIVE').replace(/_/g, ' ')}
+            </span>
+            {caseData.case_number && (
+              <span className="text-[11px] text-gray-400 font-mono">{caseData.case_number}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="mb-6 flex gap-0.5 border-b border-gray-200 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition ${
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition ${
               activeTab === tab.id
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                ? 'border-[#1a5228] text-[#1a5228]'
+                : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
             }`}
           >
             {tab.label}
@@ -886,7 +924,10 @@ export default function CaseDetailPage() {
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Session Notes</h3>
             <button
               onClick={() => setShowNoteForm(!showNoteForm)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              style={{ backgroundColor: '#1a5228' }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#14401e')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = '#1a5228')}
             >
               <Plus size={15} /> Add Note
             </button>
@@ -1029,7 +1070,8 @@ export default function CaseDetailPage() {
                 <button
                   onClick={handleSaveNote}
                   disabled={savingNote}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition"
+                  className="text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition"
+                  style={{ backgroundColor: '#1a5228' }}
                 >
                   {savingNote ? 'Saving…' : 'Save Note'}
                 </button>
@@ -1081,16 +1123,68 @@ export default function CaseDetailPage() {
                       )}
                     </div>
                   </div>
-                  {note.topics_discussed && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">Topics</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">{note.topics_discussed}</p>
+                  {/* SOAP format display */}
+                  {note.note_format === 'SOAP' && note.soap && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                      {note.soap.subjective && (
+                        <div>
+                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">S — Subjective</p>
+                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.subjective}</p>
+                        </div>
+                      )}
+                      {note.soap.objective && (
+                        <div>
+                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">O — Objective</p>
+                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.objective}</p>
+                        </div>
+                      )}
+                      {note.soap.assessment && (
+                        <div>
+                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">A — Assessment</p>
+                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.assessment}</p>
+                        </div>
+                      )}
+                      {note.soap.plan && (
+                        <div>
+                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">P — Plan</p>
+                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.plan}</p>
+                        </div>
+                      )}
                     </div>
                   )}
-                  {note.interventions && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">Interventions</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">{note.interventions}</p>
+                  {/* Freeform format display */}
+                  {note.note_format !== 'SOAP' && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                      {note.topics_discussed && (
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide">Topics</p>
+                          <p className="text-sm text-gray-700 mt-0.5">{note.topics_discussed}</p>
+                        </div>
+                      )}
+                      {note.interventions && (
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide">Interventions</p>
+                          <p className="text-sm text-gray-700 mt-0.5">{note.interventions}</p>
+                        </div>
+                      )}
+                      {note.client_response && (
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide">Client Response</p>
+                          <p className="text-sm text-gray-700 mt-0.5">{note.client_response}</p>
+                        </div>
+                      )}
+                      {note.progress_on_goals && (
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide">Progress on Goals</p>
+                          <p className="text-sm text-gray-700 mt-0.5">{note.progress_on_goals}</p>
+                        </div>
+                      )}
+                      {note.homework_assigned && (
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide">Homework</p>
+                          <p className="text-sm text-gray-700 mt-0.5">{note.homework_assigned}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                   {/* Supervisor comment if rejected */}

@@ -700,23 +700,13 @@ def request_appointment():
                            "appointment_id": result.inserted_id}}
             )
 
-        # Get the updated appointment to use in emails
-        updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
-
-        # Only attempt auto-assignment for manual (non-slot) requests
+        # Slot-based bookings have a pre-assigned counselor; manual requests stay REQUESTED for IC review
         auto_assigned = bool(booked_slot)
         auto_assigned_counselor_id = str(slot_counselor_id) if booked_slot and slot_counselor_id else None
-        auto_assigned_message = "Slot booking — counselor pre-assigned" if booked_slot else None
+        auto_assigned_message = "Slot booking — counselor pre-assigned" if booked_slot else "Awaiting IC assignment"
 
-        if not booked_slot:
-            success, counselor_id, message = auto_assign_appointment(result.inserted_id)
-            if success:
-                auto_assigned = True
-                auto_assigned_counselor_id = counselor_id
-                auto_assigned_message = message
-            else:
-                auto_assigned_message = message
-                print(f"Auto-assignment failed: {message}")
+        # Fetch the final appointment state for the email (after any slot-based updates)
+        updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
         
     except Exception as e:
         print(f"Error creating appointment: {str(e)}")
@@ -1541,6 +1531,156 @@ def complete_appointment(appointment_id):
         'appointment_id': str(appointment['_id']),
         'status': AppointmentStatus.COMPLETED.value
     }), 200
+
+
+@appointments_bp.route('/<appointment_id>/set-evaluation', methods=['POST'])
+@jwt_required()
+def set_evaluation(appointment_id):
+    """Staff: session is done — move to EVALUATION so student fills survey."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt_id = ObjectId(appointment_id)
+        apt = db.db.appointments.find_one({'_id': apt_id})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    allowed = {AppointmentStatus.CONFIRMED.value, AppointmentStatus.APPROVED.value,
+               AppointmentStatus.MATCHED.value, AppointmentStatus.CHECKED_IN.value}
+    if apt.get('status') not in allowed:
+        return jsonify({'error': f"Cannot move to evaluation from status {apt.get('status')}"}), 400
+
+    db.db.appointments.update_one(
+        {'_id': apt['_id']},
+        {'$set': {'status': AppointmentStatus.EVALUATION.value, 'updated_at': datetime.utcnow()}}
+    )
+    return jsonify({'message': 'Moved to evaluation', 'status': AppointmentStatus.EVALUATION.value}), 200
+
+
+@appointments_bp.route('/<appointment_id>/set-follow-up', methods=['POST'])
+@jwt_required()
+def set_follow_up(appointment_id):
+    """Staff: schedule a follow-up session after evaluation."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt_id = ObjectId(appointment_id)
+        apt = db.db.appointments.find_one({'_id': apt_id})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    data = request.get_json() or {}
+    update = {'status': AppointmentStatus.FOLLOW_UP.value, 'updated_at': datetime.utcnow()}
+    if data.get('notes'):
+        update['follow_up_notes'] = data['notes']
+
+    db.db.appointments.update_one({'_id': apt['_id']}, {'$set': update})
+    return jsonify({'message': 'Marked for follow-up', 'status': AppointmentStatus.FOLLOW_UP.value}), 200
+
+
+@appointments_bp.route('/<appointment_id>/set-referral', methods=['POST'])
+@jwt_required()
+def set_referral_status(appointment_id):
+    """Staff: mark appointment as referral."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt_id = ObjectId(appointment_id)
+        apt = db.db.appointments.find_one({'_id': apt_id})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    data = request.get_json() or {}
+    update = {'status': AppointmentStatus.REFERRAL.value, 'updated_at': datetime.utcnow()}
+    if data.get('notes'):
+        update['referral_notes'] = data['notes']
+
+    db.db.appointments.update_one({'_id': apt['_id']}, {'$set': update})
+    return jsonify({'message': 'Marked as referral', 'status': AppointmentStatus.REFERRAL.value}), 200
+
+
+@appointments_bp.route('/<appointment_id>/submit-evaluation', methods=['POST'])
+@jwt_required()
+def submit_evaluation(appointment_id):
+    """Student submits post-session evaluation survey."""
+    user_id = get_jwt_identity()
+
+    try:
+        apt_id = ObjectId(appointment_id)
+        apt = db.db.appointments.find_one({'_id': apt_id})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    if str(apt.get('student_id', '')) != str(user_id):
+        return jsonify({'error': 'Not your appointment'}), 403
+
+    allowed_statuses = {AppointmentStatus.EVALUATION.value, AppointmentStatus.COMPLETED.value}
+    if apt.get('status') not in allowed_statuses:
+        return jsonify({'error': 'Appointment is not in evaluation status'}), 400
+    if apt.get('status') == AppointmentStatus.COMPLETED.value and apt.get('evaluation'):
+        return jsonify({'error': 'Evaluation already submitted'}), 400
+
+    data = request.get_json() or {}
+    ratings = data.get('ratings', {})
+    evaluation = {
+        'counselor_attitude': int(ratings.get('counselor_attitude', 0)),
+        'online_communication': int(ratings.get('online_communication', 0)),
+        'counseling_objectives': int(ratings.get('counseling_objectives', 0)),
+        'techniques_used': int(ratings.get('techniques_used', 0)),
+        'overall_experience': int(ratings.get('overall_experience', 0)),
+        'liked_most': data.get('liked_most', '').strip(),
+        'to_improve': data.get('to_improve', '').strip(),
+        'submitted_at': datetime.utcnow(),
+    }
+
+    db.db.appointments.update_one(
+        {'_id': apt['_id']},
+        {'$set': {
+            'evaluation': evaluation,
+            'status': AppointmentStatus.COMPLETED.value,
+            'completed_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        }}
+    )
+    return jsonify({'message': 'Evaluation submitted. Thank you!', 'status': AppointmentStatus.COMPLETED.value}), 200
+
+
+@appointments_bp.route('/<appointment_id>/evaluation', methods=['GET'])
+@jwt_required()
+def get_evaluation(appointment_id):
+    """Get evaluation data for an appointment."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt_id = ObjectId(appointment_id)
+        apt = db.db.appointments.find_one({'_id': apt_id})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    return jsonify({'evaluation': apt.get('evaluation'), 'appointment_id': appointment_id}), 200
 
 
 @appointments_bp.route('/<case_id>/upcoming', methods=['GET'])

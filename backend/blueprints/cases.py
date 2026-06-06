@@ -300,12 +300,23 @@ def get_case(case_id):
     
     # Format response
     case['_id'] = str(case['_id'])
-    case['student_id'] = str(case['student_id'])
+    raw_student_id = case['student_id']
+    case['student_id'] = str(raw_student_id)
     if case.get('assigned_counselor_id'):
         case['assigned_counselor_id'] = str(case['assigned_counselor_id'])
     if case.get('intake_counselor_id'):
         case['intake_counselor_id'] = str(case['intake_counselor_id'])
-    
+
+    # Embed student details so the frontend can show name/email without a second request
+    student_doc = db.db.users.find_one({'_id': raw_student_id}, {'name': 1, 'email': 1, 'student_id': 1, 'mhbot_username': 1})
+    if student_doc:
+        case['student'] = {
+            'name': student_doc.get('name', ''),
+            'email': student_doc.get('email', ''),
+            'school_id': student_doc.get('student_id', ''),
+            'mhbot_username': student_doc.get('mhbot_username', ''),
+        }
+
     return jsonify(case), 200
 
 

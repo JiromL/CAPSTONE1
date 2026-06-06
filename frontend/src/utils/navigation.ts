@@ -31,169 +31,76 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   ];
 
   // ============ IC (Intake Counselor) ============
-  // Primary workflow: New Intakes → Assessments → Appointments → Reminders
+  // Processes new student intakes and assigns counselors to appointment requests
   const icItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
-    // Primary Workflow
-    { label: 'New Intakes', href: '/new-intakes', id: 'new-intakes' },
+    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'Reminders', href: '/reminders', id: 'reminders' },
-    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
-
-    // Support
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'New Intakes',          href: '/new-intakes',          id: 'new-intakes'  },
+    { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
+    { label: 'Profile',              href: '/profile',              id: 'profile'      },
   ];
 
   // ============ COUNSELOR ============
-  // Primary workflow: Cases → Appointments → Check-ins → Assessments
+  // Conducts sessions, manages their assigned student cases
   const counselorItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-
-    // Primary Workflow
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
-    { label: 'Appointments', href: '/appointments', id: 'appointments' },
-
-    // Clinical Tools
-    { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
-    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
-    { label: 'Referrals', href: '/referrals', id: 'referrals' },
-    { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
-    { label: 'Video Links', href: '/video-links', id: 'video-links' },
-
-    // Profile & Support
-    { label: 'Counselor Profile', href: '/counselor', id: 'counselor-profile' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'Dashboard',      href: '/dashboard',    id: 'dashboard'    },
+    { label: 'My Sessions',    href: '/appointments', id: 'appointments' },
+    { label: 'Cases',          href: '/cases',        id: 'cases'        },
+    { label: 'Announcements',  href: '/announcements',id: 'announcements'},
+    { label: 'Profile',        href: '/profile',      id: 'profile'      },
   ];
 
   // ============ PSYCHOLOGIST ============
-  // Primary workflow: High-Risk → Cases → Appointments → Clinical Tools
+  // Same as counselor plus high-risk clinical oversight
   const psychologistItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
-    // Critical - Unique to Psychologist
-    { label: 'High-Risk Monitoring', href: '/high-risk', id: 'high-risk' },
-    
-    // Primary Workflow
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
-    { label: 'Appointments', href: '/appointments', id: 'appointments' },
-
-    // Clinical Tools
-    { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
-    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
-    { label: 'Referrals', href: '/referrals', id: 'referrals' },
-    { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
-    { label: 'Video Links', href: '/video-links', id: 'video-links' },
-
-    // Profile & Support
-    { label: 'Counselor Profile', href: '/counselor', id: 'counselor-profile' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'Dashboard',            href: '/dashboard',    id: 'dashboard'    },
+    { label: 'High-Risk Monitoring', href: '/high-risk',    id: 'high-risk'    },
+    { label: 'My Sessions',          href: '/appointments', id: 'appointments' },
+    { label: 'Cases',                href: '/cases',        id: 'cases'        },
+    { label: 'Announcements',        href: '/announcements',id: 'announcements'},
+    { label: 'Profile',              href: '/profile',      id: 'profile'      },
   ];
 
-  // ============ CSC/CSP (Support Team) ============
-  // Primary workflow: Supporting clinical team
+  // ============ CSC/CSP (Continuing Session Counselor/Psychologist) ============
+  // Handles ongoing / follow-up sessions for existing clients
   const supportTeamItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-
-    // Primary Workflow
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Counseling Cases', href: '/counseling-cases', id: 'counseling-cases' },
-    { label: 'Supervision', href: '/supervision', id: 'supervision' },
-    { label: 'Appointments', href: '/appointments', id: 'appointments' },
-
-    // Clinical Tools
-    { label: 'Recurring Sessions', href: '/recurring-appointments', id: 'recurring-appointments' },
-    { label: 'MHBot / PERMA', href: '/mhbot', id: 'mhbot' },
-    { label: 'Referrals', href: '/referrals', id: 'referrals' },
-    { label: 'C2C Referrals', href: '/c2c-referrals', id: 'c2c-referrals' },
-    { label: 'Video Links', href: '/video-links', id: 'video-links' },
-
-    // Support
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'Dashboard',     href: '/dashboard',    id: 'dashboard'    },
+    { label: 'My Sessions',   href: '/appointments', id: 'appointments' },
+    { label: 'Cases',         href: '/cases',        id: 'cases'        },
+    { label: 'Announcements', href: '/announcements',id: 'announcements'},
+    { label: 'Profile',       href: '/profile',      id: 'profile'      },
   ];
 
   // ============ STAFF (Office Assistant) ============
-  // Primary workflow: Appointment management → Check-ins → Admin tasks
+  // Routes appointment requests, handles reschedules and walk-ins
   const staffItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-
-    // Primary Workflow
-    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'Counselor Schedules', href: '/counselor-schedules', id: 'counselor-schedules' },
-    { label: 'Walk-In Intake', href: '/walk-in-intake', id: 'walk-in-intake' },
-    { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests' },
-    { label: 'Waitlist', href: '/waitlist', id: 'waitlist' },
-
-    // Administrative
-    { label: 'Settings', href: '/staff-settings', id: 'staff-settings' },
-    { label: 'Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'          },
+    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'       },
+    { label: 'Reschedule Requests',  href: '/reschedule-requests',  id: 'reschedule-requests'},
+    { label: 'Walk-In Intake',       href: '/walk-in-intake',       id: 'walk-in-intake'     },
+    { label: 'Announcements',        href: '/announcements',        id: 'announcements'      },
+    { label: 'Profile',              href: '/profile',              id: 'profile'            },
   ];
 
   // ============ ADMIN ============
-  // Primary workflow: System management → Analytics → User control
+  // User management and system oversight
   const adminItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-
-    // System Management (Critical)
-    { label: 'User Management', href: '/admin/users', id: 'admin' },
-    { label: 'Roles', href: '/admin/roles', id: 'roles' },
-    { label: 'Permissions', href: '/admin/permissions', id: 'permissions' },
-    { label: 'Availability', href: '/availability', id: 'availability' },
-
-    // Analytics & Monitoring
-    { label: 'Analytics', href: '/admin/analytics', id: 'analytics' },
-    { label: 'Audit Logs', href: '/admin/audit-log', id: 'audit' },
-    { label: 'System Health', href: '/admin/health', id: 'health' },
-    { label: 'High-Risk Cases', href: '/high-risk', id: 'high-risk' },
-
-    // Operational
+    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
+    { label: 'User Management',      href: '/admin/users',          id: 'admin'        },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'Reminders', href: '/reminders', id: 'reminders' },
-    { label: 'Data Export', href: '/admin/reports/export', id: 'export' },
-
-    // Support
-    { label: 'Resources', href: '/resources', id: 'resources' },
-    { label: 'Settings', href: '/admin/settings', id: 'settings' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'    },
+    { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
+    { label: 'Profile',              href: '/profile',              id: 'profile'      },
   ];
 
   // ============ DPO (Data Protection Officer) ============
-  // Primary workflow: Audit & governance → Access control → Oversight
+  // Audit, governance, and user data oversight
   const dpoItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-
-    // Governance (Critical - Unique to DPO)
-    { label: 'Audit Logs', href: '/admin/audit-log', id: 'audit' },
-    { label: 'User Management', href: '/admin/users', id: 'admin' },
-    { label: 'Data Export', href: '/admin/reports/export', id: 'export' },
-
-    // Oversight
-    { label: 'High-Risk Cases', href: '/high-risk', id: 'high-risk' },
-    { label: 'Cases', href: '/cases', id: 'cases' },
-    { label: 'Appointments', href: '/appointment-requests', id: 'appointments' },
-
-    // Analytics
-    { label: 'Analytics', href: '/admin/analytics', id: 'analytics' },
-    { label: 'Documentation', href: '/documentation', id: 'documentation' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'Dashboard',       href: '/dashboard',       id: 'dashboard'    },
+    { label: 'Audit Logs',      href: '/admin/audit-log', id: 'audit'        },
+    { label: 'User Management', href: '/admin/users',     id: 'admin'        },
+    { label: 'Announcements',   href: '/announcements',   id: 'announcements'},
+    { label: 'Profile',         href: '/profile',         id: 'profile'      },
   ];
 
   // Route by role with organized structure
@@ -207,8 +114,17 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     case 'PSYCHOLOGIST':
       return psychologistItems;
     case 'CSC':
-    case 'CSP':
       return supportTeamItems;
+    case 'CSP':
+      // CSP is clinical (psychologist level) — include High-Risk
+      return [
+        { label: 'Dashboard',            href: '/dashboard',    id: 'dashboard'    },
+        { label: 'High-Risk Monitoring', href: '/high-risk',    id: 'high-risk'    },
+        { label: 'My Sessions',          href: '/appointments', id: 'appointments' },
+        { label: 'Cases',                href: '/cases',        id: 'cases'        },
+        { label: 'Announcements',        href: '/announcements',id: 'announcements'},
+        { label: 'Profile',              href: '/profile',      id: 'profile'      },
+      ];
     case 'STAFF':
       return staffItems;
     case 'ADMIN':
@@ -229,59 +145,35 @@ export function getActiveSectionFromPath(pathname: string): string {
   
   const routeMap: { [key: string]: string } = {
     // Core
-    'dashboard': 'dashboard',
-    'profile': 'profile',
-    'resources': 'resources',
-    'documentation': 'documentation',
+    'dashboard':          'dashboard',
+    'profile':            'profile',
+    'resources':          'resources',
 
     // Student
-    'counseling': 'book-appointment',
-    'book-appointment': 'book-appointment',
-    'my-appointments': 'my-appointments',
-    'check-ins-student': 'check-ins',
-    'journal': 'journal',
-    'feedback': 'feedback',
+    'book-appointment':   'book-appointment',
+    'my-appointments':    'my-appointments',
+    'journal':            'journal',
 
-    // Appointments
-    'appointments': 'appointments',
-    'appointment-requests': 'appointments',
-    'counselor-schedules': 'counselor-schedules',
+    // Appointments (all route to 'appointments' for highlight)
+    'appointments':        'appointments',
+    'appointment-requests':'appointments',
     'reschedule-requests': 'reschedule-requests',
-    'waitlist': 'waitlist',
-    'availability': 'availability',
-    'recurring-appointments': 'recurring-appointments',
+    'walk-in-intake':      'walk-in-intake',
 
-    // Cases
-    'cases': 'cases',
-    'counseling-cases': 'counseling-cases',
-    'high-risk': 'high-risk',
+    // Staff intakes
+    'new-intakes':         'new-intakes',
 
-    // Clinical
-    'assessments': 'assessments',
-    'check-ins': 'check-ins',
-    'check-in-tracking': 'check-in-tracking',
-    'referrals': 'referrals',
-    'c2c-referrals': 'c2c-referrals',
-    'video-links': 'video-links',
-    'mhbot': 'mhbot',
-    'supervision': 'supervision',
-    'counselor': 'counselor-profile',
-
-    // IC / Staff
-    'new-intakes': 'new-intakes',
-    'reminders': 'reminders',
-    'tasks': 'tasks',
-    'staff-settings': 'staff-settings',
+    // Cases / Clinical
+    'cases':               'cases',
+    'high-risk':           'high-risk',
 
     // Admin / DPO
-    'users': 'admin',
-    'roles': 'roles',
-    'permissions': 'permissions',
-    'analytics': 'analytics',
-    'audit-log': 'audit',
-    'health': 'health',
-    'export': 'export',
-    'settings': 'settings',
+    'users':               'admin',
+    'analytics':           'analytics',
+    'audit-log':           'audit',
+
+    // Announcements
+    'announcements':       'announcements',
   };
   
   return routeMap[lastSegment] || routeMap[firstSegment] || 'dashboard';

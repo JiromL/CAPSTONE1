@@ -32,13 +32,11 @@ export default function AppointmentsRequestsPage() {
   }
 
   return (
-    <DashboardPageWrapper 
-      title="Appointment Requests" 
-      subtitle="View and manage all appointment requests based on your role"
+    <DashboardPageWrapper
+      title="Appointment Requests"
+      subtitle="Review new requests, assign counselors, and track session outcomes"
     >
-      <div className="max-w-7xl mx-auto">
-        <AppointmentsDashboard />
-      </div>
+      <AppointmentsDashboard />
     </DashboardPageWrapper>
   );
 }

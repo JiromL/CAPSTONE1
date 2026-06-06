@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
-  Loader2, Plus, Video, X, RotateCcw, CheckCircle, AlertCircle,
-  XCircle, Clock, Eye, QrCode,
+  Loader2, Plus, Video, X, RotateCcw, Clock, Eye,
+  CheckCircle, CalendarDays, RefreshCw, Trash2, Archive,
+  Star, Users, AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,47 +23,85 @@ interface Appointment {
   counseling_id?: string;
   meeting_link?: string;
   created_at: string;
-  reschedule_count?: number;
+  evaluation?: object;
 }
 
-// ── Tab definitions ─────────────────────────────────────────────────────────
 const TABS = [
-  { key: 'all',        label: 'All' },
-  { key: 'applied',    label: 'Applied' },
-  { key: 'confirmed',  label: 'Confirmed' },
-  { key: 'rescheduled',label: 'Rescheduled' },
-  { key: 'follow_up',  label: 'Follow-Up' },
-  { key: 'cancelled',  label: 'Cancelled' },
-  { key: 'completed',  label: 'Completed' },
+  { key: 'all',         label: 'All',         icon: Clock },
+  { key: 'applied',     label: 'Applied',     icon: CheckCircle },
+  { key: 'confirmed',   label: 'Confirmed',   icon: CalendarDays },
+  { key: 'evaluation',  label: 'Evaluation',  icon: Star },
+  { key: 'rescheduled', label: 'Rescheduled', icon: CalendarDays },
+  { key: 'follow_up',   label: 'Follow-Up',   icon: RefreshCw },
+  { key: 'referral',    label: 'Referral',    icon: Users },
+  { key: 'cancelled',   label: 'Cancelled',   icon: Trash2 },
+  { key: 'completed',   label: 'Completed',   icon: Archive },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
+
+const TAB_ACTIVE_CLS: Record<TabKey, string> = {
+  all:         'bg-gray-100 text-gray-800 border-b-2 border-gray-500',
+  applied:     'bg-green-50 text-[#1a5228] border-b-2 border-[#1a5228]',
+  confirmed:   'bg-blue-50 text-blue-700 border-b-2 border-blue-500',
+  evaluation:  'bg-amber-50 text-amber-700 border-b-2 border-amber-500',
+  rescheduled: 'bg-sky-50 text-sky-700 border-b-2 border-sky-500',
+  follow_up:   'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500',
+  referral:    'bg-purple-50 text-purple-700 border-b-2 border-purple-500',
+  cancelled:   'bg-red-50 text-red-600 border-b-2 border-red-500',
+  completed:   'bg-gray-100 text-gray-600 border-b-2 border-gray-400',
+};
+
+const TAB_ICON_CLS: Record<TabKey, string> = {
+  all:         'text-gray-500',
+  applied:     'text-[#1a5228]',
+  confirmed:   'text-blue-600',
+  evaluation:  'text-amber-600',
+  rescheduled: 'text-sky-600',
+  follow_up:   'text-indigo-600',
+  referral:    'text-purple-600',
+  cancelled:   'text-red-500',
+  completed:   'text-gray-400',
+};
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
   all:         [],
   applied:     ['REQUESTED', 'PENDING_APPROVAL'],
   confirmed:   ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'],
+  evaluation:  ['EVALUATION'],
   rescheduled: ['RESCHEDULE_REQUESTED'],
-  follow_up:   [],
+  follow_up:   ['FOLLOW_UP'],
+  referral:    ['REFERRAL'],
   cancelled:   ['CANCELLED', 'DENIED', 'NO_SHOW'],
   completed:   ['COMPLETED'],
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  REQUESTED:            { label: 'Applied',            cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  PENDING_APPROVAL:     { label: 'Under Review',       cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  RESCHEDULE_REQUESTED: { label: 'Reschedule Pending', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-  COMPLETED:            { label: 'Completed',          cls: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' },
-  CANCELLED:            { label: 'Cancelled',          cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
-  DENIED:               { label: 'Denied',             cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
-  NO_SHOW:              { label: 'No Show',            cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
+  REQUESTED:            { label: 'Applied',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  PENDING_APPROVAL:     { label: 'Under Review',       cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  RESCHEDULE_REQUESTED: { label: 'Reschedule Pending', cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
+  EVALUATION:           { label: 'For Evaluation',     cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
+  FOLLOW_UP:            { label: 'Follow-Up',          cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' },
+  REFERRAL:             { label: 'Referral',           cls: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' },
+  COMPLETED:            { label: 'Completed',          cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+  CANCELLED:            { label: 'Cancelled',          cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  DENIED:               { label: 'Denied',             cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  NO_SHOW:              { label: 'No Show',            cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
 };
 
 const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
+
+const EVAL_QUESTIONS = [
+  { key: 'counselor_attitude',    label: 'Counselor Attitude' },
+  { key: 'online_communication',  label: 'Accessibility of Communication' },
+  { key: 'counseling_objectives', label: 'Accomplishment of Counseling Objectives' },
+  { key: 'techniques_used',       label: 'Appropriateness of Techniques Used' },
+  { key: 'overall_experience',    label: 'Overall Counseling Experience' },
+];
 
 function fmtDateTime(dt?: string) {
   if (!dt) return '—';
@@ -71,12 +110,10 @@ function fmtDateTime(dt?: string) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
-
 function fmtPurpose(p?: string) {
   if (!p) return '—';
   return p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
-
 function fmtPlatform(m?: string) {
   if (!m) return '—';
   if (m === 'in-person' || m === 'in_person') return 'Face to Face';
@@ -84,10 +121,24 @@ function fmtPlatform(m?: string) {
   if (m === 'zoom') return 'Zoom';
   return m;
 }
-
 function isUpcoming(dt?: string) {
-  if (!dt) return false;
-  return new Date(dt) > new Date();
+  return dt ? new Date(dt) > new Date() : false;
+}
+function padId(id: string) {
+  return id.replace(/\D/g, '').slice(-10).padStart(10, '0');
+}
+
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map(n => (
+        <button key={n} type="button" onClick={() => onChange(n)}
+          className={`text-xl transition-colors ${n <= value ? 'text-amber-400' : 'text-gray-200 hover:text-amber-200'}`}>
+          ★
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function MyAppointmentsPage() {
@@ -95,15 +146,14 @@ export default function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading]           = useState(true);
   const [activeTab, setActiveTab]       = useState<TabKey>('all');
+  const [seenTabs, setSeenTabs]         = useState<Set<TabKey>>(new Set(['all']));
   const [error, setError]               = useState<string | null>(null);
 
-  // Cancel modal
   const [cancelTarget, setCancelTarget]   = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason]   = useState('');
   const [cancelling, setCancelling]       = useState(false);
   const [cancelError, setCancelError]     = useState('');
 
-  // Reschedule modal
   const [reschedTarget, setReschedTarget] = useState<Appointment | null>(null);
   const [reschedDate, setReschedDate]     = useState('');
   const [reschedTime, setReschedTime]     = useState('');
@@ -111,8 +161,16 @@ export default function MyAppointmentsPage() {
   const [rescheduling, setRescheduling]   = useState(false);
   const [reschedError, setReschedError]   = useState('');
 
-  // Detail modal
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
+
+  // Evaluation modal
+  const [evalTarget, setEvalTarget] = useState<Appointment | null>(null);
+  const [evalRatings, setEvalRatings] = useState<Record<string, number>>({});
+  const [evalLiked, setEvalLiked]   = useState('');
+  const [evalImprove, setEvalImprove] = useState('');
+  const [submittingEval, setSubmittingEval] = useState(false);
+  const [evalError, setEvalError]   = useState('');
+  const [evalSuccess, setEvalSuccess] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -130,20 +188,25 @@ export default function MyAppointmentsPage() {
 
   useEffect(() => { load(); }, []);
 
+  const needsEvaluation = (a: Appointment) =>
+    a.status === 'EVALUATION' || (a.status === 'COMPLETED' && !a.evaluation);
+
   const filtered = activeTab === 'all'
     ? appointments
-    : appointments.filter(a => TAB_STATUSES[activeTab].includes(a.status));
+    : activeTab === 'evaluation'
+      ? appointments.filter(needsEvaluation)
+      : appointments.filter(a => TAB_STATUSES[activeTab].includes(a.status));
 
-  // Badge counts per tab
-  const counts: Record<TabKey, number> = {
-    all:         appointments.length,
-    applied:     appointments.filter(a => TAB_STATUSES.applied.includes(a.status)).length,
-    confirmed:   appointments.filter(a => TAB_STATUSES.confirmed.includes(a.status)).length,
-    rescheduled: appointments.filter(a => TAB_STATUSES.rescheduled.includes(a.status)).length,
-    follow_up:   0,
-    cancelled:   appointments.filter(a => TAB_STATUSES.cancelled.includes(a.status)).length,
-    completed:   appointments.filter(a => TAB_STATUSES.completed.includes(a.status)).length,
-  };
+  const counts = Object.fromEntries(
+    TABS.map(t => [
+      t.key,
+      t.key === 'all'
+        ? appointments.length
+        : t.key === 'evaluation'
+          ? appointments.filter(needsEvaluation).length
+          : appointments.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
+    ])
+  ) as Record<TabKey, number>;
 
   const handleCancel = async () => {
     if (!cancelTarget) return;
@@ -185,201 +248,395 @@ export default function MyAppointmentsPage() {
     finally { setRescheduling(false); }
   };
 
-  return (
-    <DashboardPageWrapper title="My Appointments" subtitle="View and manage your counseling session requests">
+  const handleEvalSubmit = async () => {
+    if (!evalTarget) return;
+    const missing = EVAL_QUESTIONS.find(q => !evalRatings[q.key]);
+    if (missing) { setEvalError('Please rate all questions before submitting.'); return; }
+    setSubmittingEval(true); setEvalError('');
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/${evalTarget._id}/submit-evaluation`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ratings: evalRatings,
+          liked_most: evalLiked,
+          to_improve: evalImprove,
+        }),
+      });
+      if (r.ok) {
+        setEvalSuccess(true);
+        setAppointments(prev => prev.map(a => a._id === evalTarget._id ? { ...a, status: 'COMPLETED' } : a));
+        setTimeout(() => { setEvalTarget(null); setEvalSuccess(false); setEvalRatings({}); setEvalLiked(''); setEvalImprove(''); }, 1500);
+      } else {
+        const d = await r.json(); setEvalError(d.error || 'Failed to submit evaluation.');
+      }
+    } catch { setEvalError('Network error.'); }
+    finally { setSubmittingEval(false); }
+  };
 
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-4">
-        <div />
+  return (
+    <DashboardPageWrapper title="Counselling Sessions" subtitle="View and manage your counseling session requests">
+
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800">Counselling Sessions Request</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Manage your counseling appointments</p>
+        </div>
         <Link href="/book-appointment">
-          <button className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
+          <button className="flex items-center gap-1.5 px-4 py-2 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-medium rounded-lg transition shadow-sm">
             <Plus size={14} /> New Request
           </button>
         </Link>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex flex-wrap gap-1 mb-4 border-b border-gray-200 dark:border-gray-700">
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === tab.key
-                ? 'border-green-600 text-green-700 dark:text-green-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            {tab.label}
-            {counts[tab.key] > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold leading-none ${
-                activeTab === tab.key
-                  ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-              }`}>
-                {counts[tab.key]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Evaluation reminder banner */}
+      {(() => {
+        const pendingEval = appointments.filter(needsEvaluation).length;
+        return pendingEval > 0 ? (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
+            <Star size={16} className="text-amber-500 flex-shrink-0" />
+            <span className="text-amber-800 font-medium">
+              You have {pendingEval} session{pendingEval > 1 ? 's' : ''} waiting for your evaluation.
+            </span>
+            <button onClick={() => setActiveTab('evaluation')}
+              className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+              Evaluate now
+            </button>
+          </div>
+        ) : null;
+      })()}
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      {/* Tab bar + table card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+
+        {/* Tabs */}
+        <div className="flex items-end overflow-x-auto border-b border-gray-200 px-2 pt-2 gap-0.5 scrollbar-hide">
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.key;
+            const cnt = counts[tab.key];
+            const Icon = tab.icon;
+            return (
+              <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSeenTabs(prev => new Set([...prev, tab.key])); }}
+                className={`flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
+                  isActive ? TAB_ACTIVE_CLS[tab.key] : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                }`}>
+                <Icon size={18} className={isActive ? TAB_ICON_CLS[tab.key] : 'text-gray-400'} />
+                <span>{tab.label}</span>
+                {cnt > 0 && !seenTabs.has(tab.key) && (
+                  <span className="absolute -top-1 -right-0.5 text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none bg-gray-700 text-white">
+                    {cnt}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Section label */}
+        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            {TABS.find(t => t.key === activeTab)?.label ?? 'All'}
+          </p>
+        </div>
+
         {loading ? (
-          <div className="flex items-center justify-center h-40 gap-2 text-gray-400">
-            <Loader2 size={18} className="animate-spin" /> Loading…
+          <div className="flex items-center justify-center h-44 gap-2 text-gray-400 text-base">
+            <Loader2 size={18} className="animate-spin" /> Loading appointments…
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center h-40 text-red-500 text-sm">{error}</div>
+          <div className="flex items-center justify-center h-44 text-red-500 text-sm">{error}</div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center">
-            <Clock size={32} className="text-gray-300 dark:text-gray-600 mb-3" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">No appointments found</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              {activeTab === 'all' ? 'You have no appointments yet.' : `No ${activeTab.replace('_', '-')} appointments.`}
+          <div className="flex flex-col items-center justify-center h-44 text-center">
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+              <Clock size={22} className="text-gray-400" />
+            </div>
+            <p className="text-base font-medium text-gray-600">No records found</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {activeTab === 'all'
+                ? 'You have no appointments yet.'
+                : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} appointments.`}
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide w-8">#</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Preferred Date &amp; Time</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Purpose</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Platform</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Ticket #</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {filtered.map((appt, i) => {
-                  const dt  = appt.scheduled_start || appt.requested_start;
-                  const cfg = STATUS_BADGE[appt.status] ?? { label: appt.status, cls: 'bg-gray-100 text-gray-600' };
-                  const active = !INACTIVE.has(appt.status);
-                  const upcoming = isUpcoming(dt);
-                  const canJoin = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(appt.status) && upcoming && appt.meeting_link;
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-10">#</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Record ID</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Preferred Date &amp; Time</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Purpose</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Platform</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Ticket #</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((appt, i) => {
+                    const dt  = appt.scheduled_start || appt.requested_start;
+                    const cfg = STATUS_BADGE[appt.status] ?? { label: appt.status, cls: 'bg-gray-100 text-gray-600' };
+                    const active = !INACTIVE.has(appt.status);
+                    const upcoming = isUpcoming(dt);
+                    const canJoin = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(appt.status) && upcoming && appt.meeting_link;
+                    const needsEval = activeTab === 'evaluation' && needsEvaluation(appt);
+                    const recordId = appt.counseling_id || padId(appt._id);
 
-                  return (
-                    <tr key={appt._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{i + 1}.</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-900 dark:text-gray-100">{fmtDateTime(dt)}</td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{fmtPurpose(appt.purpose)}</td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{fmtPlatform(appt.preferred_method)}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">
-                        {appt.counseling_id || appt._id.slice(-6).toUpperCase()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
-                          {cfg.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          {/* View detail */}
-                          <button onClick={() => setDetailAppt(appt)} title="View"
-                            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
-                            <Eye size={14} />
+                    return (
+                      <tr key={appt._id} className={`border-b border-gray-50 transition-colors ${
+                        needsEval ? 'bg-amber-50/40 hover:bg-amber-50/80' : 'hover:bg-gray-50/80'
+                      }`}>
+                        <td className="px-5 py-4 text-gray-400 text-sm">{i + 1}.</td>
+                        <td className="px-5 py-4">
+                          <button onClick={() => setDetailAppt(appt)}
+                            className="font-mono text-sm text-[#1a5228] hover:text-green-800 hover:underline font-semibold">
+                            {recordId}
                           </button>
-                          {/* Join session */}
-                          {canJoin && (
-                            <a href={appt.meeting_link} target="_blank" rel="noreferrer" title="Join Session"
-                              className="p-1.5 rounded hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400 transition">
-                              <Video size={14} />
-                            </a>
-                          )}
-                          {/* Reschedule */}
-                          {active && appt.status !== 'RESCHEDULE_REQUESTED' && (
-                            <button onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }} title="Reschedule"
-                              className="p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition">
-                              <RotateCcw size={14} />
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap text-gray-700 text-sm">{fmtDateTime(dt)}</td>
+                        <td className="px-5 py-4 text-gray-700 text-sm">{fmtPurpose(appt.purpose)}</td>
+                        <td className="px-5 py-4 text-gray-700 text-sm whitespace-nowrap">{fmtPlatform(appt.preferred_method)}</td>
+                        <td className="px-5 py-4 font-mono text-sm text-gray-500">
+                          {appt.counseling_id || appt._id.slice(-6).toUpperCase()}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
+                            {cfg.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setDetailAppt(appt)} title="View"
+                              className="p-2 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
+                              <Eye size={16} />
                             </button>
-                          )}
-                          {/* Cancel */}
-                          {active && (
-                            <button onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }} title="Cancel"
-                              className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition">
-                              <X size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            {needsEval && (
+                              <button
+                                onClick={() => { setEvalTarget(appt); setEvalRatings({}); setEvalLiked(''); setEvalImprove(''); setEvalError(''); setEvalSuccess(false); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition">
+                                <Star size={13} /> Evaluate
+                              </button>
+                            )}
+                            {canJoin && (
+                              <a href={appt.meeting_link} target="_blank" rel="noreferrer" title="Join Session"
+                                className="p-2 rounded-md hover:bg-green-50 text-green-600 transition">
+                                <Video size={16} />
+                              </a>
+                            )}
+                            {active && !needsEval && appt.status !== 'RESCHEDULE_REQUESTED' && (
+                              <button
+                                onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
+                                title="Reschedule"
+                                className="p-2 rounded-md hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition">
+                                <RotateCcw size={16} />
+                              </button>
+                            )}
+                            {active && !needsEval && (
+                              <button
+                                onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }}
+                                title="Cancel"
+                                className="p-2 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                                <X size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
+              <p className="text-sm text-gray-400">
+                Showing {filtered.length} {filtered.length === 1 ? 'record' : 'records'}
+              </p>
+            </div>
+          </>
         )}
       </div>
 
-      {/* ── Detail Modal ──────────────────────────────────────────────────── */}
-      {detailAppt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Appointment Details</h3>
-              <button onClick={() => setDetailAppt(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
-                <X size={15} className="text-gray-400" />
+      {/* ── Detail Modal ─────────────────────────────────────────────── */}
+      {detailAppt && (() => {
+        const cfg = STATUS_BADGE[detailAppt.status] ?? { label: detailAppt.status, cls: 'bg-gray-100 text-gray-600' };
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-900">Appointment Details</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Record ID: {detailAppt.counseling_id || padId(detailAppt._id)}</p>
+                </div>
+                <button onClick={() => setDetailAppt(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                  <X size={14} className="text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    ['Ticket #', detailAppt.counseling_id || detailAppt._id.slice(-6).toUpperCase()],
+                    ['Platform', fmtPlatform(detailAppt.preferred_method)],
+                  ].map(([k, v]) => (
+                    <div key={k} className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{k}</p>
+                      <p className="text-sm text-gray-800 font-medium">{v}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Date &amp; Time</p>
+                  <p className="text-sm text-gray-800 font-medium">{fmtDateTime(detailAppt.scheduled_start || detailAppt.requested_start)}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Purpose</p>
+                    <p className="text-sm text-gray-800 font-medium">{fmtPurpose(detailAppt.purpose)}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Assigned Counselor</p>
+                  <p className="text-sm text-gray-800 font-medium">{detailAppt.counselor_name || 'Not yet assigned'}</p>
+                </div>
+                {detailAppt.concern && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Concern</p>
+                    <p className="text-sm text-gray-700">{detailAppt.concern}</p>
+                  </div>
+                )}
+                {detailAppt.meeting_link && (
+                  <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
+                    <Video size={14} /> Join Session
+                  </a>
+                )}
+              </div>
+              <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+                <button onClick={() => setDetailAppt(null)}
+                  className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Evaluation Modal ─────────────────────────────────────────── */}
+      {evalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Evaluation Survey</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Please rate your counseling session experience</p>
+              </div>
+              <button onClick={() => setEvalTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-5 space-y-3 text-sm">
-              {[
-                ['Ticket #',   detailAppt.counseling_id || detailAppt._id.slice(-6).toUpperCase()],
-                ['Status',     STATUS_BADGE[detailAppt.status]?.label ?? detailAppt.status],
-                ['Date & Time', fmtDateTime(detailAppt.scheduled_start || detailAppt.requested_start)],
-                ['Purpose',    fmtPurpose(detailAppt.purpose)],
-                ['Platform',   fmtPlatform(detailAppt.preferred_method)],
-                ['Counselor',  detailAppt.counselor_name || '—'],
-                ['Concern',    detailAppt.concern || '—'],
-              ].map(([label, val]) => (
-                <div key={label} className="flex gap-3">
-                  <span className="w-28 flex-shrink-0 text-gray-400 dark:text-gray-500 text-xs font-medium uppercase">{label}</span>
-                  <span className="text-gray-900 dark:text-gray-100 flex-1 break-words">{val}</span>
+
+            {evalSuccess ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mb-4">
+                  <CheckCircle size={28} className="text-[#1a5228]" />
                 </div>
-              ))}
-              {detailAppt.meeting_link && (
-                <div className="flex gap-3">
-                  <span className="w-28 flex-shrink-0 text-gray-400 dark:text-gray-500 text-xs font-medium uppercase">Join Link</span>
-                  <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                    className="text-green-600 dark:text-green-400 hover:underline flex items-center gap-1 text-sm">
-                    <Video size={13} /> Join Session
-                  </a>
+                <p className="font-semibold text-gray-900 mb-1">Thank you for your feedback!</p>
+                <p className="text-sm text-gray-500">Your evaluation has been submitted.</p>
+              </div>
+            ) : (
+              <div className="p-6 space-y-5">
+                {/* Rating scale header */}
+                <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+                  <span>1 – Not satisfied at all</span>
+                  <span>5 – Extremely Satisfied</span>
                 </div>
-              )}
-            </div>
+
+                {/* Rating questions */}
+                {EVAL_QUESTIONS.map(q => (
+                  <div key={q.key} className="flex items-center justify-between gap-4 py-2 border-b border-gray-50">
+                    <p className="text-sm text-gray-700 flex-1">{q.label}</p>
+                    <StarRating
+                      value={evalRatings[q.key] || 0}
+                      onChange={v => setEvalRatings(prev => ({ ...prev, [q.key]: v }))}
+                    />
+                  </div>
+                ))}
+
+                {/* Text questions */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    What did you like most about your experience?
+                  </label>
+                  <textarea value={evalLiked} onChange={e => setEvalLiked(e.target.value)}
+                    rows={2} placeholder="Your answer..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-amber-300 focus:border-amber-300 focus:outline-none resize-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    What do you want to improve in the counseling sessions?
+                  </label>
+                  <textarea value={evalImprove} onChange={e => setEvalImprove(e.target.value)}
+                    rows={2} placeholder="Your answer..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-amber-300 focus:border-amber-300 focus:outline-none resize-none" />
+                </div>
+
+                {evalError && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-xs text-red-600">
+                    <AlertCircle size={13} /> {evalError}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setEvalTarget(null)}
+                    className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                    Cancel
+                  </button>
+                  <button onClick={handleEvalSubmit} disabled={submittingEval}
+                    className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                    {submittingEval && <Loader2 size={13} className="animate-spin" />}
+                    Submit Evaluation
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── Cancel Modal ──────────────────────────────────────────────────── */}
+      {/* ── Cancel Modal ─────────────────────────────────────────────── */}
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Cancel Appointment</h3>
-              <button onClick={() => setCancelTarget(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
-                <X size={15} className="text-gray-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-sm text-gray-900">Cancel Appointment</h3>
+              <button onClick={() => setCancelTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-5">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Are you sure you want to cancel this appointment? This action cannot be undone.
-              </p>
-              <textarea value={cancelReason} onChange={e => setCancelReason(e.target.value)}
-                placeholder="Reason for cancellation (optional)"
-                rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-red-400 focus:outline-none resize-none mb-3" />
-              {cancelError && <p className="text-xs text-red-500 mb-3">{cancelError}</p>}
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-500">Are you sure you want to cancel this appointment? This cannot be undone.</p>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Cancellation Remarks</label>
+                <textarea value={cancelReason} onChange={e => setCancelReason(e.target.value)}
+                  placeholder="Optional — let us know why you're cancelling"
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-red-300 focus:border-red-300 focus:outline-none resize-none" />
+              </div>
+              {cancelError && <p className="text-xs text-red-500">{cancelError}</p>}
               <div className="flex gap-2">
                 <button onClick={() => setCancelTarget(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
                   Keep
                 </button>
                 <button onClick={handleCancel} disabled={cancelling}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
                   {cancelling && <Loader2 size={13} className="animate-spin" />}
                   Cancel Appointment
                 </button>
@@ -389,42 +646,42 @@ export default function MyAppointmentsPage() {
         </div>
       )}
 
-      {/* ── Reschedule Modal ──────────────────────────────────────────────── */}
+      {/* ── Reschedule Modal ─────────────────────────────────────────── */}
       {reschedTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Request Reschedule</h3>
-              <button onClick={() => setReschedTarget(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
-                <X size={15} className="text-gray-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-sm text-gray-900">Request Reschedule</h3>
+              <button onClick={() => setReschedTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">New Preferred Date</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">New Preferred Time</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Time</label>
                 <input type="time" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Reason</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Reason <span className="font-normal normal-case text-gray-400">(optional)</span></label>
                 <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
-                  placeholder="Reason for rescheduling (optional)"
+                  placeholder="Why do you need to reschedule?"
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none resize-none" />
               </div>
               {reschedError && <p className="text-xs text-red-500">{reschedError}</p>}
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2">
                 <button onClick={() => setReschedTarget(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
                   Cancel
                 </button>
                 <button onClick={handleReschedule} disabled={rescheduling}
-                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
                   {rescheduling && <Loader2 size={13} className="animate-spin" />}
                   Submit Request
                 </button>

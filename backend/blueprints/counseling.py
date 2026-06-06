@@ -254,6 +254,13 @@ def get_case_session_history(case_id):
 
     result = []
     for n in notes:
+        # Resolve counselor name
+        counselor_name = ''
+        if n.get('counselor_id'):
+            c = db.db.users.find_one({'_id': n['counselor_id']}, {'name': 1})
+            if c:
+                counselor_name = c.get('name', '')
+
         result.append({
             'note_id': str(n['_id']),
             'session_date': n['session_date'].isoformat() if isinstance(n.get('session_date'), datetime) else n.get('session_date'),
@@ -261,13 +268,23 @@ def get_case_session_history(case_id):
             'note_content': n.get('note_content', ''),
             'note_format': n.get('note_format', 'freeform'),
             'soap': n.get('soap'),
+            'topics_discussed': n.get('topics_discussed', ''),
+            'interventions': n.get('interventions', ''),
+            'client_response': n.get('client_response', ''),
+            'homework_assigned': n.get('homework_assigned', ''),
+            'progress_on_goals': n.get('progress_on_goals', ''),
+            'mood_rating': n.get('mood_rating'),
+            'symptom_severity': n.get('symptom_severity', ''),
+            'risk_flagged': n.get('risk_flagged', False),
+            'risk_notes': n.get('risk_notes', ''),
             'risk_level': n.get('risk_level', ''),
+            'counselor': counselor_name,
             'supervisor_approved': n.get('supervisor_approved', False),
             'supervisor_name': n.get('supervisor_name', ''),
             'supervisor_comment': n.get('supervisor_comment', ''),
             'supervisor_action_at': n['supervisor_action_at'].isoformat() if isinstance(n.get('supervisor_action_at'), datetime) else n.get('supervisor_action_at'),
         })
-    return jsonify({'notes': result, 'total': len(result)}), 200
+    return jsonify({'sessions': result, 'total': len(result)}), 200
 
 
 # ---------------------------------------------------------------------------

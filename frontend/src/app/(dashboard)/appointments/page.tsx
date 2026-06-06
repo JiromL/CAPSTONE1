@@ -2,1036 +2,582 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, CheckCircle, FileText, Heart, AlertCircle, Search, X, Mail, Clock, Plus, Calendar as CalendarIcon, Link as LinkIcon, Video } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { ScheduleAppointmentCalendar } from '@/components/ScheduleAppointmentCalendar';
-import { CancelNoShowModal } from '@/components/CancelNoShowModal';
-import { getApiUrl } from '@/utils/api-config';
 import { api } from '@/utils/api';
+import {
+  Loader2, Eye, Video, RotateCcw, Star, RefreshCw, ExternalLink,
+  Archive, Clock, CheckCircle, CalendarDays, Users, X, AlertCircle,
+} from 'lucide-react';
 
 interface Appointment {
-  _id: string;
-  appointment_date: string;
-  appointment_time: string;
+  appointment_id: string;
+  student_name: string;
+  student_email: string;
+  student_id_number?: string;
+  counselor_name?: string;
   status: string;
-  preferred_platform: string;
-  counselor_id?: string;
-  counseling_id?: string;
+  purpose?: string;
+  concern?: string;
+  method?: string;
+  preferred_date?: string;
+  preferred_time?: string;
   meeting_link?: string;
   risk_level?: string;
-  counselor_name?: string;
-  notes?: string;
+}
+
+interface DashboardData {
+  role: string;
+  user_name: string;
+  appointments?: Appointment[];
+  summary?: Record<string, number>;
+  can_manage_sessions?: boolean;
+  can_assign_counselor?: boolean;
+}
+
+const TABS = [
+  { key: 'all',        label: 'All',            icon: Clock },
+  { key: 'confirmed',  label: 'Confirmed',       icon: CheckCircle },
+  { key: 'evaluation', label: 'For Evaluation',  icon: Star },
+  { key: 'follow_up',  label: 'Follow-Up',       icon: RefreshCw },
+  { key: 'referral',   label: 'Referral',        icon: Users },
+  { key: 'completed',  label: 'Completed',       icon: Archive },
+  { key: 'cancelled',  label: 'Cancelled',       icon: X },
+] as const;
+type TabKey = typeof TABS[number]['key'];
+
+const TAB_STATUSES: Record<TabKey, string[]> = {
+  all:        [],
+  confirmed:  ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL'],
+  evaluation: ['EVALUATION'],
+  follow_up:  ['FOLLOW_UP'],
+  referral:   ['REFERRAL'],
+  completed:  ['COMPLETED'],
+  cancelled:  ['CANCELLED', 'DENIED', 'NO_SHOW'],
+};
+
+const TAB_ACTIVE: Record<TabKey, string> = {
+  all:        'bg-gray-100 text-gray-800 border-b-2 border-gray-500',
+  confirmed:  'bg-green-50 text-[#1a5228] border-b-2 border-[#1a5228]',
+  evaluation: 'bg-amber-50 text-amber-700 border-b-2 border-amber-500',
+  follow_up:  'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500',
+  referral:   'bg-purple-50 text-purple-700 border-b-2 border-purple-500',
+  completed:  'bg-gray-100 text-gray-600 border-b-2 border-gray-400',
+  cancelled:  'bg-red-50 text-red-600 border-b-2 border-red-400',
+};
+
+const TAB_ICON: Record<TabKey, string> = {
+  all:        'text-gray-500',
+  confirmed:  'text-[#1a5228]',
+  evaluation: 'text-amber-600',
+  follow_up:  'text-indigo-600',
+  referral:   'text-purple-600',
+  completed:  'text-gray-400',
+  cancelled:  'text-red-500',
+};
+
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  PENDING_APPROVAL: { label: 'Pending',        cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  APPROVED:         { label: 'Confirmed',       cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  MATCHED:          { label: 'Confirmed',       cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CONFIRMED:        { label: 'Confirmed',       cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CHECKED_IN:       { label: 'Checked In',      cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  EVALUATION:       { label: 'For Evaluation',  cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
+  FOLLOW_UP:        { label: 'Follow-Up',       cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' },
+  REFERRAL:         { label: 'Referral',        cls: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' },
+  COMPLETED:        { label: 'Completed',       cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+  CANCELLED:        { label: 'Cancelled',       cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  DENIED:           { label: 'Denied',          cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  NO_SHOW:          { label: 'No Show',         cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+};
+
+const RISK_CLS: Record<string, string> = {
+  GREEN:    'bg-green-100 text-green-700',
+  YELLOW:   'bg-yellow-100 text-yellow-700',
+  RED:      'bg-red-100 text-red-700',
+  CRITICAL: 'bg-red-200 text-red-900 font-semibold',
+};
+
+function fmtDate(d?: string) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtTime(d?: string, t?: string) {
+  if (t) return t;
+  if (!d) return '';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '';
+  return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+function fmtPurpose(p?: string) {
+  return p ? p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—';
+}
+function fmtMethod(m?: string) {
+  if (!m) return '—';
+  if (m === 'in-person' || m === 'in_person') return 'Face to Face';
+  if (m === 'google-meet' || m === 'google_meet') return 'Google Meet';
+  return m.charAt(0).toUpperCase() + m.slice(1);
 }
 
 export default function AppointmentsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState('');
-  const [rescheduleTime, setRescheduleTime] = useState('');
-  const [rescheduleReason, setRescheduleReason] = useState('');
-  const [rescheduling, setRescheduling] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showNoShowModal, setShowNoShowModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('date-asc');
-  const [notificationMessage, setNotificationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
 
-  // STAFF management state
-  const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
-  const [counselors, setCounselors] = useState<any[]>([]);
-  const [assigningId, setAssigningId] = useState<string | null>(null);
-  const [assignCounselorMap, setAssignCounselorMap] = useState<Record<string, string>>({});
-  const [assignDateMap, setAssignDateMap] = useState<Record<string, string>>({});
-  const [assignTimeMap, setAssignTimeMap] = useState<Record<string, string>>({});
+  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<{ id: string; type: 'ok' | 'err'; text: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'follow_up' | 'referral'; notes: string } | null>(null);
 
-  // Meeting link state (for COUNSELOR / STAFF setting Google Meet links)
-  const [meetLinkMap, setMeetLinkMap] = useState<Record<string, string>>({});
-  const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
+  // No-show modal
+  const [noShowTarget, setNoShowTarget] = useState<Appointment | null>(null);
+  const [noShowReason, setNoShowReason] = useState('');
+  const [submittingNoShow, setSubmittingNoShow] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api('/api/appointments/dashboard/role-view'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.status === 401) { router.replace('/login'); return; }
+      if (r.ok) { setDashboard(await r.json()); }
+    } finally { setLoading(false); }
+  };
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
+    if (!userData || !token) { router.replace('/login'); return; }
+    setUser(JSON.parse(userData));
+    load();
+  }, []);
 
-    if (!userData || !token) {
-      router.push('/login');
-      return;
+  // If role is staff/IC, redirect to the assignment page
+  useEffect(() => {
+    if (!user) return;
+    const role = user.role?.toUpperCase();
+    if (['STAFF', 'ADMIN', 'IC'].includes(role)) {
+      router.replace('/appointment-requests');
     }
+  }, [user]);
 
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    
-    // Load from cache first
-    const cachedAppointments = localStorage.getItem('appointments_cache');
-    if (cachedAppointments) {
-      try {
-        setAppointments(JSON.parse(cachedAppointments));
-      } catch (e) {
-        console.error('Failed to load cached appointments');
-      }
-    }
-    
-    // Fetch fresh data
-    fetchAppointments(token);
+  const apts = Array.isArray(dashboard?.appointments) ? dashboard!.appointments! : [];
 
-    // STAFF / ADMIN: load pending requests + counselor list
-    if (['STAFF', 'ADMIN'].includes(parsedUser.role)) {
-      fetchPendingAppointments(token);
-      fetchCounselors(token);
-    }
-  }, [router]);
+  const filtered = activeTab === 'all'
+    ? apts
+    : apts.filter(a => TAB_STATUSES[activeTab].includes(a.status));
 
-  const fetchAppointments = async (token: string) => {
-    try {
-      console.log('[Appointments] Fetching with token:', token?.substring(0, 20) + '...');
-      const response = await fetch(getApiUrl('/api/appointments/my-appointments'), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  const counts = Object.fromEntries(
+    TABS.map(t => [
+      t.key,
+      t.key === 'all' ? apts.length : apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
+    ])
+  ) as Record<TabKey, number>;
 
-      console.log('[Appointments] Response status:', response.status);
+  const canManage = dashboard?.can_manage_sessions ?? false;
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[Appointments] Success:', data);
-        const raw = data.appointments || [];
-        const appointments = raw.map((apt: any) => {
-          const dateSource = apt.scheduled_start || apt.requested_start || apt.preferred_date || '';
-          const dateObj = dateSource ? new Date(dateSource) : null;
-          const isValid = dateObj && !isNaN(dateObj.getTime());
-          return {
-            ...apt,
-            appointment_date: apt.appointment_date || dateSource,
-            appointment_time: apt.appointment_time || (isValid ? dateObj!.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : 'TBD'),
-          };
-        });
-        setAppointments(appointments);
-        // Cache the appointments
-        localStorage.setItem('appointments_cache', JSON.stringify(appointments));
-      } else {
-        const errorText = await response.text();
-        console.error('[Appointments] Failed to fetch:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          token: token?.substring(0, 20) + '...'
-        });
-      }
-    } catch (error) {
-      console.error('[Appointments] Exception:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPendingAppointments = async (token: string) => {
-    try {
-      const r = await fetch(getApiUrl('/api/appointments?status=REQUESTED&limit=100'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (r.ok) {
-        const d = await r.json();
-        setPendingAppointments(d.appointments || d.items || []);
-      }
-    } catch {}
-  };
-
-  const fetchCounselors = async (token: string) => {
-    try {
-      const r = await fetch(getApiUrl('/api/users?role=COUNSELOR'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (r.ok) {
-        const d = await r.json();
-        setCounselors(d.users || d.items || []);
-      }
-    } catch {}
-  };
-
-  const handleAssign = async (appointmentId: string) => {
+  const doAction = async (aptId: string, endpoint: string, body?: object) => {
+    setActioningId(aptId);
+    setActionMsg(null);
     const token = localStorage.getItem('token');
-    const counselorId = assignCounselorMap[appointmentId];
-    const date = assignDateMap[appointmentId];
-    const time = assignTimeMap[appointmentId];
-    if (!counselorId || !date || !time) {
-      setNotificationMessage({ type: 'error', text: 'Select a counselor, date, and time before assigning.' });
-      return;
-    }
-    setAssigningId(appointmentId);
     try {
-      const [h, m] = time.split(':');
-      const start = new Date(`${date}T${h.padStart(2,'0')}:${m.padStart(2,'0')}:00`);
-      const end = new Date(start.getTime() + 60 * 60 * 1000);
-      const r = await fetch(getApiUrl(`/api/appointments/${appointmentId}/match-counselor`), {
+      const r = await fetch(api(`/api/appointments/${aptId}/${endpoint}`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          counselor_id: counselorId,
-          scheduled_start: start.toISOString(),
-          scheduled_end: end.toISOString(),
-        }),
+        body: body ? JSON.stringify(body) : undefined,
       });
       if (r.ok) {
-        setNotificationMessage({ type: 'success', text: 'Appointment assigned and confirmed.' });
-        fetchPendingAppointments(token!);
+        const msgs: Record<string, string> = {
+          'set-evaluation': 'Session marked done — student will be prompted to evaluate.',
+          'set-follow-up':  'Marked as Follow-Up.',
+          'set-referral':   'Marked as Referral.',
+          'complete':       'Marked as Completed.',
+          'mark-no-show':   'Marked as No Show.',
+        };
+        setActionMsg({ id: aptId, type: 'ok', text: msgs[endpoint] ?? 'Done.' });
+        setPendingAction(null);
+        setTimeout(() => load(), 900);
       } else {
         const e = await r.json();
-        setNotificationMessage({ type: 'error', text: e.error || 'Failed to assign.' });
+        setActionMsg({ id: aptId, type: 'err', text: e.error || 'Failed.' });
       }
-    } finally {
-      setAssigningId(null);
-    }
+    } finally { setActioningId(null); }
   };
-
-  const handleSaveMeetingLink = async (appointmentId: string) => {
-    const token = localStorage.getItem('token');
-    const link = meetLinkMap[appointmentId]?.trim();
-    if (!link) return;
-    setSavingLinkId(appointmentId);
-    try {
-      const r = await fetch(getApiUrl(`/api/appointments/${appointmentId}/meeting-link`), {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meeting_link: link }),
-      });
-      if (r.ok) {
-        setNotificationMessage({ type: 'success', text: 'Meeting link saved — student has been notified.' });
-        setAppointments(prev => prev.map(a => a._id === appointmentId ? { ...a, meeting_link: link } : a));
-      } else {
-        const e = await r.json();
-        setNotificationMessage({ type: 'error', text: e.error || 'Failed to save link.' });
-      }
-    } catch {
-      setNotificationMessage({ type: 'error', text: 'Failed to save link.' });
-    } finally {
-      setSavingLinkId(null);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusMap: { [key: string]: { bg: string; text: string; label: string } } = {
-      'SCHEDULED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Scheduled' },
-      'CONFIRMED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Confirmed' },
-      'COMPLETED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Completed' },
-      'CANCELLED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Cancelled' },
-      'REQUESTED': { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300', label: 'Pending' },
-    };
-
-    const statusInfo = statusMap[status] || statusMap['REQUESTED'];
-    return { ...statusInfo, status };
-  };
-
-  const handleReschedule = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    if (appointment.appointment_date) {
-      setRescheduleDate(appointment.appointment_date.split('T')[0]);
-    }
-    setRescheduleTime(appointment.appointment_time || '');
-    setShowRescheduleModal(true);
-  };
-
-  const submitReschedule = async () => {
-    if (!selectedAppointment || !rescheduleDate) {
-      setNotificationMessage({ type: 'error', text: 'Please select a date and time' });
-      return;
-    }
-
-    setRescheduling(true);
-    try {
-      const token = localStorage.getItem('token');
-      // Convert to ISO datetime format
-      const [year, month, day] = rescheduleDate.split('-');
-      const [hours, minutes] = (rescheduleTime || '10:00').split(':');
-      const requestedStart = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
-      const requestedEnd = new Date(requestedStart.getTime() + 60 * 60 * 1000); // 1 hour duration
-      
-      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/reschedule`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          requested_start: requestedStart.toISOString(),
-          requested_end: requestedEnd.toISOString(),
-          reason: rescheduleReason,
-        }),
-      });
-
-      if (response.ok) {
-        // Send email notification
-        await sendEmailNotification('reschedule', selectedAppointment);
-        
-        setNotificationMessage({ type: 'success', text: '✓ Reschedule request submitted. Your counselor will review and confirm the new time.' });
-        setShowRescheduleModal(false);
-        setRescheduleDate('');
-        setRescheduleTime('');
-        setRescheduleReason('');
-        setSelectedAppointment(null);
-        const token = localStorage.getItem('token');
-        if (token) fetchAppointments(token);
-      } else {
-        const error = await response.json();
-        setNotificationMessage({ type: 'error', text: `Error: ${error.error || 'Failed to reschedule'}` });
-      }
-    } catch (error) {
-      setNotificationMessage({ type: 'error', text: 'Error rescheduling appointment' });
-      console.error(error);
-    } finally {
-      setRescheduling(false);
-    }
-  };
-
-  const sendEmailNotification = async (action: 'reschedule' | 'cancel', appointment: Appointment) => {
-    try {
-      const token = localStorage.getItem('token');
-      const subject = action === 'reschedule' 
-        ? `Appointment Rescheduled - ${appointment.counseling_id}`
-        : `Appointment Cancelled - ${appointment.counseling_id}`;
-      
-      const body = action === 'reschedule'
-        ? `Your appointment has been rescheduled to ${rescheduleDate} at ${rescheduleTime}.`
-        : 'Your appointment has been cancelled.';
-
-      await fetch(getApiUrl('/api/integrations/api/email/send/gmail'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipient_email: user?.email,
-          subject,
-          body,
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to send notification email:', error);
-    }
-  };
-
-  const handleCancel = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    setShowCancelModal(true);
-  };
-
-  const handleNoShow = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    setShowNoShowModal(true);
-  };
-
-  const submitCancelRequest = async (reason: string) => {
-    if (!selectedAppointment) return;
-
-    setCancelling(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/cancel`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reason }),
-      });
-
-      if (response.ok) {
-        await sendEmailNotification('cancel', selectedAppointment);
-        setNotificationMessage({ type: 'success', text: 'Appointment cancelled successfully' });
-        setShowCancelModal(false);
-        setSelectedAppointment(null);
-        const token = localStorage.getItem('token');
-        if (token) fetchAppointments(token);
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to cancel appointment');
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error cancelling appointment';
-      setNotificationMessage({ type: 'error', text: message });
-      throw error;
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const submitNoShowRequest = async (reason: string) => {
-    if (!selectedAppointment) return;
-
-    setCancelling(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(getApiUrl(`/api/appointments/${selectedAppointment._id}/mark-no-show`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reason }),
-      });
-
-      if (response.ok) {
-        // Note: 'no-show' isn't a valid notification type for sendEmailNotification
-        // Treating as a cancel notification
-        await sendEmailNotification('cancel', selectedAppointment);
-        setNotificationMessage({ type: 'success', text: 'No show recorded successfully' });
-        setShowNoShowModal(false);
-        setSelectedAppointment(null);
-        const token = localStorage.getItem('token');
-        if (token) fetchAppointments(token);
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to record no show');
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error recording no show';
-      setNotificationMessage({ type: 'error', text: message });
-      throw error;
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const oldHandleCancel = async (appointment: Appointment) => {
-    if (!confirm('Are you sure you want to cancel this appointment?')) {
-      return;
-    }
-
-    setCancelling(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(api(`/api/appointments/${appointment._id}/cancel`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        // Send email notification
-        await sendEmailNotification('cancel', appointment);
-        
-        setNotificationMessage({ type: 'success', text: 'Appointment cancelled and notification sent' });
-        const token = localStorage.getItem('token');
-        if (token) fetchAppointments(token);
-      } else {
-        const error = await response.json();
-        setNotificationMessage({ type: 'error', text: `Error: ${error.error || 'Failed to cancel'}` });
-      }
-    } catch (error) {
-      setNotificationMessage({ type: 'error', text: 'Error cancelling appointment' });
-      console.error(error);
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric',
-        weekday: 'short'
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  // Enhanced filtering and sorting logic
-  const getFilteredAndSortedAppointments = () => {
-    let filtered = appointments;
-
-    // Filter by status
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(apt => 
-        filterStatus === 'upcoming' 
-          ? apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED'
-          : filterStatus === 'past'
-          ? apt.status === 'COMPLETED' || apt.status === 'CANCELLED'
-          : apt.status === filterStatus
-      );
-    }
-
-    // Filter by search term (counselor name, ID, date)
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(apt =>
-        apt.counseling_id?.toLowerCase().includes(search) ||
-        apt.counselor_name?.toLowerCase().includes(search) ||
-        formatDate(apt.appointment_date).toLowerCase().includes(search) ||
-        apt.appointment_time?.toLowerCase().includes(search)
-      );
-    }
-
-    // Sort
-    return filtered.sort((a, b) => {
-      const dateA = new Date(a.appointment_date);
-      const dateB = new Date(b.appointment_date);
-      
-      switch (sortBy) {
-        case 'date-asc':
-          return dateA.getTime() - dateB.getTime();
-        case 'date-desc':
-          return dateB.getTime() - dateA.getTime();
-        case 'status':
-          return a.status.localeCompare(b.status);
-        default:
-          return 0;
-      }
-    });
-  };
-
-  const filteredAppointments = getFilteredAndSortedAppointments();
-  const upcomingAppointments = filteredAppointments.filter(
-    apt => apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED'
-  );
-  const pastAppointments = filteredAppointments.filter(
-    apt => apt.status === 'COMPLETED' || apt.status === 'CANCELLED'
-  );
 
   if (loading) {
     return (
-      <DashboardPageWrapper title="My Appointments" subtitle="Campus Counseling Services">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400"></div>
+      <DashboardPageWrapper title="My Sessions" subtitle="Appointments assigned to you">
+        <div className="flex items-center justify-center h-52 gap-2 text-gray-400">
+          <Loader2 size={18} className="animate-spin" /> Loading…
         </div>
       </DashboardPageWrapper>
     );
   }
 
   return (
-    <DashboardPageWrapper title="My Appointments" subtitle="Manage your counseling sessions">
-      <div className="max-w-4xl mx-auto">
-        {/* Notification Toast */}
-        {notificationMessage && (
-          <div className={`mb-4 p-4 rounded flex items-center justify-between ${
-            notificationMessage.type === 'success' 
-              ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' 
-              : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
-          }`}>
-            <p className={notificationMessage.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}>
-              {notificationMessage.text}
-            </p>
-            <button
-              onClick={() => setNotificationMessage(null)}
-              className="ml-4 flex-shrink-0"
-            >
-              <X size={18} className={notificationMessage.type === 'success' ? 'text-green-600' : 'text-red-600'} />
-            </button>
-          </div>
-        )}
+    <DashboardPageWrapper title="My Sessions" subtitle="Appointments assigned to you">
 
-        {/* ── COUNSELOR: Today's Sessions ── */}
-        {['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP'].includes(user?.role) && (() => {
-          const todayStr = new Date().toDateString();
-          const todaySessions = appointments.filter(a => {
-            if (['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status)) return false;
-            const dt = (a as any).scheduled_start || a.appointment_date;
-            return dt && new Date(dt).toDateString() === todayStr;
-          });
-          if (todaySessions.length === 0) return null;
-          return (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-3">
-                <Video size={16} className="text-green-600 dark:text-green-400" />
-                <h2 className="text-base font-bold text-gray-900 dark:text-white">Today&apos;s Sessions</h2>
-                <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-semibold">{todaySessions.length}</span>
-              </div>
-              <div className="space-y-3">
-                {todaySessions.map(appt => {
-                  const dt = (appt as any).scheduled_start || appt.appointment_date;
-                  const timeLabel = dt ? new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD';
-                  const needsLink = !appt.meeting_link;
-                  return (
-                    <div key={appt._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white text-sm">{(appt as any).student_name || 'Student'}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{timeLabel} · {((appt as any).preferred_method || appt.preferred_platform || 'in-person').replace('_', ' ')}</p>
-                        </div>
-                        <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded font-medium">
-                          {appt.status === 'CHECKED_IN' ? 'Checked In' : 'Confirmed'}
-                        </span>
-                      </div>
-                      {appt.meeting_link ? (
-                        <a href={appt.meeting_link} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 hover:underline mt-1">
-                          <LinkIcon size={12} /> Join Session
-                        </a>
-                      ) : needsLink ? (
-                        <div className="mt-2 flex gap-2">
-                          <input
-                            type="url"
-                            placeholder="Paste Google Meet / Zoom link…"
-                            value={meetLinkMap[appt._id] || ''}
-                            onChange={e => setMeetLinkMap(m => ({ ...m, [appt._id]: e.target.value }))}
-                            className="flex-1 px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"
-                          />
-                          <button
-                            onClick={() => handleSaveMeetingLink(appt._id)}
-                            disabled={savingLinkId === appt._id || !meetLinkMap[appt._id]?.trim()}
-                            className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white font-semibold rounded-lg transition"
-                          >
-                            {savingLinkId === appt._id ? '…' : 'Save & Notify'}
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-              <hr className="my-6 border-gray-200 dark:border-gray-700" />
+      {/* Summary strip */}
+      {dashboard?.summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          {[
+            { label: 'Total', value: dashboard.summary.total_appointments ?? apts.length, cls: 'text-gray-800' },
+            { label: 'Confirmed', value: dashboard.summary.confirmed ?? 0, cls: 'text-[#1a5228]' },
+            { label: 'For Evaluation', value: dashboard.summary.awaiting_evaluation ?? 0, cls: 'text-amber-600' },
+            { label: 'Follow-Up', value: (dashboard.summary.follow_up ?? 0) + (dashboard.summary.referral ?? 0), cls: 'text-indigo-600' },
+          ].map(c => (
+            <div key={c.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
+              <p className="text-xs text-gray-400 mb-1">{c.label}</p>
+              <p className={`text-2xl font-semibold ${c.cls}`}>{c.value}</p>
             </div>
-          );
-        })()}
+          ))}
+        </div>
+      )}
 
-        {/* ── STAFF / ADMIN: Pending Requests Panel ── */}
-        {['STAFF', 'ADMIN'].includes(user?.role) && (
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Pending Appointment Requests</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Assign a counselor and schedule each request below.</p>
-              </div>
-              <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded font-semibold">
-                {pendingAppointments.length} pending
-              </span>
-            </div>
-
-            {pendingAppointments.length === 0 ? (
-              <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-lg text-center text-sm text-gray-500 dark:text-gray-400">
-                No pending requests right now.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingAppointments.map((appt) => (
-                  <div key={appt._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
-                    {/* Student info */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                          {appt.student_name || appt.student_id || 'Student'}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {appt.purpose || appt.appointment_type || '—'} · {appt.preferred_platform || appt.platform || 'in-person'}
-                        </p>
-                        {appt.concern && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">"{appt.concern}"</p>
-                        )}
-                      </div>
-                      <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded font-medium flex-shrink-0 ml-2">
-                        Pending
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                      Preferred: {appt.preferred_date
-                        ? new Date(appt.preferred_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-                        : '—'
-                      } {appt.preferred_time && `at ${appt.preferred_time}`}
-                    </p>
-
-                    {/* Assignment controls */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-                      <select
-                        value={assignCounselorMap[appt._id] || ''}
-                        onChange={e => setAssignCounselorMap(m => ({ ...m, [appt._id]: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
-                      >
-                        <option value="">Select counselor…</option>
-                        {counselors.map(c => (
-                          <option key={c._id} value={c._id}>
-                            {c.first_name} {c.last_name}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="date"
-                        value={assignDateMap[appt._id] || (appt.preferred_date ? appt.preferred_date.split('T')[0] : '')}
-                        onChange={e => setAssignDateMap(m => ({ ...m, [appt._id]: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
-                      />
-                      <input
-                        type="time"
-                        value={assignTimeMap[appt._id] || (appt.preferred_time || '')}
-                        onChange={e => setAssignTimeMap(m => ({ ...m, [appt._id]: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-
-                    <button
-                      onClick={() => handleAssign(appt._id)}
-                      disabled={assigningId === appt._id || !assignCounselorMap[appt._id]}
-                      className={`w-full py-2 rounded text-sm font-semibold transition ${
-                        assigningId === appt._id || !assignCounselorMap[appt._id]
-                          ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                          : 'bg-green-600 hover:bg-green-700 text-white'
-                      }`}
-                    >
-                      {assigningId === appt._id ? 'Assigning…' : 'Assign & Confirm'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <hr className="my-8 border-gray-200 dark:border-gray-700" />
-          </div>
-        )}
-
-        {/* Schedule New Appointment Button */}
-        {user?.role === 'STUDENT' && (
-        <div className="mb-6">
-          <button
-            onClick={() => router.push('/book-appointment')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
-          >
-            <Plus size={20} />
-            Book Appointment
+      {/* Evaluation reminder */}
+      {counts.evaluation > 0 && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
+          <Star size={15} className="text-amber-500 flex-shrink-0" />
+          <span className="text-amber-800 font-medium">
+            {counts.evaluation} session{counts.evaluation > 1 ? 's' : ''} awaiting your decision — set Follow-Up, Referral, or Complete.
+          </span>
+          <button onClick={() => setActiveTab('evaluation')}
+            className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+            View
           </button>
         </div>
-        )}
+      )}
 
-        {/* Search and Filter Controls */}
-        <div className="mb-6 space-y-3">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search size={18} className="absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by ID, counselor name, or date..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-            />
-          </div>
+      {/* Tab + table card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-          {/* Filter and Sort Controls */}
-          <div className="flex gap-3 flex-wrap">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Status</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-              >
-                <option value="all">All Appointments</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="past">Past</option>
-                <option value="SCHEDULED">Scheduled</option>
-                <option value="CONFIRMED">Confirmed</option>
-                <option value="REQUESTED">Pending</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sort By</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-              >
-                <option value="date-asc">Date (Earliest First)</option>
-                <option value="date-desc">Date (Latest First)</option>
-                <option value="status">Status</option>
-              </select>
-            </div>
-
-            {(searchTerm || filterStatus !== 'all' || sortBy !== 'date-asc') && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilterStatus('all');
-                  setSortBy('date-asc');
-                }}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                Clear Filters
+        {/* Tabs */}
+        <div className="flex items-end overflow-x-auto border-b border-gray-200 px-2 pt-2 gap-0.5 scrollbar-hide">
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.key;
+            const cnt = counts[tab.key];
+            const Icon = tab.icon;
+            return (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                className={`flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
+                  isActive ? TAB_ACTIVE[tab.key] : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                }`}>
+                <Icon size={18} className={isActive ? TAB_ICON[tab.key] : 'text-gray-400'} />
+                <span>{tab.label}</span>
+                {cnt > 0 && (
+                  <span className={`absolute -top-1 -right-0.5 text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none ${
+                    isActive ? 'bg-white text-gray-700 ring-1 ring-gray-300' : 'bg-gray-700 text-white'
+                  }`}>
+                    {cnt}
+                  </span>
+                )}
               </button>
-            )}
-          </div>
+            );
+          })}
         </div>
 
-        {/* Upcoming Appointments */}
-        <div className="mb-12">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Upcoming Appointments</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {upcomingAppointments.length === 0 ? 'No appointments scheduled' : `${upcomingAppointments.length} appointment${upcomingAppointments.length !== 1 ? 's' : ''}`}
-            </p>
-          </div>
-
-          {upcomingAppointments.length === 0 ? (
-            <div className="p-8 border border-gray-200 rounded text-center dark:border-gray-700 dark:bg-gray-800">
-              <CalendarIcon size={32} className="mx-auto mb-3 text-gray-400" />
-              <p className="text-gray-600 dark:text-gray-400 mb-1">No upcoming appointments</p>
-              {user?.role === 'STUDENT' && (
-                <>
-                  <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">Book your first appointment to get started</p>
-                  <button
-                    onClick={() => router.push('/book-appointment')}
-                    className="mt-4 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
-                  >
-                    Book Appointment
-                  </button>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {upcomingAppointments.map((appointment) => {
-                const statusInfo = getStatusBadge(appointment.status);
-                return (
-                  <div
-                    key={appointment._id}
-                    className="p-4 border border-gray-200 rounded dark:border-gray-700"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        {['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP'].includes(user?.role) && (appointment as any).student_name && (
-                          <p className="font-semibold text-gray-900 dark:text-white text-sm">{(appointment as any).student_name}</p>
-                        )}
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {formatDate(appointment.appointment_date)}
-                        </p>
-                      </div>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusInfo.bg} ${statusInfo.text}`}>
-                        {statusInfo.label}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      {appointment.appointment_time || 'TBD'} {appointment.counselor_name && user?.role === 'STUDENT' && `• ${appointment.counselor_name}`}
-                    </p>
-                    {appointment.preferred_platform && (
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">
-                        {appointment.preferred_platform?.replace('_', ' ')}
-                      </p>
-                    )}
-                    {appointment.risk_level && user?.role !== 'STUDENT' && (
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
-                        Assessment: {appointment.risk_level}
-                      </p>
-                    )}
-                    {appointment.meeting_link ? (
-                      <p className="text-sm mb-3">
-                        <a
-                          href={appointment.meeting_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Join meeting →
-                        </a>
-                      </p>
-                    ) : ['COUNSELOR','PSYCHOLOGIST','CSC','CSP','STAFF','ADMIN'].includes(user?.role) &&
-                        ['CONFIRMED','CHECKED_IN','MATCHED'].includes(appointment.status) ? (
-                      <div className="flex gap-2 mb-3">
-                        <input
-                          type="url"
-                          placeholder="Paste meeting link…"
-                          value={meetLinkMap[appointment._id] || ''}
-                          onChange={e => setMeetLinkMap(m => ({ ...m, [appointment._id]: e.target.value }))}
-                          className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500 focus:outline-none"
-                        />
-                        <button
-                          onClick={() => handleSaveMeetingLink(appointment._id)}
-                          disabled={savingLinkId === appointment._id || !meetLinkMap[appointment._id]?.trim()}
-                          className="px-2.5 py-1.5 text-xs bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white font-semibold rounded transition"
-                        >
-                          {savingLinkId === appointment._id ? '…' : 'Save & Notify'}
-                        </button>
-                      </div>
-                    ) : null}
-
-                    {appointment.status !== 'CANCELLED' && (
-                      <div className="flex gap-2 pt-2 flex-wrap">
-                        {user?.role === 'STUDENT' && (
-                          <button
-                            onClick={() => handleReschedule(appointment)}
-                            disabled={rescheduling}
-                            className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-900 font-medium rounded text-sm hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
-                          >
-                            Reschedule
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleCancel(appointment)}
-                          disabled={cancelling}
-                          className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-900 font-medium rounded text-sm hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
-                        {['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'STAFF'].includes(user?.role) &&
-                          ['CONFIRMED', 'CHECKED_IN'].includes(appointment.status) && (
-                          <button
-                            onClick={() => handleNoShow(appointment)}
-                            className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 font-medium rounded text-sm hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                          >
-                            No Show
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        {/* Section label */}
+        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            {TABS.find(t => t.key === activeTab)?.label}
+          </p>
         </div>
 
-        {/* Past Appointments Section */}
-        {pastAppointments.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Past Appointments</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{pastAppointments.length} appointment{pastAppointments.length !== 1 ? 's' : ''}</p>
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-44 text-center">
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+              <CalendarDays size={22} className="text-gray-400" />
             </div>
-
-            <div className="space-y-3">
-              {pastAppointments.map((appointment) => {
-                const statusInfo = getStatusBadge(appointment.status);
-                return (
-                  <div
-                    key={appointment._id}
-                    className="p-4 border border-gray-200 rounded dark:border-gray-700 opacity-60"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {formatDate(appointment.appointment_date)}
-                      </p>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusInfo.bg} ${statusInfo.text}`}>
-                        {statusInfo.label}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {appointment.appointment_time || 'TBD'} {appointment.counselor_name && `• ${appointment.counselor_name}`}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+            <p className="text-base font-medium text-gray-600">No records found</p>
+            <p className="text-sm text-gray-400 mt-1">No sessions in this category.</p>
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Student</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Purpose</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Mode</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Risk</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    {canManage && (
+                      <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((apt, i) => {
+                    const cfg = STATUS_BADGE[apt.status] ?? { label: apt.status, cls: 'bg-gray-100 text-gray-600' };
+                    const isEval = apt.status === 'EVALUATION';
+                    const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
+                    const aptId = apt.appointment_id;
+
+                    return (
+                      <tr key={aptId} className={`border-b border-gray-50 transition-colors ${
+                        isEval ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-gray-50/80'
+                      }`}>
+                        <td className="px-5 py-4 text-gray-400 text-sm">{i + 1}.</td>
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-gray-900 text-sm">{apt.student_name}</p>
+                          <p className="text-xs text-gray-400">{apt.student_email}</p>
+                          {apt.student_id_number && <p className="text-xs text-gray-400">{apt.student_id_number}</p>}
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <p className="text-sm text-gray-700">{fmtDate(apt.preferred_date)}</p>
+                          <p className="text-xs text-gray-400">{fmtTime(apt.preferred_date, apt.preferred_time)}</p>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700">{fmtPurpose(apt.purpose)}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">{fmtMethod(apt.method)}</td>
+                        <td className="px-5 py-4">
+                          {apt.risk_level && apt.risk_level !== 'GREEN' ? (
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${RISK_CLS[apt.risk_level] ?? 'bg-gray-100 text-gray-600'}`}>
+                              {apt.risk_level}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-300">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
+                            {cfg.label}
+                          </span>
+                        </td>
+                        {canManage && (
+                          <td className="px-5 py-4 align-top">
+                            <div className="space-y-1.5">
+                              {/* View + Join */}
+                              <div className="flex gap-1">
+                                <button onClick={() => setDetailAppt(apt)} title="View"
+                                  className="p-2 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
+                                  <Eye size={16} />
+                                </button>
+                                {apt.meeting_link && isConfirmed && (
+                                  <a href={apt.meeting_link} target="_blank" rel="noreferrer" title="Join"
+                                    className="p-2 rounded-md hover:bg-green-50 text-green-600 transition">
+                                    <Video size={16} />
+                                  </a>
+                                )}
+                              </div>
+
+                              {/* Session Done — CONFIRMED state */}
+                              {isConfirmed && (
+                                <button
+                                  onClick={() => doAction(aptId, 'set-evaluation')}
+                                  disabled={actioningId === aptId}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
+                                >
+                                  {actioningId === aptId ? <Loader2 size={12} className="animate-spin" /> : <Star size={12} />}
+                                  Session Done
+                                </button>
+                              )}
+
+                              {/* No Show — CONFIRMED state */}
+                              {isConfirmed && (
+                                <button
+                                  onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
+                                  className="flex items-center gap-1 px-2.5 py-1 text-gray-400 hover:text-red-500 text-xs transition"
+                                >
+                                  No Show
+                                </button>
+                              )}
+
+                              {/* EVALUATION state: Follow-Up / Referral / Complete */}
+                              {isEval && (
+                                pendingAction?.aptId === aptId ? (
+                                  <div className="space-y-1 min-w-[180px]">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase">
+                                      {pendingAction.action === 'follow_up' ? 'Follow-Up Notes' : 'Referral Notes'}
+                                    </p>
+                                    <textarea
+                                      rows={2}
+                                      value={pendingAction.notes}
+                                      onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
+                                      placeholder="Optional notes…"
+                                      className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white focus:ring-1 focus:ring-green-500 resize-none"
+                                    />
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => doAction(aptId, pendingAction.action === 'follow_up' ? 'set-follow-up' : 'set-referral', { notes: pendingAction.notes })}
+                                        disabled={actioningId === aptId}
+                                        className="flex-1 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded transition flex items-center justify-center gap-1"
+                                      >
+                                        {actioningId === aptId && <Loader2 size={11} className="animate-spin" />}
+                                        Confirm
+                                      </button>
+                                      <button onClick={() => setPendingAction(null)}
+                                        className="flex-1 py-1.5 border border-gray-200 text-xs text-gray-500 rounded hover:bg-gray-50 transition">
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col gap-1">
+                                    <button
+                                      onClick={() => setPendingAction({ aptId, action: 'follow_up', notes: '' })}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg transition"
+                                    >
+                                      <RefreshCw size={12} /> Follow-Up
+                                    </button>
+                                    <button
+                                      onClick={() => setPendingAction({ aptId, action: 'referral', notes: '' })}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-lg transition"
+                                    >
+                                      <ExternalLink size={12} /> Referral
+                                    </button>
+                                    <button
+                                      onClick={() => doAction(aptId, 'complete')}
+                                      disabled={actioningId === aptId}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition disabled:opacity-50"
+                                    >
+                                      {actioningId === aptId ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
+                                      Complete
+                                    </button>
+                                  </div>
+                                )
+                              )}
+
+                              {/* Action feedback */}
+                              {actionMsg?.id === aptId && !pendingAction && (
+                                <p className={`text-xs ${actionMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
+                                  {actionMsg.text}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
+              <p className="text-xs text-gray-400">Showing {filtered.length} {filtered.length === 1 ? 'record' : 'records'}</p>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Reschedule Modal */}
-      {showRescheduleModal && selectedAppointment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded">
-              <p className="text-xs text-blue-700 dark:text-blue-300">📋 Reschedule requests require counselor approval before changes take effect.</p>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Request Reschedule
-            </h3>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  New Date
-                </label>
-                <input
-                  type="date"
-                  value={rescheduleDate}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Preferred Time
-                </label>
-                <select
-                  value={rescheduleTime}
-                  onChange={(e) => setRescheduleTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="">Select a time...</option>
-                  <option value="9:00">9:00 AM</option>
-                  <option value="10:00">10:00 AM</option>
-                  <option value="11:00">11:00 AM</option>
-                  <option value="12:00">12:00 PM</option>
-                  <option value="13:00">1:00 PM</option>
-                  <option value="14:00">2:00 PM</option>
-                  <option value="15:00">3:00 PM</option>
-                  <option value="16:00">4:00 PM</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Reason <span className="text-xs font-normal text-gray-500">(optional)</span>
-                </label>
-                <textarea
-                  value={rescheduleReason}
-                  onChange={(e) => setRescheduleReason(e.target.value)}
-                  placeholder="Tell us why you want to reschedule (e.g., conflicting class, work obligation)"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowRescheduleModal(false);
-                  setSelectedAppointment(null);
-                  setRescheduleDate('');
-                  setRescheduleTime('');
-                  setRescheduleReason('');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
-              >
-                Cancel
+      {/* ── Detail Modal ──────────────────────────────────────────── */}
+      {detailAppt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-sm text-gray-900">Session Details</h3>
+              <button onClick={() => setDetailAppt(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
               </button>
-              <button
-                onClick={submitReschedule}
-                disabled={rescheduling}
-                className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 dark:bg-gray-700 dark:hover:bg-gray-600"
-              >
-                {rescheduling ? 'Rescheduling...' : 'Confirm'}
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Student</p>
+                  <p className="text-sm font-medium text-gray-800">{detailAppt.student_name}</p>
+                  <p className="text-xs text-gray-400">{detailAppt.student_email}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                  <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium ${(STATUS_BADGE[detailAppt.status] ?? { cls: 'bg-gray-100 text-gray-600' }).cls}`}>
+                    {(STATUS_BADGE[detailAppt.status] ?? { label: detailAppt.status }).label}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Date &amp; Time</p>
+                <p className="text-sm text-gray-800">{fmtDate(detailAppt.preferred_date)} {fmtTime(detailAppt.preferred_date, detailAppt.preferred_time)}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Purpose</p>
+                  <p className="text-sm text-gray-800">{fmtPurpose(detailAppt.purpose)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Mode</p>
+                  <p className="text-sm text-gray-800">{fmtMethod(detailAppt.method)}</p>
+                </div>
+              </div>
+              {detailAppt.concern && (
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Concern</p>
+                  <p className="text-sm text-gray-700">{detailAppt.concern}</p>
+                </div>
+              )}
+              {detailAppt.risk_level && detailAppt.risk_level !== 'GREEN' && (
+                <div className={`rounded-lg px-3 py-2 flex items-center gap-2 ${RISK_CLS[detailAppt.risk_level]}`}>
+                  <AlertCircle size={14} />
+                  <span className="text-xs font-semibold">Risk Level: {detailAppt.risk_level}</span>
+                </div>
+              )}
+              {detailAppt.meeting_link && (
+                <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
+                  <Video size={14} /> Join Session
+                </a>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setDetailAppt(null)}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                Close
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Cancel Modal */}
-      <CancelNoShowModal
-        isOpen={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        onSubmit={submitCancelRequest}
-        appointmentType="cancel"
-        appointmentDate={selectedAppointment ? formatDate(selectedAppointment.appointment_date) : ''}
-        counselorName={selectedAppointment?.counselor_name}
-      />
+      {/* ── No Show Modal ─────────────────────────────────────────── */}
+      {noShowTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-sm text-gray-900">Mark as No Show</h3>
+              <button onClick={() => setNoShowTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-500">
+                Confirm that <strong>{noShowTarget.student_name}</strong> did not attend this session.
+              </p>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Remarks <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <textarea value={noShowReason} onChange={e => setNoShowReason(e.target.value)}
+                  rows={2} placeholder="Any notes about this no-show…"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-red-300 focus:border-red-300 focus:outline-none resize-none" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setNoShowTarget(null)}
+                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  Cancel
+                </button>
+                <button
+                  disabled={submittingNoShow}
+                  onClick={async () => {
+                    setSubmittingNoShow(true);
+                    await doAction(noShowTarget.appointment_id, 'mark-no-show', { reason: noShowReason });
+                    setNoShowTarget(null);
+                    setSubmittingNoShow(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2"
+                >
+                  {submittingNoShow && <Loader2 size={13} className="animate-spin" />}
+                  Confirm No Show
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* No Show Modal */}
-      <CancelNoShowModal
-        isOpen={showNoShowModal}
-        onClose={() => setShowNoShowModal(false)}
-        onSubmit={submitNoShowRequest}
-        appointmentType="no-show"
-        appointmentDate={selectedAppointment ? formatDate(selectedAppointment.appointment_date) : ''}
-        counselorName={selectedAppointment?.counselor_name}
-      />
     </DashboardPageWrapper>
   );
 }

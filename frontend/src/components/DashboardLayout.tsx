@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, Menu, ChevronLeft, Bell, X } from 'lucide-react';
+import { Power, Menu, Bell, X, ChevronRight, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ThemeToggle } from './ThemeToggle';
+import Image from 'next/image';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
 
@@ -27,6 +27,9 @@ interface DashboardLayoutProps {
   onMenuClick?: (id: string) => void;
 }
 
+// Items that show a right chevron (have sub-sections)
+const HAS_CHEVRON = new Set(['profile', 'services', 'cases', 'counseling-cases', 'admin']);
+
 export function DashboardLayout({
   user,
   onLogout,
@@ -37,22 +40,13 @@ export function DashboardLayout({
   activeSection,
   onMenuClick,
 }: DashboardLayoutProps) {
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen]   = useState(false);
   const [reminderCount, setReminderCount] = useState(0);
+  const [lastLogin, setLastLogin]     = useState<string>('');
   const pathname = usePathname();
 
-  useEffect(() => {
-    const saved = localStorage.getItem('sidebarOpen');
-    if (saved !== null) setDesktopCollapsed(!JSON.parse(saved));
-  }, []);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  // Fetch pending reminder count
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -67,176 +61,177 @@ export function DashboardLayout({
         setReminderCount(pending);
       })
       .catch(() => {});
-  }, [pathname]);
 
-  const handleToggleDesktop = () => {
-    const next = !desktopCollapsed;
-    setDesktopCollapsed(next);
-    localStorage.setItem('sidebarOpen', JSON.stringify(!next));
-  };
+    // Last login — store on each visit
+    const stored = localStorage.getItem('last_login_display');
+    if (stored) {
+      setLastLogin(stored);
+    }
+    const now = new Date().toLocaleDateString('en-US', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+    localStorage.setItem('last_login_display', now);
+  }, []);
 
-  const initials = user?.name
-    ? user.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
-    : user?.email?.[0]?.toUpperCase() || 'U';
+  // Full display name — Last name first like UE portal
+  const fullName = (() => {
+    if (!user) return '';
+    const fn = user.first_name || '';
+    const ln = user.last_name  || '';
+    if (fn && ln) return `${ln.toUpperCase()}, ${fn.toUpperCase()}`;
+    return (user.name || user.email || '').toUpperCase();
+  })();
+
+  const idNumber = user?.id_number || user?.student_id || '';
 
   const SidebarContent = () => (
-    <>
+    <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
-        {!desktopCollapsed && (
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">CPS</span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none truncate">CPS System</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Counseling Services</p>
-            </div>
-          </div>
-        )}
-        {/* Desktop collapse toggle */}
-        <button
-          onClick={handleToggleDesktop}
-          className={`hidden lg:flex p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0 ${desktopCollapsed ? 'mx-auto' : ''}`}
-        >
-          {desktopCollapsed ? <Menu size={16} /> : <ChevronLeft size={16} />}
-        </button>
-        {/* Mobile close button */}
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="lg:hidden p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-200 flex-shrink-0">
+        <Image src="/dlsu-seal.svg" alt="DLSU" width={40} height={40} className="flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-[#1a5228] leading-tight">DLSU</p>
+          <p className="text-[10px] text-gray-500 leading-tight">Counseling &amp; Psychology</p>
+        </div>
+        {/* Mobile close */}
+        <button onClick={() => setMobileOpen(false)}
+          className="lg:hidden ml-auto p-1 text-gray-400 hover:text-gray-600">
           <X size={16} />
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2">
+      <nav className="flex-1 overflow-y-auto py-2">
         {menuItems.map((item, index) => {
           const isActive = activeSection && item.id && activeSection === item.id;
           const icon = item.icon || (item.id ? getMenuIcon(item.id) : null);
+          const hasChevron = item.id ? HAS_CHEVRON.has(item.id) : false;
 
           const content = (
-            <div
-              title={desktopCollapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
-                isActive
-                  ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 font-medium'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-              } ${desktopCollapsed ? 'lg:justify-center' : ''}`}
-            >
+            <div className={`flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
+              isActive
+                ? 'text-[#1a5228] font-semibold bg-green-50 border-r-[3px] border-[#1a5228]'
+                : 'text-gray-600 hover:text-[#1a5228] hover:bg-gray-50'
+            }`}>
               {icon && (
-                <span className={`flex-shrink-0 ${isActive ? 'text-green-600 dark:text-green-400' : ''}`}>
+                <span className={`flex-shrink-0 ${isActive ? 'text-[#1a5228]' : 'text-gray-400'}`}>
                   {icon}
                 </span>
               )}
-              <span className={`flex-1 truncate ${desktopCollapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+              <span className="flex-1 truncate">{item.label}</span>
               {item.badge != null && item.badge > 0 && (
-                <span className={`bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium ${desktopCollapsed ? 'lg:hidden' : ''}`}>
+                <span className="bg-[#1a5228] text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
                   {item.badge}
                 </span>
+              )}
+              {hasChevron && !item.badge && (
+                <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
               )}
             </div>
           );
 
           if (item.id && onMenuClick) {
             return (
-              <button key={index} onClick={() => { onMenuClick(item.id!); setMobileOpen(false); }} className="w-full text-left mb-0.5">
+              <button key={index} onClick={() => { onMenuClick(item.id!); setMobileOpen(false); }} className="w-full text-left">
                 {content}
               </button>
             );
           }
           return (
-            <Link key={index} href={item.href || '#'} className="block mb-0.5">
+            <Link key={index} href={item.href || '#'} className="block">
               {content}
             </Link>
           );
         })}
       </nav>
 
-      {/* User + Logout */}
-      <div className="border-t border-gray-200 dark:border-gray-800 p-3 space-y-1 flex-shrink-0">
-        <div className={`flex items-center gap-3 px-2 py-2 rounded-lg ${desktopCollapsed ? 'lg:justify-center' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-            {initials}
-          </div>
-          <div className={`flex-1 min-w-0 ${desktopCollapsed ? 'lg:hidden' : ''}`}>
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.name || user?.email}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate capitalize">{user?.role?.replace(/_/g, ' ').toLowerCase()}</p>
-          </div>
-        </div>
-        <button
-          onClick={onLogout}
-          title={desktopCollapsed ? 'Logout' : undefined}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors ${desktopCollapsed ? 'lg:justify-center' : ''}`}
-        >
-          <LogOut size={16} className="flex-shrink-0" />
-          <span className={desktopCollapsed ? 'lg:hidden' : ''}>Logout</span>
+      {/* Last login + logout */}
+      <div className="border-t border-gray-200 px-5 py-4 flex-shrink-0">
+        {lastLogin && (
+          <p className="text-[11px] text-gray-400 mb-3">
+            Last Login : <span className="font-medium text-gray-500">{lastLogin}</span>
+          </p>
+        )}
+        <button onClick={onLogout}
+          className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 transition-colors">
+          <Power size={15} />
+          <span>Logout</span>
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
+    <div className="min-h-screen bg-[#f4f4f4] flex">
 
       {/* Mobile backdrop */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Sidebar — desktop: always visible, collapsible; mobile: overlay */}
+      {/* Sidebar */}
       <aside className={`
-        fixed left-0 top-0 h-screen z-30 flex flex-col
-        bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
-        transition-all duration-300 ease-in-out
-        w-64
-        ${desktopCollapsed ? 'lg:w-[70px]' : 'lg:w-64'}
+        fixed left-0 top-0 h-screen z-30 w-60
+        bg-white border-r border-gray-200
+        transition-transform duration-300 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <SidebarContent />
       </aside>
 
-      {/* Main content */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ml-0 ${desktopCollapsed ? 'lg:ml-[70px]' : 'lg:ml-64'}`}>
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-60">
 
-        {/* Header */}
-        <header className="sticky top-0 z-20 h-16 flex items-center justify-between px-4 lg:px-6 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 -ml-1 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <Menu size={20} />
-            </button>
-            <div className="min-w-0">
-              <h1 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{title}</h1>
-              {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{subtitle}</p>}
-            </div>
-          </div>
+        {/* Top header */}
+        <header className="sticky top-0 z-20 h-14 flex items-center justify-between px-5 bg-white border-b border-gray-200">
+          {/* Mobile hamburger */}
+          <button onClick={() => setMobileOpen(true)}
+            className="lg:hidden p-2 -ml-1 rounded text-gray-500 hover:bg-gray-100 transition-colors">
+            <Menu size={20} />
+          </button>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
+          {/* Page title — hidden on mobile (shown in content) */}
+          <div className="hidden lg:block" />
+
+          {/* Right: bells + user */}
+          <div className="flex items-center gap-4 ml-auto">
             {/* Notification bell */}
-            <Link
-              href="/reminders"
-              className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <Bell size={18} />
+            <Link href="/reminders" className="relative text-gray-500 hover:text-[#1a5228] transition-colors">
+              <Bell size={20} />
               {reminderCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" />
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-blue-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
+                  {reminderCount}
+                </span>
               )}
             </Link>
+
+            {/* Calendar */}
+            <button className="text-gray-500 hover:text-[#1a5228] transition-colors">
+              <Calendar size={20} />
+            </button>
+
+            {/* User info */}
+            <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
+              <div className="text-right leading-tight">
+                <p className="text-sm font-semibold text-gray-900">{fullName}</p>
+                {idNumber && <p className="text-xs text-gray-500">{idNumber}</p>}
+                {!idNumber && (
+                  <p className="text-xs text-gray-500 capitalize">
+                    {user?.role?.replace(/_/g, ' ').toLowerCase()}
+                  </p>
+                )}
+              </div>
+              <div className="w-8 h-8 rounded-full bg-[#1a5228] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {fullName.charAt(0) || 'U'}
+              </div>
+            </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 bg-gray-50 dark:bg-gray-950">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 p-5 lg:p-8">
+          <div className="max-w-5xl mx-auto">
             {children}
           </div>
         </main>

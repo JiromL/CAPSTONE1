@@ -152,10 +152,10 @@ export default function BookAppointmentPage() {
     setSavingConsent(true);
     setConsentError(null);
     try {
-      const r = await fetch(api('/api/consent/give'), {
+      const r = await fetch(api('/api/consent/submit'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consent_given: true }),
+        body: JSON.stringify({ consent_types: ['counseling_services', 'data_privacy'] }),
       });
       if (r.ok) { setConsentGiven(true); setShowConsent(false); }
       else setConsentError('Failed to record consent. Please try again.');
@@ -237,7 +237,7 @@ export default function BookAppointmentPage() {
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session">
+      <DashboardPageWrapper title="Counselling Sessions" subtitle="Schedule a counseling session">
         <div className="flex items-center justify-center h-48">
           <Loader2 size={24} className="animate-spin text-gray-400" />
         </div>
@@ -248,7 +248,7 @@ export default function BookAppointmentPage() {
   // ── Active appointment gate ────────────────────────────────────────────────
   if (activeAppt) {
     return (
-      <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session">
+      <DashboardPageWrapper title="Counselling Sessions" subtitle="Schedule a counseling session">
         <div className="max-w-lg mx-auto mt-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-xl p-6 text-center">
           <AlertCircle className="w-10 h-10 text-yellow-500 mx-auto mb-3" />
           <h2 className="text-base font-bold text-gray-900 dark:text-white mb-2">You already have an active appointment</h2>
@@ -265,29 +265,28 @@ export default function BookAppointmentPage() {
   // ── Success ────────────────────────────────────────────────────────────────
   if (success) {
     return (
-      <DashboardPageWrapper title="Appointment Requested" subtitle="Your request has been submitted">
-        <div className="max-w-lg mx-auto mt-8">
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-8 text-center">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Request Submitted</h2>
-            {ticketNumber && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                Ticket number: <span className="font-bold text-gray-900 dark:text-white">{ticketNumber}</span>
-              </p>
-            )}
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              By providing your ticket number to your counselor during the counseling session, you are giving your consent.
+      <DashboardPageWrapper title="Counselling Sessions" subtitle="Schedule a counseling session">
+        <div className="max-w-2xl mx-auto">
+          {/* UE portal-style Attention banner */}
+          <div className="bg-[#1a5228] text-white rounded-lg px-6 py-5 mb-6 relative">
+            <button onClick={() => router.push('/my-appointments')} className="absolute top-3 right-4 text-white/70 hover:text-white text-lg leading-none">&times;</button>
+            <p className="text-sm font-bold mb-1">Attention</p>
+            <p className="text-base font-semibold">
+              Successful creation/update for ticket number: {ticketNumber}.
             </p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => router.push('/my-appointments')}
-                className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
-                View My Appointments
-              </button>
-              <button onClick={() => { setSuccess(false); setPurpose('counseling'); setSpecifyOthers(''); setConcern(''); setPlatform('in-person'); setPrefDate(''); setPrefTime(''); setReferralType('self-referred'); setReferredBy(''); }}
-                className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                New Request
-              </button>
-            </div>
+            <p className="text-sm text-green-100 mt-1">
+              By giving your Ticket Number to your Guidance Counselor during counseling session, you are hereby giving your consent.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => router.push('/my-appointments')}
+              className="px-5 py-2 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-medium rounded transition">
+              View My Appointments
+            </button>
+            <button onClick={() => { setSuccess(false); setPurpose('counseling'); setSpecifyOthers(''); setConcern(''); setPlatform('in-person'); setPrefDate(''); setPrefTime(''); setReferralType('self-referred'); setReferredBy(''); }}
+              className="px-5 py-2 border border-gray-300 text-sm text-gray-600 rounded hover:bg-gray-50 transition">
+              New Request
+            </button>
           </div>
         </div>
       </DashboardPageWrapper>
@@ -295,49 +294,57 @@ export default function BookAppointmentPage() {
   }
 
   return (
-    <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session">
+    <DashboardPageWrapper title="Counselling Sessions" subtitle="Schedule a counseling session">
 
       {/* Consent Modal */}
       {showConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-lg w-full p-8">
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="px-8 pt-8 pb-6 text-center border-b border-gray-100">
+              <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-6 h-6 text-[#1a5228]" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Informed Consent</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Please review and acknowledge the following before booking.</p>
+              <h2 className="text-lg font-semibold text-gray-900">Informed Consent</h2>
+              <p className="text-sm text-gray-400 mt-1">Please review and acknowledge before booking.</p>
             </div>
-            <div className="space-y-4 mb-6">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={consentChecks.counseling}
-                  onChange={e => setConsentChecks(c => ({ ...c, counseling: e.target.checked }))}
-                  className="w-4 h-4 mt-0.5 text-green-600 border-gray-300 rounded focus:ring-green-500" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Consent to Counseling &amp; Psychological Services</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    I voluntarily consent to receive counseling and psychological services from DLSU CPS. Sessions are confidential except when required by law or when there is an imminent risk of harm.
-                  </p>
-                </div>
-              </label>
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={consentChecks.privacy}
-                  onChange={e => setConsentChecks(c => ({ ...c, privacy: e.target.checked }))}
-                  className="w-4 h-4 mt-0.5 text-green-600 border-gray-300 rounded focus:ring-green-500" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Data Privacy Consent</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    I consent to the collection and processing of my personal data for counseling purposes in accordance with the Data Privacy Act.
-                  </p>
-                </div>
-              </label>
+            <div className="px-8 py-6 space-y-4">
+              {[
+                {
+                  key: 'counseling' as const,
+                  title: 'Consent to Counseling & Psychological Services',
+                  desc: 'I voluntarily consent to receive counseling and psychological services from DLSU CPS. Sessions are confidential except when required by law or when there is an imminent risk of harm.',
+                },
+                {
+                  key: 'privacy' as const,
+                  title: 'Data Privacy Consent',
+                  desc: 'I consent to the collection and processing of my personal data for counseling purposes in accordance with the Data Privacy Act.',
+                },
+              ].map(item => (
+                <label key={item.key} className="flex items-start gap-3 cursor-pointer group">
+                  <input type="checkbox"
+                    checked={consentChecks[item.key]}
+                    onChange={e => setConsentChecks(c => ({ ...c, [item.key]: e.target.checked }))}
+                    className="w-4 h-4 mt-0.5 accent-[#1a5228] flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 group-hover:text-gray-900">{item.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                </label>
+              ))}
+              {consentError && <p className="text-xs text-red-500">{consentError}</p>}
             </div>
-            {consentError && <p className="text-xs text-red-500 mb-3">{consentError}</p>}
-            <button onClick={handleConsent} disabled={savingConsent || !consentChecks.counseling || !consentChecks.privacy}
-              className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2">
-              {savingConsent && <Loader2 size={14} className="animate-spin" />}
-              I Agree &amp; Continue
-            </button>
+            <div className="px-8 pb-8 flex flex-col gap-2">
+              <button onClick={handleConsent}
+                disabled={savingConsent || !consentChecks.counseling || !consentChecks.privacy}
+                className="w-full py-2.5 bg-[#1a5228] hover:bg-green-800 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition flex items-center justify-center gap-2">
+                {savingConsent && <Loader2 size={14} className="animate-spin" />}
+                I Agree &amp; Continue
+              </button>
+              <button onClick={() => router.replace('/dashboard')}
+                className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition">
+                Cancel — go back to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -346,107 +353,108 @@ export default function BookAppointmentPage() {
 
         {/* Draft banner */}
         {hasDraft && (
-          <div className="mb-4 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg px-4 py-3 text-sm">
-            <span className="text-blue-700 dark:text-blue-300">You have a saved draft loaded.</span>
-            <button onClick={clearDraft} className="text-xs text-red-500 hover:underline">Clear draft</button>
+          <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm">
+            <span className="text-blue-600 font-medium">Saved draft loaded.</span>
+            <button onClick={clearDraft} className="text-xs text-gray-400 hover:text-red-500 transition">Clear</button>
           </div>
         )}
 
         {/* Form card */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
           {/* Card header */}
-          <div className="bg-green-700 px-6 py-4">
-            <h2 className="text-white font-semibold">Create Counseling Request</h2>
-            <p className="text-green-200 text-xs mt-0.5">De La Salle University — CPS</p>
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-800">Create Counseling Request</h2>
+            <p className="text-xs text-gray-400 mt-0.5">De La Salle University — Counseling &amp; Psychology Services</p>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
 
             {/* Counseling ID */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Counseling ID</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Counseling ID</label>
               <input value={user?.id_number || user?.counseling_id || user?.student_id || '—'} readOnly
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default" />
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-400 cursor-default" />
             </div>
 
-            {/* Purpose */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Purpose <span className="text-red-500">*</span>
-              </label>
-              <select value={purpose} onChange={e => setPurpose(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
-                {PURPOSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
+            {/* Purpose + Date/Time row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Purpose <span className="text-red-400 normal-case font-normal">*</span>
+                </label>
+                <select value={purpose} onChange={e => setPurpose(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                  {PURPOSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Date <span className="text-red-400 normal-case font-normal">*</span>
+                  </label>
+                  <input type="date" value={prefDate}
+                    onChange={e => { setPrefDate(e.target.value); setPrefTime(''); }}
+                    min={toDateStr(minDate)} max={toDateStr(maxDate)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Time <span className="text-red-400 normal-case font-normal">*</span>
+                  </label>
+                  <select value={prefTime} onChange={e => setPrefTime(e.target.value)}
+                    disabled={!prefDate}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                    <option value=""></option>
+                    {timeSlots.map(t => <option key={t} value={t}>{fmtSlot(t)}</option>)}
+                  </select>
+                  {!prefDate && <p className="text-[10px] text-gray-400 mt-1">Select a date first</p>}
+                </div>
+              </div>
             </div>
 
             {/* Specify others */}
             {purpose === 'others' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Specify others <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Specify others <span className="text-red-400 normal-case font-normal">*</span>
                 </label>
                 <input value={specifyOthers} onChange={e => setSpecifyOthers(e.target.value)}
                   placeholder="Please specify..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
               </div>
             )}
 
-            {/* Concern */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Concern / Need / Problem <span className="text-red-500">*</span>
-              </label>
-              <textarea value={concern} onChange={e => setConcern(e.target.value)}
-                placeholder="Concern/Need/Problem"
-                rows={4}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none" />
-            </div>
-
-            {/* Date + Time row */}
+            {/* Concern + Platform row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Preferred Counseling Date <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Concern / Need / Problem <span className="text-red-400 normal-case font-normal">*</span>
                 </label>
-                <input type="date" value={prefDate} onChange={e => { setPrefDate(e.target.value); setPrefTime(''); }}
-                  min={toDateStr(minDate)} max={toDateStr(maxDate)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                <textarea value={concern} onChange={e => setConcern(e.target.value)}
+                  placeholder="Describe your concern..."
+                  rows={4}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none resize-none" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Time <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Preferred Platform <span className="text-red-400 normal-case font-normal">*</span>
                 </label>
-                <select value={prefTime} onChange={e => setPrefTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
-                  <option value=""></option>
-                  {timeSlots.map(t => (
-                    <option key={t} value={t}>{fmtSlot(t)}</option>
-                  ))}
+                <select value={platform} onChange={e => setPlatform(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                  {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </div>
             </div>
 
-            {/* Platform */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Preferred Platform <span className="text-red-500">*</span>
-              </label>
-              <select value={platform} onChange={e => setPlatform(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
-                {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-
             {/* Referral */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Referral</label>
-              <div className="flex flex-wrap gap-4">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Referral</label>
+              <div className="flex flex-wrap gap-5">
                 {REFERRAL_OPTS.map(r => (
-                  <label key={r.value} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                  <label key={r.value} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
                     <input type="radio" name="referral" value={r.value} checked={referralType === r.value}
-                      onChange={() => setReferralType(r.value)} className="w-4 h-4 text-green-600" />
+                      onChange={() => setReferralType(r.value)} className="w-4 h-4 accent-[#1a5228]" />
                     {r.label}
                   </label>
                 ))}
@@ -454,29 +462,29 @@ export default function BookAppointmentPage() {
               {referralType === 'referred' && (
                 <input value={referredBy} onChange={e => setReferredBy(e.target.value)}
                   placeholder="Name or organization that referred you"
-                  className="mt-2 w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  className="mt-3 w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
               )}
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg px-4 py-3 text-sm text-red-700 dark:text-red-300">
+              <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
                 <AlertCircle size={15} className="flex-shrink-0 mt-0.5" /> {error}
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-1">
+            <div className="flex gap-2.5 pt-1 border-t border-gray-100">
               <button type="button" onClick={() => router.push('/my-appointments')}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                className="px-4 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
                 Go Back
               </button>
               <button type="button" onClick={saveDraft} disabled={savingDraft}
-                className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-50">
+                className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
                 <Save size={13} />
                 {savingDraft ? 'Saved!' : 'Save as draft'}
               </button>
               <button type="submit" disabled={submitting || consentGiven === false}
-                className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition">
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#1a5228] hover:bg-green-800 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition shadow-sm">
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={13} />}
                 {submitting ? 'Submitting…' : 'Save and Submit'}
               </button>
@@ -485,7 +493,7 @@ export default function BookAppointmentPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
+        <p className="text-center text-xs text-gray-400 mt-4">
           Office hours: {fmtSlot(bookingRules.operating_hours_start)} – {fmtSlot(bookingRules.operating_hours_end)},&nbsp;
           {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_, i) => bookingRules.operating_days.includes(i)).join(' / ')}
         </p>

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogIn, LogOut, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 
 const DLSU_COLLEGES: { abbr: string; name: string; sampleCourses: string[] }[] = [
   { abbr: 'CCS', name: 'College of Computer Studies',       sampleCourses: ['BS Computer Science', 'BS Information Technology', 'BS Information Systems'] },
@@ -23,6 +24,61 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // PERMA / MHBot state (students only)
+  const [permaData, setPermaData]         = useState<any>(null);
+  const [loadingPerma, setLoadingPerma]   = useState(false);
+  const [showMhbotForm, setShowMhbotForm] = useState(false);
+  const [mhbotUser, setMhbotUser]         = useState('');
+  const [mhbotPass, setMhbotPass]         = useState('');
+  const [mhbotShowPw, setMhbotShowPw]     = useState(false);
+  const [mhbotLogging, setMhbotLogging]   = useState(false);
+  const [mhbotError, setMhbotError]       = useState('');
+
+  const cpsToken = () => localStorage.getItem('token') || '';
+
+  async function fetchMyPerma() {
+    setLoadingPerma(true);
+    try {
+      const r = await fetch(api('/api/mhbot/my-perma'), {
+        headers: { Authorization: `Bearer ${cpsToken()}` },
+      });
+      const d = await r.json();
+      // Merge so username set on login isn't lost if DB lookup returns empty
+      setPermaData((prev: any) => ({ ...prev, ...d, mhbot_username: d.mhbot_username || prev?.mhbot_username }));
+    } catch {}
+    finally { setLoadingPerma(false); }
+  }
+
+  async function handleMhbotLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setMhbotLogging(true); setMhbotError('');
+    try {
+      const r = await fetch(api('/api/mhbot/auth/login'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: mhbotUser, password: mhbotPass }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setShowMhbotForm(false);
+        setMhbotUser(''); setMhbotPass('');
+        setPermaData({ connected: true, mhbot_username: d.mhbot_username });
+        fetchMyPerma();
+      } else {
+        setMhbotError(d.error || 'Login failed');
+      }
+    } catch { setMhbotError('Network error'); }
+    finally { setMhbotLogging(false); }
+  }
+
+  async function handleMhbotLogout() {
+    await fetch(api('/api/mhbot/auth/logout'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${cpsToken()}` },
+    });
+    setPermaData(null);
+  }
 
   // Change password modal state
   const [showPwModal, setShowPwModal] = useState(false);
@@ -129,8 +185,8 @@ export default function ProfilePage() {
         setProfile(fresh);
         setFormData(fresh);
         setUserRole(user.role || null);
-        // Keep localStorage in sync
         localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...user }));
+        if (user.role === 'STUDENT') fetchMyPerma();
       })
       .catch(err => console.error('Failed to fetch profile from API:', err));
   }, []);
@@ -426,6 +482,123 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {/* ── PERMA / MHBot (students only) ── */}
+        {userRole === 'STUDENT' && (
+          <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Activity size={15} className="text-green-500" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">My Wellbeing (PERMA)</h3>
+              </div>
+              {permaData?.connected && (
+                <button onClick={handleMhbotLogout}
+                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition">
+                  <LogOut size={12} /> Disconnect
+                </button>
+              )}
+            </div>
+
+            {loadingPerma ? (
+              <div className="flex items-center gap-2 text-gray-400 text-sm py-2">
+                <Loader2 size={14} className="animate-spin" /> Loading…
+              </div>
+            ) : !permaData?.connected ? (
+              /* Not connected */
+              !showMhbotForm ? (
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Connect your MHBot account to see your PERMA wellbeing history here.
+                    {permaData?.expired && <span className="text-orange-500 ml-1">Your previous session expired.</span>}
+                  </p>
+                  <button onClick={() => { setShowMhbotForm(true); setMhbotError(''); }}
+                    className="w-fit flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition">
+                    <LogIn size={13} /> Connect MHBot
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleMhbotLogin} className="space-y-3 max-w-sm">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">MHBot Username</label>
+                    <input type="text" value={mhbotUser} onChange={e => setMhbotUser(e.target.value)} required
+                      placeholder="e.g. ema_lVk"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Password</label>
+                    <div className="relative">
+                      <input type={mhbotShowPw ? 'text' : 'password'} value={mhbotPass} onChange={e => setMhbotPass(e.target.value)} required
+                        placeholder="••••••••"
+                        className="w-full px-3 py-2 pr-9 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                      <button type="button" onClick={() => setMhbotShowPw(p => !p)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+                        {mhbotShowPw ? <EyeOff size={13} /> : <Eye size={13} />}
+                      </button>
+                    </div>
+                  </div>
+                  {mhbotError && <p className="text-xs text-red-500">{mhbotError}</p>}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setShowMhbotForm(false)}
+                      className="px-4 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={mhbotLogging}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition">
+                      {mhbotLogging ? <Loader2 size={12} className="animate-spin" /> : <LogIn size={12} />}
+                      {mhbotLogging ? 'Connecting…' : 'Connect'}
+                    </button>
+                  </div>
+                </form>
+              )
+            ) : (
+              /* Connected — show PERMA history */
+              <div className="space-y-3">
+                {!permaData.latest_label && (!permaData.history || permaData.history.length === 0) ? (
+                  <div className="py-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No PERMA assessments recorded yet.</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Complete a PERMA survey through the MHBot chat to see your wellbeing status here.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Current Status</p>
+                        <PermaBadge label={permaData.latest_label} />
+                      </div>
+                      {permaData.latest_date && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 ml-2">
+                          as of {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+
+                    {permaData.history?.length > 1 && (
+                      <div>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Recent History</p>
+                        <div className="space-y-1.5">
+                          {permaData.history.slice(0, 5).map((entry: any, i: number) => (
+                            <div key={i} className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                              <span className="w-28 shrink-0 text-gray-400">
+                                {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </span>
+                              <PermaBadge label={entry.perma_label} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <p className="text-xs text-gray-400 dark:text-gray-500 pt-1">
+                  Connected as <span className="font-medium">{permaData.mhbot_username || '—'}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded p-6 bg-white dark:bg-gray-800">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Account Settings</h3>

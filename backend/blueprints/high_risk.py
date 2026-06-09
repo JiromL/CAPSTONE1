@@ -693,3 +693,45 @@ def dashboard_user_perma_history(username):
         })
 
     return jsonify(result), 200
+
+
+# ─── NOTIFICATIONS ENDPOINTS ────────────────────────────────────────────────
+
+@high_risk_bp.route('/notifications', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    """Get unread notifications for the current user (crisis alerts, admin terminations)."""
+    user_id = get_jwt_identity()
+    unread_only = request.args.get('unread', 'true').lower() == 'true'
+
+    query = {'target_user_id': user_id}
+    if unread_only:
+        query['read'] = False
+
+    notifs = list(db.db.notifications.find(query).sort('created_at', -1).limit(50))
+    for n in notifs:
+        n['_id'] = str(n['_id'])
+        if 'created_at' in n and hasattr(n['created_at'], 'isoformat'):
+            n['created_at'] = n['created_at'].isoformat()
+
+    return jsonify({'notifications': notifs, 'count': len(notifs)}), 200
+
+
+@high_risk_bp.route('/notifications/mark-read', methods=['POST'])
+@jwt_required()
+def mark_notifications_read():
+    """Mark notifications as read."""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    ids = data.get('ids', [])  # list of notification _id strings; empty = mark all
+
+    from bson import ObjectId as ObjId
+    query = {'target_user_id': user_id}
+    if ids:
+        try:
+            query['_id'] = {'$in': [ObjId(i) for i in ids]}
+        except Exception:
+            return jsonify({'error': 'Invalid notification ids'}), 400
+
+    db.db.notifications.update_many(query, {'$set': {'read': True}})
+    return jsonify({'message': 'Notifications marked as read'}), 200

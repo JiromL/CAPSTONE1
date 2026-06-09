@@ -448,8 +448,121 @@ def submit_intake(intake_id):
     )
     
     audit_log(db.db, 'intake', 'submit', entity_id=intake_id)
-    
+
     return jsonify({'message': 'Intake submitted'}), 200
+
+
+@intake_bp.route('/<intake_id>/triage', methods=['POST'])
+@jwt_required()
+def submit_triage(intake_id):
+    """IC submits PHQ-9 / GAD-7 scores and makes triage decision after conducting the intake session.
+
+    Body:
+      phq9_responses  — list of 9 ints (0-3 each)
+      gad7_responses  — list of 7 ints (0-3 each)
+      risk_override   — optional: 'GREEN' | 'YELLOW' | 'RED' | 'CRITICAL' (IC can override)
+      triage_decision — 'ENDORSE_CC' | 'ENDORSE_CP' | 'CLOSE_AT_INTAKE'
+      endorsement_notes — optional free text
+    """
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)}) if user_id else None
+    if not user or user.get('role') not in ('IC', 'STAFF', 'ADMIN', 'PSYCHOLOGIST', 'DPO'):
+        return jsonify({'error': 'Only Intake Counselors can submit triage.'}), 403
+
+    try:
+        intake = db.db.intakes.find_one({'_id': ObjectId(intake_id)})
+    except Exception:
+        intake = db.db.intakes.find_one({'_id': intake_id})
+    if not intake:
+        return jsonify({'error': 'Intake not found'}), 404
+
+    data = request.get_json() or {}
+    phq9 = data.get('phq9_responses', [])
+    gad7 = data.get('gad7_responses', [])
+    decision = data.get('triage_decision', '')
+    notes = data.get('endorsement_notes', '')
+
+    if not decision:
+        return jsonify({'error': 'triage_decision is required.'}), 400
+    if decision not in ('ENDORSE_CC', 'ENDORSE_CP', 'CLOSE_AT_INTAKE'):
+        return jsonify({'error': 'triage_decision must be ENDORSE_CC, ENDORSE_CP, or CLOSE_AT_INTAKE.'}), 400
+    if phq9 and len(phq9) != 9:
+        return jsonify({'error': 'phq9_responses must have exactly 9 items.'}), 400
+    if gad7 and len(gad7) != 7:
+        return jsonify({'error': 'gad7_responses must have exactly 7 items.'}), 400
+
+    phq9_score = sum(int(x) for x in phq9) if phq9 else None
+    gad7_score = sum(int(x) for x in gad7) if gad7 else None
+
+    # Calculate risk from scores, then allow IC override
+    calculated_risk = get_risk_level(phq9_score=phq9_score, gad7_score=gad7_score)
+    risk_level = data.get('risk_override') or calculated_risk
+
+    now = datetime.utcnow()
+
+    # Update intake document
+    db.db.intakes.update_one(
+        {'_id': intake['_id']},
+        {'$set': {
+            'status': IntakeStatus.COMPLETED.value,
+            'phq9_responses': phq9,
+            'phq9_score': phq9_score,
+            'gad7_responses': gad7,
+            'gad7_score': gad7_score,
+            'calculated_risk': calculated_risk,
+            'risk_level': risk_level,
+            'triage_decision': decision,
+            'endorsement_notes': notes,
+            'triaged_by': user_id,
+            'triaged_at': now,
+            'updated_at': now,
+        }}
+    )
+
+    # Update linked case
+    case_id = intake.get('case_id')
+    if case_id:
+        from models import CaseStatus, TerminationType
+        if decision == 'CLOSE_AT_INTAKE':
+            db.db.cases.update_one(
+                {'_id': case_id},
+                {'$set': {
+                    'status': CaseStatus.CLOSED.value,
+                    'termination_type': TerminationType.CLOSED_AT_INTAKE.value,
+                    'risk_level': risk_level,
+                    'closed_at': now,
+                    'closed_by': user_id,
+                    'closure_notes': notes,
+                    'updated_at': now,
+                }}
+            )
+        else:
+            # ENDORSE_CC or ENDORSE_CP — case becomes active, waiting for counselor assignment
+            endorsed_role = 'COUNSELOR' if decision == 'ENDORSE_CC' else 'PSYCHOLOGIST'
+            db.db.cases.update_one(
+                {'_id': case_id},
+                {'$set': {
+                    'status': CaseStatus.ACTIVE.value,
+                    'risk_level': risk_level,
+                    'endorsed_to_role': endorsed_role,
+                    'endorsed_at': now,
+                    'endorsed_by': user_id,
+                    'endorsement_notes': notes,
+                    'updated_at': now,
+                }}
+            )
+
+    audit_log(db.db, 'intake', 'triage', entity_id=intake_id,
+              new_values={'risk_level': risk_level, 'triage_decision': decision})
+
+    return jsonify({
+        'message': 'Triage submitted.',
+        'phq9_score': phq9_score,
+        'gad7_score': gad7_score,
+        'calculated_risk': calculated_risk,
+        'risk_level': risk_level,
+        'triage_decision': decision,
+    }), 200
 
 
 @intake_bp.route('/<intake_id>', methods=['GET'])

@@ -356,6 +356,23 @@ def update_case(case_id):
         updates['case_status'] = data['status']
     if 'risk_level' in data:
         updates['risk_level'] = data['risk_level']
+        # Crisis notification: if escalated to CRITICAL or RED, alert psychologists immediately
+        new_risk = data['risk_level']
+        old_risk = case.get('risk_level', '')
+        if new_risk in ('CRITICAL', 'RED') and old_risk not in ('CRITICAL', 'RED'):
+            psych_users = list(db.db.users.find({'role': {'$in': ['PSYCHOLOGIST', 'ADMIN']}, 'is_active': {'$ne': False}}, {'_id': 1}))
+            now_ts = datetime.utcnow()
+            student_name = case.get('student_name', 'Unknown student')
+            for pu in psych_users:
+                db.db.notifications.insert_one({
+                    'type': 'CRISIS_ALERT',
+                    'case_id': case_id,
+                    'message': f'Code Red/CRITICAL: {student_name} — immediate clinical review required.',
+                    'risk_level': new_risk,
+                    'target_user_id': str(pu['_id']),
+                    'read': False,
+                    'created_at': now_ts,
+                })
     if 'presenting_issue' in data:
         updates['presenting_issue'] = data['presenting_issue']
     if 'target_sessions' in data:

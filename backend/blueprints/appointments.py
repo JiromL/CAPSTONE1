@@ -6,7 +6,7 @@ Blueprint for appointment booking with real-time availability and automated conf
 from flask import Blueprint, request, jsonify, redirect, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
-from models import db, AppointmentStatus, PermissionType
+from models import db, AppointmentStatus, PermissionType, CaseStatus, TerminationType
 from utils import audit_log, user_has_permission
 from datetime import datetime, timedelta
 import os
@@ -424,45 +424,43 @@ def get_my_appointments():
 @appointments_bp.route('/active', methods=['GET'])
 @jwt_required()
 def check_active_appointment():
-    """Check if student has an active (unfinished) appointment
-    
-    Returns information about any active appointment that prevents new bookings.
-    Students can only have ONE active appointment at a time.
-    
-    Active statuses: REQUESTED, PENDING_APPROVAL, APPROVED, MATCHED, CONFIRMED
-    Inactive statuses: COMPLETED, CANCELLED, NO_SHOW
+    """Check if student has an active appointment AND whether they are eligible to self-book.
+
+    Eligibility rules:
+      - Student must have an ACTIVE case with an assigned counselor (returning client).
+      - OR student has NO case at all AND no prior appointments (truly first-time — redirect to walk-in).
+      - A student whose case is NEW or INTAKE_SCHEDULED must wait for the IC to complete intake
+        before they can book continuing sessions.
     """
     user_id = get_jwt_identity()
-    
+
     try:
         user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
         user = db.db.users.find_one({"_id": user_id_obj})
     except Exception as e:
         return jsonify({'error': f'Invalid user ID: {str(e)}'}), 400
-    
+
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    
+
     try:
-        # Check for active appointment - active statuses only
+        # ── 1. Active appointment check ────────────────────────────────────
         active_appointment = db.db.appointments.find_one({
             "student_id": user_id_obj,
             "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
-            # Also check if appointment is in the future (or no scheduled time yet)
             "$or": [
-                {"scheduled_start": {"$exists": False}},  # No scheduled time yet
-                {"scheduled_start": {"$gt": datetime.utcnow()}}  # Scheduled time is in the future
+                {"scheduled_start": {"$exists": False}},
+                {"scheduled_start": {"$gt": datetime.utcnow()}}
             ]
         })
-        
+
         if active_appointment:
-            # Convert ObjectId to string
             appointment_time = None
             if active_appointment.get('scheduled_start'):
                 appointment_time = active_appointment['scheduled_start'].isoformat()
             elif active_appointment.get('requested_start'):
                 appointment_time = active_appointment['requested_start'].isoformat()
-            
+
             return jsonify({
                 'has_active_appointment': True,
                 'appointment_id': str(active_appointment['_id']),
@@ -470,14 +468,76 @@ def check_active_appointment():
                 'appointment_time': appointment_time,
                 'appointment_type': active_appointment.get('appointment_type', 'unknown'),
                 'counselor_id': str(active_appointment.get('counselor_id', '')) if active_appointment.get('counselor_id') else None,
-                'message': 'You already have an active appointment. Please complete or cancel it before booking a new one.'
+                'message': 'You already have an active appointment. Please complete or cancel it before booking a new one.',
+                'can_self_book': False,
+                'booking_gate': 'has_active_appointment',
             }), 200
-        else:
+
+        # ── 2. Case eligibility check ──────────────────────────────────────
+        # Find the student's most recent non-cancelled case
+        student_case = db.db.cases.find_one(
+            {"student_id": user_id_obj, "status": {"$nin": ["CANCELLED"]}},
+            sort=[("created_at", -1)]
+        )
+
+        if not student_case:
+            # First-time student — allow them to book an intake interview appointment
             return jsonify({
                 'has_active_appointment': False,
-                'message': 'No active appointment'
+                'can_self_book': True,
+                'booking_gate': 'eligible',
+                'message': 'Welcome! Please book an Intake Interview as your first appointment.',
             }), 200
-        
+
+        case_status = student_case.get('status', '')
+        assigned_counselor = student_case.get('assigned_counselor_id')
+
+        if case_status in ('NEW', 'INTAKE_SCHEDULED'):
+            return jsonify({
+                'has_active_appointment': False,
+                'can_self_book': False,
+                'booking_gate': 'awaiting_intake',
+                'message': 'Your intake appointment has not been completed yet. Please attend your scheduled intake session first.',
+            }), 200
+
+        if case_status == 'PENDING_TERMINATION':
+            return jsonify({
+                'has_active_appointment': False,
+                'can_self_book': False,
+                'booking_gate': 'pending_termination',
+                'message': 'Your case is currently pending closure. Please contact the CPS office.',
+            }), 200
+
+        if case_status == 'CLOSED':
+            # Returning client whose case was closed — they can open a new one via walk-in
+            return jsonify({
+                'has_active_appointment': False,
+                'can_self_book': False,
+                'booking_gate': 'case_closed',
+                'message': 'Your previous case is closed. If you need further support, please visit the CPS office to start a new intake.',
+            }), 200
+
+        # ACTIVE case with assigned counselor — eligible for self-booking
+        counselor_name = None
+        if assigned_counselor:
+            try:
+                c = db.db.users.find_one({"_id": ObjectId(str(assigned_counselor))})
+                if c:
+                    counselor_name = f"{c.get('first_name','')} {c.get('last_name','')}".strip()
+            except Exception:
+                pass
+
+        return jsonify({
+            'has_active_appointment': False,
+            'can_self_book': True,
+            'booking_gate': 'eligible',
+            'case_id': str(student_case['_id']),
+            'case_status': case_status,
+            'assigned_counselor_id': str(assigned_counselor) if assigned_counselor else None,
+            'assigned_counselor_name': counselor_name,
+            'message': 'No active appointment',
+        }), 200
+
     except Exception as e:
         import traceback
         print(f"Error checking active appointment: {str(e)}")
@@ -881,6 +941,8 @@ def match_counselor(appointment_id):
             update_fields["scheduled_start"] = scheduled_start
         if scheduled_end:
             update_fields["scheduled_end"] = scheduled_end
+        if data.get('office'):
+            update_fields["office"] = data['office'].strip()
         if meeting_link:
             update_fields["meeting_link"] = meeting_link
             update_fields["meeting_id"] = meeting_id_str
@@ -1439,57 +1501,81 @@ def mark_no_show(appointment_id):
     
     if not appointment:
         return jsonify({'error': 'Appointment not found'}), 404
-    
+
+    now = datetime.utcnow()
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
-        {"$set": {
-            "status": AppointmentStatus.NO_SHOW.value,
-            "updated_at": datetime.utcnow()
-        }}
+        {"$set": {"status": AppointmentStatus.NO_SHOW.value, "updated_at": now}}
     )
-    
-    # Track missed appointment (case-level)
-    tracker = db.db.missed_appointment_tracker.find_one({"case_id": appointment.get('case_id')})
 
-    if tracker:
-        db.db.missed_appointment_tracker.update_one(
-            {"_id": tracker['_id']},
-            {"$inc": {"no_show_count": 1}}
-        )
-        no_show_count = tracker['no_show_count'] + 1
-    else:
-        doc = {
-            "case_id": appointment.get('case_id'),
-            "appointment_id": appointment['_id'],
-            "no_show_count": 1,
-            "created_at": datetime.utcnow()
-        }
-        db.db.missed_appointment_tracker.insert_one(doc)
-        no_show_count = 1
+    # ── Consecutive no-show tracking per case ──────────────────────────────
+    case_id = appointment.get('case_id')
+    consecutive = 0
+    auto_terminated = False
 
-    # Track no-show on user record
+    if case_id:
+        tracker = db.db.missed_appointment_tracker.find_one({"case_id": case_id})
+        if tracker:
+            consecutive = tracker.get('consecutive_no_shows', 0) + 1
+            db.db.missed_appointment_tracker.update_one(
+                {"_id": tracker['_id']},
+                {"$inc": {"no_show_count": 1, "consecutive_no_shows": 1},
+                 "$set": {"last_no_show_at": now}}
+            )
+        else:
+            consecutive = 1
+            db.db.missed_appointment_tracker.insert_one({
+                "case_id": case_id,
+                "appointment_id": appointment['_id'],
+                "no_show_count": 1,
+                "consecutive_no_shows": 1,
+                "last_no_show_at": now,
+                "created_at": now,
+            })
+
+        # After 3 consecutive no-shows → administrative termination (per CPS flowchart)
+        if consecutive >= 3:
+            auto_terminated = True
+            try:
+                db.db.cases.update_one(
+                    {'_id': ObjectId(str(case_id))},
+                    {'$set': {
+                        'status': CaseStatus.PENDING_TERMINATION.value,
+                        'termination_type': TerminationType.ADMINISTRATIVE.value,
+                        'termination_reason': '3 consecutive no-shows. Administrative termination per CPS protocol.',
+                        'admin_termination_flagged_at': now,
+                        'updated_at': now,
+                    }}
+                )
+                db.db.notifications.insert_one({
+                    'type': 'ADMIN_TERMINATION',
+                    'case_id': case_id,
+                    'appointment_id': str(appointment['_id']),
+                    'message': '3 consecutive no-shows recorded. Case flagged for administrative termination.',
+                    'target_user_id': appointment.get('assigned_counselor_id'),
+                    'read': False,
+                    'created_at': now,
+                })
+            except Exception:
+                pass
+
+    # Track total no-show count on student record
     student_id = appointment.get('student_id')
     if student_id:
-        db.db.users.update_one(
-            {'_id': student_id},
-            {'$inc': {'no_show_count': 1}}
-        )
+        db.db.users.update_one({'_id': student_id}, {'$inc': {'no_show_count': 1}})
         updated_student = db.db.users.find_one({'_id': student_id})
         if updated_student and updated_student.get('no_show_count', 0) >= _cfg('NO_SHOW_THRESHOLD', 3):
-            db.db.users.update_one(
-                {'_id': student_id},
-                {'$set': {'no_show_flagged': True}}
-            )
+            db.db.users.update_one({'_id': student_id}, {'$set': {'no_show_flagged': True}})
 
-    audit_log(db.db, 'appointment', 'mark_no_show', entity_id=str(appointment['_id']), new_values={
-        'status': AppointmentStatus.NO_SHOW.value,
-        'no_show_count': no_show_count
-    })
+    audit_log(db.db, 'appointment', 'mark_no_show', entity_id=str(appointment['_id']),
+              new_values={'status': AppointmentStatus.NO_SHOW.value, 'consecutive_no_shows': consecutive})
 
     return jsonify({
         'message': 'Appointment marked as no-show',
         'appointment_id': str(appointment['_id']),
-        'no_show_count': no_show_count
+        'consecutive_no_shows': consecutive,
+        'auto_terminated': auto_terminated,
+        'warning': '3 consecutive no-shows — case flagged for administrative termination.' if auto_terminated else None,
     }), 200
 
 
@@ -1551,21 +1637,37 @@ def set_evaluation(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
 
     allowed = {AppointmentStatus.CONFIRMED.value, AppointmentStatus.APPROVED.value,
-               AppointmentStatus.MATCHED.value, AppointmentStatus.CHECKED_IN.value}
+               AppointmentStatus.MATCHED.value}
     if apt.get('status') not in allowed:
         return jsonify({'error': f"Cannot move to evaluation from status {apt.get('status')}"}), 400
 
+    now = datetime.utcnow()
     db.db.appointments.update_one(
         {'_id': apt['_id']},
-        {'$set': {'status': AppointmentStatus.EVALUATION.value, 'updated_at': datetime.utcnow()}}
+        {'$set': {'status': AppointmentStatus.EVALUATION.value, 'updated_at': now}}
     )
+
+    # Reset consecutive no-show counter — student attended
+    case_id = apt.get('case_id')
+    if case_id:
+        db.db.missed_appointment_tracker.update_one(
+            {"case_id": case_id},
+            {"$set": {"consecutive_no_shows": 0, "last_attended_at": now}},
+            upsert=False
+        )
+
     return jsonify({'message': 'Moved to evaluation', 'status': AppointmentStatus.EVALUATION.value}), 200
 
 
 @appointments_bp.route('/<appointment_id>/set-follow-up', methods=['POST'])
 @jwt_required()
 def set_follow_up(appointment_id):
-    """Staff: schedule a follow-up session after evaluation."""
+    """Counselor/staff: schedule a follow-up session.
+
+    Creates a new CONFIRMED appointment linked to the same case and student,
+    pre-assigned to the same counselor. Requires scheduled_start (ISO string).
+    Also marks the current appointment as FOLLOW_UP so the record is clear.
+    """
     user_id = get_jwt_identity()
     if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
@@ -1580,12 +1682,62 @@ def set_follow_up(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
 
     data = request.get_json() or {}
-    update = {'status': AppointmentStatus.FOLLOW_UP.value, 'updated_at': datetime.utcnow()}
-    if data.get('notes'):
-        update['follow_up_notes'] = data['notes']
 
-    db.db.appointments.update_one({'_id': apt['_id']}, {'$set': update})
-    return jsonify({'message': 'Marked for follow-up', 'status': AppointmentStatus.FOLLOW_UP.value}), 200
+    if not data.get('scheduled_start'):
+        return jsonify({'error': 'scheduled_start is required to schedule a follow-up.'}), 400
+
+    try:
+        sched_start = datetime.fromisoformat(data['scheduled_start'].replace('Z', '+00:00')).replace(tzinfo=None)
+        sched_end = sched_start + timedelta(minutes=60)
+    except Exception:
+        return jsonify({'error': 'Invalid scheduled_start format. Use ISO 8601.'}), 400
+
+    now = datetime.utcnow()
+
+    # Mark the current appointment as FOLLOW_UP (records that a follow-up was scheduled)
+    db.db.appointments.update_one(
+        {'_id': apt['_id']},
+        {'$set': {'status': AppointmentStatus.FOLLOW_UP.value, 'updated_at': now,
+                  'follow_up_notes': data.get('notes', '')}}
+    )
+
+    # Generate counseling_id for new appointment
+    import random, string
+    new_counseling_id = 'FU-' + ''.join(random.choices(string.digits, k=6))
+
+    # Build new follow-up appointment (same case, student, counselor)
+    new_apt = {
+        'counseling_id': new_counseling_id,
+        'case_id': apt.get('case_id'),
+        'student_id': apt.get('student_id'),
+        'student_name': apt.get('student_name', ''),
+        'student_email': apt.get('student_email', ''),
+        'counselor_id': apt.get('counselor_id'),
+        'counselor_name': apt.get('counselor_name', ''),
+        'status': AppointmentStatus.CONFIRMED.value,
+        'purpose': 'follow_up_counselling',
+        'concern': data.get('notes', apt.get('concern', '')),
+        'preferred_method': apt.get('preferred_method', 'in-person'),
+        'method': apt.get('preferred_method', 'in-person'),
+        'office': data.get('office', apt.get('office', '')),
+        'scheduled_start': sched_start,
+        'scheduled_end': sched_end,
+        'is_follow_up': True,
+        'parent_appointment_id': apt['_id'],
+        'created_at': now,
+        'updated_at': now,
+        'confirmation_sent': True,
+    }
+    result = db.db.appointments.insert_one(new_apt)
+    new_apt_id = str(result.inserted_id)
+
+    return jsonify({
+        'message': 'Follow-up session scheduled.',
+        'new_appointment_id': new_apt_id,
+        'new_counseling_id': new_counseling_id,
+        'scheduled_start': sched_start.isoformat(),
+        'status': AppointmentStatus.CONFIRMED.value,
+    }), 200
 
 
 @appointments_bp.route('/<appointment_id>/set-referral', methods=['POST'])
@@ -2701,12 +2853,23 @@ def reschedule_appointment(appointment_id):
     except:
         user_id_obj = user_id
     
-    student_id = appointment.get('student_id')
+    student_id  = appointment.get('student_id')
     counselor_id = appointment.get('counselor_id')
-    
-    # Only student can request reschedule
-    if str(user_id_obj) != str(student_id):
-        return jsonify({'error': 'Only students can request reschedule changes'}), 403
+
+    user = db.db.users.find_one({"_id": user_id_obj})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    role = user.get('role', '')
+
+    is_student   = str(user_id_obj) == str(student_id)
+    is_counselor = role in ('ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC') and (
+        role in ('ADMIN', 'STAFF') or str(user_id_obj) == str(counselor_id)
+    )
+
+    if not is_student and not is_counselor:
+        return jsonify({'error': 'You do not have permission to reschedule this appointment'}), 403
+
+    reschedule_requested_by_role = role if not is_student else 'STUDENT'
     
     # Can't reschedule completed or cancelled appointments
     current_status = appointment.get('status', '').upper()
@@ -2762,6 +2925,7 @@ def reschedule_appointment(appointment_id):
                     "rescheduled_at": datetime.utcnow(),
                     "reschedule_reason": reason,
                     "rescheduled_by_user_id": user_id_obj,
+                    "reschedule_requested_by_role": reschedule_requested_by_role,
                 },
                 "$inc": {"reschedule_count": 1}
             }
@@ -2876,8 +3040,11 @@ def approve_reschedule_request(request_id):
     """Approve a reschedule request — moves requested time to scheduled time"""
     user_id = get_jwt_identity()
     user = db.db.users.find_one({"_id": ObjectId(user_id) if isinstance(user_id, str) else user_id})
-    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+    if not user:
         return jsonify({'error': 'Access denied'}), 403
+    role = user.get('role', '')
+    is_staff_side = role in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']
+    is_student = role == 'STUDENT'
 
     try:
         apt_id = ObjectId(request_id)
@@ -2887,6 +3054,11 @@ def approve_reschedule_request(request_id):
     apt = db.db.appointments.find_one({"_id": apt_id})
     if not apt:
         return jsonify({'error': 'Appointment not found'}), 404
+
+    initiated_by = apt.get('reschedule_requested_by_role', 'STUDENT')
+    student_approving = is_student and initiated_by != 'STUDENT' and str(user.get('_id')) == str(apt.get('student_id'))
+    if not is_staff_side and not student_approving:
+        return jsonify({'error': 'Access denied'}), 403
 
     new_start = apt.get('reschedule_requested_start') or apt.get('requested_start')
     new_end = apt.get('reschedule_requested_end') or apt.get('requested_end')
@@ -2920,8 +3092,11 @@ def deny_reschedule_request(request_id):
     """Deny a reschedule request"""
     user_id = get_jwt_identity()
     user = db.db.users.find_one({"_id": ObjectId(user_id) if isinstance(user_id, str) else user_id})
-    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+    if not user:
         return jsonify({'error': 'Access denied'}), 403
+    role = user.get('role', '')
+    is_staff_side = role in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']
+    is_student = role == 'STUDENT'
 
     try:
         apt_id = ObjectId(request_id)
@@ -2931,6 +3106,11 @@ def deny_reschedule_request(request_id):
     apt = db.db.appointments.find_one({"_id": apt_id})
     if not apt:
         return jsonify({'error': 'Appointment not found'}), 404
+
+    initiated_by = apt.get('reschedule_requested_by_role', 'STUDENT')
+    student_denying = is_student and initiated_by != 'STUDENT' and str(user.get('_id')) == str(apt.get('student_id'))
+    if not is_staff_side and not student_denying:
+        return jsonify({'error': 'Access denied'}), 403
 
     db.db.appointments.update_one(
         {"_id": apt_id},
@@ -3148,3 +3328,175 @@ def set_meeting_link(appointment_id):
 
     audit_log(db.db, 'appointment', 'set_meeting_link', entity_id=appointment_id)
     return jsonify({'message': 'Meeting link updated', 'meeting_link': meeting_link}), 200
+
+# ─── FLOWCHART-ALIGNED ENDPOINTS ───────────────────────────────────────────
+
+@appointments_bp.route('/<appointment_id>/close-at-intake', methods=['POST'])
+@jwt_required()
+def close_at_intake(appointment_id):
+    """IC closes a case at intake — student does not need continuing sessions."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
+        return jsonify({'error': 'Only Intake Counselors or Staff can close at intake'}), 403
+
+    data = request.get_json() or {}
+    reason = data.get('reason', '').strip()
+
+    try:
+        apt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    allowed = {
+        AppointmentStatus.CONFIRMED.value,
+        AppointmentStatus.APPROVED.value,
+        AppointmentStatus.MATCHED.value,
+        AppointmentStatus.EVALUATION.value,
+    }
+    if apt.get('status') not in allowed:
+        return jsonify({'error': f"Cannot close at intake from status '{apt.get('status')}'"}), 400
+
+    now = datetime.utcnow()
+
+    # Close the appointment
+    db.db.appointments.update_one(
+        {'_id': apt['_id']},
+        {'$set': {
+            'status': AppointmentStatus.CLOSED_AT_INTAKE.value,
+            'closed_at_intake_reason': reason,
+            'closed_at_intake_by': user_id,
+            'closed_at_intake_at': now,
+            'updated_at': now,
+        }}
+    )
+
+    # Close the linked case if it exists
+    case_id = apt.get('case_id')
+    if case_id:
+        try:
+            db.db.cases.update_one(
+                {'_id': ObjectId(str(case_id))},
+                {'$set': {
+                    'status': CaseStatus.CLOSED.value,
+                    'termination_type': TerminationType.CLOSED_AT_INTAKE.value,
+                    'termination_reason': reason or 'No continuing sessions required after intake.',
+                    'terminated_by': user_id,
+                    'terminated_at': now,
+                    'updated_at': now,
+                }}
+            )
+        except Exception:
+            pass
+
+    audit_log(db.db, 'appointment', 'close_at_intake', entity_id=appointment_id,
+              new_values={'reason': reason, 'closed_by': user_id})
+
+    return jsonify({
+        'message': 'Case closed at intake successfully.',
+        'appointment_id': appointment_id,
+        'status': AppointmentStatus.CLOSED_AT_INTAKE.value,
+    }), 200
+
+
+@appointments_bp.route('/<appointment_id>/acknowledge-session', methods=['POST'])
+@jwt_required()
+def acknowledge_session(appointment_id):
+    """CC/CP acknowledges receipt of an endorsed case within 24 hours."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    now = datetime.utcnow()
+    db.db.appointments.update_one(
+        {'_id': apt['_id']},
+        {'$set': {'endorsed_acknowledged_at': now, 'endorsed_acknowledged_by': user_id, 'updated_at': now}}
+    )
+
+    # Mark on case too
+    case_id = apt.get('case_id')
+    if case_id:
+        try:
+            db.db.cases.update_one(
+                {'_id': ObjectId(str(case_id))},
+                {'$set': {'endorsed_acknowledged_at': now, 'endorsed_acknowledged_by': user_id}}
+            )
+        except Exception:
+            pass
+
+    audit_log(db.db, 'appointment', 'acknowledge_endorsement', entity_id=appointment_id)
+    return jsonify({'message': 'Endorsement acknowledged.', 'acknowledged_at': now.isoformat()}), 200
+
+
+@appointments_bp.route('/<appointment_id>/complete-with-termination', methods=['POST'])
+@jwt_required()
+def complete_with_termination(appointment_id):
+    """Complete an appointment and record a formal termination type (5 pathways)."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    data = request.get_json() or {}
+    termination_type = data.get('termination_type', '').strip()
+    notes = data.get('notes', '').strip()
+
+    valid_types = {t.value for t in TerminationType}
+    if termination_type and termination_type not in valid_types:
+        return jsonify({'error': f'Invalid termination type. Valid: {sorted(valid_types)}'}), 400
+
+    try:
+        apt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    now = datetime.utcnow()
+    db.db.appointments.update_one(
+        {'_id': apt['_id']},
+        {'$set': {
+            'status': AppointmentStatus.COMPLETED.value,
+            'termination_type': termination_type,
+            'termination_notes': notes,
+            'completed_at': now,
+            'updated_at': now,
+        }}
+    )
+
+    # Propagate to case
+    case_id = apt.get('case_id')
+    if case_id:
+        try:
+            db.db.cases.update_one(
+                {'_id': ObjectId(str(case_id))},
+                {'$set': {
+                    'status': CaseStatus.CLOSED.value,
+                    'termination_type': termination_type,
+                    'termination_notes': notes,
+                    'terminated_by': user_id,
+                    'terminated_at': now,
+                    'updated_at': now,
+                }}
+            )
+        except Exception:
+            pass
+
+    audit_log(db.db, 'appointment', 'complete_with_termination', entity_id=appointment_id,
+              new_values={'termination_type': termination_type, 'notes': notes})
+
+    return jsonify({
+        'message': 'Appointment completed and case closed.',
+        'termination_type': termination_type,
+        'status': AppointmentStatus.COMPLETED.value,
+    }), 200

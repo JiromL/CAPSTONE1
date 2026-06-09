@@ -5,6 +5,7 @@ import {
   Clock, CheckCircle, AlertCircle, UserCheck, MessageSquare,
   ChevronDown, ChevronUp, Plus, X, Search, Loader2, RefreshCw,
   ExternalLink, Archive, Star, CalendarDays, Users, Send, Filter,
+  XCircle, ThumbsUp, MapPin, RotateCcw,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 
@@ -23,6 +24,9 @@ interface Appointment {
   method: string;
   created_at: string;
   risk_level?: string;
+  office?: string;
+  reschedule_requested_by_role?: string;
+  reschedule_requested_start?: string;
 }
 
 interface DashboardData {
@@ -134,14 +138,31 @@ export default function AppointmentsDashboard() {
 
   // Assign counselor modal
   const [assignTarget, setAssignTarget] = useState<Appointment | null>(null);
-  const [assignForm, setAssignForm]     = useState({ counselorId: '', date: '', time: '' });
+  const [assignForm, setAssignForm]     = useState({ counselorId: '', date: '', time: '', office: '' });
   const [assigningId, setAssigningId]   = useState<string | null>(null);
   const [assignMsg, setAssignMsg]       = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Session actions
-  const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'follow_up' | 'referral'; notes: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'referral'; notes: string } | null>(null);
   const [actioningId, setActioningId]     = useState<string | null>(null);
   const [actionMsg, setActionMsg]         = useState<{ id: string; type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Follow-up scheduling modal
+  const [followUpTarget, setFollowUpTarget]     = useState<Appointment | null>(null);
+  const [followUpDate, setFollowUpDate]         = useState('');
+  const [followUpTime, setFollowUpTime]         = useState('');
+  const [followUpOffice, setFollowUpOffice]     = useState('');
+  const [followUpNotes, setFollowUpNotes]       = useState('');
+  const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
+  const [followUpMsg, setFollowUpMsg]           = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Counselor-initiated reschedule modal
+  const [reschedTarget, setReschedTarget]   = useState<Appointment | null>(null);
+  const [reschedDate, setReschedDate]       = useState('');
+  const [reschedTime, setReschedTime]       = useState('');
+  const [reschedReason, setReschedReason]   = useState('');
+  const [submittingResched, setSubmittingResched] = useState(false);
+  const [reschedMsg, setReschedMsg]         = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Check-ins expansion
   const [checkinRow, setCheckinRow]     = useState<string | null>(null);
@@ -161,6 +182,18 @@ export default function AppointmentsDashboard() {
   const [schedTime, setSchedTime]                 = useState('');
   const [submittingSchedule, setSubmittingSchedule] = useState(false);
   const [scheduleMsg, setScheduleMsg]             = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Close at intake
+  const [closeIntakeTarget, setCloseIntakeTarget] = useState<Appointment | null>(null);
+  const [closeIntakeReason, setCloseIntakeReason] = useState('');
+  const [closingIntake, setClosingIntake]         = useState(false);
+  const [closeIntakeMsg, setCloseIntakeMsg]       = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Termination modal (complete with type)
+  const [terminationTarget, setTerminationTarget] = useState<Appointment | null>(null);
+  const [terminationType, setTerminationType]     = useState('MUTUAL');
+  const [terminationNotes, setTerminationNotes]   = useState('');
+  const [submittingTermination, setSubmittingTermination] = useState(false);
 
   useEffect(() => { fetchDashboard(); }, []);
 
@@ -203,7 +236,12 @@ export default function AppointmentsDashboard() {
       const r = await fetch(api(`/api/appointments/${assignTarget.appointment_id}/match-counselor`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ counselor_id: assignForm.counselorId, scheduled_start: start.toISOString(), scheduled_end: end.toISOString() }),
+        body: JSON.stringify({
+          counselor_id: assignForm.counselorId,
+          scheduled_start: start.toISOString(),
+          scheduled_end: end.toISOString(),
+          ...(assignForm.office ? { office: assignForm.office } : {}),
+        }),
       });
       if (r.ok) {
         setAssignMsg({ type: 'ok', text: 'Counselor assigned and appointment confirmed.' });
@@ -240,6 +278,96 @@ export default function AppointmentsDashboard() {
         setActionMsg({ id: aptId, type: 'err', text: e.error || 'Action failed.' });
       }
     } finally { setActioningId(null); }
+  };
+
+  const doCloseAtIntake = async () => {
+    if (!closeIntakeTarget) return;
+    setClosingIntake(true);
+    setCloseIntakeMsg(null);
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/appointments/${closeIntakeTarget.appointment_id}/close-at-intake`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: closeIntakeReason }),
+      });
+      if (r.ok) {
+        setCloseIntakeMsg({ type: 'ok', text: 'Case closed at intake successfully.' });
+        setTimeout(() => { setCloseIntakeTarget(null); setCloseIntakeReason(''); fetchDashboard(); }, 1200);
+      } else {
+        const e = await r.json();
+        setCloseIntakeMsg({ type: 'err', text: e.error || 'Failed to close.' });
+      }
+    } finally { setClosingIntake(false); }
+  };
+
+  const doCompleteWithTermination = async () => {
+    if (!terminationTarget) return;
+    setSubmittingTermination(true);
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/appointments/${terminationTarget.appointment_id}/complete-with-termination`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ termination_type: terminationType, notes: terminationNotes }),
+      });
+      if (r.ok) {
+        setTerminationTarget(null);
+        setTerminationType('MUTUAL');
+        setTerminationNotes('');
+        fetchDashboard();
+      } else {
+        const e = await r.json();
+        alert(e.error || 'Failed to complete.');
+      }
+    } finally { setSubmittingTermination(false); }
+  };
+
+  const doFollowUp = async () => {
+    if (!followUpTarget) return;
+    if (!followUpDate || !followUpTime) { setFollowUpMsg({ type: 'err', text: 'Please select a date and time.' }); return; }
+    setSubmittingFollowUp(true);
+    setFollowUpMsg(null);
+    const token = localStorage.getItem('token');
+    try {
+      const start = new Date(`${followUpDate}T${followUpTime}:00`);
+      const r = await fetch(api(`/api/appointments/${followUpTarget.appointment_id}/set-follow-up`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduled_start: start.toISOString(),
+          notes: followUpNotes,
+          ...(followUpOffice ? { office: followUpOffice } : {}),
+        }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setFollowUpMsg({ type: 'ok', text: `Follow-up scheduled (${d.new_counseling_id}).` });
+        setTimeout(() => { setFollowUpTarget(null); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(''); setFollowUpNotes(''); setFollowUpMsg(null); fetchDashboard(); }, 1200);
+      } else {
+        setFollowUpMsg({ type: 'err', text: d.error || 'Failed to schedule follow-up.' });
+      }
+    } finally { setSubmittingFollowUp(false); }
+  };
+
+  const doReschedule = async () => {
+    if (!reschedTarget || !reschedDate || !reschedTime) { setReschedMsg({ type: 'err', text: 'Please select a date and time.' }); return; }
+    setSubmittingResched(true); setReschedMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/${reschedTarget.appointment_id}/reschedule`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requested_start: `${reschedDate}T${reschedTime}:00`, reason: reschedReason }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setReschedMsg({ type: 'ok', text: 'Reschedule request sent to student.' });
+        setTimeout(() => { setReschedTarget(null); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedMsg(null); fetchDashboard(); }, 1200);
+      } else {
+        setReschedMsg({ type: 'err', text: d.error || 'Failed to request reschedule.' });
+      }
+    } finally { setSubmittingResched(false); }
   };
 
   const toggleCheckins = async (aptId: string) => {
@@ -489,6 +617,11 @@ export default function AppointmentsDashboard() {
                             {apt.counselor_name && apt.counselor_name !== 'Not Assigned'
                               ? <span className="text-sm text-gray-700">{apt.counselor_name}</span>
                               : <span className="text-xs text-gray-300 italic">Unassigned</span>}
+                            {apt.office && (
+                              <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-0.5">
+                                <MapPin size={10} /> {apt.office}
+                              </p>
+                            )}
                           </td>
                           <td className="px-5 py-4 align-middle">
                             <p className="text-sm text-gray-700">{fmtPurpose(apt.purpose)}</p>
@@ -540,44 +673,66 @@ export default function AppointmentsDashboard() {
                               <div className="space-y-1.5">
                                 {/* Assign counselor */}
                                 {canAssign && isNew && (
-                                  <button
-                                    onClick={() => {
-                                      setAssignTarget(apt);
-                                      setAssignForm({
-                                        counselorId: '',
-                                        date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '',
-                                        time: apt.preferred_time || '',
-                                      });
-                                      setAssignMsg(null);
-                                    }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition"
-                                    style={{ backgroundColor: '#1a5228' }}
-                                  >
-                                    <UserCheck size={15} /> Assign Counselor
-                                  </button>
+                                  <div className="flex flex-col gap-1">
+                                    <button
+                                      onClick={() => {
+                                        setAssignTarget(apt);
+                                        setAssignForm({
+                                          counselorId: '',
+                                          date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '',
+                                          time: apt.preferred_time || '',
+                                          office: '',
+                                        });
+                                        setAssignMsg(null);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-xs font-semibold text-white rounded-md transition"
+                                      style={{ backgroundColor: '#1a5228' }}
+                                    >
+                                      <UserCheck size={13} /> Assign Counselor
+                                    </button>
+                                    <button
+                                      onClick={() => { setCloseIntakeTarget(apt); setCloseIntakeReason(''); setCloseIntakeMsg(null); }}
+                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 text-xs font-semibold rounded-md transition"
+                                    >
+                                      <XCircle size={13} /> Close at Intake
+                                    </button>
+                                  </div>
                                 )}
 
-                                {/* Session done */}
+                                {/* Session done + Reschedule */}
                                 {isConfirmed && (canAssign || canManage) && (
-                                  <button
-                                    onClick={() => doSessionAction(apt.appointment_id, 'set-evaluation')}
-                                    disabled={actioningId === apt.appointment_id}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
-                                  >
-                                    {actioningId === apt.appointment_id
-                                      ? <Loader2 size={15} className="animate-spin" />
-                                      : <Star size={15} />}
-                                    Session Done
-                                  </button>
+                                  <div className="flex flex-col gap-1">
+                                    <button
+                                      onClick={() => doSessionAction(apt.appointment_id, 'set-evaluation')}
+                                      disabled={actioningId === apt.appointment_id}
+                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition"
+                                    >
+                                      {actioningId === apt.appointment_id
+                                        ? <Loader2 size={11} className="animate-spin" />
+                                        : <Star size={11} />}
+                                      Session Done
+                                    </button>
+                                    <button
+                                      onClick={() => { setReschedTarget(apt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedMsg(null); }}
+                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 border border-sky-200 text-sky-600 hover:bg-sky-50 text-xs font-semibold rounded-md transition"
+                                    >
+                                      <RotateCcw size={11} /> Reschedule
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Awaiting student response on counselor-initiated reschedule */}
+                                {apt.status === 'RESCHEDULE_REQUESTED' && apt.reschedule_requested_by_role && apt.reschedule_requested_by_role !== 'STUDENT' && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-1 rounded-md">
+                                    <Clock size={10} /> Awaiting student
+                                  </span>
                                 )}
 
                                 {/* Evaluation actions */}
                                 {isEval && (canAssign || canManage) && (
                                   pendingAction?.aptId === apt.appointment_id ? (
                                     <div className="space-y-1 min-w-[160px]">
-                                      <p className="text-[10px] font-semibold text-gray-500 uppercase">
-                                        {pendingAction.action === 'follow_up' ? 'Follow-Up Notes' : 'Referral Notes'}
-                                      </p>
+                                      <p className="text-[10px] font-semibold text-gray-500 uppercase">Referral Notes</p>
                                       <textarea
                                         rows={2}
                                         value={pendingAction.notes}
@@ -587,11 +742,7 @@ export default function AppointmentsDashboard() {
                                       />
                                       <div className="flex gap-1">
                                         <button
-                                          onClick={() => doSessionAction(
-                                            apt.appointment_id,
-                                            pendingAction.action === 'follow_up' ? 'set-follow-up' : 'set-referral',
-                                            { notes: pendingAction.notes }
-                                          )}
+                                          onClick={() => doSessionAction(apt.appointment_id, 'set-referral', { notes: pendingAction.notes })}
                                           disabled={actioningId === apt.appointment_id}
                                           className="flex-1 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded transition flex items-center justify-center gap-1"
                                         >
@@ -607,10 +758,10 @@ export default function AppointmentsDashboard() {
                                   ) : (
                                     <div className="flex flex-col gap-1">
                                       <button
-                                        onClick={() => setPendingAction({ aptId: apt.appointment_id, action: 'follow_up', notes: '' })}
+                                        onClick={() => { setFollowUpTarget(apt); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(apt.office || ''); setFollowUpNotes(''); setFollowUpMsg(null); }}
                                         className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg transition"
                                       >
-                                        <RefreshCw size={15} /> Follow-Up
+                                        <RefreshCw size={15} /> Schedule Follow-Up
                                       </button>
                                       <button
                                         onClick={() => setPendingAction({ aptId: apt.appointment_id, action: 'referral', notes: '' })}
@@ -619,14 +770,10 @@ export default function AppointmentsDashboard() {
                                         <ExternalLink size={15} /> Referral
                                       </button>
                                       <button
-                                        onClick={() => doSessionAction(apt.appointment_id, 'complete')}
-                                        disabled={actioningId === apt.appointment_id}
-                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition disabled:opacity-50"
+                                        onClick={() => { setTerminationTarget(apt); setTerminationType('MUTUAL'); setTerminationNotes(''); }}
+                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition"
                                       >
-                                        {actioningId === apt.appointment_id
-                                          ? <Loader2 size={15} className="animate-spin" />
-                                          : <Archive size={15} />}
-                                        Complete
+                                        <Archive size={15} /> Complete & Close
                                       </button>
                                     </div>
                                   )
@@ -759,6 +906,23 @@ export default function AppointmentsDashboard() {
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
                 </div>
               </div>
+
+              {/* Office/Room — only for face-to-face sessions */}
+              {(assignTarget?.method === 'in-person' || assignTarget?.method === 'in_person') && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Office / Room
+                  </label>
+                  <input
+                    type="text"
+                    value={assignForm.office}
+                    onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
+                    placeholder="e.g. Room 203, CPS Office, Bldg. A"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Let the student know where to go for their in-person session.</p>
+                </div>
+              )}
 
               {assignMsg && (
                 <p className={`text-xs px-3 py-2 rounded-lg ${assignMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
@@ -906,6 +1070,203 @@ export default function AppointmentsDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Counselor Reschedule Modal ───────────────────────────────────── */}
+      {reschedTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">Propose New Schedule</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Student: <strong>{reschedTarget.student_name}</strong></p>
+              </div>
+              <button onClick={() => setReschedTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X size={14} /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New Date</label>
+                <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New Time</label>
+                <input type="time" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reason <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
+                  rows={2} placeholder="Why is this session being rescheduled?"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none resize-none" />
+              </div>
+              {reschedMsg && (
+                <p className={`text-xs px-3 py-2 rounded-lg ${reschedMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                  {reschedMsg.text}
+                </p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setReschedTarget(null)}
+                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  Cancel
+                </button>
+                <button onClick={doReschedule} disabled={submittingResched}
+                  className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  {submittingResched && <Loader2 size={13} className="animate-spin" />}
+                  Send to Student
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Follow-Up Scheduling Modal ────────────────────────────────────── */}
+      {followUpTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <RefreshCw size={18} className="text-indigo-500" />
+              <h3 className="font-semibold text-sm text-gray-900">Schedule Follow-Up Session</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Student: <strong>{followUpTarget.student_name}</strong>
+              {followUpTarget.counselor_name && followUpTarget.counselor_name !== 'Not Assigned' && (
+                <> · Counselor: <strong>{followUpTarget.counselor_name}</strong></>
+              )}
+            </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Date *</label>
+                  <input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Time *</label>
+                  <input type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none" />
+                </div>
+              </div>
+              {(followUpTarget.method === 'in-person' || followUpTarget.method === 'in_person') && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Office / Room</label>
+                  <input type="text" value={followUpOffice} onChange={e => setFollowUpOffice(e.target.value)}
+                    placeholder="e.g. Room 203, CPS Office"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none" />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Session Notes (optional)</label>
+                <textarea rows={2} value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)}
+                  placeholder="Continuation goals, topics to cover…"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none resize-none" />
+              </div>
+            </div>
+            {followUpMsg && (
+              <p className={`text-xs mt-3 ${followUpMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{followUpMsg.text}</p>
+            )}
+            <div className="flex gap-2 justify-end mt-4">
+              <button onClick={() => setFollowUpTarget(null)}
+                className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button onClick={doFollowUp} disabled={submittingFollowUp}
+                className="px-4 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
+                {submittingFollowUp ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                Schedule Follow-Up
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Close at Intake Modal ──────────────────────────────────────────── */}
+      {closeIntakeTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <XCircle size={18} className="text-red-500" />
+              <h3 className="font-semibold text-sm text-gray-900">Close at Intake</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-1">Student: <strong>{closeIntakeTarget.student_name}</strong></p>
+            <p className="text-xs text-gray-400 mb-4">
+              This means the student does not need continuing sessions. The case will be closed and documented.
+            </p>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Reason / notes</label>
+            <textarea
+              rows={3}
+              value={closeIntakeReason}
+              onChange={e => setCloseIntakeReason(e.target.value)}
+              placeholder="e.g. Student concern resolved at intake, no further sessions required."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-red-400 resize-none mb-3"
+            />
+            {closeIntakeMsg && (
+              <p className={`text-xs mb-3 ${closeIntakeMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
+                {closeIntakeMsg.text}
+              </p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setCloseIntakeTarget(null)}
+                className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button onClick={doCloseAtIntake} disabled={closingIntake}
+                className="px-4 py-1.5 text-xs bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
+                {closingIntake ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                Confirm Close at Intake
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Complete & Termination Type Modal ─────────────────────────────── */}
+      {terminationTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Archive size={18} className="text-gray-600" />
+              <h3 className="font-semibold text-sm text-gray-900">Complete & Close Case</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Student: <strong>{terminationTarget.student_name}</strong>
+            </p>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Termination Type</label>
+            <select
+              value={terminationType}
+              onChange={e => setTerminationType(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-green-500 mb-3"
+            >
+              <option value="MUTUAL">Mutual — goals met, both agree</option>
+              <option value="CLIENT_INITIATED_PLANNED">Client-Initiated (Planned) — client ready to stop</option>
+              <option value="CLIENT_INITIATED_PREMATURE">Client-Initiated (Premature) — dropout / rupture</option>
+              <option value="COUNSELOR_INITIATED">Counselor-Initiated — ethical necessity / limit of competence</option>
+              <option value="ADMINISTRATIVE">Administrative — 3 no-shows / forced</option>
+              <option value="CLINICAL_REFERRAL">Clinical Referral — warm handoff to external/higher care</option>
+            </select>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Summary notes (optional)</label>
+            <textarea
+              rows={3}
+              value={terminationNotes}
+              onChange={e => setTerminationNotes(e.target.value)}
+              placeholder="Document therapeutic gains, transition plan, or reason for closure…"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-green-500 resize-none mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setTerminationTarget(null)}
+                className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button onClick={doCompleteWithTermination} disabled={submittingTermination}
+                className="px-4 py-1.5 text-xs bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
+                {submittingTermination ? <Loader2 size={12} className="animate-spin" /> : <ThumbsUp size={12} />}
+                Complete & Close Case
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

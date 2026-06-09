@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 import {
   Loader2, Plus, Video, X, RotateCcw, Clock, Eye,
   CheckCircle, CalendarDays, RefreshCw, Trash2, Archive,
-  Star, Users, AlertCircle,
+  Star, Users, AlertCircle, MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,8 +22,12 @@ interface Appointment {
   counselor_name?: string;
   counseling_id?: string;
   meeting_link?: string;
+  office?: string;
   created_at: string;
   evaluation?: object;
+  reschedule_requested_by_role?: string;
+  reschedule_requested_start?: string;
+  reschedule_reason?: string;
 }
 
 const TABS = [
@@ -36,6 +40,7 @@ const TABS = [
   { key: 'referral',    label: 'Referral',    icon: Users },
   { key: 'cancelled',   label: 'Cancelled',   icon: Trash2 },
   { key: 'completed',   label: 'Completed',   icon: Archive },
+  { key: 'archive',     label: 'Archive',     icon: Archive },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -50,6 +55,7 @@ const TAB_ACTIVE_CLS: Record<TabKey, string> = {
   referral:    'bg-purple-50 text-purple-700 border-b-2 border-purple-500',
   cancelled:   'bg-red-50 text-red-600 border-b-2 border-red-500',
   completed:   'bg-gray-100 text-gray-600 border-b-2 border-gray-400',
+  archive:     'bg-slate-100 text-slate-500 border-b-2 border-slate-400',
 };
 
 const TAB_ICON_CLS: Record<TabKey, string> = {
@@ -62,6 +68,7 @@ const TAB_ICON_CLS: Record<TabKey, string> = {
   referral:    'text-purple-600',
   cancelled:   'text-red-500',
   completed:   'text-gray-400',
+  archive:     'text-slate-400',
 };
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
@@ -74,7 +81,18 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
   referral:    ['REFERRAL'],
   cancelled:   ['CANCELLED', 'DENIED', 'NO_SHOW'],
   completed:   ['COMPLETED'],
+  archive:     ['COMPLETED', 'CANCELLED', 'DENIED', 'NO_SHOW', 'REFERRAL'],
 };
+
+const ARCHIVE_STATUSES = new Set(['COMPLETED', 'CANCELLED', 'DENIED', 'NO_SHOW', 'REFERRAL']);
+const ARCHIVE_DAYS = 30;
+
+function isArchived(a: Appointment) {
+  if (!ARCHIVE_STATUSES.has(a.status)) return false;
+  const ref = a.scheduled_start || a.requested_start || a.created_at;
+  if (!ref) return false;
+  return (Date.now() - new Date(ref).getTime()) > ARCHIVE_DAYS * 864e5;
+}
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   REQUESTED:            { label: 'Applied',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
@@ -165,6 +183,7 @@ export default function MyAppointmentsPage() {
   const [reschedReason, setReschedReason] = useState('');
   const [rescheduling, setRescheduling]   = useState(false);
   const [reschedError, setReschedError]   = useState('');
+  const [respondingId, setRespondingId]   = useState<string | null>(null);
 
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
 
@@ -200,7 +219,9 @@ export default function MyAppointmentsPage() {
     ? appointments
     : activeTab === 'evaluation'
       ? appointments.filter(needsEvaluation)
-      : appointments.filter(a => TAB_STATUSES[activeTab].includes(a.status));
+      : activeTab === 'archive'
+        ? appointments.filter(isArchived)
+        : appointments.filter(a => TAB_STATUSES[activeTab].includes(a.status) && !isArchived(a));
 
   const counts = Object.fromEntries(
     TABS.map(t => [
@@ -209,7 +230,9 @@ export default function MyAppointmentsPage() {
         ? appointments.length
         : t.key === 'evaluation'
           ? appointments.filter(needsEvaluation).length
-          : appointments.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
+          : t.key === 'archive'
+            ? appointments.filter(isArchived).length
+            : appointments.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status) && !isArchived(a)).length,
     ])
   ) as Record<TabKey, number>;
 
@@ -241,7 +264,7 @@ export default function MyAppointmentsPage() {
       const r = await fetch(api(`/api/appointments/${reschedTarget._id}/reschedule`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preferred_date: reschedDate, preferred_time: reschedTime, reason: reschedReason }),
+        body: JSON.stringify({ requested_start: `${reschedDate}T${reschedTime}:00`, reason: reschedReason }),
       });
       if (r.ok) {
         setAppointments(prev => prev.map(a => a._id === reschedTarget._id ? { ...a, status: 'RESCHEDULE_REQUESTED' } : a));
@@ -251,6 +274,22 @@ export default function MyAppointmentsPage() {
       }
     } catch { setReschedError('Network error.'); }
     finally { setRescheduling(false); }
+  };
+
+  const handleRespondReschedule = async (appt: Appointment, action: 'approve' | 'deny') => {
+    setRespondingId(appt._id + action);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/reschedule-requests/${appt._id}/${action}`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        const newStatus = action === 'approve' ? 'CONFIRMED' : 'CONFIRMED';
+        setAppointments(prev => prev.map(a => a._id === appt._id ? { ...a, status: newStatus } : a));
+      }
+    } catch { /* silent */ }
+    finally { setRespondingId(null); }
   };
 
   const handleEvalSubmit = async () => {
@@ -408,7 +447,14 @@ export default function MyAppointmentsPage() {
                             {recordId}
                           </button>
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap text-gray-700 text-sm">{fmtDateTime(dt)}</td>
+                        <td className="px-5 py-4 whitespace-nowrap text-gray-700 text-sm">
+                          {fmtDateTime(dt)}
+                          {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_start && (
+                            <p className="text-[10px] text-sky-600 mt-0.5">
+                              → Proposed: {fmtDateTime(appt.reschedule_requested_start)}
+                            </p>
+                          )}
+                        </td>
                         <td className="px-5 py-4 text-gray-700 text-sm">{fmtPurpose(appt.purpose)}</td>
                         <td className="px-5 py-4 text-gray-700 text-sm whitespace-nowrap">{fmtPlatform(appt.preferred_method)}</td>
                         <td className="px-5 py-4 font-mono text-sm text-gray-500">
@@ -437,6 +483,26 @@ export default function MyAppointmentsPage() {
                                 className="p-2 rounded-md hover:bg-green-50 text-green-600 transition">
                                 <Video size={16} />
                               </a>
+                            )}
+                            {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_by_role && appt.reschedule_requested_by_role !== 'STUDENT' && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleRespondReschedule(appt, 'approve')}
+                                  disabled={!!respondingId}
+                                  title="Accept new time"
+                                  className="flex items-center gap-1 px-2 py-1 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition">
+                                  {respondingId === appt._id + 'approve' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleRespondReschedule(appt, 'deny')}
+                                  disabled={!!respondingId}
+                                  title="Decline reschedule"
+                                  className="flex items-center gap-1 px-2 py-1 bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 text-xs font-semibold rounded-md transition">
+                                  {respondingId === appt._id + 'deny' ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
+                                  Decline
+                                </button>
+                              </div>
                             )}
                             {active && !needsEval && appt.status !== 'RESCHEDULE_REQUESTED' && (
                               <button
@@ -520,6 +586,15 @@ export default function MyAppointmentsPage() {
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Concern</p>
                     <p className="text-sm text-gray-700">{detailAppt.concern}</p>
+                  </div>
+                )}
+                {detailAppt.office && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                    <MapPin size={14} className="text-amber-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Office / Room</p>
+                      <p className="text-sm text-amber-900 font-medium">{detailAppt.office}</p>
+                    </div>
                   </div>
                 )}
                 {detailAppt.meeting_link && (

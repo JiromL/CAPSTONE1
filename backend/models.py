@@ -73,6 +73,7 @@ class AppointmentStatus(str, Enum):
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
     NO_SHOW = "NO_SHOW"
+    CLOSED_AT_INTAKE = "CLOSED_AT_INTAKE"   # IC closed case — no continuing sessions needed
 
 
 class ReferralStatus(str, Enum):
@@ -132,6 +133,17 @@ class CaseStatus(str, Enum):
     PENDING_TERMINATION = "PENDING_TERMINATION"  # Client or counselor initiated end
     CLOSED = "CLOSED"                        # Case terminated & documented
     CANCELLED = "CANCELLED"                  # Case never started
+
+
+class TerminationType(str, Enum):
+    """5 pathways of case termination per ACA/APA standards"""
+    MUTUAL = "MUTUAL"                                    # Goals met, both agree
+    CLIENT_INITIATED_PLANNED = "CLIENT_INITIATED_PLANNED"    # Client ready to stop
+    CLIENT_INITIATED_PREMATURE = "CLIENT_INITIATED_PREMATURE"  # Dropout/rupture
+    COUNSELOR_INITIATED = "COUNSELOR_INITIATED"          # Ethical necessity / limit of competence
+    ADMINISTRATIVE = "ADMINISTRATIVE"                    # 3 no-shows / forced
+    CLOSED_AT_INTAKE = "CLOSED_AT_INTAKE"               # No continuing sessions needed after intake
+    CLINICAL_REFERRAL = "CLINICAL_REFERRAL"              # Warm handoff to external/higher care
 
 
 class ResourceUploadRole(str, Enum):
@@ -205,6 +217,7 @@ ROLE_PERMISSIONS = {
         PermissionType.EDIT_CASE,
         PermissionType.VIEW_ASSESSMENT,
         PermissionType.VIEW_NOTES,
+        PermissionType.ASSIGN_CASES,
     },
     UserRole.STAFF: {
         PermissionType.VIEW_CASE,

@@ -7,9 +7,9 @@ import { api } from '@/utils/api';
 import { AlertCircle, CheckCircle, Loader2, Save, Send } from 'lucide-react';
 
 const PURPOSES = [
+  { value: 'intake_interview',       label: 'Intake Interview' },
   { value: 'counseling',             label: 'Counseling' },
   { value: 'follow_up_counselling',  label: 'Follow-up Counseling' },
-  { value: 'intake_interview',       label: 'Intake Interview' },
   { value: 'others',                 label: 'Others' },
 ];
 
@@ -66,8 +66,10 @@ export default function BookAppointmentPage() {
   const [savingConsent, setSavingConsent] = useState(false);
   const [consentError, setConsentError]   = useState<string | null>(null);
 
-  // Active appointment gate
+  // Active appointment / booking gate
   const [activeAppt, setActiveAppt] = useState<any>(null);
+  const [bookingGate, setBookingGate] = useState<string | null>(null); // 'eligible' | 'no_case' | 'awaiting_intake' | 'pending_termination' | 'case_closed' | 'has_active_appointment'
+  const [gateMessage, setGateMessage] = useState<string>('');
 
   // Booking rules
   const [bookingRules, setBookingRules] = useState({
@@ -81,7 +83,7 @@ export default function BookAppointmentPage() {
   });
 
   // Form fields
-  const [purpose, setPurpose]           = useState('counseling');
+  const [purpose, setPurpose]           = useState('intake_interview');
   const [specifyOthers, setSpecifyOthers] = useState('');
   const [concern, setConcern]           = useState('');
   const [platform, setPlatform]         = useState('in-person');
@@ -118,10 +120,15 @@ export default function BookAppointmentPage() {
         }
       } catch {}
 
-      // Active appointment check
+      // Booking gate check (active appointment + case eligibility)
       try {
-        const r = await fetch(api('/api/appointments/check-active'), { headers: { Authorization: `Bearer ${token}` } });
-        if (r.ok) { const d = await r.json(); if (d.has_active_appointment) setActiveAppt(d); }
+        const r = await fetch(api('/api/appointments/active'), { headers: { Authorization: `Bearer ${token}` } });
+        if (r.ok) {
+          const d = await r.json();
+          setBookingGate(d.booking_gate ?? (d.can_self_book ? 'eligible' : 'no_case'));
+          setGateMessage(d.message ?? '');
+          if (d.has_active_appointment) setActiveAppt(d);
+        }
       } catch {}
 
       // Draft check
@@ -245,18 +252,59 @@ export default function BookAppointmentPage() {
     );
   }
 
-  // ── Active appointment gate ────────────────────────────────────────────────
-  if (activeAppt) {
+  // ── Booking gate ───────────────────────────────────────────────────────────
+  const GATE_CONFIGS: Record<string, { icon: string; title: string; color: string; cta?: { label: string; href: string } }> = {
+    has_active_appointment: {
+      icon: '📋',
+      title: 'You already have an active appointment',
+      color: 'bg-yellow-50 border-yellow-300 text-yellow-800',
+      cta: { label: 'View My Appointments', href: '/my-appointments' },
+    },
+    no_case: {
+      icon: '🏥',
+      title: 'Walk-in intake required for first-time clients',
+      color: 'bg-blue-50 border-blue-300 text-blue-800',
+    },
+    awaiting_intake: {
+      icon: '⏳',
+      title: 'Your intake appointment is pending',
+      color: 'bg-amber-50 border-amber-300 text-amber-800',
+      cta: { label: 'View My Appointments', href: '/my-appointments' },
+    },
+    pending_termination: {
+      icon: '⚠️',
+      title: 'Your case is pending closure',
+      color: 'bg-orange-50 border-orange-300 text-orange-800',
+    },
+    case_closed: {
+      icon: '📁',
+      title: 'Your previous case is closed',
+      color: 'bg-gray-50 border-gray-300 text-gray-700',
+    },
+  };
+
+  if (bookingGate && bookingGate !== 'eligible') {
+    const cfg = GATE_CONFIGS[bookingGate] ?? {
+      icon: '🔒', title: 'Booking unavailable', color: 'bg-gray-50 border-gray-300 text-gray-700',
+    };
     return (
       <DashboardPageWrapper title="Counselling Sessions" subtitle="Schedule a counseling session">
-        <div className="max-w-lg mx-auto mt-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-xl p-6 text-center">
-          <AlertCircle className="w-10 h-10 text-yellow-500 mx-auto mb-3" />
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-2">You already have an active appointment</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Please complete or cancel your existing appointment before booking a new one.</p>
-          <button onClick={() => router.push('/my-appointments')}
-            className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
-            View My Appointments
-          </button>
+        <div className={`max-w-lg mx-auto mt-8 border rounded-xl p-6 text-center ${cfg.color}`}>
+          <div className="text-4xl mb-3">{cfg.icon}</div>
+          <h2 className="text-base font-bold mb-2">{cfg.title}</h2>
+          <p className="text-sm opacity-80 mb-5">{gateMessage}</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            {cfg.cta && (
+              <button onClick={() => router.push(cfg.cta!.href)}
+                className="px-5 py-2 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-medium rounded-lg transition">
+                {cfg.cta.label}
+              </button>
+            )}
+            <button onClick={() => router.push('/dashboard')}
+              className="px-5 py-2 border border-current text-sm font-medium rounded-lg hover:opacity-70 transition">
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </DashboardPageWrapper>
     );

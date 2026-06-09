@@ -359,26 +359,24 @@ export default function AppointmentsPage() {
                                 )}
                               </div>
 
-                              {/* Session Done — CONFIRMED state */}
+                              {/* Session Done + No Show — CONFIRMED state */}
                               {isConfirmed && (
-                                <button
-                                  onClick={() => doAction(aptId, 'set-evaluation')}
-                                  disabled={actioningId === aptId}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
-                                >
-                                  {actioningId === aptId ? <Loader2 size={12} className="animate-spin" /> : <Star size={12} />}
-                                  Session Done
-                                </button>
-                              )}
-
-                              {/* No Show — CONFIRMED state */}
-                              {isConfirmed && (
-                                <button
-                                  onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
-                                  className="flex items-center gap-1 px-2.5 py-1 text-gray-400 hover:text-red-500 text-xs transition"
-                                >
-                                  No Show
-                                </button>
+                                <div className="flex flex-col gap-1">
+                                  <button
+                                    onClick={() => doAction(aptId, 'set-evaluation')}
+                                    disabled={actioningId === aptId}
+                                    className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition"
+                                  >
+                                    {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
+                                    Session Done
+                                  </button>
+                                  <button
+                                    onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
+                                    className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 text-xs rounded-md transition"
+                                  >
+                                    No Show
+                                  </button>
+                                </div>
                               )}
 
                               {/* EVALUATION state: Follow-Up / Referral / Complete */}

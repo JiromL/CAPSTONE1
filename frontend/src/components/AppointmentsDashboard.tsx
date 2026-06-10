@@ -5,8 +5,9 @@ import {
   Clock, CheckCircle, AlertCircle, UserCheck, MessageSquare,
   ChevronDown, ChevronUp, Plus, X, Search, Loader2, RefreshCw,
   ExternalLink, Archive, Star, CalendarDays, Users, Send, Filter,
-  XCircle, ThumbsUp, MapPin, RotateCcw,
+  XCircle, ThumbsUp, MapPin, RotateCcw, ClipboardList, Pencil,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/utils/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -40,19 +41,17 @@ interface DashboardData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const TABS = [
-  { key: 'all',        label: 'All' },
   { key: 'new',        label: 'New Requests' },
   { key: 'confirmed',  label: 'Confirmed' },
-  { key: 'evaluation', label: 'For Evaluation' },
-  { key: 'followup',   label: 'Follow-Up / Referral' },
+  { key: 'evaluation', label: 'Post-Session' },
+  { key: 'followup',   label: 'Follow-Up' },
   { key: 'done',       label: 'Closed' },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
-  all:        [],
   new:        ['REQUESTED', 'PENDING_APPROVAL'],
-  confirmed:  ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'],
+  confirmed:  ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'],
   evaluation: ['EVALUATION'],
   followup:   ['FOLLOW_UP', 'REFERRAL'],
   done:       ['COMPLETED', 'CANCELLED', 'DENIED', 'NO_SHOW', 'RESCHEDULED'],
@@ -123,17 +122,41 @@ function fmtMethod(m?: string) {
   if (m === 'google-meet' || m === 'google_meet') return 'Google Meet';
   return m.charAt(0).toUpperCase() + m.slice(1);
 }
+const PURPOSE_LABEL: Record<string, string> = {
+  intake_interview:       'Initial Consultation',
+  follow_up:              'Follow-up Session',
+  follow_up_counselling:  'Follow-up Session',
+  counseling:             'Counseling Session',
+  others:                 'General Session',
+};
+
 function fmtPurpose(p?: string) {
-  return p ? p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—';
+  if (!p) return '—';
+  return PURPOSE_LABEL[p] ?? p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
+// Format "First Last" → "LAST, First"
+function fmtStaffName(name?: string) {
+  if (!name || name === 'Not Assigned') return name ?? '—';
+  const parts = name.trim().split(' ');
+  if (parts.length < 2) return name.toUpperCase();
+  const last = parts[parts.length - 1].toUpperCase();
+  const first = parts.slice(0, -1).join(' ');
+  return `${last}, ${first}`;
+}
+const ROLE_LABEL: Record<string, string> = {
+  IC: 'Intake Counselor', INTAKE_COUNSELOR: 'Intake Counselor',
+  COUNSELOR: 'Counselor', PSYCHOLOGIST: 'Psychologist',
+  STAFF: 'Staff', ADMIN: 'Admin', DPO: 'DPO',
+};
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function AppointmentsDashboard() {
+  const router = useRouter();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [counselors, setCounselors] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [activeTab, setActiveTab] = useState<TabKey>('new');
   const [search, setSearch]       = useState('');
 
   // Assign counselor modal
@@ -141,6 +164,8 @@ export default function AppointmentsDashboard() {
   const [assignForm, setAssignForm]     = useState({ counselorId: '', date: '', time: '', office: '' });
   const [assigningId, setAssigningId]   = useState<string | null>(null);
   const [assignMsg, setAssignMsg]       = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [freeSlots, setFreeSlots]       = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Session actions
   const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'referral'; notes: string } | null>(null);
@@ -155,6 +180,15 @@ export default function AppointmentsDashboard() {
   const [followUpNotes, setFollowUpNotes]       = useState('');
   const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
   const [followUpMsg, setFollowUpMsg]           = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Edit appointment modal (staff correction)
+  const [editTarget, setEditTarget]         = useState<Appointment | null>(null);
+  const [editCounselor, setEditCounselor]   = useState('');
+  const [editDate, setEditDate]             = useState('');
+  const [editTime, setEditTime]             = useState('');
+  const [editOffice, setEditOffice]         = useState('');
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+  const [editMsg, setEditMsg]               = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Counselor-initiated reschedule modal
   const [reschedTarget, setReschedTarget]   = useState<Appointment | null>(null);
@@ -219,6 +253,23 @@ export default function AppointmentsDashboard() {
       const r = await fetch(api('/api/users?role=COUNSELOR'), { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) { const d = await r.json(); setCounselors(d.users || []); }
     } catch {}
+  };
+
+  const fetchFreeSlots = async (counselorId: string, date: string) => {
+    if (!counselorId || !date) { setFreeSlots([]); return; }
+    setLoadingSlots(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/availability/free-slots?counselor_id=${counselorId}&date=${date}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      setFreeSlots(d.slots ?? []);
+    } catch {
+      setFreeSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
   };
 
   const handleAssign = async () => {
@@ -370,6 +421,30 @@ export default function AppointmentsDashboard() {
     } finally { setSubmittingResched(false); }
   };
 
+  const doEdit = async () => {
+    if (!editTarget) return;
+    setSubmittingEdit(true); setEditMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const body: Record<string, string> = {};
+      if (editCounselor) body.counselor_id = editCounselor;
+      if (editDate && editTime) { body.date = editDate; body.time = editTime; }
+      if (editOffice !== undefined) body.office = editOffice;
+      const r = await fetch(api(`/api/appointments/${editTarget.appointment_id}/edit`), {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setEditMsg({ type: 'ok', text: 'Appointment updated.' });
+        setTimeout(() => { setEditTarget(null); fetchDashboard(); }, 900);
+      } else {
+        setEditMsg({ type: 'err', text: d.error || 'Failed to update.' });
+      }
+    } finally { setSubmittingEdit(false); }
+  };
+
   const toggleCheckins = async (aptId: string) => {
     if (checkinRow === aptId) { setCheckinRow(null); return; }
     setCheckinRow(aptId);
@@ -428,7 +503,7 @@ export default function AppointmentsDashboard() {
   });
 
   const filtered = sortedApts.filter(a => {
-    const matchTab = activeTab === 'all' || TAB_STATUSES[activeTab].includes(a.status);
+    const matchTab = TAB_STATUSES[activeTab].includes(a.status);
     const t = search.toLowerCase();
     const matchSearch = !t || [a.student_name, a.student_email, a.counselor_name, a.purpose, a.concern]
       .some(v => v?.toLowerCase().includes(t));
@@ -438,7 +513,7 @@ export default function AppointmentsDashboard() {
   const counts = Object.fromEntries(
     TABS.map(t => [
       t.key,
-      t.key === 'all' ? apts.length : apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
+      apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
     ])
   ) as Record<TabKey, number>;
 
@@ -449,6 +524,14 @@ export default function AppointmentsDashboard() {
   const canAssign      = dashboard?.can_assign_counselor ?? false;
   const canManage      = dashboard?.can_manage_sessions ?? false;
   const showActions    = canAssign || canManage;
+  const visibleTabs    = TABS.filter(t =>
+    canManage ? true : t.key !== 'evaluation' && t.key !== 'followup'
+  );
+  const isIC           = dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR';
+  const intakeReady    = isIC ? apts.filter(a =>
+    a.purpose === 'intake_interview' &&
+    ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status)
+  ) : [];
 
   // ── Loading / Error ───────────────────────────────────────────────────────────
   if (loading) {
@@ -476,11 +559,23 @@ export default function AppointmentsDashboard() {
         <SummaryCard icon={AlertCircle}  label="New Requests" value={newCount}
           cls={newCount > 0 ? 'text-amber-600' : 'text-gray-400'} highlight={newCount > 0} />
         <SummaryCard icon={CheckCircle}  label="Confirmed" value={confirmedCount} cls="text-[#1a5228]" />
-        <SummaryCard icon={Star}         label="For Evaluation" value={evalCount}
+        <SummaryCard icon={Star}         label="Post-Session" value={evalCount}
           cls={evalCount > 0 ? 'text-amber-600' : 'text-gray-400'} highlight={evalCount > 0} />
       </div>
 
       {/* ── Action banners ────────────────────────────────────────────────── */}
+      {isIC && intakeReady.length > 0 && (
+        <div className="flex items-center gap-3 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl px-4 py-3 text-sm">
+          <ClipboardList size={14} className="text-[#1a5228] flex-shrink-0" />
+          <span className="text-[#1a5228]">
+            <strong>{intakeReady.length}</strong> intake interview{intakeReady.length !== 1 ? 's' : ''} confirmed — conduct the intake assessment to assign to a counselor.
+          </span>
+          <button onClick={() => setActiveTab('confirmed')}
+            className="ml-auto text-xs font-semibold text-[#1a5228] underline underline-offset-2 hover:text-green-900">
+            Go to Confirmed
+          </button>
+        </div>
+      )}
       {canAssign && newCount > 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm">
           <AlertCircle size={14} className="text-amber-500 flex-shrink-0" />
@@ -497,7 +592,7 @@ export default function AppointmentsDashboard() {
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm">
           <Star size={14} className="text-amber-500 flex-shrink-0" />
           <span className="text-amber-800">
-            <strong>{evalCount}</strong> appointment{evalCount !== 1 ? 's' : ''} awaiting Follow-Up, Referral, or Completion.
+            <strong>{evalCount}</strong> session{evalCount !== 1 ? 's' : ''} completed — decide next step: follow-up, referral, or close.
           </span>
           <button onClick={() => setActiveTab('evaluation')}
             className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
@@ -544,7 +639,7 @@ export default function AppointmentsDashboard() {
 
         {/* Tab bar */}
         <div className="flex items-end overflow-x-auto border-b border-gray-100 px-2 pt-1.5 gap-0.5 scrollbar-hide">
-          {TABS.map(tab => {
+          {visibleTabs.map(tab => {
             const isActive = activeTab === tab.key;
             const cnt = counts[tab.key];
             return (
@@ -567,7 +662,7 @@ export default function AppointmentsDashboard() {
           })}
         </div>
 
-        {/* Table */}
+        {/* Cards */}
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center">
             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
@@ -578,261 +673,218 @@ export default function AppointmentsDashboard() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/60">
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-10">#</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Student</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[140px]">Counselor</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Purpose</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[130px]">Date / Time</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[110px]">Mode</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[130px]">Status</th>
-                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[90px]">Check-ins</th>
-                    {showActions && <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider min-w-[160px]">Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((apt, i) => {
-                    const badgeCls = STATUS_BADGE[apt.status] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
-                    const isNew      = apt.status === 'REQUESTED' || apt.status === 'PENDING_APPROVAL';
-                    const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
-                    const isEval     = apt.status === 'EVALUATION';
-                    const isHighRisk = apt.risk_level && ['RED', 'CRITICAL'].includes(apt.risk_level.toUpperCase());
-                    const rowCls = isNew ? 'bg-amber-50/30 hover:bg-amber-50/60'
-                      : isEval ? 'bg-amber-50/40 hover:bg-amber-50/70'
-                      : isHighRisk ? 'bg-red-50/30 hover:bg-red-50/60'
-                      : 'hover:bg-gray-50/60';
+            <div className="p-4 space-y-3">
+              {filtered.map((apt) => {
+                const badgeCls    = STATUS_BADGE[apt.status] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
+                const isNew       = apt.status === 'REQUESTED' || apt.status === 'PENDING_APPROVAL';
+                const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'].includes(apt.status);
+                const isEval      = apt.status === 'EVALUATION';
+                const isHighRisk  = apt.risk_level && ['RED', 'CRITICAL'].includes(apt.risk_level.toUpperCase());
+                const cardCls     = isHighRisk ? 'border-red-200 bg-red-50/20'
+                                  : isNew      ? 'border-amber-200/70 bg-amber-50/20'
+                                  : isEval     ? 'border-amber-100 bg-amber-50/10'
+                                  : 'border-gray-200 bg-white hover:border-gray-300';
 
-                    return (
-                      <React.Fragment key={apt.appointment_id}>
-                        <tr className={`border-b border-gray-100 transition-colors ${rowCls}`}>
-                          <td className="px-5 py-4 text-gray-400 text-xs align-middle">{i + 1}.</td>
-                          <td className="px-5 py-4 align-middle">
-                            <p className="font-semibold text-gray-900 text-sm leading-snug">{apt.student_name}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{apt.student_email}</p>
-                          </td>
-                          <td className="px-5 py-4 align-middle">
-                            {apt.counselor_name && apt.counselor_name !== 'Not Assigned'
-                              ? <span className="text-sm text-gray-700">{apt.counselor_name}</span>
-                              : <span className="text-xs text-gray-300 italic">Unassigned</span>}
-                            {apt.office && (
-                              <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-0.5">
-                                <MapPin size={10} /> {apt.office}
-                              </p>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 align-middle">
-                            <p className="text-sm text-gray-700">{fmtPurpose(apt.purpose)}</p>
-                            {apt.concern && (
-                              <p className="text-xs text-gray-400 truncate max-w-[180px] mt-0.5">"{apt.concern}"</p>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 whitespace-nowrap align-middle">
-                            <p className="text-sm text-gray-700">{fmtDate(apt.preferred_date)}</p>
-                            {(apt.preferred_time || apt.preferred_date) && (
-                              <p className="text-xs text-gray-400 mt-0.5">{fmtTime(apt.preferred_date, apt.preferred_time)}</p>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 align-middle">
-                            <span className="inline-flex items-center whitespace-nowrap text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
-                              {fmtMethod(apt.method)}
+                return (
+                  <React.Fragment key={apt.appointment_id}>
+                    <div className={`rounded-xl border p-4 transition-all ${cardCls}`}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 min-w-0">
+
+                          {/* Badges row */}
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${badgeCls}`}>
+                              {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
                             </span>
-                          </td>
-                          <td className="px-5 py-4 align-middle">
-                            <div className="flex flex-col gap-1 items-start">
-                              <span className={`inline-flex items-center whitespace-nowrap text-xs px-2 py-0.5 rounded-full font-medium ${badgeCls}`}>
-                                {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
+                            {apt.risk_level && apt.risk_level !== 'GREEN' && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${RISK_BADGE[apt.risk_level.toUpperCase()] ?? ''}`}>
+                                ⚠ {apt.risk_level}
                               </span>
-                              {apt.risk_level && apt.risk_level !== 'GREEN' && (
-                                <span className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${RISK_BADGE[apt.risk_level.toUpperCase()] ?? ''}`}>
-                                  ⚠ {apt.risk_level}
-                                </span>
-                              )}
+                            )}
+                            {apt.status === 'RESCHEDULE_REQUESTED' && apt.reschedule_requested_by_role !== 'STUDENT' && (
+                              <span className="text-[10px] font-semibold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Clock size={9} /> Awaiting student
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Student name headline */}
+                          <p className="font-semibold text-gray-900 text-sm">{apt.student_name}</p>
+
+                          {/* Purpose + concern */}
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {fmtPurpose(apt.purpose)}
+                            {apt.concern && <span className="text-gray-400"> · &ldquo;{apt.concern}&rdquo;</span>}
+                          </p>
+
+                          {/* Date + method */}
+                          {apt.preferred_date && (
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <CalendarDays size={11} />
+                                {fmtDate(apt.preferred_date)}{apt.preferred_time ? ` ${fmtTime(apt.preferred_date, apt.preferred_time)}` : ''}
+                              </span>
+                              <span>{fmtMethod(apt.method)}</span>
                             </div>
-                          </td>
-                          <td className="px-5 py-4 align-middle">
-                            <button
-                              onClick={() => toggleCheckins(apt.appointment_id)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
-                            >
-                              <MessageSquare size={13} />
-                              {checkinData[apt.appointment_id]
-                                ? checkinData[apt.appointment_id].length
-                                : <span className="text-gray-400">View</span>}
-                              {checkinRow === apt.appointment_id
-                                ? <ChevronUp size={13} />
-                                : <ChevronDown size={13} />}
-                            </button>
-                          </td>
+                          )}
+
+                          {/* Assigned counselor */}
+                          {apt.counselor_name && apt.counselor_name !== 'Not Assigned' ? (
+                            <p className="mt-1 text-xs text-gray-600">Assigned to <span className="font-medium text-gray-800">{fmtStaffName(apt.counselor_name)}</span></p>
+                          ) : (
+                            <p className="mt-1 text-xs text-gray-400 italic">No counselor assigned yet</p>
+                          )}
+
+                          {/* Student email */}
+                          <p className="text-xs text-gray-400 mt-0.5">{apt.student_email}</p>
+
+                          {/* Office */}
+                          {apt.office && (
+                            <p className="mt-0.5 text-xs text-gray-500 flex items-center gap-1"><MapPin size={10} /> {apt.office}</p>
+                          )}
 
                           {/* Actions */}
-                          {showActions && (
-                            <td className="px-5 py-4 align-middle">
-                              <div className="space-y-1.5">
-                                {/* Assign counselor */}
-                                {canAssign && isNew && (
-                                  <div className="flex flex-col gap-1">
-                                    <button
-                                      onClick={() => {
-                                        setAssignTarget(apt);
-                                        setAssignForm({
-                                          counselorId: '',
-                                          date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '',
-                                          time: apt.preferred_time || '',
-                                          office: '',
-                                        });
-                                        setAssignMsg(null);
-                                      }}
-                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-xs font-semibold text-white rounded-md transition"
-                                      style={{ backgroundColor: '#1a5228' }}
-                                    >
-                                      <UserCheck size={13} /> Assign Counselor
-                                    </button>
-                                    <button
-                                      onClick={() => { setCloseIntakeTarget(apt); setCloseIntakeReason(''); setCloseIntakeMsg(null); }}
-                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 text-xs font-semibold rounded-md transition"
-                                    >
-                                      <XCircle size={13} /> Close at Intake
-                                    </button>
-                                  </div>
+                          <div className="flex items-center gap-2 mt-3 flex-wrap">
+                            <button onClick={() => toggleCheckins(apt.appointment_id)}
+                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 px-2 py-1 rounded-lg transition border border-gray-200">
+                              <MessageSquare size={11} />
+                              {checkinData[apt.appointment_id] != null ? checkinData[apt.appointment_id].length : '—'}
+                              {checkinRow === apt.appointment_id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                            </button>
+
+                            {showActions && (
+                              <>
+                                {canAssign && (
+                                  <button onClick={() => {
+                                    setEditTarget(apt);
+                                    setEditCounselor('');
+                                    setEditDate(apt.preferred_date ? apt.preferred_date.split('T')[0] : '');
+                                    setEditTime(apt.preferred_time || '');
+                                    setEditOffice(apt.office || '');
+                                    setEditMsg(null);
+                                  }}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition">
+                                    <Pencil size={11} /> Edit
+                                  </button>
                                 )}
 
-                                {/* Session done + Reschedule */}
-                                {isConfirmed && (canAssign || canManage) && (
-                                  <div className="flex flex-col gap-1">
-                                    <button
-                                      onClick={() => doSessionAction(apt.appointment_id, 'set-evaluation')}
+                                {canAssign && isNew && (
+                                  <button onClick={() => { setAssignTarget(apt); setFreeSlots([]); setAssignForm({ counselorId: '', date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '', time: apt.preferred_time || '', office: '' }); setAssignMsg(null); }}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
+                                    style={{ backgroundColor: '#1a5228' }}>
+                                    <UserCheck size={12} /> Assign Counselor
+                                  </button>
+                                )}
+
+                                {isConfirmed && apt.status !== 'RESCHEDULE_REQUESTED' && apt.purpose === 'intake_interview' && (dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR') && (
+                                  <button onClick={() => router.push(`/ic/intake/conduct/${apt.appointment_id}`)}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
+                                    style={{ backgroundColor: '#1a5228' }}>
+                                    <ClipboardList size={11} /> Conduct Intake
+                                  </button>
+                                )}
+
+                                {isConfirmed && apt.status !== 'RESCHEDULE_REQUESTED' && canManage && (
+                                  <>
+                                    <button onClick={() => doSessionAction(apt.appointment_id, 'set-evaluation')}
                                       disabled={actioningId === apt.appointment_id}
-                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition"
-                                    >
-                                      {actioningId === apt.appointment_id
-                                        ? <Loader2 size={11} className="animate-spin" />
-                                        : <Star size={11} />}
+                                      className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                      {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
                                       Session Done
                                     </button>
-                                    <button
-                                      onClick={() => { setReschedTarget(apt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedMsg(null); }}
-                                      className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 border border-sky-200 text-sky-600 hover:bg-sky-50 text-xs font-semibold rounded-md transition"
-                                    >
+                                    <button onClick={() => { setReschedTarget(apt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedMsg(null); }}
+                                      className="flex items-center gap-1 px-2.5 py-1 border border-sky-200 text-sky-600 hover:bg-sky-50 text-xs font-semibold rounded-lg transition">
                                       <RotateCcw size={11} /> Reschedule
                                     </button>
-                                  </div>
+                                  </>
                                 )}
 
-                                {/* Awaiting student response on counselor-initiated reschedule */}
-                                {apt.status === 'RESCHEDULE_REQUESTED' && apt.reschedule_requested_by_role && apt.reschedule_requested_by_role !== 'STUDENT' && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-1 rounded-md">
-                                    <Clock size={10} /> Awaiting student
-                                  </span>
-                                )}
-
-                                {/* Evaluation actions */}
-                                {isEval && (canAssign || canManage) && (
+                                {isEval && canManage && (
                                   pendingAction?.aptId === apt.appointment_id ? (
-                                    <div className="space-y-1 min-w-[160px]">
-                                      <p className="text-[10px] font-semibold text-gray-500 uppercase">Referral Notes</p>
-                                      <textarea
-                                        rows={2}
-                                        value={pendingAction.notes}
-                                        onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
-                                        placeholder="Optional notes…"
-                                        className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-green-500 resize-none"
-                                      />
-                                      <div className="flex gap-1">
-                                        <button
-                                          onClick={() => doSessionAction(apt.appointment_id, 'set-referral', { notes: pendingAction.notes })}
-                                          disabled={actioningId === apt.appointment_id}
-                                          className="flex-1 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded transition flex items-center justify-center gap-1"
-                                        >
-                                          {actioningId === apt.appointment_id && <Loader2 size={15} className="animate-spin" />}
-                                          Confirm
-                                        </button>
-                                        <button onClick={() => setPendingAction(null)}
-                                          className="flex-1 py-1 border border-gray-200 text-xs text-gray-500 rounded hover:bg-gray-50 transition">
-                                          Cancel
-                                        </button>
+                                    <div className="flex items-end gap-2">
+                                      <div>
+                                        <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Referral Notes</p>
+                                        <textarea rows={1} value={pendingAction.notes}
+                                          onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
+                                          placeholder="Optional notes…"
+                                          className="w-40 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-green-500 resize-none" />
                                       </div>
+                                      <button onClick={() => doSessionAction(apt.appointment_id, 'set-referral', { notes: pendingAction.notes })}
+                                        disabled={actioningId === apt.appointment_id}
+                                        className="px-2.5 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                        {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
+                                      </button>
+                                      <button onClick={() => setPendingAction(null)}
+                                        className="px-2.5 py-1 border border-gray-200 text-xs text-gray-500 rounded-lg hover:bg-gray-50 transition">
+                                        Cancel
+                                      </button>
                                     </div>
                                   ) : (
-                                    <div className="flex flex-col gap-1">
-                                      <button
-                                        onClick={() => { setFollowUpTarget(apt); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(apt.office || ''); setFollowUpNotes(''); setFollowUpMsg(null); }}
-                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg transition"
-                                      >
-                                        <RefreshCw size={15} /> Schedule Follow-Up
+                                    <>
+                                      <button onClick={() => { setFollowUpTarget(apt); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(apt.office || ''); setFollowUpNotes(''); setFollowUpMsg(null); }}
+                                        className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg transition">
+                                        <RefreshCw size={11} /> Follow-Up
                                       </button>
-                                      <button
-                                        onClick={() => setPendingAction({ aptId: apt.appointment_id, action: 'referral', notes: '' })}
-                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-lg transition"
-                                      >
-                                        <ExternalLink size={15} /> Referral
+                                      <button onClick={() => setPendingAction({ aptId: apt.appointment_id, action: 'referral', notes: '' })}
+                                        className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-lg transition">
+                                        <ExternalLink size={11} /> Referral
                                       </button>
-                                      <button
-                                        onClick={() => { setTerminationTarget(apt); setTerminationType('MUTUAL'); setTerminationNotes(''); }}
-                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition"
-                                      >
-                                        <Archive size={15} /> Complete & Close
+                                      <button onClick={() => { setTerminationTarget(apt); setTerminationType('MUTUAL'); setTerminationNotes(''); }}
+                                        className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition">
+                                        <Archive size={11} /> Complete & Close
                                       </button>
-                                    </div>
+                                    </>
                                   )
                                 )}
 
-                                {/* Action feedback */}
                                 {actionMsg?.id === apt.appointment_id && !pendingAction && (
                                   <p className={`text-xs ${actionMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
                                     {actionMsg.text}
                                   </p>
                                 )}
-                              </div>
-                            </td>
-                          )}
-                        </tr>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                        {/* Check-ins expansion row */}
-                        {checkinRow === apt.appointment_id && (
-                          <tr className="bg-gray-50/60 border-b border-gray-100">
-                            <td colSpan={showActions ? 9 : 8} className="px-8 py-3">
-                              {!checkinData[apt.appointment_id] ? (
-                                <span className="text-xs text-gray-400">Loading…</span>
-                              ) : checkinData[apt.appointment_id].length === 0 ? (
-                                <span className="text-xs text-gray-400 italic">No check-ins submitted yet.</span>
-                              ) : (
-                                <div className="space-y-1.5">
-                                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Check-ins</p>
-                                  {checkinData[apt.appointment_id].map((c: any) => {
-                                    const emoji: Record<string, string> = { DOING_WELL: '😊', MANAGING: '😐', STRUGGLING: '😔', IN_CRISIS: '😰' };
-                                    return (
-                                      <div key={c._id} className="flex items-start gap-3 text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
-                                        <span>{emoji[c.status] ?? '📝'}</span>
-                                        <div className="flex-1">
-                                          <span className="font-medium text-gray-800">{c.status?.replace(/_/g, ' ')}</span>
-                                          {c.wellness_rating && <span className="text-gray-400 ml-2">· {c.wellness_rating}/10</span>}
-                                          {c.notes && <p className="text-gray-500 mt-0.5">{c.notes}</p>}
-                                        </div>
-                                        <span className="text-gray-400 whitespace-nowrap">
-                                          {c.submitted_at ? new Date(c.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
+                    {/* Check-ins expansion */}
+                    {checkinRow === apt.appointment_id && (
+                      <div className="mt-1 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                        {!checkinData[apt.appointment_id] ? (
+                          <span className="text-xs text-gray-400">Loading…</span>
+                        ) : checkinData[apt.appointment_id].length === 0 ? (
+                          <span className="text-xs text-gray-400 italic">No check-ins submitted yet.</span>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Check-ins</p>
+                            {checkinData[apt.appointment_id].map((c: any) => {
+                              const emoji: Record<string, string> = { DOING_WELL: '😊', MANAGING: '😐', STRUGGLING: '😔', IN_CRISIS: '😰' };
+                              return (
+                                <div key={c._id} className="flex items-start gap-3 text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
+                                  <span>{emoji[c.status] ?? '📝'}</span>
+                                  <div className="flex-1">
+                                    <span className="font-medium text-gray-800">{c.status?.replace(/_/g, ' ')}</span>
+                                    {c.wellness_rating && <span className="text-gray-400 ml-2">· {c.wellness_rating}/10</span>}
+                                    {c.notes && <p className="text-gray-500 mt-0.5">{c.notes}</p>}
+                                  </div>
+                                  <span className="text-gray-400 whitespace-nowrap">
+                                    {c.submitted_at ? new Date(c.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
+                                  </span>
                                 </div>
-                              )}
-                            </td>
-                          </tr>
+                              );
+                            })}
+                          </div>
                         )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
-            <div className="px-5 py-3.5 bg-gray-50/60 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-xs text-gray-400">Showing <strong className="text-gray-600">{filtered.length}</strong> of {apts.length} appointments</p>
-              {filtered.length < apts.length && (
-                <button onClick={() => setActiveTab('all')} className="text-xs text-[#1a5228] hover:underline">Show all</button>
-              )}
+            <div className="px-5 py-3.5 bg-gray-50/60 border-t border-gray-100">
+              <p className="text-xs text-gray-400">Showing <strong className="text-gray-600">{filtered.length}</strong> appointment{filtered.length !== 1 ? 's' : ''}</p>
             </div>
           </>
         )}
@@ -847,7 +899,7 @@ export default function AppointmentsDashboard() {
                 <h3 className="font-semibold text-sm text-gray-900">Assign Counselor</h3>
                 <p className="text-xs text-gray-400 mt-0.5">{assignTarget.student_name}</p>
               </div>
-              <button onClick={() => setAssignTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+              <button onClick={() => { setAssignTarget(null); setFreeSlots([]); }} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
                 <X size={14} className="text-gray-400" />
               </button>
             </div>
@@ -880,11 +932,18 @@ export default function AppointmentsDashboard() {
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   Counselor <span className="text-red-400 normal-case font-normal">*</span>
                 </label>
-                <select value={assignForm.counselorId} onChange={e => setAssignForm(f => ({ ...f, counselorId: e.target.value }))}
+                <select value={assignForm.counselorId}
+                  onChange={e => {
+                    const cid = e.target.value;
+                    setAssignForm(f => ({ ...f, counselorId: cid }));
+                    fetchFreeSlots(cid, assignForm.date);
+                  }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
                   <option value="">Select a counselor…</option>
                   {counselors.map(c => (
-                    <option key={c._id} value={c._id}>{c.first_name} {c.last_name}</option>
+                    <option key={c._id} value={c._id}>
+                      {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -895,15 +954,39 @@ export default function AppointmentsDashboard() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Confirmed Date <span className="text-red-400 normal-case font-normal">*</span>
                   </label>
-                  <input type="date" value={assignForm.date} onChange={e => setAssignForm(f => ({ ...f, date: e.target.value }))}
+                  <input type="date" value={assignForm.date}
+                    onChange={e => {
+                      const d = e.target.value;
+                      setAssignForm(f => ({ ...f, date: d }));
+                      fetchFreeSlots(assignForm.counselorId, d);
+                    }}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Time <span className="text-red-400 normal-case font-normal">*</span>
+                    {loadingSlots && <span className="ml-1 text-gray-300 font-normal normal-case">loading…</span>}
                   </label>
-                  <input type="time" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                  {freeSlots.length > 0 ? (
+                    <select value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                      <option value="">Pick a free slot…</option>
+                      {freeSlots.map(t => {
+                        const [h, m] = t.split(':').map(Number);
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h % 12 || 12;
+                        return <option key={t} value={t}>{h12}:{String(m).padStart(2,'0')} {ampm}</option>;
+                      })}
+                    </select>
+                  ) : (
+                    <div className="space-y-1">
+                      <input type="time" step="1800" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                      {assignForm.counselorId && assignForm.date && !loadingSlots && (
+                        <p className="text-[10px] text-amber-500">No availability set — entering manually</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -931,7 +1014,7 @@ export default function AppointmentsDashboard() {
               )}
 
               <div className="flex gap-2 pt-1">
-                <button onClick={() => setAssignTarget(null)}
+                <button onClick={() => { setAssignTarget(null); setFreeSlots([]); }}
                   className="flex-1 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
                   Cancel
                 </button>
@@ -1038,12 +1121,16 @@ export default function AppointmentsDashboard() {
                 <select value={schedCounselor} onChange={e => setSchedCounselor(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
                   <option value="">Assign counselor later…</option>
-                  {counselors.map(c => <option key={c._id} value={c._id}>{c.first_name} {c.last_name}</option>)}
+                  {counselors.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
+                    </option>
+                  ))}
                 </select>
                 <div className="grid grid-cols-2 gap-2">
                   <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
                     className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
-                  <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
+                  <input type="time" step="1800" value={schedTime} onChange={e => setSchedTime(e.target.value)}
                     className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
                 </div>
               </div>
@@ -1090,7 +1177,7 @@ export default function AppointmentsDashboard() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New Time</label>
-                <input type="time" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
+                <input type="time" step="1800" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
               </div>
               <div>
@@ -1143,7 +1230,7 @@ export default function AppointmentsDashboard() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Time *</label>
-                  <input type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)}
+                  <input type="time" step="1800" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none" />
                 </div>
               </div>
@@ -1262,6 +1349,79 @@ export default function AppointmentsDashboard() {
                 {submittingTermination ? <Loader2 size={12} className="animate-spin" /> : <ThumbsUp size={12} />}
                 Complete & Close Case
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Appointment Modal ──────────────────────────────────────── */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Edit Appointment</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{editTarget.student_name}</p>
+              </div>
+              <button onClick={() => setEditTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Reassign counselor */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                  Reassign Counselor <span className="font-normal normal-case text-gray-400">(leave blank to keep current)</span>
+                </label>
+                <select value={editCounselor} onChange={e => setEditCounselor(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                  <option value="">— Keep: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'} —</option>
+                  {counselors.map((c: any) => (
+                    <option key={c._id} value={c._id}>{c.last_name?.toUpperCase()}, {c.first_name} ({c.role})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date + time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date</label>
+                  <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Time</label>
+                  <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                </div>
+              </div>
+
+              {/* Office */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Office / Room</label>
+                <input type="text" value={editOffice} onChange={e => setEditOffice(e.target.value)}
+                  placeholder="e.g. Room 203, CPS Office"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+              </div>
+
+              {editMsg && (
+                <p className={`text-xs px-3 py-2 rounded-lg ${editMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                  {editMsg.text}
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <button onClick={() => setEditTarget(null)}
+                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  Cancel
+                </button>
+                <button onClick={doEdit} disabled={submittingEdit}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ backgroundColor: '#1a5228' }}>
+                  {submittingEdit && <Loader2 size={13} className="animate-spin" />}
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>

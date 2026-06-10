@@ -6,8 +6,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Loader2, Plus, Video, X, RotateCcw, Clock, Eye,
-  CheckCircle, CalendarDays, RefreshCw, Trash2, Archive,
-  Star, Users, AlertCircle, MapPin,
+  CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -31,68 +30,34 @@ interface Appointment {
 }
 
 const TABS = [
-  { key: 'all',         label: 'All',         icon: Clock },
-  { key: 'applied',     label: 'Applied',     icon: CheckCircle },
-  { key: 'confirmed',   label: 'Confirmed',   icon: CalendarDays },
-  { key: 'evaluation',  label: 'Evaluation',  icon: Star },
-  { key: 'rescheduled', label: 'Rescheduled', icon: CalendarDays },
-  { key: 'follow_up',   label: 'Follow-Up',   icon: RefreshCw },
-  { key: 'referral',    label: 'Referral',    icon: Users },
-  { key: 'cancelled',   label: 'Cancelled',   icon: Trash2 },
-  { key: 'completed',   label: 'Completed',   icon: Archive },
-  { key: 'archive',     label: 'Archive',     icon: Archive },
+  { key: 'upcoming',   label: 'Upcoming',    icon: CalendarDays },
+  { key: 'evaluation', label: 'Rate Session', icon: Star },
+  { key: 'past',       label: 'Completed',   icon: History },
+  { key: 'cancelled',  label: 'Cancelled',   icon: X },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
 
 const TAB_ACTIVE_CLS: Record<TabKey, string> = {
-  all:         'bg-gray-100 text-gray-800 border-b-2 border-gray-500',
-  applied:     'bg-green-50 text-[#1a5228] border-b-2 border-[#1a5228]',
-  confirmed:   'bg-blue-50 text-blue-700 border-b-2 border-blue-500',
-  evaluation:  'bg-amber-50 text-amber-700 border-b-2 border-amber-500',
-  rescheduled: 'bg-sky-50 text-sky-700 border-b-2 border-sky-500',
-  follow_up:   'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500',
-  referral:    'bg-purple-50 text-purple-700 border-b-2 border-purple-500',
-  cancelled:   'bg-red-50 text-red-600 border-b-2 border-red-500',
-  completed:   'bg-gray-100 text-gray-600 border-b-2 border-gray-400',
-  archive:     'bg-slate-100 text-slate-500 border-b-2 border-slate-400',
+  upcoming:   'bg-blue-50 text-blue-700 border-b-2 border-blue-500',
+  evaluation: 'bg-amber-50 text-amber-700 border-b-2 border-amber-500',
+  past:       'bg-green-50 text-[#1a5228] border-b-2 border-[#1a5228]',
+  cancelled:  'bg-red-50 text-red-600 border-b-2 border-red-500',
 };
 
 const TAB_ICON_CLS: Record<TabKey, string> = {
-  all:         'text-gray-500',
-  applied:     'text-[#1a5228]',
-  confirmed:   'text-blue-600',
-  evaluation:  'text-amber-600',
-  rescheduled: 'text-sky-600',
-  follow_up:   'text-indigo-600',
-  referral:    'text-purple-600',
-  cancelled:   'text-red-500',
-  completed:   'text-gray-400',
-  archive:     'text-slate-400',
+  upcoming:   'text-blue-600',
+  evaluation: 'text-amber-600',
+  past:       'text-[#1a5228]',
+  cancelled:  'text-red-500',
 };
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
-  all:         [],
-  applied:     ['REQUESTED', 'PENDING_APPROVAL'],
-  confirmed:   ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'],
-  evaluation:  ['EVALUATION'],
-  rescheduled: ['RESCHEDULE_REQUESTED'],
-  follow_up:   ['FOLLOW_UP'],
-  referral:    ['REFERRAL'],
-  cancelled:   ['CANCELLED', 'DENIED', 'NO_SHOW'],
-  completed:   ['COMPLETED'],
-  archive:     ['COMPLETED', 'CANCELLED', 'DENIED', 'NO_SHOW', 'REFERRAL'],
+  upcoming:   ['REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'],
+  evaluation: ['EVALUATION'],
+  past:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL'],
+  cancelled:  ['CANCELLED', 'DENIED', 'NO_SHOW'],
 };
-
-const ARCHIVE_STATUSES = new Set(['COMPLETED', 'CANCELLED', 'DENIED', 'NO_SHOW', 'REFERRAL']);
-const ARCHIVE_DAYS = 30;
-
-function isArchived(a: Appointment) {
-  if (!ARCHIVE_STATUSES.has(a.status)) return false;
-  const ref = a.scheduled_start || a.requested_start || a.created_at;
-  if (!ref) return false;
-  return (Date.now() - new Date(ref).getTime()) > ARCHIVE_DAYS * 864e5;
-}
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   REQUESTED:            { label: 'Applied',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
@@ -112,6 +77,14 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
+
+const PURPOSE_LABEL: Record<string, string> = {
+  intake_interview:       'Initial Consultation',
+  follow_up:              'Follow-up Session',
+  follow_up_counselling:  'Follow-up Session',
+  counseling:             'Counseling Session',
+  others:                 'General Session',
+};
 
 const EVAL_QUESTIONS = [
   { key: 'counselor_attitude',    label: 'Counselor Attitude' },
@@ -163,12 +136,14 @@ export default function MyAppointmentsPage() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading]           = useState(true);
-  const [activeTab, setActiveTab]       = useState<TabKey>('all');
+  const [activeTab, setActiveTab]       = useState<TabKey>('upcoming');
   const [seenTabs, setSeenTabs]         = useState<Set<TabKey>>(() => {
     try {
       const stored = sessionStorage.getItem('appt_seen_tabs');
-      return stored ? new Set(JSON.parse(stored)) : new Set(['all']);
-    } catch { return new Set(['all']); }
+      const valid = new Set<TabKey>(['upcoming', 'evaluation', 'past', 'cancelled']);
+      const parsed: TabKey[] = stored ? JSON.parse(stored).filter((k: string) => valid.has(k as TabKey)) : [];
+      return parsed.length ? new Set(parsed) : new Set<TabKey>(['upcoming']);
+    } catch { return new Set<TabKey>(['upcoming']); }
   });
   const [error, setError]               = useState<string | null>(null);
 
@@ -185,7 +160,8 @@ export default function MyAppointmentsPage() {
   const [reschedError, setReschedError]   = useState('');
   const [respondingId, setRespondingId]   = useState<string | null>(null);
 
-  const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
+  const [detailAppt, setDetailAppt]         = useState<Appointment | null>(null);
+  const [formsStatus, setFormsStatus]       = useState<Record<string, boolean>>({});
 
   // Evaluation modal
   const [evalTarget, setEvalTarget] = useState<Appointment | null>(null);
@@ -204,8 +180,23 @@ export default function MyAppointmentsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.status === 401) { router.replace('/login'); return; }
-      if (r.ok) { const d = await r.json(); setAppointments(d.appointments || []); }
-      else setError('Failed to load appointments.');
+      if (r.ok) {
+        const d = await r.json();
+        const apts: Appointment[] = d.appointments || [];
+        setAppointments(apts);
+        // Check intake packet status for intake_interview appointments
+        const intakeApts = apts.filter(a => a.purpose === 'intake_interview' && ['REQUESTED','CONFIRMED','APPROVED','MATCHED'].includes(a.status));
+        if (intakeApts.length > 0) {
+          const statuses: Record<string, boolean> = {};
+          await Promise.all(intakeApts.map(async a => {
+            try {
+              const pr = await fetch(api(`/api/intake/packet/${a._id}`), { headers: { Authorization: `Bearer ${token}` } });
+              statuses[a._id] = pr.ok;
+            } catch { statuses[a._id] = false; }
+          }));
+          setFormsStatus(statuses);
+        }
+      } else setError('Failed to load appointments.');
     } catch { setError('Network error.'); }
     finally { setLoading(false); }
   };
@@ -215,24 +206,15 @@ export default function MyAppointmentsPage() {
   const needsEvaluation = (a: Appointment) =>
     a.status === 'EVALUATION' || (a.status === 'COMPLETED' && !a.evaluation);
 
-  const filtered = activeTab === 'all'
-    ? appointments
-    : activeTab === 'evaluation'
-      ? appointments.filter(needsEvaluation)
-      : activeTab === 'archive'
-        ? appointments.filter(isArchived)
-        : appointments.filter(a => TAB_STATUSES[activeTab].includes(a.status) && !isArchived(a));
+  const filtered = activeTab === 'evaluation'
+    ? appointments.filter(needsEvaluation)
+    : appointments.filter(a => TAB_STATUSES[activeTab].includes(a.status));
 
   const counts = Object.fromEntries(
     TABS.map(t => [
       t.key,
-      t.key === 'all'
-        ? appointments.length
-        : t.key === 'evaluation'
-          ? appointments.filter(needsEvaluation).length
-          : t.key === 'archive'
-            ? appointments.filter(isArchived).length
-            : appointments.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status) && !isArchived(a)).length,
+      t.key === 'evaluation' ? appointments.filter(needsEvaluation).length :
+                               appointments.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
     ])
   ) as Record<TabKey, number>;
 
@@ -320,13 +302,13 @@ export default function MyAppointmentsPage() {
   };
 
   return (
-    <DashboardPageWrapper title="Counselling Sessions" subtitle="View and manage your counseling session requests">
+    <DashboardPageWrapper title="My Appointments" subtitle="View and manage your counseling sessions">
 
       {/* Page header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-lg font-semibold text-gray-800">Counselling Sessions Request</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Manage your counseling appointments</p>
+          <h2 className="text-lg font-semibold text-gray-800">My Counseling Sessions</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Track your sessions and take action on pending items</p>
         </div>
         <Link href="/book-appointment">
           <button className="flex items-center gap-1.5 px-4 py-2 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-medium rounded-lg transition shadow-sm">
@@ -342,15 +324,27 @@ export default function MyAppointmentsPage() {
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
             <Star size={16} className="text-amber-500 flex-shrink-0" />
             <span className="text-amber-800 font-medium">
-              You have {pendingEval} session{pendingEval > 1 ? 's' : ''} waiting for your evaluation.
+              You have {pendingEval} session{pendingEval > 1 ? 's' : ''} ready to rate. Share your feedback!
             </span>
             <button onClick={() => setActiveTab('evaluation')}
               className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
-              Evaluate now
+              Rate now
             </button>
           </div>
         ) : null;
       })()}
+
+      {/* Pending intake forms banner */}
+      {Object.values(formsStatus).some(v => !v) && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
+          <FileText size={16} className="text-amber-500 flex-shrink-0" />
+          <span className="text-amber-800 font-medium">Your Initial Consultation has incomplete required forms — please fill them out before your session.</span>
+          <button onClick={() => setActiveTab('upcoming')}
+            className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+            View appointment
+          </button>
+        </div>
+      )}
 
       {/* Tab bar + table card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -388,7 +382,7 @@ export default function MyAppointmentsPage() {
         {/* Section label */}
         <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-            {TABS.find(t => t.key === activeTab)?.label ?? 'All'}
+            {TABS.find(t => t.key === activeTab)?.label ?? 'Sessions'}
           </p>
         </div>
 
@@ -405,128 +399,128 @@ export default function MyAppointmentsPage() {
             </div>
             <p className="text-base font-medium text-gray-600">No records found</p>
             <p className="text-sm text-gray-400 mt-1">
-              {activeTab === 'all'
-                ? 'You have no appointments yet.'
-                : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} appointments.`}
+              {activeTab === 'upcoming'
+                ? "No upcoming sessions. Hit \"New Request\" to book one."
+                : activeTab === 'evaluation'
+                ? 'No sessions waiting for your rating.'
+                : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
             </p>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-10">#</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Record ID</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Preferred Date &amp; Time</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Purpose</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Platform</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Ticket #</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((appt, i) => {
-                    const dt  = appt.scheduled_start || appt.requested_start;
-                    const cfg = STATUS_BADGE[appt.status] ?? { label: appt.status, cls: 'bg-gray-100 text-gray-600' };
-                    const active = !INACTIVE.has(appt.status);
-                    const upcoming = isUpcoming(dt);
-                    const canJoin = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(appt.status) && upcoming && appt.meeting_link;
-                    const needsEval = activeTab === 'evaluation' && needsEvaluation(appt);
-                    const recordId = appt.counseling_id || padId(appt._id);
+            <div className="p-4 space-y-3">
+              {filtered.map((appt) => {
+                const dt  = appt.scheduled_start || appt.requested_start;
+                const cfg = STATUS_BADGE[appt.status] ?? { label: appt.status, cls: 'bg-gray-100 text-gray-600' };
+                const active = !INACTIVE.has(appt.status);
+                const upcoming = isUpcoming(dt);
+                const canJoin = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(appt.status) && upcoming && appt.meeting_link;
+                const needsEval = activeTab === 'evaluation' && needsEvaluation(appt);
+                const purposeLabel = PURPOSE_LABEL[appt.purpose || ''] || fmtPurpose(appt.purpose);
+                const counselorProposedResched = appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_by_role && appt.reschedule_requested_by_role !== 'STUDENT';
 
-                    return (
-                      <tr key={appt._id} className={`border-b border-gray-50 transition-colors ${
-                        needsEval ? 'bg-amber-50/40 hover:bg-amber-50/80' : 'hover:bg-gray-50/80'
-                      }`}>
-                        <td className="px-5 py-4 text-gray-400 text-sm">{i + 1}.</td>
-                        <td className="px-5 py-4">
-                          <button onClick={() => setDetailAppt(appt)}
-                            className="font-mono text-sm text-[#1a5228] hover:text-green-800 hover:underline font-semibold">
-                            {recordId}
-                          </button>
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap text-gray-700 text-sm">
-                          {fmtDateTime(dt)}
-                          {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_start && (
-                            <p className="text-[10px] text-sky-600 mt-0.5">
-                              → Proposed: {fmtDateTime(appt.reschedule_requested_start)}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-gray-700 text-sm">{fmtPurpose(appt.purpose)}</td>
-                        <td className="px-5 py-4 text-gray-700 text-sm whitespace-nowrap">{fmtPlatform(appt.preferred_method)}</td>
-                        <td className="px-5 py-4 font-mono text-sm text-gray-500">
-                          {appt.counseling_id || appt._id.slice(-6).toUpperCase()}
-                        </td>
-                        <td className="px-5 py-4">
+                return (
+                  <div key={appt._id} className={`rounded-xl border p-4 transition-all ${
+                    needsEval ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200 hover:border-gray-300'
+                  }`}>
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
                           <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
                             {cfg.label}
                           </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => setDetailAppt(appt)} title="View"
-                              className="p-2 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
-                              <Eye size={16} />
+                          {counselorProposedResched && (
+                            <span className="text-xs text-orange-600 font-medium">Your counselor proposed a new time</span>
+                          )}
+                        </div>
+                        <p className="font-semibold text-gray-900 text-sm">{purposeLabel}</p>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                          {dt && (
+                            <span className="flex items-center gap-1">
+                              <CalendarDays size={11} />{fmtDateTime(dt)}
+                            </span>
+                          )}
+                          <span>{fmtPlatform(appt.preferred_method)}</span>
+                        </div>
+                        {appt.counselor_name ? (
+                          <p className="mt-1 text-xs text-gray-600">With <span className="font-medium text-gray-800">{appt.counselor_name}</span></p>
+                        ) : (
+                          <p className="mt-1 text-xs text-gray-400 italic">Counselor not yet assigned — we'll notify you soon</p>
+                        )}
+                        {appt.office && (
+                          <p className="mt-0.5 text-xs text-gray-500 flex items-center gap-1"><MapPin size={10} /> {appt.office}</p>
+                        )}
+                        {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_start && (
+                          <p className="mt-1 text-xs text-sky-600">Proposed new time: {fmtDateTime(appt.reschedule_requested_start)}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        {canJoin && (
+                          <a href={appt.meeting_link} target="_blank" rel="noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a5228] hover:bg-green-800 text-white text-xs font-semibold rounded-lg transition">
+                            <Video size={12} /> Join Session
+                          </a>
+                        )}
+                        {needsEval && (
+                          <button
+                            onClick={() => { setEvalTarget(appt); setEvalRatings({}); setEvalLiked(''); setEvalImprove(''); setEvalError(''); setEvalSuccess(false); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition">
+                            <Star size={12} /> Rate Session
+                          </button>
+                        )}
+                        {appt.purpose === 'intake_interview' && formsStatus[appt._id] === false && (
+                          <Link href={`/book-appointment?resumeId=${appt._id}`}>
+                            <button
+                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-lg transition">
+                              <FileText size={11} /> Complete Forms
                             </button>
-                            {needsEval && (
-                              <button
-                                onClick={() => { setEvalTarget(appt); setEvalRatings({}); setEvalLiked(''); setEvalImprove(''); setEvalError(''); setEvalSuccess(false); }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition">
-                                <Star size={13} /> Evaluate
-                              </button>
-                            )}
-                            {canJoin && (
-                              <a href={appt.meeting_link} target="_blank" rel="noreferrer" title="Join Session"
-                                className="p-2 rounded-md hover:bg-green-50 text-green-600 transition">
-                                <Video size={16} />
-                              </a>
-                            )}
-                            {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_by_role && appt.reschedule_requested_by_role !== 'STUDENT' && (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => handleRespondReschedule(appt, 'approve')}
-                                  disabled={!!respondingId}
-                                  title="Accept new time"
-                                  className="flex items-center gap-1 px-2 py-1 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition">
-                                  {respondingId === appt._id + 'approve' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
-                                  Accept
-                                </button>
-                                <button
-                                  onClick={() => handleRespondReschedule(appt, 'deny')}
-                                  disabled={!!respondingId}
-                                  title="Decline reschedule"
-                                  className="flex items-center gap-1 px-2 py-1 bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 text-xs font-semibold rounded-md transition">
-                                  {respondingId === appt._id + 'deny' ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
-                                  Decline
-                                </button>
-                              </div>
-                            )}
-                            {active && !needsEval && appt.status !== 'RESCHEDULE_REQUESTED' && (
-                              <button
-                                onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
-                                title="Reschedule"
-                                className="p-2 rounded-md hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition">
-                                <RotateCcw size={16} />
-                              </button>
-                            )}
-                            {active && !needsEval && (
-                              <button
-                                onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }}
-                                title="Cancel"
-                                className="p-2 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
-                                <X size={16} />
-                              </button>
-                            )}
+                          </Link>
+                        )}
+                        {counselorProposedResched && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleRespondReschedule(appt, 'approve')}
+                              disabled={!!respondingId}
+                              className="flex items-center gap-1 px-2 py-1 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition">
+                              {respondingId === appt._id + 'approve' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleRespondReschedule(appt, 'deny')}
+                              disabled={!!respondingId}
+                              className="flex items-center gap-1 px-2 py-1 bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 text-xs font-semibold rounded-md transition">
+                              {respondingId === appt._id + 'deny' ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
+                              Decline
+                            </button>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setDetailAppt(appt)} title="Details"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
+                            <Eye size={14} />
+                          </button>
+                          {active && !needsEval && appt.status !== 'RESCHEDULE_REQUESTED' && (
+                            <button
+                              onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
+                              title="Request reschedule"
+                              className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition">
+                              <RotateCcw size={14} />
+                            </button>
+                          )}
+                          {active && !needsEval && (
+                            <button
+                              onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }}
+                              title="Cancel appointment"
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
               <p className="text-sm text-gray-400">
@@ -545,8 +539,8 @@ export default function MyAppointmentsPage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-900">Appointment Details</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Record ID: {detailAppt.counseling_id || padId(detailAppt._id)}</p>
+                  <h3 className="font-semibold text-sm text-gray-900">Session Details</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Ref: {detailAppt.counseling_id || detailAppt._id.slice(-6).toUpperCase()}</p>
                 </div>
                 <button onClick={() => setDetailAppt(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
                   <X size={14} className="text-gray-400" />
@@ -555,8 +549,8 @@ export default function MyAppointmentsPage() {
               <div className="p-6 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    ['Ticket #', detailAppt.counseling_id || detailAppt._id.slice(-6).toUpperCase()],
-                    ['Platform', fmtPlatform(detailAppt.preferred_method)],
+                    ['Session Type', PURPOSE_LABEL[detailAppt.purpose || ''] || fmtPurpose(detailAppt.purpose)],
+                    ['Mode', fmtPlatform(detailAppt.preferred_method)],
                   ].map(([k, v]) => (
                     <div key={k} className="bg-gray-50 rounded-lg p-3">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{k}</p>
@@ -568,15 +562,9 @@ export default function MyAppointmentsPage() {
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Date &amp; Time</p>
                   <p className="text-sm text-gray-800 font-medium">{fmtDateTime(detailAppt.scheduled_start || detailAppt.requested_start)}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Purpose</p>
-                    <p className="text-sm text-gray-800 font-medium">{fmtPurpose(detailAppt.purpose)}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
-                    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>
-                  </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                  <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Assigned Counselor</p>

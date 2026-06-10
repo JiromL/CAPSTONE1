@@ -24,8 +24,6 @@ def get_cases_for_user(user_id, user_role):
         return {}
     elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
         return {'assigned_counselor_id': ObjectId(user_id)}
-    elif user_role in [UserRole.CSC, UserRole.CSP]:
-        return {}
     elif user_role == UserRole.IC:
         # IC sees new/pending intake cases (query both field names for compatibility)
         return {'$or': [
@@ -293,31 +291,34 @@ def get_case(case_id):
     user_role = user.get('role')
     if user_role == UserRole.STUDENT and str(case['student_id']) != user_id:
         return jsonify({'error': 'Cannot view other student cases'}), 403
-    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.CSC, UserRole.CSP]:
+    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
         pass  # clinical staff can view any case
     elif user_role == UserRole.IC and case.get('case_status', case.get('status')) not in [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]:
         return jsonify({'error': 'IC can only view new/pending cases'}), 403
     
-    # Format response
-    case['_id'] = str(case['_id'])
-    raw_student_id = case['student_id']
-    case['student_id'] = str(raw_student_id)
-    if case.get('assigned_counselor_id'):
-        case['assigned_counselor_id'] = str(case['assigned_counselor_id'])
-    if case.get('intake_counselor_id'):
-        case['intake_counselor_id'] = str(case['intake_counselor_id'])
+    # Serialize all ObjectId and datetime fields safely
+    raw_student_id = case.get('student_id')
+    serialized = {}
+    for k, v in case.items():
+        if isinstance(v, ObjectId):
+            serialized[k] = str(v)
+        elif isinstance(v, datetime):
+            serialized[k] = v.isoformat()
+        else:
+            serialized[k] = v
 
     # Embed student details so the frontend can show name/email without a second request
-    student_doc = db.db.users.find_one({'_id': raw_student_id}, {'name': 1, 'email': 1, 'student_id': 1, 'mhbot_username': 1})
-    if student_doc:
-        case['student'] = {
-            'name': student_doc.get('name', ''),
-            'email': student_doc.get('email', ''),
-            'school_id': student_doc.get('student_id', ''),
-            'mhbot_username': student_doc.get('mhbot_username', ''),
-        }
+    if raw_student_id:
+        student_doc = db.db.users.find_one({'_id': raw_student_id}, {'name': 1, 'email': 1, 'student_id': 1, 'mhbot_username': 1})
+        if student_doc:
+            serialized['student'] = {
+                'name': student_doc.get('name', ''),
+                'email': student_doc.get('email', ''),
+                'school_id': student_doc.get('student_id', ''),
+                'mhbot_username': student_doc.get('mhbot_username', ''),
+            }
 
-    return jsonify(case), 200
+    return jsonify(serialized), 200
 
 
 @cases_bp.route('/<case_id>', methods=['PUT'])
@@ -620,7 +621,7 @@ def add_diagnosis(case_id):
     """Add a diagnosis (DSM-5 or ICD-10) to a case."""
     user_id = get_jwt_identity()
     user = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
-    if not user or user.get('role') not in ('COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'ADMIN'):
+    if not user or user.get('role') not in ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN'):
         return jsonify({'error': 'Forbidden'}), 403
 
     data = request.get_json() or {}
@@ -654,7 +655,7 @@ def remove_diagnosis(case_id, index):
     """Remove a diagnosis by its index in the array."""
     user_id = get_jwt_identity()
     user = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
-    if not user or user.get('role') not in ('COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'ADMIN'):
+    if not user or user.get('role') not in ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN'):
         return jsonify({'error': 'Forbidden'}), 403
     try:
         case = db.db.cases.find_one({'_id': ObjectId(case_id)})

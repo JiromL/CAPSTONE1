@@ -4,7 +4,7 @@ Blueprint for appointment booking with real-time availability and automated conf
 """
 
 from flask import Blueprint, request, jsonify, redirect, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType, CaseStatus, TerminationType
 from utils import audit_log, user_has_permission
@@ -77,8 +77,8 @@ def find_available_counselor(case_id, requested_start, requested_end, preferred_
         if not case:
             return None
         
-        # Get all available counselors (COUNSELOR, PSYCHOLOGIST, CSC, CSP roles)
-        available_roles = ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP']
+        # Get all available counselors (COUNSELOR, PSYCHOLOGIST roles)
+        available_roles = ['COUNSELOR', 'PSYCHOLOGIST']
         counselors = list(db.db.users.find({
             'role': {'$in': available_roles},
             'is_active': True
@@ -953,6 +953,30 @@ def match_counselor(appointment_id):
             {"_id": appointment['_id']},
             {"$set": update_fields}
         )
+
+        # Auto-create intakes record for intake_interview appointments so IC can see it in their queue
+        try:
+            if appointment.get('purpose') == 'intake_interview':
+                existing_intake = db.db.intakes.find_one({'appointment_id': appointment['_id']})
+                if not existing_intake:
+                    student_doc = db.db.users.find_one({'_id': appointment.get('student_id')})
+                    from datetime import timedelta as _td
+                    db.db.intakes.insert_one({
+                        'appointment_id': appointment['_id'],
+                        'student_id': appointment.get('student_id'),
+                        'counselor_id': counselor['_id'],
+                        'source': 'online',
+                        'status': 'PENDING',
+                        'concern': appointment.get('concern', ''),
+                        'risk_level': appointment.get('risk_level', 'GREEN'),
+                        'is_emergency': False,
+                        'responses': {'concern': appointment.get('concern', '')},
+                        'created_at': datetime.utcnow(),
+                        'deadline': (scheduled_start or datetime.utcnow()) + _td(days=3),
+                    })
+                    print(f"✓ Auto-created intakes record for intake_interview appointment {appointment['_id']}")
+        except Exception as e:
+            print(f"⚠ Auto-create intakes record error: {e}")
 
         # Auto-create 24h and 1h reminder records
         try:
@@ -2265,7 +2289,7 @@ def staff_schedule_for_student():
         actor = db.db.users.find_one({'_id': ObjectId(user_id)})
     except Exception:
         actor = None
-    allowed = ('STAFF', 'ADMIN', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP')
+    allowed = ('STAFF', 'ADMIN', 'COUNSELOR', 'PSYCHOLOGIST', 'IC')
     if not actor or actor.get('role') not in allowed:
         return jsonify({'error': 'Insufficient permissions'}), 403
 
@@ -2461,7 +2485,7 @@ def get_workload_report():
     try:
         # Get all active counselors
         counselors = list(db.db.users.find({
-            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP']},
+            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']},
             'status': 'active'
         }))
         
@@ -3141,7 +3165,7 @@ def create_recurring_appointments():
     claims = get_jwt()
     role = claims.get('role', '')
 
-    if role not in ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'ADMIN']:
+    if role not in ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN']:
         return jsonify({'error': 'Only counselors and psychologists can create recurring appointments'}), 403
 
     data = request.get_json() or {}
@@ -3272,7 +3296,7 @@ def set_meeting_link(appointment_id):
     claims = get_jwt()
     role = claims.get('role', '')
 
-    if role not in ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'STAFF', 'ADMIN']:
+    if role not in ['COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'ADMIN']:
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     try:
@@ -3328,6 +3352,63 @@ def set_meeting_link(appointment_id):
 
     audit_log(db.db, 'appointment', 'set_meeting_link', entity_id=appointment_id)
     return jsonify({'message': 'Meeting link updated', 'meeting_link': meeting_link}), 200
+
+
+@appointments_bp.route('/<appointment_id>/edit', methods=['PATCH'])
+@jwt_required()
+def edit_appointment(appointment_id):
+    """Staff/admin: correct appointment fields directly without triggering student notifications."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt_id = ObjectId(appointment_id)
+    except Exception:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+
+    apt = db.db.appointments.find_one({'_id': apt_id})
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    data = request.get_json() or {}
+    updates = {'updated_at': datetime.utcnow()}
+
+    # Counselor reassignment
+    if data.get('counselor_id'):
+        try:
+            counselor_doc = db.db.users.find_one({'_id': ObjectId(data['counselor_id'])})
+            if not counselor_doc:
+                return jsonify({'error': 'Counselor not found'}), 404
+            first = counselor_doc.get('first_name', '')
+            last = counselor_doc.get('last_name', '')
+            updates['counselor_id'] = ObjectId(data['counselor_id'])
+            updates['counselor_name'] = f"{last.upper()}, {first}" if last else first
+        except Exception:
+            return jsonify({'error': 'Invalid counselor ID'}), 400
+
+    # Date / time
+    if data.get('date') and data.get('time'):
+        try:
+            new_start = datetime.fromisoformat(f"{data['date']}T{data['time']}:00")
+            updates['scheduled_start'] = new_start
+            updates['requested_start'] = new_start
+            updates['preferred_date'] = new_start.isoformat()
+            updates['preferred_time'] = data['time']
+        except Exception:
+            return jsonify({'error': 'Invalid date or time format'}), 400
+
+    # Office / room
+    if 'office' in data:
+        updates['office'] = data['office']
+
+    if len(updates) == 1:
+        return jsonify({'error': 'No changes provided'}), 400
+
+    db.db.appointments.update_one({'_id': apt_id}, {'$set': updates})
+    audit_log(db.db, 'appointments', 'edited_by_staff', entity_id=str(apt_id))
+    return jsonify({'message': 'Appointment updated.'}), 200
+
 
 # ─── FLOWCHART-ALIGNED ENDPOINTS ───────────────────────────────────────────
 

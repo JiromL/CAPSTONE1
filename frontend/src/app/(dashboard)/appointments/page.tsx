@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
-  Loader2, Eye, Video, RotateCcw, Star, RefreshCw, ExternalLink,
-  Archive, Clock, CheckCircle, CalendarDays, Users, X, AlertCircle,
+  Loader2, Eye, Video, RotateCcw, Star, ExternalLink, RefreshCw,
+  Archive, CheckCircle, History, X, AlertCircle, CalendarDays,
 } from 'lucide-react';
 
 interface Appointment {
@@ -35,59 +35,42 @@ interface DashboardData {
 }
 
 const TABS = [
-  { key: 'all',        label: 'All',            icon: Clock },
-  { key: 'confirmed',  label: 'Confirmed',       icon: CheckCircle },
-  { key: 'evaluation', label: 'For Evaluation',  icon: Star },
-  { key: 'follow_up',  label: 'Follow-Up',       icon: RefreshCw },
-  { key: 'referral',   label: 'Referral',        icon: Users },
-  { key: 'completed',  label: 'Completed',       icon: Archive },
-  { key: 'cancelled',  label: 'Cancelled',       icon: X },
+  { key: 'active',     label: 'Active',       icon: CheckCircle },
+  { key: 'evaluation', label: 'Post-Session',  icon: Star },
+  { key: 'past',       label: 'Completed',     icon: History },
+  { key: 'cancelled',  label: 'Cancelled',     icon: X },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
-  all:        [],
-  confirmed:  ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL'],
+  active:     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL', 'RESCHEDULE_REQUESTED'],
   evaluation: ['EVALUATION'],
-  follow_up:  ['FOLLOW_UP'],
-  referral:   ['REFERRAL'],
-  completed:  ['COMPLETED'],
+  past:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL'],
   cancelled:  ['CANCELLED', 'DENIED', 'NO_SHOW'],
 };
 
-const TAB_ACTIVE: Record<TabKey, string> = {
-  all:        'bg-gray-100 text-gray-800 border-b-2 border-gray-500',
-  confirmed:  'bg-green-50 text-[#1a5228] border-b-2 border-[#1a5228]',
-  evaluation: 'bg-amber-50 text-amber-700 border-b-2 border-amber-500',
-  follow_up:  'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500',
-  referral:   'bg-purple-50 text-purple-700 border-b-2 border-purple-500',
-  completed:  'bg-gray-100 text-gray-600 border-b-2 border-gray-400',
-  cancelled:  'bg-red-50 text-red-600 border-b-2 border-red-400',
-};
-
-const TAB_ICON: Record<TabKey, string> = {
-  all:        'text-gray-500',
-  confirmed:  'text-[#1a5228]',
-  evaluation: 'text-amber-600',
-  follow_up:  'text-indigo-600',
-  referral:   'text-purple-600',
-  completed:  'text-gray-400',
-  cancelled:  'text-red-500',
+const PURPOSE_LABEL: Record<string, string> = {
+  intake_interview:       'Initial Consultation',
+  follow_up:              'Follow-up Session',
+  follow_up_counselling:  'Follow-up Session',
+  counseling:             'Counseling Session',
+  others:                 'General Session',
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  PENDING_APPROVAL: { label: 'Pending',        cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  APPROVED:         { label: 'Confirmed',       cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  MATCHED:          { label: 'Confirmed',       cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  CONFIRMED:        { label: 'Confirmed',       cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  CHECKED_IN:       { label: 'Checked In',      cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  EVALUATION:       { label: 'For Evaluation',  cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
-  FOLLOW_UP:        { label: 'Follow-Up',       cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' },
-  REFERRAL:         { label: 'Referral',        cls: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' },
-  COMPLETED:        { label: 'Completed',       cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
-  CANCELLED:        { label: 'Cancelled',       cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
-  DENIED:           { label: 'Denied',          cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
-  NO_SHOW:          { label: 'No Show',         cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  PENDING_APPROVAL:     { label: 'Under Review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  RESCHEDULE_REQUESTED: { label: 'Reschedule Pending', cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
+  EVALUATION:           { label: 'Post-Session',       cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
+  FOLLOW_UP:            { label: 'Follow-Up',          cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' },
+  REFERRAL:             { label: 'Referral',           cls: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' },
+  COMPLETED:            { label: 'Completed',          cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+  CANCELLED:            { label: 'Cancelled',          cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  DENIED:               { label: 'Denied',             cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  NO_SHOW:              { label: 'No Show',            cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
 };
 
 const RISK_CLS: Record<string, string> = {
@@ -111,7 +94,8 @@ function fmtTime(d?: string, t?: string) {
   return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 function fmtPurpose(p?: string) {
-  return p ? p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—';
+  if (!p) return '—';
+  return PURPOSE_LABEL[p] ?? p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 function fmtMethod(m?: string) {
   if (!m) return '—';
@@ -125,14 +109,22 @@ export default function AppointmentsPage() {
   const [user, setUser] = useState<any>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [activeTab, setActiveTab] = useState<TabKey>('active');
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
 
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<{ id: string; type: 'ok' | 'err'; text: string } | null>(null);
-  const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'follow_up' | 'referral'; notes: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'referral'; notes: string } | null>(null);
 
-  // No-show modal
+  // Follow-up scheduling modal
+  const [followUpTarget, setFollowUpTarget] = useState<Appointment | null>(null);
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpTime, setFollowUpTime] = useState('');
+  const [followUpOffice, setFollowUpOffice] = useState('');
+  const [followUpNotes, setFollowUpNotes] = useState('');
+  const [followUpMsg, setFollowUpMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
+
   const [noShowTarget, setNoShowTarget] = useState<Appointment | null>(null);
   const [noShowReason, setNoShowReason] = useState('');
   const [submittingNoShow, setSubmittingNoShow] = useState(false);
@@ -157,7 +149,6 @@ export default function AppointmentsPage() {
     load();
   }, []);
 
-  // If role is staff/IC, redirect to the assignment page
   useEffect(() => {
     if (!user) return;
     const role = user.role?.toUpperCase();
@@ -168,15 +159,10 @@ export default function AppointmentsPage() {
 
   const apts = Array.isArray(dashboard?.appointments) ? dashboard!.appointments! : [];
 
-  const filtered = activeTab === 'all'
-    ? apts
-    : apts.filter(a => TAB_STATUSES[activeTab].includes(a.status));
+  const filtered = apts.filter(a => TAB_STATUSES[activeTab].includes(a.status));
 
   const counts = Object.fromEntries(
-    TABS.map(t => [
-      t.key,
-      t.key === 'all' ? apts.length : apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
-    ])
+    TABS.map(t => [t.key, apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length])
   ) as Record<TabKey, number>;
 
   const canManage = dashboard?.can_manage_sessions ?? false;
@@ -193,7 +179,7 @@ export default function AppointmentsPage() {
       });
       if (r.ok) {
         const msgs: Record<string, string> = {
-          'set-evaluation': 'Session marked done — student will be prompted to evaluate.',
+          'set-evaluation': 'Session marked done.',
           'set-follow-up':  'Marked as Follow-Up.',
           'set-referral':   'Marked as Referral.',
           'complete':       'Marked as Completed.',
@@ -207,6 +193,28 @@ export default function AppointmentsPage() {
         setActionMsg({ id: aptId, type: 'err', text: e.error || 'Failed.' });
       }
     } finally { setActioningId(null); }
+  };
+
+  const doFollowUp = async () => {
+    if (!followUpTarget || !followUpDate || !followUpTime) return;
+    setSubmittingFollowUp(true);
+    setFollowUpMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const scheduledStart = new Date(`${followUpDate}T${followUpTime}:00`).toISOString();
+      const r = await fetch(api(`/api/appointments/${followUpTarget.appointment_id}/set-follow-up`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduled_start: scheduledStart, office: followUpOffice, notes: followUpNotes }),
+      });
+      if (r.ok) {
+        setFollowUpMsg({ type: 'ok', text: 'Follow-up session scheduled.' });
+        setTimeout(() => { setFollowUpTarget(null); load(); }, 1200);
+      } else {
+        const e = await r.json();
+        setFollowUpMsg({ type: 'err', text: e.error || 'Failed to schedule follow-up.' });
+      }
+    } finally { setSubmittingFollowUp(false); }
   };
 
   if (loading) {
@@ -226,10 +234,10 @@ export default function AppointmentsPage() {
       {dashboard?.summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
-            { label: 'Total', value: dashboard.summary.total_appointments ?? apts.length, cls: 'text-gray-800' },
-            { label: 'Confirmed', value: dashboard.summary.confirmed ?? 0, cls: 'text-[#1a5228]' },
-            { label: 'For Evaluation', value: dashboard.summary.awaiting_evaluation ?? 0, cls: 'text-amber-600' },
-            { label: 'Follow-Up', value: (dashboard.summary.follow_up ?? 0) + (dashboard.summary.referral ?? 0), cls: 'text-indigo-600' },
+            { label: 'Total',        value: dashboard.summary.total_appointments ?? apts.length, cls: 'text-gray-800' },
+            { label: 'Confirmed',    value: dashboard.summary.confirmed ?? 0,                    cls: 'text-[#1a5228]' },
+            { label: 'Post-Session', value: dashboard.summary.awaiting_evaluation ?? 0,          cls: 'text-amber-600' },
+            { label: 'Follow-Up',    value: (dashboard.summary.follow_up ?? 0) + (dashboard.summary.referral ?? 0), cls: 'text-indigo-600' },
           ].map(c => (
             <div key={c.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
               <p className="text-xs text-gray-400 mb-1">{c.label}</p>
@@ -239,21 +247,21 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {/* Evaluation reminder */}
+      {/* Post-session reminder banner */}
       {counts.evaluation > 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
           <Star size={15} className="text-amber-500 flex-shrink-0" />
           <span className="text-amber-800 font-medium">
-            {counts.evaluation} session{counts.evaluation > 1 ? 's' : ''} awaiting your decision — set Follow-Up, Referral, or Complete.
+            {counts.evaluation} session{counts.evaluation > 1 ? 's' : ''} waiting for your decision — set Follow-Up, Referral, or Complete.
           </span>
           <button onClick={() => setActiveTab('evaluation')}
             className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
-            View
+            Review
           </button>
         </div>
       )}
 
-      {/* Tab + table card */}
+      {/* Card panel */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
         {/* Tabs */}
@@ -281,176 +289,162 @@ export default function AppointmentsPage() {
 
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              <CalendarDays size={22} className="text-gray-400" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+              <CalendarDays size={18} className="text-gray-400" />
             </div>
-            <p className="text-base font-medium text-gray-600">No records found</p>
-            <p className="text-sm text-gray-400 mt-1">No sessions in this category.</p>
+            <p className="text-sm font-medium text-gray-600">No sessions here</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {activeTab === 'active' ? 'No confirmed sessions at the moment.' : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
+            </p>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Student</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Purpose</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Mode</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Risk</th>
-                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                    {canManage && (
-                      <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((apt, i) => {
-                    const cfg = STATUS_BADGE[apt.status] ?? { label: apt.status, cls: 'bg-gray-100 text-gray-600' };
-                    const isEval = apt.status === 'EVALUATION';
-                    const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
-                    const aptId = apt.appointment_id;
+            <div className="p-4 space-y-3">
+              {filtered.map((apt) => {
+                const cfg         = STATUS_BADGE[apt.status] ?? { label: apt.status, cls: 'bg-gray-100 text-gray-600' };
+                const isEval      = apt.status === 'EVALUATION';
+                const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
+                const isHighRisk  = apt.risk_level && ['RED', 'CRITICAL'].includes(apt.risk_level.toUpperCase());
+                const aptId       = apt.appointment_id;
 
-                    return (
-                      <tr key={aptId} className={`border-b border-gray-50 transition-colors ${
-                        isEval ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-gray-50/80'
-                      }`}>
-                        <td className="px-5 py-4 text-gray-400 text-sm">{i + 1}.</td>
-                        <td className="px-5 py-4">
-                          <p className="font-medium text-gray-900 text-sm">{apt.student_name}</p>
-                          <p className="text-xs text-gray-400">{apt.student_email}</p>
-                          {apt.student_id_number && <p className="text-xs text-gray-400">{apt.student_id_number}</p>}
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          <p className="text-sm text-gray-700">{fmtDate(apt.preferred_date)}</p>
-                          <p className="text-xs text-gray-400">{fmtTime(apt.preferred_date, apt.preferred_time)}</p>
-                        </td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{fmtPurpose(apt.purpose)}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">{fmtMethod(apt.method)}</td>
-                        <td className="px-5 py-4">
-                          {apt.risk_level && apt.risk_level !== 'GREEN' ? (
-                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${RISK_CLS[apt.risk_level] ?? 'bg-gray-100 text-gray-600'}`}>
-                              {apt.risk_level}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-gray-300">—</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 align-middle">
-                          <span className={`inline-flex items-center whitespace-nowrap text-xs px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>
+                const cardCls = isHighRisk ? 'border-red-200 bg-red-50/20'
+                              : isEval     ? 'border-amber-100 bg-amber-50/10'
+                              : isConfirmed ? 'border-green-100 bg-white hover:border-green-200'
+                              : 'border-gray-200 bg-white hover:border-gray-300';
+
+                return (
+                  <div key={aptId} className={`rounded-xl border p-4 transition-all ${cardCls}`}>
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1 min-w-0">
+
+                        {/* Badges */}
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
                             {cfg.label}
                           </span>
-                        </td>
+                          {apt.risk_level && apt.risk_level !== 'GREEN' && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${RISK_CLS[apt.risk_level.toUpperCase()] ?? ''}`}>
+                              ⚠ {apt.risk_level}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Student name */}
+                        <p className="font-semibold text-gray-900 text-sm">{apt.student_name}</p>
+
+                        {/* Purpose + concern */}
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {fmtPurpose(apt.purpose)}
+                          {apt.concern && <span className="text-gray-400"> · &ldquo;{apt.concern}&rdquo;</span>}
+                        </p>
+
+                        {/* Date + method */}
+                        {apt.preferred_date && (
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <CalendarDays size={11} />
+                              {fmtDate(apt.preferred_date)}{apt.preferred_time ? ` ${fmtTime(apt.preferred_date, apt.preferred_time)}` : ''}
+                            </span>
+                            <span>{fmtMethod(apt.method)}</span>
+                          </div>
+                        )}
+
+                        {/* Student email + ID */}
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {apt.student_email}
+                          {apt.student_id_number && <span className="ml-2 text-gray-300">· {apt.student_id_number}</span>}
+                        </p>
+
+                        {/* Actions */}
                         {canManage && (
-                          <td className="px-5 py-4 align-top">
-                            <div className="space-y-1.5">
-                              {/* View + Join */}
-                              <div className="flex gap-1">
-                                <button onClick={() => setDetailAppt(apt)} title="View"
-                                  className="p-2 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
-                                  <Eye size={16} />
+                          <div className="flex items-center gap-2 mt-3 flex-wrap">
+
+                            {/* View detail */}
+                            <button onClick={() => setDetailAppt(apt)}
+                              className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition">
+                              <Eye size={11} /> View
+                            </button>
+
+                            {/* Join session */}
+                            {apt.meeting_link && isConfirmed && (
+                              <a href={apt.meeting_link} target="_blank" rel="noreferrer"
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition font-semibold">
+                                <Video size={11} /> Join
+                              </a>
+                            )}
+
+                            {/* Confirmed actions */}
+                            {isConfirmed && (
+                              <>
+                                <button onClick={() => doAction(aptId, 'set-evaluation')}
+                                  disabled={actioningId === aptId}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                  {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
+                                  Session Done
                                 </button>
-                                {apt.meeting_link && isConfirmed && (
-                                  <a href={apt.meeting_link} target="_blank" rel="noreferrer" title="Join"
-                                    className="p-2 rounded-md hover:bg-green-50 text-green-600 transition">
-                                    <Video size={16} />
-                                  </a>
-                                )}
-                              </div>
+                                <button onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
+                                  className="flex items-center gap-1 px-2.5 py-1 border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 text-xs rounded-lg transition">
+                                  No Show
+                                </button>
+                              </>
+                            )}
 
-                              {/* Session Done + No Show — CONFIRMED state */}
-                              {isConfirmed && (
-                                <div className="flex flex-col gap-1">
-                                  <button
-                                    onClick={() => doAction(aptId, 'set-evaluation')}
-                                    disabled={actioningId === aptId}
-                                    className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition"
-                                  >
-                                    {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
-                                    Session Done
-                                  </button>
-                                  <button
-                                    onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
-                                    className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 text-xs rounded-md transition"
-                                  >
-                                    No Show
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* EVALUATION state: Follow-Up / Referral / Complete */}
-                              {isEval && (
-                                pendingAction?.aptId === aptId ? (
-                                  <div className="space-y-1 min-w-[180px]">
-                                    <p className="text-xs font-semibold text-gray-500 uppercase">
-                                      {pendingAction.action === 'follow_up' ? 'Follow-Up Notes' : 'Referral Notes'}
-                                    </p>
-                                    <textarea
-                                      rows={2}
-                                      value={pendingAction.notes}
+                            {/* Post-session actions */}
+                            {isEval && (
+                              pendingAction?.aptId === aptId ? (
+                                <div className="flex items-end gap-2">
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Referral Notes</p>
+                                    <textarea rows={1} value={pendingAction.notes}
                                       onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
                                       placeholder="Optional notes…"
-                                      className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white focus:ring-1 focus:ring-green-500 resize-none"
-                                    />
-                                    <div className="flex gap-1">
-                                      <button
-                                        onClick={() => doAction(aptId, pendingAction.action === 'follow_up' ? 'set-follow-up' : 'set-referral', { notes: pendingAction.notes })}
-                                        disabled={actioningId === aptId}
-                                        className="flex-1 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded transition flex items-center justify-center gap-1"
-                                      >
-                                        {actioningId === aptId && <Loader2 size={11} className="animate-spin" />}
-                                        Confirm
-                                      </button>
-                                      <button onClick={() => setPendingAction(null)}
-                                        className="flex-1 py-1.5 border border-gray-200 text-xs text-gray-500 rounded hover:bg-gray-50 transition">
-                                        Cancel
-                                      </button>
-                                    </div>
+                                      className="w-40 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-green-500 resize-none" />
                                   </div>
-                                ) : (
-                                  <div className="flex flex-col gap-1">
-                                    <button
-                                      onClick={() => setPendingAction({ aptId, action: 'follow_up', notes: '' })}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg transition"
-                                    >
-                                      <RefreshCw size={12} /> Follow-Up
-                                    </button>
-                                    <button
-                                      onClick={() => setPendingAction({ aptId, action: 'referral', notes: '' })}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-lg transition"
-                                    >
-                                      <ExternalLink size={12} /> Referral
-                                    </button>
-                                    <button
-                                      onClick={() => doAction(aptId, 'complete')}
-                                      disabled={actioningId === aptId}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition disabled:opacity-50"
-                                    >
-                                      {actioningId === aptId ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
-                                      Complete
-                                    </button>
-                                  </div>
-                                )
-                              )}
+                                  <button onClick={() => doAction(aptId, 'set-referral', { notes: pendingAction.notes })}
+                                    disabled={actioningId === aptId}
+                                    className="px-2.5 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                    {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
+                                  </button>
+                                  <button onClick={() => setPendingAction(null)}
+                                    className="px-2.5 py-1 border border-gray-200 text-xs text-gray-500 rounded-lg hover:bg-gray-50 transition">
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <button onClick={() => { setFollowUpTarget(apt); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(apt.meeting_link ? '' : ''); setFollowUpNotes(''); setFollowUpMsg(null); }}
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg transition">
+                                    <RefreshCw size={11} /> Schedule Follow-Up
+                                  </button>
+                                  <button onClick={() => setPendingAction({ aptId, action: 'referral', notes: '' })}
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-lg transition">
+                                    <ExternalLink size={11} /> Referral
+                                  </button>
+                                  <button onClick={() => doAction(aptId, 'complete')}
+                                    disabled={actioningId === aptId}
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition disabled:opacity-50">
+                                    {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Archive size={11} />}
+                                    Complete & Close
+                                  </button>
+                                </>
+                              )
+                            )}
 
-                              {/* Action feedback */}
-                              {actionMsg?.id === aptId && !pendingAction && (
-                                <p className={`text-xs ${actionMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
-                                  {actionMsg.text}
-                                </p>
-                              )}
-                            </div>
-                          </td>
+                            {actionMsg?.id === aptId && !pendingAction && (
+                              <p className={`text-xs ${actionMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
+                                {actionMsg.text}
+                              </p>
+                            )}
+                          </div>
                         )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
-              <p className="text-xs text-gray-400">Showing {filtered.length} {filtered.length === 1 ? 'record' : 'records'}</p>
+            <div className="px-5 py-3.5 bg-gray-50/60 border-t border-gray-100">
+              <p className="text-xs text-gray-400">Showing <strong className="text-gray-600">{filtered.length}</strong> session{filtered.length !== 1 ? 's' : ''}</p>
             </div>
           </>
         )}
@@ -472,6 +466,7 @@ export default function AppointmentsPage() {
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Student</p>
                   <p className="text-sm font-medium text-gray-800">{detailAppt.student_name}</p>
                   <p className="text-xs text-gray-400">{detailAppt.student_email}</p>
+                  {detailAppt.student_id_number && <p className="text-xs text-gray-400">{detailAppt.student_id_number}</p>}
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
@@ -486,7 +481,7 @@ export default function AppointmentsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Purpose</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Session Type</p>
                   <p className="text-sm text-gray-800">{fmtPurpose(detailAppt.purpose)}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
@@ -538,7 +533,9 @@ export default function AppointmentsPage() {
                 Confirm that <strong>{noShowTarget.student_name}</strong> did not attend this session.
               </p>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Remarks <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                  Remarks <span className="font-normal normal-case text-gray-400">(optional)</span>
+                </label>
                 <textarea value={noShowReason} onChange={e => setNoShowReason(e.target.value)}
                   rows={2} placeholder="Any notes about this no-show…"
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-red-300 focus:border-red-300 focus:outline-none resize-none" />
@@ -548,18 +545,77 @@ export default function AppointmentsPage() {
                   className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
                   Cancel
                 </button>
-                <button
-                  disabled={submittingNoShow}
+                <button disabled={submittingNoShow}
                   onClick={async () => {
                     setSubmittingNoShow(true);
                     await doAction(noShowTarget.appointment_id, 'mark-no-show', { reason: noShowReason });
                     setNoShowTarget(null);
                     setSubmittingNoShow(false);
                   }}
-                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2"
-                >
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
                   {submittingNoShow && <Loader2 size={13} className="animate-spin" />}
                   Confirm No Show
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Follow-Up Scheduling Modal ────────────────────────────── */}
+      {followUpTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Schedule Follow-Up Session</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{followUpTarget.student_name}</p>
+              </div>
+              <button onClick={() => setFollowUpTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-gray-500 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                A new confirmed session will be created and linked to the same case. The student will see it in their upcoming sessions.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date <span className="text-red-400">*</span></label>
+                  <input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Time <span className="text-red-400">*</span></label>
+                  <input type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Office / Location <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <input type="text" value={followUpOffice} onChange={e => setFollowUpOffice(e.target.value)}
+                  placeholder="e.g. Room 203, CPS Office"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Notes <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <textarea value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)}
+                  rows={2} placeholder="Session notes or focus areas…"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none resize-none" />
+              </div>
+              {followUpMsg && (
+                <p className={`text-xs ${followUpMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{followUpMsg.text}</p>
+              )}
+              <div className="flex gap-2">
+                <button onClick={() => setFollowUpTarget(null)}
+                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  Cancel
+                </button>
+                <button onClick={doFollowUp}
+                  disabled={submittingFollowUp || !followUpDate || !followUpTime}
+                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  {submittingFollowUp && <Loader2 size={13} className="animate-spin" />}
+                  Schedule Session
                 </button>
               </div>
             </div>

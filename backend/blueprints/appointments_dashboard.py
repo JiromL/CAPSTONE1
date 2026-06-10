@@ -39,8 +39,6 @@ def get_role_based_dashboard():
             return get_admin_dashboard(user_id_obj, user_name)
         elif role == 'IC':  # Intake Coordinator
             return get_intake_coordinator_requests(user_id_obj, user_name)
-        elif role == 'CSC':  # Case Study Coordinator
-            return get_case_coordinator_requests(user_id_obj, user_name)
         elif role == 'STAFF':
             return get_staff_dashboard(user_id_obj, user_name)
         else:
@@ -247,7 +245,7 @@ def get_case_coordinator_requests(user_id_obj, user_name):
         referral_count    = sum(1 for a in all_apts if a.get('status') == AppointmentStatus.REFERRAL.value)
 
         return jsonify({
-            'role': 'CSC',
+            'role': 'COUNSELOR',
             'user_name': user_name,
             'view_type': 'ongoing_sessions',
             'appointments': format_appointments(all_apts),
@@ -277,7 +275,7 @@ def get_staff_dashboard(user_id_obj, user_name):
             'role': 'STAFF',
             'user_name': user_name,
             'view_type': 'staff_assignment',
-            'appointments': format_appointments([a for a in all_appointments if a.get('status') != 'RESCHEDULE_REQUESTED']),
+            'appointments': format_appointments(all_appointments),
             'summary': {
                 'total_appointments': len(all_appointments),
                 'unassigned_requests': len(requested),

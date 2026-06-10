@@ -3410,6 +3410,86 @@ def edit_appointment(appointment_id):
     return jsonify({'message': 'Appointment updated.'}), 200
 
 
+@appointments_bp.route('/<appointment_id>/schedule', methods=['PATCH'])
+@jwt_required()
+def schedule_endorsed_appointment(appointment_id):
+    """Counselor/psychologist sets date+time on an endorsed appointment that has no date yet."""
+    user_id = get_jwt_identity()
+    try:
+        apt_id = ObjectId(appointment_id)
+    except Exception:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+
+    apt = db.db.appointments.find_one({'_id': apt_id})
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    # Only the assigned counselor may schedule
+    if str(apt.get('counselor_id', '')) != str(user_id):
+        # Also allow admin / DPO
+        user = db.db.users.find_one({'_id': ObjectId(user_id)})
+        if not user or user.get('role') not in ('ADMIN', 'DPO'):
+            return jsonify({'error': 'Only the assigned counselor can schedule this session'}), 403
+
+    data = request.get_json() or {}
+    date_str = data.get('date', '')
+    time_str = data.get('time', '')
+    office   = data.get('office', '')
+    method   = data.get('method', apt.get('method', 'in_person'))
+
+    if not date_str or not time_str:
+        return jsonify({'error': 'date and time are required'}), 400
+
+    try:
+        scheduled_start = datetime.fromisoformat(f"{date_str}T{time_str}:00")
+    except Exception:
+        return jsonify({'error': 'Invalid date or time format (use YYYY-MM-DD and HH:MM)'}), 400
+
+    now = datetime.utcnow()
+    db.db.appointments.update_one({'_id': apt_id}, {'$set': {
+        'scheduled_start':           scheduled_start,
+        'preferred_date':            scheduled_start.isoformat(),
+        'preferred_time':            time_str,
+        'office':                    office,
+        'method':                    method,
+        'status':                    AppointmentStatus.PENDING_STUDENT_APPROVAL.value,
+        'counselor_proposed_at':     now,
+        'updated_at':                now,
+    }})
+    audit_log(db.db, 'appointments', 'counselor_scheduled', entity_id=appointment_id)
+    return jsonify({'message': 'Session proposed — awaiting student confirmation.'}), 200
+
+
+@appointments_bp.route('/<appointment_id>/confirm-schedule', methods=['POST'])
+@jwt_required()
+def confirm_schedule(appointment_id):
+    """Student confirms the counselor-proposed schedule."""
+    user_id = get_jwt_identity()
+    try:
+        apt_id = ObjectId(appointment_id)
+    except Exception:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+
+    apt = db.db.appointments.find_one({'_id': apt_id})
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    if str(apt.get('student_id', '')) != str(user_id):
+        return jsonify({'error': 'Only the student can confirm this schedule'}), 403
+
+    if apt.get('status') != AppointmentStatus.PENDING_STUDENT_APPROVAL.value:
+        return jsonify({'error': 'Appointment is not awaiting confirmation'}), 400
+
+    now = datetime.utcnow()
+    db.db.appointments.update_one({'_id': apt_id}, {'$set': {
+        'status':       AppointmentStatus.CONFIRMED.value,
+        'confirmed_at': now,
+        'updated_at':   now,
+    }})
+    audit_log(db.db, 'appointments', 'student_confirmed_schedule', entity_id=appointment_id)
+    return jsonify({'message': 'Schedule confirmed.'}), 200
+
+
 # ─── FLOWCHART-ALIGNED ENDPOINTS ───────────────────────────────────────────
 
 @appointments_bp.route('/<appointment_id>/close-at-intake', methods=['POST'])

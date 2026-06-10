@@ -17,8 +17,6 @@ class UserRole(str, Enum):
     DPO = "DPO"  # Director of Psychological Operations
     COUNSELOR = "COUNSELOR"  # Non-clinical/developmental counselor
     PSYCHOLOGIST = "PSYCHOLOGIST"  # Clinical psychologist
-    CSC = "CSC"  # Continuing Session Counselor
-    CSP = "CSP"  # Continuing Session Psychologist
     IC = "IC"  # Intake Counselor
     STAFF = "STAFF"  # Office assistant/support staff
     STUDENT = "STUDENT"
@@ -74,6 +72,7 @@ class AppointmentStatus(str, Enum):
     CANCELLED = "CANCELLED"
     NO_SHOW = "NO_SHOW"
     CLOSED_AT_INTAKE = "CLOSED_AT_INTAKE"   # IC closed case — no continuing sessions needed
+    PENDING_STUDENT_APPROVAL = "PENDING_STUDENT_APPROVAL"  # Counselor proposed schedule, awaiting student confirmation
 
 
 class ReferralStatus(str, Enum):
@@ -191,24 +190,6 @@ ROLE_PERMISSIONS = {
         PermissionType.EDIT_NOTES,
         PermissionType.VIEW_SENSITIVE_FIELDS,
         PermissionType.VIEW_AUDIT_LOG,
-        PermissionType.VIEW_RISK_DASHBOARD,
-        PermissionType.ESCALATE_CRISIS,
-    },
-    UserRole.CSC: {
-        PermissionType.VIEW_CASE,
-        PermissionType.EDIT_CASE,
-        PermissionType.CREATE_ASSESSMENT,
-        PermissionType.VIEW_NOTES,
-        PermissionType.EDIT_NOTES,
-        PermissionType.VIEW_RISK_DASHBOARD,
-    },
-    UserRole.CSP: {
-        PermissionType.VIEW_CASE,
-        PermissionType.EDIT_CASE,
-        PermissionType.CREATE_ASSESSMENT,
-        PermissionType.VIEW_NOTES,
-        PermissionType.EDIT_NOTES,
-        PermissionType.VIEW_SENSITIVE_FIELDS,
         PermissionType.VIEW_RISK_DASHBOARD,
         PermissionType.ESCALATE_CRISIS,
     },

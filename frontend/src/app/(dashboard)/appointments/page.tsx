@@ -43,7 +43,7 @@ const TABS = [
 type TabKey = typeof TABS[number]['key'];
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
-  active:     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL', 'RESCHEDULE_REQUESTED'],
+  active:     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL', 'RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
   evaluation: ['EVALUATION'],
   past:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL'],
   cancelled:  ['CANCELLED', 'DENIED', 'NO_SHOW'],
@@ -63,8 +63,9 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  RESCHEDULE_REQUESTED: { label: 'Reschedule Pending', cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
-  EVALUATION:           { label: 'Post-Session',       cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
+  RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
+  PENDING_STUDENT_APPROVAL: { label: 'Awaiting Confirmation', cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
+  EVALUATION:               { label: 'Post-Session',          cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
   FOLLOW_UP:            { label: 'Follow-Up',          cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' },
   REFERRAL:             { label: 'Referral',           cls: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' },
   COMPLETED:            { label: 'Completed',          cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
@@ -128,6 +129,15 @@ export default function AppointmentsPage() {
   const [noShowTarget, setNoShowTarget] = useState<Appointment | null>(null);
   const [noShowReason, setNoShowReason] = useState('');
   const [submittingNoShow, setSubmittingNoShow] = useState(false);
+
+  // Schedule endorsed session modal
+  const [schedTarget, setSchedTarget] = useState<Appointment | null>(null);
+  const [schedDate, setSchedDate] = useState('');
+  const [schedTime, setSchedTime] = useState('');
+  const [schedOffice, setSchedOffice] = useState('');
+  const [schedMethod, setSchedMethod] = useState('in_person');
+  const [schedMsg, setSchedMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [submittingSched, setSubmittingSched] = useState(false);
 
   const [intakeSummary, setIntakeSummary] = useState<any>(null);
   const [intakePacket,  setIntakePacket]  = useState<any>(null);
@@ -231,6 +241,26 @@ export default function AppointmentsPage() {
     } finally { setSubmittingFollowUp(false); }
   };
 
+  const doSchedule = async () => {
+    if (!schedTarget || !schedDate || !schedTime) return;
+    setSubmittingSched(true); setSchedMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/${schedTarget.appointment_id}/schedule`), {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: schedDate, time: schedTime, office: schedOffice, method: schedMethod }),
+      });
+      if (r.ok) {
+        setSchedMsg({ type: 'ok', text: 'Session scheduled.' });
+        setTimeout(() => { setSchedTarget(null); load(); }, 1200);
+      } else {
+        const e = await r.json();
+        setSchedMsg({ type: 'err', text: e.error || 'Failed to schedule.' });
+      }
+    } finally { setSubmittingSched(false); }
+  };
+
   if (loading) {
     return (
       <DashboardPageWrapper title="My Sessions" subtitle="Appointments assigned to you">
@@ -315,15 +345,17 @@ export default function AppointmentsPage() {
           <>
             <div className="p-4 space-y-3">
               {filtered.map((apt) => {
-                const cfg         = STATUS_BADGE[apt.status] ?? { label: apt.status, cls: 'bg-gray-100 text-gray-600' };
-                const isEval      = apt.status === 'EVALUATION';
-                const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
-                const isHighRisk  = apt.risk_level && ['RED', 'CRITICAL'].includes(apt.risk_level.toUpperCase());
-                const aptId       = apt.appointment_id;
+                const cfg                   = STATUS_BADGE[apt.status] ?? { label: apt.status, cls: 'bg-gray-100 text-gray-600' };
+                const isEval                = apt.status === 'EVALUATION';
+                const isConfirmed           = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
+                const isPendingStudentApproval = apt.status === 'PENDING_STUDENT_APPROVAL';
+                const isHighRisk            = apt.risk_level && ['RED', 'CRITICAL'].includes(apt.risk_level.toUpperCase());
+                const aptId                 = apt.appointment_id;
 
-                const cardCls = isHighRisk ? 'border-red-200 bg-red-50/20'
-                              : isEval     ? 'border-amber-100 bg-amber-50/10'
-                              : isConfirmed ? 'border-green-100 bg-white hover:border-green-200'
+                const cardCls = isHighRisk             ? 'border-red-200 bg-red-50/20'
+                              : isEval                  ? 'border-amber-100 bg-amber-50/10'
+                              : isPendingStudentApproval ? 'border-sky-100 bg-sky-50/20'
+                              : isConfirmed             ? 'border-green-100 bg-white hover:border-green-200'
                               : 'border-gray-200 bg-white hover:border-gray-300';
 
                 return (
@@ -379,6 +411,22 @@ export default function AppointmentsPage() {
                               <Eye size={11} /> View
                             </button>
 
+                            {/* Schedule button for endorsed appointments with no date */}
+                            {isConfirmed && !apt.preferred_date && (
+                              <button
+                                onClick={() => { setSchedTarget(apt); setSchedDate(''); setSchedTime(''); setSchedOffice(''); setSchedMethod('in_person'); setSchedMsg(null); }}
+                                className="flex items-center gap-1 px-2.5 py-1 bg-[#1a5228] hover:bg-green-800 text-white text-xs font-semibold rounded-lg transition">
+                                <CalendarDays size={11} /> Set Schedule
+                              </button>
+                            )}
+
+                            {/* Awaiting student confirmation notice */}
+                            {isPendingStudentApproval && (
+                              <span className="text-xs text-sky-600 font-medium flex items-center gap-1">
+                                <CheckCircle size={11} /> Schedule proposed — waiting for student
+                              </span>
+                            )}
+
                             {/* Join session */}
                             {apt.meeting_link && isConfirmed && (
                               <a href={apt.meeting_link} target="_blank" rel="noreferrer"
@@ -387,8 +435,8 @@ export default function AppointmentsPage() {
                               </a>
                             )}
 
-                            {/* Confirmed actions */}
-                            {isConfirmed && (
+                            {/* Confirmed actions (not when awaiting student confirmation) */}
+                            {isConfirmed && !isPendingStudentApproval && (
                               <>
                                 <button onClick={() => doAction(aptId, 'set-evaluation')}
                                   disabled={actioningId === aptId}
@@ -704,6 +752,69 @@ export default function AppointmentsPage() {
                   Schedule Session
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Set Schedule Modal (endorsed sessions with no date) ── */}
+      {schedTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Set Session Schedule</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{schedTarget.student_name}</p>
+              </div>
+              <button onClick={() => setSchedTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-gray-500">
+                This session was endorsed by the Intake Counselor. Set a date and time — it will be automatically confirmed and the student will be notified.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+                  <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Time</label>
+                  <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Method</label>
+                <select value={schedMethod} onChange={e => setSchedMethod(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                  <option value="in_person">Face to Face</option>
+                  <option value="google_meet">Google Meet</option>
+                  <option value="zoom">Zoom</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Room / Office <span className="text-gray-400">(optional)</span></label>
+                <input type="text" value={schedOffice} onChange={e => setSchedOffice(e.target.value)}
+                  placeholder="e.g. CPS Room 301"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+              </div>
+              {schedMsg && (
+                <p className={`text-xs ${schedMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{schedMsg.text}</p>
+              )}
+            </div>
+            <div className="px-6 pb-5 flex gap-3">
+              <button onClick={() => setSchedTarget(null)}
+                className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button onClick={doSchedule} disabled={submittingSched || !schedDate || !schedTime}
+                className="flex-1 px-4 py-2 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                {submittingSched && <Loader2 size={13} className="animate-spin" />}
+                Confirm Schedule
+              </button>
             </div>
           </div>
         </div>

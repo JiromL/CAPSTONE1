@@ -430,12 +430,17 @@ def submit_intake(intake_id):
         intake = db.db.intakes.find_one({"_id": ObjectId(intake_id)})
     except:
         intake = db.db.intakes.find_one({"_id": intake_id})
-    
+    if not intake:
+        try:
+            intake = db.db.intakes.find_one({"appointment_id": ObjectId(intake_id)})
+        except Exception:
+            pass
+
     if not intake:
         return jsonify({'error': 'Intake not found'}), 404
-    
+
     data = request.get_json()
-    
+
     db.db.intakes.update_one(
         {"_id": intake['_id']},
         {
@@ -474,6 +479,11 @@ def submit_triage(intake_id):
     except Exception:
         intake = db.db.intakes.find_one({'_id': intake_id})
     if not intake:
+        try:
+            intake = db.db.intakes.find_one({'appointment_id': ObjectId(intake_id)})
+        except Exception:
+            pass
+    if not intake:
         return jsonify({'error': 'Intake not found'}), 404
 
     data = request.get_json() or {}
@@ -481,6 +491,7 @@ def submit_triage(intake_id):
     gad7 = data.get('gad7_responses', [])
     decision = data.get('triage_decision', '')
     notes = data.get('endorsement_notes', '')
+    assigned_counselor_id = data.get('assigned_counselor_id', '')
 
     if not decision:
         return jsonify({'error': 'triage_decision is required.'}), 400
@@ -519,38 +530,131 @@ def submit_triage(intake_id):
         }}
     )
 
-    # Update linked case
+    # Mark the linked intake_interview appointment as COMPLETED so the
+    # IC dashboard no longer shows a "Conduct Intake" button for it.
+    if intake.get('appointment_id'):
+        try:
+            db.db.appointments.update_one(
+                {'_id': ObjectId(str(intake['appointment_id']))},
+                {'$set': {'status': AppointmentStatus.COMPLETED.value, 'updated_at': now}}
+            )
+        except Exception:
+            pass
+
+    # Resolve case — create one if intake has no case_id
+    from models import CaseStatus, TerminationType
     case_id = intake.get('case_id')
-    if case_id:
-        from models import CaseStatus, TerminationType
-        if decision == 'CLOSE_AT_INTAKE':
-            db.db.cases.update_one(
-                {'_id': case_id},
-                {'$set': {
-                    'status': CaseStatus.CLOSED.value,
-                    'termination_type': TerminationType.CLOSED_AT_INTAKE.value,
+
+    # Normalise student_id to ObjectId once
+    student_id = intake.get('student_id')
+    if student_id and not isinstance(student_id, ObjectId):
+        try: student_id = ObjectId(student_id)
+        except Exception: pass
+
+    if not case_id:
+        student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
+        student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
+        student_email = student_doc.get('email', '') if student_doc else ''
+        new_case = {
+            'student_id': student_id,
+            'student_name': student_name,
+            'student_email': student_email,
+            'intake_counselor_id': ObjectId(user_id),
+            'assigned_counselor_id': None,
+            'status': CaseStatus.NEW.value,
+            'risk_level': risk_level,
+            'concern': intake.get('concern', ''),
+            'intake_id': intake['_id'],
+            'created_at': now,
+            'updated_at': now,
+        }
+        case_result = db.db.cases.insert_one(new_case)
+        case_id = case_result.inserted_id
+        db.db.intakes.update_one({'_id': intake['_id']}, {'$set': {'case_id': case_id}})
+
+    if decision == 'CLOSE_AT_INTAKE':
+        db.db.cases.update_one(
+            {'_id': case_id},
+            {'$set': {
+                'status': CaseStatus.CLOSED.value,
+                'termination_type': TerminationType.CLOSED_AT_INTAKE.value,
+                'risk_level': risk_level,
+                'closed_at': now,
+                'closed_by': user_id,
+                'closure_notes': notes,
+                'updated_at': now,
+            }}
+        )
+    else:
+        # ENDORSE_CC or ENDORSE_CP — case becomes active, assign counselor
+        endorsed_role = 'COUNSELOR' if decision == 'ENDORSE_CC' else 'PSYCHOLOGIST'
+
+        counselor_obj_id = None
+        counselor_name = None
+        if assigned_counselor_id:
+            try:
+                counselor_obj_id = ObjectId(assigned_counselor_id)
+                c = db.db.users.find_one({'_id': counselor_obj_id})
+                if c:
+                    counselor_name = f"{c.get('last_name','').upper()}, {c.get('first_name','')}"
+            except Exception:
+                pass
+
+        db.db.cases.update_one(
+            {'_id': case_id},
+            {'$set': {
+                'status': CaseStatus.ACTIVE.value,
+                'risk_level': risk_level,
+                'endorsed_to_role': endorsed_role,
+                'endorsed_at': now,
+                'endorsed_by': user_id,
+                'endorsement_notes': notes,
+                'assigned_counselor_id': counselor_obj_id,
+                'updated_at': now,
+            }}
+        )
+
+        # Create follow-up appointment assigned to the chosen counselor.
+        # Guard: only create one per intake to prevent duplicate re-triages.
+        if counselor_obj_id:
+            existing_followup = db.db.appointments.find_one({
+                'endorsed_from_intake': intake['_id'],
+                'status': {'$ne': AppointmentStatus.CANCELLED.value},
+            })
+            if not existing_followup:
+                student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
+                student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
+
+                follow_up_appt = {
+                    'student_id': student_id,
+                    'student_name': student_name,
+                    'counselor_id': counselor_obj_id,
+                    'counselor_name': counselor_name,
+                    'purpose': 'FOLLOW_UP',
+                    'status': AppointmentStatus.CONFIRMED.value,
+                    'concern': intake.get('concern', ''),
                     'risk_level': risk_level,
-                    'closed_at': now,
-                    'closed_by': user_id,
-                    'closure_notes': notes,
+                    'case_id': case_id,
+                    'source': 'endorsed',
+                    'endorsed_from_intake': intake['_id'],
+                    'method': 'in_person',
+                    'preferred_date': None,
+                    'preferred_time': None,
+                    'created_at': now,
                     'updated_at': now,
-                }}
-            )
-        else:
-            # ENDORSE_CC or ENDORSE_CP — case becomes active, waiting for counselor assignment
-            endorsed_role = 'COUNSELOR' if decision == 'ENDORSE_CC' else 'PSYCHOLOGIST'
-            db.db.cases.update_one(
-                {'_id': case_id},
-                {'$set': {
-                    'status': CaseStatus.ACTIVE.value,
-                    'risk_level': risk_level,
-                    'endorsed_to_role': endorsed_role,
-                    'endorsed_at': now,
-                    'endorsed_by': user_id,
-                    'endorsement_notes': notes,
-                    'updated_at': now,
-                }}
-            )
+                }
+                db.db.appointments.insert_one(follow_up_appt)
+            else:
+                # Re-triage: update the existing follow-up to reflect the new counselor
+                db.db.appointments.update_one(
+                    {'_id': existing_followup['_id']},
+                    {'$set': {
+                        'counselor_id': counselor_obj_id,
+                        'counselor_name': counselor_name,
+                        'risk_level': risk_level,
+                        'updated_at': now,
+                    }}
+                )
 
     audit_log(db.db, 'intake', 'triage', entity_id=intake_id,
               new_values={'risk_level': risk_level, 'triage_decision': decision})
@@ -568,23 +672,67 @@ def submit_triage(intake_id):
 @intake_bp.route('/<intake_id>', methods=['GET'])
 @jwt_required()
 def get_intake(intake_id):
-    """Get intake details"""
+    """Get intake details — accepts intakes _id OR appointment_id"""
     user_id = get_jwt_identity()
-    
+
+    intake = None
+    # Try as intakes._id first
     try:
         intake = db.db.intakes.find_one({"_id": ObjectId(intake_id)})
-    except:
+    except Exception:
         intake = db.db.intakes.find_one({"_id": intake_id})
-    
+
+    # Fall back: look up by appointment_id (for online-booked intake_interview appointments)
+    if not intake:
+        try:
+            intake = db.db.intakes.find_one({"appointment_id": ObjectId(intake_id)})
+        except Exception:
+            pass
+        if not intake:
+            # Also try looking up from appointments collection directly
+            try:
+                appt = db.db.appointments.find_one({"_id": ObjectId(intake_id)})
+            except Exception:
+                appt = None
+            if appt:
+                # Auto-create a real intake record so triage/submit endpoints can reference it
+                new_doc = {
+                    'appointment_id': appt['_id'],
+                    'student_id': appt.get('student_id'),
+                    'counselor_id': appt.get('counselor_id'),
+                    'source': 'online',
+                    'status': 'PENDING',
+                    'concern': appt.get('concern', ''),
+                    'purpose': appt.get('purpose', ''),
+                    'risk_level': appt.get('risk_level', 'GREEN'),
+                    'is_emergency': appt.get('is_emergency', False),
+                    'responses': {'concern': appt.get('concern', '')},
+                    'created_at': datetime.utcnow(),
+                    'updated_at': datetime.utcnow(),
+                    # NOTE: case_id intentionally omitted — set later when endorsement creates a case
+                }
+                try:
+                    result = db.db.intakes.insert_one(new_doc)
+                    new_doc['_id'] = result.inserted_id
+                    intake = new_doc
+                except Exception:
+                    # Race condition: another request created it first — fetch it
+                    intake = db.db.intakes.find_one({'appointment_id': appt['_id']})
+
     if not intake:
         return jsonify({'error': 'Intake not found'}), 404
-    
-    intake['_id'] = str(intake['_id'])
-    intake['case_id'] = str(intake['case_id'])
-    intake['created_at'] = intake['created_at'].isoformat()
-    intake['updated_at'] = intake['updated_at'].isoformat()
-    
-    return jsonify(intake), 200
+
+    # Serialize all ObjectId and datetime fields
+    serialized = {}
+    for k, v in intake.items():
+        if isinstance(v, ObjectId):
+            serialized[k] = str(v)
+        elif hasattr(v, 'isoformat'):
+            serialized[k] = v.isoformat()
+        else:
+            serialized[k] = v
+
+    return jsonify(serialized), 200
 
 
 @intake_bp.route('/case/<case_id>', methods=['GET'])
@@ -600,13 +748,17 @@ def get_case_intake(case_id):
     
     if not intake:
         return jsonify({'error': 'No intake found'}), 404
-    
-    intake['_id'] = str(intake['_id'])
-    intake['case_id'] = str(intake['case_id'])
-    intake['created_at'] = intake['created_at'].isoformat()
-    intake['updated_at'] = intake['updated_at'].isoformat()
-    
-    return jsonify(intake), 200
+
+    serialized = {}
+    for k, v in intake.items():
+        if isinstance(v, ObjectId):
+            serialized[k] = str(v)
+        elif isinstance(v, datetime):
+            serialized[k] = v.isoformat()
+        else:
+            serialized[k] = v
+
+    return jsonify(serialized), 200
 
 
 @intake_bp.route('/submit', methods=['POST'])
@@ -1429,7 +1581,7 @@ def get_assessment_dashboard():
                 print(f"Error loading student dashboard: {student_err}")
                 dashboard_data['summary'] = {'error': str(student_err)}
         
-        elif user_role in ['COUNSELOR', 'CSC', 'CSP']:
+        elif user_role in ['COUNSELOR', 'PSYCHOLOGIST']:
             # Counselor sees only their assigned cases
             try:
                 cases = list(db.db.cases.find({"assigned_counselor_id": ObjectId(user_id)}).limit(50))
@@ -2326,6 +2478,7 @@ def create_walkin_intake():
         return jsonify({
             'success': True,
             'intake_id': str(result.inserted_id),
+            'appointment_id': str(appointment_data['_id']),
             'case_id': str(case_id),
             'counseling_id': counseling_id,
             'message': f'Walk-in intake created. Estimated appointment in {days_string}.',
@@ -2511,7 +2664,7 @@ def list_intakes():
     from datetime import timedelta
     user_id = get_jwt_identity()
     user = db.db.users.find_one({'_id': ObjectId(user_id)}) if user_id else None
-    allowed_roles = {'IC', 'STAFF', 'CSC', 'CSP', 'ADMIN', 'DPO', 'PSYCHOLOGIST', 'COUNSELOR'}
+    allowed_roles = {'IC', 'STAFF', 'ADMIN', 'DPO', 'PSYCHOLOGIST', 'COUNSELOR'}
     if not user or user.get('role') not in allowed_roles:
         return jsonify({'error': 'Unauthorized'}), 403
 
@@ -2560,3 +2713,183 @@ def list_intakes():
         })
 
     return jsonify({'intakes': result, 'total': len(result), 'status_filter': status_param}), 200
+
+
+# ============================================================================
+# INTAKE PACKET  (ICF + SPIF-IF + PHQ-4)
+# Submitted by student (online) or OA (walk-in) before IC triage
+# Collection: intake_packets
+# ============================================================================
+
+PHQ4_QUESTIONS = [
+    'Little interest or pleasure in doing things',
+    'Feeling down, depressed, or hopeless',
+    'Feeling nervous, anxious, or on edge',
+    'Not being able to stop or control worrying',
+]
+
+@intake_bp.route('/packet', methods=['POST'])
+def submit_intake_packet():
+    """Submit ICF + SPIF-IF + PHQ-4 packet.
+
+    No auth required — students submit before/during booking, OA submits on behalf of walk-ins.
+    Body:
+      source            – 'online' | 'walkin'
+      submitted_by_role – 'student' | 'oa'
+      appointment_id    – optional, links to an existing appointment
+      icf               – ICF fields dict
+      spif              – SPIF-IF fields dict
+      phq4_responses    – list of 4 ints (0-3)
+    """
+    data = request.get_json() or {}
+
+    source = data.get('source', 'online')
+    appointment_id = data.get('appointment_id')
+    icf  = data.get('icf', {})
+    spif = data.get('spif', {})
+    phq4 = data.get('phq4_responses', [])
+
+    # Validate PHQ-4
+    if phq4 and len(phq4) != 4:
+        return jsonify({'error': 'phq4_responses must have exactly 4 items (0-3 each)'}), 400
+    for val in phq4:
+        if not isinstance(val, int) or val < 0 or val > 3:
+            return jsonify({'error': 'Each PHQ-4 response must be an integer 0-3'}), 400
+
+    phq2_score = sum(phq4[:2]) if phq4 else None
+    gad2_score = sum(phq4[2:]) if phq4 else None
+    total_phq4 = sum(phq4) if phq4 else None
+
+    # Resolve appointment ObjectId
+    apt_obj_id = None
+    if appointment_id:
+        try:
+            apt_obj_id = ObjectId(appointment_id)
+        except Exception:
+            pass
+
+    # Upsert — one packet per appointment (or per email for walk-ins without appointment)
+    match_key = {'appointment_id': apt_obj_id} if apt_obj_id else {'icf.email': icf.get('email', ''), 'source': 'walkin'}
+
+    packet = {
+        'source': source,
+        'submitted_by_role': data.get('submitted_by_role', 'student'),
+        'appointment_id': apt_obj_id,
+        'icf': icf,
+        'spif': spif,
+        'phq4_responses': phq4,
+        # Consent audit trail (RA 10173 compliance)
+        'consent_audit': {
+            'consent_to_service': icf.get('consent_to_service', False),
+            'consent_to_data': icf.get('consent_to_data', False),
+            'consent_timestamp': datetime.utcnow().isoformat(),
+            'consent_version': '2025-AY',
+            'submitted_by': source,
+        },
+        'phq4': {
+            'phq2_score': phq2_score,
+            'gad2_score': gad2_score,
+            'total_score': total_phq4,
+            'depression_risk': phq2_score is not None and phq2_score >= 3,
+            'anxiety_risk':    gad2_score  is not None and gad2_score  >= 3,
+        } if phq4 else None,
+        'updated_at': datetime.utcnow(),
+    }
+
+    existing = db.db.intake_packets.find_one(match_key)
+    if existing:
+        db.db.intake_packets.update_one({'_id': existing['_id']}, {'$set': packet})
+        packet_id = str(existing['_id'])
+    else:
+        packet['created_at'] = datetime.utcnow()
+        res = db.db.intake_packets.insert_one(packet)
+        packet_id = str(res.inserted_id)
+
+    # If linked to an appointment, flag it as having intake packet
+    if apt_obj_id:
+        db.db.appointments.update_one(
+            {'_id': apt_obj_id},
+            {'$set': {'intake_packet_submitted': True, 'intake_packet_id': ObjectId(packet_id)}}
+        )
+
+    return jsonify({
+        'message': 'Intake packet submitted',
+        'packet_id': packet_id,
+        'phq4_summary': packet.get('phq4'),
+    }), 201
+
+
+@intake_bp.route('/packet/<appointment_id>', methods=['GET'])
+@jwt_required()
+def get_intake_packet(appointment_id):
+    """Get intake packet for an appointment (IC/staff only)."""
+    uid = get_jwt_identity()
+    try:
+        uid_obj = ObjectId(uid)
+    except Exception:
+        return jsonify({'error': 'Invalid token'}), 401
+
+    user = db.db.users.find_one({'_id': uid_obj})
+    user_role = user.get('role') if user else None
+    # OA can see ICF/SPIF only (not PHQ-4 scores — those are clinical data)
+    # IC, Director, Admin see everything
+    # STUDENT can check submitted status for their own appointment (returns only submitted flag)
+    ALLOWED = {'IC', 'INTAKE_COUNSELOR', 'ADMIN', 'STAFF', 'OA', 'OFFICE_ASSISTANT', 'DIRECTOR', 'DPO', 'STUDENT'}
+    if not user or user_role not in ALLOWED:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    try:
+        apt_obj_id = ObjectId(appointment_id)
+    except Exception:
+        return jsonify({'error': 'Invalid appointment_id'}), 400
+
+    packet = db.db.intake_packets.find_one({'appointment_id': apt_obj_id})
+    if not packet:
+        return jsonify({'submitted': False}), 200
+
+    # Students only need to know if their forms were submitted — no clinical data
+    if user_role == 'STUDENT':
+        return jsonify({'submitted': True}), 200
+
+    # Flatten — convert ObjectIds, rename phq4 → phq4_summary
+    result = {k: v for k, v in packet.items()}
+    result['_id'] = str(result.get('_id', ''))
+    if result.get('appointment_id'):
+        result['appointment_id'] = str(result['appointment_id'])
+    result['submitted'] = True
+    result['phq4_summary'] = result.pop('phq4', None)
+
+    # OA role: strip clinical screening scores (data minimization — RA 10173)
+    if user_role in {'OA', 'OFFICE_ASSISTANT'}:
+        result.pop('phq4_summary', None)
+        result.pop('phq4_responses', None)
+
+    return jsonify(result), 200
+
+
+@intake_bp.route('/packet/by-email/<email>', methods=['GET'])
+@jwt_required()
+def get_intake_packet_by_email(email):
+    """Get latest walk-in intake packet by student email (IC/OA only)."""
+    uid = get_jwt_identity()
+    try:
+        uid_obj = ObjectId(uid)
+    except Exception:
+        return jsonify({'error': 'Invalid token'}), 401
+
+    user = db.db.users.find_one({'_id': uid_obj})
+    if not user or user.get('role') not in {'IC', 'INTAKE_COUNSELOR', 'ADMIN', 'STAFF', 'OA'}:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    packet = db.db.intake_packets.find_one(
+        {'icf.email': email},
+        sort=[('created_at', -1)]
+    )
+    if not packet:
+        return jsonify({'packet': None, 'submitted': False}), 200
+
+    packet['_id'] = str(packet['_id'])
+    if packet.get('appointment_id'):
+        packet['appointment_id'] = str(packet['appointment_id'])
+
+    return jsonify({'packet': packet, 'submitted': True}), 200

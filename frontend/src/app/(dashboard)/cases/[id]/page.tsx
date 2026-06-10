@@ -207,7 +207,7 @@ export default function CaseDetailPage() {
   const [caseData, setCaseData] = useState<any>(null);
   const [checkInHistory, setCheckInHistory] = useState<any[]>([]);
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
-  const [activeTab, setActiveTab] = useState<'details' | 'session-notes' | 'treatment-plan' | 'diagnoses' | 'safety-plan' | 'assessments' | 'check-ins' | 'perma'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'intake-summary' | 'session-notes' | 'treatment-plan' | 'diagnoses' | 'safety-plan' | 'assessments' | 'check-ins' | 'perma'>('details');
   const [diagnoses, setDiagnoses] = useState<Array<{ code: string; description: string; type: string; system: string; added_at: string }>>([]);
   const [diagForm, setDiagForm] = useState({ code: '', description: '', type: 'primary', system: 'DSM-5' });
   const [savingDiag, setSavingDiag] = useState(false);
@@ -218,6 +218,10 @@ export default function CaseDetailPage() {
   const [mhbotError, setMhbotError] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const [intakeSummary, setIntakeSummary] = useState<any>(null);
+  const [intakePacket, setIntakePacket] = useState<any>(null);
+  const [intakeSummaryLoaded, setIntakeSummaryLoaded] = useState(false);
 
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
@@ -379,6 +383,7 @@ export default function CaseDetailPage() {
     if (activeTab === 'perma') loadPermaHistory();
     if (activeTab === 'diagnoses') loadDiagnoses();
     if (activeTab === 'safety-plan' && !safetyPlanLoaded) loadSafetyPlan();
+    if (activeTab === 'intake-summary' && !intakeSummaryLoaded) loadIntakeSummary();
     if (activeTab === 'assessments') {
       if (!schedulesLoaded) loadAssessmentSchedules();
       if (!historyLoaded) loadAssessmentHistory();
@@ -550,6 +555,22 @@ export default function CaseDetailPage() {
     const token = localStorage.getItem('token');
     await fetch(api(`/api/cases/${caseId}/diagnoses/${index}`), { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     await loadDiagnoses();
+  };
+
+  const loadIntakeSummary = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/intake/case/${caseId}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) {
+        const d = await r.json();
+        setIntakeSummary(d);
+        if (d.appointment_id) {
+          const pr = await fetch(api(`/api/intake/packet/${d.appointment_id}`), { headers: { Authorization: `Bearer ${token}` } });
+          if (pr.ok) setIntakePacket(await pr.json());
+        }
+      }
+    } catch {}
+    setIntakeSummaryLoaded(true);
   };
 
   const loadPermaHistory = async () => {
@@ -727,6 +748,7 @@ export default function CaseDetailPage() {
 
   const tabs = [
     { id: 'details' as const, label: 'Case Details' },
+    { id: 'intake-summary' as const, label: 'Intake Summary' },
     { id: 'session-notes' as const, label: `Session Notes (${sessionNotes.length})` },
     { id: 'treatment-plan' as const, label: 'Treatment Plan' },
     { id: 'diagnoses' as const, label: `Diagnoses (${diagnoses.length})` },
@@ -914,6 +936,142 @@ export default function CaseDetailPage() {
               <p className="text-sm text-gray-700 dark:text-gray-300">{caseData.presenting_issue}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Intake Summary Tab ────────────────────────────────── */}
+      {activeTab === 'intake-summary' && (
+        <div className="space-y-4">
+          {!intakeSummaryLoaded && (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 size={24} className="animate-spin text-green-700" />
+            </div>
+          )}
+          {intakeSummaryLoaded && !intakeSummary && (
+            <div className="bg-white rounded-lg border border-gray-200 p-10 text-center">
+              <FileText size={28} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 text-sm">No intake record found for this case.</p>
+            </div>
+          )}
+          {intakeSummary && (() => {
+            const phq9 = intakeSummary.phq9_score;
+            const gad7 = intakeSummary.gad7_score;
+            const decision = intakeSummary.triage_decision;
+            const risk = (intakeSummary.risk_level || 'GREEN').toUpperCase();
+            const RISK_CL: Record<string, string> = {
+              GREEN: 'bg-green-100 text-green-800', YELLOW: 'bg-yellow-100 text-yellow-800',
+              RED: 'bg-red-100 text-red-800', CRITICAL: 'bg-red-200 text-red-900 font-bold',
+            };
+            const phq9Sev = phq9 == null ? '—' : phq9 <= 4 ? 'Minimal' : phq9 <= 9 ? 'Mild' : phq9 <= 14 ? 'Moderate' : phq9 <= 19 ? 'Moderately Severe' : 'Severe';
+            const gad7Sev = gad7 == null ? '—' : gad7 <= 4 ? 'Minimal' : gad7 <= 9 ? 'Mild' : gad7 <= 14 ? 'Moderate' : 'Severe';
+            const decisionLabel: Record<string, string> = { ENDORSE_CC: 'Endorsed → Counselor (CC)', ENDORSE_CP: 'Endorsed → Psychologist (CP)', CLOSE_AT_INTAKE: 'Closed at Intake' };
+            const decisionCls: Record<string, string> = { ENDORSE_CC: 'bg-blue-50 border-blue-200 text-blue-800', ENDORSE_CP: 'bg-purple-50 border-purple-200 text-purple-800', CLOSE_AT_INTAKE: 'bg-gray-50 border-gray-200 text-gray-700' };
+            const icf = intakePacket?.icf || {};
+            const spif = intakePacket?.spif || {};
+            const phq4r = intakePacket?.phq4_responses || [];
+            const phq2Score = phq4r.length >= 2 ? phq4r[0] + phq4r[1] : null;
+            const gad2Score = phq4r.length >= 4 ? phq4r[2] + phq4r[3] : null;
+            return (
+              <>
+                {/* Triage decision banner */}
+                {decision && (
+                  <div className={`rounded-lg border px-5 py-4 ${decisionCls[decision] || 'bg-gray-50 border-gray-200 text-gray-700'}`}>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-0.5 opacity-60">Triage Decision</p>
+                    <p className="text-base font-bold">{decisionLabel[decision] || decision}</p>
+                    {intakeSummary.endorsement_notes && (
+                      <p className="text-sm mt-1 opacity-80">{intakeSummary.endorsement_notes}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Score cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500 font-medium mb-1">PHQ-9 Score</p>
+                    <p className="text-2xl font-bold text-gray-900">{phq9 ?? '—'}<span className="text-xs text-gray-400 font-normal ml-1">/ 27</span></p>
+                    <p className="text-xs text-gray-500 mt-0.5">{phq9Sev}</p>
+                  </div>
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500 font-medium mb-1">GAD-7 Score</p>
+                    <p className="text-2xl font-bold text-gray-900">{gad7 ?? '—'}<span className="text-xs text-gray-400 font-normal ml-1">/ 21</span></p>
+                    <p className="text-xs text-gray-500 mt-0.5">{gad7Sev}</p>
+                  </div>
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500 font-medium mb-1">Risk Level</p>
+                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${RISK_CL[risk] || RISK_CL['GREEN']}`}>{risk}</span>
+                  </div>
+                </div>
+
+                {/* PHQ-4 pre-screen from packet */}
+                {phq4r.length >= 4 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-5">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">PHQ-4 Pre-Screen</h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500">PHQ-2</p>
+                        <p className="text-xl font-bold text-gray-900">{phq2Score}<span className="text-xs text-gray-400">/6</span></p>
+                        <p className="text-xs text-gray-400">{phq2Score != null && phq2Score >= 3 ? 'Positive screen' : 'Negative'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500">GAD-2</p>
+                        <p className="text-xl font-bold text-gray-900">{gad2Score}<span className="text-xs text-gray-400">/6</span></p>
+                        <p className="text-xs text-gray-400">{gad2Score != null && gad2Score >= 3 ? 'Positive screen' : 'Negative'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500">Total</p>
+                        <p className="text-xl font-bold text-gray-900">{phq2Score != null && gad2Score != null ? phq2Score + gad2Score : '—'}<span className="text-xs text-gray-400">/12</span></p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ICF presenting concern */}
+                {(icf.presenting_concern || intakeSummary.concern) && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-5">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Presenting Concern</h4>
+                    <p className="text-sm text-gray-700">{icf.presenting_concern || intakeSummary.concern}</p>
+                  </div>
+                )}
+
+                {/* ICF details */}
+                {Object.keys(icf).length > 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-5">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Intake Counseling Form (ICF)</h4>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                      {icf.year_level && <div><dt className="text-xs text-gray-500">Year Level</dt><dd className="font-medium text-gray-800">{icf.year_level}</dd></div>}
+                      {icf.college && <div><dt className="text-xs text-gray-500">College / Unit</dt><dd className="font-medium text-gray-800">{icf.college}</dd></div>}
+                      {icf.degree_program && <div><dt className="text-xs text-gray-500">Degree Program</dt><dd className="font-medium text-gray-800">{icf.degree_program}</dd></div>}
+                      {icf.civil_status && <div><dt className="text-xs text-gray-500">Civil Status</dt><dd className="font-medium text-gray-800">{icf.civil_status}</dd></div>}
+                      {icf.referral_source && <div><dt className="text-xs text-gray-500">Referral Source</dt><dd className="font-medium text-gray-800">{icf.referral_source}</dd></div>}
+                      {icf.service_requested && <div><dt className="text-xs text-gray-500">Service Requested</dt><dd className="font-medium text-gray-800">{icf.service_requested}</dd></div>}
+                      {icf.has_previous_consultation != null && <div><dt className="text-xs text-gray-500">Prior Consultation</dt><dd className="font-medium text-gray-800">{icf.has_previous_consultation ? 'Yes' : 'No'}</dd></div>}
+                      {icf.medication_history && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Medication History</dt><dd className="text-gray-800">{icf.medication_history}</dd></div>}
+                      {icf.family_background && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Family Background</dt><dd className="text-gray-800">{icf.family_background}</dd></div>}
+                    </dl>
+                  </div>
+                )}
+
+                {/* SPIF details */}
+                {Object.keys(spif).length > 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-5">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Student Profile & Intake Form (SPIF-IF)</h4>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                      {spif.academic_standing && <div><dt className="text-xs text-gray-500">Academic Standing</dt><dd className="font-medium text-gray-800">{spif.academic_standing}</dd></div>}
+                      {spif.living_arrangement && <div><dt className="text-xs text-gray-500">Living Arrangement</dt><dd className="font-medium text-gray-800">{spif.living_arrangement}</dd></div>}
+                      {spif.support_system && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Support System</dt><dd className="text-gray-800">{spif.support_system}</dd></div>}
+                      {spif.coping_strategies && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Coping Strategies</dt><dd className="text-gray-800">{spif.coping_strategies}</dd></div>}
+                      {spif.additional_notes && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Additional Notes</dt><dd className="text-gray-800">{spif.additional_notes}</dd></div>}
+                    </dl>
+                  </div>
+                )}
+
+                {/* Intake metadata */}
+                <div className="text-xs text-gray-400 pt-1">
+                  {intakeSummary.triaged_at && <span>Triaged {new Date(intakeSummary.triaged_at).toLocaleString()}</span>}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -1194,7 +1352,7 @@ export default function CaseDetailPage() {
                     </div>
                   )}
                   {/* Supervisor sign-off actions */}
-                  {['PSYCHOLOGIST', 'CSP', 'ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name && (
+                  {['PSYCHOLOGIST', 'ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name && (
                     <SupervisorActions noteId={note.note_id} onAction={handleApproveNote} />
                   )}
                   {/* Approval info */}

@@ -53,7 +53,7 @@ const TAB_ICON_CLS: Record<TabKey, string> = {
 };
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
-  upcoming:   ['REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'],
+  upcoming:   ['REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
   evaluation: ['EVALUATION'],
   past:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL'],
   cancelled:  ['CANCELLED', 'DENIED', 'NO_SHOW'],
@@ -66,7 +66,8 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  RESCHEDULE_REQUESTED: { label: 'Reschedule Pending', cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
+  RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
+  PENDING_STUDENT_APPROVAL: { label: 'Confirm Schedule',       cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
   EVALUATION:           { label: 'For Evaluation',     cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
   FOLLOW_UP:            { label: 'Follow-Up',          cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' },
   REFERRAL:             { label: 'Referral',           cls: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' },
@@ -274,6 +275,21 @@ export default function MyAppointmentsPage() {
     finally { setRespondingId(null); }
   };
 
+  const handleConfirmSchedule = async (appt: Appointment) => {
+    setRespondingId(appt._id + 'confirm');
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/${appt._id}/confirm-schedule`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        setAppointments(prev => prev.map(a => a._id === appt._id ? { ...a, status: 'CONFIRMED' } : a));
+      }
+    } catch { /* silent */ }
+    finally { setRespondingId(null); }
+  };
+
   const handleEvalSubmit = async () => {
     if (!evalTarget) return;
     const missing = EVAL_QUESTIONS.find(q => !evalRatings[q.key]);
@@ -292,7 +308,7 @@ export default function MyAppointmentsPage() {
       });
       if (r.ok) {
         setEvalSuccess(true);
-        setAppointments(prev => prev.map(a => a._id === evalTarget._id ? { ...a, status: 'COMPLETED' } : a));
+        setAppointments(prev => prev.map(a => a._id === evalTarget._id ? { ...a, status: 'COMPLETED', evaluation: { submitted: true } } : a));
         setTimeout(() => { setEvalTarget(null); setEvalSuccess(false); setEvalRatings({}); setEvalLiked(''); setEvalImprove(''); }, 1500);
       } else {
         const d = await r.json(); setEvalError(d.error || 'Failed to submit evaluation.');
@@ -418,10 +434,13 @@ export default function MyAppointmentsPage() {
                 const needsEval = activeTab === 'evaluation' && needsEvaluation(appt);
                 const purposeLabel = PURPOSE_LABEL[appt.purpose || ''] || fmtPurpose(appt.purpose);
                 const counselorProposedResched = appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_by_role && appt.reschedule_requested_by_role !== 'STUDENT';
+                const awaitingConfirmation = appt.status === 'PENDING_STUDENT_APPROVAL';
 
                 return (
                   <div key={appt._id} className={`rounded-xl border p-4 transition-all ${
-                    needsEval ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200 hover:border-gray-300'
+                    needsEval           ? 'bg-amber-50 border-amber-200'
+                    : awaitingConfirmation ? 'bg-sky-50 border-sky-200'
+                    : 'bg-white border-gray-200 hover:border-gray-300'
                   }`}>
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
@@ -431,6 +450,9 @@ export default function MyAppointmentsPage() {
                           </span>
                           {counselorProposedResched && (
                             <span className="text-xs text-orange-600 font-medium">Your counselor proposed a new time</span>
+                          )}
+                          {awaitingConfirmation && (
+                            <span className="text-xs text-sky-700 font-semibold">Action required</span>
                           )}
                         </div>
                         <p className="font-semibold text-gray-900 text-sm">{purposeLabel}</p>
@@ -476,6 +498,28 @@ export default function MyAppointmentsPage() {
                             </button>
                           </Link>
                         )}
+                        {awaitingConfirmation && (
+                          <div className="flex flex-col gap-1.5 mt-1">
+                            <p className="text-xs text-sky-700 font-medium">
+                              Your counselor has proposed a schedule. Please confirm or request a different time.
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleConfirmSchedule(appt)}
+                                disabled={respondingId === appt._id + 'confirm'}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                {respondingId === appt._id + 'confirm' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
+                                Accept Schedule
+                              </button>
+                              <button
+                                onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-sky-300 text-sky-700 hover:bg-sky-50 text-xs font-semibold rounded-lg transition">
+                                <RotateCcw size={11} /> Request Different Time
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {counselorProposedResched && (
                           <div className="flex items-center gap-1">
                             <button
@@ -499,7 +543,7 @@ export default function MyAppointmentsPage() {
                             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
                             <Eye size={14} />
                           </button>
-                          {active && !needsEval && appt.status !== 'RESCHEDULE_REQUESTED' && (
+                          {active && !needsEval && !awaitingConfirmation && appt.status !== 'RESCHEDULE_REQUESTED' && (
                             <button
                               onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
                               title="Request reschedule"
@@ -507,7 +551,7 @@ export default function MyAppointmentsPage() {
                               <RotateCcw size={14} />
                             </button>
                           )}
-                          {active && !needsEval && (
+                          {active && !needsEval && !awaitingConfirmation && (
                             <button
                               onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }}
                               title="Cancel appointment"

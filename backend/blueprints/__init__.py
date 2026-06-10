@@ -18,6 +18,7 @@ from .resources import resources_bp
 from .users import users_bp
 from .analytics import analytics_bp
 from .client_tracking import client_tracking_bp
+from .reports import reports_bp
 
 __all__ = [
     'auth_bp',
@@ -37,4 +38,5 @@ __all__ = [
     'users_bp',
     'analytics_bp',
     'client_tracking_bp',
+    'reports_bp',
 ]

@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronUp, Plus, X, Search, Loader2, RefreshCw,
   ExternalLink, Archive, Star, CalendarDays, Users, Send, Filter,
   XCircle, ThumbsUp, MapPin, RotateCcw, ClipboardList, Pencil,
+  FileText, Eye,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/utils/api';
@@ -180,6 +181,18 @@ export default function AppointmentsDashboard() {
   const [followUpNotes, setFollowUpNotes]       = useState('');
   const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
   const [followUpMsg, setFollowUpMsg]           = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Intake packet viewer/editor (IC role)
+  const [formsTarget, setFormsTarget]       = useState<Appointment | null>(null);
+  const [formsPacket, setFormsPacket]       = useState<any>(null);
+  const [formsIntake, setFormsIntake]       = useState<any>(null);
+  const [formsLoading, setFormsLoading]     = useState(false);
+  const [formsEditing, setFormsEditing]     = useState(false);
+  const [formsDraftIcf, setFormsDraftIcf]   = useState<Record<string, any>>({});
+  const [formsDraftSpif, setFormsDraftSpif] = useState<Record<string, any>>({});
+  const [formsDraftPhq4, setFormsDraftPhq4] = useState<(number|null)[]>([null,null,null,null]);
+  const [formsSaving, setFormsSaving]       = useState(false);
+  const [formsMsg, setFormsMsg]             = useState('');
 
   // Edit appointment modal (staff correction)
   const [editTarget, setEditTarget]         = useState<Appointment | null>(null);
@@ -419,6 +432,47 @@ export default function AppointmentsDashboard() {
         setReschedMsg({ type: 'err', text: d.error || 'Failed to request reschedule.' });
       }
     } finally { setSubmittingResched(false); }
+  };
+
+  const openForms = async (apt: Appointment) => {
+    setFormsTarget(apt); setFormsPacket(null); setFormsIntake(null);
+    setFormsEditing(false); setFormsMsg('');
+    setFormsLoading(true);
+    const token = localStorage.getItem('token');
+    const h = { Authorization: `Bearer ${token}` };
+    const id = apt.appointment_id;
+    const [s, p] = await Promise.all([
+      fetch(api(`/api/intake/${id}`), { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(api(`/api/intake/packet/${id}`), { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+    setFormsIntake(s); setFormsPacket(p);
+    if (p) {
+      setFormsDraftIcf(p.icf || {}); setFormsDraftSpif(p.spif || {});
+      setFormsDraftPhq4(Array.isArray(p.phq4_responses) && p.phq4_responses.length === 4 ? p.phq4_responses : [null,null,null,null]);
+    }
+    setFormsLoading(false);
+  };
+
+  const saveForms = async () => {
+    if (!formsTarget) return;
+    setFormsSaving(true); setFormsMsg('');
+    const token = localStorage.getItem('token');
+    const phq4Send = formsDraftPhq4.every(v => v !== null) ? (formsDraftPhq4 as number[]) : [];
+    try {
+      const r = await fetch(api('/api/intake/packet'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'ic_entry', submitted_by_role: 'ic', appointment_id: formsTarget.appointment_id, icf: formsDraftIcf, spif: formsDraftSpif, phq4_responses: phq4Send }),
+      });
+      if (r.ok) {
+        const pr = await fetch(api(`/api/intake/packet/${formsTarget.appointment_id}`), { headers: { Authorization: `Bearer ${token}` } });
+        if (pr.ok) setFormsPacket(await pr.json());
+        setFormsEditing(false); setFormsMsg('Forms saved.');
+      } else {
+        const d = await r.json(); setFormsMsg(d.error || 'Failed to save.');
+      }
+    } catch { setFormsMsg('Network error.'); }
+    finally { setFormsSaving(false); setTimeout(() => setFormsMsg(''), 4000); }
   };
 
   const doEdit = async () => {
@@ -781,6 +835,13 @@ export default function AppointmentsDashboard() {
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#1a5228' }}>
                                     <ClipboardList size={11} /> Conduct Intake
+                                  </button>
+                                )}
+
+                                {(dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR') && (
+                                  <button onClick={() => openForms(apt)}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 rounded-lg transition">
+                                    <FileText size={11} /> Forms
                                   </button>
                                 )}
 
@@ -1422,6 +1483,247 @@ export default function AppointmentsDashboard() {
                   Save Changes
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Intake Forms Modal (IC) ─────────────────────────────────────── */}
+      {formsTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-3">
+                <FileText size={16} className="text-gray-500" />
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Intake Forms — {formsTarget.student_name}</h3>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    {formsPacket ? `Submitted by ${formsPacket.submitted_by_role === 'ic' ? 'IC during interview' : formsPacket.submitted_by_role === 'oa' ? 'Office Assistant' : 'student online'}` : 'No forms submitted yet'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {formsPacket && !formsEditing && (
+                  <button onClick={() => setFormsEditing(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    <Pencil size={11} /> Edit
+                  </button>
+                )}
+                <button onClick={() => { setFormsTarget(null); setFormsEditing(false); }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+                  <X size={14} className="text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {formsLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 size={20} className="animate-spin text-gray-400" />
+                </div>
+              ) : (
+
+                /* ── View mode ── */
+                !formsEditing && formsPacket ? (
+                  <div className="p-6 space-y-5 text-sm">
+                    {formsPacket.icf && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Initial Contact Form (ICF)</p>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                          {[
+                            ['Student', [formsPacket.icf.first_name, formsPacket.icf.middle_name, formsPacket.icf.last_name].filter(Boolean).join(' ')],
+                            ['Email', formsPacket.icf.email || '—'],
+                            ['Student ID', formsPacket.icf.student_id || '—'],
+                            ['College/Program', [formsPacket.icf.college, formsPacket.icf.program, formsPacket.icf.year_level].filter(Boolean).join(' · ') || '—'],
+                            ['Service', formsPacket.icf.service_requested?.replace(/_/g,' ') || '—'],
+                            ['Referral', formsPacket.icf.referral_source || '—'],
+                            ['Emergency Contact', [formsPacket.icf.emergency_contact_name, formsPacket.icf.emergency_contact_relationship, formsPacket.icf.emergency_contact_phone].filter(Boolean).join(' · ') || '—'],
+                          ].map(([k,v]) => (
+                            <div key={k as string}><span className="text-gray-400 text-xs">{k}:</span> <span className="font-medium text-gray-800 dark:text-gray-200">{v}</span></div>
+                          ))}
+                          <div className="col-span-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl mt-1">
+                            <p className="text-xs text-gray-400 mb-1">Presenting Concern</p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">{formsPacket.icf.presenting_concern || '—'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {formsPacket.spif && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Personal Background (SPIF-IF)</p>
+                        <div className="grid grid-cols-3 gap-x-6 gap-y-2">
+                          {[
+                            ['Birthdate', formsPacket.spif.birthdate || '—'],
+                            ['Gender', formsPacket.spif.gender || '—'],
+                            ['Civil Status', formsPacket.spif.civil_status || '—'],
+                            ['Family Setup', formsPacket.spif.family_composition?.replace(/_/g,' ') || '—'],
+                            ['Living With', formsPacket.spif.living_with || '—'],
+                            ['Medical', formsPacket.spif.existing_medical_conditions || 'None'],
+                            ['Medications', formsPacket.spif.current_medications || 'None'],
+                            ['Prev. Counseling', formsPacket.spif.previous_counseling ? 'Yes' : 'No'],
+                            ['Prev. Psychiatric', formsPacket.spif.previous_psychiatric ? 'Yes' : 'No'],
+                          ].map(([k,v]) => (
+                            <div key={k as string}><span className="text-gray-400 text-xs">{k}:</span> <span className="font-medium text-gray-800 dark:text-gray-200">{v}</span></div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {formsPacket.phq4_summary && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">PHQ-4 Pre-Screen</p>
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { l: 'PHQ-2 (Depression)', s: formsPacket.phq4_summary.phq2_score, max: 6, risk: formsPacket.phq4_summary.phq2_at_risk },
+                            { l: 'GAD-2 (Anxiety)',    s: formsPacket.phq4_summary.gad2_score, max: 6, risk: formsPacket.phq4_summary.gad2_at_risk },
+                            { l: 'PHQ-4 Total',         s: formsPacket.phq4_summary.total_score, max: 12, risk: formsPacket.phq4_summary.total_score >= 6 },
+                          ].map(x => (
+                            <div key={x.l} className={`rounded-xl p-3 text-center ${x.risk ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'}`}>
+                              <p className="text-xs text-gray-500 mb-0.5">{x.l}</p>
+                              <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-green-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
+                              <p className={`text-[10px] font-semibold ${x.risk ? 'text-red-500' : 'text-green-600'}`}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* Triage summary */}
+                    {formsIntake && (formsIntake.phq9_score != null || formsIntake.triage_decision) && (
+                      <div className="border border-amber-100 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
+                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-2">Triage Results</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {formsIntake.phq9_score != null && <div className="text-center bg-white dark:bg-gray-800 rounded-lg p-2"><p className="text-[10px] text-gray-400">PHQ-9</p><p className="text-lg font-bold text-gray-900 dark:text-white">{formsIntake.phq9_score}/27</p></div>}
+                          {formsIntake.gad7_score != null && <div className="text-center bg-white dark:bg-gray-800 rounded-lg p-2"><p className="text-[10px] text-gray-400">GAD-7</p><p className="text-lg font-bold text-gray-900 dark:text-white">{formsIntake.gad7_score}/21</p></div>}
+                        </div>
+                        {formsIntake.triage_decision && (
+                          <p className="text-xs text-gray-700 dark:text-gray-300 mt-2"><span className="font-semibold">Decision:</span> {formsIntake.triage_decision === 'ENDORSE_CC' ? 'Endorsed to Counselor (CC)' : formsIntake.triage_decision === 'ENDORSE_CP' ? 'Endorsed to Psychologist (CP)' : 'Closed at Intake'}</p>
+                        )}
+                        {formsIntake.endorsement_notes && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">"{formsIntake.endorsement_notes}"</p>
+                        )}
+                      </div>
+                    )}
+                    {!formsPacket.icf && !formsPacket.spif && (
+                      <p className="text-sm text-gray-400 text-center py-8">No intake forms submitted for this appointment.</p>
+                    )}
+                  </div>
+                ) : (formsEditing || !formsPacket) ? (
+
+                  /* ── Edit mode ── */
+                  <div className="p-6 space-y-6 text-sm">
+                    {/* ICF */}
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Initial Contact Form (ICF)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {(['first_name','last_name','middle_name','email','student_id','college','program','year_level'] as string[]).map(k => (
+                          <div key={k}>
+                            <label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
+                            <input value={formsDraftIcf[k] || ''} onChange={e => setFormsDraftIcf(p => ({...p,[k]:e.target.value}))}
+                              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white" />
+                          </div>
+                        ))}
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Service Requested</label>
+                          <select value={formsDraftIcf.service_requested || ''} onChange={e => setFormsDraftIcf(p => ({...p,service_requested:e.target.value}))}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
+                            <option value="">—</option>
+                            {['personal_counseling','academic_concerns','career_guidance','family_concerns','relationship_concerns','crisis_support','psychiatric_evaluation','other'].map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Referral Source</label>
+                          <select value={formsDraftIcf.referral_source || ''} onChange={e => setFormsDraftIcf(p => ({...p,referral_source:e.target.value}))}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
+                            <option value="">—</option>
+                            {['self_referred','faculty_referred','parent_referred','friend_referred','online_referral','office_referred'].map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500 mb-1">Presenting Concern</label>
+                          <textarea rows={3} value={formsDraftIcf.presenting_concern || ''} onChange={e => setFormsDraftIcf(p => ({...p,presenting_concern:e.target.value}))}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none resize-none dark:bg-gray-800 dark:text-white" />
+                        </div>
+                      </div>
+                    </div>
+                    {/* SPIF */}
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Personal Background (SPIF-IF)</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div><label className="block text-xs text-gray-500 mb-1">Birthdate</label><input type="date" value={formsDraftSpif.birthdate||''} onChange={e=>setFormsDraftSpif(p=>({...p,birthdate:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/></div>
+                        {(['gender','civil_status','family_composition'] as string[]).map(k => (
+                          <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
+                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
+                          </div>
+                        ))}
+                        {(['living_with','existing_medical_conditions','current_medications'] as string[]).map(k => (
+                          <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
+                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} placeholder="None" className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
+                          </div>
+                        ))}
+                        <div className="col-span-3 grid grid-cols-2 gap-3">
+                          {(['previous_counseling','previous_psychiatric'] as string[]).map(k=>(
+                            <label key={k} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                              <input type="checkbox" checked={!!formsDraftSpif[k]} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-green-700"/>
+                              <span className="text-xs text-gray-700 dark:text-gray-300 capitalize">{k.replace(/_/g,' ')}?</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {/* PHQ-4 */}
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">PHQ-4 Pre-Screen</p>
+                      <div className="space-y-2">
+                        {['Little interest or pleasure in doing things','Feeling down, depressed, or hopeless','Feeling nervous, anxious, or on edge','Not being able to stop or control worrying'].map((q,i)=>(
+                          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                            <span className="text-xs text-gray-400 w-3">{i+1}.</span>
+                            <span className="flex-1 text-xs text-gray-700 dark:text-gray-300">{q}</span>
+                            <div className="flex gap-1">
+                              {[0,1,2,3].map(v=>(
+                                <button key={v} onClick={()=>{const a=[...formsDraftPhq4];a[i]=a[i]===v?null:v;setFormsDraftPhq4(a)}}
+                                  className={`w-8 h-8 rounded-lg text-xs font-semibold border-2 transition ${formsDraftPhq4[i]===v?'bg-[#1a5228] border-[#1a5228] text-white':'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-[#1a5228]/40 bg-white dark:bg-gray-900'}`}>
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {formsMsg && <p className={`text-xs font-medium ${formsMsg.includes('saved')||formsMsg.includes('saved') ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>{formsMsg}</p>}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-40 text-sm text-gray-400">No forms submitted yet.</div>
+                )
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              {formsEditing ? (
+                <>
+                  <button onClick={() => setFormsEditing(false)} className="text-xs text-gray-500 hover:text-gray-700 transition">Cancel</button>
+                  <button onClick={saveForms} disabled={formsSaving}
+                    className="flex items-center gap-2 px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 disabled:opacity-50 transition">
+                    {formsSaving ? <Loader2 size={13} className="animate-spin" /> : null}
+                    {formsSaving ? 'Saving…' : 'Save Forms'}
+                  </button>
+                </>
+              ) : !formsPacket ? (
+                <>
+                  <span />
+                  <button onClick={() => setFormsEditing(true)}
+                    className="flex items-center gap-2 px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition">
+                    Fill In Forms
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span />
+                  <button onClick={() => setFormsTarget(null)}
+                    className="px-4 py-2 text-sm text-gray-600 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    Close
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -35,6 +35,7 @@ interface ReferralSummary { total_referrals: number; pending: number; completed:
 interface IntakeFunnel { intake_started: number; intake_completed: number; cases_created: number; intake_completion_rate: number; case_creation_rate: number; }
 interface AssessmentType { _id: string; count: number; avg_score: number; risk_breakdown: Record<string, number>; }
 interface ApptStats { completion_rate: number; no_show_rate: number; avg_wait_days: number; total_appointments: number; completed: number; no_shows: number; cancelled: number; status_breakdown: Record<string, number>; }
+interface CpsSummary { new_clients: { total: number; this_month: number }; counseling_cases: { total: number; active: number }; checkins: { total_clients: number; checkins_this_month: number }; }
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -151,6 +152,7 @@ export default function AnalyticsDashboardPage() {
   const [scoreTrends, setScoreTrends]   = useState<ScoreTrend[]>([]);
   const [byDay, setByDay]               = useState<DayCount[]>([]);
   const [byHour, setByHour]             = useState<HourCount[]>([]);
+  const [cpsSummary, setCpsSummary]     = useState<CpsSummary | null>(null);
 
   const fetchAll = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -165,7 +167,7 @@ export default function AnalyticsDashboardPage() {
       catch { return null; }
     };
 
-    const [s, ma, mc, risk, workload, ref, funnel, assess, aStats, cData, sTrends, dayData] = await Promise.all([
+    const [s, ma, mc, risk, workload, ref, funnel, assess, aStats, cData, sTrends, dayData, cps] = await Promise.all([
       safe('/api/analytics/summary'),
       safe('/api/analytics/appointments/monthly'),
       safe('/api/analytics/cases/monthly'),
@@ -178,6 +180,7 @@ export default function AnalyticsDashboardPage() {
       safe('/api/analytics/concerns/distribution'),
       safe('/api/analytics/assessments/score-trends'),
       safe('/api/analytics/appointments/by-day'),
+      safe('/api/reports/cps-summary'),
     ]);
 
     if (s)        setSummary(s);
@@ -192,6 +195,7 @@ export default function AnalyticsDashboardPage() {
     if (cData)    setConcerns(cData.concerns ?? []);
     if (sTrends)  setScoreTrends(sTrends.months ?? []);
     if (dayData)  { setByDay(dayData.by_day ?? []); setByHour(dayData.by_hour ?? []); }
+    if (cps)      setCpsSummary(cps);
 
     setLoading(false);
     setRefreshing(false);
@@ -271,6 +275,39 @@ export default function AnalyticsDashboardPage() {
           <KpiCard label="Clinical Staff"    value={summary.total_counselors + summary.total_psychologists} sub={`${summary.total_counselors}C · ${summary.total_psychologists}P`} icon={<Users size={16}/>} accent={C.teal} />
           <KpiCard label="Appts This Week"   value={summary.week_appointments} sub={`${summary.pending_appointments ?? 0} pending`}   icon={<Calendar size={16}/>}      accent={C.green}  />
           <KpiCard label="Assessments / Mo"  value={summary.month_assessments} sub="last 30 days"                                          icon={<Activity size={16}/>}      accent={C.purple} />
+        </div>
+      )}
+
+      {/* ── CPS Client Overview ───────────────────────────────────────── */}
+      {cpsSummary && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">CPS Client Overview</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Three-category client tracking summary</p>
+            </div>
+            <a href="/admin/reports/export"
+              className="text-xs text-green-700 dark:text-green-400 hover:underline font-medium">
+              Export spreadsheets →
+            </a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-lg p-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/40">
+              <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">New Client Requests</p>
+              <p className="text-3xl font-bold text-green-800 dark:text-green-300">{cpsSummary.new_clients.total}</p>
+              <p className="text-xs text-green-600 dark:text-green-500 mt-1">{cpsSummary.new_clients.this_month} this month</p>
+            </div>
+            <div className="rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40">
+              <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Existing Clients for Counseling</p>
+              <p className="text-3xl font-bold text-blue-800 dark:text-blue-300">{cpsSummary.counseling_cases.active}</p>
+              <p className="text-xs text-blue-600 dark:text-blue-500 mt-1">{cpsSummary.counseling_cases.total} total cases</p>
+            </div>
+            <div className="rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/40">
+              <p className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">Non-counseling Check-in Clients</p>
+              <p className="text-3xl font-bold text-purple-800 dark:text-purple-300">{cpsSummary.checkins.total_clients}</p>
+              <p className="text-xs text-purple-600 dark:text-purple-500 mt-1">{cpsSummary.checkins.checkins_this_month} check-ins this month</p>
+            </div>
+          </div>
         </div>
       )}
 

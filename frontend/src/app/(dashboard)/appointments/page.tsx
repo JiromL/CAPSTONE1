@@ -129,6 +129,9 @@ export default function AppointmentsPage() {
   const [noShowReason, setNoShowReason] = useState('');
   const [submittingNoShow, setSubmittingNoShow] = useState(false);
 
+  const [intakeSummary, setIntakeSummary] = useState<any>(null);
+  const [intakePacket,  setIntakePacket]  = useState<any>(null);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -156,6 +159,17 @@ export default function AppointmentsPage() {
       router.replace('/appointment-requests');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!detailAppt) { setIntakeSummary(null); setIntakePacket(null); return; }
+    const token = localStorage.getItem('token');
+    const h = { Authorization: `Bearer ${token}` };
+    const id = detailAppt.appointment_id;
+    Promise.all([
+      fetch(api(`/api/intake/${id}`), { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(api(`/api/intake/packet/${id}`), { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([s, p]) => { setIntakeSummary(s); setIntakePacket(p); });
+  }, [detailAppt]);
 
   const apts = Array.isArray(dashboard?.appointments) ? dashboard!.appointments! : [];
 
@@ -506,6 +520,78 @@ export default function AppointmentsPage() {
                   className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
                   <Video size={14} /> Join Session
                 </a>
+              )}
+
+              {/* ── Intake / Triage Summary ── */}
+              {intakeSummary && (intakeSummary.phq9_score != null || intakeSummary.gad7_score != null || intakeSummary.triage_decision) && (
+                <div className="border border-gray-100 rounded-lg overflow-hidden">
+                  <p className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide bg-gray-50 border-b border-gray-100">
+                    IC Triage Summary
+                  </p>
+                  <div className="p-3 space-y-2">
+                    {(intakeSummary.phq9_score != null || intakeSummary.gad7_score != null) && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {intakeSummary.phq9_score != null && (
+                          <div className="bg-gray-50 rounded-lg p-2 text-center">
+                            <p className="text-[10px] text-gray-400 font-semibold">PHQ-9</p>
+                            <p className="text-lg font-bold text-gray-900">{intakeSummary.phq9_score}<span className="text-xs text-gray-400">/27</span></p>
+                          </div>
+                        )}
+                        {intakeSummary.gad7_score != null && (
+                          <div className="bg-gray-50 rounded-lg p-2 text-center">
+                            <p className="text-[10px] text-gray-400 font-semibold">GAD-7</p>
+                            <p className="text-lg font-bold text-gray-900">{intakeSummary.gad7_score}<span className="text-xs text-gray-400">/21</span></p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {intakeSummary.triage_decision && (
+                      <div className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-500">Decision: </span>
+                        {intakeSummary.triage_decision === 'ENDORSE_CC' && 'Endorsed to Counselor (CC)'}
+                        {intakeSummary.triage_decision === 'ENDORSE_CP' && 'Endorsed to Psychologist (CP)'}
+                        {intakeSummary.triage_decision === 'CLOSE_AT_INTAKE' && 'Closed at Intake'}
+                      </div>
+                    )}
+                    {intakeSummary.endorsement_notes && (
+                      <div className="bg-gray-50 rounded-lg p-2">
+                        <p className="text-[10px] text-gray-400 mb-0.5">IC Notes</p>
+                        <p className="text-xs text-gray-700">{intakeSummary.endorsement_notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── PHQ-4 Pre-Screen (from intake packet) ── */}
+              {intakePacket?.phq4_summary && (
+                <div className="border border-gray-100 rounded-lg overflow-hidden">
+                  <p className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide bg-gray-50 border-b border-gray-100">
+                    PHQ-4 Pre-Screen
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 p-3">
+                    {[
+                      { l: 'PHQ-2', s: intakePacket.phq4_summary.phq2_score, max: 6, risk: intakePacket.phq4_summary.phq2_at_risk },
+                      { l: 'GAD-2', s: intakePacket.phq4_summary.gad2_score, max: 6, risk: intakePacket.phq4_summary.gad2_at_risk },
+                      { l: 'Total', s: intakePacket.phq4_summary.total_score, max: 12, risk: intakePacket.phq4_summary.total_score >= 6 },
+                    ].map(x => (
+                      <div key={x.l} className={`rounded-lg p-2 text-center ${x.risk ? 'bg-red-50' : 'bg-green-50'}`}>
+                        <p className="text-[10px] text-gray-500">{x.l}</p>
+                        <p className={`text-base font-bold ${x.risk ? 'text-red-700' : 'text-green-700'}`}>
+                          {x.s}<span className="text-[10px] font-normal text-gray-400">/{x.max}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Background info from ICF ── */}
+              {intakePacket?.icf?.presenting_concern && (
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Presenting Concern (ICF)</p>
+                  <p className="text-xs text-gray-700">{intakePacket.icf.presenting_concern}</p>
+                </div>
               )}
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end">

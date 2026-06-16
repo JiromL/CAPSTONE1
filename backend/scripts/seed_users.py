@@ -300,13 +300,13 @@ def seed():
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
         },
-        # CSC (Continuing Session Counselor Supervisor)
+        # Additional Counselor
         {
             'email': 'csc@university.edu',
             'password_hash': generate_password_hash('csc123'),
             'first_name': 'Dana',
-            'last_name': 'CSC',
-            'role': 'CSC',
+            'last_name': 'Reyes',
+            'role': 'COUNSELOR',
             'phone': '555-0041',
             'department': 'Counseling',
             'specializations': ['Supervision', 'Case Management'],
@@ -314,13 +314,13 @@ def seed():
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
         },
-        # CSP (Continuing Session Psychologist Supervisor)
+        # Additional Psychologist
         {
             'email': 'csp@university.edu',
             'password_hash': generate_password_hash('csp123'),
             'first_name': 'Morgan',
-            'last_name': 'CSP',
-            'role': 'CSP',
+            'last_name': 'Santos',
+            'role': 'PSYCHOLOGIST',
             'phone': '555-0042',
             'department': 'Counseling',
             'specializations': ['Clinical Supervision', 'Psychotherapy'],
@@ -380,6 +380,119 @@ def seed():
         print()
 
 
+def seed_availability():
+    """Seed counselor_weekly_schedule for all IC accounts."""
+    db = get_db()
+    db.counselor_weekly_schedule.delete_many({})
+
+    # IC email → { session_method, schedule: [(dow, start, end), ...] }
+    # dow: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri
+    ic_schedules = [
+        {
+            'email': 'julse@university.edu',
+            'session_method': 'in-person',
+            # Morning shift F2F — Mon/Wed/Fri 8am–12pm
+            'schedule': [
+                {'day_of_week': 0, 'start_time': '08:00', 'end_time': '12:00'},
+                {'day_of_week': 2, 'start_time': '08:00', 'end_time': '12:00'},
+                {'day_of_week': 4, 'start_time': '08:00', 'end_time': '12:00'},
+            ],
+        },
+        {
+            'email': 'archie@university.edu',
+            'session_method': 'in-person',
+            # Afternoon shift F2F — Mon–Thu 1pm–5pm
+            'schedule': [
+                {'day_of_week': 0, 'start_time': '13:00', 'end_time': '17:00'},
+                {'day_of_week': 1, 'start_time': '13:00', 'end_time': '17:00'},
+                {'day_of_week': 2, 'start_time': '13:00', 'end_time': '17:00'},
+                {'day_of_week': 3, 'start_time': '13:00', 'end_time': '17:00'},
+            ],
+        },
+        {
+            'email': 'mars@university.edu',
+            'session_method': 'online',
+            # Online — Tue/Thu/Fri 9am–3pm
+            'schedule': [
+                {'day_of_week': 1, 'start_time': '09:00', 'end_time': '15:00'},
+                {'day_of_week': 3, 'start_time': '09:00', 'end_time': '15:00'},
+                {'day_of_week': 4, 'start_time': '09:00', 'end_time': '15:00'},
+            ],
+        },
+        {
+            'email': 'ria@university.edu',
+            'session_method': 'in-person',
+            # Full-day F2F — Mon–Fri 9am–12pm
+            'schedule': [
+                {'day_of_week': 0, 'start_time': '09:00', 'end_time': '12:00'},
+                {'day_of_week': 1, 'start_time': '09:00', 'end_time': '12:00'},
+                {'day_of_week': 2, 'start_time': '09:00', 'end_time': '12:00'},
+                {'day_of_week': 3, 'start_time': '09:00', 'end_time': '12:00'},
+                {'day_of_week': 4, 'start_time': '09:00', 'end_time': '12:00'},
+            ],
+        },
+        {
+            'email': 'cris@university.edu',
+            'session_method': 'in-person',
+            # Split shift F2F — Mon/Wed 10am–2pm, Fri 8am–12pm
+            'schedule': [
+                {'day_of_week': 0, 'start_time': '10:00', 'end_time': '14:00'},
+                {'day_of_week': 2, 'start_time': '10:00', 'end_time': '14:00'},
+                {'day_of_week': 4, 'start_time': '08:00', 'end_time': '12:00'},
+            ],
+        },
+        {
+            'email': 'wil@university.edu',
+            'session_method': 'online',
+            # Online afternoon — Mon–Wed 2pm–6pm
+            'schedule': [
+                {'day_of_week': 0, 'start_time': '14:00', 'end_time': '18:00'},
+                {'day_of_week': 1, 'start_time': '14:00', 'end_time': '18:00'},
+                {'day_of_week': 2, 'start_time': '14:00', 'end_time': '18:00'},
+            ],
+        },
+        {
+            'email': 'rose.c@university.edu',
+            'session_method': 'in-person',
+            # Morning F2F — Tue/Thu 8am–1pm
+            'schedule': [
+                {'day_of_week': 1, 'start_time': '08:00', 'end_time': '13:00'},
+                {'day_of_week': 3, 'start_time': '08:00', 'end_time': '13:00'},
+            ],
+        },
+        {
+            'email': 'gracie@university.edu',
+            'session_method': 'online',
+            # Online — Mon/Tue/Thu/Fri 10am–2pm
+            'schedule': [
+                {'day_of_week': 0, 'start_time': '10:00', 'end_time': '14:00'},
+                {'day_of_week': 1, 'start_time': '10:00', 'end_time': '14:00'},
+                {'day_of_week': 3, 'start_time': '10:00', 'end_time': '14:00'},
+                {'day_of_week': 4, 'start_time': '10:00', 'end_time': '14:00'},
+            ],
+        },
+    ]
+
+    inserted = 0
+    for entry in ic_schedules:
+        ic = db.users.find_one({'email': entry['email']})
+        if not ic:
+            print(f"  ⚠️  IC not found: {entry['email']} — skipped")
+            continue
+        db.counselor_weekly_schedule.insert_one({
+            'counselor_id': ic['_id'],
+            'session_method': entry['session_method'],
+            'schedule': entry['schedule'],
+            'updated_at': datetime.utcnow(),
+        })
+        days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+        day_labels = ', '.join(days[e['day_of_week']] for e in entry['schedule'])
+        print(f"  ✅ {ic['first_name']} {ic['last_name']} — {entry['session_method'].upper()} — {day_labels}")
+        inserted += 1
+
+    print(f"\n  {inserted} availability schedules seeded.\n")
+
+
 if __name__ == '__main__':
     seed()
     print("\n💡 Test Credentials by Role:")
@@ -401,12 +514,23 @@ if __name__ == '__main__':
     print("   └─ chelly@university.edu / chelly123")
     print("\n   STAFF (Office Assistant/Scheduler):")
     print("   └─ staff@university.edu / staff123")
-    print("\n   CSC (Counselor Supervisor):")
+    print("\n   COUNSELOR (additional):")
     print("   └─ csc@university.edu / csc123")
-    print("\n   CSP (Psychologist Supervisor):")
+    print("\n   PSYCHOLOGIST (additional):")
     print("   └─ csp@university.edu / csp123")
     print("\n   STUDENTS:")
     print("   └─ student1@university.edu / student123")
     print("   └─ student2@university.edu / student456")
     print("   └─ student3@university.edu / student789")
+    print()
+
+    print("\n📅 Seeding IC availability schedules…\n")
+    seed_availability()
+
+    print("IC Availability Summary:")
+    print("  F2F  — julse (Mon/Wed/Fri 8–12), archie (Mon–Thu 1–5),")
+    print("         ria (Mon–Fri 9–12), cris (Mon/Wed 10–2, Fri 8–12),")
+    print("         rose.c (Tue/Thu 8–1)")
+    print("  Online — mars (Tue/Thu/Fri 9–3), wil (Mon–Wed 2–6),")
+    print("           gracie (Mon/Tue/Thu/Fri 10–2)")
     print()

@@ -1,505 +1,225 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, X, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { Check, Loader2, Monitor, MapPin } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { api } from '@/utils/api';
 
-interface TimeSlot {
-  time: string; // "HH:MM" format
-  method: 'in-person' | 'online' | 'both'; // method for this time slot
+const DAYS = [
+  { label: 'Monday',    dow: 0 },
+  { label: 'Tuesday',   dow: 1 },
+  { label: 'Wednesday', dow: 2 },
+  { label: 'Thursday',  dow: 3 },
+  { label: 'Friday',    dow: 4 },
+  { label: 'Saturday',  dow: 5 },
+  { label: 'Sunday',    dow: 6 },
+];
+
+// 30-min steps from 07:00 to 20:00
+const TIME_OPTIONS: string[] = [];
+for (let h = 7; h <= 20; h++) {
+  TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:00`);
+  if (h < 20) TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:30`);
 }
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
+function fmt12(t: string) {
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-interface WorkPreferences {
-  default_session_duration: number;
-  meeting_methods: ('in-person' | 'google-meet' | 'zoom')[];
-  accepts_walk_ins: boolean;
-  timezone: string;
+interface DayEntry {
+  enabled: boolean;
+  start_time: string;
+  end_time: string;
+  session_method: 'in-person' | 'online';
 }
 
-const HOURS = Array.from({ length: 12 }, (_, i) => {
-  const hour = 7 + i; // 7 AM to 6 PM
-  return `${hour.toString().padStart(2, '0')}:00`;
-});
+type WeekState = Record<number, DayEntry>;
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DAY_ABBREV = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// Color mapping for methods
-const METHOD_COLORS = {
-  'in-person': { bg: 'bg-blue-100 dark:bg-blue-900/30', border: 'border-blue-300 dark:border-blue-700', text: 'text-blue-700 dark:text-blue-300' },
-  'online': { bg: 'bg-green-100 dark:bg-green-900/30', border: 'border-green-300 dark:border-green-700', text: 'text-green-700 dark:text-green-300' },
-  'both': { bg: 'bg-purple-100 dark:bg-purple-900/30', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-700 dark:text-purple-300' }
-};
-
-const METHOD_LABELS = {
-  'in-person': 'In-Person',
-  'online': 'Online',
-  'both': 'Both'
-};
-
-// Helper to format time for display
-const formatTimeForDisplay = (time: string): string => {
-  const [hours, minutes] = time.split(':');
-  let hour = parseInt(hours);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  if (hour > 12) hour -= 12;
-  if (hour === 0) hour = 12;
-  return `${hour}:${minutes} ${ampm}`;
-};
+const DEFAULT_WEEK: WeekState = Object.fromEntries(
+  DAYS.map(({ dow }) => [dow, { enabled: dow < 5, start_time: '09:00', end_time: '17:00', session_method: 'in-person' as const }])
+);
 
 export default function AvailabilityPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [selectedDay, setSelectedDay] = useState(1); // Monday
-  const [selectedMethod, setSelectedMethod] = useState<'in-person' | 'online' | 'both'>('in-person'); // method being selected
-  const [meetingMethods, setMeetingMethods] = useState<Array<'in-person' | 'google-meet' | 'zoom'>>(['in-person']); // staff's available methods
-  const [weeklyAvailability, setWeeklyAvailability] = useState<Record<number, TimeSlot[]>>({
-    0: [],
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: [],
-    6: [],
-  });
+  const [user, setUser] = useState<any>(null);
+  const [week, setWeek] = useState<WeekState>(DEFAULT_WEEK);
+  const [sessionMethod, setSessionMethod] = useState<'in-person' | 'online'>('in-person');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-
-    if (!userData || !token) {
-      window.location.href = '/login';
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    fetchAvailability(token);
-    fetchMeetingMethods(token);
+    if (!userData || !token) { window.location.href = '/login'; return; }
+    setUser(JSON.parse(userData));
+    fetch(api('/api/availability/weekly'), { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.session_method) setSessionMethod(data.session_method);
+        if (data.schedule?.length) {
+          const globalMethod = data.session_method || 'in-person';
+          const loaded: WeekState = { ...DEFAULT_WEEK };
+          DAYS.forEach(({ dow }) => { loaded[dow] = { ...loaded[dow], enabled: false }; });
+          data.schedule.forEach((e: any) => {
+            loaded[e.day_of_week] = {
+              enabled: true,
+              start_time: e.start_time,
+              end_time: e.end_time,
+              session_method: e.session_method || globalMethod,
+            };
+          });
+          setWeek(loaded);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchAvailability = async (token: string) => {
-    try {
-      const response = await fetch(api('/api/availability/my-availability'), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const availability: Record<number, TimeSlot[]> = {
-          0: [],
-          1: [],
-          2: [],
-          3: [],
-          4: [],
-          5: [],
-          6: [],
-        };
-
-        // Convert slots to weekly format
-        (data.slots || []).forEach((slot: any) => {
-          const startDate = new Date(slot.slot_start);
-          const dayOfWeek = startDate.getDay();
-          const time = startDate.toTimeString().slice(0, 5); // "HH:MM"
-          const method = slot.meeting_method || 'in-person';
-          if (!availability[dayOfWeek].find(s => s.time === time && s.method === method)) {
-            availability[dayOfWeek].push({ time, method });
-          }
-        });
-
-        // Sort times
-        Object.keys(availability).forEach((day) => {
-          availability[parseInt(day)].sort((a, b) => a.time.localeCompare(b.time));
-        });
-
-        setWeeklyAvailability(availability);
-      } else {
-        showToast('Failed to fetch availability', 'error');
-      }
-    } catch (error) {
-      console.error('Error fetching availability:', error);
-      showToast('Error fetching availability', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMeetingMethods = async (token: string) => {
-    try {
-      const response = await fetch(api('/api/staff/settings/my-settings'), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const methods = data.work_preferences?.meeting_methods || ['in-person'];
-        setMeetingMethods(methods);
-      }
-    } catch (error) {
-      console.error('Error fetching meeting methods:', error);
-    }
-  };
-
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
+  const show = (msg: string, ok: boolean) => {
+    setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const addTimeSlot = (time: string) => {
-    setWeeklyAvailability((prev) => {
-      const daySlots = [...(prev[selectedDay] || [])];
-      // Check if this exact time+method combo already exists
-      const exists = daySlots.some(slot => slot.time === time && slot.method === selectedMethod);
-      if (!exists) {
-        daySlots.push({ time, method: selectedMethod });
-        daySlots.sort((a, b) => a.time.localeCompare(b.time));
-      }
-      return { ...prev, [selectedDay]: daySlots };
-    });
-  };
-
-  const removeTimeSlot = (time: string, method: 'in-person' | 'online' | 'both') => {
-    setWeeklyAvailability((prev) => ({
-      ...prev,
-      [selectedDay]: prev[selectedDay].filter((slot) => !(slot.time === time && slot.method === method)),
-    }));
-  };
-
-  const addAllTimesForDay = () => {
-    setWeeklyAvailability((prev) => {
-      const daySlots = [...(prev[selectedDay] || [])];
-      // Add all hours with the selected method, avoiding duplicates
-      HOURS.forEach((hour) => {
-        const exists = daySlots.some(slot => slot.time === hour && slot.method === selectedMethod);
-        if (!exists) {
-          daySlots.push({ time: hour, method: selectedMethod });
-        }
-      });
-      daySlots.sort((a, b) => a.time.localeCompare(b.time));
-      return { ...prev, [selectedDay]: daySlots };
-    });
-  };
-
-  const toggleMeetingMethod = (method: 'in-person' | 'google-meet' | 'zoom') => {
-    setMeetingMethods((prev: Array<'in-person' | 'google-meet' | 'zoom'>) => {
-      const updated = prev.includes(method) ? prev.filter((m: string) => m !== method) : [...prev, method];
-      // Ensure at least one method is selected
-      return updated.length === 0 ? ['in-person'] : updated;
-    });
-  };
-
-  const saveAvailability = async () => {
+  const save = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
-
     setSaving(true);
+    const schedule = DAYS.filter(({ dow }) => week[dow].enabled).map(({ dow }) => ({
+      day_of_week: dow,
+      start_time: week[dow].start_time,
+      end_time: week[dow].end_time,
+      session_method: week[dow].session_method,
+    }));
     try {
-      // Convert weekly format to slots
-      const slots: Array<{ start: string; end: string; meeting_method: 'in-person' | 'online' | 'both' }> = [];
-      const baseDate = new Date();
-      baseDate.setDate(baseDate.getDate() - baseDate.getDay()); // Start of week (Sunday)
-
-      Object.entries(weeklyAvailability).forEach(([dayNum, timeSlots]) => {
-        const day = parseInt(dayNum);
-        timeSlots.forEach((timeSlot) => {
-          const slotDate = new Date(baseDate);
-          slotDate.setDate(slotDate.getDate() + day);
-          const [hours, minutes] = timeSlot.time.split(':');
-          slotDate.setHours(parseInt(hours), parseInt(minutes), 0);
-
-          const nextHour = new Date(slotDate);
-          nextHour.setHours(nextHour.getHours() + 1);
-
-          slots.push({
-            start: slotDate.toISOString(),
-            end: nextHour.toISOString(),
-            meeting_method: timeSlot.method,
-          });
-        });
-      });
-
-      if (slots.length === 0) {
-        showToast('Please add at least one time slot', 'error');
-        setSaving(false);
-        return;
-      }
-
-      // Delete all existing slots first
-      const existingResponse = await fetch(api('/api/availability/my-availability'), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (existingResponse.ok) {
-        const data = await existingResponse.json();
-        for (const slot of data.slots || []) {
-          await fetch(api(`/api/availability/${slot.slot_id}`), {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-        }
-      }
-
-      // Create new slots
-      const response = await fetch(api('/api/availability/set-availability'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ slots }),
-      });
-
-      if (response.ok) {
-        showToast(`Saved ${slots.length} availability slots successfully`, 'success');
-      } else {
-        const error = await response.json();
-        showToast(error.error || 'Failed to save availability', 'error');
-      }
-
-      // Also save meeting methods preferences
-      await fetch(api('/api/staff/settings/my-settings'), {
+      const r = await fetch(api('/api/availability/weekly'), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          work_preferences: {
-            meeting_methods: meetingMethods,
-          },
-        }),
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule, session_method: sessionMethod }),
       });
-    } catch (error) {
-      console.error('Error saving availability:', error);
-      showToast('Error saving availability', 'error');
+      const d = await r.json();
+      if (r.ok) show(d.message ?? 'Saved', true);
+      else show(d.error ?? 'Failed to save', false);
+    } catch {
+      show('Network error', false);
     } finally {
       setSaving(false);
     }
   };
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
+  if (!user) return <div className="flex items-center justify-center h-screen text-sm text-gray-400">Loading…</div>;
 
   const menuItems = getMenuItemsByRole(user.role);
-  const currentDaySlots = weeklyAvailability[selectedDay] || [];
+  const activeDays = DAYS.filter(({ dow }) => week[dow].enabled).length;
 
   return (
     <DashboardLayout
       user={user}
       onLogout={() => {
-        localStorage.removeItem('appointments_cache');
-        localStorage.removeItem('cases_cache');
-        localStorage.removeItem('assessments_cache');
-        localStorage.removeItem('dashboard_cache');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        ['token', 'user'].forEach(k => localStorage.removeItem(k));
         window.location.href = '/login';
       }}
       menuItems={menuItems}
-      title="Availability Settings"
-      subtitle="Set your working hours for the week"
+      title="My Availability"
+      subtitle="Set the days and hours you're available for appointments"
       activeSection="availability"
     >
-      {/* Toast Notification */}
       {toast && (
-        <div
-          className={`fixed top-4 right-4 px-4 py-3 rounded-lg flex items-center gap-2 z-50 animate-fade-in ${
-            toast.type === 'success'
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-          }`}
-        >
-          {toast.type === 'error' && <AlertCircle size={18} />}
-          {toast.message}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium
+          ${toast.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {toast.ok && <Check size={15} />}
+          {toast.msg}
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Please Add the Availability for the Whole Week</h2>
-          <p className="text-gray-600 dark:text-gray-400">Select each day and add your available time slots</p>
-        </div>
-
-        {/* Meeting Methods Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-6 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Meeting Methods</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Select all meeting methods you can conduct. These will be used for automatic appointment assignment.</p>
-          <div className="space-y-3">
-            {(['in-person', 'google-meet', 'zoom'] as const).map((method) => (
-              <label key={method} className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={meetingMethods.includes(method)}
-                  onChange={() => toggleMeetingMethod(method)}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
-                />
-                <span className="text-gray-700 dark:text-gray-300 font-medium">
-                  {method === 'google-meet' ? 'Google Meet' : method === 'zoom' ? 'Zoom' : 'In-Person'}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Day Tabs */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
-          <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-            {DAYS.map((day, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedDay(index)}
-                className={`flex-1 px-4 py-3 text-center border-b-2 transition font-medium ${
-                  selectedDay === index
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
-                }`}
-              >
-                {day}
-              </button>
-            ))}
-          </div>
-
-          {/* Content Area */}
-          {!loading ? (
-            <div className="grid grid-cols-2 gap-8 p-8">
-              {/* Left Side: Available Times to Add */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Select Meeting Method & Times</h3>
-                </div>
-
-                {/* Method Selector */}
-                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">1. Choose Method</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {(['in-person', 'online', 'both'] as const).map((method) => (
-                      <button
-                        key={method}
-                        onClick={() => setSelectedMethod(method)}
-                        className={`px-4 py-2 rounded-lg border-2 font-medium transition ${
-                          selectedMethod === method
-                            ? `${METHOD_COLORS[method].bg} ${METHOD_COLORS[method].border} ${METHOD_COLORS[method].text} border-current`
-                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                        }`}
-                      >
-                        {METHOD_LABELS[method]}
-                        {selectedMethod === method && <CheckCircle size={16} className="inline ml-2" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Time Selector */}
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">2. Select Times for {METHOD_LABELS[selectedMethod]}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {HOURS.map((hour) => {
-                      const timeSlotExists = currentDaySlots.some(slot => slot.time === hour && slot.method === selectedMethod);
-                      return (
-                        <button
-                          key={hour}
-                          onClick={() => addTimeSlot(hour)}
-                          disabled={timeSlotExists}
-                          className={`px-3 py-2 rounded-lg border transition font-medium ${
-                            timeSlotExists
-                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
-                              : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-blue-50 dark:active:bg-blue-900/30'
-                          }`}
-                        >
-                          {formatTimeForDisplay(hour)} <Plus size={14} className="inline ml-1" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <button
-                  onClick={addAllTimesForDay}
-                  className="mt-4 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition font-medium"
-                >
-                  Add All Times for {METHOD_LABELS[selectedMethod]}
-                </button>
-              </div>
-
-              {/* Right Side: Selected Times for This Day */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Availability for {DAYS[selectedDay]}</h3>
-                {currentDaySlots.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 py-8">No times selected for {DAYS[selectedDay]}</p>
-                ) : (
-                  <div className="space-y-3">
-                    {/* Group by method for better organization */}
-                    {(['in-person', 'online', 'both'] as const).map((method) => {
-                      const slotsForMethod = currentDaySlots.filter(slot => slot.method === method);
-                      if (slotsForMethod.length === 0) return null;
-                      
-                      return (
-                        <div key={method}>
-                          <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">{METHOD_LABELS[method]}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {slotsForMethod.map((slot) => (
-                              <button
-                                key={`${slot.time}-${slot.method}`}
-                                onClick={() => removeTimeSlot(slot.time, slot.method)}
-                                className={`px-3 py-2 rounded-lg transition font-medium flex items-center gap-2 ${METHOD_COLORS[method].bg} ${METHOD_COLORS[method].text} border ${METHOD_COLORS[method].border} hover:opacity-80 cursor-pointer`}
-                              >
-                                {formatTimeForDisplay(slot.time)} <X size={14} />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Weekly Schedule</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{activeDays} day{activeDays !== 1 ? 's' : ''} active · 1-hour slots</p>
             </div>
+            <button onClick={save} disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition"
+              style={{ backgroundColor: '#1a5228' }}>
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+
+
+          {loading ? (
+            <div className="p-10 text-center text-sm text-gray-400">Loading schedule…</div>
           ) : (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+            <div className="divide-y divide-gray-50">
+              {DAYS.map(({ label, dow }) => {
+                const entry = week[dow];
+                return (
+                  <div key={dow} className={`px-6 py-4 flex items-center gap-4 transition-colors ${entry.enabled ? '' : 'opacity-50'}`}>
+                    {/* Toggle */}
+                    <button onClick={() => setWeek(w => ({
+                      ...w,
+                      [dow]: {
+                        ...w[dow],
+                        enabled: !w[dow].enabled,
+                        // Apply default method when enabling a day
+                        session_method: w[dow].enabled ? w[dow].session_method : sessionMethod,
+                      },
+                    }))}
+                      className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${entry.enabled ? 'bg-[#1a5228]' : 'bg-gray-200'}`}>
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${entry.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </button>
+
+                    {/* Day name */}
+                    <span className="w-24 text-sm font-medium text-gray-800">{label}</span>
+
+                    {/* Hours */}
+                    {entry.enabled ? (
+                      <div className="flex items-center gap-2 flex-1 flex-wrap">
+                        <select value={entry.start_time}
+                          onChange={e => setWeek(w => ({ ...w, [dow]: { ...w[dow], start_time: e.target.value } }))}
+                          className="px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                          {TIME_OPTIONS.map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
+                        </select>
+                        <span className="text-xs text-gray-400">to</span>
+                        <select value={entry.end_time}
+                          onChange={e => setWeek(w => ({ ...w, [dow]: { ...w[dow], end_time: e.target.value } }))}
+                          className="px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                          {TIME_OPTIONS.filter(t => t > entry.start_time).map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
+                        </select>
+                        {/* Per-day session method toggle */}
+                        <div className="flex gap-1 ml-auto">
+                          {(['in-person', 'online'] as const).map(v => (
+                            <button key={v} onClick={() => setWeek(w => ({ ...w, [dow]: { ...w[dow], session_method: v } }))}
+                              title={v === 'in-person' ? 'Face to Face' : 'Online'}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border transition
+                                ${entry.session_method === v
+                                  ? v === 'in-person' ? 'bg-green-50 text-[#1a5228] border-[#1a5228]/40'
+                                                      : 'bg-blue-50 text-blue-700 border-blue-300'
+                                  : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'}`}>
+                              {v === 'in-person' ? <MapPin size={10} /> : <Monitor size={10} />}
+                              {v === 'in-person' ? 'F2F' : 'Online'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">Unavailable</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
-        </div>
 
-        {/* Save Button */}
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={saveAvailability}
-            disabled={saving}
-            className="px-6 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
-          >
-            {saving ? 'Saving...' : 'Save Availability'}
-          </button>
-        </div>
-
-        {/* Summary */}
-        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <p className="text-sm text-blue-900 dark:text-blue-300">
-            Total availability slots: {Object.values(weeklyAvailability).reduce((sum, slots) => sum + slots.length, 0)}
-          </p>
+          <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
+            <p className="text-xs text-gray-400">
+              Students see your free 1-hour slots with the method you set per day (F2F or Online). Confirmed sessions are automatically excluded.
+            </p>
+          </div>
         </div>
       </div>
     </DashboardLayout>

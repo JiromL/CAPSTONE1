@@ -725,6 +725,14 @@ def request_appointment():
             except Exception:
                 pass
 
+        # Weekly-schedule slot booking: counselor_id passed directly from open-slots endpoint
+        weekly_slot_counselor_id = None
+        if data.get('counselor_id') and not booked_slot:
+            try:
+                weekly_slot_counselor_id = ObjectId(data['counselor_id'])
+            except Exception:
+                pass
+
         appointment = {
             "student_id": user_id_obj,
             "case_id": case_id,
@@ -744,10 +752,17 @@ def request_appointment():
             "created_at": datetime.utcnow()
         }
 
-        # Attach counselor when booking via slot
+        # Attach counselor when booking via legacy slot
         if booked_slot and slot_counselor_id:
             appointment["counselor_id"] = slot_counselor_id
             counselor_doc = db.db.users.find_one({"_id": slot_counselor_id})
+            if counselor_doc:
+                appointment["counselor_name"] = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip()
+
+        # Attach counselor when booking via weekly schedule slot
+        if weekly_slot_counselor_id:
+            appointment["counselor_id"] = weekly_slot_counselor_id
+            counselor_doc = db.db.users.find_one({"_id": weekly_slot_counselor_id})
             if counselor_doc:
                 appointment["counselor_name"] = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip()
 
@@ -3490,6 +3505,41 @@ def confirm_schedule(appointment_id):
     }})
     audit_log(db.db, 'appointments', 'student_confirmed_schedule', entity_id=appointment_id)
     return jsonify({'message': 'Schedule confirmed.'}), 200
+
+
+@appointments_bp.route('/<appointment_id>/confirm-intake', methods=['POST'])
+@jwt_required()
+def confirm_intake_slot(appointment_id):
+    """IC confirms a slot-based booking (REQUESTED → CONFIRMED)."""
+    user_id = get_jwt_identity()
+    try:
+        apt_id = ObjectId(appointment_id)
+        uid_obj = ObjectId(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid ID'}), 400
+
+    user = db.db.users.find_one({'_id': uid_obj})
+    if not user or user.get('role') not in ('IC', 'INTAKE_COUNSELOR', 'ADMIN'):
+        return jsonify({'error': 'Only Intake Counselors can confirm slot bookings'}), 403
+
+    apt = db.db.appointments.find_one({'_id': apt_id})
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+    if apt.get('status') != AppointmentStatus.REQUESTED.value:
+        return jsonify({'error': 'Appointment is not in REQUESTED status'}), 400
+    if str(apt.get('counselor_id', '')) != str(uid_obj) and user.get('role') != 'ADMIN':
+        return jsonify({'error': 'This slot booking is not assigned to you'}), 403
+
+    now = datetime.utcnow()
+    db.db.appointments.update_one({'_id': apt_id}, {'$set': {
+        'status':       AppointmentStatus.CONFIRMED.value,
+        'confirmed_by': uid_obj,
+        'confirmed_at': now,
+        'updated_at':   now,
+    }})
+    audit_log(db.db, 'appointments', 'ic_confirmed_slot_booking', entity_id=appointment_id,
+              new_values={'confirmed_by': str(uid_obj)})
+    return jsonify({'message': 'Appointment confirmed.'}), 200
 
 
 # ─── FLOWCHART-ALIGNED ENDPOINTS ───────────────────────────────────────────

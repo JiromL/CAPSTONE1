@@ -29,6 +29,7 @@ interface Appointment {
   office?: string;
   reschedule_requested_by_role?: string;
   reschedule_requested_start?: string;
+  intake_source?: string;
 }
 
 interface DashboardData {
@@ -236,6 +237,9 @@ export default function AppointmentsDashboard() {
   const [closingIntake, setClosingIntake]         = useState(false);
   const [closeIntakeMsg, setCloseIntakeMsg]       = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
+  // IC slot confirmation
+  const [confirmingSlotId, setConfirmingSlotId]   = useState<string | null>(null);
+
   // Termination modal (complete with type)
   const [terminationTarget, setTerminationTarget] = useState<Appointment | null>(null);
   const [terminationType, setTerminationType]     = useState('MUTUAL');
@@ -251,7 +255,20 @@ export default function AppointmentsDashboard() {
       const r = await fetch(api('/api/appointments/dashboard/role-view'), {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!r.ok) throw new Error('Failed to fetch');
+      if (r.status === 401 || r.status === 422) {
+        ['token', 'user'].forEach(k => localStorage.removeItem(k));
+        window.location.href = '/login';
+        return;
+      }
+      if (r.status === 404) {
+        const d = await r.json().catch(() => ({}));
+        if (d.error?.toLowerCase().includes('user not found')) {
+          ['token', 'user'].forEach(k => localStorage.removeItem(k));
+          window.location.href = '/login';
+          return;
+        }
+      }
+      if (!r.ok) throw new Error('Failed to load appointments');
       const data = await r.json();
       setDashboard(data);
       if (data.can_assign_counselor) fetchCounselors(token!);
@@ -315,6 +332,24 @@ export default function AppointmentsDashboard() {
         setAssignMsg({ type: 'err', text: e.error || 'Failed to assign.' });
       }
     } finally { setAssigningId(null); }
+  };
+
+  const confirmIntakeSlot = async (aptId: string) => {
+    setConfirmingSlotId(aptId);
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/appointments/${aptId}/confirm-intake`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (r.ok) {
+        setActionMsg({ id: aptId, type: 'ok', text: 'Appointment confirmed — student will be notified.' });
+        setTimeout(() => { setActionMsg(null); fetchDashboard(); }, 1500);
+      } else {
+        const e = await r.json();
+        setActionMsg({ id: aptId, type: 'err', text: e.error || 'Failed to confirm.' });
+      }
+    } finally { setConfirmingSlotId(null); }
   };
 
   const doSessionAction = async (aptId: string, endpoint: string, body?: object) => {
@@ -587,6 +622,9 @@ export default function AppointmentsDashboard() {
     a.purpose === 'intake_interview' &&
     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status)
   ) : [];
+  const slotsPendingConfirm = isIC ? apts.filter(a =>
+    a.status === 'REQUESTED' && !!a.counselor_id && !!a.preferred_time
+  ) : [];
 
   // ── Loading / Error ───────────────────────────────────────────────────────────
   if (loading) {
@@ -619,6 +657,18 @@ export default function AppointmentsDashboard() {
       </div>
 
       {/* ── Action banners ────────────────────────────────────────────────── */}
+      {isIC && slotsPendingConfirm.length > 0 && (
+        <div className="flex items-center gap-3 bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-sm">
+          <CheckCircle size={14} className="text-sky-500 flex-shrink-0" />
+          <span className="text-sky-800">
+            <strong>{slotsPendingConfirm.length}</strong> slot booking{slotsPendingConfirm.length !== 1 ? 's' : ''} need your confirmation — students are waiting.
+          </span>
+          <button onClick={() => setActiveTab('new')}
+            className="ml-auto text-xs font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-900">
+            Confirm Now
+          </button>
+        </div>
+      )}
       {isIC && intakeReady.length > 0 && (
         <div className="flex items-center gap-3 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl px-4 py-3 text-sm">
           <ClipboardList size={14} className="text-[#1a5228] flex-shrink-0" />
@@ -823,7 +873,26 @@ export default function AppointmentsDashboard() {
                                   </button>
                                 )}
 
-                                {canAssign && isNew && (
+                                {isIC && isNew && apt.counselor_id && apt.preferred_time && (
+                                  <button
+                                    onClick={() => confirmIntakeSlot(apt.appointment_id)}
+                                    disabled={confirmingSlotId === apt.appointment_id}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50"
+                                    style={{ backgroundColor: '#1a5228' }}>
+                                    {confirmingSlotId === apt.appointment_id
+                                      ? <Loader2 size={11} className="animate-spin" />
+                                      : <CheckCircle size={11} />}
+                                    Confirm Slot
+                                  </button>
+                                )}
+                                {canAssign && isNew && !apt.counselor_id && (
+                                  <button onClick={() => { setAssignTarget(apt); setFreeSlots([]); setAssignForm({ counselorId: '', date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '', time: apt.preferred_time || '', office: '' }); setAssignMsg(null); }}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
+                                    style={{ backgroundColor: '#1a5228' }}>
+                                    <UserCheck size={12} /> Assign Counselor
+                                  </button>
+                                )}
+                                {canAssign && isNew && apt.counselor_id && !isIC && (
                                   <button onClick={() => { setAssignTarget(apt); setFreeSlots([]); setAssignForm({ counselorId: '', date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '', time: apt.preferred_time || '', office: '' }); setAssignMsg(null); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#1a5228' }}>

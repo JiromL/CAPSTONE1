@@ -2490,6 +2490,151 @@ def create_walkin_intake():
         return jsonify({'error': str(e)}), 500
 
 
+@intake_bp.route('/self-checkin', methods=['POST'])
+def student_self_checkin():
+    """
+    Public endpoint — no auth required.
+    Student fills ICF + SPIF-IF + PHQ-4 on their own device (walk-in self-service).
+    Creates case + intake + appointment (REQUESTED) + intake_packet.
+    Returns reference number (counseling_id) for the student to show at the desk.
+    """
+    data = request.get_json() or {}
+
+    # ── Validate required fields ──────────────────────────────────────────────
+    required = ['first_name', 'last_name', 'email']
+    for field in required:
+        if not data.get(field):
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    email = data.get('email', '').strip().lower()
+    if '@' not in email:
+        return jsonify({'error': 'Invalid email address'}), 400
+    if not email.endswith('@dlsu.edu.ph'):
+        return jsonify({'error': 'Only DLSU email addresses (@dlsu.edu.ph) are accepted for walk-in check-in'}), 400
+
+    # Prevent duplicate same-day check-ins for the same email
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    existing_today = db.db.appointments.find_one({
+        'student_email': email,
+        'intake_source': 'SELF_CHECKIN',
+        'created_at': {'$gte': today_start},
+    })
+    if existing_today:
+        return jsonify({'error': 'You already have a check-in submitted today. Please approach the CPS desk directly.'}), 409
+
+    icf  = data.get('icf', {})
+    spif = data.get('spif', {})
+    phq4 = data.get('phq4_responses', [])
+
+    if phq4 and len(phq4) != 4:
+        return jsonify({'error': 'phq4_responses must have exactly 4 items'}), 400
+    for val in phq4:
+        if not isinstance(val, int) or val < 0 or val > 3:
+            return jsonify({'error': 'Each PHQ-4 response must be an integer 0-3'}), 400
+
+    try:
+        counseling_id = generate_counseling_id()
+        now = datetime.utcnow()
+
+        # ── Case ──────────────────────────────────────────────────────────────
+        case_id = ObjectId()
+        db.db.cases.insert_one({
+            '_id': case_id,
+            'counseling_id': counseling_id,
+            'student_email': data['email'],
+            'student_name': f"{data['first_name']} {data['last_name']}",
+            'phone': data.get('phone', ''),
+            'status': 'ACTIVE',
+            'risk_level': 'GREEN',
+            'intake_source': 'SELF_CHECKIN',
+            'created_at': now,
+        })
+
+        # ── Appointment (REQUESTED — shows up in OA/IC dashboard) ─────────────
+        apt_id = ObjectId()
+        db.db.appointments.insert_one({
+            '_id': apt_id,
+            'counseling_id': counseling_id,
+            'case_id': case_id,
+            'student_name': f"{data['first_name']} {data['last_name']}",
+            'student_email': data['email'],
+            'status': AppointmentStatus.REQUESTED.value,
+            'appointment_type': 'INITIAL_CONSULTATION',
+            'is_walkin': True,
+            'intake_source': 'SELF_CHECKIN',
+            'intake_packet_submitted': True,
+            'created_at': now,
+            'created_by': 'SELF_CHECKIN',
+        })
+
+        # ── Intake record ─────────────────────────────────────────────────────
+        db.db.intakes.insert_one({
+            '_id': ObjectId(),
+            'case_id': case_id,
+            'appointment_id': apt_id,
+            'counseling_id': counseling_id,
+            'status': IntakeStatus.PENDING,
+            'student_name': f"{data['first_name']} {data['last_name']}",
+            'student_email': data['email'],
+            'phone': data.get('phone', ''),
+            'is_walkin': True,
+            'intake_source': 'SELF_CHECKIN',
+            'responses': {'purpose': icf.get('service_requested', 'counseling')},
+            'created_at': now,
+        })
+
+        # ── PHQ-4 scoring ─────────────────────────────────────────────────────
+        phq2_score = sum(phq4[:2]) if phq4 else None
+        gad2_score = sum(phq4[2:]) if phq4 else None
+        total_phq4 = sum(phq4) if phq4 else None
+
+        # ── Intake packet (ICF + SPIF + PHQ-4) ───────────────────────────────
+        db.db.intake_packets.insert_one({
+            '_id': ObjectId(),
+            'source': 'walkin',
+            'submitted_by_role': 'student',
+            'appointment_id': apt_id,
+            'counseling_id': counseling_id,
+            'icf': icf,
+            'spif': spif,
+            'phq4_responses': phq4,
+            'consent_audit': {
+                'consent_to_service': icf.get('consent_to_service', False),
+                'consent_to_data': icf.get('consent_to_data', False),
+                'consent_timestamp': now.isoformat(),
+                'consent_version': '2025-AY',
+                'submitted_by': 'student_self',
+            },
+            'phq4': {
+                'phq2_score': phq2_score,
+                'gad2_score': gad2_score,
+                'total_score': total_phq4,
+                'depression_risk': phq2_score is not None and phq2_score >= 3,
+                'anxiety_risk':    gad2_score  is not None and gad2_score  >= 3,
+            } if phq4 else None,
+            'created_at': now,
+            'updated_at': now,
+        })
+
+        # Update appointment with packet link
+        db.db.appointments.update_one(
+            {'_id': apt_id},
+            {'$set': {'intake_packet_submitted': True}}
+        )
+
+        return jsonify({
+            'success': True,
+            'counseling_id': counseling_id,
+            'appointment_id': str(apt_id),
+            'case_id': str(case_id),
+            'message': 'Check-in submitted. Please show your reference number at the desk.',
+        }), 201
+
+    except Exception as e:
+        current_app.logger.error(f'Error in self-checkin: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+
 @intake_bp.route('/draft/save', methods=['POST'])
 @jwt_required()
 def save_intake_draft():

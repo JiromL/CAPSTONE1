@@ -35,7 +35,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const icItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'New Intakes',          href: '/new-intakes',          id: 'new-intakes'  },
+    { label: 'My Availability',      href: '/availability',         id: 'availability' },
     { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
     { label: 'Profile',              href: '/profile',              id: 'profile'      },
   ];
@@ -43,11 +43,12 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ COUNSELOR ============
   // Conducts sessions, manages their assigned student cases
   const counselorItems: MenuItem[] = [
-    { label: 'Dashboard',      href: '/dashboard',    id: 'dashboard'    },
-    { label: 'My Sessions',    href: '/appointments', id: 'appointments' },
-    { label: 'Cases',          href: '/cases',        id: 'cases'        },
-    { label: 'Announcements',  href: '/announcements',id: 'announcements'},
-    { label: 'Profile',        href: '/profile',      id: 'profile'      },
+    { label: 'Dashboard',        href: '/dashboard',    id: 'dashboard'    },
+    { label: 'My Sessions',      href: '/appointments', id: 'appointments' },
+    { label: 'Cases',            href: '/cases',        id: 'cases'        },
+    { label: 'My Availability',  href: '/availability', id: 'availability' },
+    { label: 'Announcements',    href: '/announcements',id: 'announcements'},
+    { label: 'Profile',          href: '/profile',      id: 'profile'      },
   ];
 
   // ============ PSYCHOLOGIST ============
@@ -61,23 +62,13 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Profile',              href: '/profile',      id: 'profile'      },
   ];
 
-  // ============ CSC/CSP (Continuing Session Counselor/Psychologist) ============
-  // Handles ongoing / follow-up sessions for existing clients
-  const supportTeamItems: MenuItem[] = [
-    { label: 'Dashboard',     href: '/dashboard',    id: 'dashboard'    },
-    { label: 'My Sessions',   href: '/appointments', id: 'appointments' },
-    { label: 'Cases',         href: '/cases',        id: 'cases'        },
-    { label: 'Announcements', href: '/announcements',id: 'announcements'},
-    { label: 'Profile',       href: '/profile',      id: 'profile'      },
-  ];
-
   // ============ STAFF (Office Assistant) ============
   // Routes appointment requests, handles reschedules and walk-ins
   const staffItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'          },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'       },
     { label: 'Reschedule Requests',  href: '/reschedule-requests',  id: 'reschedule-requests'},
-    { label: 'Walk-In Intake',       href: '/walk-in-intake',       id: 'walk-in-intake'     },
+    { label: 'Walk-In Intake',       href: '/staff/walkin-intake',  id: 'walk-in-intake'     },
     { label: 'Announcements',        href: '/announcements',        id: 'announcements'      },
     { label: 'Profile',              href: '/profile',              id: 'profile'            },
   ];
@@ -113,18 +104,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
       return counselorItems;
     case 'PSYCHOLOGIST':
       return psychologistItems;
-    case 'CSC':
-      return supportTeamItems;
-    case 'CSP':
-      // CSP is clinical (psychologist level) — include High-Risk
-      return [
-        { label: 'Dashboard',            href: '/dashboard',    id: 'dashboard'    },
-        { label: 'High-Risk Monitoring', href: '/high-risk',    id: 'high-risk'    },
-        { label: 'My Sessions',          href: '/appointments', id: 'appointments' },
-        { label: 'Cases',                href: '/cases',        id: 'cases'        },
-        { label: 'Announcements',        href: '/announcements',id: 'announcements'},
-        { label: 'Profile',              href: '/profile',      id: 'profile'      },
-      ];
     case 'STAFF':
       return staffItems;
     case 'ADMIN':
@@ -159,6 +138,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     'appointment-requests':'appointments',
     'reschedule-requests': 'reschedule-requests',
     'walk-in-intake':      'walk-in-intake',
+    'walkin-intake':       'walk-in-intake',
 
     // Staff intakes
     'new-intakes':         'new-intakes',

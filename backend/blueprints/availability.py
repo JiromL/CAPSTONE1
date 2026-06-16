@@ -12,9 +12,280 @@ from datetime import datetime, timedelta
 
 availability_bp = Blueprint('availability', __name__, url_prefix='/api/availability')
 
+STAFF_ROLES = {'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'IC', 'STAFF'}
+
 
 # ============================================================================
-# COUNSELOR AVAILABILITY MANAGEMENT
+# WEEKLY RECURRING SCHEDULE  (new, simple model)
+# Collection: counselor_weekly_schedule
+# Doc shape:  { counselor_id, schedule: [{day_of_week: 0-6, start_time: "HH:MM", end_time: "HH:MM"}] }
+# ============================================================================
+
+@availability_bp.route('/weekly', methods=['GET'])
+@jwt_required()
+def get_weekly_schedule():
+    """Return the current user's weekly recurring schedule."""
+    uid = get_jwt_identity()
+    try:
+        uid_obj = ObjectId(uid)
+    except Exception:
+        return jsonify({'error': 'Invalid user id'}), 400
+
+    doc = db.db.counselor_weekly_schedule.find_one({'counselor_id': uid_obj})
+    return jsonify({
+        'schedule': doc['schedule'] if doc else [],
+        'session_method': doc.get('session_method', 'in-person') if doc else 'in-person',
+    }), 200
+
+
+@availability_bp.route('/weekly', methods=['PUT'])
+@jwt_required()
+def set_weekly_schedule():
+    """Replace the current user's weekly recurring schedule.
+
+    Body: { schedule: [{day_of_week: 0-6, start_time: "HH:MM", end_time: "HH:MM"}, ...] }
+    """
+    uid = get_jwt_identity()
+    try:
+        uid_obj = ObjectId(uid)
+    except Exception:
+        return jsonify({'error': 'Invalid user id'}), 400
+
+    user = db.db.users.find_one({'_id': uid_obj})
+    if not user or user.get('role') not in STAFF_ROLES:
+        return jsonify({'error': 'Only counseling staff can set availability'}), 403
+
+    data = request.get_json() or {}
+    schedule = data.get('schedule', [])
+    # Global fallback method (kept for backwards-compat); per-day overrides live in each entry
+    session_method = data.get('session_method', 'in-person')
+    if session_method not in ('in-person', 'online'):
+        return jsonify({'error': 'session_method must be in-person or online'}), 400
+
+    # Validate and normalise each entry
+    for entry in schedule:
+        dow = entry.get('day_of_week')
+        if not isinstance(dow, int) or dow < 0 or dow > 6:
+            return jsonify({'error': f'Invalid day_of_week: {dow}'}), 400
+        for field in ('start_time', 'end_time'):
+            val = entry.get(field, '')
+            parts = val.split(':')
+            if len(parts) != 2:
+                return jsonify({'error': f'Invalid {field}: {val}'}), 400
+        # Store per-day method, falling back to global
+        day_method = entry.get('session_method', session_method)
+        if day_method not in ('in-person', 'online'):
+            day_method = session_method
+        entry['session_method'] = day_method
+
+    db.db.counselor_weekly_schedule.replace_one(
+        {'counselor_id': uid_obj},
+        {'counselor_id': uid_obj, 'session_method': session_method, 'schedule': schedule, 'updated_at': datetime.utcnow()},
+        upsert=True,
+    )
+    return jsonify({'message': 'Weekly schedule saved', 'days': len(schedule)}), 200
+
+
+@availability_bp.route('/free-slots', methods=['GET'])
+@jwt_required()
+def get_free_slots():
+    """Return available 30-min slots for a counselor on a given date.
+
+    Query params:
+      counselor_id  – ObjectId string of the counselor
+      date          – YYYY-MM-DD
+
+    Logic:
+      1. Look up the counselor's weekly_schedule for that day-of-week.
+      2. Generate 30-min slots inside the working window.
+      3. Remove slots that overlap a CONFIRMED/APPROVED/MATCHED appointment.
+      4. Return remaining slots as "HH:MM" strings.
+    """
+    counselor_id = request.args.get('counselor_id')
+    date_str = request.args.get('date')
+
+    if not counselor_id or not date_str:
+        return jsonify({'error': 'counselor_id and date are required'}), 400
+
+    try:
+        cid = ObjectId(counselor_id)
+    except Exception:
+        return jsonify({'error': 'Invalid counselor_id'}), 400
+
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'date must be YYYY-MM-DD'}), 400
+
+    day_of_week = target_date.weekday()  # 0=Monday … 6=Sunday
+
+    # 1. Get weekly schedule
+    doc = db.db.counselor_weekly_schedule.find_one({'counselor_id': cid})
+    if not doc or not doc.get('schedule'):
+        return jsonify({'slots': [], 'note': 'No schedule set for this counselor'}), 200
+
+    working = next((e for e in doc['schedule'] if e.get('day_of_week') == day_of_week), None)
+    if not working:
+        return jsonify({'slots': [], 'note': 'Counselor not available on this day'}), 200
+
+    # 2. Generate 30-min slots
+    sh, sm = map(int, working['start_time'].split(':'))
+    eh, em = map(int, working['end_time'].split(':'))
+    cursor = target_date.replace(hour=sh, minute=sm, second=0, microsecond=0)
+    day_end = target_date.replace(hour=eh, minute=em, second=0, microsecond=0)
+
+    all_slots = []
+    while cursor < day_end:
+        all_slots.append(cursor)
+        cursor += timedelta(minutes=30)
+
+    # 3. Remove booked slots
+    day_start_dt = target_date.replace(hour=0, minute=0, second=0)
+    day_end_dt   = target_date.replace(hour=23, minute=59, second=59)
+    booked = list(db.db.appointments.find({
+        'counselor_id': cid,
+        'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED']},
+        '$or': [
+            {'scheduled_start': {'$gte': day_start_dt, '$lte': day_end_dt}},
+            {'preferred_date':   {'$gte': day_start_dt, '$lte': day_end_dt}},
+        ],
+    }))
+
+    def slot_is_booked(slot_dt):
+        slot_end = slot_dt + timedelta(minutes=30)
+        for apt in booked:
+            # Try scheduled_start first, then preferred_date + preferred_time
+            apt_start = apt.get('scheduled_start') or apt.get('preferred_date')
+            if not apt_start:
+                continue
+            if isinstance(apt_start, str):
+                try:
+                    apt_start = datetime.fromisoformat(apt_start)
+                except Exception:
+                    continue
+            apt_end = apt_start + timedelta(minutes=50)  # typical 50-min session
+            if slot_dt < apt_end and slot_end > apt_start:
+                return True
+        return False
+
+    free = [s.strftime('%H:%M') for s in all_slots if not slot_is_booked(s)]
+    return jsonify({'slots': free, 'working_hours': f"{working['start_time']}–{working['end_time']}"}), 200
+
+
+@availability_bp.route('/open-slots', methods=['GET'])
+@jwt_required()
+def get_open_slots():
+    """Aggregate free 30-min slots across ALL intake counselors for a given date.
+
+    Query params:
+      date – YYYY-MM-DD (required)
+
+    Returns:
+      {
+        date, slots: [{time, counselor_id, counselor_name}],
+        next_available_date  – nearest date in next 14 days that has ≥1 slot (or null)
+      }
+    """
+    date_str = request.args.get('date')
+    if not date_str:
+        return jsonify({'error': 'date is required'}), 400
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'date must be YYYY-MM-DD'}), 400
+
+    SLOT_DURATION = 60  # 1-hour sessions
+
+    def slots_for_counselor(counselor, date):
+        """Return list of free time strings for one counselor on one date."""
+        dow = date.weekday()
+        doc = db.db.counselor_weekly_schedule.find_one({'counselor_id': counselor['_id']})
+        if not doc or not doc.get('schedule'):
+            return []
+        working = next((e for e in doc['schedule'] if e.get('day_of_week') == dow), None)
+        if not working:
+            return []
+
+        # Per-day method takes priority over the doc-level global default
+        session_method = working.get('session_method') or doc.get('session_method', 'in-person')
+
+        sh, sm = map(int, working['start_time'].split(':'))
+        eh, em = map(int, working['end_time'].split(':'))
+        cursor = date.replace(hour=sh, minute=sm, second=0, microsecond=0)
+        day_end = date.replace(hour=eh, minute=em, second=0, microsecond=0)
+        all_slots = []
+        while cursor + timedelta(minutes=SLOT_DURATION) <= day_end:
+            all_slots.append(cursor)
+            cursor += timedelta(minutes=SLOT_DURATION)
+
+        day_start_dt = date.replace(hour=0, minute=0, second=0)
+        day_end_dt   = date.replace(hour=23, minute=59, second=59)
+        booked = list(db.db.appointments.find({
+            'counselor_id': counselor['_id'],
+            'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'PENDING_STUDENT_APPROVAL']},
+            '$or': [
+                {'scheduled_start': {'$gte': day_start_dt, '$lte': day_end_dt}},
+                {'requested_start':  {'$gte': day_start_dt, '$lte': day_end_dt}},
+            ],
+        }))
+
+        def is_booked(slot_dt):
+            slot_end = slot_dt + timedelta(minutes=SLOT_DURATION)
+            for apt in booked:
+                apt_start = apt.get('scheduled_start') or apt.get('requested_start')
+                if not apt_start:
+                    continue
+                if isinstance(apt_start, str):
+                    try:
+                        apt_start = datetime.fromisoformat(apt_start)
+                    except Exception:
+                        continue
+                apt_end = apt_start + timedelta(minutes=SLOT_DURATION)
+                if slot_dt < apt_end and slot_end > apt_start:
+                    return True
+            return False
+
+        return [
+            {'time': s.strftime('%H:%M'), 'method': session_method}
+            for s in all_slots if not is_booked(s)
+        ]
+
+    # Get all IC counselors
+    ics = list(db.db.users.find({'role': {'$in': ['IC', 'INTAKE_COUNSELOR']}, 'is_active': True}))
+
+    def build_slots_for_date(date):
+        combined = []
+        for ic in ics:
+            for s in slots_for_counselor(ic, date):
+                combined.append({
+                    'time': s['time'],
+                    'method': s['method'],
+                    'counselor_id': str(ic['_id']),
+                    'counselor_name': f"{ic.get('first_name','')} {ic.get('last_name','')}".strip(),
+                })
+        combined.sort(key=lambda x: x['time'])
+        return combined
+
+    slots = build_slots_for_date(target_date)
+
+    # Find next available date if today has no slots
+    next_available_date = None
+    if not slots:
+        for delta in range(1, 15):
+            candidate = target_date + timedelta(days=delta)
+            if build_slots_for_date(candidate):
+                next_available_date = candidate.strftime('%Y-%m-%d')
+                break
+
+    return jsonify({
+        'date': date_str,
+        'slots': slots,
+        'next_available_date': next_available_date,
+    }), 200
+
+
+# ============================================================================
+# LEGACY SLOT MANAGEMENT (kept for backwards compat)
 # ============================================================================
 
 @availability_bp.route('/set-availability', methods=['POST'])
@@ -34,9 +305,9 @@ def set_availability():
         return jsonify({'error': 'User not found'}), 404
     
     # Only counselors and staff can set their availability
-    if user.get('role') not in ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'ADMIN']:
+    if user.get('role') not in ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN']:
         return jsonify({'error': 'Only counselors can set availability'}), 403
-    
+
     # Get slots from request (array of time slots)
     slots = data.get('slots', [])
     if not slots:
@@ -265,9 +536,9 @@ def bulk_create_availability():
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
-    if user.get('role') not in ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'ADMIN']:
+    if user.get('role') not in ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN']:
         return jsonify({'error': 'Only counselors can set availability'}), 403
-    
+
     # Required fields
     start_date = data.get('start_date')
     end_date = data.get('end_date')

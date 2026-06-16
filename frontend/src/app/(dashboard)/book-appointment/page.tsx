@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 import {
   AlertCircle, CheckCircle, Loader2, Save, Send, Check,
   ChevronRight, ChevronLeft, User, FileText, Brain, ClipboardCheck,
-  BookOpen, Heart, Phone, GraduationCap,
+  BookOpen, Heart, Phone, GraduationCap, Clock, CalendarX, CalendarCheck,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -135,11 +135,17 @@ export default function BookAppointmentPage() {
   const [purpose, setPurpose]             = useState('intake_interview');
   const [specifyOthers, setSpecifyOthers] = useState('');
   const [concern, setConcern]             = useState('');
-  const [platform, setPlatform]           = useState('in-person');
+  const [slotMethod, setSlotMethod]        = useState('in-person');
   const [referralType, setReferralType]   = useState('self-referred');
   const [referredBy, setReferredBy]       = useState('');
   const [prefDate, setPrefDate]           = useState('');
   const [prefTime, setPrefTime]           = useState('');
+  const [slotCounselorId, setSlotCounselorId] = useState('');
+  const [slots, setSlots]                 = useState<{ time: string; method: string; counselor_id: string; counselor_name: string }[]>([]);
+  const [slotsLoading, setSlotsLoading]   = useState(false);
+  const [noSlotsNextDate, setNoSlotsNextDate] = useState<string | null>(null);
+  const [requestAnyway, setRequestAnyway] = useState(false);
+  const [methodFilter, setMethodFilter]   = useState<'all' | 'in-person' | 'online'>('all');
 
   // Intake packet
   const [showIntake, setShowIntake]       = useState(false);
@@ -185,7 +191,7 @@ export default function BookAppointmentPage() {
       const draft = localStorage.getItem(DRAFT_KEY);
       if (draft) {
         setHasDraft(true);
-        try { const d = JSON.parse(draft); if (d.purpose) setPurpose(d.purpose); if (d.concern) setConcern(d.concern); if (d.platform) setPlatform(d.platform); if (d.referralType) setReferralType(d.referralType); if (d.referredBy) setReferredBy(d.referredBy); if (d.prefDate) setPrefDate(d.prefDate); if (d.prefTime) setPrefTime(d.prefTime); } catch {}
+        try { const d = JSON.parse(draft); if (d.purpose) setPurpose(d.purpose); if (d.concern) setConcern(d.concern); if (d.referralType) setReferralType(d.referralType); if (d.referredBy) setReferredBy(d.referredBy); if (d.prefDate) setPrefDate(d.prefDate); if (d.prefTime) setPrefTime(d.prefTime); } catch {}
       }
       // Resume intake forms for an existing appointment
       if (resumeId) {
@@ -211,6 +217,24 @@ export default function BookAppointmentPage() {
     init();
   }, [router, resumeId]);
 
+  // Fetch available slots whenever the date changes
+  useEffect(() => {
+    if (!prefDate) { setSlots([]); setNoSlotsNextDate(null); setRequestAnyway(false); return; }
+    const token = localStorage.getItem('token');
+    setSlotsLoading(true);
+    setPrefTime('');
+    setSlotCounselorId('');
+    setRequestAnyway(false);
+    fetch(api(`/api/availability/open-slots?date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        setSlots(d.slots || []);
+        setNoSlotsNextDate(d.next_available_date || null);
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, [prefDate]);
+
   const handleConsent = async () => {
     if (!consentChecks.counseling || !consentChecks.privacy) return;
     const token = localStorage.getItem('token'); setSavingConsent(true); setConsentError(null);
@@ -220,7 +244,7 @@ export default function BookAppointmentPage() {
     } catch { setConsentError('Error recording consent.'); } finally { setSavingConsent(false); }
   };
 
-  const saveDraft = () => { setSavingDraft(true); localStorage.setItem(DRAFT_KEY, JSON.stringify({ purpose, specifyOthers, concern, platform, referralType, referredBy, prefDate, prefTime })); setHasDraft(true); setTimeout(() => setSavingDraft(false), 600); };
+  const saveDraft = () => { setSavingDraft(true); localStorage.setItem(DRAFT_KEY, JSON.stringify({ purpose, specifyOthers, concern, referralType, referredBy, prefDate, prefTime })); setHasDraft(true); setTimeout(() => setSavingDraft(false), 600); };
   const clearDraft = () => { localStorage.removeItem(DRAFT_KEY); setHasDraft(false); };
 
   const timeSlots = buildSlots(bookingRules.operating_hours_start, bookingRules.operating_hours_end, bookingRules.slot_duration_minutes);
@@ -234,15 +258,24 @@ export default function BookAppointmentPage() {
     const fp = purpose === 'others' ? specifyOthers.trim() : purpose;
     if (!fp)           { setError('Please select a purpose.'); return; }
     if (!concern.trim()) { setError('Please describe your concern.'); return; }
-    if (!prefDate)     { setError('Please select a date.'); return; }
-    if (!prefTime)     { setError('Please select a time.'); return; }
+    if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
+    if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
     if (referralType === 'referred' && !referredBy.trim()) { setError('Please specify who referred you.'); return; }
-    if (bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
-    if (!bookingRules.operating_days.includes(new Date(prefDate + 'T00:00:00').getDay())) { setError('CPS is closed on that day.'); return; }
+    if (prefDate && bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const r = await fetch(api('/api/appointments/request'), { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ purpose:fp, concern, preferred_method:platform, preferred_date:prefDate, preferred_time:prefTime, referral_type:referralType, referred_by: referralType==='referred' ? referredBy : null, agreed_to_terms:true }) });
+      const body: Record<string, any> = {
+        purpose: fp, concern, preferred_method: slotMethod,
+        referral_type: referralType, referred_by: referralType === 'referred' ? referredBy : null,
+        agreed_to_terms: true,
+      };
+      if (!requestAnyway && prefDate && prefTime) {
+        body.preferred_date = prefDate;
+        body.preferred_time = prefTime;
+        if (slotCounselorId) body.counselor_id = slotCounselorId;
+      }
+      const r = await fetch(api('/api/appointments/request'), { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
       if (r.status === 401) { router.replace('/login'); return; }
       const d = await r.json();
       if (r.ok) {
@@ -561,6 +594,7 @@ export default function BookAppointmentPage() {
 
   // ── Success ────────────────────────────────────────────────────────────────
   if (success) {
+    const isSlotBooking = !requestAnyway && !!prefTime;
     return (
       <DashboardPageWrapper title="Book Appointment" subtitle="">
         <div className="max-w-2xl mx-auto">
@@ -569,12 +603,29 @@ export default function BookAppointmentPage() {
             <div className="flex items-start gap-3">
               <CheckCircle size={24} className="text-green-300 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-bold text-green-200 uppercase tracking-wide mb-1">Request Submitted</p>
+                <p className="text-sm font-bold text-green-200 uppercase tracking-wide mb-1">
+                  {isSlotBooking ? 'Slot Reserved' : 'Request Submitted'}
+                </p>
                 <p className="text-lg font-bold">Ticket #{ticketNumber}</p>
-                <p className="text-sm text-green-100 mt-1">By sharing your Ticket Number with your counselor during the session, you are confirming your consent to receive services.</p>
+                {isSlotBooking ? (
+                  <p className="text-sm text-green-100 mt-1">
+                    Your slot at <strong>{(() => { const [h,m]=prefTime.split(':').map(Number); const ap=h>=12?'PM':'AM'; const h12=h%12||12; return `${h12}:${String(m).padStart(2,'0')} ${ap}`; })()}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it shortly.
+                  </p>
+                ) : (
+                  <p className="text-sm text-green-100 mt-1">Our office will review your request and contact you to schedule a session. By sharing your Ticket Number with your counselor during the session, you confirm consent to receive services.</p>
+                )}
               </div>
             </div>
           </div>
+          {isSlotBooking && (
+            <div className="flex items-start gap-3 bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4">
+              <CalendarCheck size={16} className="text-sky-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-sky-800">Pending IC confirmation</p>
+                <p className="text-xs text-sky-700 mt-0.5">Your intake counselor will review and confirm your slot. You'll see the status update in My Appointments.</p>
+              </div>
+            </div>
+          )}
           {formSkipped && (
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
               <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
@@ -696,19 +747,110 @@ export default function BookAppointmentPage() {
               </div>
             )}
 
-            {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Date & Slot Picker */}
+            <div className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Date <span className="text-red-400">*</span></label>
-                <input type="date" value={prefDate} onChange={e => { setPrefDate(e.target.value); setPrefTime(''); }} min={toDS(minDate)} max={toDS(maxDate)} className={IC} />
+                <input type="date" value={prefDate} onChange={e => setPrefDate(e.target.value)} min={toDS(minDate)} max={toDS(maxDate)} className={IC} />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Time <span className="text-red-400">*</span></label>
-                <select value={prefTime} onChange={e => setPrefTime(e.target.value)} disabled={!prefDate} className={`${IC} disabled:opacity-50 disabled:cursor-not-allowed`}>
-                  <option value="">{prefDate ? '— Select time —' : 'Select date first'}</option>
-                  {timeSlots.map(t => <option key={t} value={t}>{fmtT(t)}</option>)}
-                </select>
-              </div>
+
+              {prefDate && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                    Available Slots <span className="text-red-400">*</span>
+                  </label>
+
+                  {slotsLoading && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 py-3">
+                      <Loader2 size={14} className="animate-spin" /> Checking availability…
+                    </div>
+                  )}
+
+                  {!slotsLoading && slots.length > 0 && (
+                    <>
+                      {/* Method filter */}
+                      <div className="flex gap-2 mb-2">
+                        {(['all', 'in-person', 'online'] as const).map(f => (
+                          <button key={f} type="button" onClick={() => setMethodFilter(f)}
+                            className={`text-xs px-2.5 py-1 rounded-full font-medium border transition ${
+                              methodFilter === f
+                                ? 'bg-[#1a5228] text-white border-[#1a5228]'
+                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                            }`}>
+                            {f === 'all' ? 'All' : f === 'in-person' ? 'Face to Face' : 'Online'}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(() => {
+                          // Deduplicate by time+method — keep first available counselor per combo
+                          const seen = new Set<string>();
+                          const deduped = slots.filter(s => {
+                            const key = `${s.time}|${s.method}`;
+                            if (seen.has(key)) return false;
+                            seen.add(key);
+                            return true;
+                          });
+                          return deduped
+                            .filter(s => methodFilter === 'all' || s.method === methodFilter)
+                            .map((s, i) => (
+                              <button key={i} type="button"
+                                onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setSlotMethod(s.method); setRequestAnyway(false); }}
+                                className={`flex flex-col items-center py-2.5 px-2 rounded-xl border-2 text-xs font-semibold transition ${
+                                  prefTime === s.time && slotCounselorId === s.counselor_id
+                                    ? s.method === 'online'
+                                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                      : 'border-[#1a5228] bg-green-50 text-[#1a5228]'
+                                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
+                                }`}>
+                                <Clock size={11} className="mb-0.5 opacity-60" />
+                                {fmtT(s.time)}
+                                <span className={`text-[9px] mt-0.5 font-bold ${s.method === 'online' ? 'text-blue-500' : 'text-green-600'}`}>
+                                  {s.method === 'online' ? 'Online' : 'F2F'}
+                                </span>
+                              </button>
+                            ));
+                        })()}
+                      </div>
+                    </>
+                  )}
+
+                  {!slotsLoading && slots.length === 0 && !requestAnyway && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <CalendarX size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-800">No slots available on this date</p>
+                          {noSlotsNextDate && (
+                            <p className="text-xs text-amber-600 mt-0.5">
+                              Next available:{' '}
+                              <button type="button" onClick={() => setPrefDate(noSlotsNextDate)}
+                                className="font-bold underline hover:text-amber-800">
+                                {new Date(noSlotsNextDate + 'T00:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
+                              </button>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => setRequestAnyway(true)}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-amber-700 hover:bg-amber-50 transition">
+                        <CalendarCheck size={12} /> Submit open request — OA will schedule me
+                      </button>
+                    </div>
+                  )}
+
+                  {!slotsLoading && requestAnyway && (
+                    <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                      <CalendarCheck size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-blue-800">Open request — no specific time</p>
+                        <p className="text-xs text-blue-600 mt-0.5">A CPS staff member will contact you to arrange a schedule.</p>
+                      </div>
+                      <button type="button" onClick={() => setRequestAnyway(false)} className="text-xs text-blue-400 hover:text-blue-600 underline">Change</button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Concern */}
@@ -716,22 +858,6 @@ export default function BookAppointmentPage() {
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Concern / Need <span className="text-red-400">*</span></label>
               <textarea value={concern} onChange={e => setConcern(e.target.value)} rows={3} placeholder="Briefly describe what you'd like to talk about or get help with…"
                 className={`${IC} resize-none`} />
-            </div>
-
-            {/* Platform */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Preferred Platform</label>
-              <div className="flex gap-2">
-                {PLATFORMS.map(p => (
-                  <label key={p.value}
-                    className={`flex-1 flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition text-xs font-semibold
-                      ${platform===p.value ? 'border-[#1a5228] bg-green-50 text-[#1a5228]' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
-                    <input type="radio" name="platform" value={p.value} checked={platform===p.value} onChange={() => setPlatform(p.value)} className="sr-only" />
-                    <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${platform===p.value ? 'bg-[#1a5228] border-[#1a5228]' : 'border-gray-300'}`} />
-                    {p.label}
-                  </label>
-                ))}
-              </div>
             </div>
 
             {/* Referral */}

@@ -16,6 +16,7 @@ interface Appointment {
   purpose?: string;
   concern?: string;
   preferred_method?: string;
+  preferred_time?: string;
   requested_start?: string;
   scheduled_start?: string;
   counselor_name?: string;
@@ -115,6 +116,14 @@ function fmtPlatform(m?: string) {
 }
 function isUpcoming(dt?: string) {
   return dt ? new Date(dt) > new Date() : false;
+}
+function isSameDay(dt?: string) {
+  if (!dt) return false;
+  const d = new Date(dt);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
 }
 function padId(id: string) {
   return id.replace(/\D/g, '').slice(-10).padStart(10, '0');
@@ -427,7 +436,12 @@ export default function MyAppointmentsPage() {
             <div className="p-4 space-y-3">
               {filtered.map((appt) => {
                 const dt  = appt.scheduled_start || appt.requested_start;
-                const cfg = STATUS_BADGE[appt.status] ?? { label: appt.status, cls: 'bg-gray-100 text-gray-600' };
+                const isTodayAppt = isSameDay(dt);
+                const isSlotReserved = appt.status === 'REQUESTED' && !!appt.preferred_time;
+                const rawCfg = STATUS_BADGE[appt.status] ?? { label: appt.status, cls: 'bg-gray-100 text-gray-600' };
+                const cfg = isSlotReserved
+                  ? { label: 'Slot Reserved', cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' }
+                  : rawCfg;
                 const active = !INACTIVE.has(appt.status);
                 const upcoming = isUpcoming(dt);
                 const canJoin = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(appt.status) && upcoming && appt.meeting_link;
@@ -448,6 +462,9 @@ export default function MyAppointmentsPage() {
                           <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
                             {cfg.label}
                           </span>
+                          {isSlotReserved && (
+                            <span className="text-xs text-sky-600 font-medium">Awaiting IC confirmation</span>
+                          )}
                           {counselorProposedResched && (
                             <span className="text-xs text-orange-600 font-medium">Your counselor proposed a new time</span>
                           )}
@@ -552,12 +569,25 @@ export default function MyAppointmentsPage() {
                             </button>
                           )}
                           {active && !needsEval && !awaitingConfirmation && (
-                            <button
-                              onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }}
-                              title="Cancel appointment"
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
-                              <X size={14} />
-                            </button>
+                            isTodayAppt ? (
+                              <div className="relative group">
+                                <button disabled
+                                  className="p-1.5 rounded-lg text-gray-200 cursor-not-allowed">
+                                  <X size={14} />
+                                </button>
+                                <div className="absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-10 w-52 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-2 shadow-lg pointer-events-none">
+                                  Same-day cancellations must be done in person or by calling CPS directly.
+                                  <div className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }}
+                                title="Cancel appointment"
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                                <X size={14} />
+                              </button>
+                            )
                           )}
                         </div>
                       </div>

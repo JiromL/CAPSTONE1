@@ -271,11 +271,15 @@ def get_staff_dashboard(user_id_obj, user_name):
         reschedule_pending = [a for a in all_appointments if a.get('status') == 'RESCHEDULE_REQUESTED']
         awaiting_eval = [a for a in all_appointments if a.get('status') == AppointmentStatus.EVALUATION.value]
 
+        staff_apts = format_appointments(all_appointments)
+        for a in staff_apts:
+            a.pop('concern', None)
+
         return jsonify({
             'role': 'STAFF',
             'user_name': user_name,
             'view_type': 'staff_assignment',
-            'appointments': format_appointments(all_appointments),
+            'appointments': staff_apts,
             'summary': {
                 'total_appointments': len(all_appointments),
                 'unassigned_requests': len(requested),

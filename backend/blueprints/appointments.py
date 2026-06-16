@@ -295,9 +295,11 @@ def list_appointments():
                     except Exception:
                         pass
 
-        # Convert all appointments
+        # Convert all appointments; strip sensitive fields from OA view
         for apt in appointments:
             convert_objectids(apt)
+            if role == 'STAFF':
+                apt.pop('concern', None)
 
         return jsonify({
             'appointments': appointments,

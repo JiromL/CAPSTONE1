@@ -559,7 +559,7 @@ export default function AppointmentsDashboard() {
   const filtered = sortedApts.filter(a => {
     const matchTab = TAB_STATUSES[activeTab].includes(a.status);
     const t = search.toLowerCase();
-    const matchSearch = !t || [a.student_name, a.student_email, a.counselor_name, a.purpose, a.concern]
+    const matchSearch = !t || [a.student_name, a.student_email, a.counselor_name, a.purpose, isOA ? undefined : a.concern]
       .some(v => v?.toLowerCase().includes(t));
     return matchTab && matchSearch;
   });
@@ -582,6 +582,7 @@ export default function AppointmentsDashboard() {
     canManage ? true : t.key !== 'evaluation' && t.key !== 'followup'
   );
   const isIC           = dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR';
+  const isOA           = dashboard?.role === 'STAFF';
   const intakeReady    = isIC ? apts.filter(a =>
     a.purpose === 'intake_interview' &&
     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status)
@@ -765,10 +766,10 @@ export default function AppointmentsDashboard() {
                           {/* Student name headline */}
                           <p className="font-semibold text-gray-900 text-sm">{apt.student_name}</p>
 
-                          {/* Purpose + concern */}
+                          {/* Purpose + concern (hidden from OA per privacy policy) */}
                           <p className="text-xs text-gray-500 mt-0.5">
                             {fmtPurpose(apt.purpose)}
-                            {apt.concern && <span className="text-gray-400"> · &ldquo;{apt.concern}&rdquo;</span>}
+                            {apt.concern && !isOA && <span className="text-gray-400"> · &ldquo;{apt.concern}&rdquo;</span>}
                           </p>
 
                           {/* Date + method */}
@@ -980,7 +981,7 @@ export default function AppointmentsDashboard() {
                   <span className="text-gray-400 w-16">Mode</span>
                   <span className="text-gray-700">{fmtMethod(assignTarget.method)}</span>
                 </div>
-                {assignTarget.concern && (
+                {assignTarget.concern && !isOA && (
                   <div className="flex gap-2">
                     <span className="text-gray-400 w-16">Concern</span>
                     <span className="text-gray-600 italic">"{assignTarget.concern}"</span>

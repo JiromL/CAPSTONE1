@@ -128,34 +128,38 @@ def get_free_slots():
     if not working:
         return jsonify({'slots': [], 'note': 'Counselor not available on this day'}), 200
 
-    # 2. Generate 30-min slots
+    SLOT_DURATION = 60  # 1-hour sessions
+
+    # Per-day method takes priority over doc-level default
+    session_method = working.get('session_method') or doc.get('session_method', 'in-person')
+
+    # 2. Generate 1-hour slots
     sh, sm = map(int, working['start_time'].split(':'))
     eh, em = map(int, working['end_time'].split(':'))
     cursor = target_date.replace(hour=sh, minute=sm, second=0, microsecond=0)
     day_end = target_date.replace(hour=eh, minute=em, second=0, microsecond=0)
 
     all_slots = []
-    while cursor < day_end:
+    while cursor + timedelta(minutes=SLOT_DURATION) <= day_end:
         all_slots.append(cursor)
-        cursor += timedelta(minutes=30)
+        cursor += timedelta(minutes=SLOT_DURATION)
 
     # 3. Remove booked slots
     day_start_dt = target_date.replace(hour=0, minute=0, second=0)
     day_end_dt   = target_date.replace(hour=23, minute=59, second=59)
     booked = list(db.db.appointments.find({
         'counselor_id': cid,
-        'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED']},
+        'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'PENDING_STUDENT_APPROVAL']},
         '$or': [
             {'scheduled_start': {'$gte': day_start_dt, '$lte': day_end_dt}},
-            {'preferred_date':   {'$gte': day_start_dt, '$lte': day_end_dt}},
+            {'requested_start':  {'$gte': day_start_dt, '$lte': day_end_dt}},
         ],
     }))
 
     def slot_is_booked(slot_dt):
-        slot_end = slot_dt + timedelta(minutes=30)
+        slot_end = slot_dt + timedelta(minutes=SLOT_DURATION)
         for apt in booked:
-            # Try scheduled_start first, then preferred_date + preferred_time
-            apt_start = apt.get('scheduled_start') or apt.get('preferred_date')
+            apt_start = apt.get('scheduled_start') or apt.get('requested_start')
             if not apt_start:
                 continue
             if isinstance(apt_start, str):
@@ -163,13 +167,17 @@ def get_free_slots():
                     apt_start = datetime.fromisoformat(apt_start)
                 except Exception:
                     continue
-            apt_end = apt_start + timedelta(minutes=50)  # typical 50-min session
+            apt_end = apt_start + timedelta(minutes=SLOT_DURATION)
             if slot_dt < apt_end and slot_end > apt_start:
                 return True
         return False
 
     free = [s.strftime('%H:%M') for s in all_slots if not slot_is_booked(s)]
-    return jsonify({'slots': free, 'working_hours': f"{working['start_time']}–{working['end_time']}"}), 200
+    return jsonify({
+        'slots': free,
+        'session_method': session_method,
+        'working_hours': f"{working['start_time']}–{working['end_time']}",
+    }), 200
 
 
 @availability_bp.route('/open-slots', methods=['GET'])
@@ -253,9 +261,27 @@ def get_open_slots():
     # Get all IC counselors
     ics = list(db.db.users.find({'role': {'$in': ['IC', 'INTAKE_COUNSELOR']}, 'is_active': True}))
 
+    # Count confirmed/requested appointments this week per IC for workload balancing
+    week_start = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start -= timedelta(days=target_date.weekday())  # Monday of this week
+    week_end = week_start + timedelta(days=7)
+    ic_load = {}
+    for ic in ics:
+        ic_load[ic['_id']] = db.db.appointments.count_documents({
+            'counselor_id': ic['_id'],
+            'status': {'$in': ['CONFIRMED', 'REQUESTED', 'APPROVED', 'MATCHED']},
+            '$or': [
+                {'scheduled_start': {'$gte': week_start, '$lt': week_end}},
+                {'requested_start':  {'$gte': week_start, '$lt': week_end}},
+            ],
+        })
+
+    # Sort ICs lightest load first so deduplication always picks least busy IC
+    ics_sorted = sorted(ics, key=lambda ic: ic_load.get(ic['_id'], 0))
+
     def build_slots_for_date(date):
         combined = []
-        for ic in ics:
+        for ic in ics_sorted:
             for s in slots_for_counselor(ic, date):
                 combined.append({
                     'time': s['time'],

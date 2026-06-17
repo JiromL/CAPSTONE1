@@ -16,6 +16,7 @@ export default function DocumentationPage() {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadType, setUploadType] = useState('Other');
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
 
   const documentTypes = ['Intake', 'Progress Notes', 'Treatment Plan', 'Assessment', 'Referral', 'Other'];
@@ -83,6 +84,7 @@ export default function DocumentationPage() {
 
     setUploading(true);
     setError(null);
+    setUploadError(null);
     setSuccess(null);
 
     try {
@@ -106,7 +108,7 @@ export default function DocumentationPage() {
         setUploadTitle('');
         setUploadType('Other');
         setShowUploadForm(false);
-        
+
         // Reload documents
         setTimeout(() => {
           loadDocuments();
@@ -114,11 +116,11 @@ export default function DocumentationPage() {
         }, 2000);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to upload document');
+        setUploadError(errorData.error || 'Failed to upload document');
       }
     } catch (err) {
       console.error('Error uploading document:', err);
-      setError('Failed to upload document');
+      setUploadError('Failed to upload document. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -233,10 +235,12 @@ export default function DocumentationPage() {
                 </label>
                 <input
                   type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
                   onChange={handleFileSelect}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-900 dark:file:bg-gray-700 file:text-white"
                   required
                 />
+                <p className="text-xs text-gray-400 mt-1">Accepted: PDF, DOC, DOCX, PNG, JPG · Max size: 10 MB</p>
                 {uploadFile && (
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                     Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
@@ -260,6 +264,11 @@ export default function DocumentationPage() {
                   Cancel
                 </button>
               </div>
+              {uploadError && (
+                <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> {uploadError}
+                </p>
+              )}
             </form>
           </div>
         ) : (

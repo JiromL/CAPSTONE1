@@ -102,7 +102,7 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
             </>
           )}
 
-          {['COUNSELOR', 'CSC', 'CSP'].includes(userRole) && (
+          {userRole === 'COUNSELOR' && (
             <>
               <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Assigned Cases</p>

@@ -27,8 +27,9 @@ export default function UserManagementPage() {
   const [newRole, setNewRole] = useState('');
   const [updating, setUpdating] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'STAFF', 'STUDENT'];
+  const VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'STAFF', 'STUDENT'];
 
   useEffect(() => {
     fetchUsers();
@@ -121,6 +122,35 @@ export default function UserManagementPage() {
     }
   };
 
+  const handleToggleStatus = async (user: User) => {
+    const newStatus = !user.is_active;
+    if (user.is_active) {
+      if (!confirm(`Deactivate ${user.name}? They will no longer be able to log in.`)) return;
+    }
+    setTogglingId(user._id);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(api(`/api/users/${user._id}/status`), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: newStatus }),
+      });
+      if (response.ok) {
+        setUsers((prev) => prev.map((u) => u._id === user._id ? { ...u, is_active: newStatus } : u));
+      } else {
+        const err = await response.json().catch(() => ({}));
+        alert(err.error || 'Failed to update user status');
+      }
+    } catch {
+      alert('Error updating user status');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       (u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
@@ -135,8 +165,6 @@ export default function UserManagementPage() {
       COUNSELOR: 'bg-green-100 text-green-800',
       DPO: 'bg-purple-100 text-purple-800',
       IC: 'bg-yellow-100 text-yellow-800',
-      CSC: 'bg-orange-100 text-orange-800',
-      CSP: 'bg-orange-200 text-orange-900',
       STAFF: 'bg-gray-100 text-gray-800',
       STUDENT: 'bg-sky-100 text-sky-800',
     };
@@ -209,7 +237,25 @@ export default function UserManagementPage() {
                     <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{user.email}</td>
                     <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>{user.role?.replace(/_/g, ' ') || 'STUDENT'}</span></td>
                     <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-sm font-medium ${user.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400'}`}>{user.is_active ? 'Active' : 'Inactive'}</span></td>
-                    <td className="px-6 py-4 flex gap-3"><button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"><Eye size={18} /></button><button onClick={() => handleChangeRole(user)} className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 transition" title="Change Role"><Edit2 size={18} /></button><button className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition"><Trash2 size={18} /></button></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"><Eye size={18} /></button>
+                        <button onClick={() => handleChangeRole(user)} className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 transition" title="Change Role"><Edit2 size={18} /></button>
+                        <button className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition"><Trash2 size={18} /></button>
+                        <button
+                          onClick={() => handleToggleStatus(user)}
+                          disabled={togglingId === user._id}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium transition disabled:opacity-50 ${
+                            user.is_active
+                              ? 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40'
+                              : 'bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40'
+                          }`}
+                          title={user.is_active ? 'Deactivate user' : 'Activate user'}
+                        >
+                          {togglingId === user._id ? '…' : user.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (

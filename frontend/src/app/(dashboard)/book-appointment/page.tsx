@@ -865,50 +865,46 @@ export default function BookAppointmentPage() {
 
                   {!slotsLoading && slots.length > 0 && (
                     <>
-                      {/* Method filter — only for IC pool (intake_interview) */}
-                      {purpose === 'intake_interview' && (
-                      <div className="flex gap-2 mb-2">
-                        {(['all', 'in-person', 'online'] as const).map(f => (
-                          <button key={f} type="button" onClick={() => setMethodFilter(f)}
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium border transition ${
-                              methodFilter === f
-                                ? 'bg-[#1a5228] text-white border-[#1a5228]'
-                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-                            }`}>
-                            {f === 'all' ? 'All' : f === 'in-person' ? 'Face to Face' : 'Online'}
-                          </button>
-                        ))}
-                      </div>
-                      )}
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1.5">
                         {(() => {
-                          // Deduplicate by time+method — keep first available counselor per combo
+                          // For intake_interview: deduplicate by time only — system assigns IC via workload balancing
+                          // For specific counselor: deduplicate by time+method (only one counselor anyway)
                           const seen = new Set<string>();
                           const deduped = slots.filter(s => {
-                            const key = `${s.time}|${s.method}`;
+                            const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.method}`;
                             if (seen.has(key)) return false;
                             seen.add(key);
                             return true;
                           });
-                          return deduped
-                            .filter(s => methodFilter === 'all' || s.method === methodFilter)
-                            .map((s, i) => (
+                          return deduped.map((s, i) => {
+                            const isSelected = prefTime === s.time && slotCounselorId === s.counselor_id;
+                            const isOnline = s.method === 'online';
+                            return (
                               <button key={i} type="button"
                                 onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setSlotMethod(s.method); setRequestAnyway(false); }}
-                                className={`flex flex-col items-center py-2.5 px-2 rounded-xl border-2 text-xs font-semibold transition ${
-                                  prefTime === s.time && slotCounselorId === s.counselor_id
-                                    ? s.method === 'online'
-                                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                      : 'border-[#1a5228] bg-green-50 text-[#1a5228]'
-                                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
+                                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
+                                  isSelected
+                                    ? 'border-[#1a5228] bg-[#1a5228]/5'
+                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                                 }`}>
-                                <Clock size={11} className="mb-0.5 opacity-60" />
-                                {fmtT(s.time)}
-                                <span className={`text-[9px] mt-0.5 font-bold ${s.method === 'online' ? 'text-blue-500' : 'text-green-600'}`}>
-                                  {s.method === 'online' ? 'Online' : 'F2F'}
+                                <Clock size={13} className={isSelected ? 'text-[#1a5228]' : 'text-gray-400'} />
+                                <span className={`font-bold text-sm tabular-nums ${isSelected ? 'text-[#1a5228]' : 'text-gray-800'}`}>
+                                  {fmtT(s.time)}
                                 </span>
+                                {/* Show mode only for specific counselor bookings, not IC pool */}
+                                {purpose !== 'intake_interview' && (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    {isOnline ? 'Online' : 'F2F'}
+                                  </span>
+                                )}
+                                {isSelected && (
+                                  <span className="ml-auto flex-shrink-0 w-5 h-5 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[10px] font-bold">✓</span>
+                                )}
                               </button>
-                            ));
+                            );
+                          });
                         })()}
                       </div>
                     </>

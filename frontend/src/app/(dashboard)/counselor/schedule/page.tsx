@@ -91,7 +91,7 @@ export default function CounselorSchedulePage() {
     const parsedUser = JSON.parse(userData);
     
     // Check if user is counselor/staff
-    const staffRoles = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'ADMIN'];
+    const staffRoles = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN'];
     if (!staffRoles.includes(parsedUser.role?.toUpperCase())) {
       router.push('/dashboard');
       return;

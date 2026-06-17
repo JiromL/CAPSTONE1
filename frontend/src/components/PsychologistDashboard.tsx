@@ -71,6 +71,71 @@ function PermaDistributionWidget() {
   );
 }
 
+const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
+  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700'  },
+  'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
+  'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
+  'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
+  'In Crisis':  { bg: 'bg-red-500',    text: 'text-red-700'    },
+  'No Data':    { bg: 'bg-gray-300',   text: 'text-gray-500'   },
+};
+const TREND_LABELS = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'];
+
+function PermaTrendsWidget() {
+  const [data, setData] = useState<{ months: string[]; monthly: Record<string, Record<string, number>> } | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch(api('/api/mhbot/stats/perma-trends'), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setData(d); })
+      .catch(() => {});
+  }, []);
+
+  if (!data) return null;
+
+  const months = data.months ?? [];
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Wellbeing Trends — Last 6 Months</p>
+      <div className="space-y-3">
+        {months.map(month => {
+          const counts = data.monthly[month] ?? {};
+          const total = TREND_LABELS.reduce((s, l) => s + (counts[l] ?? 0), 0);
+          const label = new Date(month + '-15').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+          return (
+            <div key={month} className="flex items-start gap-3">
+              <span className="text-xs text-gray-400 w-12 flex-shrink-0 pt-0.5">{label}</span>
+              <div className="flex-1 space-y-1">
+                {total === 0 ? (
+                  <span className="text-xs text-gray-300 italic">No data</span>
+                ) : (
+                  TREND_LABELS.filter(l => counts[l] > 0).map(l => {
+                    const c = counts[l] ?? 0;
+                    const pct = total > 0 ? (c / total) * 100 : 0;
+                    const col = PERMA_TREND_COLORS[l] ?? PERMA_TREND_COLORS['No Data'];
+                    return (
+                      <div key={l} className="flex items-center gap-2">
+                        <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden flex-shrink-0">
+                          <div className={`h-1.5 rounded-full ${col.bg}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className={`text-[10px] font-medium ${col.text}`}>{l}: {c}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface DashboardProps { user: any; onLogout: () => void; }
 
 const RISK_DOT: Record<string, string> = {
@@ -131,6 +196,9 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
 
           {/* PERMA wellbeing overview */}
           <PermaDistributionWidget />
+
+          {/* PERMA trends over time */}
+          <PermaTrendsWidget />
 
           {/* Alerts */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">

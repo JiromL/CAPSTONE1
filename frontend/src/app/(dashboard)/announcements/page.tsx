@@ -41,7 +41,7 @@ function fmtEventDate(s: string) {
   });
 }
 
-const POSTER_ROLES = new Set(['PSYCHOLOGIST','CSP','ADMIN','DPO']);
+const POSTER_ROLES = new Set(['PSYCHOLOGIST','ADMIN','DPO']);
 
 export default function AnnouncementsPage() {
   const [items, setItems]       = useState<Announcement[]>([]);

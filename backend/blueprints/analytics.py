@@ -195,7 +195,7 @@ def get_staff_workload():
     try:
         # Get all staff
         staff = list(db.db.users.find(
-            {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC']}},
+            {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'IC']}},
             {'_id': 1, 'first_name': 1, 'last_name': 1, 'name': 1, 'role': 1}
         ))
 

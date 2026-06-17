@@ -342,7 +342,7 @@ def notify_counselor_for_user(username):
 
     # fallback: find any counselor user
     if not counselor:
-        counselor = db.db.users.find_one({'role': {'$in': ['PSYCHOLOGIST','COUNSELOR','IC','CSC','CSP']}})
+        counselor = db.db.users.find_one({'role': {'$in': ['PSYCHOLOGIST','COUNSELOR','IC']}})
 
     if not counselor:
         return jsonify({'error': 'No counselor found to notify'}), 400

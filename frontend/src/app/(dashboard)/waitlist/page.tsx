@@ -40,6 +40,7 @@ export default function WaitlistPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'waiting' | 'promoted' | 'removed'>('waiting');
   const [actionId, setActionId] = useState<string | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [promoteNotes, setPromoteNotes] = useState('');
   const [showPromoteModal, setShowPromoteModal] = useState<WaitlistEntry | null>(null);
   const [toast, setToast] = useState('');
@@ -84,11 +85,11 @@ export default function WaitlistPage() {
     }
   }
 
-  async function remove(entry: WaitlistEntry) {
-    if (!confirm(`Remove ${entry.student_name} from waitlist?`)) return;
-    setActionId(entry.id);
+  async function remove(id: string) {
+    setConfirmRemoveId(null);
+    setActionId(id);
     const token = localStorage.getItem('token');
-    const res = await fetch(api(`/api/waitlist/${entry.id}`), {
+    const res = await fetch(api(`/api/waitlist/${id}`), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -211,13 +212,20 @@ export default function WaitlistPage() {
                   >
                     <TrendingUp size={12} /> Promote
                   </button>
-                  <button
-                    onClick={() => remove(entry)}
-                    disabled={actionId === entry.id}
-                    className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {confirmRemoveId === entry.id ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => remove(entry.id)} className="text-xs px-2.5 py-1 bg-red-600 text-white rounded-lg font-semibold">Remove</button>
+                      <button onClick={() => setConfirmRemoveId(null)} className="text-xs px-2.5 py-1 border border-gray-200 text-gray-500 rounded-lg">Cancel</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmRemoveId(entry.id)}
+                      disabled={actionId === entry.id}
+                      className="text-xs px-2.5 py-1 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               )}
             </div>

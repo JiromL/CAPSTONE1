@@ -261,7 +261,27 @@ def create_case():
     }
     
     result = db.db.cases.insert_one(new_case)
-    
+
+    # Feature 5: capture initial PERMA label at case creation
+    try:
+        student_id_for_perma = student_id if student_id else ObjectId(user_id)
+        student_doc = db.db.users.find_one({'_id': student_id_for_perma}, {'mhbot_username': 1})
+        if student_doc and student_doc.get('mhbot_username'):
+            from blueprints.mhbot_integration import get_perma_history, _get_user_token
+            perma_token = _get_user_token(str(user_id))
+            if perma_token:
+                perma_result = get_perma_history(student_doc['mhbot_username'], perma_token, limit=1)
+                if perma_result['success'] and perma_result['latest_label']:
+                    db.db.cases.update_one(
+                        {'_id': result.inserted_id},
+                        {'$set': {
+                            'initial_perma_label': perma_result['latest_label'],
+                            'initial_perma_date': datetime.utcnow(),
+                        }}
+                    )
+    except Exception:
+        pass  # PERMA capture is best-effort
+
     return jsonify({
         'success': True,
         'case_id': str(result.inserted_id),
@@ -309,14 +329,33 @@ def get_case(case_id):
 
     # Embed student details so the frontend can show name/email without a second request
     if raw_student_id:
-        student_doc = db.db.users.find_one({'_id': raw_student_id}, {'name': 1, 'email': 1, 'student_id': 1, 'mhbot_username': 1})
+        student_doc = db.db.users.find_one(
+            {'_id': raw_student_id},
+            {'name': 1, 'email': 1, 'student_id': 1, 'mhbot_username': 1, 'college': 1, 'course': 1, 'program': 1, 'year_level': 1}
+        )
         if student_doc:
             serialized['student'] = {
                 'name': student_doc.get('name', ''),
                 'email': student_doc.get('email', ''),
                 'school_id': student_doc.get('student_id', ''),
                 'mhbot_username': student_doc.get('mhbot_username', ''),
+                'college': student_doc.get('college', ''),
+                'course': student_doc.get('course', '') or student_doc.get('program', ''),
             }
+
+    # Embed most recent appointment info (date, time, method) for IC form pre-fill
+    case_obj_id = case.get('_id')
+    appt = db.db.appointments.find_one(
+        {'case_id': case_obj_id},
+        sort=[('created_at', -1)]
+    )
+    if appt:
+        appt_start = appt.get('scheduled_start') or appt.get('requested_start') or appt.get('scheduled_date')
+        serialized['appointment_info'] = {
+            'date': appt_start.isoformat() if isinstance(appt_start, datetime) else appt_start,
+            'method': appt.get('method') or appt.get('appointment_method') or appt.get('preferred_method') or '',
+            'appointment_id': str(appt.get('_id', '')),
+        }
 
     return jsonify(serialized), 200
 
@@ -600,6 +639,39 @@ def update_client_status(case_id):
 
 # ── DSM-5 / ICD-10 Diagnosis endpoints ──────────────────────────────────────
 
+@cases_bp.route('/<case_id>/intake-form', methods=['PUT'])
+@jwt_required()
+def save_intake_form(case_id):
+    """Save IC Interview intake form for a case"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+
+    if not user or user.get('role') not in ('IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    try:
+        cid = ObjectId(case_id)
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+
+    case = db.db.cases.find_one({'_id': cid})
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+
+    data = request.get_json() or {}
+
+    db.db.cases.update_one(
+        {'_id': cid},
+        {'$set': {
+            'intake_interview_form': data,
+            'intake_form_updated_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        }}
+    )
+
+    return jsonify({'success': True}), 200
+
+
 @cases_bp.route('/<case_id>/diagnoses', methods=['GET'])
 @jwt_required()
 def get_diagnoses(case_id):
@@ -672,4 +744,5 @@ def remove_diagnosis(case_id, index):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return jsonify({'success': True}), 200
+
 

@@ -143,7 +143,7 @@ export default function StaffSettingsPage() {
       }
 
       const userData = JSON.parse(user);
-      const staffRoles = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'STAFF'];
+      const staffRoles = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'STAFF'];
 
       if (!staffRoles.includes(userData.role)) {
         window.location.href = '/dashboard';

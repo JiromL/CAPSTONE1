@@ -36,10 +36,10 @@ def get_calendar_capacity():
         
         # Get all counselors
         counselors = list(db.db.users.find({
-            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP']},
+            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']},
             'is_active': True
         }))
-        
+
         capacity_report = []
         
         for counselor in counselors:
@@ -330,10 +330,10 @@ def get_scheduling_gaps():
         
         # Get all counselors
         counselors = list(db.db.users.find({
-            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP']},
+            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']},
             'is_active': True
         }))
-        
+
         for counselor in counselors:
             # Get this counselor's availability
             available_slots = list(db.db.counselor_availability.find({

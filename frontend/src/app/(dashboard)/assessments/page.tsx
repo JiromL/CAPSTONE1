@@ -35,7 +35,7 @@ export default function AssessmentsPage() {
     setLoading(false);
   };
 
-  const CLINICAL_ROLES = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'DPO', 'ADMIN', 'STAFF'];
+  const CLINICAL_ROLES = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'DPO', 'ADMIN', 'STAFF'];
   const isClinical = CLINICAL_ROLES.includes(userRole);
 
   if (loading) {

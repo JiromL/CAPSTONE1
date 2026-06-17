@@ -380,7 +380,7 @@ def resolve_conflict(appointment_id):
             
             alternatives = []
             counselors = list(db.db.users.find({
-                'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP']},
+                'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']},
                 '_id': {'$ne': appointment['counselor_id']},
                 'is_active': True
             }))

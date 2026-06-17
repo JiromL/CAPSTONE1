@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 import {
   AlertCircle, CheckCircle2, ChevronRight, ChevronLeft,
   User, BookOpen, Heart, Phone, MapPin, GraduationCap,
-  ClipboardList, Stethoscope, Brain, Check, Zap, ShieldAlert,
+  ClipboardList, Stethoscope, Brain, Check, Zap, ShieldAlert, CalendarCheck, Clock,
 } from 'lucide-react';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -26,9 +26,10 @@ const FREQ = [
 ];
 
 const STEP_META = [
-  { num: 1, label: 'Contact Form',    sub: 'ICF',     accent: 'bg-sky-500' },
-  { num: 2, label: 'Personal Background', sub: 'SPIF-IF', accent: 'bg-violet-500' },
-  { num: 3, label: 'Mental Health Screen', sub: 'PHQ-4', accent: 'bg-orange-500' },
+  { num: 1, label: 'Contact Form',       sub: 'ICF',     accent: 'bg-sky-500'    },
+  { num: 2, label: 'Personal Background',sub: 'SPIF-IF', accent: 'bg-violet-500' },
+  { num: 3, label: 'Mental Health Screen',sub: 'PHQ-4',  accent: 'bg-orange-500' },
+  { num: 4, label: 'Assign IC',          sub: 'Session', accent: 'bg-[#1a5228]'  },
 ];
 
 const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/25 focus:border-[#1a5228] focus:outline-none transition';
@@ -103,6 +104,11 @@ export default function WalkinIntakePage() {
   const [intakeId, setIntakeId] = useState('');
   const [isCrisis, setIsCrisis] = useState(false);
 
+  const [icSlots, setIcSlots]             = useState<{time:string;method:string;counselor_id:string;counselor_name:string}[]>([]);
+  const [loadingSlots, setLoadingSlots]   = useState(false);
+  const [slotsError, setSlotsError]       = useState('');
+  const [selectedSlot, setSelectedSlot]   = useState<{time:string;method:string;counselor_id:string;counselor_name:string}|null>(null);
+
   const [icf, setIcf] = useState({
     first_name: '', last_name: '', middle_name: '',
     email: '', student_id: '', phone: '',
@@ -150,7 +156,28 @@ export default function WalkinIntakePage() {
     return true;
   };
 
-  const next = () => { if (validate()) setStep(s => s + 1); };
+  const loadIcSlots = async () => {
+    setLoadingSlots(true); setSlotsError('');
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const token = localStorage.getItem('token');
+      const res = await fetch(api(`/api/availability/open-slots?date=${today}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load IC availability');
+      setIcSlots(data.slots || []);
+      if ((data.slots || []).length === 0) setSlotsError(data.next_available_date ? `No IC slots available today. Next available: ${data.next_available_date}` : 'No IC slots available today.');
+    } catch (e) {
+      setSlotsError(e instanceof Error ? e.message : 'Failed to load availability');
+    } finally { setLoadingSlots(false); }
+  };
+
+  const next = () => {
+    if (!validate()) return;
+    if (step === 2) loadIcSlots();
+    setStep(s => s + 1);
+  };
   const back = () => { setError(''); setStep(s => s - 1); };
 
   const handleCrisisSubmit = async () => {
@@ -205,6 +232,11 @@ export default function WalkinIntakePage() {
           first_name: icf.first_name, last_name: icf.last_name,
           email: icf.email, student_id: icf.student_id, phone: icf.phone,
           is_urgent: false, notes: '',
+          ...(selectedSlot ? {
+            counselor_id: selectedSlot.counselor_id,
+            scheduled_time: selectedSlot.time,
+            scheduled_method: selectedSlot.method,
+          } : {}),
         }),
       });
       const wd = await wr.json();
@@ -770,6 +802,93 @@ export default function WalkinIntakePage() {
           </div>
         )}
 
+        {/* ── STEP 3: Assign IC ────────────────────────────────────────────── */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <CalendarCheck size={16} className="text-[#1a5228]" />
+              <h2 className="text-sm font-bold text-gray-800">Assign Intake Counselor</h2>
+            </div>
+            <p className="text-xs text-gray-500 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+              Select an available IC and time slot for this walk-in student. The appointment will be confirmed immediately.
+            </p>
+
+            {loadingSlots && (
+              <div className="flex items-center justify-center py-10 text-sm text-gray-400 gap-2">
+                <Clock size={16} className="animate-spin" /> Loading IC availability for today…
+              </div>
+            )}
+
+            {slotsError && !loadingSlots && (
+              <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />{slotsError}
+              </div>
+            )}
+
+            {!loadingSlots && icSlots.length > 0 && (() => {
+              // Group slots by counselor
+              const byIc: Record<string, typeof icSlots> = {};
+              icSlots.forEach(s => {
+                if (!byIc[s.counselor_id]) byIc[s.counselor_id] = [];
+                byIc[s.counselor_id].push(s);
+              });
+              return (
+                <div className="space-y-3">
+                  {Object.entries(byIc).map(([icId, slots]) => (
+                    <div key={icId} className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-xs font-bold">
+                          {slots[0].counselor_name.charAt(0)}
+                        </div>
+                        <span className="text-sm font-semibold text-gray-800">{slots[0].counselor_name}</span>
+                        <span className="ml-auto text-xs text-gray-400">{slots.length} slot{slots.length !== 1 ? 's' : ''} available</span>
+                      </div>
+                      <div className="p-3 flex flex-wrap gap-2">
+                        {slots.map(slot => {
+                          const isSelected = selectedSlot?.counselor_id === icId && selectedSlot?.time === slot.time;
+                          const [h, m] = slot.time.split(':').map(Number);
+                          const ampm = h >= 12 ? 'PM' : 'AM';
+                          const h12 = h % 12 || 12;
+                          return (
+                            <button
+                              key={slot.time}
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`flex flex-col items-center px-3 py-2 rounded-xl text-xs font-semibold border-2 transition
+                                ${isSelected
+                                  ? 'bg-[#1a5228] border-[#1a5228] text-white'
+                                  : 'bg-white border-gray-200 text-gray-700 hover:border-[#1a5228]/40'}`}>
+                              <span className="text-base font-bold">{h12}:{String(m).padStart(2,'0')}</span>
+                              <span className="opacity-75">{ampm}</span>
+                              <span className={`mt-0.5 text-[10px] ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>{slot.method}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {selectedSlot && (
+              <div className="flex items-center gap-3 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl px-4 py-3">
+                <CheckCircle2 size={18} className="text-[#1a5228] flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{selectedSlot.counselor_name}</p>
+                  <p className="text-xs text-gray-500">
+                    {(() => { const [h,m]=selectedSlot.time.split(':').map(Number); const ampm=h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ampm}`; })()} · {selectedSlot.method} · Today
+                  </p>
+                </div>
+                <button onClick={() => setSelectedSlot(null)} className="ml-auto text-xs text-gray-400 hover:text-gray-600">Change</button>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-xs text-blue-700">
+              <strong>Optional:</strong> You can submit without assigning a slot — the intake will be queued and an IC can be assigned later from the Appointment Requests page.
+            </div>
+          </div>
+        )}
+
         {/* Navigation bar */}
         <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100">
           {step > 0 ? (
@@ -784,14 +903,14 @@ export default function WalkinIntakePage() {
           <div className="flex-1 text-center">
             <p className="text-xs text-gray-400">Step {step + 1} of {STEP_META.length}</p>
           </div>
-          {step < 2 ? (
+          {step < 3 ? (
             <button onClick={next} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ backgroundColor: '#1a5228' }}>
               Continue <ChevronRight size={14} />
             </button>
           ) : (
             <button onClick={handleSubmit} disabled={loading || phq4.some(v => v === null)}
               className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition" style={{ backgroundColor: '#1a5228' }}>
-              {loading ? 'Submitting…' : <><Check size={14} /> Submit Intake</>}
+              {loading ? 'Submitting…' : <><Check size={14} /> {selectedSlot ? 'Assign & Submit' : 'Submit to Queue'}</>}
             </button>
           )}
         </div>

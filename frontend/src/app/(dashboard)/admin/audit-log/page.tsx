@@ -20,6 +20,8 @@ export default function AuditLogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => { fetchLogs(); }, []);
 
@@ -43,13 +45,32 @@ export default function AuditLogPage() {
 
   const filtered = logs.filter((l) => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch =
       l.action?.toLowerCase().includes(q) ||
       l.module?.toLowerCase().includes(q) ||
       l.entity_id?.toLowerCase().includes(q) ||
-      l.user_id?.toLowerCase().includes(q)
-    );
+      l.user_id?.toLowerCase().includes(q);
+
+    let matchesDate = true;
+    if (dateFrom || dateTo) {
+      const ts = new Date(l.timestamp).getTime();
+      if (dateFrom) matchesDate = matchesDate && ts >= new Date(dateFrom).getTime();
+      if (dateTo) {
+        // Include the full dateTo day
+        const toEnd = new Date(dateTo);
+        toEnd.setHours(23, 59, 59, 999);
+        matchesDate = matchesDate && ts <= toEnd.getTime();
+      }
+    }
+
+    return matchesSearch && matchesDate;
   });
+
+  const formatId = (id?: string) => {
+    if (!id) return '—';
+    if (id.length <= 12) return id;
+    return `${id.slice(0, 8)}…${id.slice(-4)}`;
+  };
 
   const actionColor = (action: string) => {
     if (action?.includes('delete') || action?.includes('fail')) return 'bg-red-100 text-red-800';
@@ -61,23 +82,49 @@ export default function AuditLogPage() {
   return (
     <DashboardPageWrapper title="Audit Log" subtitle="System activity trail">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by action, module, or ID…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-            />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by action, module, or ID…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+              />
+            </div>
+            <button
+              onClick={fetchLogs}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white text-sm rounded-lg transition"
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
           </div>
-          <button
-            onClick={fetchLogs}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white text-sm rounded-lg transition"
-          >
-            <RefreshCw size={14} /> Refresh
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-xs text-gray-500 font-medium">From</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+            />
+            <label className="text-xs text-gray-500 font-medium">To</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                className="text-xs text-gray-400 hover:text-gray-600 transition"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -110,8 +157,12 @@ export default function AuditLogPage() {
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">{log.entity_id?.slice(-8) || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">{log.user_id?.slice(-8) || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                      <span title={log.entity_id || ''}>{formatId(log.entity_id)}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                      <span title={log.user_id || ''}>{formatId(log.user_id)}</span>
+                    </td>
                     <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate">
                       {log.new_values ? JSON.stringify(log.new_values).slice(0, 60) : '—'}
                     </td>

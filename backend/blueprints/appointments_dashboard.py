@@ -394,6 +394,7 @@ def format_appointments(appointments):
                 'referral_type': apt.get('referral_type', ''),
                 'notes': apt.get('notes', ''),
                 'case_id': str(apt.get('case_id', '')) if apt.get('case_id') else None,
+                'mhbot_username': student.get('mhbot_username', '') if student else '',
                 'created_at': apt.get('created_at').isoformat() if hasattr(apt.get('created_at'), 'isoformat') else str(apt.get('created_at', ''))
             })
         except Exception as e:

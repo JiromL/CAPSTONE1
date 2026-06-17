@@ -13,88 +13,87 @@ export interface MenuItem {
 
 export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ STUDENT ============
-  // Primary workflow: Intake → Appointments → Check-ins → Personal
   const studentItems: MenuItem[] = [
-    // Core Navigation
-    { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-    
-    // Primary Workflow
-    { label: 'Book Appointment', href: '/book-appointment', id: 'book-appointment' },
-    { label: 'My Appointments', href: '/my-appointments', id: 'my-appointments' },
-    
-    // Engagement
-    { label: 'Journal', href: '/journal', id: 'journal' },
-    
-    // Support
-    { label: 'Wellness Resources', href: '/resources', id: 'resources' },
-    { label: 'Profile', href: '/profile', id: 'profile' },
+    { label: 'Dashboard',         href: '/dashboard',       id: 'dashboard'      },
+    { label: 'Book Appointment',  href: '/book-appointment',id: 'book-appointment'},
+    { label: 'My Appointments',   href: '/my-appointments', id: 'my-appointments' },
+    { label: 'Journal',           href: '/journal',         id: 'journal'         },
+    { label: 'Wellness Resources',href: '/resources',       id: 'resources'       },
+    { label: 'Profile',           href: '/profile',         id: 'profile'         },
   ];
 
   // ============ IC (Intake Counselor) ============
-  // Processes new student intakes and assigns counselors to appointment requests
+  // Most frequent: Appointment Requests → New Intakes (tracking) → Availability → EMA
   const icItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
+    { label: 'New Intakes',          href: '/new-intakes',          id: 'new-intakes'  },
     { label: 'My Availability',      href: '/availability',         id: 'availability' },
+    { label: 'EMA',                  href: '/mhbot',                id: 'mhbot'        },
     { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
     { label: 'Profile',              href: '/profile',              id: 'profile'      },
   ];
 
   // ============ COUNSELOR ============
-  // Conducts sessions, manages their assigned student cases
+  // Most frequent: Cases (daily notes) → Sessions (schedule) → Availability → EMA
   const counselorItems: MenuItem[] = [
-    { label: 'Dashboard',        href: '/dashboard',    id: 'dashboard'    },
-    { label: 'My Sessions',      href: '/appointments', id: 'appointments' },
-    { label: 'Cases',            href: '/cases',        id: 'cases'        },
-    { label: 'My Availability',  href: '/availability', id: 'availability' },
-    { label: 'Announcements',    href: '/announcements',id: 'announcements'},
-    { label: 'Profile',          href: '/profile',      id: 'profile'      },
+    { label: 'Dashboard',       href: '/dashboard',    id: 'dashboard'    },
+    { label: 'Cases',           href: '/cases',        id: 'cases'        },
+    { label: 'My Sessions',     href: '/appointments', id: 'appointments' },
+    { label: 'My Availability', href: '/availability', id: 'availability' },
+    { label: 'EMA',             href: '/mhbot',        id: 'mhbot'        },
+    { label: 'Announcements',   href: '/announcements',id: 'announcements'},
+    { label: 'Profile',         href: '/profile',      id: 'profile'      },
   ];
 
   // ============ PSYCHOLOGIST ============
-  // Same as counselor plus high-risk clinical oversight
+  // Most frequent: High-Risk (unique role) → Cases → Sessions → Availability → EMA
   const psychologistItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',    id: 'dashboard'    },
     { label: 'High-Risk Monitoring', href: '/high-risk',    id: 'high-risk'    },
-    { label: 'My Sessions',          href: '/appointments', id: 'appointments' },
     { label: 'Cases',                href: '/cases',        id: 'cases'        },
+    { label: 'My Sessions',          href: '/appointments', id: 'appointments' },
+    { label: 'My Availability',      href: '/availability', id: 'availability' },
+    { label: 'EMA',                  href: '/mhbot',        id: 'mhbot'        },
     { label: 'Announcements',        href: '/announcements',id: 'announcements'},
     { label: 'Profile',              href: '/profile',      id: 'profile'      },
   ];
 
   // ============ STAFF (Office Assistant) ============
-  // Routes appointment requests, handles reschedules and walk-ins
+  // Most frequent: Appointment Requests → Walk-In (daily) → Reschedule (occasional)
   const staffItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'          },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'       },
-    { label: 'Reschedule Requests',  href: '/reschedule-requests',  id: 'reschedule-requests'},
     { label: 'Walk-In Intake',       href: '/staff/walkin-intake',  id: 'walk-in-intake'     },
+    { label: 'Reschedule Requests',  href: '/reschedule-requests',  id: 'reschedule-requests'},
     { label: 'Announcements',        href: '/announcements',        id: 'announcements'      },
     { label: 'Profile',              href: '/profile',              id: 'profile'            },
   ];
 
   // ============ ADMIN ============
-  // User management and system oversight
+  // Most frequent: User Mgmt → Appointment Requests → New Intakes → Cases → Analytics
   const adminItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
     { label: 'User Management',      href: '/admin/users',          id: 'admin'        },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
+    { label: 'New Intakes',          href: '/new-intakes',          id: 'new-intakes'  },
+    { label: 'Cases',                href: '/cases',                id: 'cases'        },
     { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'    },
     { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
     { label: 'Profile',              href: '/profile',              id: 'profile'      },
   ];
 
   // ============ DPO (Data Protection Officer) ============
-  // Audit, governance, and user data oversight
   const dpoItems: MenuItem[] = [
     { label: 'Dashboard',       href: '/dashboard',       id: 'dashboard'    },
     { label: 'Audit Logs',      href: '/admin/audit-log', id: 'audit'        },
     { label: 'User Management', href: '/admin/users',     id: 'admin'        },
+    { label: 'New Intakes',     href: '/new-intakes',     id: 'new-intakes'  },
+    { label: 'Cases',           href: '/cases',           id: 'cases'        },
     { label: 'Announcements',   href: '/announcements',   id: 'announcements'},
     { label: 'Profile',         href: '/profile',         id: 'profile'      },
   ];
 
-  // Route by role with organized structure
   switch (role?.toUpperCase()) {
     case 'STUDENT':
       return studentItems;
@@ -118,43 +117,47 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
 export function getActiveSectionFromPath(pathname: string): string {
   const segments = pathname.split('/').filter(Boolean);
   if (segments.length === 0) return 'dashboard';
-  
+
   const firstSegment = segments[0];
   const lastSegment = segments[segments.length - 1];
-  
+
   const routeMap: { [key: string]: string } = {
     // Core
-    'dashboard':          'dashboard',
-    'profile':            'profile',
-    'resources':          'resources',
+    'dashboard':           'dashboard',
+    'profile':             'profile',
+    'resources':           'resources',
 
     // Student
-    'book-appointment':   'book-appointment',
-    'my-appointments':    'my-appointments',
-    'journal':            'journal',
+    'book-appointment':    'book-appointment',
+    'my-appointments':     'my-appointments',
+    'journal':             'journal',
 
-    // Appointments (all route to 'appointments' for highlight)
-    'appointments':        'appointments',
-    'appointment-requests':'appointments',
-    'reschedule-requests': 'reschedule-requests',
-    'walk-in-intake':      'walk-in-intake',
-    'walkin-intake':       'walk-in-intake',
+    // Appointments
+    'appointments':         'appointments',
+    'appointment-requests': 'appointments',
+    'reschedule-requests':  'reschedule-requests',
+    'walk-in-intake':       'walk-in-intake',
+    'walkin-intake':        'walk-in-intake',
 
-    // Staff intakes
-    'new-intakes':         'new-intakes',
+    // Intakes
+    'new-intakes':          'new-intakes',
 
     // Cases / Clinical
-    'cases':               'cases',
-    'high-risk':           'high-risk',
+    'cases':                'cases',
+    'high-risk':            'high-risk',
+    'mhbot':                'mhbot',
 
     // Admin / DPO
-    'users':               'admin',
-    'analytics':           'analytics',
-    'audit-log':           'audit',
+    'users':                'admin',
+    'analytics':            'analytics',
+    'audit-log':            'audit',
+
+    // Availability
+    'availability':         'availability',
 
     // Announcements
-    'announcements':       'announcements',
+    'announcements':        'announcements',
   };
-  
+
   return routeMap[lastSegment] || routeMap[firstSegment] || 'dashboard';
 }

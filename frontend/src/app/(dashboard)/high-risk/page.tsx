@@ -67,8 +67,9 @@ export default function HighRiskPage() {
         <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
           <Phone size={18} className="text-[#1a5228]" />
           <div>
-            <p className="text-xs text-gray-400">Emergency Line</p>
-            <p className="text-sm font-semibold text-gray-800">1-800-273-8255</p>
+            <p className="text-xs text-gray-400">Philippine Mental Health Crisis Lines</p>
+            <p className="text-sm font-semibold text-gray-800">Hopeline PH: 8804-4673</p>
+            <p className="text-xs text-gray-500">Crisis Line: 0917-899-8727</p>
           </div>
         </div>
       </div>

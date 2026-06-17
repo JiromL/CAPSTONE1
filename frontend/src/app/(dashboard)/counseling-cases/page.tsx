@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { exportToExcel } from '@/utils/export';
 import { api } from '@/utils/api';
-import { DashboardLayout } from '@/components/DashboardLayout';
-import { getMenuItemsByRole } from '@/utils/navigation';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 interface CounselingCase {
   _id: string;
@@ -19,7 +18,7 @@ interface CounselingCase {
   created_date: string;
 }
 
-function CounselingCasesContent() {
+export default function CounselingCasesPage() {
   const router = useRouter();
   const [cases, setCases] = useState<CounselingCase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,14 +103,8 @@ function CounselingCasesContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <DashboardPageWrapper title="Counseling Cases" subtitle="Track existing clients for ongoing counseling with session metrics">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Counseling Cases</h1>
-          <p className="text-slate-600 mt-2">Track existing clients for ongoing counseling with session metrics</p>
-        </div>
-
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -278,58 +271,6 @@ function CounselingCasesContent() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-export default function CounselingCasesPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-
-    if (!userData || !token) {
-      router.push('/login');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    setLoading(false);
-  }, [router]);
-
-  const handleLogout = () => {
-    localStorage.clear();
-    router.push('/login');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  const menuItems = getMenuItemsByRole(user.role);
-
-  return (
-    <DashboardLayout
-      user={user}
-      onLogout={handleLogout}
-      menuItems={menuItems}
-      title="Counseling Cases"
-      subtitle="Track existing clients for ongoing counseling with session metrics"
-      activeSection="cases"
-    >
-      <CounselingCasesContent />
-    </DashboardLayout>
+    </DashboardPageWrapper>
   );
 }

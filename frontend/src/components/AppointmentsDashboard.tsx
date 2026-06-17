@@ -9,7 +9,9 @@ import {
   FileText, Eye,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/utils/api';
+import { PermaBadge, PERMA_CONFIG } from '@/components/PendingStudentsWithPerma';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Appointment {
@@ -30,6 +32,8 @@ interface Appointment {
   reschedule_requested_by_role?: string;
   reschedule_requested_start?: string;
   intake_source?: string;
+  mhbot_username?: string;
+  case_id?: string;
 }
 
 interface DashboardData {
@@ -240,6 +244,9 @@ export default function AppointmentsDashboard() {
   // IC slot confirmation
   const [confirmingSlotId, setConfirmingSlotId]   = useState<string | null>(null);
 
+  // PERMA labels for appointments
+  const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
+
   // Termination modal (complete with type)
   const [terminationTarget, setTerminationTarget] = useState<Appointment | null>(null);
   const [terminationType, setTerminationType]     = useState('MUTUAL');
@@ -272,6 +279,7 @@ export default function AppointmentsDashboard() {
       const data = await r.json();
       setDashboard(data);
       if (data.can_assign_counselor) fetchCounselors(token!);
+      fetchPermaLabels(data.appointments ?? []);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
@@ -282,6 +290,23 @@ export default function AppointmentsDashboard() {
     try {
       const r = await fetch(api('/api/users?role=COUNSELOR'), { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) { const d = await r.json(); setCounselors(d.users || []); }
+    } catch {}
+  };
+
+  const fetchPermaLabels = async (apts: Appointment[]) => {
+    const usernames = apts.map(a => a.mhbot_username).filter(Boolean) as string[];
+    if (usernames.length === 0) return;
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api('/api/mhbot/batch-labels'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernames }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setPermaLabels(d.labels ?? {});
+      }
     } catch {}
   };
 
@@ -585,10 +610,19 @@ export default function AppointmentsDashboard() {
   };
 
   // ── Derived data ──────────────────────────────────────────────────────────────
+  const PERMA_PRIORITY: Record<string, number> = {
+    'In Crisis': 1, 'Struggling': 2, 'Surviving': 3, 'Thriving': 4, 'Excelling': 5,
+  };
+
   const apts = dashboard?.appointments ?? [];
   const sortedApts = [...apts].sort((a, b) => {
     const p: Record<string, number> = { REQUESTED: 0, PENDING_APPROVAL: 1, EVALUATION: 2, CONFIRMED: 3, APPROVED: 3, MATCHED: 3, CHECKED_IN: 3 };
-    return (p[a.status] ?? 9) - (p[b.status] ?? 9);
+    const statusDiff = (p[a.status] ?? 9) - (p[b.status] ?? 9);
+    if (statusDiff !== 0) return statusDiff;
+    // Secondary sort: PERMA priority (In Crisis first, no data last)
+    const pa = PERMA_PRIORITY[permaLabels[a.mhbot_username ?? ''] ?? ''] ?? 6;
+    const pb = PERMA_PRIORITY[permaLabels[b.mhbot_username ?? ''] ?? ''] ?? 6;
+    return pa - pb;
   });
 
   const filtered = sortedApts.filter(a => {
@@ -785,9 +819,12 @@ export default function AppointmentsDashboard() {
                 const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'].includes(apt.status);
                 const isEval      = apt.status === 'EVALUATION';
                 const isHighRisk  = apt.risk_level && ['RED', 'CRITICAL'].includes(apt.risk_level.toUpperCase());
-                const cardCls     = isHighRisk ? 'border-red-200 bg-red-50/20'
-                                  : isNew      ? 'border-amber-200/70 bg-amber-50/20'
-                                  : isEval     ? 'border-amber-100 bg-amber-50/10'
+                const permaLabel  = apt.mhbot_username ? (permaLabels[apt.mhbot_username] ?? null) : null;
+                const isInCrisis  = permaLabel === 'In Crisis';
+                const cardCls     = isInCrisis  ? 'border-red-300 bg-red-50/40'
+                                  : isHighRisk  ? 'border-red-200 bg-red-50/20'
+                                  : isNew       ? 'border-amber-200/70 bg-amber-50/20'
+                                  : isEval      ? 'border-amber-100 bg-amber-50/10'
                                   : 'border-gray-200 bg-white hover:border-gray-300';
 
                 return (
@@ -814,7 +851,24 @@ export default function AppointmentsDashboard() {
                           </div>
 
                           {/* Student name headline */}
-                          <p className="font-semibold text-gray-900 text-sm">{apt.student_name}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-gray-900 text-sm">{apt.student_name}</p>
+                            {apt.mhbot_username && permaLabels[apt.mhbot_username] !== undefined && (
+                              isInCrisis ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 ring-1 ring-red-300">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                                  In Crisis
+                                </span>
+                              ) : permaLabel === 'Struggling' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                                  Struggling
+                                </span>
+                              ) : (
+                                <PermaBadge label={permaLabel} />
+                              )
+                            )}
+                          </div>
 
                           {/* Purpose + concern (hidden from OA per privacy policy) */}
                           <p className="text-xs text-gray-500 mt-0.5">
@@ -909,10 +963,16 @@ export default function AppointmentsDashboard() {
                                 )}
 
                                 {(dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR') && (
-                                  <button onClick={() => openForms(apt)}
-                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 rounded-lg transition">
-                                    <FileText size={11} /> Forms
-                                  </button>
+                                  apt.case_id
+                                    ? <Link href={`/cases/${apt.case_id}?tab=intake-summary`}>
+                                        <button className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 rounded-lg transition">
+                                          <FileText size={11} /> Forms
+                                        </button>
+                                      </Link>
+                                    : <button onClick={() => openForms(apt)}
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 rounded-lg transition">
+                                        <FileText size={11} /> Forms
+                                      </button>
                                 )}
 
                                 {isConfirmed && apt.status !== 'RESCHEDULE_REQUESTED' && canManage && (

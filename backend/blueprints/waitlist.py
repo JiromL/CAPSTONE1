@@ -10,7 +10,7 @@ from utils import audit_log
 
 waitlist_bp = Blueprint('waitlist', __name__, url_prefix='/api/waitlist')
 
-STAFF_ROLES = ['STAFF', 'ADMIN', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP', 'DPO']
+STAFF_ROLES = ['STAFF', 'ADMIN', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'DPO']
 
 
 def _role():

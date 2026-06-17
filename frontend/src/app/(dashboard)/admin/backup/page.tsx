@@ -1,32 +1,24 @@
 "use client";
 
-import { useState } from 'react';
 import { Database, Download, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 
 export default function BackupPage() {
-  const [triggering, setTriggering] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const triggerBackup = async () => {
-    setTriggering(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setMsg('Backup scheduled. You will be notified when complete.');
-    setTriggering(false);
-    setTimeout(() => setMsg(null), 4000);
-  };
-
   return (
     <DashboardPageWrapper title="Backup & Recovery" subtitle="Manage system data backups">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {msg && <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">{msg}</div>}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Manual Backup</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">Trigger a full database backup stored securely for disaster recovery.</p>
-          <button onClick={triggerBackup} disabled={triggering}
-            className="flex items-center gap-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50">
-            <Database size={14} /> {triggering ? 'Scheduling…' : 'Trigger Backup Now'}
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            Automated backup is not yet configured for this deployment. Contact your system administrator.
+          </div>
+          <button
+            disabled
+            className="flex items-center gap-2 bg-gray-400 text-white px-5 py-2 rounded-lg text-sm font-medium cursor-not-allowed opacity-60"
+          >
+            <Database size={14} /> Backup (Not Yet Configured)
           </button>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">

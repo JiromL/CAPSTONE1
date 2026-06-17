@@ -324,3 +324,56 @@ def update_user_role(user_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to update role: {str(e)}'}), 500
+
+
+@users_bp.route('/<user_id>/status', methods=['PATCH'])
+@jwt_required()
+def toggle_user_status(user_id):
+    """Activate or deactivate a user account (admin only)"""
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+
+    try:
+        current_user_id_obj = ObjectId(current_user_id) if isinstance(current_user_id, str) else current_user_id
+        current_user = db.db.users.find_one({'_id': current_user_id_obj})
+
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+        if current_user.get('role') != 'ADMIN':
+            return jsonify({'error': f'Unauthorized - admin access required. Your role: {current_user.get("role")}'}), 403
+
+        is_active = data.get('is_active')
+        if not isinstance(is_active, bool):
+            return jsonify({'error': 'is_active must be a boolean'}), 400
+
+        try:
+            target_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        except Exception:
+            return jsonify({'error': 'Invalid user ID format'}), 400
+
+        # Prevent self-deactivation
+        if str(target_id_obj) == str(current_user_id_obj) and not is_active:
+            return jsonify({'error': 'Cannot deactivate your own account'}), 400
+
+        result = db.db.users.update_one(
+            {'_id': target_id_obj},
+            {'$set': {'is_active': is_active, 'updated_at': datetime.utcnow()}}
+        )
+
+        if result.matched_count == 0:
+            return jsonify({'error': 'User not found'}), 404
+
+        action = 'activate' if is_active else 'deactivate'
+        audit_log(db.db, 'users', action, entity_id=str(target_id_obj),
+                  new_values={'is_active': is_active})
+
+        return jsonify({
+            'message': f'User {"activated" if is_active else "deactivated"} successfully',
+            'user_id': str(target_id_obj),
+            'is_active': is_active,
+        }), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to update user status: {str(e)}'}), 500

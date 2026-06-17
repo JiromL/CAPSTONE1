@@ -2375,7 +2375,22 @@ def create_walkin_intake():
         is_urgent = data.get('is_urgent', False)
         risk_level = 'RED' if is_urgent else 'GREEN'
         urgency_level = 'emergency' if is_urgent else 'normal'
-        appointment_date, days_string, appointment_time = calculate_appointment_date(is_urgent, urgency_level, risk_level)
+
+        # OA-assigned IC and time slot (walk-in manual assignment)
+        assigned_ic_id = None
+        assigned_ic_obj = None
+        if data.get('counselor_id') and data.get('scheduled_time'):
+            try:
+                h, m = map(int, data['scheduled_time'].split(':'))
+                appointment_date = datetime.utcnow().replace(hour=h, minute=m, second=0, microsecond=0)
+                days_string = 'today'
+                appointment_time = data['scheduled_time']
+                assigned_ic_id = ObjectId(data['counselor_id'])
+                assigned_ic_obj = db.db.users.find_one({'_id': assigned_ic_id})
+            except Exception:
+                appointment_date, days_string, appointment_time = calculate_appointment_date(is_urgent, urgency_level, risk_level)
+        else:
+            appointment_date, days_string, appointment_time = calculate_appointment_date(is_urgent, urgency_level, risk_level)
         
         # CHECK: If a student_id is provided, verify they don't already have an active appointment
         if data.get('student_id'):
@@ -2460,16 +2475,27 @@ def create_walkin_intake():
             'case_id': case_id,
             'student_name': f"{data.get('first_name')} {data.get('last_name')}",
             'student_email': data.get('email'),
-            'status': AppointmentStatus.REQUESTED,
+            'status': AppointmentStatus.CONFIRMED if assigned_ic_id else AppointmentStatus.REQUESTED,
             'appointment_type': 'INITIAL_CONSULTATION',
             'scheduled_date': appointment_date,
+            'scheduled_start': appointment_date,
             'appointment_time': appointment_time,
             'risk_level': risk_level,
             'is_walkin': True,
             'created_at': datetime.utcnow(),
             'created_by': 'WALKIN_SYSTEM',
         }
+        if assigned_ic_id:
+            appointment_data['counselor_id'] = assigned_ic_id
+            appointment_data['method'] = data.get('scheduled_method', 'in-person')
+            if assigned_ic_obj:
+                appointment_data['counselor_name'] = f"{assigned_ic_obj.get('first_name','')} {assigned_ic_obj.get('last_name','')}".strip()
         db.db.appointments.insert_one(appointment_data)
+
+        # Also record IC assignment on intake and case
+        if assigned_ic_id:
+            db.db.intakes.update_one({'_id': result.inserted_id}, {'$set': {'counselor_id': assigned_ic_id, 'status': 'ASSIGNED'}})
+            db.db.cases.update_one({'_id': case_id}, {'$set': {'counselor_id': assigned_ic_id}})
         
         # Audit log
         audit_log(db.db, 'intake', 'CREATE_WALKIN_INTAKE', entity_id=str(result.inserted_id),

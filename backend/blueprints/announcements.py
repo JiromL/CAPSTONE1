@@ -12,8 +12,8 @@ from models import db
 
 announcements_bp = Blueprint('announcements', __name__, url_prefix='/api/announcements')
 
-ALL_STAFF_ROLES  = {'COUNSELOR','PSYCHOLOGIST','CSC','CSP','IC','INTAKE_COUNSELOR','SUPPORT_STAFF','STAFF','ADMIN','DPO'}
-POSTER_ROLES     = {'PSYCHOLOGIST','CSP','ADMIN','DPO'}   # only these can create/delete
+ALL_STAFF_ROLES  = {'COUNSELOR','PSYCHOLOGIST','IC','INTAKE_COUNSELOR','SUPPORT_STAFF','STAFF','ADMIN','DPO'}
+POSTER_ROLES     = {'PSYCHOLOGIST','ADMIN','DPO'}   # only these can create/delete
 
 EVENT_TYPES = {'webinar', 'event', 'notice', 'info'}
 
@@ -36,7 +36,7 @@ def poster_required(f):
             verify_jwt_in_request()
             claims = get_jwt()
             if claims.get('role', '').upper() not in POSTER_ROLES:
-                return jsonify({'error': 'Only psychologists, CSP, or admins can manage announcements'}), 403
+                return jsonify({'error': 'Only psychologists or admins can manage announcements'}), 403
             return f(*args, **kwargs)
         except Exception:
             return jsonify({'error': 'Unauthorized'}), 401

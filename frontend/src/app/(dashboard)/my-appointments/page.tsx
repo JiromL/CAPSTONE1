@@ -128,6 +128,11 @@ function isSameDay(dt?: string) {
 function padId(id: string) {
   return id.replace(/\D/g, '').slice(-10).padStart(10, '0');
 }
+function fmtTime(t: string) {
+  const [h, m] = t.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ap}`;
+}
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
@@ -169,6 +174,9 @@ export default function MyAppointmentsPage() {
   const [rescheduling, setRescheduling]   = useState(false);
   const [reschedError, setReschedError]   = useState('');
   const [respondingId, setRespondingId]   = useState<string | null>(null);
+  const [rescheduleSlots, setRescheduleSlots]           = useState<{ time: string; counselor_id: string; counselor_name: string }[]>([]);
+  const [rescheduleLoadingSlots, setRescheduleLoadingSlots] = useState(false);
+  const [rescheduleNextDate, setRescheduleNextDate]     = useState<string | null>(null);
 
   const [detailAppt, setDetailAppt]         = useState<Appointment | null>(null);
   const [formsStatus, setFormsStatus]       = useState<Record<string, boolean>>({});
@@ -212,6 +220,25 @@ export default function MyAppointmentsPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!reschedDate) { setRescheduleSlots([]); setRescheduleNextDate(null); return; }
+    setRescheduleLoadingSlots(true);
+    setReschedTime('');
+    setRescheduleSlots([]);
+    setRescheduleNextDate(null);
+    const token = localStorage.getItem('token');
+    fetch(api(`/api/availability/open-slots?date=${reschedDate}`), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        setRescheduleSlots(d.slots || []);
+        setRescheduleNextDate(d.next_available_date || null);
+      })
+      .catch(() => { setRescheduleSlots([]); })
+      .finally(() => setRescheduleLoadingSlots(false));
+  }, [reschedDate]);
 
   const needsEvaluation = (a: Appointment) =>
     a.status === 'EVALUATION' || (a.status === 'COMPLETED' && !a.evaluation);
@@ -277,8 +304,21 @@ export default function MyAppointmentsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
-        const newStatus = action === 'approve' ? 'CONFIRMED' : 'CONFIRMED';
-        setAppointments(prev => prev.map(a => a._id === appt._id ? { ...a, status: newStatus } : a));
+        if (action === 'approve') {
+          // Confirmed with the new proposed time applied
+          setAppointments(prev => prev.map(a =>
+            a._id === appt._id
+              ? { ...a, status: 'CONFIRMED', scheduled_start: a.reschedule_requested_start, reschedule_requested_start: undefined, reschedule_requested_by_role: undefined, reschedule_reason: undefined }
+              : a
+          ));
+        } else {
+          // Denied — revert to CONFIRMED with original schedule, clear reschedule fields
+          setAppointments(prev => prev.map(a =>
+            a._id === appt._id
+              ? { ...a, status: 'CONFIRMED', reschedule_requested_start: undefined, reschedule_requested_by_role: undefined, reschedule_reason: undefined }
+              : a
+          ));
+        }
       }
     } catch { /* silent */ }
     finally { setRespondingId(null); }
@@ -813,8 +853,38 @@ export default function MyAppointmentsPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Time</label>
-                <input type="time" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
+                {!reschedDate ? (
+                  <p className="text-xs text-gray-400 italic">Select a date to see available slots.</p>
+                ) : rescheduleLoadingSlots ? (
+                  <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                    <Loader2 size={13} className="animate-spin" /> Checking availability…
+                  </div>
+                ) : rescheduleSlots.length === 0 ? (
+                  <div className="text-xs text-gray-500 py-1">
+                    No slots available on this date. Try a different date.
+                    {rescheduleNextDate && (
+                      <span className="ml-1 text-[#1a5228] font-medium">
+                        Next available: <button type="button" onClick={() => setReschedDate(rescheduleNextDate)} className="underline underline-offset-2">{rescheduleNextDate}</button>
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {rescheduleSlots.map((s, i) => (
+                      <button key={i} type="button"
+                        onClick={() => setReschedTime(s.time)}
+                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
+                          reschedTime === s.time
+                            ? 'border-[#1a5228] bg-[#1a5228]/5 text-[#1a5228]'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}>
+                        <Clock size={13} className={reschedTime === s.time ? 'text-[#1a5228]' : 'text-gray-400'} />
+                        <span className="font-bold tabular-nums">{fmtTime(s.time)}</span>
+                        {reschedTime === s.time && <span className="ml-auto text-[10px] font-bold">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Reason <span className="font-normal normal-case text-gray-400">(optional)</span></label>

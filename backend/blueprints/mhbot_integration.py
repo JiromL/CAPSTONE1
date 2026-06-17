@@ -441,6 +441,67 @@ def get_my_perma():
     }), 200
 
 
+@mhbot_bp.route('/stats/perma-trends', methods=['GET'])
+@jwt_required()
+def get_perma_trends():
+    """Return monthly PERMA label distribution for the last 6 months."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    token = _get_user_token(user_id)
+    if not token:
+        return jsonify({'error': 'Not connected to MHBot'}), 401
+
+    from datetime import datetime as dt
+    labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
+    now = dt.utcnow()
+
+    # Build last 6 months (oldest first)
+    months = []
+    for i in range(5, -1, -1):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        months.append((y, m))
+
+    # Collect all PERMA history for linked students
+    students = list(db.db.users.find(
+        {'mhbot_username': {'$exists': True, '$ne': None}},
+        {'mhbot_username': 1}
+    ))
+
+    monthly = {}
+    for y, m in months:
+        key = f"{y}-{str(m).zfill(2)}"
+        monthly[key] = {l: 0 for l in labels}
+        monthly[key]['No Data'] = 0
+
+    for student in students:
+        r = get_perma_history(student['mhbot_username'], token, limit=50)
+        if not r['success']:
+            continue
+        for entry in r['data']:
+            try:
+                d = dt.fromisoformat(entry['date'].replace('Z', ''))
+                key = f"{d.year}-{str(d.month).zfill(2)}"
+                label = entry.get('perma_label')
+                if key in monthly:
+                    if label in labels:
+                        monthly[key][label] += 1
+                    else:
+                        monthly[key]['No Data'] += 1
+            except Exception:
+                continue
+
+    return jsonify({
+        'months': [f"{y}-{str(m).zfill(2)}" for y, m in months],
+        'monthly': monthly,
+    }), 200
+
+
 @mhbot_bp.route('/health', methods=['GET'])
 def check_mhbot_health():
     """Ping MHBot server — no auth required."""

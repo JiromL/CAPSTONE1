@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
@@ -198,6 +198,7 @@ function ProfessionalContactSection({ items, onAdd, onRemove }: {
 
 export default function CaseDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const caseId = params.id as string;
 
   const { getCase, updateCaseStatus, loading: intakeLoading } = useIntakeApi();
@@ -207,12 +208,14 @@ export default function CaseDetailPage() {
   const [caseData, setCaseData] = useState<any>(null);
   const [checkInHistory, setCheckInHistory] = useState<any[]>([]);
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
-  const [activeTab, setActiveTab] = useState<'details' | 'intake-summary' | 'session-notes' | 'treatment-plan' | 'diagnoses' | 'safety-plan' | 'assessments' | 'check-ins' | 'perma'>('details');
+  const tabParam = searchParams.get('tab') as any;
+  const [activeTab, setActiveTab] = useState<'details' | 'intake-summary' | 'session-notes' | 'treatment-plan' | 'diagnoses' | 'safety-plan' | 'assessments' | 'check-ins' | 'perma'>(tabParam || 'details');
   const [diagnoses, setDiagnoses] = useState<Array<{ code: string; description: string; type: string; system: string; added_at: string }>>([]);
   const [diagForm, setDiagForm] = useState({ code: '', description: '', type: 'primary', system: 'DSM-5' });
   const [savingDiag, setSavingDiag] = useState(false);
   const [permaHistory, setPermaHistory] = useState<Array<{ date: string; perma_label: string | null }>>([]);
   const [permaLoading, setPermaLoading] = useState(false);
+  const [permaTrendDrop, setPermaTrendDrop] = useState<string | null>(null);
   const [mhbotUsername, setMhbotUsername] = useState('');
   const [linkingMhbot, setLinkingMhbot] = useState(false);
   const [mhbotError, setMhbotError] = useState('');
@@ -222,6 +225,13 @@ export default function CaseDetailPage() {
   const [intakeSummary, setIntakeSummary] = useState<any>(null);
   const [intakePacket, setIntakePacket] = useState<any>(null);
   const [intakeSummaryLoaded, setIntakeSummaryLoaded] = useState(false);
+
+  const [intakeForm, setIntakeForm] = useState<any>(null);
+  const [intakeFormDraft, setIntakeFormDraft] = useState<any>(null);
+  const [intakeFormEditing, setIntakeFormEditing] = useState(false);
+  const [intakeFormSaving, setIntakeFormSaving] = useState(false);
+  const [intakeFormError, setIntakeFormError] = useState('');
+  const [intakeFormSuccess, setIntakeFormSuccess] = useState(false);
 
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
@@ -358,6 +368,10 @@ export default function CaseDetailPage() {
           setTreatmentPlan(prev => ({ ...prev, progress_summary: tp }));
         }
       }
+      // Load PERMA history eagerly so trend and outcome tracking are available on details tab
+      if (caseRes?.student?.mhbot_username) {
+        loadPermaHistory(caseRes);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load case data');
     }
@@ -380,7 +394,7 @@ export default function CaseDetailPage() {
 
   useEffect(() => {
     if (activeTab === 'session-notes') loadSessionNotes();
-    if (activeTab === 'perma') loadPermaHistory();
+    if (activeTab === 'perma' && permaHistory.length === 0) loadPermaHistory();
     if (activeTab === 'diagnoses') loadDiagnoses();
     if (activeTab === 'safety-plan' && !safetyPlanLoaded) loadSafetyPlan();
     if (activeTab === 'intake-summary' && !intakeSummaryLoaded) loadIntakeSummary();
@@ -571,11 +585,89 @@ export default function CaseDetailPage() {
       }
     } catch {}
     setIntakeSummaryLoaded(true);
+    // Also load intake interview form from caseData if present
+    if (caseData?.intake_interview_form) {
+      setIntakeForm(caseData.intake_interview_form);
+      setIntakeFormDraft(caseData.intake_interview_form);
+      setIntakeFormEditing(false);
+    } else {
+      setIntakeFormDraft({});
+      setIntakeFormEditing(true);
+    }
   };
 
-  const loadPermaHistory = async () => {
-    if (!caseData) return;
-    const student = caseData.student || {};
+  const handleSaveIntakeForm = async () => {
+    if (!intakeFormDraft) return;
+    // Validation
+    const missingFields: string[] = [];
+    const d = intakeFormDraft;
+    if (!d.type_of_service) missingFields.push('Type of Service');
+    if (!d.referral_source?.length) missingFields.push('Referral Source');
+    if (!d.clinical_diagnosis) missingFields.push('Clinical Diagnosis');
+    if (!d.general_appearance?.length) missingFields.push('General Appearance and Presentation');
+    if (!d.communication_style?.length) missingFields.push('Communication Style');
+    if (!d.general_disposition?.length) missingFields.push('General Disposition / Demeanor');
+    if (!d.brief_description_remarks?.trim()) missingFields.push('Brief Description Remarks');
+    if (!d.presenting_problem?.length) missingFields.push('Presenting Problem');
+    if (!d.presenting_problem_remarks?.trim()) missingFields.push('Presenting Problem Remarks');
+    if (!d.psychosocial_history?.length) missingFields.push('Psychosocial History');
+    if (!d.psychosocial_remarks?.trim()) missingFields.push('Psychosocial Remarks');
+    if (!d.interaction_relationship?.length) missingFields.push('Interaction and Relationship with Counselor');
+    if (!d.affect_expression?.length) missingFields.push('Affect / Emotional Expression');
+    if (!d.interaction_remarks?.trim()) missingFields.push('Interaction Remarks');
+    if (!d.maladaptive_patterns?.length) missingFields.push('Maladaptive Patterns');
+    if (!d.counseling_goal?.trim()) missingFields.push('Counseling/Psychotherapy Goal');
+    if (!d.predisposing_factors?.length) missingFields.push('Predisposing Factors');
+    if (!d.precipitating_factors?.length) missingFields.push('Precipitating Factors');
+    if (!d.perpetuating_factors?.length) missingFields.push('Perpetuating Factors');
+    if (!d.protective_factors?.length) missingFields.push('Protective Factors');
+    if (!d.recommendation?.length) missingFields.push('Recommendation');
+
+    if (missingFields.length > 0) {
+      setIntakeFormError('Please complete all required fields before saving.');
+      return;
+    }
+    setIntakeFormError('');
+    setIntakeFormSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/cases/${caseId}/intake-form`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(intakeFormDraft),
+      });
+      if (!r.ok) throw new Error('Failed to save intake form');
+      setIntakeForm(intakeFormDraft);
+      setIntakeFormEditing(false);
+      setIntakeFormSuccess(true);
+      setTimeout(() => setIntakeFormSuccess(false), 3000);
+    } catch (err: any) {
+      setIntakeFormError(err.message || 'Failed to save');
+    } finally {
+      setIntakeFormSaving(false);
+    }
+  };
+
+  const LABEL_SCORE: Record<string, number> = {
+    'Excelling': 5, 'Thriving': 4, 'Surviving': 3, 'Struggling': 2, 'In Crisis': 1,
+  };
+
+  function detectTrendDrop(history: Array<{ perma_label: string | null }>): string | null {
+    const scored = history
+      .filter(h => h.perma_label && LABEL_SCORE[h.perma_label])
+      .slice(0, 5); // last 5 labelled entries
+    if (scored.length < 2) return null;
+    const latest = LABEL_SCORE[scored[0].perma_label!];
+    const prev = LABEL_SCORE[scored[scored.length - 1].perma_label!];
+    const drop = prev - latest;
+    if (drop >= 2) return `${scored[scored.length - 1].perma_label} → ${scored[0].perma_label}`;
+    return null;
+  }
+
+  const loadPermaHistory = async (caseDataOverride?: any) => {
+    const cd = caseDataOverride ?? caseData;
+    if (!cd) return;
+    const student = cd.student || {};
     const username = student.mhbot_username;
     if (!username) return;
     setPermaLoading(true);
@@ -587,7 +679,9 @@ export default function CaseDetailPage() {
       });
       if (r.ok) {
         const d = await r.json();
-        setPermaHistory(d.history ?? []);
+        const history = d.history ?? [];
+        setPermaHistory(history);
+        setPermaTrendDrop(detectTrendDrop(history));
       } else {
         setMhbotError('Failed to fetch PERMA history');
       }
@@ -833,6 +927,18 @@ export default function CaseDetailPage() {
       {/* ── Details Tab ─────────────────────────────────────────── */}
       {activeTab === 'details' && caseData && (
         <div className="space-y-6">
+
+          {/* Trend drop warning banner */}
+          {permaTrendDrop && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <AlertCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Wellbeing decline detected</p>
+                <p className="text-xs text-amber-700 mt-0.5">Recent EMA history shows a significant drop: <strong>{permaTrendDrop}</strong>. Consider earlier follow-up.</p>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Case Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -936,6 +1042,36 @@ export default function CaseDetailPage() {
               <p className="text-sm text-gray-700 dark:text-gray-300">{caseData.presenting_issue}</p>
             </div>
           )}
+
+          {/* Feature 5: Wellbeing Outcome Tracking */}
+          {caseData.initial_perma_label && (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Wellbeing Outcome</p>
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <p className="text-xs text-gray-400 mb-1">At intake</p>
+                  <PermaBadge label={caseData.initial_perma_label} />
+                </div>
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-gray-300 text-lg">→</div>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-gray-400 mb-1">Current</p>
+                  <PermaBadge label={permaHistory[0]?.perma_label ?? null} />
+                </div>
+                {permaHistory[0]?.perma_label && caseData.initial_perma_label && (() => {
+                  const SCORE: Record<string, number> = { 'Excelling': 5, 'Thriving': 4, 'Surviving': 3, 'Struggling': 2, 'In Crisis': 1 };
+                  const delta = (SCORE[permaHistory[0].perma_label!] ?? 0) - (SCORE[caseData.initial_perma_label] ?? 0);
+                  if (delta === 0) return null;
+                  return (
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {delta > 0 ? `↑ +${delta}` : `↓ ${delta}`} levels
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -954,8 +1090,10 @@ export default function CaseDetailPage() {
             </div>
           )}
           {intakeSummary && (() => {
-            const phq9 = intakeSummary.phq9_score;
-            const gad7 = intakeSummary.gad7_score;
+            // Prefer IC interview form scores if available, fall back to triage scores
+            const icInterviewForm = caseData?.intake_interview_form;
+            const phq9 = icInterviewForm?.phq9_score ?? intakeSummary.phq9_score;
+            const gad7 = icInterviewForm?.gad7_score ?? intakeSummary.gad7_score;
             const decision = intakeSummary.triage_decision;
             const risk = (intakeSummary.risk_level || 'GREEN').toUpperCase();
             const RISK_CL: Record<string, string> = {
@@ -1072,6 +1210,22 @@ export default function CaseDetailPage() {
               </>
             );
           })()}
+
+          {/* ── IC Interview Documentation ─────────────────────── */}
+          {intakeSummaryLoaded && (
+            <ICInterviewSection
+              caseData={caseData}
+              intakeForm={intakeForm}
+              intakeFormDraft={intakeFormDraft}
+              setIntakeFormDraft={setIntakeFormDraft}
+              intakeFormEditing={intakeFormEditing}
+              setIntakeFormEditing={setIntakeFormEditing}
+              intakeFormSaving={intakeFormSaving}
+              intakeFormError={intakeFormError}
+              intakeFormSuccess={intakeFormSuccess}
+              onSave={handleSaveIntakeForm}
+            />
+          )}
         </div>
       )}
 
@@ -2087,5 +2241,1333 @@ export default function CaseDetailPage() {
         </div>
       )}
     </DashboardPageWrapper>
+  );
+}
+
+/* ── IC Interview Documentation Section ──────────────────────────────────── */
+
+interface ICInterviewSectionProps {
+  caseData: any;
+  intakeForm: any;
+  intakeFormDraft: any;
+  setIntakeFormDraft: (v: any) => void;
+  intakeFormEditing: boolean;
+  setIntakeFormEditing: (v: boolean) => void;
+  intakeFormSaving: boolean;
+  intakeFormError: string;
+  intakeFormSuccess: boolean;
+  onSave: () => void;
+}
+
+function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+      <div className="px-5 py-3 bg-[#1a5228] text-white">
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <div className="p-5 space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function RadioField({ label, name, options, value, onChange, required, hasError }: {
+  label: string; name: string; options: string[]; value: string; onChange: (v: string) => void; required?: boolean; hasError?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className={`space-y-2 p-3 rounded-lg ${hasError ? 'border border-red-400 bg-red-50/30' : ''}`}>
+        {options.map(opt => (
+          <label key={opt} className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name={name} value={opt}
+              checked={value === opt}
+              onChange={() => onChange(opt)}
+              className="w-4 h-4 text-[#1a5228] border-gray-300" />
+            <span className="text-sm text-gray-700">{opt}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CheckboxField({ label, name, options, value, onChange, required, hasOther }: {
+  label: string; name: string; options: string[]; value: string[]; onChange: (v: string[]) => void;
+  required?: boolean; hasOther?: boolean;
+}) {
+  const otherKey = `${name}_other`;
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="grid grid-cols-1 gap-2">
+        {options.map(opt => {
+          const isOtherOpt = opt === 'Other:' || opt === 'Other';
+          return (
+            <label key={opt} className="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" value={opt}
+                checked={(value || []).includes(opt)}
+                onChange={e => {
+                  const arr = value || [];
+                  onChange(e.target.checked ? [...arr, opt] : arr.filter((x: string) => x !== opt));
+                }}
+                className="w-4 h-4 mt-0.5 text-[#1a5228] border-gray-300 rounded" />
+              {isOtherOpt ? (
+                <span className="text-sm text-gray-700 flex items-center gap-2 flex-1">
+                  Other:
+                </span>
+              ) : (
+                <span className="text-sm text-gray-700">{opt}</span>
+              )}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CheckboxFieldWithOther({ label, name, options, value, otherValue, onChange, onOtherChange, required, hasError }: {
+  label: string; name: string; options: string[]; value: string[]; otherValue: string;
+  onChange: (v: string[]) => void; onOtherChange: (v: string) => void; required?: boolean; hasError?: boolean;
+}) {
+  const allOpts = [...options, 'Other:'];
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className={`grid grid-cols-1 gap-2 p-3 rounded-lg ${hasError ? 'border border-red-400 bg-red-50/30' : ''}`}>
+        {allOpts.map(opt => {
+          const isOther = opt === 'Other:';
+          return (
+            <label key={opt} className="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" value={opt}
+                checked={(value || []).includes(opt)}
+                onChange={e => {
+                  const arr = value || [];
+                  onChange(e.target.checked ? [...arr, opt] : arr.filter((x: string) => x !== opt));
+                }}
+                className="w-4 h-4 mt-0.5 text-[#1a5228] border-gray-300 rounded" />
+              {isOther ? (
+                <span className="text-sm text-gray-700 flex items-center gap-2 flex-1">
+                  Other:
+                  {(value || []).includes('Other:') && (
+                    <input type="text" value={otherValue}
+                      onChange={e => onOtherChange(e.target.value)}
+                      className="flex-1 text-sm border-b border-gray-300 focus:border-[#1a5228] outline-none px-1"
+                      placeholder="Please specify..." />
+                  )}
+                </span>
+              ) : (
+                <span className="text-sm text-gray-700">{opt}</span>
+              )}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TextareaField({ label, fieldKey, value, onChange, placeholder, helperText, required, hasError }: {
+  label: string; fieldKey: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; helperText?: string; required?: boolean; hasError?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {helperText && <p className="text-xs text-gray-400 mb-2 italic">{helperText}</p>}
+      <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
+        placeholder={placeholder}
+        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-transparent outline-none resize-none ${hasError ? 'border-red-400' : 'border-gray-200'}`} />
+    </div>
+  );
+}
+
+function ReadBadge({ value }: { value: string }) {
+  return (
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#1a5228]/10 text-[#1a5228] mr-1.5 mb-1.5">
+      {value}
+    </span>
+  );
+}
+
+function ReadSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+      <div className="px-5 py-3 bg-[#1a5228] text-white">
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <div className="p-5 space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function ReadRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+      <div className="text-sm text-gray-800">{children}</div>
+    </div>
+  );
+}
+
+/* ── PHQ-9 Section Component ──────────────────────────────────────────────── */
+
+const PHQ9_QUESTIONS = [
+  'Little interest or pleasure in doing things',
+  'Feeling down, depressed, or hopeless',
+  'Trouble falling or staying asleep, or sleeping too much',
+  'Feeling tired or having little energy',
+  'Poor appetite or overeating',
+  'Feeling bad about yourself — or that you are a failure or have let yourself or your family down',
+  'Trouble concentrating on things, such as reading the newspaper or watching television',
+  'Moving or speaking so slowly that other people could have noticed. Or the opposite — being so fidgety or restless that you have been moving around a lot more than usual',
+  'Thoughts that you would be better off dead, or of hurting yourself in some way',
+];
+
+const GAD7_QUESTIONS = [
+  'Feeling nervous, anxious, or on edge',
+  'Not being able to stop or control worrying',
+  'Worrying too much about different things',
+  'Trouble relaxing',
+  'Being so restless that it\'s hard to sit still',
+  'Becoming easily annoyed or irritable',
+  'Feeling afraid as if something awful might happen',
+];
+
+const RESPONSE_OPTS = [
+  { val: 0, label: 'Not at all' },
+  { val: 1, label: 'Several days' },
+  { val: 2, label: 'More than half' },
+  { val: 3, label: 'Nearly every day' },
+];
+
+function getPHQ9Severity(score: number): string {
+  if (score <= 4) return 'Minimal';
+  if (score <= 9) return 'Mild';
+  if (score <= 14) return 'Moderate';
+  if (score <= 19) return 'Moderately Severe';
+  return 'Severe';
+}
+
+function getGAD7Severity(score: number): string {
+  if (score <= 4) return 'Minimal';
+  if (score <= 9) return 'Mild';
+  if (score <= 14) return 'Moderate';
+  return 'Severe';
+}
+
+function getSeverityClass(severity: string): string {
+  switch (severity) {
+    case 'Minimal': return 'bg-green-100 text-green-800';
+    case 'Mild': return 'bg-yellow-100 text-yellow-800';
+    case 'Moderate': return 'bg-orange-100 text-orange-800';
+    case 'Moderately Severe': return 'bg-red-100 text-red-800';
+    case 'Severe': return 'bg-red-200 text-red-900';
+    default: return 'bg-gray-100 text-gray-700';
+  }
+}
+
+function PsychometricQuestionList({
+  questions, responses, maxScore, getSeverity, onChange,
+}: {
+  questions: string[];
+  responses: (number | null)[];
+  maxScore: number;
+  getSeverity: (score: number) => string;
+  onChange: (responses: (number | null)[], score: number | null, severity: string | null) => void;
+}) {
+  const answered = responses.filter(r => r !== null && r !== undefined).length;
+  const total = questions.length;
+  const score = answered === total ? responses.reduce((s, v) => s! + v!, 0) as number : null;
+  const severity = score !== null ? getSeverity(score) : null;
+
+  const setResponse = (idx: number, val: number) => {
+    const next = [...responses];
+    next[idx] = val;
+    const answeredNext = next.filter(r => r !== null && r !== undefined).length;
+    const scoreNext = answeredNext === total ? next.reduce((s, v) => s! + v!, 0) as number : null;
+    const sevNext = scoreNext !== null ? getSeverity(scoreNext) : null;
+    onChange(next, scoreNext, sevNext);
+  };
+
+  return (
+    <div className="space-y-4">
+      {questions.map((q, idx) => (
+        <div key={idx} className="flex items-start gap-3">
+          <span className="text-xs text-gray-400 w-5 flex-shrink-0 mt-0.5">{idx + 1}.</span>
+          <div className="flex-1">
+            <p className="text-sm text-gray-700 mb-2">{q}</p>
+            <div className="flex flex-wrap gap-3 sm:gap-4">
+              {RESPONSE_OPTS.map(opt => (
+                <label key={opt.val} className="flex flex-col items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`q_${idx}_${maxScore}`}
+                    checked={responses[idx] === opt.val}
+                    onChange={() => setResponse(idx, opt.val)}
+                    className="w-4 h-4 text-[#1a5228]"
+                  />
+                  <span className="text-xs text-gray-500 text-center leading-tight w-16">{opt.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+      {answered === total && score !== null && severity !== null && (
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg flex items-center gap-3">
+          <div>
+            <span className="text-2xl font-bold text-gray-900">{score}</span>
+            <span className="text-xs text-gray-400 ml-1">/ {maxScore}</span>
+          </div>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${getSeverityClass(severity)}`}>{severity}</span>
+        </div>
+      )}
+      {answered < total && (
+        <p className="text-xs text-gray-400 italic">{answered} of {total} questions answered</p>
+      )}
+    </div>
+  );
+}
+
+function PHQ9Section({ responses, onChange }: {
+  responses: (number | null)[];
+  onChange: (responses: (number | null)[], score: number | null, severity: string | null) => void;
+}) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-gray-700 mb-3">PHQ-9 — Depression Screen <span className="text-xs font-normal text-gray-400">(0–27)</span></p>
+      <PsychometricQuestionList
+        questions={PHQ9_QUESTIONS}
+        responses={responses.length === 9 ? responses : new Array(9).fill(null)}
+        maxScore={27}
+        getSeverity={getPHQ9Severity}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+function GAD7Section({ responses, onChange }: {
+  responses: (number | null)[];
+  onChange: (responses: (number | null)[], score: number | null, severity: string | null) => void;
+}) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-gray-700 mb-3">GAD-7 — Anxiety Screen <span className="text-xs font-normal text-gray-400">(0–21)</span></p>
+      <PsychometricQuestionList
+        questions={GAD7_QUESTIONS}
+        responses={responses.length === 7 ? responses : new Array(7).fill(null)}
+        maxScore={21}
+        getSeverity={getGAD7Severity}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+/* ── Wizard step definitions ─────────────────────────────────────────────── */
+
+const WIZARD_STEPS = [
+  { label: 'Session Information',          short: 'Session Info' },
+  { label: 'Clinical Diagnosis',           short: 'Diagnosis' },
+  { label: 'Psychometric Screening',       short: 'PHQ-9 / GAD-7' },
+  { label: 'Brief Description',            short: 'Description' },
+  { label: 'Presenting Problem',           short: 'Presenting' },
+  { label: 'Psychosocial History',         short: 'History' },
+  { label: 'Interaction & Affect',         short: 'Interaction' },
+  { label: 'Maladaptive Patterns',         short: 'Patterns' },
+  { label: 'Counseling Goal',              short: 'Goal' },
+  { label: 'Recommendation / Decision',    short: 'Recommendation' },
+  { label: 'Signature / Attestation',      short: 'Signature' },
+];
+
+type StepStatus = 'empty' | 'partial' | 'complete' | 'error';
+
+function getStepStatus(step: number, draft: any): StepStatus {
+  const d = draft || {};
+  const hasVal = (v: any) => v !== null && v !== undefined && v !== '';
+  const hasArr = (v: any) => Array.isArray(v) && v.length > 0;
+  switch (step) {
+    case 0: {
+      if (!hasVal(d.type_of_service)) return 'empty';
+      if (hasArr(d.referral_source)) return 'complete';
+      return 'partial';
+    }
+    case 1: {
+      if (hasVal(d.clinical_diagnosis)) return 'complete';
+      return 'empty';
+    }
+    case 2: {
+      const phq = (d.phq9_responses || []).filter((r: any) => r !== null && r !== undefined).length;
+      const gad = (d.gad7_responses || []).filter((r: any) => r !== null && r !== undefined).length;
+      if (phq === 9 && gad === 7) return 'complete';
+      if (phq > 0 || gad > 0) return 'partial';
+      return 'empty';
+    }
+    case 3: {
+      const fields = [
+        hasArr(d.general_appearance),
+        hasArr(d.communication_style),
+        hasArr(d.general_disposition),
+        hasVal(d.brief_description_remarks),
+      ];
+      const filled = fields.filter(Boolean).length;
+      if (filled === 0) return 'empty';
+      if (filled === fields.length) return 'complete';
+      return 'partial';
+    }
+    case 4: {
+      const fields = [hasArr(d.presenting_problem), hasVal(d.presenting_problem_remarks)];
+      const filled = fields.filter(Boolean).length;
+      if (filled === 0) return 'empty';
+      if (filled === fields.length) return 'complete';
+      return 'partial';
+    }
+    case 5: {
+      const fields = [hasArr(d.psychosocial_history), hasVal(d.psychosocial_remarks)];
+      const filled = fields.filter(Boolean).length;
+      if (filled === 0) return 'empty';
+      if (filled === fields.length) return 'complete';
+      return 'partial';
+    }
+    case 6: {
+      const fields = [
+        hasArr(d.interaction_relationship),
+        hasArr(d.affect_expression),
+        hasVal(d.interaction_remarks),
+      ];
+      const filled = fields.filter(Boolean).length;
+      if (filled === 0) return 'empty';
+      if (filled === fields.length) return 'complete';
+      return 'partial';
+    }
+    case 7: {
+      if (hasArr(d.maladaptive_patterns)) return 'complete';
+      return 'empty';
+    }
+    case 8: {
+      if (hasVal(d.counseling_goal)) return 'complete';
+      return 'empty';
+    }
+    case 9: {
+      const fields = [
+        hasArr(d.predisposing_factors),
+        hasArr(d.precipitating_factors),
+        hasArr(d.perpetuating_factors),
+        hasArr(d.protective_factors),
+        hasArr(d.recommendation),
+      ];
+      const filled = fields.filter(Boolean).length;
+      if (filled === 0) return 'empty';
+      if (filled === fields.length) return 'complete';
+      return 'partial';
+    }
+    case 10: {
+      if (hasVal(d.ic_name) && hasVal(d.ic_signature_date)) return 'complete';
+      if (hasVal(d.ic_name) || hasVal(d.ic_signature_date)) return 'partial';
+      return 'empty';
+    }
+    default: return 'empty';
+  }
+}
+
+function StepStatusIcon({ status }: { status: StepStatus }) {
+  if (status === 'complete') return <span className="text-[#1a5228] font-bold text-sm">✓</span>;
+  if (status === 'partial') return <span className="text-orange-500 font-bold text-sm">●</span>;
+  if (status === 'error') return <span className="text-red-500 font-bold text-sm">⚠</span>;
+  return <span className="text-gray-300 text-sm">○</span>;
+}
+
+function ICInterviewSection({
+  caseData, intakeForm, intakeFormDraft, setIntakeFormDraft,
+  intakeFormEditing, setIntakeFormEditing,
+  intakeFormSaving, intakeFormError, intakeFormSuccess, onSave
+}: ICInterviewSectionProps) {
+  const d = intakeFormDraft || {};
+  const [currentStep, setCurrentStep] = useState(0);
+  const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({});
+  const [showSaveSummary, setShowSaveSummary] = useState(false);
+
+  const upd = (key: string, val: any) => setIntakeFormDraft({ ...d, [key]: val });
+
+  /* Validate a single step, returning array of error messages */
+  function validateStep(step: number, draft: any): string[] {
+    const dv = draft || {};
+    const errs: string[] = [];
+    const hasVal = (v: any) => v !== null && v !== undefined && v !== '';
+    const hasArr = (v: any) => Array.isArray(v) && v.length > 0;
+    switch (step) {
+      case 0:
+        if (!hasVal(dv.type_of_service)) errs.push('Type of Service is required');
+        break;
+      case 3:
+        if (!hasArr(dv.general_appearance)) errs.push('General Appearance is required');
+        if (!hasArr(dv.communication_style)) errs.push('Communication Style is required');
+        if (!hasArr(dv.general_disposition)) errs.push('General Disposition is required');
+        if (!hasVal(dv.brief_description_remarks)) errs.push('Remarks are required');
+        break;
+      case 4:
+        if (!hasArr(dv.presenting_problem)) errs.push('Presenting Problem is required');
+        if (!hasVal(dv.presenting_problem_remarks)) errs.push('Remarks are required');
+        break;
+      case 5:
+        if (!hasArr(dv.psychosocial_history)) errs.push('Psychosocial History is required');
+        if (!hasVal(dv.psychosocial_remarks)) errs.push('Remarks are required');
+        break;
+      case 6:
+        if (!hasArr(dv.interaction_relationship)) errs.push('Interaction and Relationship is required');
+        if (!hasArr(dv.affect_expression)) errs.push('Affect / Emotional Expression is required');
+        if (!hasVal(dv.interaction_remarks)) errs.push('Remarks are required');
+        break;
+      case 7:
+        if (!hasArr(dv.maladaptive_patterns)) errs.push('Maladaptive Patterns is required');
+        break;
+      case 8:
+        if (!hasVal(dv.counseling_goal)) errs.push('Counseling Goal is required');
+        break;
+      case 9:
+        if (!hasArr(dv.recommendation)) errs.push('Recommendation is required');
+        break;
+      case 10:
+        if (!hasVal(dv.ic_name)) errs.push('IC Name is required');
+        if (!hasVal(dv.ic_signature_date)) errs.push('Signature Date is required');
+        break;
+    }
+    return errs;
+  }
+
+  function handleNext() {
+    const errs = validateStep(currentStep, d);
+    if (errs.length > 0) {
+      setStepErrors(prev => ({ ...prev, [currentStep]: errs }));
+      return;
+    }
+    setStepErrors(prev => { const n = { ...prev }; delete n[currentStep]; return n; });
+    setCurrentStep(s => Math.min(s + 1, WIZARD_STEPS.length - 1));
+  }
+
+  function handlePrev() {
+    setCurrentStep(s => Math.max(s - 1, 0));
+  }
+
+  function handleSaveDraft() {
+    setShowSaveSummary(false);
+    onSave();
+  }
+
+  function handleSaveForm() {
+    /* Full validation across all steps */
+    const allStepsWithErrors: Record<number, string[]> = {};
+    for (let i = 0; i < WIZARD_STEPS.length; i++) {
+      const errs = validateStep(i, d);
+      if (errs.length > 0) allStepsWithErrors[i] = errs;
+    }
+    if (Object.keys(allStepsWithErrors).length > 0) {
+      setStepErrors(allStepsWithErrors);
+      setShowSaveSummary(true);
+      return;
+    }
+    setShowSaveSummary(false);
+    onSave();
+  }
+
+  /* Collect missing fields for summary panel */
+  const missingFields: { stepIndex: number; label: string }[] = [];
+  for (let i = 0; i < WIZARD_STEPS.length; i++) {
+    const errs = stepErrors[i] || [];
+    errs.forEach(e => missingFields.push({ stepIndex: i, label: e }));
+  }
+
+  return (
+    <div className="mt-6 pt-6 border-t border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-semibold text-gray-800">IC Interview Documentation</h2>
+        {intakeForm && !intakeFormEditing && (
+          <button onClick={() => setIntakeFormEditing(true)}
+            className="text-sm text-[#1a5228] font-medium hover:underline">
+            Edit
+          </button>
+        )}
+        {intakeForm && intakeFormEditing && (
+          <button onClick={() => { setIntakeFormDraft(intakeForm); setIntakeFormEditing(false); setCurrentStep(0); setStepErrors({}); setShowSaveSummary(false); }}
+            className="text-sm text-gray-500 hover:underline">
+            Cancel
+          </button>
+        )}
+      </div>
+
+      {intakeForm && !intakeFormEditing ? (
+        /* ── Read-only view ── */
+        <div>
+          {caseData?.intake_form_updated_at && (
+            <p className="text-xs text-gray-400 mb-4">Last updated: {new Date(caseData.intake_form_updated_at).toLocaleString()}</p>
+          )}
+          <ReadSection title="Section 1: Session Information">
+            {/* Booking info from caseData */}
+            {(() => {
+              const rawDate = caseData?.appointment_info?.date || caseData?.appointment_date || caseData?.scheduled_start;
+              const fmtDate = rawDate
+                ? new Date(rawDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                : '—';
+              const fmtTime = rawDate
+                ? new Date(rawDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                : '—';
+              const mode = caseData?.appointment_info?.method || caseData?.method || caseData?.appointment_method || '—';
+              const studentId = caseData?.student?.school_id || '—';
+              const college = caseData?.student?.college || caseData?.student?.course || '—';
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-2">
+                  {[
+                    { label: 'Date', value: fmtDate },
+                    { label: 'Time', value: fmtTime },
+                    { label: 'Mode', value: mode },
+                    { label: 'Student ID', value: studentId },
+                    { label: 'College', value: college },
+                  ].map(item => (
+                    <div key={item.label}>
+                      <p className="text-xs text-gray-400 mb-0.5">{item.label}</p>
+                      <p className="text-sm font-medium text-gray-700">{item.value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <ReadRow label="Type of Service"><p>{intakeForm.type_of_service || '—'}</p></ReadRow>
+            <ReadRow label="Referral Source">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.referral_source || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.referral_source_other && <ReadBadge value={`Other: ${intakeForm.referral_source_other}`} />}
+              </div>
+            </ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 2: Clinical Diagnosis">
+            <ReadRow label="Clinical Diagnosis"><p>{intakeForm.clinical_diagnosis || '—'}</p></ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 2A: Psychometric Screening">
+            {/* PHQ-9 read-only */}
+            <div>
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">PHQ-9 — Depression Screen</p>
+              {intakeForm.phq9_score != null ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <span className="text-2xl font-bold text-gray-900">{intakeForm.phq9_score}</span>
+                    <span className="text-xs text-gray-400 ml-1">/ 27</span>
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                    intakeForm.phq9_score <= 4 ? 'bg-green-100 text-green-800' :
+                    intakeForm.phq9_score <= 9 ? 'bg-yellow-100 text-yellow-800' :
+                    intakeForm.phq9_score <= 14 ? 'bg-orange-100 text-orange-800' :
+                    intakeForm.phq9_score <= 19 ? 'bg-red-100 text-red-800' :
+                    'bg-red-200 text-red-900'
+                  }`}>{intakeForm.phq9_severity || (
+                    intakeForm.phq9_score <= 4 ? 'Minimal' :
+                    intakeForm.phq9_score <= 9 ? 'Mild' :
+                    intakeForm.phq9_score <= 14 ? 'Moderate' :
+                    intakeForm.phq9_score <= 19 ? 'Moderately Severe' : 'Severe'
+                  )}</span>
+                </div>
+              ) : <p className="text-sm text-gray-400 italic">Not completed</p>}
+            </div>
+            {/* GAD-7 read-only */}
+            <div>
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">GAD-7 — Anxiety Screen</p>
+              {intakeForm.gad7_score != null ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <span className="text-2xl font-bold text-gray-900">{intakeForm.gad7_score}</span>
+                    <span className="text-xs text-gray-400 ml-1">/ 21</span>
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                    intakeForm.gad7_score <= 4 ? 'bg-green-100 text-green-800' :
+                    intakeForm.gad7_score <= 9 ? 'bg-yellow-100 text-yellow-800' :
+                    intakeForm.gad7_score <= 14 ? 'bg-orange-100 text-orange-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>{intakeForm.gad7_severity || (
+                    intakeForm.gad7_score <= 4 ? 'Minimal' :
+                    intakeForm.gad7_score <= 9 ? 'Mild' :
+                    intakeForm.gad7_score <= 14 ? 'Moderate' : 'Severe'
+                  )}</span>
+                </div>
+              ) : <p className="text-sm text-gray-400 italic">Not completed</p>}
+            </div>
+          </ReadSection>
+
+          <ReadSection title="Section 3: Brief Description of the Client">
+            <ReadRow label="General Appearance and Presentation">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.general_appearance || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.general_appearance_other && <ReadBadge value={`Other: ${intakeForm.general_appearance_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Communication Style">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.communication_style || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.communication_style_other && <ReadBadge value={`Other: ${intakeForm.communication_style_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="General Disposition / Demeanor">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.general_disposition || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.general_disposition_other && <ReadBadge value={`Other: ${intakeForm.general_disposition_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Remarks"><p className="whitespace-pre-wrap">{intakeForm.brief_description_remarks || '—'}</p></ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 4: Presenting Problem">
+            <ReadRow label="Presenting Problem">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.presenting_problem || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.presenting_problem_other && <ReadBadge value={`Other: ${intakeForm.presenting_problem_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Remarks"><p className="whitespace-pre-wrap">{intakeForm.presenting_problem_remarks || '—'}</p></ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 5: Brief Psychosocial History">
+            <ReadRow label="Psychosocial History">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.psychosocial_history || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.psychosocial_other && <ReadBadge value={`Other: ${intakeForm.psychosocial_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Remarks"><p className="whitespace-pre-wrap">{intakeForm.psychosocial_remarks || '—'}</p></ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 6: Interaction, Relationship, and Affect During Intake">
+            <ReadRow label="Interaction and Relationship with Counselor">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.interaction_relationship || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.interaction_relationship_other && <ReadBadge value={`Other: ${intakeForm.interaction_relationship_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Affect / Emotional Expression">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.affect_expression || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.affect_expression_other && <ReadBadge value={`Other: ${intakeForm.affect_expression_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Remarks"><p className="whitespace-pre-wrap">{intakeForm.interaction_remarks || '—'}</p></ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 7: Maladaptive Patterns Observed or Reported">
+            <ReadRow label="Maladaptive Patterns">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.maladaptive_patterns || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.maladaptive_patterns_other && <ReadBadge value={`Other: ${intakeForm.maladaptive_patterns_other}`} />}
+              </div>
+            </ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 8: Counseling / Psychotherapy Goal">
+            <ReadRow label="Goal"><p className="whitespace-pre-wrap">{intakeForm.counseling_goal || '—'}</p></ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 9: Conceptualization (4 P's Framework)">
+            <ReadRow label="Predisposing Factors">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.predisposing_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.predisposing_other && <ReadBadge value={`Other: ${intakeForm.predisposing_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Precipitating Factors">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.precipitating_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.precipitating_other && <ReadBadge value={`Other: ${intakeForm.precipitating_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Perpetuating Factors">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.perpetuating_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.perpetuating_other && <ReadBadge value={`Other: ${intakeForm.perpetuating_other}`} />}
+              </div>
+            </ReadRow>
+            <ReadRow label="Protective Factors">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.protective_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.protective_other && <ReadBadge value={`Other: ${intakeForm.protective_other}`} />}
+              </div>
+            </ReadRow>
+          </ReadSection>
+
+          <ReadSection title="Section 10: Recommendation for Treatment or Disposition">
+            <ReadRow label="Recommendation">
+              <div className="flex flex-wrap mt-1">
+                {(intakeForm.recommendation || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                {intakeForm.recommendation_other && <ReadBadge value={`Other: ${intakeForm.recommendation_other}`} />}
+              </div>
+            </ReadRow>
+          </ReadSection>
+        </div>
+      ) : (
+        /* ── Edit / New form — Wizard ── */
+        <div>
+          {/* Mobile progress bar */}
+          <div className="sm:hidden mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-600">Step {currentStep + 1} of {WIZARD_STEPS.length}</span>
+              <span className="text-xs text-gray-500">{WIZARD_STEPS[currentStep].label}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-[#1a5228] h-2 rounded-full transition-all duration-300"
+                style={{ width: `${((currentStep + 1) / WIZARD_STEPS.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-6">
+            {/* Sidebar */}
+            <aside className="hidden sm:flex flex-col w-48 flex-shrink-0">
+              <div className="sticky top-4 space-y-0.5">
+                {WIZARD_STEPS.map((step, idx) => {
+                  const status = stepErrors[idx]?.length > 0 ? 'error' : getStepStatus(idx, d);
+                  const isActive = idx === currentStep;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentStep(idx)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isActive
+                          ? 'bg-[#1a5228] text-white'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
+                        isActive ? 'bg-white text-[#1a5228]' : 'bg-gray-200 text-gray-600'
+                      }`}>{idx + 1}</span>
+                      <span className="text-xs font-medium leading-tight flex-1 min-w-0 truncate">{step.short}</span>
+                      {!isActive && <StepStatusIcon status={status} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
+            {/* Step content */}
+            <div className="flex-1 min-w-0">
+              {/* Step 0: Session Information */}
+              {currentStep === 0 && (
+                <SectionBox title="Step 1: Session Information">
+                  {(() => {
+                    const rawDate = caseData?.appointment_info?.date || caseData?.appointment_date || caseData?.scheduled_start;
+                    const fmtDate = rawDate
+                      ? new Date(rawDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                      : '—';
+                    const fmtTime = rawDate
+                      ? new Date(rawDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                      : '—';
+                    const mode = caseData?.appointment_info?.method || caseData?.method || caseData?.appointment_method || '—';
+                    const studentId = caseData?.student?.school_id || '—';
+                    const college = caseData?.student?.college || caseData?.student?.course || '—';
+                    return (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-2">
+                        {[
+                          { label: 'Date', value: fmtDate },
+                          { label: 'Time', value: fmtTime },
+                          { label: 'Mode', value: mode },
+                          { label: 'Student ID', value: studentId },
+                          { label: 'College', value: college },
+                        ].map(item => (
+                          <div key={item.label}>
+                            <p className="text-xs text-gray-400 mb-0.5">{item.label}</p>
+                            <p className="text-sm font-medium text-gray-700">{item.value || '—'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  <div>
+                    <RadioField label="Type of Service" name="type_of_service" required
+                      options={['Initial Interview', 'Triage Interview', 'Intake Interview', 'Counseling/Psychotherapy Session', 'Testing', 'Termination']}
+                      value={d.type_of_service || ''} onChange={v => upd('type_of_service', v)}
+                      hasError={!!(stepErrors[0]?.some(e => e.includes('Type of Service')))} />
+                    {stepErrors[0]?.some(e => e.includes('Type of Service')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <CheckboxFieldWithOther label="Referral Source" name="referral_source" required
+                    options={[
+                      'Self – client initiated the counseling request independently',
+                      'Faculty / Staff – referred by teaching or non-teaching personnel',
+                      'Parent / Guardian – referral made by family member or guardian',
+                      'Peer / Friend – encouraged by classmate or colleague',
+                      'Supervisor / Manager – referral from workplace or internship site',
+                      'Academic Department / Program Chair – referral through college office or adviser',
+                      'DLSU Office / Support Unit (e.g., SDFO, OUR, OAS, HSO)',
+                    ]}
+                    value={d.referral_source || []} otherValue={d.referral_source_other || ''}
+                    onChange={v => upd('referral_source', v)}
+                    onOtherChange={v => upd('referral_source_other', v)} />
+                </SectionBox>
+              )}
+
+              {/* Step 1: Clinical Diagnosis */}
+              {currentStep === 1 && (
+                <SectionBox title="Step 2: Clinical Diagnosis">
+                  <RadioField label="Clinical Diagnosis (optional)" name="clinical_diagnosis"
+                    options={[
+                      'Clinically diagnosed (based on provided documentation or prior records)',
+                      'Clinically diagnosed (as informed by the client)',
+                      'No clinical diagnosis indicated / mentioned',
+                      'Not disclosed / Unknown',
+                    ]}
+                    value={d.clinical_diagnosis || ''} onChange={v => upd('clinical_diagnosis', v)} />
+                </SectionBox>
+              )}
+
+              {/* Step 2: Psychometric Screening */}
+              {currentStep === 2 && (
+                <SectionBox title="Step 3: Psychometric Screening">
+                  <p className="text-xs text-gray-500 italic">Administer the PHQ-9 and GAD-7 screening tools. Score each item from 0 (Not at all) to 3 (Nearly every day). You may skip this step if screening was not conducted.</p>
+                  <PHQ9Section
+                    responses={d.phq9_responses || new Array(9).fill(null)}
+                    onChange={(responses: (number | null)[], score: number | null, severity: string | null) => {
+                      setIntakeFormDraft({ ...d, phq9_responses: responses, phq9_score: score, phq9_severity: severity });
+                    }}
+                  />
+                  <div className="border-t border-gray-100 my-2" />
+                  <GAD7Section
+                    responses={d.gad7_responses || new Array(7).fill(null)}
+                    onChange={(responses: (number | null)[], score: number | null, severity: string | null) => {
+                      setIntakeFormDraft({ ...d, gad7_responses: responses, gad7_score: score, gad7_severity: severity });
+                    }}
+                  />
+                </SectionBox>
+              )}
+
+              {/* Step 3: Brief Description */}
+              {currentStep === 3 && (
+                <SectionBox title="Step 4: Brief Description of the Client">
+                  <p className="text-xs text-gray-500 italic">This section gives a quick overview of how the client appeared, communicated, and interacted during the intake session.</p>
+                  <div>
+                    <CheckboxFieldWithOther label="General Appearance and Presentation" name="general_appearance" required
+                      options={[
+                        'Appropriate and well-groomed – neat, tidy, and consistent with the setting',
+                        'Neat / Casual – relaxed but presentable',
+                        'Fatigued or tired-looking – appears low in energy or sleep-deprived',
+                        'Disheveled / unkempt – clothing or hygiene suggests stress or neglect',
+                        'Tearful / emotional – shows visible sadness or crying during the session',
+                      ]}
+                      value={d.general_appearance || []} otherValue={d.general_appearance_other || ''}
+                      onChange={v => upd('general_appearance', v)}
+                      onOtherChange={v => upd('general_appearance_other', v)}
+                      hasError={!!(stepErrors[3]?.some(e => e.includes('General Appearance')))} />
+                    {stepErrors[3]?.some(e => e.includes('General Appearance')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <CheckboxFieldWithOther label="Communication Style" name="communication_style" required
+                      options={[
+                        'Clear and coherent – expresses ideas logically and understandably',
+                        'Soft-spoken / hesitant – quiet voice, pauses often, or unsure when speaking',
+                        'Rapid / pressured – talks quickly, difficult to interrupt, possibly anxious',
+                        'Logical and goal-directed – stays on topic, communicates purposefully',
+                        'Circumstantial / tangential – gives excessive details or goes off topic',
+                        'Disorganized / incoherent – speech is confusing or hard to follow',
+                      ]}
+                      value={d.communication_style || []} otherValue={d.communication_style_other || ''}
+                      onChange={v => upd('communication_style', v)}
+                      onOtherChange={v => upd('communication_style_other', v)}
+                      hasError={!!(stepErrors[3]?.some(e => e.includes('Communication Style')))} />
+                    {stepErrors[3]?.some(e => e.includes('Communication Style')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <CheckboxFieldWithOther label="General Disposition / Demeanor" name="general_disposition" required
+                      options={[
+                        'Calm and cooperative – open, responsive, and comfortable engaging',
+                        'Anxious or tense – restless, nervous, or visibly uneasy',
+                        'Sad or withdrawn – quiet, minimal expression, or emotionally distant',
+                        'Angry or irritable – defensive tone or easily frustrated',
+                        'Motivated and engaged – participative, eager to reflect and improve',
+                        'Guarded or defensive – cautious, reluctant to share',
+                        'Distracted or preoccupied – unfocused, thinking of something else',
+                      ]}
+                      value={d.general_disposition || []} otherValue={d.general_disposition_other || ''}
+                      onChange={v => upd('general_disposition', v)}
+                      onOtherChange={v => upd('general_disposition_other', v)}
+                      hasError={!!(stepErrors[3]?.some(e => e.includes('General Disposition')))} />
+                    {stepErrors[3]?.some(e => e.includes('General Disposition')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <TextareaField label="Remarks" fieldKey="brief_description_remarks" required
+                      value={d.brief_description_remarks || ''} onChange={v => upd('brief_description_remarks', v)}
+                      helperText="Add other noteworthy observations about the client's presentation or behavior. Write 'None' if no additional remarks."
+                      hasError={!!(stepErrors[3]?.some(e => e.includes('Remarks')))} />
+                    {stepErrors[3]?.some(e => e.includes('Remarks')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Step 4: Presenting Problem */}
+              {currentStep === 4 && (
+                <SectionBox title="Step 5: Presenting Problem">
+                  <p className="text-xs text-gray-500 italic">This section identifies the main concerns or reasons the client sought counseling, based on their own report and counselor's clarification.</p>
+                  <div>
+                    <CheckboxFieldWithOther label="Presenting Problem" name="presenting_problem" required
+                      options={[
+                        'Anxiety or fear – excessive worry, tension, or panic episodes',
+                        'Depression or sadness – low mood, hopelessness, or loss of interest',
+                        'Stress or burnout – feeling overwhelmed by academics or work',
+                        'Relationship or family conflict – difficulties in communication or boundaries',
+                        'Adjustment or transition issue – struggling to cope with life or school changes',
+                        'Grief or loss – emotional pain following death, separation, or significant loss',
+                        'Trauma-related distress – distress linked to a past adverse event',
+                        'Identity or self-concept concern – confusion about personal values, gender, or direction',
+                        'Motivation or focus difficulty – trouble concentrating or completing tasks',
+                        'Health-related stress – emotional impact of physical conditions or fatigue',
+                      ]}
+                      value={d.presenting_problem || []} otherValue={d.presenting_problem_other || ''}
+                      onChange={v => upd('presenting_problem', v)}
+                      onOtherChange={v => upd('presenting_problem_other', v)}
+                      hasError={!!(stepErrors[4]?.some(e => e.includes('Presenting Problem')))} />
+                    {stepErrors[4]?.some(e => e.includes('Presenting Problem')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <TextareaField label="Remarks" fieldKey="presenting_problem_remarks" required
+                      value={d.presenting_problem_remarks || ''} onChange={v => upd('presenting_problem_remarks', v)}
+                      helperText="Add other noteworthy details about the client's main concern. Write 'None' if no additional remarks."
+                      hasError={!!(stepErrors[4]?.some(e => e.includes('Remarks')))} />
+                    {stepErrors[4]?.some(e => e.includes('Remarks')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Step 5: Psychosocial History */}
+              {currentStep === 5 && (
+                <SectionBox title="Step 6: Brief Psychosocial History">
+                  <p className="text-xs text-gray-500 italic">Provide background information relevant to the client's current concern. Check all that apply and add short notes where needed.</p>
+                  <div>
+                    <CheckboxFieldWithOther label="Psychosocial History" name="psychosocial_history" required
+                      options={[
+                        'Significant past experiences – history of trauma, loss, illness, or major life transitions that shaped current functioning',
+                        'Family background – quality of family relationships, support, or sources of conflict',
+                        'Coping styles and strategies – ways the client typically manages stress (e.g., avoidance, problem-solving, prayer, journaling)',
+                        'Academic or work functioning – level of motivation, performance, or adjustment to demands',
+                        'Peer and social relationships – quality of friendships, social supports, or experiences of isolation',
+                        'Health and lifestyle – physical well-being, sleep, exercise, nutrition, or medical conditions',
+                        'Previous counseling or therapy – prior experience with mental health services and outcomes',
+                        'Substance use history – use of alcohol, nicotine, caffeine, or other substances',
+                        'Faith or spirituality – beliefs or practices that influence coping and meaning-making',
+                      ]}
+                      value={d.psychosocial_history || []} otherValue={d.psychosocial_other || ''}
+                      onChange={v => upd('psychosocial_history', v)}
+                      onOtherChange={v => upd('psychosocial_other', v)}
+                      hasError={!!(stepErrors[5]?.some(e => e.includes('Psychosocial History')))} />
+                    {stepErrors[5]?.some(e => e.includes('Psychosocial History')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <TextareaField label="Remarks" fieldKey="psychosocial_remarks" required
+                      value={d.psychosocial_remarks || ''} onChange={v => upd('psychosocial_remarks', v)}
+                      helperText="Add any significant details about the client's background. Write 'None' if the checklist already captures the psychosocial background."
+                      hasError={!!(stepErrors[5]?.some(e => e.includes('Remarks')))} />
+                    {stepErrors[5]?.some(e => e.includes('Remarks')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Step 6: Interaction & Affect */}
+              {currentStep === 6 && (
+                <SectionBox title="Step 7: Interaction, Relationship, and Affect During Intake">
+                  <p className="text-xs text-gray-500 italic">Describe how the client related to the counselor, expressed emotions, and engaged during the intake session.</p>
+                  <div>
+                    <CheckboxFieldWithOther label="Interaction and Relationship with Counselor" name="interaction_relationship" required
+                      options={[
+                        'Engaged and cooperative – open, responsive, and actively participated in conversation',
+                        'Warm and receptive – friendly and comfortable engaging in dialogue',
+                        'Guarded or hesitant – cautious, reserved, or limited in responses',
+                        'Calm and composed – steady demeanor and appropriate behavior',
+                        'Withdrawn or avoidant – quiet, minimal eye contact, or reluctant to engage',
+                        'Irritable or defensive – easily frustrated or resistant to feedback',
+                        'Motivated and hopeful – shows readiness and willingness to improve',
+                      ]}
+                      value={d.interaction_relationship || []} otherValue={d.interaction_relationship_other || ''}
+                      onChange={v => upd('interaction_relationship', v)}
+                      onOtherChange={v => upd('interaction_relationship_other', v)}
+                      hasError={!!(stepErrors[6]?.some(e => e.includes('Interaction and Relationship')))} />
+                    {stepErrors[6]?.some(e => e.includes('Interaction and Relationship')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <CheckboxFieldWithOther label="Affect / Emotional Expression" name="affect_expression" required
+                      options={[
+                        'Appropriate to content – emotion matches the topic being discussed',
+                        'Anxious / tense – fidgety, restless, or visibly nervous',
+                        'Depressed / sad – flat affect, tearful, or downcast tone',
+                        'Irritable / frustrated – easily annoyed or impatient',
+                        'Labile / fluctuating – sudden shifts in mood or expression',
+                        'Flat / restricted – limited range of emotion or monotone tone',
+                        'Euthymic / stable – balanced, calm, and consistent emotional tone',
+                      ]}
+                      value={d.affect_expression || []} otherValue={d.affect_expression_other || ''}
+                      onChange={v => upd('affect_expression', v)}
+                      onOtherChange={v => upd('affect_expression_other', v)}
+                      hasError={!!(stepErrors[6]?.some(e => e.includes('Affect')))} />
+                    {stepErrors[6]?.some(e => e.includes('Affect')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <TextareaField label="Remarks" fieldKey="interaction_remarks" required
+                      value={d.interaction_remarks || ''} onChange={v => upd('interaction_remarks', v)}
+                      helperText="Add any significant details or observations about the client's interaction, relationship, or affect. Write 'None' if the checklist already captures this."
+                      hasError={!!(stepErrors[6]?.some(e => e.includes('Remarks')))} />
+                    {stepErrors[6]?.some(e => e.includes('Remarks')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Step 7: Maladaptive Patterns */}
+              {currentStep === 7 && (
+                <SectionBox title="Step 8: Maladaptive Patterns Observed or Reported">
+                  <p className="text-xs text-gray-500 italic">Identify recurring thoughts, emotions, behaviors, or coping styles that may be contributing to the client's current concerns.</p>
+                  <div>
+                    <CheckboxFieldWithOther label="Maladaptive Patterns" name="maladaptive_patterns" required
+                      options={[
+                        'Avoidance behaviors – Tendency to avoid situations, tasks, or conversations that cause discomfort',
+                        'Negative self-talk or self-criticism – Persistent self-blame, harsh internal dialogue, or low self-worth',
+                        'Emotional suppression – Difficulty expressing or acknowledging emotions',
+                        'Excessive worry or rumination – Repetitive overthinking, "what if" thinking, difficulty letting go',
+                        'Perfectionism or fear of failure – Unrealistic standards, strong fear of making mistakes',
+                        'Dependence on others for reassurance – Difficulty making decisions or coping independently',
+                        'Impulsivity or difficulty with emotional regulation – Acting quickly when distressed',
+                        'Maladaptive coping strategies – Coping styles that provide short-term relief but increase distress over time',
+                        'Interpersonal difficulties – Recurrent conflicts, withdrawal, or difficulty setting boundaries',
+                        'Trauma-related responses – Hypervigilance, emotional numbing, or heightened reactivity',
+                        'Academic/work-related maladaptive patterns – Procrastination, disengagement, or chronic burnout patterns',
+                        'No maladaptive patterns identified at intake',
+                      ]}
+                      value={d.maladaptive_patterns || []} otherValue={d.maladaptive_patterns_other || ''}
+                      onChange={v => upd('maladaptive_patterns', v)}
+                      onOtherChange={v => upd('maladaptive_patterns_other', v)}
+                      hasError={!!(stepErrors[7]?.some(e => e.includes('Maladaptive')))} />
+                    {stepErrors[7]?.some(e => e.includes('Maladaptive')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Step 8: Counseling Goal */}
+              {currentStep === 8 && (
+                <SectionBox title="Step 9: Counseling / Psychotherapy Goal">
+                  <div>
+                    <TextareaField label="Counseling/Psychotherapy Goal" fieldKey="counseling_goal" required
+                      value={d.counseling_goal || ''} onChange={v => upd('counseling_goal', v)}
+                      helperText="State the overall/long term goal using the SMART framework (Specific, Measurable, Attainable, Realistic and Time-bound)."
+                      placeholder="e.g., Client will reduce the frequency and intensity of anxiety episodes by consistently using at least two adaptive coping strategies within 8 weeks."
+                      hasError={!!(stepErrors[8]?.some(e => e.includes('Counseling Goal')))} />
+                    {stepErrors[8]?.some(e => e.includes('Counseling Goal')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Step 9: Recommendation / Decision (includes 4 P's + Recommendation) */}
+              {currentStep === 9 && (
+                <SectionBox title="Step 10: Recommendation / Decision">
+                  <p className="text-xs text-gray-500 italic">Summarize your clinical understanding using the 4 P's Model, then state your recommendation.</p>
+                  <CheckboxFieldWithOther label="Predisposing Factors" name="predisposing_factors" required
+                    options={[
+                      'Family history of mental health or relational problems',
+                      'Early childhood adversity or trauma',
+                      'Personality traits (e.g., perfectionism, dependency, impulsivity)',
+                      'Chronic medical condition or neurobiological vulnerability',
+                      'Limited early emotional support or attachment disruption',
+                      'Cultural, gender, or identity-related stress exposure',
+                    ]}
+                    value={d.predisposing_factors || []} otherValue={d.predisposing_other || ''}
+                    onChange={v => upd('predisposing_factors', v)}
+                    onOtherChange={v => upd('predisposing_other', v)} />
+                  <CheckboxFieldWithOther label="Precipitating Factors" name="precipitating_factors" required
+                    options={[
+                      'Recent loss or separation',
+                      'Academic or work stress / overload',
+                      'Relationship conflict or breakup',
+                      'Transition or adjustment (e.g., relocation, new role, course changes)',
+                      'Health-related event or diagnosis',
+                      'Traumatic or critical incident',
+                    ]}
+                    value={d.precipitating_factors || []} otherValue={d.precipitating_other || ''}
+                    onChange={v => upd('precipitating_factors', v)}
+                    onOtherChange={v => upd('precipitating_other', v)} />
+                  <CheckboxFieldWithOther label="Perpetuating Factors" name="perpetuating_factors" required
+                    options={[
+                      'Maladaptive coping (avoidance, withdrawal, substance use)',
+                      'Ongoing stressors (family, financial, workload)',
+                      'Environmental barriers (limited support, unsafe environment)',
+                      'Negative thinking patterns or self-criticism',
+                      'Lack of insight or resistance to change',
+                      'Poor self-care or sleep habits',
+                    ]}
+                    value={d.perpetuating_factors || []} otherValue={d.perpetuating_other || ''}
+                    onChange={v => upd('perpetuating_factors', v)}
+                    onOtherChange={v => upd('perpetuating_other', v)} />
+                  <CheckboxFieldWithOther label="Protective Factors" name="protective_factors" required
+                    options={[
+                      'Supportive relationships or social network',
+                      'Faith or spirituality',
+                      'Academic or work engagement',
+                      'Motivation to improve / willingness to seek help',
+                      'Effective coping or problem-solving skills',
+                      'Stable housing or financial situation',
+                      'Access to mental health and community resources',
+                    ]}
+                    value={d.protective_factors || []} otherValue={d.protective_other || ''}
+                    onChange={v => upd('protective_factors', v)}
+                    onOtherChange={v => upd('protective_other', v)} />
+                  <div className="border-t border-gray-100 pt-4">
+                    <div>
+                      <CheckboxFieldWithOther label="Recommendation for Treatment or Disposition" name="recommendation" required
+                        options={[
+                          'Continue Counseling / Psychotherapy – client to engage in ongoing sessions with same counselor/psychologist or team',
+                          'Referral to CPS Psychologist (Testing / Assessment) – for further diagnostic or psychological evaluation',
+                          'Referral to CPS Psychologist for Psychotherapy – referred for specialized, in-depth therapy within CPS',
+                          'Referral to Psychiatrist / Physician – for medication evaluation or medical management',
+                          'Crisis Intervention / Safety Plan Initiated – immediate response to safety or suicide risk concerns',
+                          'Collaboration with Faculty / Staff (with consent) – coordinate support for academic or behavioral concerns',
+                          'Referral to External Support / Agency – e.g., community mental health center, support group, or hotline',
+                          'Follow-up Session Scheduled – next session date or frequency confirmed',
+                        ]}
+                        value={d.recommendation || []} otherValue={d.recommendation_other || ''}
+                        onChange={v => upd('recommendation', v)}
+                        onOtherChange={v => upd('recommendation_other', v)}
+                        hasError={!!(stepErrors[9]?.some(e => e.includes('Recommendation')))} />
+                      {stepErrors[9]?.some(e => e.includes('Recommendation')) && (
+                        <p className="text-xs text-red-500 mt-1">This field is required</p>
+                      )}
+                    </div>
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Step 10: Signature / Attestation */}
+              {currentStep === 10 && (
+                <SectionBox title="Step 11: Signature / Attestation">
+                  <p className="text-xs text-gray-500 italic">By completing this form, the IC affirms that the information recorded is accurate and was gathered during the intake session.</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      IC Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={d.ic_name || ''}
+                      onChange={e => upd('ic_name', e.target.value)}
+                      placeholder="Full name of Intake Counselor"
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-transparent outline-none ${
+                        stepErrors[10]?.some(e => e.includes('IC Name')) ? 'border-red-400' : 'border-gray-200'
+                      }`}
+                    />
+                    {stepErrors[10]?.some(e => e.includes('IC Name')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Signature Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={d.ic_signature_date || ''}
+                      onChange={e => upd('ic_signature_date', e.target.value)}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-transparent outline-none ${
+                        stepErrors[10]?.some(e => e.includes('Signature Date')) ? 'border-red-400' : 'border-gray-200'
+                      }`}
+                    />
+                    {stepErrors[10]?.some(e => e.includes('Signature Date')) && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                </SectionBox>
+              )}
+
+              {/* Save validation summary */}
+              {showSaveSummary && missingFields.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                  <p className="text-sm font-bold text-red-700 mb-2">Please complete the following before saving:</p>
+                  <ul className="space-y-1">
+                    {missingFields.map((f, i) => (
+                      <li key={i}>
+                        <button
+                          onClick={() => setCurrentStep(f.stepIndex)}
+                          className="text-sm text-red-600 underline hover:text-red-800">
+                          Step {f.stepIndex + 1}: {f.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Status messages */}
+              {intakeFormSuccess && <p className="text-sm text-green-700 font-medium mb-3">Saved successfully.</p>}
+              {intakeFormError && <p className="text-sm text-red-600 mb-3">{intakeFormError}</p>}
+
+              {/* Navigation buttons */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <button
+                  onClick={handlePrev}
+                  disabled={currentStep === 0}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                  ← Previous
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveDraft}
+                    disabled={intakeFormSaving}
+                    className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition flex items-center gap-1.5">
+                    {intakeFormSaving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save Draft'}
+                  </button>
+                  {currentStep < WIZARD_STEPS.length - 1 ? (
+                    <button
+                      onClick={handleNext}
+                      className="px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] transition">
+                      Next →
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSaveForm}
+                      disabled={intakeFormSaving}
+                      className="px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] disabled:opacity-50 transition flex items-center gap-2">
+                      {intakeFormSaving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save Form'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

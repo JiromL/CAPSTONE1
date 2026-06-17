@@ -46,8 +46,13 @@ def get_new_intakes():
     limit = request.args.get('limit', 10, type=int)
     search = request.args.get('search', '')
     month  = request.args.get('month', '')
+    status = request.args.get('status', '')
+
+    mine = request.args.get('mine', 'false').lower() == 'true'
 
     query = {}
+    if mine and user['role'] == UserRole.IC:
+        query['counselor_id'] = user['_id']
     if search:
         query['$or'] = [
             {'responses.first_name': {'$regex': search, '$options': 'i'}},
@@ -55,6 +60,8 @@ def get_new_intakes():
             {'responses.email':      {'$regex': search, '$options': 'i'}},
             {'responses.student_id': {'$regex': search, '$options': 'i'}},
         ]
+    if status:
+        query['status'] = status
     if month:
         from datetime import datetime as dt
         start = dt.strptime(f"{month}-01", '%Y-%m-%d')
@@ -80,6 +87,15 @@ def get_new_intakes():
         for p in db.db.intake_packets.find({'appointment_id': {'$in': appt_ids}}, {'appointment_id': 1})
     )
 
+    # Look up case_id per student
+    case_map = {
+        str(c['student_id']): str(c['_id'])
+        for c in db.db.cases.find(
+            {'student_id': {'$in': student_ids}},
+            {'_id': 1, 'student_id': 1}
+        )
+    }
+
     data = []
     for r in records:
         s = students.get(r.get('student_id'))
@@ -102,6 +118,7 @@ def get_new_intakes():
             'created_date':           r.get('created_at','').isoformat() if hasattr(r.get('created_at',''), 'isoformat') else str(r.get('created_at','')),
             'intake_packet_submitted': str(r.get('appointment_id','')) in packets_submitted,
             'mhbot_username': s.get('mhbot_username') if s else None,
+            'case_id': case_map.get(str(r.get('student_id', '')), None),
         })
 
     return jsonify({

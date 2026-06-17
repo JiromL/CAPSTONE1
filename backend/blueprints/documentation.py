@@ -46,9 +46,8 @@ def list_documents():
         if user_role == 'ADMIN':
             # Admin can see all documents
             pass  # No query restriction
-        elif user_role in ['COUNSELOR', 'PSYCHOLOGIST', 'DPO', 'CSC']:
+        elif user_role in ['COUNSELOR', 'PSYCHOLOGIST', 'DPO']:
             # These roles can see documents from cases they work on
-            # For now, get documents from all cases (refined access control can be added)
             query = {'case_id': {'$exists': True}}
         else:
             # Students and others can only see documents from their own cases
@@ -227,7 +226,7 @@ def download_document(document_id):
         has_access = False
         if user_role == 'ADMIN':
             has_access = True
-        elif user_role in ['COUNSELOR', 'PSYCHOLOGIST', 'DPO', 'CSC']:
+        elif user_role in ['COUNSELOR', 'PSYCHOLOGIST', 'DPO']:
             # Check if user is assigned to this case
             has_access = True  # Can be refined based on case assignments
         else:

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Check, Loader2, Monitor, MapPin } from 'lucide-react';
-import { DashboardLayout } from '@/components/DashboardLayout';
-import { getMenuItemsByRole } from '@/utils/navigation';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
 const DAYS = [
@@ -44,7 +43,6 @@ const DEFAULT_WEEK: WeekState = Object.fromEntries(
 );
 
 export default function AvailabilityPage() {
-  const [user, setUser] = useState<any>(null);
   const [week, setWeek] = useState<WeekState>(DEFAULT_WEEK);
   const [sessionMethod, setSessionMethod] = useState<'in-person' | 'online'>('in-person');
   const [loading, setLoading] = useState(true);
@@ -52,10 +50,8 @@ export default function AvailabilityPage() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    if (!userData || !token) { window.location.href = '/login'; return; }
-    setUser(JSON.parse(userData));
+    if (!token) { window.location.href = '/login'; return; }
     fetch(api('/api/availability/weekly'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
@@ -110,23 +106,10 @@ export default function AvailabilityPage() {
     }
   };
 
-  if (!user) return <div className="flex items-center justify-center h-screen text-sm text-gray-400">Loading…</div>;
-
-  const menuItems = getMenuItemsByRole(user.role);
   const activeDays = DAYS.filter(({ dow }) => week[dow].enabled).length;
 
   return (
-    <DashboardLayout
-      user={user}
-      onLogout={() => {
-        ['token', 'user'].forEach(k => localStorage.removeItem(k));
-        window.location.href = '/login';
-      }}
-      menuItems={menuItems}
-      title="My Availability"
-      subtitle="Set the days and hours you're available for appointments"
-      activeSection="availability"
-    >
+    <DashboardPageWrapper title="My Availability" subtitle="Set the days and hours you're available for appointments">
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium
           ${toast.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
@@ -222,6 +205,6 @@ export default function AvailabilityPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardPageWrapper>
   );
 }

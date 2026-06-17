@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { Save } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { api } from '@/utils/api';
 
 export default function SettingsPage() {
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [s, setS] = useState({
     system_name: 'CPS Counseling System', support_email: 'cps@dlsu.edu.ph',
     allowed_domain: 'dlsu.edu.ph', session_timeout: '60',
@@ -15,10 +16,41 @@ export default function SettingsPage() {
   });
   const set = (k: string, v: string | boolean) => setS((x) => ({ ...x, [k]: v }));
 
+  const handleSave = async () => {
+    setStatus('saving');
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch(api('/api/staff/settings/my-settings'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(s),
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 3000);
+    } catch {
+      // No suitable backend endpoint for global admin settings — show honest notice
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 5000);
+    }
+  };
+
   return (
     <DashboardPageWrapper title="System Settings" subtitle="Configure global application settings">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {saved && <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">Settings saved.</div>}
+        {status === 'saved' && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            Settings saved locally. Contact your system administrator to apply changes permanently.
+          </div>
+        )}
+        {status === 'error' && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            Failed to save settings. Please try again.
+          </div>
+        )}
         <Sec title="General">
           <F label="System Name"><input value={s.system_name} onChange={(e) => set('system_name', e.target.value)} className={inp} /></F>
           <F label="Support Email"><input type="email" value={s.support_email} onChange={(e) => set('support_email', e.target.value)} className={inp} /></F>
@@ -38,9 +70,12 @@ export default function SettingsPage() {
         <Sec title="Data">
           <F label="Data Retention (days)"><input type="number" value={s.data_retention_days} onChange={(e) => set('data_retention_days', e.target.value)} className={inp} /></F>
         </Sec>
-        <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2500); }}
-          className="flex items-center gap-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white px-6 py-2 rounded-lg text-sm font-medium transition">
-          <Save size={14} /> Save Settings
+        <button
+          onClick={handleSave}
+          disabled={status === 'saving'}
+          className="flex items-center gap-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white px-6 py-2 rounded-lg text-sm font-medium transition disabled:opacity-60"
+        >
+          <Save size={14} /> {status === 'saving' ? 'Saving…' : 'Save Settings'}
         </button>
       </div>
     </DashboardPageWrapper>

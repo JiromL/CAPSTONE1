@@ -165,11 +165,12 @@ export default function CasesPage() {
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
             <option value="all">All Status</option>
-            <option value="open">Open</option>
             <option value="ACTIVE">Active</option>
             <option value="NEW">New</option>
-            <option value="intake_scheduled">Intake Scheduled</option>
-            <option value="closed">Closed</option>
+            <option value="INTAKE_SCHEDULED">Intake Scheduled</option>
+            <option value="PENDING_TERMINATION">Pending Termination</option>
+            <option value="CLOSED">Closed</option>
+            <option value="CANCELLED">Cancelled</option>
           </select>
           <select value={filterClientStatus} onChange={e => setFilterClientStatus(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">

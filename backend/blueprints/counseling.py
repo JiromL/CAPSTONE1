@@ -198,9 +198,9 @@ def approve_session_note(note_id):
     user = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    allowed_roles = {'PSYCHOLOGIST', 'CSP', 'ADMIN'}
+    allowed_roles = {'PSYCHOLOGIST', 'ADMIN'}
     if user.get('role') not in allowed_roles:
-        return jsonify({'error': 'Only supervisors (PSYCHOLOGIST/CSP/ADMIN) can approve notes'}), 403
+        return jsonify({'error': 'Only supervisors (PSYCHOLOGIST/ADMIN) can approve notes'}), 403
 
     try:
         nid = ObjectId(note_id)

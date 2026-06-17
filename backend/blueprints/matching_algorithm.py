@@ -55,7 +55,7 @@ def get_algorithm_info():
                 'description': 'Bonus for matching role specialization to appointment type'
             }
         ],
-        'roles': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP'],
+        'roles': ['COUNSELOR', 'PSYCHOLOGIST'],
         'appointment_types': ['intake', 'follow-up', 'crisis', 'group', 'assessment'],
         'business_hours': {
             'start': '09:00',
@@ -114,7 +114,7 @@ def get_matching_candidates(case_id):
         
         # Get all available counselors
         counselors = list(db.db.users.find({
-            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP']},
+            'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']},
             'is_active': True
         }))
         
@@ -187,7 +187,7 @@ def get_matching_candidates(case_id):
             if appointment_type == 'crisis' and counselor.get('role') == 'PSYCHOLOGIST':
                 score += 5
                 score_breakdown['specialization'] = 5
-            elif appointment_type == 'intake' and counselor.get('role') in ['COUNSELOR', 'CSC']:
+            elif appointment_type == 'intake' and counselor.get('role') == 'COUNSELOR':
                 score += 3
                 score_breakdown['specialization'] = 3
             else:

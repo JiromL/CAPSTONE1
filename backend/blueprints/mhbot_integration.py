@@ -24,8 +24,11 @@ MHBOT_BASE_URL = os.getenv('MHBOT_BASE_URL', 'https://pchrd-ema.dlsu.edu.ph/back
 # ── Per-user token helpers ────────────────────────────────────────────────────
 
 def _resolve_user_id(user_id):
-    """Return user_id in the form stored in the DB (_id is a plain string here)."""
-    return user_id
+    """Convert JWT identity string to ObjectId for MongoDB lookups."""
+    try:
+        return ObjectId(user_id)
+    except Exception:
+        return user_id
 
 
 def _get_user_token(user_id) -> str:
@@ -135,11 +138,6 @@ def set_ema_identifier():
     identifier = data.get('identifier', '').strip()
     if not identifier:
         return jsonify({'error': 'identifier is required'}), 400
-
-    # Make sure the user has a valid MHBot token first (i.e. they completed step 1)
-    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'mhbot_token': 1, 'mhbot_token_expires_at': 1})
-    if not user or not user.get('mhbot_token'):
-        return jsonify({'error': 'Complete EMA login first'}), 401
 
     db.db.users.update_one(
         {'_id': _resolve_user_id(user_id)},

@@ -34,6 +34,9 @@ export default function ProfilePage() {
   const [mhbotShowPw, setMhbotShowPw]     = useState(false);
   const [mhbotLogging, setMhbotLogging]   = useState(false);
   const [mhbotError, setMhbotError]       = useState('');
+  const [mhbotStep, setMhbotStep]         = useState<1 | 2>(1);
+  const [emaIdentifier, setEmaIdentifier] = useState('');
+  const [savingId, setSavingId]           = useState(false);
   const [emaConsentGiven, setEmaConsentGiven] = useState(false);
   const [showEmaConsent, setShowEmaConsent]   = useState(false);
   const [emaConsentChecked, setEmaConsentChecked] = useState(false);
@@ -66,15 +69,37 @@ export default function ProfilePage() {
       });
       const d = await r.json();
       if (r.ok) {
-        setShowMhbotForm(false);
-        setMhbotUser(''); setMhbotPass('');
-        setPermaData({ connected: true, mhbot_username: d.mhbot_username });
-        fetchMyPerma();
+        setMhbotStep(2);
+        setMhbotError('');
       } else {
         setMhbotError(d.error || 'Login failed');
       }
     } catch { setMhbotError('Network error'); }
     finally { setMhbotLogging(false); }
+  }
+
+  async function handleSetIdentifier(e: React.FormEvent) {
+    e.preventDefault();
+    if (!emaIdentifier.trim()) return;
+    setSavingId(true); setMhbotError('');
+    try {
+      const r = await fetch(api('/api/mhbot/auth/set-identifier'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: emaIdentifier.trim() }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setShowMhbotForm(false);
+        setMhbotStep(1);
+        setMhbotUser(''); setMhbotPass(''); setEmaIdentifier('');
+        setPermaData({ connected: true, mhbot_username: d.mhbot_username });
+        fetchMyPerma();
+      } else {
+        setMhbotError(d.error || 'Failed to save identifier');
+      }
+    } catch { setMhbotError('Network error'); }
+    finally { setSavingId(false); }
   }
 
   async function handleEmaConsent() {
@@ -544,8 +569,9 @@ export default function ProfilePage() {
                     <LogIn size={13} /> Connect EMA
                   </button>
                 </div>
-              ) : (
+              ) : mhbotStep === 1 ? (
                 <form onSubmit={handleMhbotLogin} className="space-y-3 max-w-sm">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Step 1 of 2 — verify your EMA account</p>
                   <div>
                     <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">EMA Username</label>
                     <input type="text" value={mhbotUser} onChange={e => setMhbotUser(e.target.value)} required
@@ -566,14 +592,39 @@ export default function ProfilePage() {
                   </div>
                   {mhbotError && <p className="text-xs text-red-500">{mhbotError}</p>}
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => setShowMhbotForm(false)}
+                    <button type="button" onClick={() => { setShowMhbotForm(false); setMhbotStep(1); }}
                       className="px-4 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                       Cancel
                     </button>
                     <button type="submit" disabled={mhbotLogging}
                       className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition">
                       {mhbotLogging ? <Loader2 size={12} className="animate-spin" /> : <LogIn size={12} />}
-                      {mhbotLogging ? 'Connecting…' : 'Connect'}
+                      {mhbotLogging ? 'Verifying…' : 'Verify Account'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleSetIdentifier} className="space-y-3 max-w-sm">
+                  <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                    <CheckCircle size={13} /> EMA account verified
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Step 2 of 2 — enter your EMA identifier. This is the internal ID (e.g. <span className="font-mono">ema_vHS</span>) shown in EMA, not your login username.</p>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">EMA Identifier</label>
+                    <input type="text" value={emaIdentifier} onChange={e => setEmaIdentifier(e.target.value)} required
+                      placeholder="e.g. ema_vHS"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none font-mono" />
+                  </div>
+                  {mhbotError && <p className="text-xs text-red-500">{mhbotError}</p>}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setMhbotStep(1)}
+                      className="px-4 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                      Back
+                    </button>
+                    <button type="submit" disabled={savingId || !emaIdentifier.trim()}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition">
+                      {savingId ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                      {savingId ? 'Saving…' : 'Save & Connect'}
                     </button>
                   </div>
                 </form>

@@ -126,6 +126,28 @@ def mhbot_login():
     return jsonify({'success': True, 'mhbot_username': username}), 200
 
 
+@mhbot_bp.route('/auth/set-identifier', methods=['POST'])
+@jwt_required()
+def set_ema_identifier():
+    """Store the user's EMA internal identifier (ema_XXX) after login is verified."""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    identifier = data.get('identifier', '').strip()
+    if not identifier:
+        return jsonify({'error': 'identifier is required'}), 400
+
+    # Make sure the user has a valid MHBot token first (i.e. they completed step 1)
+    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'mhbot_token': 1, 'mhbot_token_expires_at': 1})
+    if not user or not user.get('mhbot_token'):
+        return jsonify({'error': 'Complete EMA login first'}), 401
+
+    db.db.users.update_one(
+        {'_id': _resolve_user_id(user_id)},
+        {'$set': {'mhbot_username': identifier}}
+    )
+    return jsonify({'success': True, 'mhbot_username': identifier}), 200
+
+
 @mhbot_bp.route('/auth/logout', methods=['POST'])
 @jwt_required()
 def mhbot_logout():

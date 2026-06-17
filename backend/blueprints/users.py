@@ -127,6 +127,8 @@ def get_profile():
             'emergency_contact': user.get('emergency_contact'),
             'emergency_phone': user.get('emergency_phone'),
             'created_at': user.get('created_at').isoformat() if user.get('created_at') else None,
+            'ema_consent_given': user.get('ema_consent_given', False),
+            'mhbot_username': user.get('mhbot_username'),
         }), 200
     
     except Exception as e:
@@ -195,12 +197,30 @@ def list_users_by_role():
         current = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
     except Exception:
         current = None
-    if not current or current.get('role') not in ('STAFF', 'ADMIN', 'CSP', 'CSC', 'PSYCHOLOGIST', 'COUNSELOR', 'IC'):
+    if not current or current.get('role') not in ('STAFF', 'ADMIN', 'PSYCHOLOGIST', 'COUNSELOR', 'IC'):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    role = request.args.get('role')
+    role  = request.args.get('role')
+    roles = request.args.get('roles')  # comma-separated, e.g. roles=COUNSELOR,CSC
     q = request.args.get('q', '').strip()
-    query = {'role': role} if role else {}
+    # 'COUNSELOR' is treated as a group: all counseling-type roles
+    COUNSELOR_ROLES = ['COUNSELOR', 'PSYCHOLOGIST', 'IC']
+    if roles:
+        role_list = [r.strip().upper() for r in roles.split(',') if r.strip()]
+        # Expand 'COUNSELOR' group if present
+        expanded = []
+        for r in role_list:
+            if r == 'COUNSELOR':
+                expanded.extend(COUNSELOR_ROLES)
+            else:
+                expanded.append(r)
+        query = {'role': {'$in': list(set(expanded))}}
+    elif role == 'COUNSELOR':
+        query = {'role': {'$in': COUNSELOR_ROLES}}
+    elif role:
+        query = {'role': role}
+    else:
+        query = {}
     if q:
         import re
         pattern = re.compile(re.escape(q), re.IGNORECASE)
@@ -230,7 +250,7 @@ def update_user_role(user_id):
     data = request.get_json()
     
     # Valid roles
-    VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'CSC', 'CSP', 'IC', 'STAFF', 'STUDENT']
+    VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'STAFF', 'STUDENT']
     
     try:
         # Check if current user is admin

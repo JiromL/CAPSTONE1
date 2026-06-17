@@ -37,54 +37,78 @@ def get_user_from_token():
 @client_tracking_bp.route('/new-intakes', methods=['GET'])
 @jwt_required()
 def get_new_intakes():
-    """Get new client intakes with filters and pagination"""
+    """Get new client intakes — pulls from actual intakes collection"""
     user = get_user_from_token()
-    
-    # Only staff can access (not STUDENT)
     if user['role'] == UserRole.STUDENT:
         return jsonify({"error": "Access denied"}), 403
-    
-    # Parse filters
-    page = request.args.get('page', 1, type=int)
+
+    page  = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
     search = request.args.get('search', '')
-    month = request.args.get('month', '')  # Format: YYYY-MM
-    
-    # Build query
+    month  = request.args.get('month', '')
+
     query = {}
-    
     if search:
         query['$or'] = [
-            {'client_name': {'$regex': search, '$options': 'i'}},
-            {'client_id_number': {'$regex': search, '$options': 'i'}},
-            {'email': {'$regex': search, '$options': 'i'}},
+            {'responses.first_name': {'$regex': search, '$options': 'i'}},
+            {'responses.last_name':  {'$regex': search, '$options': 'i'}},
+            {'responses.email':      {'$regex': search, '$options': 'i'}},
+            {'responses.student_id': {'$regex': search, '$options': 'i'}},
         ]
-    
     if month:
-        # Filter by month
         from datetime import datetime as dt
         start = dt.strptime(f"{month}-01", '%Y-%m-%d')
-        end = dt(start.year, start.month + 1 if start.month < 12 else 1, 1)
-        query['created_date'] = {'$gte': start, '$lt': end}
-    
-    # Get total count
-    total = db.db.new_client_intakes.count_documents(query)
-    
-    # Get paginated results
-    intakes = list(db.db.new_client_intakes.find(query)
-        .sort('created_date', -1)
+        end   = dt(start.year, start.month + 1 if start.month < 12 else 1, 1)
+        query['created_at'] = {'$gte': start, '$lt': end}
+
+    total   = db.db.intakes.count_documents(query)
+    records = list(db.db.intakes.find(query)
+        .sort('created_at', -1)
         .skip((page - 1) * limit)
         .limit(limit))
-    
-    # Convert ObjectId to string
-    for intake in intakes:
-        intake['_id'] = str(intake['_id'])
-    
+
+    # Enrich with student + counselor names
+    student_ids   = [r['student_id']  for r in records if r.get('student_id')]
+    counselor_ids = [r['counselor_id'] for r in records if r.get('counselor_id')]
+    students   = {u['_id']: u for u in db.db.users.find({'_id': {'$in': student_ids}},  {'first_name':1,'last_name':1,'id_number':1,'course':1,'mhbot_username':1})}
+    counselors = {u['_id']: u for u in db.db.users.find({'_id': {'$in': counselor_ids}}, {'first_name':1,'last_name':1,'role':1})}
+
+    # Check which have submitted packets
+    appt_ids = [r['appointment_id'] for r in records if r.get('appointment_id')]
+    packets_submitted = set(
+        str(p['appointment_id'])
+        for p in db.db.intake_packets.find({'appointment_id': {'$in': appt_ids}}, {'appointment_id': 1})
+    )
+
+    data = []
+    for r in records:
+        s = students.get(r.get('student_id'))
+        c = counselors.get(r.get('counselor_id'))
+        s_first = s.get('first_name','') if s else r.get('responses',{}).get('first_name','')
+        s_last  = s.get('last_name', '') if s else r.get('responses',{}).get('last_name', '')
+        c_first = c.get('first_name','') if c else ''
+        c_last  = c.get('last_name', '') if c else ''
+        data.append({
+            '_id':                    str(r['_id']),
+            'client_name':            f"{s_last.upper()}, {s_first}" if s_last else (s_first or '—'),
+            'client_id_number':       s.get('id_number','') if s else r.get('responses',{}).get('student_id',''),
+            'college_unit':           s.get('course','')    if s else r.get('responses',{}).get('college',''),
+            'program':                r.get('responses',{}).get('program',''),
+            'service_requested':      r.get('responses',{}).get('service_requested','personal_counseling'),
+            'source':                 r.get('source','online'),
+            'intake_counselor_name':  f"{c_last.upper()}, {c_first}" if c_last else '—',
+            'action_taken':           r.get('triage_decision',''),
+            'status':                 r.get('status','PENDING'),
+            'created_date':           r.get('created_at','').isoformat() if hasattr(r.get('created_at',''), 'isoformat') else str(r.get('created_at','')),
+            'intake_packet_submitted': str(r.get('appointment_id','')) in packets_submitted,
+            'mhbot_username': s.get('mhbot_username') if s else None,
+        })
+
     return jsonify({
-        'data': intakes,
+        'data':  data,
         'total': total,
-        'page': page,
-        'pages': (total + limit - 1) // limit
+        'page':  page,
+        'pages': (total + limit - 1) // limit,
     }), 200
 
 

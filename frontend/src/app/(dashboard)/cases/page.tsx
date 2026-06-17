@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import { Search, Loader2, AlertCircle, ChevronRight, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
 
 const RISK_BADGE: Record<string, string> = {
@@ -51,11 +52,26 @@ export default function CasesPage() {
   const [search, setSearch]     = useState('');
   const [filterStatus, setFilterStatus]       = useState('all');
   const [filterClientStatus, setFilterClientStatus] = useState('all');
+  const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     const u = localStorage.getItem('user');
     if (u) setUser(JSON.parse(u));
   }, []);
+
+  async function fetchPermaLabels(items: any[]) {
+    const usernames = items.map((c: any) => c.mhbot_username).filter(Boolean) as string[];
+    if (!usernames.length) return;
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api('/api/mhbot/batch-labels'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernames }),
+      });
+      if (r.ok) setPermaLabels((await r.json()).labels || {});
+    } catch {}
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -67,9 +83,11 @@ export default function CasesPage() {
         const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         if (!r.ok) throw new Error(`${r.status}`);
         const d = await r.json();
-        setCases(d.cases || []);
-        localStorage.setItem('cases_cache', JSON.stringify(d.cases || []));
+        const items = d.cases || [];
+        setCases(items);
+        localStorage.setItem('cases_cache', JSON.stringify(items));
         setError(null);
+        fetchPermaLabels(items);
       } catch (e) {
         setError('Failed to load cases.');
         const cached = localStorage.getItem('cases_cache');
@@ -189,6 +207,9 @@ export default function CasesPage() {
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Chief Complaint</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Risk</th>
+                    {!['STAFF'].includes(user?.role?.toUpperCase()) && (
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Wellbeing</th>
+                    )}
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Created</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-10"></th>
                   </tr>
@@ -224,6 +245,11 @@ export default function CasesPage() {
                             {risk}
                           </span>
                         </td>
+                        {!['STAFF'].includes(user?.role?.toUpperCase()) && (
+                          <td className="px-5 py-4">
+                            <PermaBadge label={c.mhbot_username ? (permaLabels[c.mhbot_username] ?? null) : null} />
+                          </td>
+                        )}
                         <td className="px-5 py-4 text-sm text-gray-400 whitespace-nowrap">{fmt(c.created_at)}</td>
                         <td className="px-5 py-4">
                           <Link href={`/cases/${c._id}`}>

@@ -215,6 +215,34 @@ def lookup_perma_by_username():
     return jsonify({'username': username, 'success': False, 'error': result['error']}), 400
 
 
+@mhbot_bp.route('/batch-labels', methods=['POST'])
+@jwt_required()
+def batch_perma_labels():
+    """Return latest PERMA label for a list of mhbot usernames.
+    Used by staff views to enrich lists without N individual requests."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    token = _get_user_token(user_id)
+    if not token:
+        return jsonify({'error': 'Not connected to MHBot'}), 401
+
+    data = request.get_json() or {}
+    usernames = data.get('usernames', [])
+    if not usernames:
+        return jsonify({'labels': {}}), 200
+
+    labels = {}
+    for username in usernames[:50]:  # cap at 50 to avoid abuse
+        if not username:
+            continue
+        r = get_perma_history(username, token, limit=1)
+        labels[username] = r['latest_label'] if r['success'] else None
+
+    return jsonify({'labels': labels}), 200
+
+
 @mhbot_bp.route('/students/pending', methods=['GET'])
 @jwt_required()
 def get_pending_students_with_perma():

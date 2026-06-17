@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { exportToExcel } from '@/utils/export';
 import { api } from '@/utils/api';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { Search, Loader2, Download, RefreshCw, AlertCircle, Users, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PermaBadge } from '@/components/PendingStudentsWithPerma';
+import { Search, Loader2, Download, RefreshCw, AlertCircle, Users, ClipboardList, ChevronLeft, ChevronRight, FileCheck, FileX } from 'lucide-react';
 
 interface NewClientIntake {
   _id: string;
@@ -18,7 +19,11 @@ interface NewClientIntake {
   action_taken: string;
   status: string;
   created_date: string;
+  intake_packet_submitted?: boolean;
+  mhbot_username?: string;
 }
+
+const CPS_ROLES = ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'];
 
 const STATUS_BADGE: Record<string, string> = {
   NEW:        'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
@@ -45,8 +50,29 @@ export default function NewIntakesPage() {
   const [page, setPage]         = useState(1);
   const [total, setTotal]       = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
+  const [userRole, setUserRole] = useState('');
+
+  useEffect(() => {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(u.role || '');
+  }, []);
 
   useEffect(() => { fetchIntakes(); }, [search, month, page]);
+
+  async function fetchPermaLabels(items: NewClientIntake[]) {
+    const usernames = items.map(i => i.mhbot_username).filter(Boolean) as string[];
+    if (!usernames.length) return;
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api('/api/mhbot/batch-labels'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernames }),
+      });
+      if (r.ok) setPermaLabels((await r.json()).labels || {});
+    } catch {}
+  }
 
   const fetchIntakes = async () => {
     setLoading(true);
@@ -61,8 +87,10 @@ export default function NewIntakesPage() {
       });
       if (!r.ok) throw new Error(`${r.status}`);
       const d = await r.json();
-      setIntakes(d.data || []);
+      const items = d.data || [];
+      setIntakes(items);
       setTotal(d.total || 0);
+      fetchPermaLabels(items);
     } catch (e) {
       setError('Failed to load intakes.');
     } finally { setLoading(false); }
@@ -197,6 +225,10 @@ export default function NewIntakesPage() {
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Service</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Source</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Counselor</th>
+                    {CPS_ROLES.includes(userRole) && (
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Wellbeing</th>
+                    )}
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Forms</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
@@ -222,6 +254,16 @@ export default function NewIntakesPage() {
                         </td>
                         <td className="px-5 py-4 text-sm text-gray-500">{intake.source || '—'}</td>
                         <td className="px-5 py-4 text-sm text-gray-700">{intake.intake_counselor_name || '—'}</td>
+                        {CPS_ROLES.includes(userRole) && (
+                          <td className="px-5 py-4">
+                            <PermaBadge label={intake.mhbot_username ? (permaLabels[intake.mhbot_username] ?? null) : null} />
+                          </td>
+                        )}
+                        <td className="px-5 py-4">
+                          {intake.intake_packet_submitted
+                            ? <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700 ring-1 ring-green-200"><FileCheck size={11} /> Ready</span>
+                            : <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-orange-50 text-orange-600 ring-1 ring-orange-200"><FileX size={11} /> Pending</span>}
+                        </td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${badgeCls}`}>
                             {intake.status?.replace(/_/g, ' ') || '—'}

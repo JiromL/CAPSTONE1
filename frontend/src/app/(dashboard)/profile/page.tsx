@@ -34,6 +34,11 @@ export default function ProfilePage() {
   const [mhbotShowPw, setMhbotShowPw]     = useState(false);
   const [mhbotLogging, setMhbotLogging]   = useState(false);
   const [mhbotError, setMhbotError]       = useState('');
+  const [emaConsentGiven, setEmaConsentGiven] = useState(false);
+  const [showEmaConsent, setShowEmaConsent]   = useState(false);
+  const [emaConsentChecked, setEmaConsentChecked] = useState(false);
+  const [emaConsentSaving, setEmaConsentSaving]   = useState(false);
+  const [emaConsentError, setEmaConsentError]     = useState('');
 
   const cpsToken = () => localStorage.getItem('token') || '';
 
@@ -70,6 +75,25 @@ export default function ProfilePage() {
       }
     } catch { setMhbotError('Network error'); }
     finally { setMhbotLogging(false); }
+  }
+
+  async function handleEmaConsent() {
+    setEmaConsentSaving(true); setEmaConsentError('');
+    try {
+      const r = await fetch(api('/api/consent/submit'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent_types: ['ema_data_linking'] }),
+      });
+      if (r.ok) {
+        setEmaConsentGiven(true);
+        setShowEmaConsent(false);
+        setShowMhbotForm(true);
+      } else {
+        setEmaConsentError('Failed to record consent. Please try again.');
+      }
+    } catch { setEmaConsentError('Network error.'); }
+    finally { setEmaConsentSaving(false); }
   }
 
   async function handleMhbotLogout() {
@@ -185,6 +209,7 @@ export default function ProfilePage() {
         setProfile(fresh);
         setFormData(fresh);
         setUserRole(user.role || null);
+        setEmaConsentGiven(user.ema_consent_given || false);
         localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...user }));
         if (user.role === 'STUDENT') fetchMyPerma();
       })
@@ -511,17 +536,20 @@ export default function ProfilePage() {
                     Connect your MHBot account to see your PERMA wellbeing history here.
                     {permaData?.expired && <span className="text-orange-500 ml-1">Your previous session expired.</span>}
                   </p>
-                  <button onClick={() => { setShowMhbotForm(true); setMhbotError(''); }}
+                  <button onClick={() => {
+                    if (emaConsentGiven) { setShowMhbotForm(true); setMhbotError(''); }
+                    else { setShowEmaConsent(true); setEmaConsentChecked(false); setEmaConsentError(''); }
+                  }}
                     className="w-fit flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition">
-                    <LogIn size={13} /> Connect MHBot
+                    <LogIn size={13} /> Connect EMA
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleMhbotLogin} className="space-y-3 max-w-sm">
                   <div>
-                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">MHBot Username</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">EMA Username</label>
                     <input type="text" value={mhbotUser} onChange={e => setMhbotUser(e.target.value)} required
-                      placeholder="e.g. ema_lVk"
+                      placeholder="Your EMA login username"
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none" />
                   </div>
                   <div>
@@ -607,7 +635,7 @@ export default function ProfilePage() {
             <AccountOption label="Notification Preferences" description="Manage notifications" />
             <AccountOption label="Privacy Settings" description="Control information visibility" />
             <AccountOption label="Two-Factor Authentication" description="Secure with 2FA" isEnabled={true} />
-            {userRole && ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CSC', 'CSP'].includes(userRole) && (
+            {userRole && ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(userRole) && (
               <Link href="/staff-settings">
                 <AccountOption label="Work Preferences & Availability" description="Configure availability without pricing" />
               </Link>
@@ -615,6 +643,55 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* ── EMA Data Linking Consent Modal ── */}
+      {showEmaConsent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                <Activity size={16} className="text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Link EMA Account</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">One-time consent required before connecting</p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-4 text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+              <p className="font-semibold mb-1">What this consent allows:</p>
+              <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
+                <li>CPS will access your EMA wellbeing labels (e.g. Thriving, Surviving)</li>
+                <li>Your counselor may use this to suggest relevant pre-session assessments</li>
+                <li>Only your assigned counselor or psychologist can view this data</li>
+                <li>You can disconnect EMA at any time from this page</li>
+              </ul>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition mb-4">
+              <input type="checkbox" checked={emaConsentChecked} onChange={e => setEmaConsentChecked(e.target.checked)}
+                className="w-4 h-4 mt-0.5 accent-[#1a5228] flex-shrink-0" />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                I consent to CPS accessing my EMA wellness data to support my counseling sessions, in accordance with the Data Privacy Act of 2012 (RA 10173).
+              </span>
+            </label>
+
+            {emaConsentError && <p className="text-xs text-red-500 mb-3">{emaConsentError}</p>}
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowEmaConsent(false)}
+                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                Cancel
+              </button>
+              <button onClick={handleEmaConsent} disabled={!emaConsentChecked || emaConsentSaving}
+                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                {emaConsentSaving && <Loader2 size={13} className="animate-spin" />}
+                I Agree &amp; Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Change Password Modal ── */}
       {showPwModal && (

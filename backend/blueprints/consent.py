@@ -29,14 +29,19 @@ def submit_consent():
     }
     db.db.consent_records.insert_one(record)
 
-    # Also stamp the user profile so we can quickly check consent status
+    now = datetime.utcnow()
+    stamp = {
+        'consent_given': True,
+        'consent_given_at': now,
+        'consent_version': data.get('version', '1.0'),
+    }
+    if 'ema_data_linking' in consent_types:
+        stamp['ema_consent_given'] = True
+        stamp['ema_consent_given_at'] = now
+
     db.db.users.update_one(
         {'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id},
-        {'$set': {
-            'consent_given': True,
-            'consent_given_at': datetime.utcnow(),
-            'consent_version': data.get('version', '1.0'),
-        }}
+        {'$set': stamp}
     )
 
     return jsonify({'success': True, 'consented_at': record['consented_at'].isoformat()}), 201

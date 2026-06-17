@@ -7,6 +7,69 @@ import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 
+const PERMA_BARS: { label: string; color: string }[] = [
+  { label: 'Excelling',  color: 'bg-green-500'  },
+  { label: 'Thriving',   color: 'bg-teal-500'   },
+  { label: 'Surviving',  color: 'bg-yellow-500' },
+  { label: 'Struggling', color: 'bg-orange-500' },
+  { label: 'In Crisis',  color: 'bg-red-500'    },
+];
+
+function PermaDistributionWidget() {
+  const [data, setData] = useState<{ total_students_tracked: number; distribution: Record<string, number> } | null>(null);
+  const [notConnected, setNotConnected] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch(api('/api/mhbot/stats/perma-distribution'), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => {
+        if (r.status === 401) { setNotConnected(true); return null; }
+        return r.ok ? r.json() : null;
+      })
+      .then(d => { if (d) setData(d); })
+      .catch(() => setNotConnected(true));
+  }, []);
+
+  const dist = data?.distribution ?? {};
+  const total = data?.total_students_tracked ?? 0;
+  const maxCount = Math.max(1, ...Object.values(dist));
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student Wellbeing Overview</p>
+        {total > 0 && <span className="text-xs text-gray-400">{total} tracked</span>}
+      </div>
+      {notConnected || (!data && !notConnected) ? (
+        <p className="text-xs text-gray-400 text-center py-8">
+          {notConnected ? 'Connect MHBot to see wellbeing data.' : 'Loading…'}
+        </p>
+      ) : (
+        <div className="space-y-2.5">
+          {PERMA_BARS.map(({ label, color }) => {
+            const count = dist[label] ?? 0;
+            if (count === 0 && dist['No Data'] === total) return null;
+            return (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-20 flex-shrink-0">{label}</span>
+                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-2 rounded-full ${color} transition-all`}
+                    style={{ width: `${(count / maxCount) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-gray-600 w-4 text-right">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface DashboardProps { user: any; onLogout: () => void; }
 
 export function AdminDashboard({ user, onLogout }: DashboardProps) {
@@ -81,6 +144,9 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
               <Link href="/high-risk" className="ml-auto text-xs font-semibold text-red-700 underline underline-offset-2">Review</Link>
             </div>
           )}
+
+          {/* PERMA wellbeing overview */}
+          <PermaDistributionWidget />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 

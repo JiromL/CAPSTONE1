@@ -423,6 +423,54 @@ def get_my_appointments():
         return jsonify({'error': f'Failed to fetch appointments: {str(e)}'}), 500
 
 
+@appointments_bp.route('/available-counselors', methods=['GET'])
+@jwt_required()
+def get_available_counselors():
+    """Return name + id + role for all active counselors and psychologists.
+    Used by students to pick a counselor when none is pre-assigned."""
+    counselors = list(db.db.users.find(
+        {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}, 'is_active': True},
+        {'_id': 1, 'first_name': 1, 'last_name': 1, 'role': 1},
+    ))
+    return jsonify({'users': [
+        {'_id': str(c['_id']),
+         'first_name': c.get('first_name', ''),
+         'last_name': c.get('last_name', ''),
+         'role': c.get('role', '')}
+        for c in counselors
+    ]}), 200
+
+
+@appointments_bp.route('/my-counselor', methods=['GET'])
+@jwt_required()
+def get_my_counselor():
+    """Return the assigned counselor for the current student's active case."""
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+    except Exception:
+        return jsonify({'counselor_id': None}), 200
+
+    # Find the most recent case with an assigned counselor
+    case = db.db.cases.find_one(
+        {'student_id': uid, 'assigned_counselor_id': {'$exists': True, '$ne': None}},
+        sort=[('created_at', -1)],
+    )
+
+    if not case or not case.get('assigned_counselor_id'):
+        return jsonify({'counselor_id': None}), 200
+
+    counselor = db.db.users.find_one({'_id': case['assigned_counselor_id']})
+    if not counselor:
+        return jsonify({'counselor_id': None}), 200
+
+    return jsonify({
+        'counselor_id': str(case['assigned_counselor_id']),
+        'counselor_name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}".strip(),
+        'role': counselor.get('role', ''),
+    }), 200
+
+
 @appointments_bp.route('/active', methods=['GET'])
 @jwt_required()
 def check_active_appointment():

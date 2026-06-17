@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 import {
   AlertCircle, CheckCircle, Loader2, Save, Send, Check,
   ChevronRight, ChevronLeft, User, FileText, Brain, ClipboardCheck,
-  BookOpen, Heart, Phone, GraduationCap, Clock, CalendarX, CalendarCheck,
+  BookOpen, Heart, Phone, GraduationCap, Clock, CalendarX, CalendarCheck, UserCheck,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -147,6 +147,11 @@ export default function BookAppointmentPage() {
   const [requestAnyway, setRequestAnyway] = useState(false);
   const [methodFilter, setMethodFilter]   = useState<'all' | 'in-person' | 'online'>('all');
 
+  // Assigned counselor (for counseling / follow-up)
+  const [assignedCounselor, setAssignedCounselor] = useState<{ id: string; name: string; role: string } | null | undefined>(undefined);
+  const [counselorList, setCounselorList]   = useState<any[] | null>(null); // null = loading, [] = none found
+  const [selectedCounselorId, setSelectedCounselorId] = useState('');
+
   // Intake packet
   const [showIntake, setShowIntake]       = useState(false);
   const [intakeStep, setIntakeStep]       = useState(0);
@@ -217,23 +222,65 @@ export default function BookAppointmentPage() {
     init();
   }, [router, resumeId]);
 
-  // Fetch available slots whenever the date changes
+  // When purpose changes: resolve assigned counselor (or open request for 'others')
   useEffect(() => {
-    if (!prefDate) { setSlots([]); setNoSlotsNextDate(null); setRequestAnyway(false); return; }
-    const token = localStorage.getItem('token');
-    setSlotsLoading(true);
-    setPrefTime('');
-    setSlotCounselorId('');
+    setPrefTime(''); setSlotCounselorId(''); setSlotMethod('in-person');
+    setSlots([]); setNoSlotsNextDate(null);
+    setAssignedCounselor(undefined); setCounselorList(null); setSelectedCounselorId('');
+
+    if (purpose === 'others') { setRequestAnyway(true); return; }
     setRequestAnyway(false);
-    fetch(api(`/api/availability/open-slots?date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
+
+    if (purpose === 'intake_interview') return; // slots handled by date effect
+
+    // counseling / follow_up — look up assigned counselor
+    const token = localStorage.getItem('token');
+    fetch(api('/api/appointments/my-counselor'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
-        setSlots(d.slots || []);
-        setNoSlotsNextDate(d.next_available_date || null);
+        if (d.counselor_id) {
+          setAssignedCounselor({ id: d.counselor_id, name: d.counselor_name, role: d.role });
+          setSelectedCounselorId(d.counselor_id);
+        } else {
+          setAssignedCounselor(null);
+          fetch(api('/api/appointments/available-counselors'), { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(d2 => setCounselorList(d2.users ?? []))
+            .catch(() => setCounselorList([]));
+        }
       })
-      .catch(() => setSlots([]))
-      .finally(() => setSlotsLoading(false));
-  }, [prefDate]);
+      .catch(() => setAssignedCounselor(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purpose]);
+
+  // Fetch slots whenever date, purpose, or selected counselor changes
+  useEffect(() => {
+    if (!prefDate || purpose === 'others') { setSlots([]); setNoSlotsNextDate(null); return; }
+    const token = localStorage.getItem('token');
+    setSlotsLoading(true);
+    setPrefTime(''); setSlotCounselorId(''); setSlotMethod('in-person');
+
+    if (purpose === 'intake_interview') {
+      fetch(api(`/api/availability/open-slots?date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => { setSlots(d.slots || []); setNoSlotsNextDate(d.next_available_date || null); })
+        .catch(() => setSlots([]))
+        .finally(() => setSlotsLoading(false));
+    } else if (selectedCounselorId) {
+      fetch(api(`/api/availability/free-slots?counselor_id=${selectedCounselorId}&date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => {
+          const method = d.session_method || 'in-person';
+          const name = assignedCounselor ? assignedCounselor.name : '';
+          setSlots((d.slots || []).map((t: string) => ({ time: t, method, counselor_id: selectedCounselorId, counselor_name: name })));
+          setNoSlotsNextDate(null);
+        })
+        .catch(() => setSlots([]))
+        .finally(() => setSlotsLoading(false));
+    } else {
+      setSlots([]); setSlotsLoading(false);
+    }
+  }, [prefDate, selectedCounselorId, purpose]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConsent = async () => {
     if (!consentChecks.counseling || !consentChecks.privacy) return;
@@ -258,8 +305,13 @@ export default function BookAppointmentPage() {
     const fp = purpose === 'others' ? specifyOthers.trim() : purpose;
     if (!fp)           { setError('Please select a purpose.'); return; }
     if (!concern.trim()) { setError('Please describe your concern.'); return; }
-    if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
-    if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
+    if (purpose !== 'others') {
+      if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
+      if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
+      if (['counseling', 'follow_up_counselling'].includes(purpose) && !selectedCounselorId && !requestAnyway) {
+        setError('Please select a counselor.'); return;
+      }
+    }
     if (referralType === 'referred' && !referredBy.trim()) { setError('Please specify who referred you.'); return; }
     if (prefDate && bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
     setSubmitting(true);
@@ -274,6 +326,10 @@ export default function BookAppointmentPage() {
         body.preferred_date = prefDate;
         body.preferred_time = prefTime;
         if (slotCounselorId) body.counselor_id = slotCounselorId;
+      }
+      // For counseling/follow-up open requests, still record the counselor so OA knows who to schedule with
+      if (requestAnyway && selectedCounselorId && purpose !== 'intake_interview') {
+        body.counselor_id = selectedCounselorId;
       }
       const r = await fetch(api('/api/appointments/request'), { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
       if (r.status === 401) { router.replace('/login'); return; }
@@ -705,17 +761,6 @@ export default function BookAppointmentPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            {/* Counseling ID */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-              <div className="w-8 h-8 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
-                <User size={14} className="text-[#1a5228]" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Counseling ID</p>
-                <p className="text-sm font-semibold text-gray-800">{user?.id_number || user?.counseling_id || user?.student_id || '—'}</p>
-              </div>
-            </div>
-
             {/* Purpose selection — card style */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
@@ -747,7 +792,59 @@ export default function BookAppointmentPage() {
               </div>
             )}
 
-            {/* Date & Slot Picker */}
+            {/* Assigned Counselor (counseling / follow-up only) */}
+            {['counseling', 'follow_up_counselling'].includes(purpose) && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                  Counselor <span className="text-red-400">*</span>
+                </label>
+
+                {assignedCounselor === undefined && (
+                  <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+                    <Loader2 size={13} className="animate-spin" /> Looking up your assigned counselor…
+                  </div>
+                )}
+
+                {assignedCounselor && assignedCounselor !== undefined && (
+                  <div className="flex items-center gap-3 p-3 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
+                      <UserCheck size={14} className="text-[#1a5228]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {assignedCounselor.name.split(' ').reverse().join(', ').replace(',', ', ').toUpperCase().replace(/,\s(.+)/, (_, f) => `, ${f.charAt(0).toUpperCase()}${f.slice(1).toLowerCase()}`)}
+                      </p>
+                      <p className="text-xs text-gray-400">{assignedCounselor.role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'} · Assigned to your case</p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-[#1a5228] bg-green-50 px-2 py-0.5 rounded-full border border-green-200">Assigned</span>
+                  </div>
+                )}
+
+                {assignedCounselor === null && (
+                  counselorList === null ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+                      <Loader2 size={13} className="animate-spin" /> Loading counselors…
+                    </div>
+                  ) : counselorList.length > 0 ? (
+                    <select value={selectedCounselorId} onChange={e => setSelectedCounselorId(e.target.value)} className={IC}>
+                      <option value="">Select a counselor or psychologist…</option>
+                      {counselorList.map((c: any) => (
+                        <option key={c._id} value={c._id}>
+                          {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role === 'PSYCHOLOGIST' ? ' — Psychologist' : ' — Counselor'}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                      No counselors are currently available. Please contact the CPS office directly.
+                    </p>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* Date & Slot Picker — hidden for 'others' and while counselor not yet selected */}
+            {purpose !== 'others' && (purpose === 'intake_interview' || !!selectedCounselorId) && (
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Date <span className="text-red-400">*</span></label>
@@ -768,7 +865,8 @@ export default function BookAppointmentPage() {
 
                   {!slotsLoading && slots.length > 0 && (
                     <>
-                      {/* Method filter */}
+                      {/* Method filter — only for IC pool (intake_interview) */}
+                      {purpose === 'intake_interview' && (
                       <div className="flex gap-2 mb-2">
                         {(['all', 'in-person', 'online'] as const).map(f => (
                           <button key={f} type="button" onClick={() => setMethodFilter(f)}
@@ -781,6 +879,7 @@ export default function BookAppointmentPage() {
                           </button>
                         ))}
                       </div>
+                      )}
                       <div className="grid grid-cols-3 gap-2">
                         {(() => {
                           // Deduplicate by time+method — keep first available counselor per combo
@@ -852,6 +951,18 @@ export default function BookAppointmentPage() {
                 </div>
               )}
             </div>
+            )} {/* end purpose !== 'others' */}
+
+            {/* Others open-request note */}
+            {purpose === 'others' && (
+              <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                <CalendarCheck size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-blue-800">Open request</p>
+                  <p className="text-xs text-blue-600 mt-0.5">A CPS staff member will review your concern and contact you to arrange a schedule.</p>
+                </div>
+              </div>
+            )}
 
             {/* Concern */}
             <div>

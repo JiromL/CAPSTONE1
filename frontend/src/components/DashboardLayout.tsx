@@ -219,8 +219,17 @@ export function DashboardLayout({
                 <p className="text-sm font-semibold text-gray-900">{fullName}</p>
                 {idNumber && <p className="text-xs text-gray-500">{idNumber}</p>}
                 {!idNumber && (
-                  <p className="text-xs text-gray-500 capitalize">
-                    {user?.role?.replace(/_/g, ' ').toLowerCase()}
+                  <p className="text-xs text-gray-500">
+                    {({
+                      IC: 'Intake Counselor',
+                      COUNSELOR: 'Counselor',
+                      PSYCHOLOGIST: 'Psychologist',
+                      CASE_MANAGER: 'Case Manager',
+                      STAFF: 'Office Assistant',
+                      ADMIN: 'Administrator',
+                      DPO: 'Data Privacy Officer',
+                      STUDENT: 'Student',
+                    } as Record<string,string>)[user?.role] ?? user?.role}
                   </p>
                 )}
               </div>

@@ -59,13 +59,11 @@ export default function NewIntakesPage() {
   const [totals, setTotals]       = useState({ total: 0, new: 0, inProgress: 0, completed: 0 });
   const [exporting, setExporting] = useState(false);
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
-  const [userRole, setUserRole]   = useState('');
+  const [userRole] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return JSON.parse(localStorage.getItem('user') || '{}').role || '';
+  });
   const [mineOnly, setMineOnly]   = useState(true);
-
-  useEffect(() => {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
-    setUserRole(u.role || '');
-  }, []);
 
   useEffect(() => { fetchIntakes(); }, [search, month, statusFilter, page, mineOnly]);
   useEffect(() => { fetchTotals(); }, [search, month, mineOnly]);
@@ -279,7 +277,7 @@ export default function NewIntakesPage() {
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Service</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">IC Assigned</th>
                     {CPS_ROLES.includes(userRole) && (
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Wellbeing</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">EMA</th>
                     )}
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Packet</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
@@ -360,7 +358,9 @@ export default function NewIntakesPage() {
                           {intake.case_id
                             ? <Link href={`/cases/${intake.case_id}?tab=intake-summary`}>
                                 <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#1a5228] text-white font-medium hover:bg-[#16451f] transition whitespace-nowrap">
-                                  <ClipboardEdit size={12} /> Fill IC Form
+                                  {intake.status === 'COMPLETED'
+                                    ? <><FileCheck size={12} /> View Form</>
+                                    : <><ClipboardEdit size={12} /> Fill IC Form</>}
                                 </button>
                               </Link>
                             : <span className="text-xs text-gray-400 italic">No case yet</span>}

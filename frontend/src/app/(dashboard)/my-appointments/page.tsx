@@ -61,7 +61,7 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  REQUESTED:            { label: 'Applied',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  REQUESTED:            { label: 'Pending',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
   PENDING_APPROVAL:     { label: 'Under Review',       cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
   CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
@@ -458,18 +458,24 @@ export default function MyAppointmentsPage() {
         ) : error ? (
           <div className="flex items-center justify-center h-44 text-red-500 text-sm">{error}</div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-44 text-center">
+          <div className="flex flex-col items-center justify-center h-52 text-center px-4">
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
               <Clock size={22} className="text-gray-400" />
             </div>
             <p className="text-base font-medium text-gray-600">No records found</p>
             <p className="text-sm text-gray-400 mt-1">
               {activeTab === 'upcoming'
-                ? "No upcoming sessions. Hit \"New Request\" to book one."
+                ? 'You have no upcoming sessions.'
                 : activeTab === 'evaluation'
                 ? 'No sessions waiting for your rating.'
                 : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
             </p>
+            {activeTab === 'upcoming' && (
+              <Link href="/book-appointment"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-semibold rounded-lg transition">
+                <Plus size={14} /> Book an Appointment
+              </Link>
+            )}
           </div>
         ) : (
           <>

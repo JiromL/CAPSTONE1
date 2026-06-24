@@ -165,7 +165,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@dlsu.edu.ph"
+                placeholder="you@university.edu"
                 required
                 autoComplete="email"
                 className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
@@ -233,7 +233,7 @@ export default function LoginPage() {
               />
               {googleReady && (
                 <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2">
-                  Use your @dlsu.edu.ph Google account
+                  Use your @university.edu Google account
                 </p>
               )}
             </div>
@@ -249,7 +249,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-6 text-xs text-center text-gray-400 dark:text-gray-600">
-            Only @dlsu.edu.ph accounts are permitted
+            Only @university.edu accounts are permitted
           </p>
         </div>
       </div>

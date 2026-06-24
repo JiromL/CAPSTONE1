@@ -9,6 +9,7 @@ import { PsychologistDashboard } from '@/components/PsychologistDashboard';
 import { IntakeCounselorDashboard } from '@/components/IntakeCounselorDashboard';
 import { SupportStaffDashboard } from '@/components/SupportStaffDashboard';
 import { StudentDashboard } from '@/components/StudentDashboard';
+import { CaseManagerDashboard } from '@/components/CaseManagerDashboard';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -88,6 +89,8 @@ export default function Dashboard() {
       return <PsychologistDashboard user={user} onLogout={handleLogout} />;
     case 'IC':
       return <IntakeCounselorDashboard user={user} onLogout={handleLogout} />;
+    case 'CASE_MANAGER':
+      return <CaseManagerDashboard user={user} onLogout={handleLogout} />;
     case 'STAFF':
       return <SupportStaffDashboard user={user} onLogout={handleLogout} />;
     case 'STUDENT':

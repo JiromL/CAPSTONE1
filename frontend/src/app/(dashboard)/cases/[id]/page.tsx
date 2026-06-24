@@ -5,7 +5,8 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 
@@ -585,15 +586,24 @@ export default function CaseDetailPage() {
       }
     } catch {}
     setIntakeSummaryLoaded(true);
-    // Also load intake interview form from caseData if present
-    if (caseData?.intake_interview_form) {
-      setIntakeForm(caseData.intake_interview_form);
-      setIntakeFormDraft(caseData.intake_interview_form);
-      setIntakeFormEditing(false);
-    } else {
-      setIntakeFormDraft({});
-      setIntakeFormEditing(true);
-    }
+    // Fetch case fresh to get intake_interview_form — avoids stale closure on caseData
+    try {
+      const token2 = localStorage.getItem('token');
+      const cr = await fetch(api(`/api/cases/${caseId}`), { headers: { Authorization: `Bearer ${token2}` } });
+      if (cr.ok) {
+        const freshCase = await cr.json();
+        setCaseData(freshCase);
+        if (freshCase?.intake_interview_form) {
+          setIntakeForm(freshCase.intake_interview_form);
+          setIntakeFormDraft(freshCase.intake_interview_form);
+          setIntakeFormEditing(false);
+          return;
+        }
+      }
+    } catch {}
+    // No saved form yet — start blank in edit mode
+    setIntakeFormDraft({});
+    setIntakeFormEditing(true);
   };
 
   const handleSaveIntakeForm = async () => {
@@ -638,6 +648,7 @@ export default function CaseDetailPage() {
       });
       if (!r.ok) throw new Error('Failed to save intake form');
       setIntakeForm(intakeFormDraft);
+      setCaseData((prev: any) => prev ? { ...prev, intake_interview_form: intakeFormDraft } : prev);
       setIntakeFormEditing(false);
       setIntakeFormSuccess(true);
       setTimeout(() => setIntakeFormSuccess(false), 3000);
@@ -869,6 +880,13 @@ export default function CaseDetailPage() {
       title="Case Details"
       subtitle={caseData?.case_number ? `Case ${caseData.case_number}` : 'Loading…'}
     >
+      {/* Back navigation */}
+      <div className="mb-4">
+        <Link href="/cases" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a5228] transition-colors">
+          <ArrowLeft size={15} /> Back to Cases
+        </Link>
+      </div>
+
       {error && (
         <div className="mb-4 flex gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
           <AlertCircle className="text-red-600 flex-shrink-0" size={18} />

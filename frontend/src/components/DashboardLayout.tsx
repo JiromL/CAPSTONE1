@@ -74,7 +74,6 @@ export function DashboardLayout({
     localStorage.setItem('last_login_display', now);
   }, []);
 
-  // Full display name — Last name first like UE portal
   const fullName = (() => {
     if (!user) return '';
     const fn = user.first_name || '';
@@ -191,8 +190,11 @@ export function DashboardLayout({
             <Menu size={20} />
           </button>
 
-          {/* Page title — hidden on mobile (shown in content) */}
-          <div className="hidden lg:block" />
+          {/* Page title */}
+          <div className="hidden lg:block">
+            <p className="text-sm font-semibold text-gray-800">{title}</p>
+            {subtitle && <p className="text-xs text-gray-400 leading-tight">{subtitle}</p>}
+          </div>
 
           {/* Right: bells + user */}
           <div className="flex items-center gap-4 ml-auto">
@@ -207,9 +209,9 @@ export function DashboardLayout({
             </Link>
 
             {/* Calendar */}
-            <button className="text-gray-500 hover:text-[#1a5228] transition-colors">
+            <Link href="/appointments" className="text-gray-500 hover:text-[#1a5228] transition-colors" title="Appointments">
               <Calendar size={20} />
-            </button>
+            </Link>
 
             {/* User info */}
             <div className="flex items-center gap-2 pl-4 border-l border-gray-200">

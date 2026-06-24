@@ -59,6 +59,19 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Profile',              href: '/profile',      id: 'profile'      },
   ];
 
+  // ============ CASE MANAGER ============
+  // Most frequent: CM Queue (primary task) → Cases → High-Risk → EMA → Appointments
+  const caseManagerItems: MenuItem[] = [
+    { label: 'Dashboard',       href: '/dashboard',           id: 'dashboard'     },
+    { label: 'CM Queue',        href: '/case-manager/queue',  id: 'cm-queue'      },
+    { label: 'Cases',           href: '/cases',               id: 'cases'         },
+    { label: 'High-Risk',       href: '/high-risk',           id: 'high-risk'     },
+    { label: 'Appointments',    href: '/appointments',        id: 'appointments'  },
+    { label: 'EMA',             href: '/mhbot',               id: 'mhbot'         },
+    { label: 'Announcements',   href: '/announcements',       id: 'announcements' },
+    { label: 'Profile',         href: '/profile',             id: 'profile'       },
+  ];
+
   // ============ STAFF (Office Assistant) ============
   // Most frequent: Appointment Requests → Walk-In (daily) → Reschedule (occasional)
   const staffItems: MenuItem[] = [
@@ -103,6 +116,8 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
       return counselorItems;
     case 'PSYCHOLOGIST':
       return psychologistItems;
+    case 'CASE_MANAGER':
+      return caseManagerItems;
     case 'STAFF':
       return staffItems;
     case 'ADMIN':
@@ -146,6 +161,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     'cases':                'cases',
     'high-risk':            'high-risk',
     'mhbot':                'mhbot',
+    'queue':                'cm-queue',
 
     // Admin / DPO
     'users':                'admin',

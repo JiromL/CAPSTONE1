@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { BarChart3, FileText, Info } from 'lucide-react';
+import { BarChart3, FileText, Info, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { api } from '@/utils/api';
+
+type EmaLabel = 'Excelling' | 'Thriving' | 'Surviving' | 'Struggling' | 'In Crisis' | null;
 
 export default function AssessmentsPage() {
   const [userRole, setUserRole] = useState<string>('STUDENT');
   const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emaLabel, setEmaLabel] = useState<EmaLabel>(null);
+  const [emaLinked, setEmaLinked] = useState(false);
 
   useEffect(() => {
     const raw = localStorage.getItem('user');
@@ -23,13 +27,26 @@ export default function AssessmentsPage() {
     try {
       const token = localStorage.getItem('access_token') || localStorage.getItem('token');
       if (!token) { setLoading(false); return; }
+      const headers = { Authorization: `Bearer ${token}` };
 
-      const r = await fetch(api('/api/intake/assessments/dashboard'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (r.ok) {
-        const data = await r.json();
+      const role = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || ''; } catch { return ''; } })();
+
+      const [assessRes, permaRes] = await Promise.all([
+        fetch(api('/api/intake/assessments/dashboard'), { headers }),
+        role === 'STUDENT' ? fetch(api('/api/mhbot/my-perma'), { headers }) : Promise.resolve(null),
+      ]);
+
+      if (assessRes.ok) {
+        const data = await assessRes.json();
         setAssessments(data.recent_cases || []);
+      }
+
+      if (permaRes && permaRes.ok) {
+        const d = await permaRes.json();
+        if (d.mhbot_username) {
+          setEmaLinked(true);
+          setEmaLabel(d.latest_label ?? null);
+        }
       }
     } catch {}
     setLoading(false);
@@ -50,18 +67,53 @@ export default function AssessmentsPage() {
 
   /* ── Student view: no clinical scores ─────────────────────────────────── */
   if (!isClinical) {
+    // EMA-based gating
+    const isLocked    = emaLinked && (emaLabel === 'Struggling' || emaLabel === 'In Crisis');
+    const isAssisted  = emaLinked && emaLabel === 'Surviving';
+
     return (
       <DashboardPageWrapper title="Assessments" subtitle="Your counseling history">
         <div className="max-w-lg mx-auto space-y-4">
-          {/* Explainer card */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 flex gap-3">
-            <Info size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              Assessments (PHQ-9, GAD-7, PSS) are administered by your counselor during sessions.
-              Your counselor interprets the results with you. If you have questions about your assessment,
-              please speak with your assigned counselor.
-            </p>
-          </div>
+
+          {/* Locked: Struggling / In Crisis */}
+          {isLocked && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+              <ShieldAlert size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">Assessments are currently unavailable</p>
+                <p className="text-sm text-red-700 mt-1">
+                  Based on your recent EMA check-in ({emaLabel}), your case has been referred to a Case Manager.
+                  Please visit the CPS office or wait for a Case Manager to reach out before proceeding with any assessments.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Assisted: Surviving */}
+          {isAssisted && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+              <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Assisted assessment mode</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  Based on your recent EMA check-in (Surviving), PHQ-9 and GAD-7 assessments must be
+                  completed with your IC or counselor present. Please attend your scheduled session.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Standard explainer (no EMA / Excelling / Thriving) */}
+          {!isLocked && !isAssisted && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 flex gap-3">
+              <Info size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Assessments (PHQ-9, GAD-7, PSS) are administered by your counselor during sessions.
+                Your counselor interprets the results with you. If you have questions, speak with your assigned counselor.
+              </p>
+            </div>
+          )}
+
 
           {/* Summary count (no scores) */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">

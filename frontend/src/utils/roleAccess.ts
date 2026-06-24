@@ -9,6 +9,7 @@ export type UserRole =
   | 'COUNSELOR'
   | 'PSYCHOLOGIST'
   | 'STAFF'
+  | 'CASE_MANAGER'
   | 'ADMIN'
   | 'DPO';
 
@@ -18,10 +19,10 @@ export type UserRole =
  */
 export const pagePermissions: Record<string, UserRole[]> = {
   // Public authenticated pages
-  '/dashboard': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'ADMIN', 'DPO'],
-  '/profile': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'ADMIN', 'DPO'],
-  '/resources': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'ADMIN', 'DPO'],
-  '/documentation': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'ADMIN', 'DPO'],
+  '/dashboard': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/profile': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/resources': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/documentation': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Student pages
   '/counseling': ['STUDENT'],
@@ -34,43 +35,46 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/feedback': ['STUDENT'],
 
   // Intake Counselor pages
-  '/new-intakes': ['IC', 'ADMIN', 'DPO'],
-  '/ic/intake/pending': ['IC', 'ADMIN', 'DPO'],
-  '/reminders': ['IC', 'ADMIN', 'DPO'],
+  '/new-intakes': ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/ic/intake/pending': ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/reminders': ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+
+  // Case Manager pages
+  '/case-manager/queue': ['CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Staff pages
-  '/appointment-requests': ['IC', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/appointment-requests': ['IC', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/walk-in-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/staff/walkin-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/check-in-tracking': ['STAFF', 'ADMIN', 'DPO'],
   '/reschedule-requests': ['STAFF', 'ADMIN', 'DPO'],
   '/staff-settings': ['STAFF', 'ADMIN', 'DPO'],
-  '/waitlist': ['STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN', 'DPO'],
+  '/waitlist': ['STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/recurring-appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN'],
-  '/mhbot': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN', 'DPO'],
+  '/mhbot': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Counselor/Psychologist pages
-  '/appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
-  '/assessments': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN', 'DPO'],
-  '/cases': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
-  '/counseling-cases': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
-  '/check-ins': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
-  '/referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
-  '/c2c-referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/assessments': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/cases': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/counseling-cases': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/check-ins': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/c2c-referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/counselor': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
-  '/video-links': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/video-links': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Psychologist pages
-  '/high-risk': ['PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/high-risk': ['PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Admin pages
   '/admin/users': ['ADMIN', 'DPO'],
   '/admin/analytics': ['ADMIN', 'DPO'],
   '/admin/audit-log': ['ADMIN', 'DPO'],
-  '/availability': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/availability': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Announcements
-  '/announcements': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'ADMIN', 'DPO'],
+  '/announcements': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Supervision
   '/supervision': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
@@ -79,10 +83,10 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/counselor/schedule': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
   // IC sub-routes
-  '/ic/intake/in-progress': ['IC', 'ADMIN', 'DPO'],
-  '/ic/intake/new': ['IC', 'ADMIN', 'DPO'],
-  '/ic/intake/completed': ['IC', 'ADMIN', 'DPO'],
-  '/ic/intake/overdue': ['IC', 'ADMIN', 'DPO'],
+  '/ic/intake/in-progress': ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/ic/intake/new': ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/ic/intake/completed': ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/ic/intake/overdue': ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/ic/forms': ['IC', 'ADMIN', 'DPO'],
   '/ic/qa': ['IC', 'ADMIN', 'DPO'],
   '/ic/schedule': ['IC', 'ADMIN', 'DPO'],
@@ -96,7 +100,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/office-assistant-settings': ['STAFF', 'ADMIN', 'DPO'],
 
   // PERMA send
-  '/send-perma': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN', 'DPO'],
+  '/send-perma': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 };
 
 /**
@@ -134,6 +138,7 @@ export function getRoleLabel(role: UserRole): string {
     'COUNSELOR': 'Counselor',
     'PSYCHOLOGIST': 'Psychologist',
     'STAFF': 'Staff',
+    'CASE_MANAGER': 'Case Manager',
     'ADMIN': 'Administrator',
     'DPO': 'Data Protection Officer',
   };
@@ -144,10 +149,10 @@ export function getRoleLabel(role: UserRole): string {
  * Feature-level access checks
  */
 export const featureAccess = {
-  canEditCases: (role: UserRole) => ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'].includes(role),
-  canViewHighRisk: (role: UserRole) => ['PSYCHOLOGIST', 'ADMIN', 'DPO'].includes(role),
+  canEditCases: (role: UserRole) => ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(role),
+  canViewHighRisk: (role: UserRole) => ['PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(role),
   canManageUsers: (role: UserRole) => ['ADMIN', 'DPO'].includes(role),
-  canEndorseIntakes: (role: UserRole) => ['IC', 'ADMIN', 'DPO'].includes(role),
-  canScheduleAppointments: (role: UserRole) => ['STUDENT', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'ADMIN', 'DPO'].includes(role),
-  canViewAllCases: (role: UserRole) => ['ADMIN', 'DPO', 'PSYCHOLOGIST'].includes(role),
+  canEndorseIntakes: (role: UserRole) => ['IC', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(role),
+  canScheduleAppointments: (role: UserRole) => ['STUDENT', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(role),
+  canViewAllCases: (role: UserRole) => ['ADMIN', 'DPO', 'PSYCHOLOGIST', 'CASE_MANAGER'].includes(role),
 };

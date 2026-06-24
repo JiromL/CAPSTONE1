@@ -377,6 +377,53 @@ def unlink_case_from_mhbot(case_id):
     return jsonify({'success': True, 'removed_username': old_username}), 200
 
 
+@mhbot_bp.route('/cm-queue', methods=['GET'])
+@jwt_required()
+def get_cm_queue():
+    """Return students with Struggling or In Crisis EMA labels for the Case Manager queue."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    token = _get_user_token(user_id)
+    if not token:
+        return jsonify({'error': 'Not connected to EMA. Please log in via the EMA page.'}), 401
+
+    try:
+        flagged_labels = {'Struggling', 'In Crisis'}
+        results = []
+
+        for student in db.db.users.find({'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'}):
+            mhbot_un = student.get('mhbot_username')
+            r = get_perma_history(mhbot_un, token, limit=3)
+            if not r['success']:
+                continue
+            label = r['latest_label']
+            if label not in flagged_labels:
+                continue
+
+            # Find their most recent case
+            case = db.db.cases.find_one({'student_id': student['_id']}, sort=[('created_at', -1)])
+            results.append({
+                'student_id':   str(student['_id']),
+                'student_name': student.get('name') or f"{student.get('first_name', '')} {student.get('last_name', '')}".strip(),
+                'student_email': student.get('email', ''),
+                'school_id':    student.get('student_id', ''),
+                'college':      student.get('college', ''),
+                'mhbot_username': mhbot_un,
+                'latest_label': label,
+                'latest_date':  r['latest_date'],
+                'case_id':      str(case['_id']) if case else None,
+                'case_status':  case.get('status') if case else None,
+            })
+
+        # Sort: In Crisis first, then Struggling
+        results.sort(key=lambda x: 0 if x['latest_label'] == 'In Crisis' else 1)
+        return jsonify({'total': len(results), 'students': results}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @mhbot_bp.route('/stats/perma-distribution', methods=['GET'])
 @jwt_required()
 def get_perma_distribution():

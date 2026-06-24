@@ -18,6 +18,7 @@ class UserRole(str, Enum):
     COUNSELOR = "COUNSELOR"  # Non-clinical/developmental counselor
     PSYCHOLOGIST = "PSYCHOLOGIST"  # Clinical psychologist
     IC = "IC"  # Intake Counselor
+    CASE_MANAGER = "CASE_MANAGER"  # Case manager for Struggling/In Crisis students
     STAFF = "STAFF"  # Office assistant/support staff
     STUDENT = "STUDENT"
 
@@ -198,13 +199,26 @@ ROLE_PERMISSIONS = {
         PermissionType.EDIT_CASE,
         PermissionType.VIEW_ASSESSMENT,
         PermissionType.VIEW_NOTES,
+        PermissionType.EDIT_NOTES,
         PermissionType.ASSIGN_CASES,
+    },
+    UserRole.CASE_MANAGER: {
+        PermissionType.VIEW_CASE,
+        PermissionType.EDIT_CASE,
+        PermissionType.VIEW_ASSESSMENT,
+        PermissionType.CREATE_ASSESSMENT,
+        PermissionType.VIEW_NOTES,
+        PermissionType.EDIT_NOTES,
+        PermissionType.ASSIGN_CASES,
+        PermissionType.VIEW_RISK_DASHBOARD,
+        PermissionType.ESCALATE_CRISIS,
+        PermissionType.VIEW_SENSITIVE_FIELDS,
     },
     UserRole.STAFF: {
         PermissionType.VIEW_CASE,
         PermissionType.VIEW_ASSESSMENT,
         PermissionType.VIEW_NOTES,
-        PermissionType.ASSIGN_CASES,  # Can manage appointment assignments and auto-assignment
+        PermissionType.ASSIGN_CASES,
     },
     UserRole.STUDENT: {
         PermissionType.VIEW_CASE,

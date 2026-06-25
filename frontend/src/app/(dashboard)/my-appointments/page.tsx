@@ -12,6 +12,7 @@ import Link from 'next/link';
 
 interface Appointment {
   _id: string;
+  appointment_id?: string;
   status: string;
   purpose?: string;
   concern?: string;
@@ -207,10 +208,11 @@ export default function MyAppointmentsPage() {
         if (intakeApts.length > 0) {
           const statuses: Record<string, boolean> = {};
           await Promise.all(intakeApts.map(async a => {
+            const id = a.appointment_id || a._id;
             try {
-              const pr = await fetch(api(`/api/intake/packet/${a._id}`), { headers: { Authorization: `Bearer ${token}` } });
-              statuses[a._id] = pr.ok;
-            } catch { statuses[a._id] = false; }
+              const pr = await fetch(api(`/api/intake/packet/${id}`), { headers: { Authorization: `Bearer ${token}` } });
+              statuses[id] = pr.ok;
+            } catch { statuses[id] = false; }
           }));
           setFormsStatus(statuses);
         }
@@ -553,8 +555,8 @@ export default function MyAppointmentsPage() {
                             <Star size={12} /> Rate Session
                           </button>
                         )}
-                        {appt.purpose === 'intake_interview' && formsStatus[appt._id] === false && (
-                          <Link href={`/book-appointment?resumeId=${appt._id}`}>
+                        {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === false && (
+                          <Link href={`/book-appointment?resumeId=${appt.appointment_id || appt._id}`}>
                             <button
                               className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-lg transition">
                               <FileText size={11} /> Complete Forms

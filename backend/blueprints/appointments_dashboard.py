@@ -48,27 +48,17 @@ def get_role_based_dashboard():
         return jsonify({'error': f'Failed to fetch dashboard: {str(e)}'}), 500
 
 def get_student_appointments(user_id_obj, user_name):
-    """STUDENT: View only their own appointments"""
+    """STUDENT: All their own appointments — by student_id directly, not via case."""
     try:
-        # Find all cases for this student
-        student_cases = list(db.db.cases.find({"student_id": user_id_obj}))
-        case_ids = [case['_id'] for case in student_cases]
-        
-        if case_ids:
-            appointments = list(db.db.appointments.find({
-                "case_id": {"$in": case_ids}
-            }).sort("created_at", -1))
-        else:
-            appointments = []
-        
-        # Count by status
-        status_counts = db.db.appointments.aggregate([
-            {"$match": {"case_id": {"$in": case_ids}}} if case_ids else {"$match": {}},
-            {"$group": {"_id": "$status", "count": {"$sum": 1}}}
-        ]) if case_ids else []
-        
-        status_map = {item['_id']: item['count'] for item in status_counts}
-        
+        appointments = list(db.db.appointments.find(
+            {"student_id": user_id_obj}
+        ).sort("created_at", -1))
+
+        status_map: dict = {}
+        for a in appointments:
+            s = a.get('status', '')
+            status_map[s] = status_map.get(s, 0) + 1
+
         return jsonify({
             'role': 'STUDENT',
             'user_name': user_name,
@@ -76,10 +66,10 @@ def get_student_appointments(user_id_obj, user_name):
             'appointments': format_appointments(appointments),
             'summary': {
                 'total': len(appointments),
-                'by_status': status_map
+                'by_status': status_map,
             },
             'can_edit': True,
-            'can_delete': True
+            'can_delete': True,
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

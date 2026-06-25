@@ -204,14 +204,15 @@ export default function MyAppointmentsPage() {
         const apts: Appointment[] = d.appointments || [];
         setAppointments(apts);
         // Check intake packet status for intake_interview appointments
-        const intakeApts = apts.filter(a => a.purpose === 'intake_interview' && ['REQUESTED','CONFIRMED','APPROVED','MATCHED'].includes(a.status));
+        const intakeApts = apts.filter(a => a.purpose === 'intake_interview' && ['REQUESTED','PENDING_APPROVAL','CONFIRMED','APPROVED','MATCHED'].includes(a.status));
         if (intakeApts.length > 0) {
           const statuses: Record<string, boolean> = {};
           await Promise.all(intakeApts.map(async a => {
             const id = a.appointment_id || a._id;
             try {
               const pr = await fetch(api(`/api/intake/packet/${id}`), { headers: { Authorization: `Bearer ${token}` } });
-              statuses[id] = pr.ok;
+              const data = pr.ok ? await pr.json() : null;
+              statuses[id] = data?.submitted === true;
             } catch { statuses[id] = false; }
           }));
           setFormsStatus(statuses);

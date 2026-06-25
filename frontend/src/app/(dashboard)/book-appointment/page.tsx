@@ -135,7 +135,7 @@ export default function BookAppointmentPage() {
   const [purpose, setPurpose]             = useState('intake_interview');
   const [specifyOthers, setSpecifyOthers] = useState('');
   const [concern, setConcern]             = useState('');
-  const [slotMethod, setSlotMethod]        = useState('in-person');
+  const [slotMethod, setSlotMethod]        = useState('F2F');
   const [prefPlatform, setPrefPlatform]   = useState<'google-meet' | 'zoom'>('google-meet');
   const [referralType, setReferralType]   = useState('self-referred');
   const [referredBy, setReferredBy]       = useState('');
@@ -233,7 +233,7 @@ export default function BookAppointmentPage() {
 
   // When purpose changes: resolve assigned counselor (or open request for 'others')
   useEffect(() => {
-    setPrefTime(''); setSlotCounselorId(''); setSlotMethod('in-person');
+    setPrefTime(''); setSlotCounselorId(''); setSlotMethod('F2F');
     setSlots([]); setNoSlotsNextDate(null);
     setAssignedCounselor(undefined); setCounselorList(null); setSelectedCounselorId('');
 
@@ -267,7 +267,7 @@ export default function BookAppointmentPage() {
     if (!prefDate || purpose === 'others') { setSlots([]); setNoSlotsNextDate(null); return; }
     const token = localStorage.getItem('token');
     setSlotsLoading(true);
-    setPrefTime(''); setSlotCounselorId(''); setSlotMethod('in-person');
+    setPrefTime(''); setSlotCounselorId(''); setSlotMethod('F2F');
 
     if (purpose === 'intake_interview') {
       fetch(api(`/api/availability/open-slots?date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
@@ -957,14 +957,71 @@ export default function BookAppointmentPage() {
               </div>
             )}
 
-            {/* Date & Slot Picker — hidden for 'others' and while counselor not yet selected */}
+            {/* Method + Date + Slot Picker */}
             {purpose !== 'others' && (purpose === 'intake_interview' || !!selectedCounselorId) && (
             <div className="space-y-3">
+
+              {/* Step 1: F2F or Online */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Session Mode <span className="text-red-400">*</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { v: 'F2F',    label: 'Face to Face', sub: 'Visit the CPS office', icon: '🏫' },
+                    { v: 'Online', label: 'Online',        sub: 'Video call session',   icon: '💻' },
+                  ].map(m => (
+                    <button key={m.v} type="button"
+                      onClick={() => {
+                        setSlotMethod(m.v);
+                        setPrefDate(''); setPrefTime(''); setSlotCounselorId('');
+                        setSlots([]); setNoSlotsNextDate(null); setRequestAnyway(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition ${
+                        slotMethod === m.v
+                          ? 'border-[#1a5228] bg-[#1a5228]/5'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}>
+                      <span className="text-xl">{m.icon}</span>
+                      <div>
+                        <p className={`text-sm font-semibold ${slotMethod === m.v ? 'text-[#1a5228]' : 'text-gray-800'}`}>{m.label}</p>
+                        <p className="text-[10px] text-gray-400">{m.sub}</p>
+                      </div>
+                      {slotMethod === m.v && <span className="ml-auto w-5 h-5 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Step 2: Platform (only for Online) */}
+              {slotMethod === 'Online' && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                  <p className="text-xs font-bold text-blue-700 mb-2">Preferred Platform</p>
+                  <div className="flex gap-2">
+                    {([
+                      { value: 'google-meet' as const, label: 'Google Meet', icon: '🎥' },
+                      { value: 'zoom'        as const, label: 'Zoom',        icon: '📹' },
+                    ] as const).map(p => (
+                      <button key={p.value} type="button"
+                        onClick={() => setPrefPlatform(p.value)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-xs font-semibold transition ${
+                          prefPlatform === p.value
+                            ? 'border-blue-500 bg-blue-100 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+                        }`}>
+                        <span>{p.icon}</span> {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-blue-500 mt-2">Your IC will send the meeting link before the session.</p>
+                </div>
+              )}
+
+              {/* Step 3: Date */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Date <span className="text-red-400">*</span></label>
                 <input type="date" value={prefDate} onChange={e => setPrefDate(e.target.value)} min={toDS(minDate)} max={toDS(maxDate)} className={IC} />
               </div>
 
+              {/* Step 4: Slots filtered by selected method */}
               {prefDate && (
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
@@ -977,73 +1034,54 @@ export default function BookAppointmentPage() {
                     </div>
                   )}
 
-                  {!slotsLoading && slots.length > 0 && (
-                    <>
-                      <div className="space-y-1.5">
-                        {(() => {
-                          // For intake_interview: deduplicate by time only — system assigns IC via workload balancing
-                          // For specific counselor: deduplicate by time+method (only one counselor anyway)
-                          const seen = new Set<string>();
-                          const deduped = slots.filter(s => {
-                            const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.method}`;
-                            if (seen.has(key)) return false;
-                            seen.add(key);
-                            return true;
-                          });
-                          return deduped.map((s, i) => {
-                            const isSelected = prefTime === s.time && slotCounselorId === s.counselor_id;
-                            const isOnline = s.method?.toLowerCase() === 'online';
-                            return (
-                              <button key={i} type="button"
-                                onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setSlotMethod(s.method); setRequestAnyway(false); }}
-                                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
-                                  isSelected
-                                    ? 'border-[#1a5228] bg-[#1a5228]/5'
-                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                                }`}>
-                                <Clock size={13} className={isSelected ? 'text-[#1a5228]' : 'text-gray-400'} />
-                                <span className={`font-bold text-sm tabular-nums ${isSelected ? 'text-[#1a5228]' : 'text-gray-800'}`}>
-                                  {fmtT(s.time)}
-                                </span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
-                                }`}>
-                                  {isOnline ? 'Online' : 'F2F'}
-                                </span>
-                                {isSelected && (
-                                  <span className="ml-auto flex-shrink-0 w-5 h-5 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[10px] font-bold">✓</span>
-                                )}
-                              </button>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </>
-                  )}
+                  {!slotsLoading && slots.length > 0 && (() => {
+                    const seen = new Set<string>();
+                    const filtered = slots
+                      .filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase())
+                      .filter(s => {
+                        const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.counselor_id}`;
+                        if (seen.has(key)) return false;
+                        seen.add(key); return true;
+                      });
 
-                  {/* Platform picker — only when an online slot is selected */}
-                  {prefTime && slotMethod?.toLowerCase() === 'online' && (
-                    <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
-                      <p className="text-xs font-bold text-blue-700 mb-2">Preferred Platform</p>
-                      <div className="flex gap-2">
-                        {([
-                          { value: 'google-meet' as const, label: 'Google Meet', icon: '🎥' },
-                          { value: 'zoom'        as const, label: 'Zoom',        icon: '💻' },
-                        ] as const).map(p => (
-                          <button key={p.value} type="button"
-                            onClick={() => setPrefPlatform(p.value)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-xs font-semibold transition ${
-                              prefPlatform === p.value
-                                ? 'border-blue-500 bg-blue-100 text-blue-700'
-                                : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
-                            }`}>
-                            <span>{p.icon}</span> {p.label}
+                    if (filtered.length === 0) return (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                        No {slotMethod === 'Online' ? 'online' : 'face-to-face'} slots on this date.
+                        {slots.some(s => s.method?.toLowerCase() !== slotMethod.toLowerCase()) && (
+                          <button type="button"
+                            onClick={() => {
+                              const other = slotMethod === 'F2F' ? 'Online' : 'F2F';
+                              setSlotMethod(other);
+                              setPrefTime(''); setSlotCounselorId(''); setRequestAnyway(false);
+                            }}
+                            className="ml-1 font-bold underline hover:text-amber-900">
+                            Switch to {slotMethod === 'F2F' ? 'Online' : 'F2F'}?
                           </button>
-                        ))}
+                        )}
                       </div>
-                      <p className="text-[10px] text-blue-500 mt-2">Your IC will send the meeting link before the session.</p>
-                    </div>
-                  )}
+                    );
+
+                    return (
+                      <div className="space-y-1.5">
+                        {filtered.map((s, i) => {
+                          const isSelected = prefTime === s.time && slotCounselorId === s.counselor_id;
+                          return (
+                            <button key={i} type="button"
+                              onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
+                              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
+                                isSelected ? 'border-[#1a5228] bg-[#1a5228]/5' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                              }`}>
+                              <Clock size={13} className={isSelected ? 'text-[#1a5228]' : 'text-gray-400'} />
+                              <span className={`font-bold text-sm tabular-nums ${isSelected ? 'text-[#1a5228]' : 'text-gray-800'}`}>
+                                {fmtT(s.time)}
+                              </span>
+                              {isSelected && <span className="ml-auto flex-shrink-0 w-5 h-5 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[10px] font-bold">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   {!slotsLoading && slots.length === 0 && !requestAnyway && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">

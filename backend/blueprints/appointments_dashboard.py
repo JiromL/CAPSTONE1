@@ -173,35 +173,38 @@ def get_admin_dashboard(user_id_obj, user_name):
         return jsonify({'error': str(e)}), 500
 
 def get_intake_coordinator_requests(user_id_obj, user_name):
-    """IC: View pending appointment requests that need assignment"""
+    """IC: Shared queue for unassigned requests; own-only for confirmed/in-progress."""
     try:
-        # Get REQUESTED status appointments (new bookings only — reschedule requests are separate)
-        pending_requests = list(db.db.appointments.find({
-            "status": AppointmentStatus.REQUESTED.value
+        # Shared: any unassigned REQUESTED or PENDING_APPROVAL (all ICs see these)
+        unassigned_statuses = [
+            AppointmentStatus.REQUESTED.value,
+            AppointmentStatus.PENDING_APPROVAL.value,
+        ]
+        shared_requests = list(db.db.appointments.find({
+            "status": {"$in": unassigned_statuses}
         }).sort("created_at", -1))
-        
-        # Also get PENDING_APPROVAL for review
-        pending_approval = list(db.db.appointments.find({
-            "status": AppointmentStatus.PENDING_APPROVAL.value
-        }).sort("created_at", -1))
-        
-        reschedule_count = db.db.appointments.count_documents({"status": "RESCHEDULE_REQUESTED"})
 
-        # Include all actionable appointments for AppointmentsDashboard (flat list)
-        all_actionable = list(db.db.appointments.find({
+        # Own: CONFIRMED and beyond — only appointments assigned to this IC
+        own_assigned = list(db.db.appointments.find({
+            "counselor_id": user_id_obj,
             "status": {"$in": [
-                AppointmentStatus.REQUESTED.value,
-                AppointmentStatus.PENDING_APPROVAL.value,
                 AppointmentStatus.CONFIRMED.value,
                 AppointmentStatus.APPROVED.value,
                 AppointmentStatus.MATCHED.value,
                 AppointmentStatus.EVALUATION.value,
                 AppointmentStatus.FOLLOW_UP.value,
                 AppointmentStatus.REFERRAL.value,
+                "RESCHEDULE_REQUESTED",
+                "CHECKED_IN",
             ]}
-        }).sort("created_at", -1).limit(100))
+        }).sort("created_at", -1))
 
-        evaluation_count = db.db.appointments.count_documents({"status": AppointmentStatus.EVALUATION.value})
+        all_actionable = shared_requests + own_assigned
+
+        reschedule_count   = db.db.appointments.count_documents({"status": "RESCHEDULE_REQUESTED"})
+        evaluation_count   = sum(1 for a in own_assigned if a.get('status') == AppointmentStatus.EVALUATION.value)
+        pending_requests   = [a for a in shared_requests if a.get('status') == AppointmentStatus.REQUESTED.value]
+        pending_approval   = [a for a in shared_requests if a.get('status') == AppointmentStatus.PENDING_APPROVAL.value]
 
         return jsonify({
             'role': 'IC',

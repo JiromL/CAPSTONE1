@@ -173,33 +173,13 @@ def get_admin_dashboard(user_id_obj, user_name):
         return jsonify({'error': str(e)}), 500
 
 def get_intake_coordinator_requests(user_id_obj, user_name):
-    """IC: Shared queue for unassigned requests; own-only for confirmed/in-progress."""
+    """IC: Only sees appointments assigned to them — OA handles unassigned requests."""
     try:
-        # Unassigned REQUESTED/PENDING_APPROVAL — visible to all ICs (shared queue)
-        shared_requests = list(db.db.appointments.find({
+        own_appointments = list(db.db.appointments.find({
+            "counselor_id": user_id_obj,
             "status": {"$in": [
                 AppointmentStatus.REQUESTED.value,
                 AppointmentStatus.PENDING_APPROVAL.value,
-            ]},
-            "$or": [
-                {"counselor_id": {"$exists": False}},
-                {"counselor_id": None},
-            ]
-        }).sort("created_at", -1))
-
-        # This IC's own slot-booked REQUESTED (student picked their slot but IC hasn't confirmed yet)
-        own_pending = list(db.db.appointments.find({
-            "status": {"$in": [
-                AppointmentStatus.REQUESTED.value,
-                AppointmentStatus.PENDING_APPROVAL.value,
-            ]},
-            "counselor_id": user_id_obj,
-        }).sort("created_at", -1))
-
-        # Own: CONFIRMED and beyond — only appointments assigned to this IC
-        own_assigned = list(db.db.appointments.find({
-            "counselor_id": user_id_obj,
-            "status": {"$in": [
                 AppointmentStatus.CONFIRMED.value,
                 AppointmentStatus.APPROVED.value,
                 AppointmentStatus.MATCHED.value,
@@ -211,30 +191,30 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
             ]}
         }).sort("created_at", -1))
 
-        all_new = shared_requests + own_pending
-        all_actionable = all_new + own_assigned
-
-        reschedule_count = db.db.appointments.count_documents({"status": "RESCHEDULE_REQUESTED"})
-        evaluation_count = sum(1 for a in own_assigned if a.get('status') == AppointmentStatus.EVALUATION.value)
-        pending_requests = [a for a in all_new if a.get('status') == AppointmentStatus.REQUESTED.value]
-        pending_approval = [a for a in all_new if a.get('status') == AppointmentStatus.PENDING_APPROVAL.value]
+        reschedule_count = db.db.appointments.count_documents({
+            "counselor_id": user_id_obj,
+            "status": "RESCHEDULE_REQUESTED",
+        })
+        evaluation_count = sum(1 for a in own_appointments if a.get('status') == AppointmentStatus.EVALUATION.value)
+        slot_pending     = [a for a in own_appointments if a.get('status') == AppointmentStatus.REQUESTED.value]
+        pending_approval = [a for a in own_appointments if a.get('status') == AppointmentStatus.PENDING_APPROVAL.value]
 
         return jsonify({
             'role': 'IC',
             'user_name': user_name,
-            'view_type': 'pending_requests',
-            'appointments': format_appointments(all_actionable),
-            'pending_requests': format_appointments(pending_requests),
+            'view_type': 'own_appointments',
+            'appointments': format_appointments(own_appointments),
+            'pending_requests': format_appointments(slot_pending),
             'pending_approval': format_appointments(pending_approval),
             'summary': {
-                'unassigned_requests': len(pending_requests),
+                'unassigned_requests': len(slot_pending),
                 'awaiting_approval': len(pending_approval),
-                'action_required': len(pending_requests) + len(pending_approval),
+                'action_required': len(slot_pending) + len(pending_approval),
                 'pending_reschedules': reschedule_count,
                 'awaiting_evaluation': evaluation_count,
             },
-            'can_assign_counselor': True,
-            'can_approve': True
+            'can_assign_counselor': False,
+            'can_approve': True,
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

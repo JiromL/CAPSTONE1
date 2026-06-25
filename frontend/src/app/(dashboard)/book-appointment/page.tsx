@@ -1142,7 +1142,7 @@ export default function BookAppointmentPage() {
                       <div className="flex gap-0 divide-x divide-gray-200">
 
                         {/* Calendar */}
-                        <div className="flex-1 p-4">
+                        <div className="flex-1 p-4 min-w-0">
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-sm font-bold text-gray-800">{monthLabel}</p>
                             <div className="flex gap-1">
@@ -1186,7 +1186,7 @@ export default function BookAppointmentPage() {
                         </div>
 
                         {/* Time slots panel */}
-                        <div className="w-44 flex flex-col">
+                        <div className="flex-1 flex flex-col min-w-0">
                           {!prefDate ? (
                             <div className="flex-1 flex items-center justify-center p-4">
                               <p className="text-xs text-gray-400 text-center">Select a date to see available slots</p>
@@ -1203,7 +1203,7 @@ export default function BookAppointmentPage() {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex-1 overflow-y-auto max-h-52 p-2 space-y-1">
+                              <div className="flex-1 overflow-y-auto max-h-56 p-2.5 space-y-1.5">
                                 {slotsLoading && (
                                   <div className="flex items-center justify-center py-6 gap-2 text-xs text-gray-400">
                                     <Loader2 size={12} className="animate-spin" /> Loading…
@@ -1214,7 +1214,7 @@ export default function BookAppointmentPage() {
                                   return (
                                     <button key={i} type="button"
                                       onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
-                                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold text-center transition border
+                                      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-center transition border
                                         ${isSel ? 'bg-[#1a5228] text-white border-[#1a5228]' : 'border-gray-200 text-gray-700 hover:border-[#1a5228] hover:text-[#1a5228]'}`}>
                                       {fmtT(s.time)}
                                     </button>

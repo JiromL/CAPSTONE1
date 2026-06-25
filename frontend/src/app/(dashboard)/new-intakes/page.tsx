@@ -170,7 +170,7 @@ export default function NewIntakesPage() {
   const end   = Math.min(page * PAGE_SIZE, total);
 
   return (
-    <DashboardPageWrapper title="New Client Intakes" subtitle="Track and manage new counseling intake requests">
+    <DashboardPageWrapper title={userRole === 'IC' ? 'Intake Tracker' : 'New Client Intakes'} subtitle="Track and manage new counseling intake requests">
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -275,7 +275,9 @@ export default function NewIntakesPage() {
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Student</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Service</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">IC Assigned</th>
+                    {userRole !== 'IC' && (
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">IC Assigned</th>
+                    )}
                     {CPS_ROLES.includes(userRole) && (
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">EMA</th>
                     )}
@@ -316,17 +318,19 @@ export default function NewIntakesPage() {
                           )}
                         </td>
 
-                        {/* IC Assigned */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
-                              <Users size={11} className="text-[#1a5228]" />
+                        {/* IC Assigned — hidden for IC (it's always them) */}
+                        {userRole !== 'IC' && (
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
+                                <Users size={11} className="text-[#1a5228]" />
+                              </div>
+                              <span className="text-sm text-gray-700 truncate max-w-[120px]">
+                                {intake.intake_counselor_name || '—'}
+                              </span>
                             </div>
-                            <span className="text-sm text-gray-700 truncate max-w-[120px]">
-                              {intake.intake_counselor_name || '—'}
-                            </span>
-                          </div>
-                        </td>
+                          </td>
+                        )}
 
                         {/* Wellbeing */}
                         {CPS_ROLES.includes(userRole) && (
@@ -363,7 +367,11 @@ export default function NewIntakesPage() {
                                     : <><ClipboardEdit size={12} /> Fill IC Form</>}
                                 </button>
                               </Link>
-                            : <span className="text-xs text-gray-400 italic">No case yet</span>}
+                            : <Link href="/appointment-requests">
+                                <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition whitespace-nowrap">
+                                  Conduct Intake
+                                </button>
+                              </Link>}
                         </td>
 
                       </tr>

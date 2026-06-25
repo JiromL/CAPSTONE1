@@ -23,11 +23,11 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   ];
 
   // ============ IC (Intake Counselor) ============
-  // Most frequent: Appointment Requests → New Intakes (tracking) → Availability → EMA
+  // Most frequent: Appointment Requests (confirm+conduct) → Intake Tracker (history) → Availability → EMA
   const icItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'New Intakes',          href: '/new-intakes',          id: 'new-intakes'  },
+    { label: 'Intake Tracker',       href: '/new-intakes',          id: 'new-intakes'  },
     { label: 'My Availability',      href: '/availability',         id: 'availability' },
     { label: 'EMA',                  href: '/mhbot',                id: 'mhbot'        },
     { label: 'Announcements',        href: '/announcements',        id: 'announcements'},

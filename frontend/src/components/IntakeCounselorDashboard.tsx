@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, ClipboardList, CalendarClock, ChevronRight } from 'lucide-react';
 
 const PERMA_BARS: { label: string; color: string }[] = [
   { label: 'Excelling',  color: 'bg-green-500'  },
@@ -189,9 +189,35 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
   return (
     <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
 
-      <div className="mb-6 pb-5 border-b border-gray-200">
+      <div className="mb-5 pb-4 border-b border-gray-200">
         <p className="text-xs text-gray-400 mb-0.5">{dateLabel}</p>
         <h2 className="text-xl font-semibold text-gray-900">Good day, {firstName}.</h2>
+      </div>
+
+      {/* Quick action strip */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {[
+          { label: 'Appointment Requests', href: '/appointment-requests', icon: ClipboardList,
+            count: needsAction.length, countColor: 'bg-orange-100 text-orange-600' },
+          { label: 'Intake Tracker',       href: '/new-intakes',          icon: CalendarClock,
+            count: null, countColor: '' },
+          { label: 'My Availability',      href: '/availability',         icon: CalendarClock,
+            count: null, countColor: '' },
+        ].map(({ label, href, icon: Icon, count, countColor }) => (
+          <Link key={href} href={href}
+            className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-[#1a5228]/40 hover:bg-green-50/40 transition group">
+            <div className="w-8 h-8 rounded-lg bg-[#1a5228]/8 flex items-center justify-center flex-shrink-0">
+              <Icon size={15} className="text-[#1a5228]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-700 leading-tight truncate">{label}</p>
+              {count != null && count > 0 && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${countColor}`}>{count} pending</span>
+              )}
+            </div>
+            <ChevronRight size={13} className="text-gray-300 group-hover:text-[#1a5228] transition flex-shrink-0" />
+          </Link>
+        ))}
       </div>
 
       {loading ? (
@@ -201,50 +227,46 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-          {/* PERMA wellbeing overview */}
-          <PermaDistributionWidget />
-
-          {/* PERMA trends over time */}
-          <PermaTrendsWidget />
-
-          {/* Needs action */}
+          {/* Pending confirmation */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                Needs Assignment
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Pending Confirmation</p>
                 {needsAction.length > 0 && (
-                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-medium normal-case tracking-normal">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-bold">
                     {needsAction.length}
                   </span>
                 )}
-              </p>
-              <Link href="/appointment-requests" className="text-xs text-[#1a5228] hover:underline">View all</Link>
+              </div>
+              <Link href="/appointment-requests" className="text-xs text-[#1a5228] hover:underline font-medium">View all</Link>
             </div>
             {needsAction.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-36 text-center">
-                <CheckCircle size={22} className="text-green-400 mb-2" />
-                <p className="text-sm text-gray-600 font-medium">All requests assigned</p>
-                <p className="text-xs text-gray-400 mt-1">No unassigned appointments right now.</p>
+              <div className="flex flex-col items-center justify-center h-32 text-center">
+                <CheckCircle size={20} className="text-green-400 mb-2" />
+                <p className="text-sm text-gray-600 font-medium">All slots confirmed</p>
+                <p className="text-xs text-gray-400 mt-0.5">No pending confirmations right now.</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {needsAction.slice(0, 6).map((a: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
-                    <div>
+                {needsAction.slice(0, 5).map((a: any, i: number) => (
+                  <div key={i} className="py-2.5 flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0 text-xs font-bold text-orange-600">
+                      {(a.student_name || 'S').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium text-gray-800">{a.student_name || 'Student'}</p>
+                        <p className="text-sm font-medium text-gray-800 truncate">{a.student_name || 'Student'}</p>
                         {a.risk_level && ['RED', 'CRITICAL'].includes(a.risk_level.toUpperCase()) && (
-                          <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
+                          <AlertCircle size={11} className="text-red-500 flex-shrink-0" />
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {fmtDate(a.preferred_date || a.created_at)} · {a.method || 'in-person'}
+                      <p className="text-xs text-gray-400">
+                        {fmtDate(a.preferred_date || a.created_at)} · {(a.method || 'in-person').replace(/-/g, ' ')}
                       </p>
                     </div>
                     <Link href="/appointment-requests">
-                      <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-colors flex-shrink-0"
-                        style={{ backgroundColor: '#1a5228' }}>
-                        Assign
+                      <button className="text-xs px-2.5 py-1 bg-[#1a5228] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
+                        Confirm
                       </button>
                     </Link>
                   </div>
@@ -253,35 +275,44 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
             )}
           </div>
 
-          {/* Today's confirmed sessions */}
+          {/* Today's intakes */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
-              <Link href="/appointments" className="text-xs text-[#1a5228] hover:underline">View all</Link>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Today's Intakes</p>
+              <Link href="/appointment-requests" className="text-xs text-[#1a5228] hover:underline font-medium">View all</Link>
             </div>
             {todayConfirmed.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-36 text-center">
-                <p className="text-sm text-gray-600 font-medium">No sessions today</p>
-                <p className="text-xs text-gray-400 mt-1">Confirmed appointments will appear here.</p>
+              <div className="flex flex-col items-center justify-center h-32 text-center">
+                <p className="text-sm text-gray-600 font-medium">No intakes scheduled today</p>
+                <p className="text-xs text-gray-400 mt-0.5">Confirmed appointments appear here.</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {todayConfirmed.slice(0, 6).map((a: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{a.student_name || 'Student'}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {fmtTime(a.preferred_date || a.scheduled_start)} · {a.counselor_name || 'Counselor TBD'}
-                      </p>
+                {todayConfirmed.slice(0, 5).map((a: any, i: number) => (
+                  <div key={i} className="py-2.5 flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1a5228]">
+                      {(a.student_name || 'S').charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
-                      Confirmed
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{a.student_name || 'Student'}</p>
+                      <p className="text-xs text-gray-400">{fmtTime(a.preferred_date || a.scheduled_start)}</p>
+                    </div>
+                    <Link href="/appointment-requests">
+                      <button className="text-xs px-2.5 py-1 bg-[#1a5228] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
+                        Conduct
+                      </button>
+                    </Link>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {/* PERMA wellbeing overview */}
+          <PermaDistributionWidget />
+
+          {/* PERMA trends over time */}
+          <PermaTrendsWidget />
 
         </div>
       )}

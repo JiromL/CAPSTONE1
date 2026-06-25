@@ -145,6 +145,7 @@ export default function BookAppointmentPage() {
   const [slots, setSlots]                 = useState<{ time: string; method: string; counselor_id: string; counselor_name: string }[]>([]);
   const [slotsLoading, setSlotsLoading]   = useState(false);
   const [noSlotsNextDate, setNoSlotsNextDate] = useState<string | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
   const [requestAnyway, setRequestAnyway] = useState(false);
   const [methodFilter, setMethodFilter]   = useState<'all' | 'in-person' | 'online'>('all');
 
@@ -1102,110 +1103,166 @@ export default function BookAppointmentPage() {
                 </div>
               )}
 
-              {/* Step 3: Date */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Date <span className="text-red-400">*</span></label>
-                <input type="date" value={prefDate} onChange={e => setPrefDate(e.target.value)} min={toDS(minDate)} max={toDS(maxDate)} className={IC} />
-              </div>
+              {/* Step 3 & 4: Calendar + Slots */}
+              {(() => {
+                const { year, month } = calendarMonth;
+                const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const blanks = (firstDay + 6) % 7; // shift to Mon-start
+                const cells: (number | null)[] = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+                while (cells.length % 7 !== 0) cells.push(null);
+                const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-              {/* Step 4: Slots filtered by selected method */}
-              {prefDate && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                    Available Slots <span className="text-red-400">*</span>
-                  </label>
+                const isSelectable = (day: number) => {
+                  const ds = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                  const d = new Date(ds + 'T12:00:00');
+                  return d >= minDate && d <= maxDate && !bookingRules.blackout_dates.includes(ds);
+                };
 
-                  {slotsLoading && (
-                    <div className="flex items-center gap-2 text-sm text-gray-400 py-3">
-                      <Loader2 size={14} className="animate-spin" /> Checking availability…
-                    </div>
-                  )}
+                const seen = new Set<string>();
+                const filtered = slots
+                  .filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase())
+                  .filter(s => {
+                    const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.counselor_id}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key); return true;
+                  });
 
-                  {!slotsLoading && slots.length > 0 && (() => {
-                    const seen = new Set<string>();
-                    const filtered = slots
-                      .filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase())
-                      .filter(s => {
-                        const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.counselor_id}`;
-                        if (seen.has(key)) return false;
-                        seen.add(key); return true;
-                      });
+                const selectedDayLabel = prefDate
+                  ? new Date(prefDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+                  : null;
 
-                    if (filtered.length === 0) return (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                        No {slotMethod === 'Online' ? 'online' : 'face-to-face'} slots on this date.
-                        {slots.some(s => s.method?.toLowerCase() !== slotMethod.toLowerCase()) && (
-                          <button type="button"
-                            onClick={() => {
-                              const other = slotMethod === 'F2F' ? 'Online' : 'F2F';
-                              setSlotMethod(other);
-                              setPrefTime(''); setSlotCounselorId(''); setRequestAnyway(false);
-                            }}
-                            className="ml-1 font-bold underline hover:text-amber-900">
-                            Switch to {slotMethod === 'F2F' ? 'Online' : 'F2F'}?
-                          </button>
-                        )}
-                      </div>
-                    );
+                return (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                      Select Date &amp; Time <span className="text-red-400">*</span>
+                    </label>
 
-                    return (
-                      <div className="space-y-1.5">
-                        {filtered.map((s, i) => {
-                          const isSelected = prefTime === s.time && slotCounselorId === s.counselor_id;
-                          return (
-                            <button key={i} type="button"
-                              onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
-                              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
-                                isSelected ? 'border-[#1a5228] bg-[#1a5228]/5' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                              }`}>
-                              <Clock size={13} className={isSelected ? 'text-[#1a5228]' : 'text-gray-400'} />
-                              <span className={`font-bold text-sm tabular-nums ${isSelected ? 'text-[#1a5228]' : 'text-gray-800'}`}>
-                                {fmtT(s.time)}
-                              </span>
-                              {isSelected && <span className="ml-auto flex-shrink-0 w-5 h-5 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[10px] font-bold">✓</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
+                    <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                      <div className="flex gap-0 divide-x divide-gray-200">
 
-                  {!slotsLoading && slots.length === 0 && !requestAnyway && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-                      <div className="flex items-start gap-2">
-                        <CalendarX size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-semibold text-amber-800">No slots available on this date</p>
-                          {noSlotsNextDate && (
-                            <p className="text-xs text-amber-600 mt-0.5">
-                              Next available:{' '}
-                              <button type="button" onClick={() => setPrefDate(noSlotsNextDate)}
-                                className="font-bold underline hover:text-amber-800">
-                                {new Date(noSlotsNextDate + 'T00:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
+                        {/* Calendar */}
+                        <div className="flex-1 p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-bold text-gray-800">{monthLabel}</p>
+                            <div className="flex gap-1">
+                              <button type="button" onClick={() => setCalendarMonth(m => {
+                                const d = new Date(m.year, m.month - 1); return { year: d.getFullYear(), month: d.getMonth() };
+                              })} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                                <ChevronLeft size={14} />
                               </button>
-                            </p>
+                              <button type="button" onClick={() => setCalendarMonth(m => {
+                                const d = new Date(m.year, m.month + 1); return { year: d.getFullYear(), month: d.getMonth() };
+                              })} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                                <ChevronRight size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-7 mb-1">
+                            {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d => (
+                              <div key={d} className="text-center text-[10px] font-semibold text-gray-400 py-1">{d}</div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-7 gap-y-0.5">
+                            {cells.map((day, i) => {
+                              if (!day) return <div key={i} />;
+                              const ds = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                              const selectable = isSelectable(day);
+                              const isSelected = prefDate === ds;
+                              const isToday = ds === toDS(new Date());
+                              return (
+                                <button key={i} type="button" disabled={!selectable}
+                                  onClick={() => { setPrefDate(ds); setPrefTime(''); setSlotCounselorId(''); setRequestAnyway(false); setCalendarMonth({ year, month }); }}
+                                  className={`mx-auto w-8 h-8 flex items-center justify-center rounded-full text-xs font-medium transition
+                                    ${isSelected ? 'bg-[#1a5228] text-white font-bold' :
+                                      isToday && selectable ? 'ring-2 ring-[#1a5228] text-[#1a5228] font-bold' :
+                                      selectable ? 'hover:bg-gray-100 text-gray-700' :
+                                      'text-gray-300 cursor-not-allowed'}`}>
+                                  {day}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Time slots panel */}
+                        <div className="w-44 flex flex-col">
+                          {!prefDate ? (
+                            <div className="flex-1 flex items-center justify-center p-4">
+                              <p className="text-xs text-gray-400 text-center">Select a date to see available slots</p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="px-3 pt-3 pb-2 border-b border-gray-100">
+                                <p className="text-xs font-semibold text-gray-700">{selectedDayLabel}</p>
+                                {prefTime && (
+                                  <div className="mt-1.5 flex items-center gap-1.5">
+                                    <span className="px-2.5 py-1 rounded-lg bg-[#1a5228] text-white text-xs font-bold">{fmtT(prefTime)}</span>
+                                    <button type="button" onClick={() => { setPrefTime(''); setSlotCounselorId(''); }}
+                                      className="text-[10px] text-gray-400 hover:text-gray-600 underline">change</button>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 overflow-y-auto max-h-52 p-2 space-y-1">
+                                {slotsLoading && (
+                                  <div className="flex items-center justify-center py-6 gap-2 text-xs text-gray-400">
+                                    <Loader2 size={12} className="animate-spin" /> Loading…
+                                  </div>
+                                )}
+                                {!slotsLoading && filtered.length > 0 && filtered.map((s, i) => {
+                                  const isSel = prefTime === s.time && slotCounselorId === s.counselor_id;
+                                  return (
+                                    <button key={i} type="button"
+                                      onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
+                                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold text-center transition border
+                                        ${isSel ? 'bg-[#1a5228] text-white border-[#1a5228]' : 'border-gray-200 text-gray-700 hover:border-[#1a5228] hover:text-[#1a5228]'}`}>
+                                      {fmtT(s.time)}
+                                    </button>
+                                  );
+                                })}
+                                {!slotsLoading && filtered.length === 0 && slots.length > 0 && (
+                                  <div className="px-2 py-3 text-center">
+                                    <p className="text-xs text-amber-700">No {slotMethod === 'Online' ? 'online' : 'F2F'} slots.</p>
+                                    {slots.some(s => s.method?.toLowerCase() !== slotMethod.toLowerCase()) && (
+                                      <button type="button" onClick={() => { setSlotMethod(slotMethod === 'F2F' ? 'Online' : 'F2F'); setPrefTime(''); setSlotCounselorId(''); }}
+                                        className="text-[11px] font-bold text-amber-700 underline mt-1">
+                                        Switch to {slotMethod === 'F2F' ? 'Online' : 'F2F'}
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                                {!slotsLoading && slots.length === 0 && !requestAnyway && (
+                                  <div className="px-2 py-3 space-y-2 text-center">
+                                    <p className="text-xs text-gray-500">No slots on this date.</p>
+                                    {noSlotsNextDate && (
+                                      <button type="button" onClick={() => { setPrefDate(noSlotsNextDate); setCalendarMonth({ year: parseInt(noSlotsNextDate.split('-')[0]), month: parseInt(noSlotsNextDate.split('-')[1]) - 1 }); }}
+                                        className="text-[11px] font-bold text-[#1a5228] underline block">
+                                        Next: {new Date(noSlotsNextDate + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+                                      </button>
+                                    )}
+                                    <button type="button" onClick={() => setRequestAnyway(true)}
+                                      className="w-full py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-[11px] font-semibold text-amber-700 hover:bg-amber-100 transition">
+                                      Open request
+                                    </button>
+                                  </div>
+                                )}
+                                {requestAnyway && (
+                                  <div className="px-2 py-3 text-center space-y-1">
+                                    <p className="text-xs font-semibold text-blue-700">Open request</p>
+                                    <p className="text-[10px] text-blue-500">OA will schedule you</p>
+                                    <button type="button" onClick={() => setRequestAnyway(false)} className="text-[10px] text-blue-400 underline">Change</button>
+                                  </div>
+                                )}
+                              </div>
+                            </>
                           )}
                         </div>
-                      </div>
-                      <button type="button" onClick={() => setRequestAnyway(true)}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-amber-700 hover:bg-amber-50 transition">
-                        <CalendarCheck size={12} /> Submit open request — OA will schedule me
-                      </button>
-                    </div>
-                  )}
 
-                  {!slotsLoading && requestAnyway && (
-                    <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-                      <CalendarCheck size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-xs font-semibold text-blue-800">Open request — no specific time</p>
-                        <p className="text-xs text-blue-600 mt-0.5">A CPS staff member will contact you to arrange a schedule.</p>
                       </div>
-                      <button type="button" onClick={() => setRequestAnyway(false)} className="text-xs text-blue-400 hover:text-blue-600 underline">Change</button>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
             )} {/* end purpose !== 'others' */}
 

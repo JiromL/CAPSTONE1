@@ -1028,7 +1028,29 @@ export default function MyAppointmentsPage() {
                   </div>
                 )}
 
-                {/* PHQ-4 */}
+                {/* PHQ-4 — show answers only, no scores */}
+                {viewFormsPacket?.phq4_responses?.length === 4 && (
+                  <div>
+                    <p className="font-bold text-xs text-purple-700 uppercase tracking-wide mb-3">Wellness Pre-Screen (PHQ-4)</p>
+                    <div className="space-y-2">
+                      {[
+                        'Little interest or pleasure in doing things',
+                        'Feeling down, depressed, or hopeless',
+                        'Feeling nervous, anxious, or on edge',
+                        'Not being able to stop or control worrying',
+                      ].map((question, i) => {
+                        const labels = ['Not at all', 'Several days', 'More than half the days', 'Nearly every day'];
+                        const val = viewFormsPacket.phq4_responses[i];
+                        return (
+                          <div key={i} className="flex items-start justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
+                            <p className="text-xs text-gray-600 flex-1">{question}</p>
+                            <span className="text-xs font-medium text-gray-800 flex-shrink-0">{labels[val] ?? '—'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               </div>
             )}

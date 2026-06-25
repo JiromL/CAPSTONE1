@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 import {
   AlertCircle, CheckCircle, Loader2, Save, Send, Check,
   ChevronRight, ChevronLeft, User, FileText, Brain, ClipboardCheck,
-  BookOpen, Heart, Phone, GraduationCap, Clock, CalendarX, CalendarCheck, UserCheck,
+  BookOpen, Heart, Phone, GraduationCap, Clock, CalendarX, CalendarCheck, UserCheck, ClipboardList,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -163,6 +163,8 @@ export default function BookAppointmentPage() {
   const [intakeSubmitting, setIntakeSubmitting] = useState(false);
   const [appointmentId, setAppointmentId] = useState('');
   const [formSkipped, setFormSkipped]     = useState(false);
+  const [showConfirm, setShowConfirm]     = useState(false);
+  const [showFormsChoice, setShowFormsChoice] = useState(false);
 
   const [icf, setIcf] = useState({
     first_name:'', last_name:'', middle_name:'', email:'', student_id:'', phone:'',
@@ -211,19 +213,30 @@ export default function BookAppointmentPage() {
       if (resumeId) {
         setAppointmentId(resumeId);
         setTicketNumber(resumeId.slice(-8).toUpperCase());
-        setShowIntake(true);
-        // Pre-fill ICF from user profile
-        if (u) {
-          setIcf(prev => ({
-            ...prev,
-            first_name: u.first_name || '',
-            last_name:  u.last_name  || '',
-            email:      u.email      || '',
-            student_id: u.student_number || u.student_id || '',
-            college:    u.college    || '',
-            program:    u.program    || '',
-          }));
+        // Restore saved form progress if available
+        try {
+          const saved = localStorage.getItem(`cps_forms_${resumeId}`);
+          if (saved) {
+            const { icf: sIcf, spif: sSpif, phq4: sPhq4, step: sStep } = JSON.parse(saved);
+            if (sIcf)  setIcf(prev => ({ ...prev, ...sIcf }));
+            if (sSpif) setSpif(sSpif);
+            if (sPhq4) setPhq4(sPhq4);
+            if (typeof sStep === 'number') setIntakeStep(sStep);
+          } else if (u) {
+            setIcf(prev => ({
+              ...prev,
+              first_name: u.first_name || '',
+              last_name:  u.last_name  || '',
+              email:      u.email      || '',
+              student_id: u.student_number || u.student_id || '',
+              college:    u.college    || '',
+              program:    u.program    || '',
+            }));
+          }
+        } catch {
+          if (u) setIcf(prev => ({ ...prev, first_name: u.first_name||'', last_name: u.last_name||'', email: u.email||'' }));
         }
+        setShowIntake(true);
       }
 
       setLoading(false);
@@ -309,11 +322,10 @@ export default function BookAppointmentPage() {
   const maxDate = new Date(today); maxDate.setDate(today.getDate() + bookingRules.max_days_ahead);
   const toDS = (d: Date) => d.toISOString().split('T')[0];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault(); setError(null);
     const fp = purpose === 'others' ? specifyOthers.trim() : purpose;
     if (!fp)           { setError('Please select a purpose.'); return; }
-    if (!concern.trim()) { setError('Please describe your concern.'); return; }
     if (purpose !== 'others') {
       if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
       if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
@@ -323,9 +335,14 @@ export default function BookAppointmentPage() {
     }
     if (referralType === 'referred' && !referredBy.trim()) { setError('Please specify who referred you.'); return; }
     if (prefDate && bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
-    setSubmitting(true);
+    setShowConfirm(true);
+  };
+
+  const handleConfirmedBook = async () => {
+    setShowConfirm(false); setSubmitting(true); setError(null);
     try {
       const token = localStorage.getItem('token');
+      const fp = purpose === 'others' ? specifyOthers.trim() : purpose;
       const body: Record<string, any> = {
         purpose: fp, concern, preferred_method: slotMethod,
         preferred_platform: slotMethod?.toLowerCase() === 'online' ? prefPlatform : null,
@@ -337,7 +354,6 @@ export default function BookAppointmentPage() {
         body.preferred_time = prefTime;
         if (slotCounselorId) body.counselor_id = slotCounselorId;
       }
-      // For counseling/follow-up open requests, still record the counselor so OA knows who to schedule with
       if (requestAnyway && selectedCounselorId && purpose !== 'intake_interview') {
         body.counselor_id = selectedCounselorId;
       }
@@ -350,10 +366,16 @@ export default function BookAppointmentPage() {
         setTicketNumber(apptId); setAppointmentId(apptId);
         if (purpose === 'intake_interview') {
           setIcf(p => ({ ...p, first_name: user?.first_name||'', last_name: user?.last_name||'', email: user?.email||'', student_id: user?.student_id||user?.id_number||'', phone: user?.phone||'', college: user?.college||'', program: user?.program||'', presenting_concern: concern, referral_source: referralType==='referred'?'referred':'self-referred', referred_by: referredBy }));
-          setIntakeStep(0); setIntakeError(''); setShowIntake(true);
+          setIntakeStep(0); setIntakeError('');
+          setShowFormsChoice(true);
         } else { setSuccess(true); }
       } else setError(d.error || 'Failed to submit.');
     } catch { setError('Network error.'); } finally { setSubmitting(false); }
+  };
+
+  const saveFormsProgress = () => {
+    try { localStorage.setItem(`cps_forms_${appointmentId}`, JSON.stringify({ icf, spif, phq4, step: intakeStep })); } catch {}
+    setFormSkipped(true); setShowIntake(false); setSuccess(true);
   };
 
   const validateIntakeStep = () => {
@@ -649,16 +671,16 @@ export default function BookAppointmentPage() {
               )}
             </div>
 
-            <div className="px-5 py-4 border-t border-gray-100 flex gap-3 bg-gray-50/50">
+            <div className="px-5 py-4 border-t border-gray-100 flex gap-3 bg-gray-50/50 flex-wrap">
               {intakeStep > 0 && (
                 <button onClick={() => { setIntakeError(''); setIntakeStep(s=>s-1); }} className="flex items-center gap-1.5 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
                   <ChevronLeft size={14} /> Back
                 </button>
               )}
-              <div className="flex-1" />
-              <button onClick={() => { setFormSkipped(true); setShowIntake(false); setSuccess(true); }} className="text-xs text-amber-600 hover:text-amber-800 px-3 transition underline underline-offset-2">
-                Complete later
+              <button onClick={saveFormsProgress} className="flex items-center gap-1.5 px-4 py-2.5 text-sm border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition">
+                <Save size={13} /> Save &amp; Exit
               </button>
+              <div className="flex-1" />
               {intakeStep < 2 ? (
                 <button onClick={() => { if (validateIntakeStep()) setIntakeStep(s=>s+1); }} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ backgroundColor:'#1a5228' }}>
                   Continue <ChevronRight size={14} />
@@ -833,6 +855,87 @@ export default function BookAppointmentPage() {
               </button>
               <button onClick={() => router.replace('/dashboard')} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition">Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking confirmation modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CalendarCheck className="w-6 h-6 text-[#1a5228]" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 text-center mb-1">Confirm Your Booking</h2>
+            <p className="text-xs text-gray-400 text-center mb-5">Please review your appointment details before confirming.</p>
+            <div className="space-y-2.5 mb-6">
+              <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                <span className="text-gray-500">Purpose</span>
+                <span className="font-medium text-gray-800 capitalize">{purpose === 'intake_interview' ? 'Intake Interview' : purpose === 'counseling' ? 'Counseling' : purpose === 'follow_up_counselling' ? 'Follow-up' : purpose}</span>
+              </div>
+              <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                <span className="text-gray-500">Mode</span>
+                <span className="font-medium text-gray-800">{slotMethod === 'F2F' ? 'Face to Face' : 'Online'}{slotMethod === 'Online' && prefPlatform ? ` · ${prefPlatform === 'google-meet' ? 'Google Meet' : 'Zoom'}` : ''}</span>
+              </div>
+              {prefDate && (
+                <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                  <span className="text-gray-500">Date &amp; Time</span>
+                  <span className="font-medium text-gray-800">
+                    {new Date(prefDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {prefTime && ` at ${(() => { const [h,m]=prefTime.split(':').map(Number); const ap=h>=12?'PM':'AM'; const h12=h%12||12; return `${h12}:${String(m).padStart(2,'0')} ${ap}`; })()}`}
+                  </span>
+                </div>
+              )}
+              {concern && (
+                <div className="flex justify-between text-sm border-b border-gray-100 pb-2 gap-4">
+                  <span className="text-gray-500 flex-shrink-0">Concern</span>
+                  <span className="font-medium text-gray-800 text-right line-clamp-2">{concern}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Referral</span>
+                <span className="font-medium text-gray-800">{referralType === 'referred' ? `Referred by ${referredBy}` : 'Self Referred'}</span>
+              </div>
+            </div>
+            {purpose === 'intake_interview' && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-4">
+                After booking, you&apos;ll be asked to fill out the intake forms (ICF, SPIF, PHQ-4). You can do them now or come back later.
+              </p>
+            )}
+            {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+            <button onClick={handleConfirmedBook} disabled={submitting}
+              className="w-full py-3 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 mb-2">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {submitting ? 'Booking…' : 'Confirm Booking'}
+            </button>
+            <button onClick={() => setShowConfirm(false)} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition">
+              Go Back &amp; Edit
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Forms choice — fill now or later */}
+      {showFormsChoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-6 h-6 text-[#1a5228]" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 text-center mb-1">Appointment Booked!</h2>
+            <p className="text-xs text-gray-400 text-center mb-1">Ticket #{ticketNumber}</p>
+            <p className="text-sm text-gray-600 text-center mb-5">Your slot is reserved. Would you like to fill out the required intake forms now?</p>
+            <div className="space-y-3">
+              <button onClick={() => { setShowFormsChoice(false); setShowIntake(true); }}
+                className="w-full py-3 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2">
+                <ClipboardList size={14} /> Fill Out Forms Now
+              </button>
+              <button onClick={() => { setShowFormsChoice(false); setFormSkipped(true); setSuccess(true); }}
+                className="w-full py-3 border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium rounded-xl transition">
+                I&apos;ll Complete Later
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-4">You can return to fill the forms from My Appointments → &quot;Complete Forms&quot;.</p>
           </div>
         </div>
       )}

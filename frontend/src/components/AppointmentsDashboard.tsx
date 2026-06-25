@@ -172,6 +172,10 @@ export default function AppointmentsDashboard() {
   const [assignMsg, setAssignMsg]       = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [freeSlots, setFreeSlots]       = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [assignMode, setAssignMode]     = useState<'slots' | 'manual'>('slots');
+  const [openSlots, setOpenSlots]       = useState<any[]>([]);
+  const [loadingOpenSlots, setLoadingOpenSlots] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
 
   // Session actions
   const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'referral'; notes: string } | null>(null);
@@ -327,23 +331,43 @@ export default function AppointmentsDashboard() {
     }
   };
 
+  const fetchOpenSlots = async (date: string) => {
+    if (!date) { setOpenSlots([]); return; }
+    setLoadingOpenSlots(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/availability/open-slots?date=${date}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      setOpenSlots(d.slots ?? []);
+    } catch {
+      setOpenSlots([]);
+    } finally {
+      setLoadingOpenSlots(false);
+    }
+  };
+
   const handleAssign = async () => {
     if (!assignTarget) return;
-    if (!assignForm.counselorId || !assignForm.date || !assignForm.time) {
-      setAssignMsg({ type: 'err', text: 'Select counselor, date, and time.' });
+    const counselorId = assignMode === 'slots' ? selectedSlot?.counselor_id : assignForm.counselorId;
+    const dateStr     = assignMode === 'slots' ? (selectedSlot?.date ?? assignForm.date) : assignForm.date;
+    const timeStr     = assignMode === 'slots' ? selectedSlot?.time : assignForm.time;
+    if (!counselorId || !dateStr || !timeStr) {
+      setAssignMsg({ type: 'err', text: assignMode === 'slots' ? 'Pick an available slot first.' : 'Select counselor, date, and time.' });
       return;
     }
     setAssigningId(assignTarget.appointment_id);
     setAssignMsg(null);
     try {
       const token = localStorage.getItem('token');
-      const start = new Date(`${assignForm.date}T${assignForm.time}:00`);
+      const start = new Date(`${dateStr}T${timeStr}:00`);
       const end   = new Date(start.getTime() + 60 * 60 * 1000);
       const r = await fetch(api(`/api/appointments/${assignTarget.appointment_id}/match-counselor`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          counselor_id: assignForm.counselorId,
+          counselor_id: counselorId,
           scheduled_start: start.toISOString(),
           scheduled_end: end.toISOString(),
           ...(assignForm.office ? { office: assignForm.office } : {}),
@@ -351,7 +375,7 @@ export default function AppointmentsDashboard() {
       });
       if (r.ok) {
         setAssignMsg({ type: 'ok', text: 'Counselor assigned and appointment confirmed.' });
-        setTimeout(() => { setAssignTarget(null); fetchDashboard(); }, 1000);
+        setTimeout(() => { setAssignTarget(null); setSelectedSlot(null); setOpenSlots([]); fetchDashboard(); }, 1000);
       } else {
         const e = await r.json();
         setAssignMsg({ type: 'err', text: e.error || 'Failed to assign.' });
@@ -940,14 +964,14 @@ export default function AppointmentsDashboard() {
                                   </button>
                                 )}
                                 {canAssign && isNew && !apt.counselor_id && (
-                                  <button onClick={() => { setAssignTarget(apt); setFreeSlots([]); setAssignForm({ counselorId: '', date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '', time: apt.preferred_time || '', office: '' }); setAssignMsg(null); }}
+                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#1a5228' }}>
                                     <UserCheck size={12} /> Assign Counselor
                                   </button>
                                 )}
                                 {canAssign && isNew && apt.counselor_id && !isIC && (
-                                  <button onClick={() => { setAssignTarget(apt); setFreeSlots([]); setAssignForm({ counselorId: '', date: apt.preferred_date ? apt.preferred_date.split('T')[0] : '', time: apt.preferred_time || '', office: '' }); setAssignMsg(null); }}
+                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#1a5228' }}>
                                     <UserCheck size={12} /> Assign Counselor
@@ -1118,84 +1142,152 @@ export default function AppointmentsDashboard() {
                 )}
               </div>
 
-              {/* Counselor */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Counselor <span className="text-red-400 normal-case font-normal">*</span>
-                </label>
-                <select value={assignForm.counselorId}
-                  onChange={e => {
-                    const cid = e.target.value;
-                    setAssignForm(f => ({ ...f, counselorId: cid }));
-                    fetchFreeSlots(cid, assignForm.date);
-                  }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
-                  <option value="">Select a counselor…</option>
-                  {counselors.map(c => (
-                    <option key={c._id} value={c._id}>
-                      {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
-                    </option>
-                  ))}
-                </select>
+              {/* Mode toggle */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                {(['slots', 'manual'] as const).map(m => (
+                  <button key={m} type="button"
+                    onClick={() => { setAssignMode(m); setSelectedSlot(null); setAssignMsg(null); }}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      assignMode === m ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                    }`}>
+                    {m === 'slots' ? '📅 Available Slots' : '✏️ Manual Entry'}
+                  </button>
+                ))}
               </div>
 
-              {/* Date + Time */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Confirmed Date <span className="text-red-400 normal-case font-normal">*</span>
-                  </label>
-                  <input type="date" value={assignForm.date}
-                    onChange={e => {
-                      const d = e.target.value;
-                      setAssignForm(f => ({ ...f, date: d }));
-                      fetchFreeSlots(assignForm.counselorId, d);
-                    }}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Time <span className="text-red-400 normal-case font-normal">*</span>
-                    {loadingSlots && <span className="ml-1 text-gray-300 font-normal normal-case">loading…</span>}
-                  </label>
-                  {freeSlots.length > 0 ? (
-                    <select value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
-                      <option value="">Pick a free slot…</option>
-                      {freeSlots.map(t => {
-                        const [h, m] = t.split(':').map(Number);
-                        const ampm = h >= 12 ? 'PM' : 'AM';
-                        const h12 = h % 12 || 12;
-                        return <option key={t} value={t}>{h12}:{String(m).padStart(2,'0')} {ampm}</option>;
-                      })}
-                    </select>
-                  ) : (
-                    <div className="space-y-1">
-                      <input type="time" step="1800" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
+              {assignMode === 'slots' ? (
+                <>
+                  {/* Date picker */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date</label>
+                    <input type="date" value={assignForm.date}
+                      onChange={e => { const d = e.target.value; setAssignForm(f => ({ ...f, date: d })); setSelectedSlot(null); fetchOpenSlots(d); }}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                  </div>
+
+                  {/* Slot list */}
+                  {assignForm.date && (
+                    loadingOpenSlots ? (
+                      <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                        <Loader2 size={13} className="animate-spin" /> Checking counselor availability…
+                      </div>
+                    ) : openSlots.length === 0 ? (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                        No counselors have available slots on this date.{' '}
+                        <button type="button" onClick={() => { setAssignMode('manual'); }} className="font-bold underline">Switch to manual entry</button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Pick a slot</p>
+                        <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                          {openSlots.map((s: any, i: number) => {
+                            const isOnline = s.method?.toLowerCase() === 'online';
+                            const isSel = selectedSlot?.counselor_id === s.counselor_id && selectedSlot?.time === s.time;
+                            const [h, m] = s.time.split(':').map(Number);
+                            const ampm = h >= 12 ? 'PM' : 'AM';
+                            const h12 = h % 12 || 12;
+                            const timeLabel = `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+                            return (
+                              <button key={i} type="button"
+                                onClick={() => setSelectedSlot(s)}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition ${
+                                  isSel ? 'border-[#1a5228] bg-[#1a5228]/5' : 'border-gray-200 bg-white hover:border-gray-300'
+                                }`}>
+                                <Clock size={12} className={isSel ? 'text-[#1a5228]' : 'text-gray-400'} />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-xs font-bold ${isSel ? 'text-[#1a5228]' : 'text-gray-800'}`}>{timeLabel}</p>
+                                  <p className="text-[10px] text-gray-400 truncate">{s.counselor_name}</p>
+                                </div>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                  isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
+                                }`}>
+                                  {isOnline ? 'Online' : 'F2F'}
+                                </span>
+                                {isSel && <span className="w-4 h-4 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {selectedSlot && (
+                          <p className="text-[10px] text-green-600 mt-1.5">
+                            Selected: <strong>{selectedSlot.counselor_name}</strong> at {(() => { const [h,m] = selectedSlot.time.split(':').map(Number); const ap = h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ap}`; })()}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  )}
+
+                  {/* Office — only for F2F */}
+                  {selectedSlot && selectedSlot.method?.toLowerCase() !== 'online' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Office / Room</label>
+                      <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
+                        placeholder="e.g. Room 203, CPS Office"
                         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
-                      {assignForm.counselorId && assignForm.date && !loadingSlots && (
-                        <p className="text-[10px] text-amber-500">No availability set — entering manually</p>
-                      )}
                     </div>
                   )}
-                </div>
-              </div>
+                </>
+              ) : (
+                <>
+                  {/* Manual: counselor dropdown */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                      Counselor <span className="text-red-400 normal-case font-normal">*</span>
+                    </label>
+                    <select value={assignForm.counselorId}
+                      onChange={e => { const cid = e.target.value; setAssignForm(f => ({ ...f, counselorId: cid })); fetchFreeSlots(cid, assignForm.date); }}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                      <option value="">Select a counselor…</option>
+                      {counselors.map(c => (
+                        <option key={c._id} value={c._id}>
+                          {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Office/Room — only for face-to-face sessions */}
-              {(assignTarget?.method === 'in-person' || assignTarget?.method === 'in_person') && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Office / Room
-                  </label>
-                  <input
-                    type="text"
-                    value={assignForm.office}
-                    onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
-                    placeholder="e.g. Room 203, CPS Office, Bldg. A"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Let the student know where to go for their in-person session.</p>
-                </div>
+                  {/* Manual: date + time */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date <span className="text-red-400 normal-case font-normal">*</span></label>
+                      <input type="date" value={assignForm.date}
+                        onChange={e => { const d = e.target.value; setAssignForm(f => ({ ...f, date: d })); fetchFreeSlots(assignForm.counselorId, d); }}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                        Time <span className="text-red-400 normal-case font-normal">*</span>
+                        {loadingSlots && <span className="ml-1 text-gray-300 font-normal normal-case">loading…</span>}
+                      </label>
+                      {freeSlots.length > 0 ? (
+                        <select value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                          <option value="">Pick a free slot…</option>
+                          {freeSlots.map(t => { const [h, m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12=h%12||12; return <option key={t} value={t}>{h12}:{String(m).padStart(2,'0')} {ap}</option>; })}
+                        </select>
+                      ) : (
+                        <div className="space-y-1">
+                          <input type="time" step="1800" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                          {assignForm.counselorId && assignForm.date && !loadingSlots && (
+                            <p className="text-[10px] text-amber-500">No availability set — entering manually</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Manual: office */}
+                  {(assignTarget?.method === 'in-person' || assignTarget?.method === 'in_person') && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Office / Room</label>
+                      <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
+                        placeholder="e.g. Room 203, CPS Office, Bldg. A"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                      <p className="text-xs text-gray-400 mt-1">Let the student know where to go.</p>
+                    </div>
+                  )}
+                </>
               )}
 
               {assignMsg && (

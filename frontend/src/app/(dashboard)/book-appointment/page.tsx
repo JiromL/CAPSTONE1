@@ -749,83 +749,67 @@ export default function BookAppointmentPage() {
             </div>
 
             {/* Scrollable document */}
-            <div className="overflow-y-auto flex-1 px-7 py-5 space-y-5 text-sm text-gray-700 leading-relaxed">
+            <div className="overflow-y-auto flex-1 px-7 py-5 space-y-4 text-sm text-gray-700 leading-relaxed">
 
               <div>
                 <p className="font-bold text-gray-900 mb-1">De La Salle University — Counseling & Psychology Services (CPS)</p>
                 <p className="text-xs text-gray-500">This form is required before you can access counseling and psychological services. Please read each section carefully.</p>
               </div>
 
-              <div>
-                <p className="font-semibold text-gray-800 mb-1">1. Nature of Services</p>
-                <p className="text-xs text-gray-600">The DLSU Counseling & Psychology Services (CPS) provides mental health support, counseling, and psychological services to enrolled students. Services include individual counseling, psychological assessment, crisis intervention, and referral to appropriate resources. Participation is voluntary and you may discontinue at any time.</p>
+              {/* I. Informed Consent for Counseling Services */}
+              <div className="border border-green-200 rounded-lg p-3 bg-green-50/50">
+                <p className="font-bold text-[#1a5228] text-xs uppercase tracking-wide mb-2">I. Informed Consent for Counseling Services</p>
+                <p className="text-xs text-gray-600 mb-1">The DLSU Counseling &amp; Psychology Services (CPS) provides mental health support, counseling, and psychological services to enrolled students. Services include individual counseling, psychological assessment, crisis intervention, and referral to appropriate resources.</p>
+                <p className="text-xs text-gray-600 mb-1">Participation is voluntary. You may ask questions at any time and may discontinue at any time without penalty.</p>
+                <p className="text-xs text-gray-600">Under the Mental Health Act of 2018 (RA 11036), you have the right to access mental health services, to be treated with dignity and respect, and to have your mental health information kept confidential.</p>
               </div>
 
-              <div>
-                <p className="font-semibold text-gray-800 mb-1">2. Confidentiality</p>
-                <p className="text-xs text-gray-600">All information shared during counseling sessions is strictly confidential. However, confidentiality has the following legal exceptions:</p>
-                <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc space-y-0.5">
-                  <li>When there is imminent risk of harm to yourself or others</li>
-                  <li>When there is suspicion of child abuse or neglect</li>
-                  <li>When disclosure is ordered by a court of law</li>
-                  <li>When required by university policies for safety and welfare purposes</li>
+              {/* II. Limits of Confidentiality */}
+              <div className="border border-amber-200 rounded-lg p-3 bg-amber-50/50">
+                <p className="font-bold text-amber-800 text-xs uppercase tracking-wide mb-2">II. Limits of Confidentiality Statement</p>
+                <p className="text-xs text-gray-600 mb-1">All information shared during counseling sessions is strictly confidential and will not be disclosed without your written consent, <span className="font-semibold">except</span> in the following circumstances:</p>
+                <ul className="text-xs text-gray-600 ml-4 list-disc space-y-0.5">
+                  <li>When there is imminent risk of serious harm to yourself or to others</li>
+                  <li>When there is reasonable suspicion of child abuse or neglect</li>
+                  <li>When disclosure is required by a court order or by law</li>
+                  <li>When required by university policy to protect the safety and welfare of the community</li>
                 </ul>
+                <p className="text-xs text-gray-500 mt-2">In such cases, only the minimum necessary information will be disclosed to the appropriate parties.</p>
               </div>
 
-              <div>
-                <p className="font-semibold text-gray-800 mb-1">3. Data Collected</p>
-                <p className="text-xs text-gray-600">In the course of providing services, CPS will collect and process the following information:</p>
-                <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc space-y-0.5">
+              {/* III. Privacy Notice */}
+              <div className="border border-blue-200 rounded-lg p-3 bg-blue-50/50">
+                <p className="font-bold text-blue-800 text-xs uppercase tracking-wide mb-2">III. Privacy Notice</p>
+                <p className="text-xs text-gray-600 mb-1 font-medium">Information we collect:</p>
+                <ul className="text-xs text-gray-600 ml-4 list-disc space-y-0.5 mb-2">
                   <li>Personal information: name, student ID, contact details, college, and program</li>
-                  <li>Health and mental health information: presenting concerns, mental health history, medication history, and substance use history</li>
-                  <li>Assessment results: PHQ-9, GAD-7, and other psychological screening tools</li>
-                  <li>Session notes: records of sessions including mood, risk indicators, and treatment progress</li>
+                  <li>Health and mental health information: presenting concerns, history, medication, and substance use</li>
+                  <li>Assessment results: PHQ-9, GAD-7, C-SSRS, and other psychological screening tools</li>
+                  <li>Session notes: mood, risk indicators, and treatment progress</li>
                   <li>Emergency contact information</li>
                   <li>Wellness monitoring data from linked EMA accounts (if applicable)</li>
                 </ul>
+                <p className="text-xs text-gray-600 mb-1 font-medium">Who may access your information:</p>
+                <p className="text-xs text-gray-600 mb-1">Only authorized CPS personnel directly involved in your care: Intake Counselors, Counselors, Psychologists, Case Managers (crisis monitoring), Administrative Staff (scheduling only), and the Data Privacy Officer (compliance only). Your data will not be shared with other departments, faculty, parents, or third parties without your explicit consent, except under Section II above.</p>
+                <p className="text-xs text-gray-600"><span className="font-medium">Retention:</span> Records are kept for a minimum of ten (10) years from your last session, after which they are securely disposed of.</p>
               </div>
 
-              <div>
-                <p className="font-semibold text-gray-800 mb-1">4. Who May Access Your Information</p>
-                <p className="text-xs text-gray-600">Your information will only be accessed by authorized CPS personnel directly involved in your care, including:</p>
-                <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc space-y-0.5">
-                  <li>Intake Counselors (IC) — for intake processing</li>
-                  <li>Counselors and Psychologists — for ongoing care</li>
-                  <li>Case Managers — for crisis monitoring (when applicable)</li>
-                  <li>CPS Administrative Staff — for scheduling and coordination only</li>
-                  <li>Data Privacy Officer (DPO) — for compliance and data subject requests</li>
-                </ul>
-                <p className="text-xs text-gray-600 mt-1">Your information will not be shared with other university departments, faculty, parents, or third parties without your explicit consent, except under the exceptions stated in Section 2.</p>
-              </div>
-
-              <div>
-                <p className="font-semibold text-gray-800 mb-1">5. Data Retention</p>
-                <p className="text-xs text-gray-600">Your counseling records will be retained for a minimum of ten (10) years from the date of your last session, in accordance with university policy and applicable laws. After this period, records will be securely disposed of.</p>
-              </div>
-
-              <div>
-                <p className="font-semibold text-gray-800 mb-1">6. Your Rights Under RA 10173 (Data Privacy Act of 2012)</p>
-                <p className="text-xs text-gray-600">As a data subject, you have the following rights:</p>
-                <ul className="text-xs text-gray-600 mt-1 ml-4 list-disc space-y-0.5">
+              {/* IV. Consent for Data Processing */}
+              <div className="border border-purple-200 rounded-lg p-3 bg-purple-50/50">
+                <p className="font-bold text-purple-800 text-xs uppercase tracking-wide mb-2">IV. Consent for Data Processing (RA 10173 — Data Privacy Act of 2012)</p>
+                <p className="text-xs text-gray-600 mb-1">Your mental health records are classified as <span className="font-medium">sensitive personal information</span> under RA 10173 and require your explicit consent to process.</p>
+                <p className="text-xs text-gray-600 mb-1 font-medium">Your rights as a data subject:</p>
+                <ul className="text-xs text-gray-600 ml-4 list-disc space-y-0.5 mb-2">
                   <li><span className="font-medium">Right to be informed</span> — to know how your data is being used</li>
                   <li><span className="font-medium">Right to access</span> — to request a copy of your personal data on file</li>
                   <li><span className="font-medium">Right to rectification</span> — to correct inaccurate personal data</li>
-                  <li><span className="font-medium">Right to object</span> — to object to the processing of your data in certain circumstances</li>
-                  <li><span className="font-medium">Right to erasure</span> — to request deletion of your data, subject to legal retention requirements</li>
+                  <li><span className="font-medium">Right to object</span> — to object to processing in certain circumstances</li>
+                  <li><span className="font-medium">Right to erasure</span> — to request deletion, subject to legal retention requirements</li>
                 </ul>
-                <p className="text-xs text-gray-600 mt-1">To exercise these rights, contact the DLSU Data Privacy Officer at the address below.</p>
-              </div>
-
-              <div>
-                <p className="font-semibold text-gray-800 mb-1">7. Mental Health Act (RA 11036)</p>
-                <p className="text-xs text-gray-600">Under the Mental Health Act of 2018, you have the right to access mental health services, to be treated with dignity, and to have your mental health information kept confidential. CPS services are provided in accordance with this law.</p>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="font-semibold text-gray-800 mb-1 text-xs">Data Privacy Officer Contact</p>
-                <p className="text-xs text-gray-500">De La Salle University — Office of the Data Privacy Officer</p>
-                <p className="text-xs text-gray-500">2401 Taft Avenue, Malate, Manila 1004</p>
-                <p className="text-xs text-gray-500">Email: dpo@dlsu.edu.ph</p>
+                <div className="bg-white/70 rounded p-2 border border-purple-100">
+                  <p className="text-xs text-gray-500 font-medium">DLSU Data Privacy Officer</p>
+                  <p className="text-xs text-gray-500">2401 Taft Avenue, Malate, Manila 1004 · dpo@dlsu.edu.ph</p>
+                </div>
               </div>
 
             </div>

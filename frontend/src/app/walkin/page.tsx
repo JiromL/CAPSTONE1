@@ -358,23 +358,38 @@ export default function WalkInSelfCheckinPage() {
 
             {/* Consent */}
             <Card icon={Heart} title="Informed Consent" accent="bg-orange-50 text-orange-700">
-              <div className="text-xs text-gray-600 leading-relaxed space-y-3 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto border border-gray-200">
-                <p className="font-semibold text-gray-800">De La Salle University — Counseling & Psychology Services (CPS)</p>
-                <p><span className="font-medium">Nature of Services:</span> CPS provides mental health support, counseling, and psychological services to enrolled students on a voluntary basis. You may discontinue at any time.</p>
-                <p><span className="font-medium">Confidentiality:</span> All session information is confidential except when: (a) there is imminent risk of harm to you or others; (b) child abuse is suspected; (c) disclosure is court-ordered; or (d) required by university policy for safety purposes.</p>
-                <p><span className="font-medium">Data Collected:</span> Personal information, mental health history, assessment results (PHQ-9, GAD-7), session notes, emergency contact, and wellness monitoring data.</p>
-                <p><span className="font-medium">Who May Access:</span> Only authorized CPS personnel directly involved in your care (Intake Counselors, Counselors, Psychologists, Case Managers, Administrative Staff, and DPO). Your data will not be shared with other departments or third parties without your consent, except under the exceptions above.</p>
-                <p><span className="font-medium">Data Retention:</span> Records are retained for a minimum of ten (10) years from your last session per university policy.</p>
-                <p><span className="font-medium">Your Rights (RA 10173):</span> You have the right to be informed, to access, correct, object to, and request erasure of your personal data. Contact the DLSU DPO at dpo@dlsu.edu.ph to exercise these rights.</p>
-                <p><span className="font-medium">Mental Health Act (RA 11036):</span> You have the right to access mental health services and to be treated with dignity under the Mental Health Act of 2018.</p>
+              <div className="text-xs text-gray-600 leading-relaxed space-y-3 max-h-56 overflow-y-auto pr-1">
+                <p className="font-semibold text-gray-800">De La Salle University — Counseling &amp; Psychology Services (CPS)</p>
+
+                <div className="border border-green-200 rounded-lg p-2.5 bg-green-50/50">
+                  <p className="font-bold text-[#1a5228] text-xs uppercase tracking-wide mb-1">I. Informed Consent for Counseling Services</p>
+                  <p>CPS provides mental health support, counseling, and psychological services to enrolled students on a voluntary basis. You may discontinue at any time without penalty. Under RA 11036 (Mental Health Act of 2018), you have the right to access services and to be treated with dignity.</p>
+                </div>
+
+                <div className="border border-amber-200 rounded-lg p-2.5 bg-amber-50/50">
+                  <p className="font-bold text-amber-800 text-xs uppercase tracking-wide mb-1">II. Limits of Confidentiality Statement</p>
+                  <p>All session information is strictly confidential <span className="font-semibold">except</span> when: (a) there is imminent risk of harm to you or others; (b) child abuse is suspected; (c) disclosure is court-ordered; or (d) required by university policy for safety purposes. Only the minimum necessary information will be disclosed.</p>
+                </div>
+
+                <div className="border border-blue-200 rounded-lg p-2.5 bg-blue-50/50">
+                  <p className="font-bold text-blue-800 text-xs uppercase tracking-wide mb-1">III. Privacy Notice</p>
+                  <p className="mb-1"><span className="font-medium">Data collected:</span> Personal information, mental health history, assessment results (PHQ-9, GAD-7, C-SSRS), session notes, emergency contact, and wellness monitoring data.</p>
+                  <p><span className="font-medium">Who may access:</span> Only authorized CPS personnel directly involved in your care (Intake Counselors, Counselors, Psychologists, Case Managers, Administrative Staff, and DPO). Your data will not be shared with other departments or third parties without your consent, except under Section II. Records are retained for a minimum of ten (10) years from your last session.</p>
+                </div>
+
+                <div className="border border-purple-200 rounded-lg p-2.5 bg-purple-50/50">
+                  <p className="font-bold text-purple-800 text-xs uppercase tracking-wide mb-1">IV. Consent for Data Processing (RA 10173 — Data Privacy Act of 2012)</p>
+                  <p className="mb-1">Your mental health records are <span className="font-medium">sensitive personal information</span> under RA 10173 and require your explicit consent to process. You have the right to be informed, to access, correct, object to, and request erasure of your personal data.</p>
+                  <p className="text-gray-500">DLSU DPO: dpo@dlsu.edu.ph · 2401 Taft Avenue, Malate, Manila 1004</p>
+                </div>
               </div>
               <label className="flex items-start gap-2 cursor-pointer mt-2">
                 <input type="checkbox" className="mt-0.5 accent-[#1a5228]" checked={icf.consent_to_service} onChange={e => setIcf(p => ({ ...p, consent_to_service: e.target.checked }))} />
-                <span className="text-xs text-gray-700">I have read and understood the above. I voluntarily consent to receive counseling and psychological services from DLSU CPS, and acknowledge the confidentiality policy and its exceptions.</span>
+                <span className="text-xs text-gray-700">I have read and understood Sections I and II. I voluntarily consent to receive counseling and psychological services from DLSU CPS and acknowledge the limits of confidentiality.</span>
               </label>
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" className="mt-0.5 accent-[#1a5228]" checked={icf.consent_to_data} onChange={e => setIcf(p => ({ ...p, consent_to_data: e.target.checked }))} />
-                <span className="text-xs text-gray-700">I consent to the collection, processing, and storage of my personal and sensitive personal information for service provision and record-keeping, in accordance with RA 10173 (Data Privacy Act of 2012).</span>
+                <span className="text-xs text-gray-700">I have read and understood Sections III and IV. I consent to the collection, processing, and storage of my personal and sensitive personal information in accordance with RA 10173 (Data Privacy Act of 2012).</span>
               </label>
             </Card>
           </>

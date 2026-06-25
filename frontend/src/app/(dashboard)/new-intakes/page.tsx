@@ -146,23 +146,38 @@ export default function NewIntakesPage() {
     setExporting(true);
     try {
       const token = localStorage.getItem('token');
-      const params = new URLSearchParams();
+      // Re-fetch all matching records (up to 200) using the same list endpoint as the table
+      const params = new URLSearchParams({ page: '1', limit: '200' });
       if (search) params.append('search', search);
       if (month)  params.append('month', month);
-      const r = await fetch(api(`/api/client-tracking/export/new-intakes?${params}`), {
+      if (statusFilter) params.append('status', statusFilter);
+      if (mineOnly && userRole === 'IC') params.append('mine', 'true');
+      const r = await fetch(api(`/api/client-tracking/new-intakes?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await r.json();
+      const rows = (d.intakes || []) as NewClientIntake[];
       exportToExcel({
-        headers: ['Date', 'Client Name', 'ID Number', 'College/Unit', 'Program', 'Service', 'Source', 'Counselor', 'Action Taken', 'Status'],
-        rows: (d.data || []).map((i: NewClientIntake) => [
-          fmt(i.created_date), i.client_name, i.client_id_number, i.college_unit,
-          i.program || '', i.service_requested, i.source, i.intake_counselor_name,
-          i.action_taken || '', i.status,
+        headers: ['Date', 'Client Name', 'ID Number', 'College/Unit', 'Program', 'Service', 'Source',
+          ...(userRole !== 'IC' ? ['IC Assigned'] : []),
+          'Packet', 'Status'],
+        rows: rows.map(i => [
+          fmt(i.created_date),
+          i.client_name || '—',
+          i.client_id_number || '—',
+          i.college_unit || '—',
+          i.program || '—',
+          i.service_requested || '—',
+          i.source || '—',
+          ...(userRole !== 'IC' ? [i.intake_counselor_name || '—'] : []),
+          i.intake_packet_submitted ? 'Ready' : 'Pending',
+          i.status || '—',
         ]),
-        filename: 'new-intakes',
+        filename: 'intake-tracker',
       });
-    } catch {} finally { setExporting(false); }
+    } catch (e) {
+      console.error('Export failed', e);
+    } finally { setExporting(false); }
   };
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

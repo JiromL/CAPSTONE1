@@ -1029,23 +1029,6 @@ export default function MyAppointmentsPage() {
                 )}
 
                 {/* PHQ-4 */}
-                {viewFormsPacket?.phq4_summary && (
-                  <div>
-                    <p className="font-bold text-xs text-purple-700 uppercase tracking-wide mb-3">PHQ-4 Pre-Screen</p>
-                    <div className="flex gap-3">
-                      {[
-                        { label: 'PHQ-2 (Depression)', score: viewFormsPacket.phq4_summary.phq2_score, max: 6, risk: viewFormsPacket.phq4_summary.depression_risk },
-                        { label: 'GAD-2 (Anxiety)', score: viewFormsPacket.phq4_summary.gad2_score, max: 6, risk: viewFormsPacket.phq4_summary.anxiety_risk },
-                      ].map(({ label, score, max, risk }) => (
-                        <div key={label} className={`flex-1 rounded-lg px-4 py-3 border ${risk ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                          <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-                          <p className={`text-lg font-bold ${risk ? 'text-red-700' : 'text-green-700'}`}>{score}/{max}</p>
-                          <p className={`text-xs font-medium ${risk ? 'text-red-600' : 'text-green-600'}`}>{risk ? 'At Risk' : 'Low Risk'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
               </div>
             )}

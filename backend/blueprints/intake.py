@@ -3032,14 +3032,13 @@ def get_intake_packet(appointment_id):
         return jsonify({'submitted': False}), 200
 
     # Students can view what they submitted (read-only) — RA 10173 Right to Access
+    # PHQ-4 scores are clinical data for the IC only; not returned to the student
     if user_role == 'STUDENT':
         return jsonify({
             'submitted': True,
             'read_only': True,
             'icf': packet.get('icf'),
             'spif': packet.get('spif'),
-            'phq4_responses': packet.get('phq4_responses'),
-            'phq4_summary': packet.get('phq4'),
             'submitted_by_role': packet.get('submitted_by_role'),
         }), 200
 

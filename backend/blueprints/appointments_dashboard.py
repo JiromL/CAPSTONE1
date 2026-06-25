@@ -249,13 +249,23 @@ def get_case_coordinator_requests(user_id_obj, user_name):
         return jsonify({'error': str(e)}), 500
 
 def get_staff_dashboard(user_id_obj, user_name):
-    """STAFF: View all appointments, with ability to assign counselors to REQUESTED ones"""
+    """STAFF: Unassigned requests + reschedules. Slot-booked (already has counselor) belong to the IC."""
     try:
-        all_appointments = list(db.db.appointments.find({}).sort("created_at", -1).limit(100))
+        # OA only handles appointments with no counselor assigned yet
+        unassigned = list(db.db.appointments.find({
+            'counselor_id': {'$exists': False},
+            'status': {'$in': [
+                AppointmentStatus.REQUESTED.value,
+                AppointmentStatus.PENDING_APPROVAL.value,
+            ]}
+        }).sort("created_at", -1).limit(100))
 
-        requested = [a for a in all_appointments if a.get('status') == AppointmentStatus.REQUESTED.value]
-        reschedule_pending = [a for a in all_appointments if a.get('status') == 'RESCHEDULE_REQUESTED']
-        awaiting_eval = [a for a in all_appointments if a.get('status') == AppointmentStatus.EVALUATION.value]
+        # Also include reschedule requests (need OA coordination regardless of assignment)
+        reschedule_apts = list(db.db.appointments.find({
+            'status': 'RESCHEDULE_REQUESTED'
+        }).sort("created_at", -1).limit(50))
+
+        all_appointments = unassigned + [a for a in reschedule_apts if a not in unassigned]
 
         staff_apts = format_appointments(all_appointments)
         for a in staff_apts:
@@ -268,9 +278,8 @@ def get_staff_dashboard(user_id_obj, user_name):
             'appointments': staff_apts,
             'summary': {
                 'total_appointments': len(all_appointments),
-                'unassigned_requests': len(requested),
-                'pending_reschedules': len(reschedule_pending),
-                'awaiting_evaluation': len(awaiting_eval),
+                'unassigned_requests': len(unassigned),
+                'pending_reschedules': len(reschedule_apts),
             },
             'can_assign_counselor': True,
         }), 200

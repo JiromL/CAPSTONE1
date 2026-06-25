@@ -679,12 +679,12 @@ export default function AppointmentsDashboard() {
   const pendingReschedules = dashboard?.summary?.pending_reschedules ?? 0;
   const canAssign      = dashboard?.can_assign_counselor ?? false;
   const canManage      = dashboard?.can_manage_sessions ?? false;
-  const showActions    = canAssign || canManage;
+  const isIC           = dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR';
+  const isOA           = dashboard?.role === 'STAFF';
+  const showActions    = canAssign || canManage || isIC;
   const visibleTabs    = TABS.filter(t =>
     canManage ? true : t.key !== 'evaluation' && t.key !== 'followup'
   );
-  const isIC           = dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR';
-  const isOA           = dashboard?.role === 'STAFF';
   const intakeReady    = isIC ? apts.filter(a =>
     a.purpose === 'intake_interview' &&
     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status)

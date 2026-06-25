@@ -207,15 +207,14 @@ def get_open_slots():
     def slots_for_counselor(counselor, date):
         """Return list of free time strings for one counselor on one date."""
         dow = date.weekday()
-        doc = db.db.counselor_weekly_schedule.find_one({'counselor_id': counselor['_id']})
+        doc = db.db.counselor_availability.find_one({'counselor_id': counselor['_id']})
         if not doc or not doc.get('schedule'):
             return []
         working = next((e for e in doc['schedule'] if e.get('day_of_week') == dow), None)
         if not working:
             return []
 
-        # Per-day method takes priority over the doc-level global default
-        session_method = working.get('session_method') or doc.get('session_method', 'in-person')
+        session_method = working.get('method') or working.get('session_method') or 'in-person'
 
         sh, sm = map(int, working['start_time'].split(':'))
         eh, em = map(int, working['end_time'].split(':'))

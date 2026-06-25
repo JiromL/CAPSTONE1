@@ -181,6 +181,8 @@ export default function MyAppointmentsPage() {
 
   const [detailAppt, setDetailAppt]         = useState<Appointment | null>(null);
   const [formsStatus, setFormsStatus]       = useState<Record<string, boolean>>({});
+  const [viewFormsPacket, setViewFormsPacket] = useState<any>(null);
+  const [viewFormsLoading, setViewFormsLoading] = useState(false);
 
   // Evaluation modal
   const [evalTarget, setEvalTarget] = useState<Appointment | null>(null);
@@ -257,6 +259,16 @@ export default function MyAppointmentsPage() {
                                appointments.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length,
     ])
   ) as Record<TabKey, number>;
+
+  const openViewForms = async (appt: Appointment) => {
+    const id = appt.appointment_id || appt._id;
+    const token = localStorage.getItem('token');
+    setViewFormsLoading(true); setViewFormsPacket(null);
+    try {
+      const r = await fetch(api(`/api/intake/packet/${id}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setViewFormsPacket(await r.json());
+    } finally { setViewFormsLoading(false); }
+  };
 
   const handleCancel = async () => {
     if (!cancelTarget) return;
@@ -558,11 +570,16 @@ export default function MyAppointmentsPage() {
                         )}
                         {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === false && (
                           <Link href={`/book-appointment?resumeId=${appt.appointment_id || appt._id}`}>
-                            <button
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-lg transition">
+                            <button className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-lg transition">
                               <FileText size={11} /> Complete Forms
                             </button>
                           </Link>
+                        )}
+                        {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === true && (
+                          <button onClick={() => openViewForms(appt)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
+                            <Eye size={11} /> View Forms
+                          </button>
                         )}
                         {awaitingConfirmation && (
                           <div className="flex flex-col gap-1.5 mt-1">
@@ -914,6 +931,130 @@ export default function MyAppointmentsPage() {
                   Submit Request
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Forms modal — read-only intake packet */}
+      {(viewFormsPacket || viewFormsLoading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Submitted Intake Forms</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Read-only — submitted before your session</p>
+              </div>
+              <button onClick={() => setViewFormsPacket(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+
+            {viewFormsLoading ? (
+              <div className="flex items-center justify-center py-16 text-gray-400 gap-2 text-sm">
+                <Loader2 size={16} className="animate-spin" /> Loading…
+              </div>
+            ) : (
+              <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6 text-sm">
+
+                {/* ICF */}
+                {viewFormsPacket?.icf && (
+                  <div>
+                    <p className="font-bold text-xs text-[#1a5228] uppercase tracking-wide mb-3">Intake Consultation Form (ICF)</p>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                      {[
+                        ['First Name', viewFormsPacket.icf.first_name],
+                        ['Last Name', viewFormsPacket.icf.last_name],
+                        ['Email', viewFormsPacket.icf.email],
+                        ['Student ID', viewFormsPacket.icf.student_id],
+                        ['Phone', viewFormsPacket.icf.phone],
+                        ['College', viewFormsPacket.icf.college],
+                        ['Program', viewFormsPacket.icf.program],
+                        ['Referral', viewFormsPacket.icf.referral_source === 'referred' ? `Referred by ${viewFormsPacket.icf.referred_by}` : 'Self-referred'],
+                        ['Emergency Contact', viewFormsPacket.icf.emergency_contact_name],
+                        ['EC Relationship', viewFormsPacket.icf.emergency_contact_relationship],
+                        ['EC Phone', viewFormsPacket.icf.emergency_contact_phone],
+                      ].filter(([, v]) => v).map(([label, val]) => (
+                        <div key={label as string}>
+                          <p className="text-xs text-gray-400">{label as string}</p>
+                          <p className="text-sm text-gray-800">{val as string}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {viewFormsPacket.icf.presenting_concern && (
+                      <div className="mt-3">
+                        <p className="text-xs text-gray-400 mb-1">Presenting Concern</p>
+                        <p className="text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">{viewFormsPacket.icf.presenting_concern}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SPIF */}
+                {viewFormsPacket?.spif && (
+                  <div>
+                    <p className="font-bold text-xs text-blue-700 uppercase tracking-wide mb-3">Student Profile & Information Form (SPIF)</p>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                      {[
+                        ['Birthdate', viewFormsPacket.spif.birthdate],
+                        ['Gender', viewFormsPacket.spif.gender],
+                        ['Civil Status', viewFormsPacket.spif.civil_status],
+                        ['Religion', viewFormsPacket.spif.religion],
+                        ['Nationality', viewFormsPacket.spif.nationality],
+                        ['Address', viewFormsPacket.spif.address],
+                        ['Living With', viewFormsPacket.spif.living_with],
+                        ['Birth Order', viewFormsPacket.spif.birth_order],
+                        ['No. of Siblings', viewFormsPacket.spif.number_of_siblings],
+                        ['Sleep (hrs/night)', viewFormsPacket.spif.sleep_hours],
+                        ['Exercise', viewFormsPacket.spif.exercise_frequency],
+                        ['Substance Use', viewFormsPacket.spif.substance_use],
+                      ].filter(([, v]) => v !== undefined && v !== '' && v !== null).map(([label, val]) => (
+                        <div key={label as string}>
+                          <p className="text-xs text-gray-400">{label as string}</p>
+                          <p className="text-sm text-gray-800">{String(val)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {[
+                      ['Medical Conditions', viewFormsPacket.spif.existing_medical_conditions],
+                      ['Current Medications', viewFormsPacket.spif.current_medications],
+                      ['Previous Counseling', viewFormsPacket.spif.previous_counseling_details],
+                      ['Previous Psychiatric', viewFormsPacket.spif.previous_psychiatric_details],
+                      ['Family Mental Health History', viewFormsPacket.spif.family_mental_health_history],
+                    ].filter(([, v]) => v).map(([label, val]) => (
+                      <div key={label as string} className="mt-2">
+                        <p className="text-xs text-gray-400 mb-0.5">{label as string}</p>
+                        <p className="text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">{val as string}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* PHQ-4 */}
+                {viewFormsPacket?.phq4_summary && (
+                  <div>
+                    <p className="font-bold text-xs text-purple-700 uppercase tracking-wide mb-3">PHQ-4 Pre-Screen</p>
+                    <div className="flex gap-3">
+                      {[
+                        { label: 'PHQ-2 (Depression)', score: viewFormsPacket.phq4_summary.phq2_score, max: 6, risk: viewFormsPacket.phq4_summary.depression_risk },
+                        { label: 'GAD-2 (Anxiety)', score: viewFormsPacket.phq4_summary.gad2_score, max: 6, risk: viewFormsPacket.phq4_summary.anxiety_risk },
+                      ].map(({ label, score, max, risk }) => (
+                        <div key={label} className={`flex-1 rounded-lg px-4 py-3 border ${risk ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                          <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+                          <p className={`text-lg font-bold ${risk ? 'text-red-700' : 'text-green-700'}`}>{score}/{max}</p>
+                          <p className={`text-xs font-medium ${risk ? 'text-red-600' : 'text-green-600'}`}>{risk ? 'At Risk' : 'Low Risk'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            <div className="px-6 pb-5 pt-3 border-t border-gray-100 flex-shrink-0">
+              <button onClick={() => setViewFormsPacket(null)}
+                className="w-full py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                Close
+              </button>
             </div>
           </div>
         </div>

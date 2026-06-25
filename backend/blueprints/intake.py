@@ -3031,9 +3031,17 @@ def get_intake_packet(appointment_id):
     if not packet:
         return jsonify({'submitted': False}), 200
 
-    # Students only need to know if their forms were submitted — no clinical data
+    # Students can view what they submitted (read-only) — RA 10173 Right to Access
     if user_role == 'STUDENT':
-        return jsonify({'submitted': True}), 200
+        return jsonify({
+            'submitted': True,
+            'read_only': True,
+            'icf': packet.get('icf'),
+            'spif': packet.get('spif'),
+            'phq4_responses': packet.get('phq4_responses'),
+            'phq4_summary': packet.get('phq4'),
+            'submitted_by_role': packet.get('submitted_by_role'),
+        }), 200
 
     # Flatten — convert ObjectIds, rename phq4 → phq4_summary
     result = {k: v for k, v in packet.items()}

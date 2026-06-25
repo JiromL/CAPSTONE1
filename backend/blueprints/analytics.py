@@ -37,35 +37,39 @@ def get_analytics_summary():
     try:
         # Total cases
         total_cases = db.db.cases.count_documents({})
-        active_cases = db.db.cases.count_documents({'status': 'active'})
-        closed_cases = db.db.cases.count_documents({'status': 'closed'})
-        
+        active_cases = db.db.cases.count_documents({'status': {'$in': ['ACTIVE', 'active']}})
+        closed_cases = db.db.cases.count_documents({'status': {'$in': ['CLOSED', 'closed']}})
+
         # High-risk cases
         high_risk_cases = db.db.cases.count_documents({'risk_level': {'$in': ['RED', 'CRITICAL']}})
-        
+
         # Students
         total_students = db.db.users.count_documents({'role': 'STUDENT'})
-        
+
         # Staff
         total_counselors = db.db.users.count_documents({'role': 'COUNSELOR'})
         total_psychologists = db.db.users.count_documents({'role': 'PSYCHOLOGIST'})
-        
-        # Appointments this week (use requested_start — the actual datetime field)
+
+        # Appointments this week (confirmed or completed)
         week_start = datetime.utcnow() - timedelta(days=7)
         week_appointments = db.db.appointments.count_documents({
-            'requested_start': {'$gte': week_start},
-            'status': {'$in': ['COMPLETED', 'completed']}
+            '$or': [
+                {'scheduled_start': {'$gte': week_start}},
+                {'requested_start': {'$gte': week_start}},
+            ],
+            'status': {'$in': ['COMPLETED', 'completed', 'CONFIRMED', 'confirmed']}
         })
 
         # Appointments pending/requested (waiting to be confirmed)
         pending_appointments = db.db.appointments.count_documents({
-            'status': {'$in': ['REQUESTED', 'requested', 'PENDING_APPROVAL']}
+            'status': {'$in': ['REQUESTED', 'requested', 'PENDING_APPROVAL', 'PENDING_STUDENT_APPROVAL']}
         })
 
-        # Assessments this month
+        # Assessments this month (check intake_packets with phq4)
         month_start = datetime.utcnow() - timedelta(days=30)
-        month_assessments = db.db.assessments.count_documents({
-            'created_at': {'$gte': month_start}
+        month_assessments = db.db.intake_packets.count_documents({
+            'created_at': {'$gte': month_start},
+            'phq4_responses': {'$ne': None}
         })
         
         audit_log(db.db, 'analytics', 'view_summary')
@@ -375,7 +379,7 @@ def get_risk_trends():
         # Current risk distribution
         current_distribution = {}
         for item in db.db.cases.aggregate([
-            {'$match': {'status': 'active'}},
+            {'$match': {'status': {'$in': ['ACTIVE', 'active']}}},
             {'$group': {'_id': '$risk_level', 'count': {'$sum': 1}}}
         ]):
             current_distribution[item['_id']] = item['count']
@@ -451,15 +455,15 @@ def get_intake_conversion():
     user_id = get_jwt_identity()
     
     try:
-        # Total users who started intake
-        intake_started = db.db.intakes.count_documents({'status': {'$ne': None}})
-        
-        # Completed intakes
-        intake_completed = db.db.intakes.count_documents({'status': 'completed'})
-        
-        # Cases created from completed intakes
-        cases_from_intake = db.db.cases.count_documents({'source': 'intake'})
-        
+        # Total intake packets submitted
+        intake_started = db.db.intake_packets.count_documents({})
+
+        # Completed = has ICF data (first_name filled in)
+        intake_completed = db.db.intake_packets.count_documents({'icf.first_name': {'$exists': True, '$ne': ''}})
+
+        # Cases created (any case in DB)
+        cases_from_intake = db.db.cases.count_documents({})
+
         # Conversion rates
         intake_conversion = (intake_completed / intake_started * 100) if intake_started > 0 else 0
         case_conversion = (cases_from_intake / intake_completed * 100) if intake_completed > 0 else 0
@@ -587,14 +591,14 @@ def get_concern_distribution():
             'others': 'Other',
         }
 
-        # Use responses.purpose from intakes (categorical dropdown, not free-text)
+        # Use icf.service_requested from intake_packets
         intake_pipeline = [
-            {'$match': {'responses.purpose': {'$exists': True, '$ne': None, '$ne': ''}}},
-            {'$group': {'_id': '$responses.purpose', 'count': {'$sum': 1}}},
+            {'$match': {'icf.service_requested': {'$exists': True, '$ne': None, '$ne': ''}}},
+            {'$group': {'_id': '$icf.service_requested', 'count': {'$sum': 1}}},
             {'$sort': {'count': -1}}
         ]
         combined = {}
-        for item in db.db.intakes.aggregate(intake_pipeline):
+        for item in db.db.intake_packets.aggregate(intake_pipeline):
             raw = (item['_id'] or '').lower().strip()
             label = LABEL_MAP.get(raw, raw.replace('_', ' ').title() if raw else 'Other')
             combined[label] = combined.get(label, 0) + item['count']

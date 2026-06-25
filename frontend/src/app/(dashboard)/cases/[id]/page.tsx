@@ -880,11 +880,21 @@ export default function CaseDetailPage() {
       title="Case Details"
       subtitle={caseData?.case_number ? `Case ${caseData.case_number}` : 'Loading…'}
     >
-      {/* Back navigation */}
-      <div className="mb-4">
+      {/* Back navigation + Print */}
+      <div className="mb-4 flex items-center justify-between">
         <Link href="/cases" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a5228] transition-colors">
           <ArrowLeft size={15} /> Back to Cases
         </Link>
+        {caseData && (
+          <a
+            href={`/cases/${params.id}/print`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <FileText size={13} /> Print Case Summary
+          </a>
+        )}
       </div>
 
       {error && (

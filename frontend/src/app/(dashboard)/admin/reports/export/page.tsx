@@ -8,7 +8,7 @@ import { api } from '@/utils/api';
 // ─── types ────────────────────────────────────────────────────────────────────
 
 interface SheetMeta {
-  id: 'new-clients' | 'counseling-cases' | 'checkins';
+  id: 'new-clients' | 'counseling-cases' | 'checkins' | 'appointments';
   label: string;
   desc: string;
   icon: React.ReactNode;
@@ -57,6 +57,17 @@ const SHEETS: SheetMeta[] = [
     columns: [
       'Counselor', 'Case Number', 'ID Number', 'Client Name',
       'Concern', 'Check-in Type', 'Last Check-in', 'Status',
+    ],
+  },
+  {
+    id: 'appointments',
+    label: 'Appointment Report',
+    desc: 'All appointments with student details, counselor, type, method, and status — useful for semester-end reporting',
+    icon: <Download size={16} />,
+    accent: '#b45309',
+    columns: [
+      'Date', 'Time', 'Student ID', 'Student Name', 'College', 'Program',
+      'Counselor', 'Counselor Role', 'Type', 'Method', 'Status', 'Concern',
     ],
   },
 ];
@@ -124,9 +135,10 @@ export default function ExportDataPage() {
     setPreview(null);
     try {
       const monthParam = allTime ? '' : `&month=${month}`;
-      const r = await fetch(api(`/api/reports/cps-export?sheet=${sheetId}${monthParam}`), {
-        headers: { Authorization: `Bearer ${token()}` },
-      });
+      const url = sheetId === 'appointments'
+        ? api(`/api/reports/appointments-csv?${allTime ? '' : `month=${month}`}`)
+        : api(`/api/reports/cps-export?sheet=${sheetId}${monthParam}`);
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token()}` } });
       const data = await r.json();
       if (!r.ok) { setError(data.error || 'Export failed.'); return; }
 

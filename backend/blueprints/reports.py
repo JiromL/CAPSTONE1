@@ -121,12 +121,10 @@ def cps_summary():
         new_clients_month = db.db.appointments.count_documents({'created_at': {'$gte': month_ago}})
 
         counseling_total = db.db.cases.count_documents({
-            'status': {'$ne': 'closed'},
-            'client_status': {'$nin': ['CHECK_IN_ONLY', None]},
+            'status': {'$nin': ['closed', 'CLOSED']},
         })
         counseling_active = db.db.cases.count_documents({
-            'status': 'active',
-            'client_status': {'$nin': ['CHECK_IN_ONLY', None]},
+            'status': {'$in': ['active', 'ACTIVE']},
         })
 
         checkin_total = db.db.cases.count_documents({'client_status': 'CHECK_IN_ONLY'})
@@ -288,3 +286,133 @@ def _sheet_checkins(start, end):
         })
 
     return rows
+
+
+# ─── Appointment CSV export ───────────────────────────────────────────────────
+
+@reports_bp.route('/appointments-csv', methods=['GET'])
+@jwt_required()
+@_admin_or_dpo
+def appointments_csv():
+    """GET /api/reports/appointments-csv?month=YYYY-MM"""
+    month = request.args.get('month', '')
+    start, end = _date_range(month)
+
+    try:
+        query = {}
+        if start and end:
+            query['$or'] = [
+                {'created_at': {'$gte': start, '$lt': end}},
+                {'scheduled_start': {'$gte': start, '$lt': end}},
+            ]
+
+        appointments = list(db.db.appointments.find(query).sort('created_at', -1).limit(2000))
+        student_ids   = [a['student_id']  for a in appointments if a.get('student_id')]
+        counselor_ids = [a['counselor_id'] for a in appointments if a.get('counselor_id')]
+        students   = {u['_id']: u for u in db.db.users.find({'_id': {'$in': student_ids}})}
+        counselors = {u['_id']: u for u in db.db.users.find({'_id': {'$in': counselor_ids}})}
+
+        rows = []
+        for a in appointments:
+            student   = students.get(a.get('student_id'))
+            counselor = counselors.get(a.get('counselor_id'))
+            dt = a.get('scheduled_start') or a.get('requested_start') or a.get('created_at')
+            rows.append({
+                'Date':           dt.strftime('%Y-%m-%d') if isinstance(dt, datetime) else _s(dt)[:10],
+                'Time':           dt.strftime('%H:%M')    if isinstance(dt, datetime) else '',
+                'Student ID':     student.get('id_number', '') if student else '',
+                'Student Name':   _name(student),
+                'College':        student.get('college', '') if student else '',
+                'Program':        student.get('program', '')  if student else '',
+                'Counselor':      _name(counselor),
+                'Counselor Role': counselor.get('role', '') if counselor else '',
+                'Type':           a.get('appointment_type', a.get('purpose', '')),
+                'Method':         a.get('method', a.get('preferred_method', '')),
+                'Status':         a.get('status', ''),
+                'Concern':        a.get('concern', ''),
+            })
+
+        audit_log(db.db, 'reports', 'export_appointments', extra={'month': month or 'all', 'rows': len(rows)})
+        return jsonify({'rows': rows, 'total': len(rows), 'month': month or 'all'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ─── Case summary (for printable case record) ─────────────────────────────────
+
+@reports_bp.route('/case-summary/<case_id>', methods=['GET'])
+@jwt_required()
+def case_summary(case_id):
+    """GET /api/reports/case-summary/<case_id> — structured case data for printing."""
+    from flask_jwt_extended import get_jwt
+    role = get_jwt().get('role', '')
+    if role not in ('ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'STAFF'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        oid = ObjectId(case_id)
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+
+    try:
+        case = db.db.cases.find_one({'_id': oid})
+        if not case:
+            return jsonify({'error': 'Case not found'}), 404
+
+        student      = db.db.users.find_one({'_id': case.get('student_id')})
+        counselor    = db.db.users.find_one({'_id': case.get('assigned_counselor_id') or case.get('counselor_id')})
+        psychologist = db.db.users.find_one({'_id': case.get('assigned_psychologist_id')})
+        appointment  = db.db.appointments.find_one({'case_id': oid})
+        intake_pkt   = db.db.intake_packets.find_one({'appointment_id': appointment['_id']}) if appointment else None
+
+        icf  = intake_pkt.get('icf',  {}) if intake_pkt else {}
+        spif = intake_pkt.get('spif', {}) if intake_pkt else {}
+        phq4 = intake_pkt.get('phq4_responses') if intake_pkt else None
+        notes = case.get('progress_notes', [])
+
+        def fmt_date(v):
+            return v.strftime('%B %d, %Y') if isinstance(v, datetime) else _s(v)[:10]
+
+        result = {
+            'generated_at': datetime.utcnow().strftime('%B %d, %Y %I:%M %p UTC'),
+            'case': {
+                'case_number':     case.get('case_number', ''),
+                'status':          case.get('status', ''),
+                'risk_level':      case.get('risk_level', ''),
+                'opening_date':    fmt_date(case.get('opening_date') or case.get('created_at')),
+                'chief_complaint': case.get('chief_complaint', ''),
+                'treatment_plan':  case.get('treatment_plan', ''),
+            },
+            'student': {
+                'name':      f"{(student or {}).get('first_name','')} {(student or {}).get('last_name','')}".strip(),
+                'id_number': (student or {}).get('id_number', (student or {}).get('student_id', '')),
+                'email':     (student or {}).get('email', ''),
+                'college':   (student or {}).get('college', ''),
+                'program':   (student or {}).get('program', ''),
+            },
+            'counselor':    {'name': _name(counselor),    'role': (counselor    or {}).get('role', '')},
+            'psychologist': {'name': _name(psychologist), 'role': (psychologist or {}).get('role', '')},
+            'icf': {k: icf.get(k, '') for k in [
+                'first_name', 'last_name', 'email', 'student_id', 'phone',
+                'college', 'program', 'year_level', 'service_requested',
+                'presenting_concern', 'referral_source', 'referred_by',
+                'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship',
+            ]},
+            'spif': {k: spif.get(k, '') for k in ['address', 'birthdate', 'gender']},
+            'phq4': phq4,
+            'notes': [
+                {
+                    'date':    _s(n.get('date') or n.get('created_at')),
+                    'content': n.get('content', n.get('note', '')),
+                    'author':  n.get('author', ''),
+                }
+                for n in (notes if isinstance(notes, list) else [])
+            ],
+        }
+
+        audit_log(db.db, 'reports', 'view_case_summary', extra={'case_id': case_id})
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

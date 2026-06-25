@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Clock, CheckCircle, AlertCircle, UserCheck, MessageSquare,
-  ChevronDown, ChevronUp, Plus, X, Search, Loader2, RefreshCw,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Plus, X, Search, Loader2, RefreshCw,
   ExternalLink, Archive, Star, CalendarDays, Users, Send, Filter,
   XCircle, ThumbsUp, MapPin, RotateCcw, ClipboardList, Pencil,
   FileText, Eye,
@@ -176,6 +176,7 @@ export default function AppointmentsDashboard() {
   const [openSlots, setOpenSlots]       = useState<any[]>([]);
   const [loadingOpenSlots, setLoadingOpenSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
+  const [assignCalMonth, setAssignCalMonth] = useState<{ year: number; month: number }>(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
 
   // Session actions
   const [pendingAction, setPendingAction] = useState<{ aptId: string; action: 'referral'; notes: string } | null>(null);
@@ -1166,65 +1167,122 @@ export default function AppointmentsDashboard() {
 
               {assignMode === 'slots' ? (
                 <>
-                  {/* Date picker */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date</label>
-                    <input type="date" value={assignForm.date}
-                      onChange={e => { const d = e.target.value; setAssignForm(f => ({ ...f, date: d })); setSelectedSlot(null); fetchOpenSlots(d); }}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
-                  </div>
+                  {/* Calendar + Slot panel */}
+                  {(() => {
+                    const { year, month } = assignCalMonth;
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const blanks = (firstDay + 6) % 7;
+                    const cells: (number | null)[] = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+                    while (cells.length % 7 !== 0) cells.push(null);
+                    const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    const toDS2 = (d: number) => `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const today = new Date(); today.setHours(0,0,0,0);
 
-                  {/* Slot list */}
-                  {assignForm.date && (
-                    loadingOpenSlots ? (
-                      <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-                        <Loader2 size={13} className="animate-spin" /> Checking counselor availability…
-                      </div>
-                    ) : openSlots.length === 0 ? (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                        No counselors have available slots on this date.{' '}
-                        <button type="button" onClick={() => { setAssignMode('manual'); }} className="font-bold underline">Switch to manual entry</button>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Pick a slot</p>
-                        <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                          {openSlots.map((s: any, i: number) => {
-                            const isOnline = s.method?.toLowerCase() === 'online';
-                            const isSel = selectedSlot?.counselor_id === s.counselor_id && selectedSlot?.time === s.time;
-                            const [h, m] = s.time.split(':').map(Number);
-                            const ampm = h >= 12 ? 'PM' : 'AM';
-                            const h12 = h % 12 || 12;
-                            const timeLabel = `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
-                            return (
-                              <button key={i} type="button"
-                                onClick={() => setSelectedSlot(s)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition ${
-                                  isSel ? 'border-[#1a5228] bg-[#1a5228]/5' : 'border-gray-200 bg-white hover:border-gray-300'
-                                }`}>
-                                <Clock size={12} className={isSel ? 'text-[#1a5228]' : 'text-gray-400'} />
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-bold ${isSel ? 'text-[#1a5228]' : 'text-gray-800'}`}>{timeLabel}</p>
-                                  <p className="text-[10px] text-gray-400 truncate">{s.counselor_name}</p>
+                    const fmtSlotTime = (t: string) => { const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ap}`; };
+                    const selectedDayLabel = assignForm.date ? new Date(assignForm.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : null;
+
+                    return (
+                      <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                        <div className="flex divide-x divide-gray-200">
+
+                          {/* Mini calendar */}
+                          <div className="flex-1 p-3 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-bold text-gray-800">{monthLabel}</p>
+                              <div className="flex gap-0.5">
+                                <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month-1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"><ChevronLeft size={13} /></button>
+                                <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month+1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"><ChevronRight size={13} /></button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-7 mb-1">
+                              {['M','T','W','T','F','S','S'].map((d, i) => (
+                                <div key={i} className="text-center text-[9px] font-semibold text-gray-400 py-0.5">{d}</div>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-7 gap-y-0.5">
+                              {cells.map((day, i) => {
+                                if (!day) return <div key={i} />;
+                                const ds = toDS2(day);
+                                const d = new Date(ds + 'T12:00:00'); d.setHours(0,0,0,0);
+                                const selectable = d >= today;
+                                const isSelected = assignForm.date === ds;
+                                const isToday = ds === `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                                return (
+                                  <button key={i} type="button" disabled={!selectable}
+                                    onClick={() => { setAssignForm(f => ({ ...f, date: ds })); setSelectedSlot(null); fetchOpenSlots(ds); setAssignCalMonth({ year, month }); }}
+                                    className={`mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-medium transition
+                                      ${isSelected ? 'bg-[#1a5228] text-white font-bold' :
+                                        isToday && selectable ? 'ring-2 ring-[#1a5228] text-[#1a5228] font-bold' :
+                                        selectable ? 'hover:bg-gray-100 text-gray-700' :
+                                        'text-gray-300 cursor-not-allowed'}`}>
+                                    {day}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Slots panel */}
+                          <div className="flex-1 flex flex-col min-w-0">
+                            {!assignForm.date ? (
+                              <div className="flex-1 flex items-center justify-center p-4">
+                                <p className="text-xs text-gray-400 text-center">Select a date to see available slots</p>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="px-3 pt-3 pb-2 border-b border-gray-100">
+                                  <p className="text-xs font-semibold text-gray-700 leading-tight">{selectedDayLabel}</p>
+                                  {selectedSlot && (
+                                    <div className="mt-1.5 flex items-center gap-1.5">
+                                      <span className="px-2 py-0.5 rounded-lg bg-[#1a5228] text-white text-[11px] font-bold">{fmtSlotTime(selectedSlot.time)}</span>
+                                      <span className="text-[10px] text-gray-500 truncate">{selectedSlot.counselor_name?.split(' ')[0]}</span>
+                                    </div>
+                                  )}
                                 </div>
-                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                                  isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
-                                }`}>
-                                  {isOnline ? 'Online' : 'F2F'}
-                                </span>
-                                {isSel && <span className="w-4 h-4 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
-                              </button>
-                            );
-                          })}
+                                <div className="flex-1 overflow-y-auto max-h-48 p-2 space-y-1.5">
+                                  {loadingOpenSlots && (
+                                    <div className="flex items-center justify-center py-5 gap-2 text-xs text-gray-400">
+                                      <Loader2 size={12} className="animate-spin" /> Loading…
+                                    </div>
+                                  )}
+                                  {!loadingOpenSlots && openSlots.length === 0 && (
+                                    <div className="py-4 text-center space-y-2">
+                                      <p className="text-xs text-amber-700">No slots on this date.</p>
+                                      <button type="button" onClick={() => setAssignMode('manual')}
+                                        className="text-[11px] font-bold text-amber-700 underline">Manual entry</button>
+                                    </div>
+                                  )}
+                                  {!loadingOpenSlots && openSlots.map((s: any, i: number) => {
+                                    const isOnline = s.method?.toLowerCase() === 'online';
+                                    const isSel = selectedSlot?.counselor_id === s.counselor_id && selectedSlot?.time === s.time;
+                                    return (
+                                      <button key={i} type="button" onClick={() => setSelectedSlot(s)}
+                                        className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition ${
+                                          isSel ? 'border-[#1a5228] bg-[#1a5228]/5' : 'border-gray-200 bg-white hover:border-[#1a5228]/40 hover:bg-gray-50'
+                                        }`}>
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`text-xs font-bold ${isSel ? 'text-[#1a5228]' : 'text-gray-800'}`}>{fmtSlotTime(s.time)}</p>
+                                          <p className="text-[10px] text-gray-400 truncate">{s.counselor_name}</p>
+                                        </div>
+                                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                                          isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
+                                        }`}>{isOnline ? 'Online' : 'F2F'}</span>
+                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+
                         </div>
-                        {selectedSlot && (
-                          <p className="text-[10px] text-green-600 mt-1.5">
-                            Selected: <strong>{selectedSlot.counselor_name}</strong> at {(() => { const [h,m] = selectedSlot.time.split(':').map(Number); const ap = h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ap}`; })()}
-                          </p>
-                        )}
                       </div>
-                    )
-                  )}
+                    );
+                  })()}
 
                   {/* Office — only for F2F */}
                   {selectedSlot && selectedSlot.method?.toLowerCase() !== 'online' && (

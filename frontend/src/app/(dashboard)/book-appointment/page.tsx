@@ -136,6 +136,7 @@ export default function BookAppointmentPage() {
   const [specifyOthers, setSpecifyOthers] = useState('');
   const [concern, setConcern]             = useState('');
   const [slotMethod, setSlotMethod]        = useState('in-person');
+  const [prefPlatform, setPrefPlatform]   = useState<'google-meet' | 'zoom'>('google-meet');
   const [referralType, setReferralType]   = useState('self-referred');
   const [referredBy, setReferredBy]       = useState('');
   const [prefDate, setPrefDate]           = useState('');
@@ -327,6 +328,7 @@ export default function BookAppointmentPage() {
       const token = localStorage.getItem('token');
       const body: Record<string, any> = {
         purpose: fp, concern, preferred_method: slotMethod,
+        preferred_platform: slotMethod?.toLowerCase() === 'online' ? prefPlatform : null,
         referral_type: referralType, referred_by: referralType === 'referred' ? referredBy : null,
         agreed_to_terms: true,
       };
@@ -990,7 +992,7 @@ export default function BookAppointmentPage() {
                           });
                           return deduped.map((s, i) => {
                             const isSelected = prefTime === s.time && slotCounselorId === s.counselor_id;
-                            const isOnline = s.method === 'online';
+                            const isOnline = s.method?.toLowerCase() === 'online';
                             return (
                               <button key={i} type="button"
                                 onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setSlotMethod(s.method); setRequestAnyway(false); }}
@@ -1003,14 +1005,11 @@ export default function BookAppointmentPage() {
                                 <span className={`font-bold text-sm tabular-nums ${isSelected ? 'text-[#1a5228]' : 'text-gray-800'}`}>
                                   {fmtT(s.time)}
                                 </span>
-                                {/* Show mode only for specific counselor bookings, not IC pool */}
-                                {purpose !== 'intake_interview' && (
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                    isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
-                                  }`}>
-                                    {isOnline ? 'Online' : 'F2F'}
-                                  </span>
-                                )}
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
+                                }`}>
+                                  {isOnline ? 'Online' : 'F2F'}
+                                </span>
                                 {isSelected && (
                                   <span className="ml-auto flex-shrink-0 w-5 h-5 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[10px] font-bold">✓</span>
                                 )}
@@ -1020,6 +1019,30 @@ export default function BookAppointmentPage() {
                         })()}
                       </div>
                     </>
+                  )}
+
+                  {/* Platform picker — only when an online slot is selected */}
+                  {prefTime && slotMethod?.toLowerCase() === 'online' && (
+                    <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                      <p className="text-xs font-bold text-blue-700 mb-2">Preferred Platform</p>
+                      <div className="flex gap-2">
+                        {([
+                          { value: 'google-meet' as const, label: 'Google Meet', icon: '🎥' },
+                          { value: 'zoom'        as const, label: 'Zoom',        icon: '💻' },
+                        ] as const).map(p => (
+                          <button key={p.value} type="button"
+                            onClick={() => setPrefPlatform(p.value)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-xs font-semibold transition ${
+                              prefPlatform === p.value
+                                ? 'border-blue-500 bg-blue-100 text-blue-700'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+                            }`}>
+                            <span>{p.icon}</span> {p.label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-blue-500 mt-2">Your IC will send the meeting link before the session.</p>
+                    </div>
                   )}
 
                   {!slotsLoading && slots.length === 0 && !requestAnyway && (

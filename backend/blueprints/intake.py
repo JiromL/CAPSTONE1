@@ -2831,7 +2831,7 @@ def get_my_intake_status():
 @intake_bp.route('/list', methods=['GET'])
 @jwt_required()
 def list_intakes():
-    """IC/Staff: List intakes filtered by status"""
+    """IC/Staff: List intake-interview appointments awaiting IC session"""
     from datetime import timedelta
     user_id = get_jwt_identity()
     user = db.db.users.find_one({'_id': ObjectId(user_id)}) if user_id else None
@@ -2840,27 +2840,27 @@ def list_intakes():
         return jsonify({'error': 'Unauthorized'}), 403
 
     status_param = request.args.get('status', 'pending').upper()
-
-    # Map frontend status names to DB values
     OVERDUE_DAYS = 3
     now = datetime.utcnow()
 
-    if status_param == 'OVERDUE':
-        cutoff = now - timedelta(days=OVERDUE_DAYS)
-        query = {'status': {'$in': ['PENDING', 'IN_PROGRESS']}, 'created_at': {'$lt': cutoff}}
-    elif status_param == 'PENDING':
-        query = {'status': 'PENDING'}
-    elif status_param == 'IN_PROGRESS':
-        query = {'status': 'IN_PROGRESS'}
-    elif status_param == 'COMPLETED':
-        query = {'status': 'COMPLETED'}
-    else:
-        query = {}
+    # Build appointment query — appointments of intake type that haven't been conducted yet
+    base_appt_types = ['intake_interview', 'initial', 'triage_interview', 'initial_interview']
 
-    intakes = list(db.db.intakes.find(query).sort('created_at', -1).limit(100))
+    if status_param == 'COMPLETED':
+        appt_statuses = ['COMPLETED', 'DONE']
+    else:
+        # PENDING, IN_PROGRESS, OVERDUE all map to not-yet-completed appointments
+        appt_statuses = ['REQUESTED', 'CONFIRMED', 'PENDING', 'IN_PROGRESS', 'SCHEDULED']
+
+    appt_query = {
+        'appointment_type': {'$in': base_appt_types},
+        'status': {'$in': appt_statuses},
+    }
+
+    appointments = list(db.db.appointments.find(appt_query).sort('created_at', -1).limit(200))
     result = []
-    for intake in intakes:
-        student_id = intake.get('student_id') or intake.get('user_id')
+    for appt in appointments:
+        student_id = appt.get('student_id')
         student = None
         if student_id:
             try:
@@ -2868,17 +2868,30 @@ def list_intakes():
             except Exception:
                 pass
         student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else 'Unknown'
-        created_at = intake.get('created_at', now)
+
+        # Check if student pre-submitted an intake packet
+        packet = db.db.intake_packets.find_one({'appointment_id': appt['_id']})
+
+        created_at = appt.get('created_at', now)
         deadline = created_at + timedelta(days=OVERDUE_DAYS)
+
+        # Grab concern from appointment directly, or from the packet ICF if available
+        concern = appt.get('concern', '')
+        if not concern and packet:
+            concern = (packet.get('icf') or {}).get('presenting_concern', '')
+
         result.append({
-            '_id': str(intake['_id']),
+            '_id': str(appt['_id']),
             'student_id': str(student_id) if student_id else '',
             'student_name': student_name,
             'student_email': student.get('email', '') if student else '',
-            'status': intake.get('status', ''),
-            'concern': intake.get('responses', {}).get('concern') or intake.get('concern', ''),
-            'risk_level': intake.get('responses', {}).get('risk_level') or intake.get('risk_level', 'GREEN'),
-            'is_emergency': intake.get('is_emergency', False),
+            'status': appt.get('status', ''),
+            'appointment_type': appt.get('appointment_type', ''),
+            'scheduled_start': appt.get('scheduled_start', ''),
+            'concern': concern,
+            'risk_level': appt.get('risk_level', 'GREEN'),
+            'is_emergency': appt.get('is_emergency', False),
+            'intake_packet_submitted': bool(packet),
             'created_at': created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at),
             'deadline': deadline.isoformat() if hasattr(deadline, 'isoformat') else str(deadline),
         })

@@ -193,8 +193,8 @@ export default function NewIntakesPage() {
       {/* Table card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-        {/* My / All toggle — IC only */}
-        {userRole === 'IC' && (
+        {/* My / All toggle — OA/Admin only; IC always sees only their own */}
+        {userRole !== 'IC' && (
           <div className="flex items-center gap-1 px-5 pt-4 pb-0">
             <button
               onClick={() => { setMineOnly(true); setPage(1); }}

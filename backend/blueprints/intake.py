@@ -2852,10 +2852,18 @@ def list_intakes():
         # PENDING, IN_PROGRESS, OVERDUE all map to not-yet-completed appointments
         appt_statuses = ['REQUESTED', 'CONFIRMED', 'PENDING', 'IN_PROGRESS', 'SCHEDULED']
 
+    user_role = user.get('role', '')
     appt_query = {
-        'appointment_type': {'$in': base_appt_types},
+        '$or': [
+            {'purpose': {'$in': base_appt_types}},
+            {'appointment_type': {'$in': base_appt_types}},
+        ],
         'status': {'$in': appt_statuses},
     }
+
+    # IC only sees their own assigned intakes — unassigned queue belongs to OA
+    if user_role == 'IC':
+        appt_query['counselor_id'] = ObjectId(user_id)
 
     appointments = list(db.db.appointments.find(appt_query).sort('created_at', -1).limit(200))
     result = []

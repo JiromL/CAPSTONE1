@@ -187,22 +187,28 @@ export default function NewIntakesPage() {
   return (
     <DashboardPageWrapper title={userRole === 'IC' ? 'Intake Tracker' : 'New Client Intakes'} subtitle="Track and manage new counseling intake requests">
 
-      {/* Summary cards */}
+      {/* Summary cards — click to filter */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Total Intakes', value: totals.total,      icon: ClipboardList, cls: 'text-gray-700' },
-          { label: 'New',           value: totals.new,        icon: AlertCircle,   cls: totals.new > 0 ? 'text-blue-600' : 'text-gray-400' },
-          { label: 'In Progress',   value: totals.inProgress, icon: Clock,         cls: totals.inProgress > 0 ? 'text-amber-600' : 'text-gray-400' },
-          { label: 'Completed',     value: totals.completed,  icon: CheckCircle2,  cls: 'text-[#1a5228]' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
-            <s.icon size={18} className={s.cls} />
-            <div>
-              <p className="text-xs text-gray-400">{s.label}</p>
-              <p className={`text-xl font-semibold ${s.cls}`}>{s.value}</p>
-            </div>
-          </div>
-        ))}
+          { label: 'Total',       value: totals.total,      icon: ClipboardList, filter: '',            activeRing: 'ring-gray-400',   activeBg: 'bg-gray-50',   activeTxt: 'text-gray-800',   inactTxt: 'text-gray-700' },
+          { label: 'New',         value: totals.new,        icon: AlertCircle,   filter: 'NEW',         activeRing: 'ring-blue-400',   activeBg: 'bg-blue-50',   activeTxt: 'text-blue-700',   inactTxt: totals.new > 0 ? 'text-blue-600' : 'text-gray-400' },
+          { label: 'In Progress', value: totals.inProgress, icon: Clock,         filter: 'IN_PROGRESS', activeRing: 'ring-amber-400',  activeBg: 'bg-amber-50',  activeTxt: 'text-amber-700',  inactTxt: totals.inProgress > 0 ? 'text-amber-600' : 'text-gray-400' },
+          { label: 'Completed',   value: totals.completed,  icon: CheckCircle2,  filter: 'COMPLETED',   activeRing: 'ring-[#1a5228]',  activeBg: 'bg-green-50',  activeTxt: 'text-[#1a5228]',  inactTxt: 'text-[#1a5228]' },
+        ].map(s => {
+          const isActive = statusFilter === s.filter;
+          return (
+            <button key={s.label} type="button"
+              onClick={() => { setStatusFilter(s.filter); setPage(1); }}
+              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition w-full
+                ${isActive ? `ring-2 ${s.activeRing} border-transparent ${s.activeBg}` : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
+              <s.icon size={18} className={isActive ? s.activeTxt : s.inactTxt} />
+              <div>
+                <p className="text-xs text-gray-400">{s.label}</p>
+                <p className={`text-xl font-semibold ${isActive ? s.activeTxt : s.inactTxt}`}>{s.value}</p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Table card */}
@@ -240,18 +246,6 @@ export default function NewIntakesPage() {
             onChange={e => { setMonth(e.target.value); setPage(1); }}
             className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:outline-none"
           />
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:outline-none"
-          >
-            <option value="">All Status</option>
-            <option value="NEW">New</option>
-            <option value="PENDING">Pending</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
           <button onClick={fetchIntakes} className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition" title="Refresh">
             <RefreshCw size={14} />
           </button>

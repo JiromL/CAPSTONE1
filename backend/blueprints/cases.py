@@ -313,8 +313,8 @@ def get_case(case_id):
         return jsonify({'error': 'Cannot view other student cases'}), 403
     elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
         pass  # clinical staff can view any case
-    elif user_role == UserRole.IC and case.get('case_status', case.get('status')) not in [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]:
-        return jsonify({'error': 'IC can only view new/pending cases'}), 403
+    elif user_role == UserRole.IC:
+        pass  # IC can view any case — they need full context during and after intake
     
     # Serialize all ObjectId and datetime fields safely
     raw_student_id = case.get('student_id')
@@ -343,12 +343,18 @@ def get_case(case_id):
                 'course': student_doc.get('course', '') or student_doc.get('program', ''),
             }
 
-    # Embed most recent appointment info (date, time, method) for IC form pre-fill
+    # Embed most recent appointment info (date, time, method) for IC form pre-fill.
+    # Pre-intake appointments don't have case_id yet, so fall back to student_id.
     case_obj_id = case.get('_id')
     appt = db.db.appointments.find_one(
         {'case_id': case_obj_id},
         sort=[('created_at', -1)]
     )
+    if not appt and raw_student_id:
+        appt = db.db.appointments.find_one(
+            {'student_id': raw_student_id},
+            sort=[('created_at', -1)]
+        )
     if appt:
         appt_start = appt.get('scheduled_start') or appt.get('requested_start') or appt.get('scheduled_date')
         serialized['appointment_info'] = {

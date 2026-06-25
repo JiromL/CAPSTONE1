@@ -292,8 +292,17 @@ export default function AppointmentsDashboard() {
 
   const fetchCounselors = async (token: string) => {
     try {
-      const r = await fetch(api('/api/users?role=COUNSELOR'), { headers: { Authorization: `Bearer ${token}` } });
-      if (r.ok) { const d = await r.json(); setCounselors(d.users || []); }
+      const [rc, ri, rp] = await Promise.all([
+        fetch(api('/api/users?role=COUNSELOR'),    { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(api('/api/users?role=IC'),            { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(api('/api/users?role=PSYCHOLOGIST'),  { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const [dc, di, dp] = await Promise.all([
+        rc.ok ? rc.json() : { users: [] },
+        ri.ok ? ri.json() : { users: [] },
+        rp.ok ? rp.json() : { users: [] },
+      ]);
+      setCounselors([...(di.users || []), ...(dc.users || []), ...(dp.users || [])]);
     } catch {}
   };
 
@@ -1237,12 +1246,18 @@ export default function AppointmentsDashboard() {
                     <select value={assignForm.counselorId}
                       onChange={e => { const cid = e.target.value; setAssignForm(f => ({ ...f, counselorId: cid })); fetchFreeSlots(cid, assignForm.date); }}
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
-                      <option value="">Select a counselor…</option>
-                      {counselors.map(c => (
-                        <option key={c._id} value={c._id}>
-                          {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
-                        </option>
-                      ))}
+                      <option value="">Select…</option>
+                      {counselors
+                        .filter(c => {
+                          const isIntake = assignTarget?.purpose === 'intake_interview' || assignTarget?.purpose === 'initial' || assignTarget?.purpose === 'triage_interview';
+                          if (isIntake) return c.role === 'IC';
+                          return c.role === 'COUNSELOR' || c.role === 'PSYCHOLOGIST';
+                        })
+                        .map(c => (
+                          <option key={c._id} value={c._id}>
+                            {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
+                          </option>
+                        ))}
                     </select>
                   </div>
 

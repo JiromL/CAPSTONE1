@@ -23,7 +23,7 @@ interface Announcement {
 
 const TYPE_STYLES: Record<string, { label: string; bg: string; text: string }> = {
   webinar: { label: 'Webinar',    bg: 'bg-blue-50',   text: 'text-blue-600' },
-  event:   { label: 'Event',      bg: 'bg-green-50',  text: 'text-green-700' },
+  event:   { label: 'Event',      bg: 'bg-green-50',  text: 'text-blue-700' },
   notice:  { label: 'Notice',     bg: 'bg-orange-50', text: 'text-orange-600' },
   info:    { label: 'Info',       bg: 'bg-gray-100',  text: 'text-gray-600' },
 };
@@ -109,9 +109,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               {nextAppt ? (
                 <div>
                   <p className="text-base font-semibold text-gray-900">{fmtDate(nextAppt.requested_start)}</p>
-                  <p className="text-sm font-medium mt-0.5" style={{ color: '#1a5228' }}>{fmtTime(nextAppt.requested_start)}</p>
+                  <p className="text-sm font-medium mt-0.5" style={{ color: '#2563eb' }}>{fmtTime(nextAppt.requested_start)}</p>
                   <p className="text-sm text-gray-500 mt-1">{nextAppt.counselor_name || 'Assigned Counselor'}</p>
-                  <span className="inline-block mt-3 px-2.5 py-1 text-xs rounded-full bg-green-50 text-green-700 font-medium border border-green-100">
+                  <span className="inline-block mt-3 px-2.5 py-1 text-xs rounded-full bg-green-50 text-blue-700 font-medium border border-green-100">
                     {nextAppt.status}
                   </span>
                 </div>
@@ -121,7 +121,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               {!isCheckInOnly && (
                 <Link href="/book-appointment">
                   <button className="mt-4 w-full py-2 text-sm font-medium text-white rounded-lg transition-colors"
-                    style={{ backgroundColor: '#1a5228' }}>
+                    style={{ backgroundColor: '#2563eb' }}>
                     Book an Appointment
                   </button>
                 </Link>
@@ -198,7 +198,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               {/* Top color strip */}
               <div className="h-1.5 w-full" style={{ backgroundColor:
                 a.event_type === 'webinar' ? '#3b82f6' :
-                a.event_type === 'event'   ? '#1a5228' :
+                a.event_type === 'event'   ? '#2563eb' :
                 a.event_type === 'notice'  ? '#f97316' : '#9ca3af'
               }} />
 
@@ -237,7 +237,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 {a.link ? (
                   <a href={a.link} target="_blank" rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 text-base font-medium text-white rounded-lg transition"
-                    style={{ backgroundColor: '#1a5228' }}>
+                    style={{ backgroundColor: '#2563eb' }}>
                     <ExternalLink size={16} /> Open Link
                   </a>
                 ) : (

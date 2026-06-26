@@ -19,7 +19,7 @@ interface FoundStudent {
   student_number?: string;
 }
 
-const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-300 focus:ring-2 focus:ring-[#1a5228]/25 focus:border-[#1a5228] focus:outline-none';
+const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-300 focus:ring-2 focus:ring-[#2563eb]/25 focus:border-[#2563eb] focus:outline-none';
 const LABEL = 'block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5';
 
 export default function WalkInIntakePage() {
@@ -160,7 +160,7 @@ export default function WalkInIntakePage() {
             </div>
 
             <div className="relative">
-              <div className={`flex items-center gap-2 border rounded-xl px-3 py-2.5 bg-gray-50 transition ${query.length >= 2 ? 'border-[#1a5228] ring-2 ring-[#1a5228]/20' : 'border-gray-200'} focus-within:border-[#1a5228] focus-within:ring-2 focus-within:ring-[#1a5228]/20`}>
+              <div className={`flex items-center gap-2 border rounded-xl px-3 py-2.5 bg-gray-50 transition ${query.length >= 2 ? 'border-[#2563eb] ring-2 ring-[#2563eb]/20' : 'border-gray-200'} focus-within:border-[#2563eb] focus-within:ring-2 focus-within:ring-[#2563eb]/20`}>
                 <Search size={16} className="text-gray-400 flex-shrink-0" />
                 <input
                   value={query}
@@ -186,8 +186,8 @@ export default function WalkInIntakePage() {
                       onClick={() => selectStudent(s)}
                       className="w-full text-left px-4 py-3 hover:bg-gray-50 transition border-b border-gray-50 last:border-0 flex items-center gap-3"
                     >
-                      <div className="w-8 h-8 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
-                        <User size={15} style={{ color: '#1a5228' }} />
+                      <div className="w-8 h-8 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+                        <User size={15} style={{ color: '#2563eb' }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900">{s.first_name} {s.last_name}</p>
@@ -218,16 +218,16 @@ export default function WalkInIntakePage() {
             {/* Guest button */}
             <button
               onClick={goGuest}
-              className="w-full flex items-center gap-3 px-4 py-3.5 border-2 border-dashed border-gray-200 rounded-xl hover:border-[#1a5228]/40 hover:bg-[#1a5228]/5 transition group"
+              className="w-full flex items-center gap-3 px-4 py-3.5 border-2 border-dashed border-gray-200 rounded-xl hover:border-[#2563eb]/40 hover:bg-[#2563eb]/5 transition group"
             >
-              <div className="w-9 h-9 rounded-full bg-gray-100 group-hover:bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0 transition">
-                <UserPlus size={16} className="text-gray-500 group-hover:text-[#1a5228] transition" />
+              <div className="w-9 h-9 rounded-full bg-gray-100 group-hover:bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0 transition">
+                <UserPlus size={16} className="text-gray-500 group-hover:text-[#2563eb] transition" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-gray-700 group-hover:text-[#1a5228] transition">Student doesn't have an account</p>
+                <p className="text-sm font-semibold text-gray-700 group-hover:text-[#2563eb] transition">Student doesn't have an account</p>
                 <p className="text-xs text-gray-400">Register manually as a guest walk-in</p>
               </div>
-              <ChevronRight size={14} className="text-gray-300 ml-auto group-hover:text-[#1a5228] transition" />
+              <ChevronRight size={14} className="text-gray-300 ml-auto group-hover:text-[#2563eb] transition" />
             </button>
           </div>
         )}
@@ -242,14 +242,14 @@ export default function WalkInIntakePage() {
                 <button type="button" onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2">Change</button>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1a5228' }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#2563eb' }}>
                   <span className="text-white text-sm font-semibold">{selected.first_name[0]}{selected.last_name[0]}</span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{selected.first_name} {selected.last_name}</p>
                   <p className="text-xs text-gray-400">{selected.email}</p>
                 </div>
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">Has account</span>
+                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-50 text-blue-700 border border-green-100 font-medium">Has account</span>
               </div>
             </div>
 
@@ -388,7 +388,7 @@ function FormFooter({ error, success, loading, onCancel }: {
       {success && (
         <div className="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
           <CheckCircle2 size={15} className="text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-green-700">{success}</p>
+          <p className="text-sm text-blue-700">{success}</p>
         </div>
       )}
       <div className="flex gap-3">
@@ -398,7 +398,7 @@ function FormFooter({ error, success, loading, onCancel }: {
         </button>
         <button type="submit" disabled={loading}
           className="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-40 flex items-center justify-center gap-2"
-          style={{ backgroundColor: '#1a5228' }}>
+          style={{ backgroundColor: '#2563eb' }}>
           {loading
             ? <><Loader2 size={14} className="animate-spin" /> Registering…</>
             : 'Register Walk-In'}

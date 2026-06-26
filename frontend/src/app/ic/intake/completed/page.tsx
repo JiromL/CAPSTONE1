@@ -54,7 +54,7 @@ export default function CompletedIntakesPage() {
                   <p className="text-sm text-gray-600">{intake.counselor_name && `Assigned: ${intake.counselor_name}`}</p>
                   <p className="text-xs text-gray-500 mt-2">Completed: {new Date(intake.completed_at).toLocaleDateString()}</p>
                 </div>
-                <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded">✓ COMPLETED</span>
+                <span className="text-xs bg-green-100 text-blue-800 px-3 py-1 rounded">✓ COMPLETED</span>
               </div>
             </div>
           ))

@@ -45,7 +45,7 @@ const INTAKE_STEPS = [
 ];
 
 const DRAFT_KEY = 'bookAppointmentDraft_v2';
-const IC = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/25 focus:border-[#1a5228] focus:outline-none transition';
+const IC = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/25 focus:border-[#2563eb] focus:outline-none transition';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function buildSlots(start: string, end: string, mins: number): string[] {
@@ -86,14 +86,14 @@ function StepWizard({ current }: { current: number }) {
           <div key={i} className="flex items-start">
             <div className="flex flex-col items-center w-24">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition
-                ${done ? 'bg-[#1a5228] border-[#1a5228] text-white' : active ? 'bg-white border-[#1a5228] text-[#1a5228]' : 'bg-white border-gray-200 text-gray-400'}`}>
+                ${done ? 'bg-[#2563eb] border-[#2563eb] text-white' : active ? 'bg-white border-[#2563eb] text-[#2563eb]' : 'bg-white border-gray-200 text-gray-400'}`}>
                 {done ? <Check size={16} /> : s.num}
               </div>
-              <p className={`text-[11px] font-semibold mt-1.5 text-center leading-tight ${active ? 'text-[#1a5228]' : done ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
-              <span className={`text-[9px] uppercase tracking-wide font-bold mt-0.5 ${active ? 'text-[#1a5228]/60' : 'text-gray-300'}`}>{s.sub}</span>
+              <p className={`text-[11px] font-semibold mt-1.5 text-center leading-tight ${active ? 'text-[#2563eb]' : done ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
+              <span className={`text-[9px] uppercase tracking-wide font-bold mt-0.5 ${active ? 'text-[#2563eb]/60' : 'text-gray-300'}`}>{s.sub}</span>
             </div>
             {i < INTAKE_STEPS.length - 1 && (
-              <div className={`mt-4 h-0.5 w-8 mx-1 ${i < current ? 'bg-[#1a5228]' : 'bg-gray-200'}`} />
+              <div className={`mt-4 h-0.5 w-8 mx-1 ${i < current ? 'bg-[#2563eb]' : 'bg-gray-200'}`} />
             )}
           </div>
         );
@@ -425,7 +425,7 @@ export default function BookAppointmentPage() {
           <h2 className="text-base font-bold mb-2">{cfg.title}</h2>
           <p className="text-sm opacity-80 mb-6">{gateMessage}</p>
           <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            {cfg.cta && <button onClick={() => router.push(cfg.cta.href)} className="px-5 py-2.5 bg-[#1a5228] text-white text-sm font-medium rounded-xl transition">{cfg.cta.label}</button>}
+            {cfg.cta && <button onClick={() => router.push(cfg.cta.href)} className="px-5 py-2.5 bg-[#2563eb] text-white text-sm font-medium rounded-xl transition">{cfg.cta.label}</button>}
             <button onClick={() => router.push('/dashboard')} className="px-5 py-2.5 border border-current text-sm font-medium rounded-xl hover:opacity-70 transition">Dashboard</button>
           </div>
         </div>
@@ -443,8 +443,8 @@ export default function BookAppointmentPage() {
           <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4 mb-6">
             <CheckCircle size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-bold text-green-800">Appointment Booked — Ticket #{ticketNumber}</p>
-              <p className="text-xs text-green-700 mt-0.5">Please complete the intake forms below. Your IC will review these before your session to better prepare.</p>
+              <p className="text-sm font-bold text-blue-800">Appointment Booked — Ticket #{ticketNumber}</p>
+              <p className="text-xs text-blue-700 mt-0.5">Please complete the intake forms below. Your IC will review these before your session to better prepare.</p>
             </div>
           </div>
 
@@ -583,12 +583,12 @@ export default function BookAppointmentPage() {
                     <F label="Existing Medical Conditions"><input className={IC} value={spif.existing_medical_conditions} onChange={e => setSpif(p=>({...p,existing_medical_conditions:e.target.value}))} placeholder="None, or briefly describe" /></F>
                     <F label="Current Medications"><input className={IC} value={spif.current_medications} onChange={e => setSpif(p=>({...p,current_medications:e.target.value}))} placeholder="None, or list medications" /></F>
                     <label className="flex items-start gap-2.5 cursor-pointer">
-                      <input type="checkbox" checked={spif.previous_counseling} onChange={e => setSpif(p=>({...p,previous_counseling:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#1a5228]" />
+                      <input type="checkbox" checked={spif.previous_counseling} onChange={e => setSpif(p=>({...p,previous_counseling:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#2563eb]" />
                       <span className="text-sm text-gray-700">I have previously received counseling or therapy</span>
                     </label>
                     {spif.previous_counseling && <F label="Brief details"><input className={IC} value={spif.previous_counseling_details} onChange={e => setSpif(p=>({...p,previous_counseling_details:e.target.value}))} placeholder="When, where, for what reason" /></F>}
                     <label className="flex items-start gap-2.5 cursor-pointer">
-                      <input type="checkbox" checked={spif.previous_psychiatric} onChange={e => setSpif(p=>({...p,previous_psychiatric:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#1a5228]" />
+                      <input type="checkbox" checked={spif.previous_psychiatric} onChange={e => setSpif(p=>({...p,previous_psychiatric:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#2563eb]" />
                       <span className="text-sm text-gray-700">I have previously received psychiatric treatment or been given a diagnosis</span>
                     </label>
                     {spif.previous_psychiatric && <F label="Brief details"><input className={IC} value={spif.previous_psychiatric_details} onChange={e => setSpif(p=>({...p,previous_psychiatric_details:e.target.value}))} placeholder="Diagnosis, medications if any, when" /></F>}
@@ -683,13 +683,13 @@ export default function BookAppointmentPage() {
               </button>
               <div className="flex-1" />
               {intakeStep < 2 ? (
-                <button onClick={() => { if (validateIntakeStep()) setIntakeStep(s=>s+1); }} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ backgroundColor:'#1a5228' }}>
+                <button onClick={() => { if (validateIntakeStep()) setIntakeStep(s=>s+1); }} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ backgroundColor:'#2563eb' }}>
                   Continue <ChevronRight size={14} />
                 </button>
               ) : (
                 <button onClick={() => handleIntakeSubmit(false)}
                   disabled={intakeSubmitting || phq4.some(v=>v===null)}
-                  className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition" style={{ backgroundColor:'#1a5228' }}>
+                  className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition" style={{ backgroundColor:'#2563eb' }}>
                   {intakeSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   {intakeSubmitting ? 'Submitting…' : 'Submit Intake Forms'}
                 </button>
@@ -707,7 +707,7 @@ export default function BookAppointmentPage() {
     return (
       <DashboardPageWrapper title="Book Appointment" subtitle="">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-[#1a5228] text-white rounded-2xl px-6 py-6 mb-5 relative">
+          <div className="bg-[#2563eb] text-white rounded-2xl px-6 py-6 mb-5 relative">
             <button onClick={() => router.push('/my-appointments')} className="absolute top-4 right-5 text-white/60 hover:text-white text-xl leading-none">&times;</button>
             <div className="flex items-start gap-3">
               <CheckCircle size={24} className="text-green-300 flex-shrink-0 mt-0.5" />
@@ -745,7 +745,7 @@ export default function BookAppointmentPage() {
             </div>
           )}
           <div className="flex gap-3">
-            <button onClick={() => router.push('/my-appointments')} className="px-5 py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition">View My Appointments</button>
+            <button onClick={() => router.push('/my-appointments')} className="px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">View My Appointments</button>
             <button onClick={() => { setSuccess(false); setConcern(''); setPrefDate(''); setPrefTime(''); setPurpose('counseling'); setFormSkipped(false); }} className="px-5 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition">New Request</button>
           </div>
         </div>
@@ -765,7 +765,7 @@ export default function BookAppointmentPage() {
             {/* Header */}
             <div className="px-7 pt-7 pb-4 border-b border-gray-100 text-center flex-shrink-0">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-6 h-6 text-[#1a5228]" />
+                <CheckCircle className="w-6 h-6 text-[#2563eb]" />
               </div>
               <h2 className="text-lg font-bold text-gray-900">Informed Consent Form</h2>
               <p className="text-sm text-gray-400 mt-1">Please read the full document carefully before agreeing.</p>
@@ -781,7 +781,7 @@ export default function BookAppointmentPage() {
 
               {/* I. Informed Consent for Counseling Services */}
               <div className="border border-green-200 rounded-lg p-3 bg-green-50/50">
-                <p className="font-bold text-[#1a5228] text-xs uppercase tracking-wide mb-2">I. Informed Consent for Counseling Services</p>
+                <p className="font-bold text-[#2563eb] text-xs uppercase tracking-wide mb-2">I. Informed Consent for Counseling Services</p>
                 <p className="text-xs text-gray-600 mb-1">The DLSU Counseling &amp; Psychology Services (CPS) provides mental health support, counseling, and psychological services to enrolled students. Services include individual counseling, psychological assessment, crisis intervention, and referral to appropriate resources.</p>
                 <p className="text-xs text-gray-600 mb-1">Participation is voluntary. You may ask questions at any time and may discontinue at any time without penalty.</p>
                 <p className="text-xs text-gray-600">Under the Mental Health Act of 2018 (RA 11036), you have the right to access mental health services, to be treated with dignity and respect, and to have your mental health information kept confidential.</p>
@@ -844,13 +844,13 @@ export default function BookAppointmentPage() {
                 { k: 'privacy' as const,    t: 'I have read and understood how my personal and sensitive data will be collected, processed, and stored. I consent to data processing in accordance with RA 10173 (Data Privacy Act of 2012).' },
               ].map(item => (
                 <label key={item.k} className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={consentChecks[item.k]} onChange={e => setConsentChecks(c => ({ ...c, [item.k]: e.target.checked }))} className="w-4 h-4 mt-0.5 accent-[#1a5228] flex-shrink-0" />
+                  <input type="checkbox" checked={consentChecks[item.k]} onChange={e => setConsentChecks(c => ({ ...c, [item.k]: e.target.checked }))} className="w-4 h-4 mt-0.5 accent-[#2563eb] flex-shrink-0" />
                   <p className="text-xs text-gray-700 leading-relaxed">{item.t}</p>
                 </label>
               ))}
               {consentError && <p className="text-xs text-red-500">{consentError}</p>}
               <button onClick={handleConsent} disabled={savingConsent || !consentChecks.counseling || !consentChecks.privacy}
-                className="w-full py-3 bg-[#1a5228] hover:bg-green-800 disabled:opacity-40 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 mt-1">
+                className="w-full py-3 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 mt-1">
                 {savingConsent && <Loader2 size={14} className="animate-spin" />}
                 I Agree &amp; Continue
               </button>
@@ -865,7 +865,7 @@ export default function BookAppointmentPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CalendarCheck className="w-6 h-6 text-[#1a5228]" />
+              <CalendarCheck className="w-6 h-6 text-[#2563eb]" />
             </div>
             <h2 className="text-lg font-bold text-gray-900 text-center mb-1">Confirm Your Booking</h2>
             <p className="text-xs text-gray-400 text-center mb-5">Please review your appointment details before confirming.</p>
@@ -905,7 +905,7 @@ export default function BookAppointmentPage() {
             )}
             {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
             <button onClick={handleConfirmedBook} disabled={submitting}
-              className="w-full py-3 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 mb-2">
+              className="w-full py-3 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 mb-2">
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {submitting ? 'Booking…' : 'Confirm Booking'}
             </button>
@@ -921,14 +921,14 @@ export default function BookAppointmentPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-6 h-6 text-[#1a5228]" />
+              <CheckCircle className="w-6 h-6 text-[#2563eb]" />
             </div>
             <h2 className="text-lg font-bold text-gray-900 text-center mb-1">Appointment Booked!</h2>
             <p className="text-xs text-gray-400 text-center mb-1">Ticket #{ticketNumber}</p>
             <p className="text-sm text-gray-600 text-center mb-5">Your slot is reserved. Would you like to fill out the required intake forms now?</p>
             <div className="space-y-3">
               <button onClick={() => { setShowFormsChoice(false); setShowIntake(true); }}
-                className="w-full py-3 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2">
+                className="w-full py-3 bg-[#2563eb] hover:bg-blue-800 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2">
                 <ClipboardList size={14} /> Fill Out Forms Now
               </button>
               <button onClick={() => { setShowFormsChoice(false); setFormSkipped(true); setSuccess(true); }}
@@ -972,9 +972,9 @@ export default function BookAppointmentPage() {
                 {PURPOSES.map(p => (
                   <label key={p.value}
                     className={`flex items-start gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition
-                      ${purpose===p.value ? 'border-[#1a5228] bg-green-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                      ${purpose===p.value ? 'border-[#2563eb] bg-green-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
                     <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition
-                      ${purpose===p.value ? 'bg-[#1a5228] border-[#1a5228]' : 'border-gray-300'}`}>
+                      ${purpose===p.value ? 'bg-[#2563eb] border-[#2563eb]' : 'border-gray-300'}`}>
                       {purpose===p.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>
                     <input type="radio" name="purpose" value={p.value} checked={purpose===p.value} onChange={() => setPurpose(p.value)} className="sr-only" />
@@ -1008,9 +1008,9 @@ export default function BookAppointmentPage() {
                 )}
 
                 {assignedCounselor && assignedCounselor !== undefined && (
-                  <div className="flex items-center gap-3 p-3 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
-                      <UserCheck size={14} className="text-[#1a5228]" />
+                  <div className="flex items-center gap-3 p-3 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+                      <UserCheck size={14} className="text-[#2563eb]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">
@@ -1018,7 +1018,7 @@ export default function BookAppointmentPage() {
                       </p>
                       <p className="text-xs text-gray-400">{assignedCounselor.role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'} · Assigned to your case</p>
                     </div>
-                    <span className="text-[10px] font-semibold text-[#1a5228] bg-green-50 px-2 py-0.5 rounded-full border border-green-200">Assigned</span>
+                    <span className="text-[10px] font-semibold text-[#2563eb] bg-green-50 px-2 py-0.5 rounded-full border border-green-200">Assigned</span>
                   </div>
                 )}
 
@@ -1065,15 +1065,15 @@ export default function BookAppointmentPage() {
                       }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition ${
                         slotMethod === m.v
-                          ? 'border-[#1a5228] bg-[#1a5228]/5'
+                          ? 'border-[#2563eb] bg-[#2563eb]/5'
                           : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}>
                       <span className="text-xl">{m.icon}</span>
                       <div>
-                        <p className={`text-sm font-semibold ${slotMethod === m.v ? 'text-[#1a5228]' : 'text-gray-800'}`}>{m.label}</p>
+                        <p className={`text-sm font-semibold ${slotMethod === m.v ? 'text-[#2563eb]' : 'text-gray-800'}`}>{m.label}</p>
                         <p className="text-[10px] text-gray-400">{m.sub}</p>
                       </div>
-                      {slotMethod === m.v && <span className="ml-auto w-5 h-5 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">✓</span>}
+                      {slotMethod === m.v && <span className="ml-auto w-5 h-5 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">✓</span>}
                     </button>
                   ))}
                 </div>
@@ -1174,8 +1174,8 @@ export default function BookAppointmentPage() {
                                 <button key={i} type="button" disabled={!selectable}
                                   onClick={() => { setPrefDate(ds); setPrefTime(''); setSlotCounselorId(''); setRequestAnyway(false); setCalendarMonth({ year, month }); }}
                                   className={`mx-auto w-8 h-8 flex items-center justify-center rounded-full text-xs font-medium transition
-                                    ${isSelected ? 'bg-[#1a5228] text-white font-bold' :
-                                      isToday && selectable ? 'ring-2 ring-[#1a5228] text-[#1a5228] font-bold' :
+                                    ${isSelected ? 'bg-[#2563eb] text-white font-bold' :
+                                      isToday && selectable ? 'ring-2 ring-[#2563eb] text-[#2563eb] font-bold' :
                                       selectable ? 'hover:bg-gray-100 text-gray-700' :
                                       'text-gray-300 cursor-not-allowed'}`}>
                                   {day}
@@ -1197,7 +1197,7 @@ export default function BookAppointmentPage() {
                                 <p className="text-xs font-semibold text-gray-700">{selectedDayLabel}</p>
                                 {prefTime && (
                                   <div className="mt-1.5 flex items-center gap-1.5">
-                                    <span className="px-2.5 py-1 rounded-lg bg-[#1a5228] text-white text-xs font-bold">{fmtT(prefTime)}</span>
+                                    <span className="px-2.5 py-1 rounded-lg bg-[#2563eb] text-white text-xs font-bold">{fmtT(prefTime)}</span>
                                     <button type="button" onClick={() => { setPrefTime(''); setSlotCounselorId(''); }}
                                       className="text-[10px] text-gray-400 hover:text-gray-600 underline">change</button>
                                   </div>
@@ -1215,7 +1215,7 @@ export default function BookAppointmentPage() {
                                     <button key={i} type="button"
                                       onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
                                       className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-center transition border
-                                        ${isSel ? 'bg-[#1a5228] text-white border-[#1a5228]' : 'border-gray-200 text-gray-700 hover:border-[#1a5228] hover:text-[#1a5228]'}`}>
+                                        ${isSel ? 'bg-[#2563eb] text-white border-[#2563eb]' : 'border-gray-200 text-gray-700 hover:border-[#2563eb] hover:text-[#2563eb]'}`}>
                                       {fmtT(s.time)}
                                     </button>
                                   );
@@ -1236,7 +1236,7 @@ export default function BookAppointmentPage() {
                                     <p className="text-xs text-gray-500">No slots on this date.</p>
                                     {noSlotsNextDate && (
                                       <button type="button" onClick={() => { setPrefDate(noSlotsNextDate); setCalendarMonth({ year: parseInt(noSlotsNextDate.split('-')[0]), month: parseInt(noSlotsNextDate.split('-')[1]) - 1 }); }}
-                                        className="text-[11px] font-bold text-[#1a5228] underline block">
+                                        className="text-[11px] font-bold text-[#2563eb] underline block">
                                         Next: {new Date(noSlotsNextDate + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' })}
                                       </button>
                                     )}
@@ -1290,7 +1290,7 @@ export default function BookAppointmentPage() {
               <div className="flex gap-4">
                 {[{ v:'self-referred', l:'Self Referred' },{ v:'referred', l:'Referred by someone' }].map(r => (
                   <label key={r.v} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                    <input type="radio" name="referral" value={r.v} checked={referralType===r.v} onChange={() => setReferralType(r.v)} className="w-4 h-4 accent-[#1a5228]" />{r.l}
+                    <input type="radio" name="referral" value={r.v} checked={referralType===r.v} onChange={() => setReferralType(r.v)} className="w-4 h-4 accent-[#2563eb]" />{r.l}
                   </label>
                 ))}
               </div>
@@ -1311,7 +1311,7 @@ export default function BookAppointmentPage() {
                 <Save size={13} />{savingDraft ? 'Saved!' : 'Save Draft'}
               </button>
               <button type="submit" disabled={submitting || consentGiven === false}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition" style={{ backgroundColor:'#1a5228' }}>
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition" style={{ backgroundColor:'#2563eb' }}>
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={13} />}
                 {submitting ? 'Submitting…' : purpose==='intake_interview' ? 'Book & Continue to Intake Forms' : 'Submit Request'}
               </button>

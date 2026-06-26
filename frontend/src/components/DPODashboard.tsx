@@ -100,9 +100,9 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
                     { href: '/announcements',         label: 'Announcements' },
                   ].map(({ href, label }) => (
                     <Link key={href} href={href}
-                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#1a5228] transition-colors group">
+                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
                       <span>{label}</span>
-                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#1a5228] transition-colors" />
+                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
                     </Link>
                   ))}
                 </div>
@@ -119,9 +119,9 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
                     { href: '/appointment-requests', label: 'Appointments' },
                   ].map(({ href, label }) => (
                     <Link key={href} href={href}
-                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#1a5228] transition-colors group">
+                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
                       <span>{label}</span>
-                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#1a5228] transition-colors" />
+                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
                     </Link>
                   ))}
                 </div>

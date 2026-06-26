@@ -187,7 +187,7 @@ export default function VideoLinksPage() {
             {activeLinks.map(link => (
               <div
                 key={link.video_link_id}
-                className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border-2 border-green-400 dark:border-green-700 p-4"
+                className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border-2 border-green-400 dark:border-blue-700 p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -208,7 +208,7 @@ export default function VideoLinksPage() {
                     href={link.link_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
                   >
                     <Video size={18} />
                     Join Session

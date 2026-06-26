@@ -108,10 +108,10 @@ export default function IntakeForm({
 
       {/* Success Message */}
       {success && (
-        <div className="flex gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+        <div className="flex gap-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-lg p-4">
           <CheckCircle className="text-green-600 dark:text-green-400 flex-shrink-0" size={20} />
           <div>
-            <p className="font-medium text-green-900 dark:text-green-200">
+            <p className="font-medium text-blue-900 dark:text-green-200">
               {isEditing ? 'Case updated successfully' : 'Intake submitted successfully'}
             </p>
           </div>

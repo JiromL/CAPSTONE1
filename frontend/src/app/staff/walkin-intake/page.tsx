@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -29,10 +29,10 @@ const STEP_META = [
   { num: 1, label: 'Contact Form',       sub: 'ICF',     accent: 'bg-sky-500'    },
   { num: 2, label: 'Personal Background',sub: 'SPIF-IF', accent: 'bg-violet-500' },
   { num: 3, label: 'Mental Health Screen',sub: 'PHQ-4',  accent: 'bg-orange-500' },
-  { num: 4, label: 'Assign IC',          sub: 'Session', accent: 'bg-[#1a5228]'  },
+  { num: 4, label: 'Assign IC',          sub: 'Session', accent: 'bg-[#2563eb]'  },
 ];
 
-const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/25 focus:border-[#1a5228] focus:outline-none transition';
+const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/25 focus:border-[#2563eb] focus:outline-none transition';
 const SELECT = INPUT;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -72,20 +72,20 @@ function StepWizard({ current }: { current: number }) {
           <div key={i} className="flex items-start">
             <div className="flex flex-col items-center w-24">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-sm border-2 transition
-                ${done   ? 'bg-[#1a5228] border-[#1a5228] text-white'
-                : active ? 'bg-white border-[#1a5228] text-[#1a5228]'
+                ${done   ? 'bg-[#2563eb] border-[#2563eb] text-white'
+                : active ? 'bg-white border-[#2563eb] text-[#2563eb]'
                          : 'bg-white border-gray-200 text-gray-400'}`}>
                 {done ? <Check size={16} /> : s.num}
               </div>
               <p className={`text-[11px] font-semibold mt-1.5 text-center leading-tight
-                ${active ? 'text-[#1a5228]' : done ? 'text-gray-500' : 'text-gray-400'}`}>
+                ${active ? 'text-[#2563eb]' : done ? 'text-gray-500' : 'text-gray-400'}`}>
                 {s.label}
               </p>
               <span className={`text-[9px] uppercase tracking-wide font-bold mt-0.5
-                ${active ? 'text-[#1a5228]/60' : 'text-gray-300'}`}>{s.sub}</span>
+                ${active ? 'text-[#2563eb]/60' : 'text-gray-300'}`}>{s.sub}</span>
             </div>
             {i < STEP_META.length - 1 && (
-              <div className={`mt-4 h-0.5 w-8 mx-1 ${i < current ? 'bg-[#1a5228]' : 'bg-gray-200'}`} />
+              <div className={`mt-4 h-0.5 w-8 mx-1 ${i < current ? 'bg-[#2563eb]' : 'bg-gray-200'}`} />
             )}
           </div>
         );
@@ -103,6 +103,9 @@ export default function WalkinIntakePage() {
   const [success, setSuccess]   = useState('');
   const [intakeId, setIntakeId] = useState('');
   const [isCrisis, setIsCrisis] = useState(false);
+  const [crisisStaff, setCrisisStaff]         = useState<{_id:string;name:string;role:string}[]>([]);
+  const [selectedCrisisStaffId, setSelectedCrisisStaffId] = useState('');
+  const [loadingCrisisStaff, setLoadingCrisisStaff]       = useState(false);
 
   const [icSlots, setIcSlots]             = useState<{time:string;method:string;counselor_id:string;counselor_name:string}[]>([]);
   const [loadingSlots, setLoadingSlots]   = useState(false);
@@ -133,6 +136,28 @@ export default function WalkinIntakePage() {
 
   const setI = (k: string, v: any) => setIcf(p => ({ ...p, [k]: v }));
   const setS = (k: string, v: any) => setSpif(p => ({ ...p, [k]: v }));
+
+  // Fetch counselors/psychologists/case managers for crisis direct assignment
+  useEffect(() => {
+    if (!isCrisis || crisisStaff.length > 0) return;
+    setLoadingCrisisStaff(true);
+    const token = localStorage.getItem('token');
+    fetch(api('/api/users?roles=COUNSELOR,PSYCHOLOGIST,CASE_MANAGER'), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.users) {
+          setCrisisStaff(d.users.map((u: any) => ({
+            _id: u._id || u.id,
+            name: `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+            role: u.role,
+          })));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCrisisStaff(false));
+  }, [isCrisis]);
 
   const validateCrisis = () => {
     if (!icf.first_name.trim() || !icf.last_name.trim()) { setError('First and last name are required.'); return false; }
@@ -192,7 +217,8 @@ export default function WalkinIntakePage() {
           first_name: icf.first_name, last_name: icf.last_name,
           email: icf.email, student_id: icf.student_id, phone: icf.phone,
           crisis_type: icf.crisis_type, is_urgent: true, is_emergency: true,
-          notes: `[FAST-TRACK] Crisis type: ${icf.crisis_type}. SPIF-IF and PHQ-4 deferred to IC session.`,
+          ...(selectedCrisisStaffId ? { counselor_id: selectedCrisisStaffId } : {}),
+          notes: `[FAST-TRACK] Crisis type: ${icf.crisis_type}. SPIF-IF and PHQ-4 deferred to counseling session.`,
         }),
       });
       const wd = await wr.json();
@@ -208,7 +234,7 @@ export default function WalkinIntakePage() {
           fast_track: true, forms_deferred: true,
           icf: { ...icf, consent_to_service: true, consent_to_data: true },
           spif: null, phq4_responses: null,
-          notes: 'Fast-track crisis registration. SPIF-IF and PHQ-4 to be completed by IC during session.',
+          notes: 'Fast-track crisis registration. SPIF-IF and PHQ-4 to be completed during counseling session.',
         }),
       });
 
@@ -320,7 +346,7 @@ export default function WalkinIntakePage() {
       <DashboardPageWrapper title="Walk-in Intake" subtitle="Register a student visiting the office">
         <div className="max-w-md mx-auto">
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            <div className="bg-[#1a5228] px-6 pt-8 pb-6 text-center">
+            <div className="bg-[#2563eb] px-6 pt-8 pb-6 text-center">
               <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 size={28} className="text-white" />
               </div>
@@ -337,7 +363,7 @@ export default function WalkinIntakePage() {
                 ].map(s => (
                   <div key={s.label} className={`rounded-xl p-3 text-center ${s.at_risk ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'}`}>
                     <p className="text-xs font-semibold text-gray-600 mb-1">{s.label}</p>
-                    <p className={`text-2xl font-bold ${s.at_risk ? 'text-red-600' : 'text-green-700'}`}>{s.score}<span className="text-sm font-normal text-gray-400">/{s.max}</span></p>
+                    <p className={`text-2xl font-bold ${s.at_risk ? 'text-red-600' : 'text-blue-700'}`}>{s.score}<span className="text-sm font-normal text-gray-400">/{s.max}</span></p>
                     <p className={`text-xs mt-0.5 font-medium ${s.at_risk ? 'text-red-500' : 'text-green-600'}`}>{s.at_risk ? 'Elevated — flag for IC' : 'Within normal range'}</p>
                   </div>
                 ))}
@@ -351,7 +377,7 @@ export default function WalkinIntakePage() {
                   setIcf({ first_name:'',last_name:'',middle_name:'',email:'',student_id:'',phone:'',college:'',program:'',year_level:'',referral_source:'self-referred',referred_by:'',emergency_contact_name:'',emergency_contact_relationship:'',emergency_contact_phone:'',presenting_concern:'',crisis_type:'',service_requested:'personal_counseling',consent_to_service:false,consent_to_data:false });
                   setSpif({ birthdate:'',gender:'',civil_status:'single',religion:'',nationality:'Filipino',address:'',family_composition:'complete',living_with:'',birth_order:'',number_of_siblings:'',existing_medical_conditions:'',current_medications:'',previous_counseling:false,previous_counseling_details:'',previous_psychiatric:false,previous_psychiatric_details:'',family_mental_health_history:'',sleep_hours:'',exercise_frequency:'rarely',substance_use:'none' });
                   setPhq4([null,null,null,null]);
-                }} className="flex-1 py-2.5 text-sm font-semibold text-white rounded-xl" style={{ backgroundColor: '#1a5228' }}>
+                }} className="flex-1 py-2.5 text-sm font-semibold text-white rounded-xl" style={{ backgroundColor: '#2563eb' }}>
                   New Walk-in
                 </button>
                 <button onClick={() => router.push('/dashboard')} className="flex-1 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
@@ -380,7 +406,7 @@ export default function WalkinIntakePage() {
           <div className="text-left flex-1">
             <p className="font-bold">{isCrisis ? '🔴 CRISIS / URGENT MODE — Fast-track active' : 'Student is in crisis or unable to complete full intake'}</p>
             <p className={`text-xs font-normal mt-0.5 ${isCrisis ? 'text-red-100' : 'text-red-400'}`}>
-              {isCrisis ? 'Only name, email, concern, and consent are required. SPIF-IF and PHQ-4 deferred to IC session.' : 'Tap to activate fast-track — skips SPIF-IF and PHQ-4'}
+              {isCrisis ? 'Only name, email, concern, and consent are required. SPIF-IF and PHQ-4 deferred to counseling session.' : 'Tap to activate fast-track — skips SPIF-IF and PHQ-4'}
             </p>
           </div>
           <span className={`text-xs px-2 py-1 rounded-full border font-bold flex-shrink-0 ${isCrisis ? 'bg-white text-red-600 border-white' : 'border-red-200 text-red-500'}`}>
@@ -390,8 +416,8 @@ export default function WalkinIntakePage() {
 
         {/* Patient identifier bar (appears once name is entered) */}
         {studentLabel && (
-          <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 mb-5 ${isCrisis ? 'bg-red-50 border-red-200' : 'bg-[#1a5228]/5 border-[#1a5228]/10'}`}>
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${isCrisis ? 'bg-red-500' : 'bg-[#1a5228]'}`}>
+          <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 mb-5 ${isCrisis ? 'bg-red-50 border-red-200' : 'bg-[#2563eb]/5 border-[#2563eb]/10'}`}>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${isCrisis ? 'bg-red-500' : 'bg-[#2563eb]'}`}>
               {icf.first_name[0]?.toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -400,7 +426,7 @@ export default function WalkinIntakePage() {
             </div>
             {isCrisis
               ? <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-bold">URGENT</span>
-              : <span className="text-xs px-2 py-1 bg-[#1a5228]/10 text-[#1a5228] rounded-full font-semibold">Walk-in</span>}
+              : <span className="text-xs px-2 py-1 bg-[#2563eb]/10 text-[#2563eb] rounded-full font-semibold">Walk-in</span>}
           </div>
         )}
 
@@ -409,7 +435,7 @@ export default function WalkinIntakePage() {
           <div className="space-y-3">
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-2">
               <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Fast-Track Registration</p>
-              <p className="text-xs text-red-600">Capture the minimum needed to get the student to a counselor immediately. IC will complete the full assessment during the session.</p>
+              <p className="text-xs text-red-600">Capture the minimum needed to get the student to a counselor immediately. The assigned staff will complete the full assessment during the session.</p>
             </div>
 
             <SectionCard icon={User} title="Student Identity" color="bg-red-50 text-red-700">
@@ -435,7 +461,7 @@ export default function WalkinIntakePage() {
                   <option value="other_crisis">Other urgent concern</option>
                 </select>
               </F>
-              <p className="text-xs text-red-600 mt-1">The IC will assess and document the full clinical concern during the session.</p>
+              <p className="text-xs text-red-600 mt-1">The assigned counselor/psychologist will assess and document the full clinical concern during the session.</p>
             </SectionCard>
 
             {/* Verbal consent */}
@@ -456,8 +482,50 @@ export default function WalkinIntakePage() {
               </div>
             </div>
 
+            {/* Direct staff assignment for crisis */}
+            <div className="bg-white border border-red-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-red-50 border-b border-red-100">
+                <p className="text-xs font-bold text-red-700 uppercase tracking-wide">Assign to Available Staff</p>
+                <p className="text-[11px] text-red-500 mt-0.5">Route directly to a counselor, psychologist, or case manager. Leave unassigned to route to the IC queue.</p>
+              </div>
+              <div className="px-4 py-3">
+                {loadingCrisisStaff ? (
+                  <p className="text-xs text-gray-400">Loading available staff…</p>
+                ) : (
+                  <select
+                    value={selectedCrisisStaffId}
+                    onChange={e => setSelectedCrisisStaffId(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-400 outline-none"
+                  >
+                    <option value="">— Route to IC queue (unassigned) —</option>
+                    {crisisStaff.filter(s => s.role === 'COUNSELOR').length > 0 && (
+                      <optgroup label="Counselors">
+                        {crisisStaff.filter(s => s.role === 'COUNSELOR').map(s => (
+                          <option key={s._id} value={s._id}>{s.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {crisisStaff.filter(s => s.role === 'PSYCHOLOGIST').length > 0 && (
+                      <optgroup label="Psychologists">
+                        {crisisStaff.filter(s => s.role === 'PSYCHOLOGIST').map(s => (
+                          <option key={s._id} value={s._id}>{s.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {crisisStaff.filter(s => s.role === 'CASE_MANAGER').length > 0 && (
+                      <optgroup label="Case Managers">
+                        {crisisStaff.filter(s => s.role === 'CASE_MANAGER').map(s => (
+                          <option key={s._id} value={s._id}>{s.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                )}
+              </div>
+            </div>
+
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700">
-              <strong>What is deferred:</strong> SPIF-IF (personal/family background) and PHQ-4 screener will <em>not</em> be collected now. The IC will administer PHQ-9, GAD-7, and C-SSRS as clinically indicated during the session.
+              <strong>What is deferred:</strong> SPIF-IF (personal/family background) and PHQ-4 screener will <em>not</em> be collected now. The assigned staff will administer PHQ-9, GAD-7, and C-SSRS as clinically indicated during the session.
             </div>
 
             {error && (
@@ -570,13 +638,13 @@ export default function WalkinIntakePage() {
               <div className="px-4 py-4 space-y-3">
                 <p className="text-xs text-amber-700">Please read each statement aloud to the student and confirm their verbal agreement.</p>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={icf.consent_to_service} onChange={e => setI('consent_to_service', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#1a5228] flex-shrink-0" />
+                  <input type="checkbox" checked={icf.consent_to_service} onChange={e => setI('consent_to_service', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#2563eb] flex-shrink-0" />
                   <span className="text-sm text-gray-700 leading-relaxed">
                     <strong>Consent to Counseling Services:</strong> The student voluntarily consents to receive counseling and psychological services from DLSU CPS, and understands the limits of confidentiality.
                   </span>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={icf.consent_to_data} onChange={e => setI('consent_to_data', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#1a5228] flex-shrink-0" />
+                  <input type="checkbox" checked={icf.consent_to_data} onChange={e => setI('consent_to_data', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#2563eb] flex-shrink-0" />
                   <span className="text-sm text-gray-700 leading-relaxed">
                     <strong>Data Privacy Consent:</strong> The student consents to the collection and processing of personal information in accordance with the Data Privacy Act of 2012 (RA 10173).
                   </span>
@@ -662,7 +730,7 @@ export default function WalkinIntakePage() {
             <SectionCard icon={Stethoscope} title="Mental Health History" color="bg-violet-50 text-violet-700">
               <div className="space-y-3">
                 <label className="flex items-start gap-2.5 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition">
-                  <input type="checkbox" checked={spif.previous_counseling} onChange={e => setS('previous_counseling', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#1a5228] flex-shrink-0" />
+                  <input type="checkbox" checked={spif.previous_counseling} onChange={e => setS('previous_counseling', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#2563eb] flex-shrink-0" />
                   <span className="text-sm text-gray-700">Has previously received counseling or therapy</span>
                 </label>
                 {spif.previous_counseling && (
@@ -671,7 +739,7 @@ export default function WalkinIntakePage() {
                   </F>
                 )}
                 <label className="flex items-start gap-2.5 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition">
-                  <input type="checkbox" checked={spif.previous_psychiatric} onChange={e => setS('previous_psychiatric', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#1a5228] flex-shrink-0" />
+                  <input type="checkbox" checked={spif.previous_psychiatric} onChange={e => setS('previous_psychiatric', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-[#2563eb] flex-shrink-0" />
                   <span className="text-sm text-gray-700">Has previously received psychiatric treatment or been diagnosed with a mental health condition</span>
                 </label>
                 {spif.previous_psychiatric && (
@@ -791,7 +859,7 @@ export default function WalkinIntakePage() {
                   ].map(x => (
                     <div key={x.l} className={`rounded-xl py-3 px-2 ${x.risk ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'}`}>
                       <p className="text-xs text-gray-500 mb-0.5">{x.desc}</p>
-                      <p className={`text-2xl font-bold ${x.risk ? 'text-red-600' : 'text-green-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
+                      <p className={`text-2xl font-bold ${x.risk ? 'text-red-600' : 'text-blue-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
                       <p className={`text-[10px] font-semibold mt-0.5 ${x.risk ? 'text-red-500' : 'text-green-600'}`}>{x.l}: {x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                     </div>
                   ))}
@@ -806,7 +874,7 @@ export default function WalkinIntakePage() {
         {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-1">
-              <CalendarCheck size={16} className="text-[#1a5228]" />
+              <CalendarCheck size={16} className="text-[#2563eb]" />
               <h2 className="text-sm font-bold text-gray-800">Assign Intake Counselor</h2>
             </div>
             <p className="text-xs text-gray-500 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
@@ -837,7 +905,7 @@ export default function WalkinIntakePage() {
                   {Object.entries(byIc).map(([icId, slots]) => (
                     <div key={icId} className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
                       <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-xs font-bold">
+                        <div className="w-7 h-7 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-xs font-bold">
                           {slots[0].counselor_name.charAt(0)}
                         </div>
                         <span className="text-sm font-semibold text-gray-800">{slots[0].counselor_name}</span>
@@ -855,8 +923,8 @@ export default function WalkinIntakePage() {
                               onClick={() => setSelectedSlot(slot)}
                               className={`flex flex-col items-center px-3 py-2 rounded-xl text-xs font-semibold border-2 transition
                                 ${isSelected
-                                  ? 'bg-[#1a5228] border-[#1a5228] text-white'
-                                  : 'bg-white border-gray-200 text-gray-700 hover:border-[#1a5228]/40'}`}>
+                                  ? 'bg-[#2563eb] border-[#2563eb] text-white'
+                                  : 'bg-white border-gray-200 text-gray-700 hover:border-[#2563eb]/40'}`}>
                               <span className="text-base font-bold">{h12}:{String(m).padStart(2,'0')}</span>
                               <span className="opacity-75">{ampm}</span>
                               <span className={`mt-0.5 text-[10px] ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>{slot.method}</span>
@@ -871,8 +939,8 @@ export default function WalkinIntakePage() {
             })()}
 
             {selectedSlot && (
-              <div className="flex items-center gap-3 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl px-4 py-3">
-                <CheckCircle2 size={18} className="text-[#1a5228] flex-shrink-0" />
+              <div className="flex items-center gap-3 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl px-4 py-3">
+                <CheckCircle2 size={18} className="text-[#2563eb] flex-shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{selectedSlot.counselor_name}</p>
                   <p className="text-xs text-gray-500">
@@ -904,12 +972,12 @@ export default function WalkinIntakePage() {
             <p className="text-xs text-gray-400">Step {step + 1} of {STEP_META.length}</p>
           </div>
           {step < 3 ? (
-            <button onClick={next} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ backgroundColor: '#1a5228' }}>
+            <button onClick={next} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ backgroundColor: '#2563eb' }}>
               Continue <ChevronRight size={14} />
             </button>
           ) : (
             <button onClick={handleSubmit} disabled={loading || phq4.some(v => v === null)}
-              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition" style={{ backgroundColor: '#1a5228' }}>
+              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition" style={{ backgroundColor: '#2563eb' }}>
               {loading ? 'Submitting…' : <><Check size={14} /> {selectedSlot ? 'Assign & Submit' : 'Submit to Queue'}</>}
             </button>
           )}

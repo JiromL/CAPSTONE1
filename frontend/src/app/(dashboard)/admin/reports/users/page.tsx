@@ -21,7 +21,7 @@ const ROLE_COLOR: Record<string, string> = {
   ADMIN: 'bg-red-100 text-red-800',
   DPO: 'bg-purple-100 text-purple-800',
   PSYCHOLOGIST: 'bg-blue-100 text-blue-800',
-  COUNSELOR: 'bg-green-100 text-green-800',
+  COUNSELOR: 'bg-green-100 text-blue-800',
   IC: 'bg-yellow-100 text-yellow-800',
   STAFF: 'bg-gray-100 text-gray-700',
   STUDENT: 'bg-sky-100 text-sky-800',
@@ -90,7 +90,7 @@ export default function UsersReportPage() {
           <>
             {/* Top summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#1a5228' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#2563eb' }}>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Users</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{totalUsers}</p>
               </div>
@@ -128,7 +128,7 @@ export default function UsersReportPage() {
                           <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_COLOR[row.role] || 'bg-gray-100 text-gray-700'}`}>{row.role}</span>
                         </td>
                         <td className="px-6 py-3 font-semibold text-gray-900 dark:text-gray-50">{row.total}</td>
-                        <td className="px-6 py-3 text-green-700">{row.active}</td>
+                        <td className="px-6 py-3 text-blue-700">{row.active}</td>
                         <td className="px-6 py-3 text-gray-500">{row.inactive}</td>
                         <td className="px-6 py-3 text-gray-600 dark:text-gray-400">
                           {totalUsers > 0 ? `${((row.total / totalUsers) * 100).toFixed(1)}%` : '—'}

@@ -4,9 +4,11 @@ Per-user authentication — each counselor logs in with their own MHBot account.
 Token is stored in the user's MongoDB record and used for all MHBot API calls.
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import requests
+import hmac
+import hashlib
 from datetime import datetime, timedelta
 from bson import ObjectId
 from models import db, PermissionType
@@ -51,7 +53,46 @@ def _auth_headers(token: str) -> dict:
 
 # ── Core PERMA fetch (token passed in explicitly) ─────────────────────────────
 
-def get_perma_history(username: str, token: str, limit: int = 5) -> dict:
+def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=None):
+    """Upsert PERMA entries into perma_snapshots collection."""
+    if not history:
+        return
+    now = datetime.utcnow()
+    for entry in history:
+        label = entry.get('perma_label')
+        date_str = entry.get('date')
+        if not label or not date_str:
+            continue
+        try:
+            entry_date = datetime.fromisoformat(date_str.replace('Z', ''))
+        except Exception:
+            continue
+        db.db.perma_snapshots.update_one(
+            {'mhbot_username': mhbot_username, 'entry_date': entry_date},
+            {'$set': {
+                'mhbot_username': mhbot_username,
+                'perma_label': label,
+                'entry_date': entry_date,
+                'raw_date': date_str,
+                'saved_at': now,
+                **(({'student_user_id': student_user_id}) if student_user_id else {}),
+            }},
+            upsert=True,
+        )
+    # Update the quick-access fields on the user record
+    if student_user_id and history:
+        latest = history[0]
+        db.db.users.update_one(
+            {'_id': student_user_id},
+            {'$set': {
+                'perma_latest_label': latest.get('perma_label'),
+                'perma_latest_date': latest.get('date'),
+                'perma_synced_at': now,
+            }},
+        )
+
+
+def get_perma_history(username: str, token: str, limit: int = 5, save: bool = False, student_user_id=None) -> dict:
     if not token:
         return {'success': False, 'error': 'Not connected to MHBot. Please log in first.', 'data': []}
 
@@ -60,6 +101,8 @@ def get_perma_history(username: str, token: str, limit: int = 5) -> dict:
         resp = requests.get(url, headers=_auth_headers(token), params={'offset': 0, 'limit': limit}, timeout=10)
         if resp.status_code == 200:
             history = resp.json()
+            if save and history:
+                _save_perma_snapshots(username, history, student_user_id)
             return {
                 'success': True,
                 'data': history,
@@ -85,6 +128,7 @@ def mhbot_login():
     data = request.get_json() or {}
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
+    ema_identifier = data.get('ema_identifier', '').strip() or None
 
     if not username or not password:
         return jsonify({'error': 'Username and password are required'}), 400
@@ -116,17 +160,31 @@ def mhbot_login():
     expires_in = int(payload.get('expires_in', 1800))
     expires_at = datetime.utcnow() + timedelta(seconds=expires_in - 60)
 
+    uid = _resolve_user_id(user_id)
+    # Use ema_identifier for history if provided, otherwise fall back to login username
+    history_username = ema_identifier or username
     db.db.users.update_one(
-        {'_id': _resolve_user_id(user_id)},
+        {'_id': uid},
         {'$set': {
             'mhbot_token': token,
             'mhbot_token_expires_at': expires_at,
-            'mhbot_username': username,
+            'mhbot_username': history_username,
+            'mhbot_login_username': username,
             'mhbot_linked_at': datetime.utcnow(),
         }}
     )
 
-    return jsonify({'success': True, 'mhbot_username': username}), 200
+    # Immediately recover all past PERMA history and save to DB
+    history_result = get_perma_history(history_username, token, limit=200, save=True, student_user_id=uid)
+    recovered = len(history_result.get('data', []))
+    latest_label = history_result.get('latest_label')
+
+    return jsonify({
+        'success': True,
+        'mhbot_username': username,
+        'recovered': recovered,
+        'latest_label': latest_label,
+    }), 200
 
 
 @mhbot_bp.route('/auth/set-identifier', methods=['POST'])
@@ -195,7 +253,10 @@ def get_user_perma(username):
         return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 401
 
     limit = min(request.args.get('limit', 5, type=int), 100)
-    result = get_perma_history(username, token, limit)
+    # Resolve student user_id for denormalized save
+    student = db.db.users.find_one({'mhbot_username': username}, {'_id': 1})
+    student_uid = student['_id'] if student else None
+    result = get_perma_history(username, token, limit, save=True, student_user_id=student_uid)
 
     if result['success']:
         return jsonify({
@@ -476,7 +537,7 @@ def get_my_perma():
         return jsonify({'connected': False, 'error': 'No MHBot username on record'}), 200
 
     limit = min(request.args.get('limit', 10, type=int), 100)
-    result = get_perma_history(mhbot_username, token, limit)
+    result = get_perma_history(mhbot_username, token, limit, save=True, student_user_id=_resolve_user_id(user_id))
 
     return jsonify({
         'connected': True,
@@ -485,6 +546,37 @@ def get_my_perma():
         'latest_date': result.get('latest_date'),
         'history': result.get('data', []),
         'fetch_error': None if result['success'] else result['error'],
+    }), 200
+
+
+
+@mhbot_bp.route('/my-snapshots', methods=['GET'])
+@jwt_required()
+def get_my_snapshots():
+    """Return saved PERMA snapshots for the logged-in student."""
+    user_id = get_jwt_identity()
+    uid = _resolve_user_id(user_id)
+    user = db.db.users.find_one({'_id': uid})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    limit = min(request.args.get('limit', 50, type=int), 200)
+    snapshots = list(db.db.perma_snapshots.find(
+        {'student_user_id': uid},
+        {'_id': 0, 'student_user_id': 0}
+    ).sort('entry_date', -1).limit(limit))
+
+    for s in snapshots:
+        if 'entry_date' in s and hasattr(s['entry_date'], 'isoformat'):
+            s['entry_date'] = s['entry_date'].isoformat()
+        if 'saved_at' in s and hasattr(s['saved_at'], 'isoformat'):
+            s['saved_at'] = s['saved_at'].isoformat()
+
+    return jsonify({
+        'latest_label': user.get('perma_latest_label'),
+        'latest_date': user.get('perma_latest_date'),
+        'snapshots': snapshots,
+        'total': len(snapshots),
     }), 200
 
 
@@ -547,6 +639,310 @@ def get_perma_trends():
         'months': [f"{y}-{str(m).zfill(2)}" for y, m in months],
         'monthly': monthly,
     }), 200
+
+
+@mhbot_bp.route('/sync', methods=['POST'])
+@jwt_required()
+def sync_all_perma():
+    """Staff: pull latest PERMA history from EMA for all linked students and save to DB."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    token = _get_user_token(user_id)
+    if not token:
+        return jsonify({'error': 'Not connected to EMA. Please log in first.'}), 401
+
+    limit = min(request.args.get('limit', 50, type=int), 200)
+    students = list(db.db.users.find(
+        {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
+        {'_id': 1, 'mhbot_username': 1}
+    ))
+
+    synced, failed = 0, 0
+    for student in students:
+        uid = student['_id']
+        username = student['mhbot_username']
+        result = get_perma_history(username, token, limit=limit, save=True, student_user_id=uid)
+        if result['success']:
+            synced += 1
+        else:
+            failed += 1
+            logger.warning('PERMA sync failed for %s: %s', username, result.get('error'))
+
+    return jsonify({
+        'synced': synced,
+        'failed': failed,
+        'total': len(students),
+        'synced_at': datetime.utcnow().isoformat(),
+    }), 200
+
+
+@mhbot_bp.route('/snapshots/<mhbot_username>', methods=['GET'])
+@jwt_required()
+def get_perma_snapshots(mhbot_username):
+    """Return saved PERMA snapshots from DB for a given EMA username."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    limit = min(request.args.get('limit', 30, type=int), 200)
+    docs = list(
+        db.db.perma_snapshots
+        .find({'mhbot_username': mhbot_username}, {'_id': 0, 'mhbot_username': 0, 'student_user_id': 0})
+        .sort('entry_date', -1)
+        .limit(limit)
+    )
+    for d in docs:
+        if 'entry_date' in d:
+            d['entry_date'] = d['entry_date'].isoformat()
+        if 'saved_at' in d:
+            d['saved_at'] = d['saved_at'].isoformat()
+
+    return jsonify({'mhbot_username': mhbot_username, 'snapshots': docs, 'count': len(docs)}), 200
+
+
+@mhbot_bp.route('/my-snapshots', methods=['GET'])
+@jwt_required()
+def get_my_perma_snapshots():
+    """Student: return their own saved PERMA snapshots from DB."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    mhbot_username = user.get('mhbot_username')
+    if not mhbot_username:
+        return jsonify({'snapshots': [], 'count': 0, 'connected': False}), 200
+
+    limit = min(request.args.get('limit', 30, type=int), 200)
+    docs = list(
+        db.db.perma_snapshots
+        .find({'mhbot_username': mhbot_username}, {'_id': 0, 'mhbot_username': 0, 'student_user_id': 0})
+        .sort('entry_date', -1)
+        .limit(limit)
+    )
+    for d in docs:
+        if 'entry_date' in d:
+            d['entry_date'] = d['entry_date'].isoformat()
+        if 'saved_at' in d:
+            d['saved_at'] = d['saved_at'].isoformat()
+
+    return jsonify({
+        'mhbot_username': mhbot_username,
+        'snapshots': docs,
+        'count': len(docs),
+        'connected': True,
+        'latest_label': user.get('perma_latest_label'),
+        'latest_date': user.get('perma_latest_date'),
+    }), 200
+
+
+@mhbot_bp.route('/webhook/perma', methods=['POST'])
+def ema_webhook():
+    """
+    Webhook receiver for EMA PERMA label events.
+
+    EMA calls this endpoint when a student completes an assessment.
+    Give the EMA team:
+      URL:    POST https://<your-domain>/api/mhbot/webhook/perma
+      Secret: the value of EMA_WEBHOOK_SECRET in .env (used for signature verification)
+
+    Expected payload from EMA:
+      {
+        "mhbot_username": "ema_vHS",   // or "username" — whichever EMA uses
+        "perma_label": "Thriving",
+        "date": "2026-06-26T10:00:00Z",
+        "email": "student@dlsu.edu.ph"  // optional — used as fallback to find the student
+      }
+
+    EMA should send the signature as:
+      X-EMA-Signature: sha256=<hmac_hex>
+    where hmac_hex = HMAC-SHA256(secret, raw_request_body)
+    """
+    # ── Signature verification (skip if no secret configured) ─────────────
+    secret = current_app.config.get('EMA_WEBHOOK_SECRET', '')
+    if secret:
+        sig_header = request.headers.get('X-EMA-Signature', '')
+        mac = hmac.new(secret.encode(), request.get_data(), hashlib.sha256)
+        expected = 'sha256=' + mac.hexdigest()
+        if not hmac.compare_digest(sig_header, expected):
+            logger.warning('EMA webhook: invalid signature')
+            return jsonify({'error': 'Invalid signature'}), 401
+
+    data = request.get_json(silent=True) or {}
+    mhbot_username = (data.get('mhbot_username') or data.get('username', '')).strip()
+    perma_label    = (data.get('perma_label') or data.get('label', '')).strip()
+    date_str       = data.get('date') or datetime.utcnow().isoformat()
+    email          = (data.get('email') or '').strip().lower()
+
+    valid_labels = {'Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'}
+    if not perma_label or perma_label not in valid_labels:
+        return jsonify({'error': f'Invalid perma_label. Must be one of: {", ".join(valid_labels)}'}), 400
+
+    if not mhbot_username and not email:
+        return jsonify({'error': 'mhbot_username or email is required'}), 400
+
+    # ── Find student in CPS ────────────────────────────────────────────────
+    student = None
+    if mhbot_username:
+        student = db.db.users.find_one({'mhbot_username': mhbot_username, 'role': 'STUDENT'})
+    if not student and email:
+        student = db.db.users.find_one({'email': email, 'role': 'STUDENT'})
+        # If found by email and we have a username, link it now
+        if student and mhbot_username and not student.get('mhbot_username'):
+            db.db.users.update_one(
+                {'_id': student['_id']},
+                {'$set': {'mhbot_username': mhbot_username, 'mhbot_linked_at': datetime.utcnow()}}
+            )
+
+    # ── Parse date ─────────────────────────────────────────────────────────
+    try:
+        entry_date = datetime.fromisoformat(date_str.replace('Z', ''))
+    except Exception:
+        entry_date = datetime.utcnow()
+
+    # ── Save snapshot ──────────────────────────────────────────────────────
+    now = datetime.utcnow()
+    db.db.perma_snapshots.update_one(
+        {
+            'mhbot_username': mhbot_username or (student.get('mhbot_username') if student else None),
+            'entry_date': entry_date,
+        },
+        {'$set': {
+            'mhbot_username': mhbot_username or '',
+            'perma_label': perma_label,
+            'entry_date': entry_date,
+            'raw_date': date_str,
+            'saved_at': now,
+            'source': 'webhook',
+            **(({'student_user_id': student['_id']}) if student else {}),
+        }},
+        upsert=True,
+    )
+
+    # ── Update user quick-access fields ────────────────────────────────────
+    if student:
+        db.db.users.update_one(
+            {'_id': student['_id']},
+            {'$set': {
+                'perma_latest_label': perma_label,
+                'perma_latest_date': date_str,
+                'perma_synced_at': now,
+            }}
+        )
+        logger.info('EMA webhook: saved %s label for student %s', perma_label, str(student['_id']))
+    else:
+        logger.warning('EMA webhook: no CPS student found for mhbot_username=%s email=%s — snapshot saved without user link', mhbot_username, email)
+
+    return jsonify({'received': True, 'label': perma_label, 'student_found': student is not None}), 200
+
+
+@mhbot_bp.route('/debug/probe', methods=['GET'])
+@jwt_required()
+def debug_probe():
+    """Probe EMA API chat routes using ema_nhS credentials."""
+    import json as json_mod
+    # Login fresh as ema_nhS to get a chat-scoped token
+    login_resp = requests.post(f"{MHBOT_BASE_URL}/api/v1/auth/login",
+        data={'grant_type': 'password', 'username': 'ema_nhS', 'password': 'tmp!QLFv', 'scope': 'chat'},
+        headers={'accept': 'application/json'}, timeout=10)
+    if login_resp.status_code != 200:
+        return jsonify({'error': 'Login failed', 'detail': login_resp.text}), 400
+    token = login_resp.json().get('access_token', '')
+    if not token:
+        return jsonify({'error': 'No token returned'}), 400
+
+    results = {}
+    chat_paths = [
+        '/api/v1/chat/history',
+        '/api/v1/chat/sessions',
+        '/api/v1/chat/perma',
+        '/api/v1/chat/perma_history',
+        '/api/v1/chat/labels',
+        '/api/v1/user/perma',
+        '/api/v1/user/perma_history',
+        '/api/v1/user/history',
+        '/api/v1/history',
+        '/api/v1/perma',
+        '/api/v1/perma/me',
+        '/api/v1/chat/me/perma',
+        '/api/v1/me/perma',
+        '/api/v1/me/history',
+        '/api/v1/me',
+    ]
+    probe_urls = [f"{MHBOT_BASE_URL}{p}" for p in chat_paths]
+    for url in probe_urls:
+        try:
+            r = requests.get(url, headers=_auth_headers(token), timeout=5)
+            results[url] = {'status': r.status_code, 'body': r.text[:300]}
+        except Exception as e:
+            results[url] = {'error': str(e)}
+    return jsonify(results), 200
+
+
+@mhbot_bp.route('/debug/token-info', methods=['GET'])
+@jwt_required()
+def debug_token_info():
+    """Decode the stored EMA JWT to find the ema_XXX identifier."""
+    import base64, json as json_mod
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    token = user.get('mhbot_token', '')
+    if not token:
+        return jsonify({'error': 'Not connected to EMA'}), 400
+    try:
+        parts = token.split('.')
+        payload_b64 = parts[1] + '=='  # pad
+        payload = json_mod.loads(base64.urlsafe_b64decode(payload_b64).decode())
+        return jsonify({'payload': payload, 'stored_username': user.get('mhbot_username')}), 200
+    except Exception as e:
+        return jsonify({'error': str(e), 'token_preview': token[:40]}), 500
+
+
+@mhbot_bp.route('/debug/users', methods=['GET'])
+@jwt_required()
+def debug_ema_users():
+    """List EMA users to find the correct username format for the history API."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    token = user.get('mhbot_token', '')
+    if not token:
+        return jsonify({'error': 'Not connected to EMA'}), 400
+    url = f"{MHBOT_BASE_URL}/api/v1/dashboard/users"
+    try:
+        resp = requests.get(url, headers=_auth_headers(token), timeout=10)
+        return jsonify({'status_code': resp.status_code, 'raw': resp.json() if resp.status_code == 200 else resp.text}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@mhbot_bp.route('/debug/raw-history', methods=['GET'])
+@jwt_required()
+def debug_raw_history():
+    """Return raw EMA API response for debugging label issues."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    token = user.get('mhbot_token', '')
+    mhbot_username = user.get('mhbot_username', '')
+    if not token or not mhbot_username:
+        return jsonify({'error': 'Not connected to EMA'}), 400
+    url = f"{MHBOT_BASE_URL}/api/v1/dashboard/user_perma_history/{mhbot_username}"
+    try:
+        resp = requests.get(url, headers=_auth_headers(token), params={'offset': 0, 'limit': 5}, timeout=10)
+        return jsonify({
+            'status_code': resp.status_code,
+            'mhbot_username': mhbot_username,
+            'raw': resp.json() if resp.status_code == 200 else resp.text,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @mhbot_bp.route('/health', methods=['GET'])

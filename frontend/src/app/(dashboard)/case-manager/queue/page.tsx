@@ -93,7 +93,7 @@ export default function CaseManagerQueuePage() {
           {s.case_id ? (
             <Link
               href={`/cases/${s.case_id}`}
-              className="inline-flex items-center gap-1 text-xs text-[#1a5228] hover:underline font-medium"
+              className="inline-flex items-center gap-1 text-xs text-[#2563eb] hover:underline font-medium"
             >
               View Case <ExternalLink size={11} />
             </Link>
@@ -116,7 +116,7 @@ export default function CaseManagerQueuePage() {
             placeholder="Search name, ID or college…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a5228]/20 focus:border-[#1a5228]"
+            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
           />
           <button
             onClick={load}

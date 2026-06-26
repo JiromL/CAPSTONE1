@@ -6,7 +6,7 @@ import PendingStudentsWithPerma, { PermaBadge, PERMA_CONFIG } from '@/components
 import { api } from '@/utils/api';
 import {
   Activity, Wifi, WifiOff, RefreshCw, Loader2, Users,
-  LogIn, LogOut, Eye, EyeOff, TrendingUp, AlertTriangle,
+  LogIn, LogOut, Eye, EyeOff, TrendingUp, AlertTriangle, ExternalLink, MessageSquare,
 } from 'lucide-react';
 
 interface AuthStatus { connected: boolean; mhbot_username?: string; expired?: boolean; }
@@ -15,7 +15,8 @@ interface PermaEntry { perma_label: string | null; date: string; }
 
 const LABEL_ORDER = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'];
 const STUDENT_ROLES = ['STUDENT'];
-const STAFF_TABS = ['overview', 'at-risk', 'students'] as const;
+const STAFF_TABS = ['overview', 'at-risk', 'students', 'chatbot'] as const;
+const EMA_URL = 'https://pchrd-ema.dlsu.edu.ph/app/login/';
 
 /* ─── helpers ──────────────────────────────────────────────────────────── */
 function fmtDate(d: string | null) {
@@ -61,14 +62,14 @@ function ConnectCard({
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">EMA Username</label>
             <input type="text" value={user} onChange={e => setUser(e.target.value)} placeholder="e.g. ema_lVk"
-              required className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:outline-none" />
+              required className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:outline-none" />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Password</label>
             <div className="relative">
               <input type={show ? 'text' : 'password'} value={pass} onChange={e => setPass(e.target.value)}
                 placeholder="••••••••" required
-                className="w-full px-3 py-2 pr-9 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:outline-none" />
+                className="w-full px-3 py-2 pr-9 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:outline-none" />
               <button type="button" onClick={() => setShow(s => !s)}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 {show ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -77,7 +78,7 @@ function ConnectCard({
           </div>
           {err && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
           <button type="submit" disabled={busy}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a5228] hover:bg-[#163d20] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition mt-1">
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2563eb] hover:bg-[#163d20] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition mt-1">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
             {busy ? 'Connecting…' : 'Connect'}
           </button>
@@ -126,7 +127,7 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
       <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
         <div className="flex items-center gap-2">
           <Wifi size={14} className="text-green-500" />
-          <p className="text-sm text-green-700">Connected as <span className="font-semibold">{username}</span></p>
+          <p className="text-sm text-blue-700">Connected as <span className="font-semibold">{username}</span></p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={load} className="p-1.5 rounded hover:bg-green-100 text-gray-400 hover:text-gray-600 transition">
@@ -255,7 +256,7 @@ function StaffView({ username, onDisconnect }: { username: string; onDisconnect:
           : serverUp ? <Wifi size={15} className="text-green-500 shrink-0" />
           : <WifiOff size={15} className="text-red-400 shrink-0" />}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-green-700">
+          <p className="text-sm font-medium text-blue-700">
             Connected as <span className="font-semibold">{username}</span>
           </p>
           {serverUp === false && (
@@ -276,7 +277,7 @@ function StaffView({ username, onDisconnect }: { username: string; onDisconnect:
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit">
-        {([['overview', 'Overview'], ['at-risk', 'At-Risk'], ['students', 'Students']] as const).map(([id, label]) => (
+        {([['overview', 'Overview'], ['at-risk', 'At-Risk'], ['students', 'Students'], ['chatbot', 'Chatbot']] as const).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               tab === id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
@@ -397,6 +398,38 @@ function StaffView({ username, onDisconnect }: { username: string; onDisconnect:
 
       {/* Students tab */}
       {tab === 'students' && <PendingStudentsWithPerma />}
+
+      {/* Chatbot tab */}
+      {tab === 'chatbot' && <EmaEmbed />}
+    </div>
+  );
+}
+
+/* ─── EMA iframe embed (reused in staff chatbot tab) ────────────────────── */
+function EmaEmbed() {
+  const [iframeKey, setIframeKey] = useState(0);
+  return (
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 280px)' }}>
+      <div className="flex items-center justify-between mb-3 flex-shrink-0">
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          <MessageSquare size={13} />
+          <span>EMA Chatbot — <a href={EMA_URL} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] hover:underline">pchrd-ema.dlsu.edu.ph</a></span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setIframeKey(k => k + 1)}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition">
+            <RefreshCw size={12} /> Reload
+          </button>
+          <a href={EMA_URL} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition">
+            <ExternalLink size={12} /> New tab
+          </a>
+        </div>
+      </div>
+      <div className="flex-1 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+        <iframe key={iframeKey} src={EMA_URL} title="EMA Chatbot"
+          className="w-full h-full border-0" allow="microphone; camera" />
+      </div>
     </div>
   );
 }

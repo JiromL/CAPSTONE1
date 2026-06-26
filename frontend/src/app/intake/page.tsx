@@ -1812,7 +1812,7 @@ export default function IntakePage() {
                     <button
                       type="button"
                       onClick={() => setDistressShowAllSlots(v => !v)}
-                      className="text-sm text-green-700 dark:text-green-400 font-medium hover:underline"
+                      className="text-sm text-blue-700 dark:text-green-400 font-medium hover:underline"
                     >
                       {distressShowAllSlots ? '▲ Hide other slots' : '▼ Choose a different slot (optional)'}
                     </button>
@@ -1969,7 +1969,7 @@ export default function IntakePage() {
                             <span className="font-semibold text-gray-900 dark:text-white">{timeSlot.time}</span>
                             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                               timeSlot.available_counselors >= 3
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                ? 'bg-green-100 text-blue-800 dark:bg-blue-900 dark:text-green-200'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             }`}>
                               {timeSlot.available_counselors} counselor{timeSlot.available_counselors !== 1 ? 's' : ''} available
@@ -2132,21 +2132,21 @@ export default function IntakePage() {
 
               {/* Available Counselors */}
               {selectedTimeSlot && selectedTimeSlot.counselor_details && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
-                  <h3 className="font-semibold text-green-900 dark:text-green-200 mb-3 flex items-center gap-2">
+                <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 dark:text-green-200 mb-3 flex items-center gap-2">
                     <span>👥</span> Available Counselors
                   </h3>
                   <div className="space-y-2">
                     {selectedTimeSlot.counselor_details.map((counselor: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-3 p-2 bg-white dark:bg-gray-800 rounded">
-                        <span className="w-8 h-8 flex items-center justify-center bg-green-200 dark:bg-green-700 rounded-full text-sm font-bold text-green-900 dark:text-green-100">
+                        <span className="w-8 h-8 flex items-center justify-center bg-green-200 dark:bg-blue-700 rounded-full text-sm font-bold text-blue-900 dark:text-green-100">
                           {idx + 1}
                         </span>
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-50">{counselor.counselor_name}</span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-green-700 dark:text-green-300 mt-3">
+                  <p className="text-xs text-blue-700 dark:text-green-300 mt-3">
                     ✓ A counselor will be assigned to best match your needs
                   </p>
                 </div>
@@ -2206,8 +2206,8 @@ export default function IntakePage() {
 
             <div className="px-8 pb-8">
               {/* Info: PDF Export Available After Submission */}
-              <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded">
-                <p className="text-sm text-green-900 dark:text-green-200">
+              <div className="mb-6 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded">
+                <p className="text-sm text-blue-900 dark:text-green-200">
                   <span className="font-semibold">📄 After submission:</span> You'll receive an official confirmation document that you can print or download as PDF, and a confirmation email will be sent to you.
                 </p>
               </div>

@@ -237,7 +237,7 @@ export default function ExportDataPage() {
 
       {/* ── Feedback banners ──────────────────────────────────────────── */}
       {error   && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
-      {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">{success}</div>}
+      {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700">{success}</div>}
 
       {/* ── Date filter ────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 mb-5">
@@ -245,7 +245,7 @@ export default function ExportDataPage() {
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
             <input type="checkbox" checked={allTime} onChange={e => setAllTime(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-green-700 cursor-pointer" />
+              className="w-4 h-4 rounded border-gray-300 text-blue-700 cursor-pointer" />
             Export all-time data
           </label>
           {!allTime && (
@@ -270,7 +270,7 @@ export default function ExportDataPage() {
           <button
             onClick={exportAll}
             disabled={loading === 'all'}
-            className="flex items-center gap-2 bg-[#1a5228] hover:bg-[#14401f] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition disabled:opacity-50 flex-shrink-0"
+            className="flex items-center gap-2 bg-[#2563eb] hover:bg-[#14401f] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition disabled:opacity-50 flex-shrink-0"
           >
             {loading === 'all'
               ? <><Loader2 size={14} className="animate-spin" /> Exporting…</>

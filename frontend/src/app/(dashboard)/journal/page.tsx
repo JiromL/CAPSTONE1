@@ -151,7 +151,7 @@ export default function JournalPage() {
         <button
           onClick={openCompose}
           className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition"
-          style={{ backgroundColor: '#1a5228' }}
+          style={{ backgroundColor: '#2563eb' }}
         >
           <Plus size={15} /> New Entry
         </button>
@@ -203,7 +203,7 @@ export default function JournalPage() {
               rows={6}
               className="w-full px-4 py-3 text-sm border border-gray-200 rounded-lg bg-[#fafaf8] text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:border-transparent resize-none leading-relaxed"
               style={{ fontFamily: 'Georgia, serif' }}
-              onFocus={e => e.currentTarget.style.setProperty('--tw-ring-color', '#1a5228')}
+              onFocus={e => e.currentTarget.style.setProperty('--tw-ring-color', '#2563eb')}
             />
 
             {/* Tags */}
@@ -226,7 +226,7 @@ export default function JournalPage() {
               </button>
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 text-sm text-white font-medium rounded-lg disabled:opacity-50 transition"
-                style={{ backgroundColor: '#1a5228' }}>
+                style={{ backgroundColor: '#2563eb' }}>
                 {saving && <Loader2 size={13} className="animate-spin" />}
                 {editingId ? 'Update Entry' : 'Save Entry'}
               </button>

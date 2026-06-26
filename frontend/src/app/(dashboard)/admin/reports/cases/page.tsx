@@ -60,7 +60,7 @@ export default function CasesReportPage() {
 
   const statCards = summary
     ? [
-        { label: 'Total Cases', value: summary.total_cases, color: 'border-l-4', accent: '#1a5228' },
+        { label: 'Total Cases', value: summary.total_cases, color: 'border-l-4', accent: '#2563eb' },
         { label: 'Active / Open', value: summary.active_cases, color: 'border-l-4', accent: '#2563eb' },
         { label: 'Closed', value: summary.closed_cases, color: 'border-l-4', accent: '#6b7280' },
         { label: 'High Risk', value: summary.high_risk_cases, color: 'border-l-4', accent: '#dc2626' },

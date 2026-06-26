@@ -69,7 +69,7 @@ export default function ReviewFormsPage() {
                     <p className="text-xs text-gray-500 mt-1">Submitted: {new Date(form.submitted_date).toLocaleDateString()}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm font-medium hover:bg-green-200">Approve</button>
+                    <button className="px-3 py-1 bg-green-100 text-blue-700 rounded text-sm font-medium hover:bg-green-200">Approve</button>
                     <button className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm font-medium hover:bg-yellow-200">Revise</button>
                   </div>
                 </div>

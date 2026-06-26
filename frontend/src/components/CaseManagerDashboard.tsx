@@ -138,15 +138,15 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
               { href: '/cases',              label: 'All Cases',  icon: ClipboardList, note: 'View and manage cases' },
               { href: '/high-risk',          label: 'High-Risk',  icon: Users, note: 'Escalated cases' },
             ].map(({ href, label, icon: Icon, note }) => (
-              <Link key={href} href={href} className="flex items-center justify-between py-3 text-sm text-gray-700 hover:text-[#1a5228] transition-colors group">
+              <Link key={href} href={href} className="flex items-center justify-between py-3 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
                 <div className="flex items-center gap-2.5">
-                  <Icon size={15} className="text-gray-400 group-hover:text-[#1a5228] transition-colors" />
+                  <Icon size={15} className="text-gray-400 group-hover:text-[#2563eb] transition-colors" />
                   <div>
                     <p className="font-medium leading-tight">{label}</p>
                     <p className="text-xs text-gray-400">{note}</p>
                   </div>
                 </div>
-                <ArrowRight size={14} className="text-gray-300 group-hover:text-[#1a5228] transition-colors" />
+                <ArrowRight size={14} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
               </Link>
             ))}
           </div>

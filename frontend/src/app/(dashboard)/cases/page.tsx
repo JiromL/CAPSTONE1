@@ -8,26 +8,26 @@ import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import { Search, Loader2, AlertCircle, ChevronRight, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
 
 const RISK_BADGE: Record<string, string> = {
-  GREEN:    'bg-green-50 text-green-700 ring-1 ring-green-200',
+  GREEN:    'bg-green-50 text-blue-700 ring-1 ring-green-200',
   YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
   CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  ACTIVE:               'bg-green-50 text-green-700 ring-1 ring-green-200',
+  ACTIVE:               'bg-green-50 text-blue-700 ring-1 ring-green-200',
   NEW:                  'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
   INTAKE_SCHEDULED:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   PENDING_TERMINATION:  'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
   CLOSED:               'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
   CANCELLED:            'bg-red-50 text-red-600 ring-1 ring-red-200',
-  open:                 'bg-green-50 text-green-700 ring-1 ring-green-200',
+  open:                 'bg-green-50 text-blue-700 ring-1 ring-green-200',
   closed:               'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
   intake_scheduled:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
 };
 
 const CLIENT_STATUS_BADGE: Record<string, string> = {
-  ACTIVE:                 'bg-green-50 text-green-700 ring-1 ring-green-200',
+  ACTIVE:                 'bg-green-50 text-blue-700 ring-1 ring-green-200',
   CHECK_IN_ONLY:          'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
   WITH_MH_CHECK_IN:       'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
   UNDER_ACCOMMODATION:    'bg-purple-50 text-purple-700 ring-1 ring-purple-200',
@@ -128,7 +128,7 @@ export default function CasesPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
           { label: 'Total Cases', value: cases.length, icon: Users, cls: 'text-gray-800' },
-          { label: 'Open',        value: openCount,    icon: FolderOpen, cls: 'text-[#1a5228]' },
+          { label: 'Open',        value: openCount,    icon: FolderOpen, cls: 'text-[#2563eb]' },
           { label: 'High Risk',   value: highRisk,     icon: ShieldAlert, cls: highRisk > 0 ? 'text-red-600' : 'text-gray-400' },
           { label: 'Closed',      value: closedCount,  icon: FolderX, cls: 'text-gray-400' },
         ].map(s => (
@@ -159,11 +159,11 @@ export default function CasesPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, issue, case #…"
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none"
+              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none"
             />
           </div>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
             <option value="all">All Status</option>
             <option value="ACTIVE">Active</option>
             <option value="NEW">New</option>
@@ -173,7 +173,7 @@ export default function CasesPage() {
             <option value="CANCELLED">Cancelled</option>
           </select>
           <select value={filterClientStatus} onChange={e => setFilterClientStatus(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
             <option value="all">All Clients</option>
             <option value="ACTIVE">Active</option>
             <option value="CHECK_IN_ONLY">Check-In Only</option>

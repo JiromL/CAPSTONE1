@@ -43,14 +43,14 @@ type TabKey = typeof TABS[number]['key'];
 const TAB_ACTIVE_CLS: Record<TabKey, string> = {
   upcoming:   'bg-blue-50 text-blue-700 border-b-2 border-blue-500',
   evaluation: 'bg-amber-50 text-amber-700 border-b-2 border-amber-500',
-  past:       'bg-green-50 text-[#1a5228] border-b-2 border-[#1a5228]',
+  past:       'bg-green-50 text-[#2563eb] border-b-2 border-[#2563eb]',
   cancelled:  'bg-red-50 text-red-600 border-b-2 border-red-500',
 };
 
 const TAB_ICON_CLS: Record<TabKey, string> = {
   upcoming:   'text-blue-600',
   evaluation: 'text-amber-600',
-  past:       'text-[#1a5228]',
+  past:       'text-[#2563eb]',
   cancelled:  'text-red-500',
 };
 
@@ -64,9 +64,9 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   REQUESTED:            { label: 'Pending',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
   PENDING_APPROVAL:     { label: 'Under Review',       cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
   CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
   RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
   PENDING_STUDENT_APPROVAL: { label: 'Confirm Schedule',       cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
@@ -391,7 +391,7 @@ export default function MyAppointmentsPage() {
           <p className="text-xs text-gray-400 mt-0.5">Track your sessions and take action on pending items</p>
         </div>
         <Link href="/book-appointment">
-          <button className="flex items-center gap-1.5 px-4 py-2 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-medium rounded-lg transition shadow-sm">
+          <button className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 text-white text-sm font-medium rounded-lg transition shadow-sm">
             <Plus size={14} /> New Request
           </button>
         </Link>
@@ -487,7 +487,7 @@ export default function MyAppointmentsPage() {
             </p>
             {activeTab === 'upcoming' && (
               <Link href="/book-appointment"
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#1a5228] hover:bg-green-800 text-white text-sm font-semibold rounded-lg transition">
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 text-white text-sm font-semibold rounded-lg transition">
                 <Plus size={14} /> Book an Appointment
               </Link>
             )}
@@ -557,7 +557,7 @@ export default function MyAppointmentsPage() {
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                         {canJoin && (
                           <a href={appt.meeting_link} target="_blank" rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a5228] hover:bg-green-800 text-white text-xs font-semibold rounded-lg transition">
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-blue-800 text-white text-xs font-semibold rounded-lg transition">
                             <Video size={12} /> Join Session
                           </a>
                         )}
@@ -577,7 +577,7 @@ export default function MyAppointmentsPage() {
                         )}
                         {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === true && (
                           <button onClick={() => openViewForms(appt)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
                             <Eye size={11} /> View Forms
                           </button>
                         )}
@@ -590,7 +590,7 @@ export default function MyAppointmentsPage() {
                               <button
                                 onClick={() => handleConfirmSchedule(appt)}
                                 disabled={respondingId === appt._id + 'confirm'}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                className="flex items-center gap-1 px-3 py-1.5 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
                                 {respondingId === appt._id + 'confirm' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
                                 Accept Schedule
                               </button>
@@ -727,7 +727,7 @@ export default function MyAppointmentsPage() {
                 )}
                 {detailAppt.meeting_link && (
                   <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
+                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700 hover:bg-green-100 transition font-medium">
                     <Video size={14} /> Join Session
                   </a>
                 )}
@@ -760,7 +760,7 @@ export default function MyAppointmentsPage() {
             {evalSuccess ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                 <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mb-4">
-                  <CheckCircle size={28} className="text-[#1a5228]" />
+                  <CheckCircle size={28} className="text-[#2563eb]" />
                 </div>
                 <p className="font-semibold text-gray-900 mb-1">Thank you for your feedback!</p>
                 <p className="text-sm text-gray-500">Your evaluation has been submitted.</p>
@@ -875,7 +875,7 @@ export default function MyAppointmentsPage() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Time</label>
@@ -889,7 +889,7 @@ export default function MyAppointmentsPage() {
                   <div className="text-xs text-gray-500 py-1">
                     No slots available on this date. Try a different date.
                     {rescheduleNextDate && (
-                      <span className="ml-1 text-[#1a5228] font-medium">
+                      <span className="ml-1 text-[#2563eb] font-medium">
                         Next available: <button type="button" onClick={() => setReschedDate(rescheduleNextDate)} className="underline underline-offset-2">{rescheduleNextDate}</button>
                       </span>
                     )}
@@ -901,10 +901,10 @@ export default function MyAppointmentsPage() {
                         onClick={() => setReschedTime(s.time)}
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
                           reschedTime === s.time
-                            ? 'border-[#1a5228] bg-[#1a5228]/5 text-[#1a5228]'
+                            ? 'border-[#2563eb] bg-[#2563eb]/5 text-[#2563eb]'
                             : 'border-gray-200 bg-white hover:border-gray-300'
                         }`}>
-                        <Clock size={13} className={reschedTime === s.time ? 'text-[#1a5228]' : 'text-gray-400'} />
+                        <Clock size={13} className={reschedTime === s.time ? 'text-[#2563eb]' : 'text-gray-400'} />
                         <span className="font-bold tabular-nums">{fmtTime(s.time)}</span>
                         {reschedTime === s.time && <span className="ml-auto text-[10px] font-bold">✓</span>}
                       </button>
@@ -917,7 +917,7 @@ export default function MyAppointmentsPage() {
                 <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
                   placeholder="Why do you need to reschedule?"
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none resize-none" />
               </div>
               {reschedError && <p className="text-xs text-red-500">{reschedError}</p>}
               <div className="flex gap-2">
@@ -926,7 +926,7 @@ export default function MyAppointmentsPage() {
                   Cancel
                 </button>
                 <button onClick={handleReschedule} disabled={rescheduling}
-                  className="flex-1 px-4 py-2 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
                   {rescheduling && <Loader2 size={13} className="animate-spin" />}
                   Submit Request
                 </button>
@@ -958,7 +958,7 @@ export default function MyAppointmentsPage() {
                 {/* ICF */}
                 {viewFormsPacket?.icf && (
                   <div>
-                    <p className="font-bold text-xs text-[#1a5228] uppercase tracking-wide mb-3">Intake Consultation Form (ICF)</p>
+                    <p className="font-bold text-xs text-[#2563eb] uppercase tracking-wide mb-3">Intake Consultation Form (ICF)</p>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                       {[
                         ['First Name', viewFormsPacket.icf.first_name],

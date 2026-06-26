@@ -172,9 +172,9 @@ export default function NonCounselingClientsPage() {
 
           {/* Success */}
           {success && (
-            <div className="flex gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded p-4">
+            <div className="flex gap-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded p-4">
               <CheckCircle className="text-green-600 dark:text-green-400 flex-shrink-0" size={20} />
-              <p className="text-green-700 dark:text-green-300 text-sm">{success}</p>
+              <p className="text-blue-700 dark:text-green-300 text-sm">{success}</p>
             </div>
           )}
 

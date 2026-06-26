@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { EmaFloatingChat } from '@/components/EmaFloatingChat';
 
 export default function DashboardLayout({
   children,
@@ -21,5 +22,10 @@ export default function DashboardLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <EmaFloatingChat />
+    </>
+  );
 }

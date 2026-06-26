@@ -104,7 +104,7 @@ export default function AddUserPage() {
     return (
       <DashboardPageWrapper title="Add User" subtitle="Create a new CPS system account">
         <div className="max-w-lg mx-auto px-4 py-16 text-center space-y-6">
-          <CheckCircle size={56} className="mx-auto" style={{ color: '#1a5228' }} />
+          <CheckCircle size={56} className="mx-auto" style={{ color: '#2563eb' }} />
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">User Created Successfully</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             The account for <strong>{form.first_name} {form.last_name}</strong> ({form.email}) has been created.
@@ -114,7 +114,7 @@ export default function AddUserPage() {
             <Link
               href="/admin/users"
               className="px-5 py-2 text-sm font-medium text-white rounded-lg transition"
-              style={{ backgroundColor: '#1a5228' }}
+              style={{ backgroundColor: '#2563eb' }}
             >
               Back to User List
             </Link>
@@ -157,7 +157,7 @@ export default function AddUserPage() {
                   onChange={(e) => set('first_name', e.target.value)}
                   placeholder="e.g. Juan"
                   className={errors.first_name ? inpErr : inp}
-                  style={!errors.first_name ? { '--tw-ring-color': '#1a5228' } as React.CSSProperties : undefined}
+                  style={!errors.first_name ? { '--tw-ring-color': '#2563eb' } as React.CSSProperties : undefined}
                 />
                 {errors.first_name && <p className="text-xs text-red-600">{errors.first_name}</p>}
               </div>
@@ -278,7 +278,7 @@ export default function AddUserPage() {
               type="submit"
               disabled={submitting}
               className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white rounded-lg transition disabled:opacity-60"
-              style={{ backgroundColor: '#1a5228' }}
+              style={{ backgroundColor: '#2563eb' }}
             >
               <UserPlus size={15} />
               {submitting ? 'Creating User…' : 'Create User'}

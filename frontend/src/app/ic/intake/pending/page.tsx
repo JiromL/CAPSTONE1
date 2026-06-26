@@ -37,7 +37,7 @@ function fmtRelative(d: string) {
 }
 
 const RISK_COLOR: Record<string, { bar: string; badge: string; label: string }> = {
-  GREEN:    { bar: 'bg-green-400',  badge: 'bg-green-50 text-green-700 ring-1 ring-green-200',   label: 'Low Risk' },
+  GREEN:    { bar: 'bg-green-400',  badge: 'bg-green-50 text-blue-700 ring-1 ring-green-200',   label: 'Low Risk' },
   YELLOW:   { bar: 'bg-amber-400',  badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',   label: 'Moderate' },
   RED:      { bar: 'bg-red-400',    badge: 'bg-red-50 text-red-700 ring-1 ring-red-200',         label: 'High Risk' },
   CRITICAL: { bar: 'bg-red-600',    badge: 'bg-red-100 text-red-800 ring-1 ring-red-300',        label: 'Critical' },
@@ -87,7 +87,7 @@ export default function PendingIntakesPage() {
           <div className="flex items-start gap-3">
             {/* Avatar */}
             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0
-              ${intake.is_emergency ? 'bg-red-500' : 'bg-[#1a5228]'}`}>
+              ${intake.is_emergency ? 'bg-red-500' : 'bg-[#2563eb]'}`}>
               {initial}
             </div>
 
@@ -116,7 +116,7 @@ export default function PendingIntakesPage() {
             {/* Forms badge */}
             <div className="flex-shrink-0">
               {intake.intake_packet_submitted
-                ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-green-50 text-green-700 ring-1 ring-green-200"><FileCheck size={9} /> Forms ready</span>
+                ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-green-50 text-blue-700 ring-1 ring-green-200"><FileCheck size={9} /> Forms ready</span>
                 : <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-600 ring-1 ring-orange-200"><FileX size={9} /> No forms</span>}
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function PendingIntakesPage() {
             <button
               onClick={() => router.push(`/ic/intake/conduct/${intake._id}`)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition"
-              style={{ backgroundColor: '#1a5228' }}>
+              style={{ backgroundColor: '#2563eb' }}>
               <ClipboardList size={12} /> Conduct Intake
             </button>
           </div>
@@ -174,7 +174,7 @@ export default function PendingIntakesPage() {
         {!loading && !error && intakes.length === 0 && (
           <div className="flex flex-col items-center justify-center h-44 text-center bg-white rounded-xl border border-gray-200">
             <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mb-3">
-              <ClipboardList size={18} className="text-[#1a5228]" />
+              <ClipboardList size={18} className="text-[#2563eb]" />
             </div>
             <p className="text-sm font-medium text-gray-600">No pending intakes</p>
             <p className="text-xs text-gray-400 mt-1">All caught up — no sessions waiting.</p>

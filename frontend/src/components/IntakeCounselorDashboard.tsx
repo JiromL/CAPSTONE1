@@ -71,7 +71,7 @@ function PermaDistributionWidget() {
 }
 
 const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700'  },
+  'Excelling':  { bg: 'bg-green-500',  text: 'text-blue-700'  },
   'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
   'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
   'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
@@ -205,9 +205,9 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
             count: null, countColor: '' },
         ].map(({ label, href, icon: Icon, count, countColor }) => (
           <Link key={href} href={href}
-            className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-[#1a5228]/40 hover:bg-green-50/40 transition group">
-            <div className="w-8 h-8 rounded-lg bg-[#1a5228]/8 flex items-center justify-center flex-shrink-0">
-              <Icon size={15} className="text-[#1a5228]" />
+            className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-[#2563eb]/40 hover:bg-green-50/40 transition group">
+            <div className="w-8 h-8 rounded-lg bg-[#2563eb]/8 flex items-center justify-center flex-shrink-0">
+              <Icon size={15} className="text-[#2563eb]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-gray-700 leading-tight truncate">{label}</p>
@@ -215,7 +215,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${countColor}`}>{count} pending</span>
               )}
             </div>
-            <ChevronRight size={13} className="text-gray-300 group-hover:text-[#1a5228] transition flex-shrink-0" />
+            <ChevronRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition flex-shrink-0" />
           </Link>
         ))}
       </div>
@@ -238,7 +238,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                   </span>
                 )}
               </div>
-              <Link href="/appointment-requests" className="text-xs text-[#1a5228] hover:underline font-medium">View all</Link>
+              <Link href="/appointment-requests" className="text-xs text-[#2563eb] hover:underline font-medium">View all</Link>
             </div>
             {needsAction.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-center">
@@ -265,7 +265,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                       </p>
                     </div>
                     <Link href="/appointment-requests">
-                      <button className="text-xs px-2.5 py-1 bg-[#1a5228] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
+                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
                         Confirm
                       </button>
                     </Link>
@@ -279,7 +279,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Today's Intakes</p>
-              <Link href="/appointment-requests" className="text-xs text-[#1a5228] hover:underline font-medium">View all</Link>
+              <Link href="/appointment-requests" className="text-xs text-[#2563eb] hover:underline font-medium">View all</Link>
             </div>
             {todayConfirmed.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-center">
@@ -290,7 +290,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
               <div className="divide-y divide-gray-100">
                 {todayConfirmed.slice(0, 5).map((a: any, i: number) => (
                   <div key={i} className="py-2.5 flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1a5228]">
+                    <div className="w-7 h-7 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#2563eb]">
                       {(a.student_name || 'S').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -298,7 +298,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                       <p className="text-xs text-gray-400">{fmtTime(a.preferred_date || a.scheduled_start)}</p>
                     </div>
                     <Link href="/appointment-requests">
-                      <button className="text-xs px-2.5 py-1 bg-[#1a5228] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
+                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
                         Conduct
                       </button>
                     </Link>

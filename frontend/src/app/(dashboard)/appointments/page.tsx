@@ -59,9 +59,9 @@ const PURPOSE_LABEL: Record<string, string> = {
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   PENDING_APPROVAL:     { label: 'Under Review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
   CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
   RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
   PENDING_STUDENT_APPROVAL: { label: 'Awaiting Confirmation', cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
@@ -75,7 +75,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 const RISK_CLS: Record<string, string> = {
-  GREEN:    'bg-green-100 text-green-700',
+  GREEN:    'bg-green-100 text-blue-700',
   YELLOW:   'bg-yellow-100 text-yellow-700',
   RED:      'bg-red-100 text-red-700',
   CRITICAL: 'bg-red-200 text-red-900 font-semibold',
@@ -138,6 +138,9 @@ export default function AppointmentsPage() {
   const [schedMethod, setSchedMethod] = useState('in_person');
   const [schedMsg, setSchedMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [submittingSched, setSubmittingSched] = useState(false);
+  const [schedMode, setSchedMode] = useState<'slots' | 'manual'>('slots');
+  const [schedMySlots, setSchedMySlots] = useState<{ time: string; method: string }[]>([]);
+  const [loadingMySlots, setLoadingMySlots] = useState(false);
 
   const [intakeSummary, setIntakeSummary] = useState<any>(null);
   const [intakePacket,  setIntakePacket]  = useState<any>(null);
@@ -241,6 +244,18 @@ export default function AppointmentsPage() {
     } finally { setSubmittingFollowUp(false); }
   };
 
+  const loadMySlots = async (date: string) => {
+    if (!date) return;
+    setLoadingMySlots(true); setSchedMySlots([]);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/availability/my-slots?date=${date}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) { const d = await r.json(); setSchedMySlots(d.slots || []); }
+    } finally { setLoadingMySlots(false); }
+  };
+
   const doSchedule = async () => {
     if (!schedTarget || !schedDate || !schedTime) return;
     setSubmittingSched(true); setSchedMsg(null);
@@ -279,7 +294,7 @@ export default function AppointmentsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             { label: 'Total',        value: dashboard.summary.total_appointments ?? apts.length, cls: 'text-gray-800' },
-            { label: 'Confirmed',    value: dashboard.summary.confirmed ?? 0,                    cls: 'text-[#1a5228]' },
+            { label: 'Confirmed',    value: dashboard.summary.confirmed ?? 0,                    cls: 'text-[#2563eb]' },
             { label: 'Post-Session', value: dashboard.summary.awaiting_evaluation ?? 0,          cls: 'text-amber-600' },
             { label: 'Follow-Up',    value: (dashboard.summary.follow_up ?? 0) + (dashboard.summary.referral ?? 0), cls: 'text-indigo-600' },
           ].map(c => (
@@ -317,13 +332,13 @@ export default function AppointmentsPage() {
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap flex-shrink-0 ${
                   isActive
-                    ? 'bg-[#1a5228]/5 text-[#1a5228] border-b-2 border-[#1a5228]'
+                    ? 'bg-[#2563eb]/5 text-[#2563eb] border-b-2 border-[#2563eb]'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}>
                 {tab.label}
                 {cnt > 0 && (
                   <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 ${
-                    isActive ? 'bg-[#1a5228] text-white' : 'bg-gray-200 text-gray-600'
+                    isActive ? 'bg-[#2563eb] text-white' : 'bg-gray-200 text-gray-600'
                   }`}>{cnt}</span>
                 )}
               </button>
@@ -414,8 +429,8 @@ export default function AppointmentsPage() {
                             {/* Schedule button for endorsed appointments with no date */}
                             {isConfirmed && !apt.preferred_date && (
                               <button
-                                onClick={() => { setSchedTarget(apt); setSchedDate(''); setSchedTime(''); setSchedOffice(''); setSchedMethod('in_person'); setSchedMsg(null); }}
-                                className="flex items-center gap-1 px-2.5 py-1 bg-[#1a5228] hover:bg-green-800 text-white text-xs font-semibold rounded-lg transition">
+                                onClick={() => { setSchedTarget(apt); setSchedDate(''); setSchedTime(''); setSchedOffice(''); setSchedMethod('in_person'); setSchedMsg(null); setSchedMode('slots'); setSchedMySlots([]); }}
+                                className="flex items-center gap-1 px-2.5 py-1 bg-[#2563eb] hover:bg-blue-800 text-white text-xs font-semibold rounded-lg transition">
                                 <CalendarDays size={11} /> Set Schedule
                               </button>
                             )}
@@ -430,7 +445,7 @@ export default function AppointmentsPage() {
                             {/* Join session */}
                             {apt.meeting_link && isConfirmed && (
                               <a href={apt.meeting_link} target="_blank" rel="noreferrer"
-                                className="flex items-center gap-1 px-2.5 py-1 text-xs text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition font-semibold">
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition font-semibold">
                                 <Video size={11} /> Join
                               </a>
                             )}
@@ -464,7 +479,7 @@ export default function AppointmentsPage() {
                                   </div>
                                   <button onClick={() => doAction(aptId, 'set-referral', { notes: pendingAction.notes })}
                                     disabled={actioningId === aptId}
-                                    className="px-2.5 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                    className="px-2.5 py-1 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
                                     {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
                                   </button>
                                   <button onClick={() => setPendingAction(null)}
@@ -565,7 +580,7 @@ export default function AppointmentsPage() {
               )}
               {detailAppt.meeting_link && (
                 <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
+                  className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700 hover:bg-green-100 transition font-medium">
                   <Video size={14} /> Join Session
                 </a>
               )}
@@ -625,7 +640,7 @@ export default function AppointmentsPage() {
                     ].map(x => (
                       <div key={x.l} className={`rounded-lg p-2 text-center ${x.risk ? 'bg-red-50' : 'bg-green-50'}`}>
                         <p className="text-[10px] text-gray-500">{x.l}</p>
-                        <p className={`text-base font-bold ${x.risk ? 'text-red-700' : 'text-green-700'}`}>
+                        <p className={`text-base font-bold ${x.risk ? 'text-red-700' : 'text-blue-700'}`}>
                           {x.s}<span className="text-[10px] font-normal text-gray-400">/{x.max}</span>
                         </p>
                       </div>
@@ -760,7 +775,7 @@ export default function AppointmentsPage() {
       {/* ── Set Schedule Modal (endorsed sessions with no date) ── */}
       {schedTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-semibold text-sm text-gray-900">Set Session Schedule</h3>
@@ -770,22 +785,71 @@ export default function AppointmentsPage() {
                 <X size={14} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+
+            {/* Mode toggle */}
+            <div className="flex border-b border-gray-100">
+              {(['slots', 'manual'] as const).map(m => (
+                <button key={m} onClick={() => setSchedMode(m)}
+                  className={`flex-1 py-2.5 text-xs font-semibold transition ${schedMode === m ? 'text-[#2563eb] border-b-2 border-[#2563eb] bg-green-50/40' : 'text-gray-400 hover:text-gray-600'}`}>
+                  {m === 'slots' ? 'My Available Slots' : 'Manual Entry'}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-5 space-y-4">
               <p className="text-xs text-gray-500">
-                This session was endorsed by the Intake Counselor. Set a date and time — it will be automatically confirmed and the student will be notified.
+                Endorsed session for {schedTarget.student_name}. Proposing a schedule will notify the student for confirmation.
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
-                  <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Time</label>
-                  <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
-                </div>
-              </div>
+
+              {schedMode === 'slots' ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Pick a date</label>
+                    <input type="date" value={schedDate}
+                      onChange={e => { setSchedDate(e.target.value); setSchedTime(''); loadMySlots(e.target.value); }}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                  </div>
+                  {schedDate && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-2">Available slots</label>
+                      {loadingMySlots ? (
+                        <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
+                          <Loader2 size={12} className="animate-spin" /> Loading your slots…
+                        </div>
+                      ) : schedMySlots.length === 0 ? (
+                        <p className="text-xs text-gray-400 py-2">No available slots on this day. Try another date or use Manual Entry.</p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {schedMySlots.map(s => (
+                            <button key={s.time}
+                              onClick={() => { setSchedTime(s.time); if (s.method) setSchedMethod(s.method === 'online' ? 'google_meet' : 'in_person'); }}
+                              className={`py-2 rounded-lg text-xs font-medium border transition ${schedTime === s.time ? 'bg-[#2563eb] text-white border-[#2563eb]' : 'bg-white text-gray-700 border-gray-200 hover:border-green-400'}`}>
+                              {s.time}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+                      <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Time</label>
+                      <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Method</label>
                 <select value={schedMethod} onChange={e => setSchedMethod(e.target.value)}
@@ -811,9 +875,9 @@ export default function AppointmentsPage() {
                 Cancel
               </button>
               <button onClick={doSchedule} disabled={submittingSched || !schedDate || !schedTime}
-                className="flex-1 px-4 py-2 bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                className="flex-1 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
                 {submittingSched && <Loader2 size={13} className="animate-spin" />}
-                Confirm Schedule
+                Propose Schedule
               </button>
             </div>
           </div>

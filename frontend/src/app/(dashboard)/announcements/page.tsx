@@ -25,7 +25,7 @@ const EVENT_TYPES = [
 
 const TYPE_STYLES: Record<string, { bg: string; text: string }> = {
   webinar: { bg: 'bg-blue-50',   text: 'text-blue-600' },
-  event:   { bg: 'bg-green-50',  text: 'text-green-700' },
+  event:   { bg: 'bg-green-50',  text: 'text-blue-700' },
   notice:  { bg: 'bg-orange-50', text: 'text-orange-600' },
   info:    { bg: 'bg-gray-100',  text: 'text-gray-600' },
 };
@@ -130,7 +130,7 @@ export default function AnnouncementsPage() {
           <button
             onClick={openCompose}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition"
-            style={{ backgroundColor: '#1a5228' }}
+            style={{ backgroundColor: '#2563eb' }}
           >
             <Plus size={15} /> New Announcement
           </button>
@@ -140,7 +140,7 @@ export default function AnnouncementsPage() {
       {/* Compose panel */}
       {composing && (
         <div className="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="h-1" style={{ backgroundColor: '#1a5228' }} />
+          <div className="h-1" style={{ backgroundColor: '#2563eb' }} />
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <p className="text-base font-semibold text-gray-900">New Announcement</p>
@@ -218,11 +218,11 @@ export default function AnnouncementsPage() {
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <div
                   onClick={() => setPinned(p => !p)}
-                  className={`w-9 h-5 rounded-full transition-colors relative ${pinned ? 'bg-[#1a5228]' : 'bg-gray-300'}`}>
+                  className={`w-9 h-5 rounded-full transition-colors relative ${pinned ? 'bg-[#2563eb]' : 'bg-gray-300'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${pinned ? 'left-4' : 'left-0.5'}`} />
                 </div>
                 <span className="text-sm text-gray-700">Pin to top</span>
-                <Pin size={13} className={pinned ? 'text-[#1a5228]' : 'text-gray-300'} />
+                <Pin size={13} className={pinned ? 'text-[#2563eb]' : 'text-gray-300'} />
               </label>
             </div>
 
@@ -235,7 +235,7 @@ export default function AnnouncementsPage() {
               </button>
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 text-sm text-white font-medium rounded-lg disabled:opacity-50 transition"
-                style={{ backgroundColor: '#1a5228' }}>
+                style={{ backgroundColor: '#2563eb' }}>
                 {saving && <Loader2 size={13} className="animate-spin" />}
                 Post Announcement
               </button>
@@ -288,7 +288,7 @@ export default function AnnouncementsPage() {
                     )}
                     {item.link && (
                       <a href={item.link} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-[#1a5228] hover:underline mt-1.5">
+                        className="inline-flex items-center gap-1 text-xs text-[#2563eb] hover:underline mt-1.5">
                         <ExternalLink size={11} /> {item.link}
                       </a>
                     )}

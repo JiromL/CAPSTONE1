@@ -146,18 +146,77 @@ def _process_assessment_schedules(app):
             )
 
 
+PERMA_SYNC_INTERVAL_SECONDS = 6 * 60 * 60  # every 6 hours
+_last_perma_sync = 0
+
+
+def _sync_perma_labels(app):
+    """Fetch latest PERMA history from EMA for all linked students and save to DB."""
+    with app.app_context():
+        from models import db
+        from blueprints.mhbot_integration import get_perma_history, _get_user_token
+
+        now = datetime.utcnow()
+
+        # Find any staff member with a valid EMA token to use for fetching
+        staff_token = None
+        staff_user = db.db.users.find_one({
+            'mhbot_token': {'$exists': True, '$ne': ''},
+            'mhbot_token_expires_at': {'$gt': now},
+            'role': {'$in': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN']},
+        })
+        if staff_user:
+            staff_token = staff_user.get('mhbot_token', '')
+
+        if not staff_token:
+            print('[Scheduler] PERMA sync skipped — no staff EMA token available')
+            return
+
+        students = list(db.db.users.find(
+            {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
+            {'_id': 1, 'mhbot_username': 1}
+        ))
+
+        synced, failed = 0, 0
+        for student in students:
+            try:
+                result = get_perma_history(
+                    student['mhbot_username'],
+                    staff_token,
+                    limit=50,
+                    save=True,
+                    student_user_id=student['_id'],
+                )
+                if result['success']:
+                    synced += 1
+                else:
+                    failed += 1
+            except Exception as e:
+                failed += 1
+                print(f"[Scheduler] PERMA sync error for {student['mhbot_username']}: {e}")
+
+        print(f"[Scheduler] PERMA sync complete — {synced} synced, {failed} failed, {len(students)} total students")
+
+
 def _scheduler_loop(app, interval_seconds=300):
+    global _last_perma_sync
     while True:
         try:
             _process_reminders(app)
             _process_assessment_schedules(app)
+
+            # Run PERMA sync every 6 hours
+            if time.time() - _last_perma_sync >= PERMA_SYNC_INTERVAL_SECONDS:
+                _sync_perma_labels(app)
+                _last_perma_sync = time.time()
+
         except Exception as e:
             print(f"[Scheduler] Error: {e}")
         time.sleep(interval_seconds)
 
 
 def start_scheduler(app):
-    """Start the background reminder scheduler thread."""
+    """Start the background scheduler thread."""
     t = threading.Thread(target=_scheduler_loop, args=(app,), daemon=True)
     t.start()
-    print("[Scheduler] Reminder scheduler started (every 5 min)")
+    print("[Scheduler] Scheduler started (reminders every 5 min, PERMA sync every 6 hours)")

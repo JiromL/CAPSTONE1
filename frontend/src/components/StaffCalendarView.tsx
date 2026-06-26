@@ -201,9 +201,9 @@ export default function StaffCalendarView() {
               {availableSlots.map((slot, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-between"
+                  className="p-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg flex items-center justify-between"
                 >
-                  <span className="text-sm font-medium text-green-900 dark:text-green-100">
+                  <span className="text-sm font-medium text-blue-900 dark:text-green-100">
                     {formatTime(slot.start)} - {formatTime(slot.end)}
                   </span>
                   <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />

@@ -174,7 +174,7 @@ export default function WaitlistPage() {
               <div className="flex items-start gap-4 min-w-0">
                 {/* Position badge */}
                 {tab === 'waiting' && (
-                  <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-950 text-blue-700 dark:text-green-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
                     #{entry.position}
                   </div>
                 )}
@@ -208,7 +208,7 @@ export default function WaitlistPage() {
                   <button
                     onClick={() => setShowPromoteModal(entry)}
                     disabled={actionId === entry.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
                   >
                     <TrendingUp size={12} /> Promote
                   </button>
@@ -258,7 +258,7 @@ export default function WaitlistPage() {
               <button
                 onClick={() => promote(showPromoteModal)}
                 disabled={actionId === showPromoteModal.id}
-                className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 text-sm bg-green-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 flex items-center gap-2"
               >
                 {actionId === showPromoteModal.id && <Loader2 size={13} className="animate-spin" />}
                 Notify Student

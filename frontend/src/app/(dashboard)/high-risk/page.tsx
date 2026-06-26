@@ -13,7 +13,7 @@ const RISK_CONFIG: Record<string, { label: string; badge: string }> = {
   red:      { label: 'High Risk',  badge: 'bg-red-50 text-red-700 ring-1 ring-red-200' },
   critical: { label: 'Critical',   badge: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold' },
   yellow:   { label: 'Moderate',   badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  green:    { label: 'Low Risk',   badge: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  green:    { label: 'Low Risk',   badge: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
 };
 
 function getRisk(level: string) {
@@ -65,7 +65,7 @@ export default function HighRiskPage() {
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
-          <Phone size={18} className="text-[#1a5228]" />
+          <Phone size={18} className="text-[#2563eb]" />
           <div>
             <p className="text-xs text-gray-400">Philippine Mental Health Crisis Lines</p>
             <p className="text-sm font-semibold text-gray-800">Hopeline PH: 8804-4673</p>
@@ -86,13 +86,13 @@ export default function HighRiskPage() {
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap ${
                 tab === t.key
-                  ? 'bg-[#1a5228]/5 text-[#1a5228] border-b-2 border-[#1a5228]'
+                  ? 'bg-[#2563eb]/5 text-[#2563eb] border-b-2 border-[#2563eb]'
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
               }`}>
               {t.label}
               {t.count > 0 && (
                 <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 leading-none ${
-                  tab === t.key ? 'bg-[#1a5228] text-white' : 'bg-gray-200 text-gray-600'
+                  tab === t.key ? 'bg-[#2563eb] text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
                   {t.count}
                 </span>
@@ -239,7 +239,7 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
           ) : (
             <button onClick={handleNotify} disabled={notifyState === 'loading'}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50"
-              style={{ backgroundColor: '#1a5228' }}>
+              style={{ backgroundColor: '#2563eb' }}>
               {notifyState === 'loading' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
               Notify Counselor
             </button>

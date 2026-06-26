@@ -103,7 +103,7 @@ export default function ComplianceReportPage() {
             {intake && (
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center gap-2 mb-5">
-                  <CheckCircle size={16} style={{ color: '#1a5228' }} />
+                  <CheckCircle size={16} style={{ color: '#2563eb' }} />
                   <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Intake Form Compliance</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -126,7 +126,7 @@ export default function ComplianceReportPage() {
                       <span>Intake Completion Rate</span>
                       <span className="font-semibold">{intake.intake_completion_rate}%</span>
                     </div>
-                    <RateBar pct={intake.intake_completion_rate} color="#1a5228" />
+                    <RateBar pct={intake.intake_completion_rate} color="#2563eb" />
                   </div>
                   <div>
                     <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1.5">
@@ -143,7 +143,7 @@ export default function ComplianceReportPage() {
             {appointments && (
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center gap-2 mb-5">
-                  <CheckCircle size={16} style={{ color: '#1a5228' }} />
+                  <CheckCircle size={16} style={{ color: '#2563eb' }} />
                   <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Appointment Compliance</h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -163,9 +163,9 @@ export default function ComplianceReportPage() {
                       </tr>
                       <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">Completed</td>
-                        <td className="px-4 py-3 font-semibold text-green-700">{appointments.completed}</td>
+                        <td className="px-4 py-3 font-semibold text-blue-700">{appointments.completed}</td>
                         <td className="px-4 py-3">
-                          <span className="text-green-700 font-medium">{appointments.completion_rate}%</span>
+                          <span className="text-blue-700 font-medium">{appointments.completion_rate}%</span>
                         </td>
                       </tr>
                       <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
@@ -190,7 +190,7 @@ export default function ComplianceReportPage() {
                     <span>Appointment Completion Rate</span>
                     <span className="font-semibold">{appointments.completion_rate}%</span>
                   </div>
-                  <RateBar pct={appointments.completion_rate} color="#1a5228" />
+                  <RateBar pct={appointments.completion_rate} color="#2563eb" />
                 </div>
               </div>
             )}

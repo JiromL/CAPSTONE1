@@ -75,7 +75,7 @@ export default function AuditLogPage() {
   const actionColor = (action: string) => {
     if (action?.includes('delete') || action?.includes('fail')) return 'bg-red-100 text-red-800';
     if (action?.includes('update') || action?.includes('edit')) return 'bg-yellow-100 text-yellow-800';
-    if (action?.includes('create') || action?.includes('login') || action?.includes('verify')) return 'bg-green-100 text-green-800';
+    if (action?.includes('create') || action?.includes('login') || action?.includes('verify')) return 'bg-green-100 text-blue-800';
     return 'bg-gray-100 text-gray-700';
   };
 

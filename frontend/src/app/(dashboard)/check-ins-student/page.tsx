@@ -6,7 +6,7 @@ import { CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp, RefreshCw } 
 import { api } from '@/utils/api';
 
 const STATUS_OPTIONS = [
-  { value: 'DOING_WELL', label: 'Doing Well',  desc: 'Everything is going smoothly',    icon: '✓', colorCls: 'border-green-200  dark:border-green-700  bg-green-50  dark:bg-green-900/20  text-green-700  dark:text-green-300'  },
+  { value: 'DOING_WELL', label: 'Doing Well',  desc: 'Everything is going smoothly',    icon: '✓', colorCls: 'border-green-200  dark:border-blue-700  bg-green-50  dark:bg-blue-900/20  text-blue-700  dark:text-green-300'  },
   { value: 'MANAGING',   label: 'Managing',    desc: 'Getting through, day by day',      icon: '→', colorCls: 'border-blue-200   dark:border-blue-700   bg-blue-50   dark:bg-blue-900/20   text-blue-700   dark:text-blue-300'   },
   { value: 'STRUGGLING', label: 'Struggling',  desc: 'Finding things difficult',         icon: '⚠', colorCls: 'border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' },
   { value: 'IN_CRISIS',  label: 'In Crisis',   desc: 'Need immediate support',           icon: '🆘', colorCls: 'border-red-200    dark:border-red-700    bg-red-50    dark:bg-red-900/20    text-red-700    dark:text-red-300'    },
@@ -133,7 +133,7 @@ export default function CheckInPage() {
               </button>
               <button
                 onClick={() => setStep('form')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 + New Check-In
               </button>
@@ -146,10 +146,10 @@ export default function CheckInPage() {
             </div>
           ) : checkInHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-52 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
-              <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center mb-4 text-2xl">✓</div>
+              <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-blue-900/30 flex items-center justify-center mb-4 text-2xl">✓</div>
               <p className="font-medium text-gray-900 dark:text-white mb-1">No check-ins yet</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Let your support team know how you're doing</p>
-              <button onClick={() => setStep('form')} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+              <button onClick={() => setStep('form')} className="px-4 py-2 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                 Submit Check-In
               </button>
             </div>
@@ -194,8 +194,8 @@ export default function CheckInPage() {
                           {ci.concern && <p className="text-xs text-gray-600 dark:text-gray-400"><span className="font-medium">Concern: </span>{ci.concern}</p>}
                           {ci.notes   && <p className="text-xs text-gray-600 dark:text-gray-400"><span className="font-medium">Notes: </span>{ci.notes}</p>}
                           {ci.staff_notes && (
-                            <div className="mt-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
-                              <p className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Staff Response</p>
+                            <div className="mt-2 p-2.5 rounded-lg bg-green-50 dark:bg-blue-900/20 border border-green-100 dark:border-blue-800">
+                              <p className="text-xs font-semibold text-blue-700 dark:text-green-300 mb-1">Staff Response</p>
                               <p className="text-xs text-green-600 dark:text-green-400">{ci.staff_notes}</p>
                             </div>
                           )}
@@ -215,7 +215,7 @@ export default function CheckInPage() {
         <div className="max-w-xl mx-auto">
           {submitted ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
                 <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Check-In Submitted!</h3>
@@ -293,7 +293,7 @@ export default function CheckInPage() {
                       className={`px-3 py-1 rounded-full text-sm border transition-all ${
                         selectedMoods.includes(m)
                           ? 'bg-green-600 border-green-600 text-white'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-green-700'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-blue-700'
                       }`}
                     >
                       {m}
@@ -380,7 +380,7 @@ export default function CheckInPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-2.5 text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
+                  className="flex-1 py-2.5 text-sm bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
                 >
                   {loading && <Loader2 size={14} className="animate-spin" />}
                   {loading ? 'Submitting…' : 'Submit Check-In'}

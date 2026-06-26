@@ -134,9 +134,9 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
 
       {/* Success Message */}
       {success && (
-        <div className="flex gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+        <div className="flex gap-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-lg p-4">
           <CheckCircle className="text-green-600 dark:text-green-400 flex-shrink-0" size={20} />
-          <p className="font-medium text-green-900 dark:text-green-200">
+          <p className="font-medium text-blue-900 dark:text-green-200">
             Check-in created successfully!
           </p>
         </div>
@@ -397,7 +397,7 @@ export function CheckInHistory({ checkIns, isLoading = false }: CheckInHistoryPr
             <span
               className={`px-3 py-1 rounded-full text-xs font-medium ${
                 checkIn.outcome === 'RESOLVED'
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                  ? 'bg-green-100 dark:bg-blue-900/30 text-blue-800 dark:text-green-300'
                   : checkIn.outcome === 'REFERRED'
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
                   : checkIn.outcome === 'NEEDS_FOLLOWUP'
@@ -460,9 +460,9 @@ export function PendingCheckIns({ checkIns, isLoading = false }: PendingCheckIns
 
   if (checkIns.length === 0) {
     return (
-      <div className="bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700 p-8 text-center">
+      <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg border border-green-200 dark:border-blue-700 p-8 text-center">
         <CheckCircle className="mx-auto text-green-600 dark:text-green-400 mb-3" size={32} />
-        <p className="text-green-900 dark:text-green-200 font-medium">
+        <p className="text-blue-900 dark:text-green-200 font-medium">
           All check-ins up to date!
         </p>
       </div>

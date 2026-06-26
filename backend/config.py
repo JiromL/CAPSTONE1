@@ -41,6 +41,9 @@ class Config:
     S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
     S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
 
+    # EMA webhook
+    EMA_WEBHOOK_SECRET = os.getenv('EMA_WEBHOOK_SECRET', '')
+
     # Organisation identity
     ORG_NAME = os.getenv('ORG_NAME', 'Counseling & Psychological Services')
     ORG_UNIVERSITY = os.getenv('ORG_UNIVERSITY', 'De La Salle University')

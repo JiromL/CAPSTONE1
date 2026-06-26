@@ -71,7 +71,7 @@ function PermaDistributionWidget() {
 }
 
 const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700'  },
+  'Excelling':  { bg: 'bg-green-500',  text: 'text-blue-700'  },
   'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
   'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
   'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
@@ -245,9 +245,9 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
                 <div className="divide-y divide-gray-100">
                   {SYSTEM_LINKS.map(({ href, label }) => (
                     <Link key={href} href={href}
-                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#1a5228] transition-colors group">
+                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
                       <span>{label}</span>
-                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#1a5228] transition-colors" />
+                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
                     </Link>
                   ))}
                 </div>
@@ -257,9 +257,9 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
                 <div className="divide-y divide-gray-100">
                   {CLINICAL_LINKS.map(({ href, label }) => (
                     <Link key={href} href={href}
-                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#1a5228] transition-colors group">
+                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
                       <span>{label}</span>
-                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#1a5228] transition-colors" />
+                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
                     </Link>
                   ))}
                 </div>

@@ -62,7 +62,7 @@ function ResetPasswordContent() {
         <div className="w-full max-w-sm">
           {success ? (
             <div>
-              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -116,7 +116,7 @@ function ResetPasswordContent() {
                 <button
                   type="submit"
                   disabled={loading || !token}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+                  className="w-full bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
                 >
                   {loading ? 'Resetting…' : 'Reset password'}
                 </button>

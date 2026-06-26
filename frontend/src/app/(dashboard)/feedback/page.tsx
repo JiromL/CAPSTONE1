@@ -22,7 +22,7 @@ const SESSION_FORMATS = [
 ];
 
 const RECOMMEND_OPTIONS = [
-  { value: 'yes',   label: 'Yes, definitely', icon: '👍', active: 'border-green-400  bg-green-50  dark:bg-green-900/20'  },
+  { value: 'yes',   label: 'Yes, definitely', icon: '👍', active: 'border-green-400  bg-green-50  dark:bg-blue-900/20'  },
   { value: 'maybe', label: 'Maybe',           icon: '🤔', active: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' },
   { value: 'no',    label: 'No',              icon: '👎', active: 'border-red-400    bg-red-50    dark:bg-red-900/20'    },
 ];
@@ -108,7 +108,7 @@ export default function FeedbackPage() {
     return (
       <DashboardPageWrapper title="Feedback" subtitle="Share your thoughts">
         <div className="max-w-md mx-auto flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
+          <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center mb-6">
             <CheckCircle size={40} className="text-green-600 dark:text-green-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Thank you!</h2>
@@ -117,7 +117,7 @@ export default function FeedbackPage() {
           </p>
           <button
             onClick={reset}
-            className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-6 py-2.5 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
             Submit Another
           </button>
@@ -151,12 +151,12 @@ export default function FeedbackPage() {
                   onClick={() => { setCategory(c.value); if (c.value !== 'session') setSessionFormat(''); }}
                   className={`text-left p-3 rounded-xl border-2 transition-all ${
                     category === c.value
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      ? 'border-green-500 bg-green-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   <span className="text-xl block mb-1">{c.icon}</span>
-                  <p className={`text-sm font-semibold ${category === c.value ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>{c.label}</p>
+                  <p className={`text-sm font-semibold ${category === c.value ? 'text-blue-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>{c.label}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-tight">{c.desc}</p>
                 </button>
               ))}
@@ -287,7 +287,7 @@ export default function FeedbackPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
             {loading ? 'Submitting…' : 'Submit Feedback'}

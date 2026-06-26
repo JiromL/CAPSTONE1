@@ -202,7 +202,7 @@ export default function LoginPage() {
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+              className="w-full bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>

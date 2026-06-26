@@ -112,7 +112,7 @@ export default function AvailabilityPage() {
     <DashboardPageWrapper title="My Availability" subtitle="Set the days and hours you're available for appointments">
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium
-          ${toast.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          ${toast.ok ? 'bg-green-50 text-blue-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
           {toast.ok && <Check size={15} />}
           {toast.msg}
         </div>
@@ -127,7 +127,7 @@ export default function AvailabilityPage() {
             </div>
             <button onClick={save} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition"
-              style={{ backgroundColor: '#1a5228' }}>
+              style={{ backgroundColor: '#2563eb' }}>
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {saving ? 'Saving…' : 'Save'}
             </button>
@@ -152,7 +152,7 @@ export default function AvailabilityPage() {
                         session_method: w[dow].enabled ? w[dow].session_method : sessionMethod,
                       },
                     }))}
-                      className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${entry.enabled ? 'bg-[#1a5228]' : 'bg-gray-200'}`}>
+                      className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${entry.enabled ? 'bg-[#2563eb]' : 'bg-gray-200'}`}>
                       <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${entry.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
                     </button>
 
@@ -164,13 +164,13 @@ export default function AvailabilityPage() {
                       <div className="flex items-center gap-2 flex-1 flex-wrap">
                         <select value={entry.start_time}
                           onChange={e => setWeek(w => ({ ...w, [dow]: { ...w[dow], start_time: e.target.value } }))}
-                          className="px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                          className="px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                           {TIME_OPTIONS.map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
                         </select>
                         <span className="text-xs text-gray-400">to</span>
                         <select value={entry.end_time}
                           onChange={e => setWeek(w => ({ ...w, [dow]: { ...w[dow], end_time: e.target.value } }))}
-                          className="px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                          className="px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                           {TIME_OPTIONS.filter(t => t > entry.start_time).map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
                         </select>
                         {/* Per-day session method toggle */}
@@ -180,7 +180,7 @@ export default function AvailabilityPage() {
                               title={v === 'in-person' ? 'Face to Face' : 'Online'}
                               className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border transition
                                 ${entry.session_method === v
-                                  ? v === 'in-person' ? 'bg-green-50 text-[#1a5228] border-[#1a5228]/40'
+                                  ? v === 'in-person' ? 'bg-green-50 text-[#2563eb] border-[#2563eb]/40'
                                                       : 'bg-blue-50 text-blue-700 border-blue-300'
                                   : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'}`}>
                               {v === 'in-person' ? <MapPin size={10} /> : <Monitor size={10} />}

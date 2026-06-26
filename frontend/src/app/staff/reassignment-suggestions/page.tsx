@@ -80,9 +80,9 @@ export default function ReassignmentSuggestionsPage() {
   return (
     <PageShell title="Reassignment Suggestions" subtitle="AI-powered workload balancing recommendations">
       {successMsg && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex gap-2">
+        <div className="mb-4 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg flex gap-2">
           <CheckCircle size={20} className="text-green-600 dark:text-green-400 flex-shrink-0" />
-          <span className="text-green-800 dark:text-green-300">{successMsg}</span>
+          <span className="text-blue-800 dark:text-green-300">{successMsg}</span>
         </div>
       )}
 
@@ -195,7 +195,7 @@ export default function ReassignmentSuggestionsPage() {
                 <button
                   onClick={() => applySuggestion(suggestion)}
                   disabled={processing === suggestion.appointment_id}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition"
+                  className="w-full bg-green-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition"
                 >
                   {processing === suggestion.appointment_id ? 'Applying...' : 'Apply Suggestion'}
                 </button>

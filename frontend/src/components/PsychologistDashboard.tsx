@@ -72,7 +72,7 @@ function PermaDistributionWidget() {
 }
 
 const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700'  },
+  'Excelling':  { bg: 'bg-green-500',  text: 'text-blue-700'  },
   'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
   'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
   'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
@@ -148,7 +148,7 @@ const RISK_LABEL_CLS: Record<string, string> = {
   CRITICAL: 'bg-red-50 text-red-700 border-red-200',
   RED:      'bg-orange-50 text-orange-700 border-orange-200',
   YELLOW:   'bg-yellow-50 text-yellow-700 border-yellow-200',
-  GREEN:    'bg-green-50 text-green-700 border-green-200',
+  GREEN:    'bg-green-50 text-blue-700 border-green-200',
 };
 
 export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
@@ -212,7 +212,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
                 )}
               </p>
               {alerts.length > 0 && (
-                <Link href="/high-risk" className="text-xs text-[#1a5228] hover:underline">View all</Link>
+                <Link href="/high-risk" className="text-xs text-[#2563eb] hover:underline">View all</Link>
               )}
             </div>
             {alerts.length === 0 ? (
@@ -237,7 +237,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
                       </span>
                       <Link href={`/cases/${a.case_id}`}>
                         <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-colors"
-                          style={{ backgroundColor: '#1a5228' }}>Review</button>
+                          style={{ backgroundColor: '#2563eb' }}>Review</button>
                       </Link>
                     </div>
                   </div>
@@ -250,7 +250,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Recent Cases</p>
-              <Link href="/cases" className="text-xs text-[#1a5228] hover:underline">View all</Link>
+              <Link href="/cases" className="text-xs text-[#2563eb] hover:underline">View all</Link>
             </div>
             {cases.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-36 text-center">

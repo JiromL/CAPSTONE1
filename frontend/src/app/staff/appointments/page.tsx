@@ -96,8 +96,8 @@ export default function AppointmentsPage() {
         icon: CheckCircle,
       },
       completed: {
-        bg: 'bg-green-100 dark:bg-green-900/30',
-        text: 'text-green-800 dark:text-green-300',
+        bg: 'bg-green-100 dark:bg-blue-900/30',
+        text: 'text-blue-800 dark:text-green-300',
         icon: CheckCircle,
       },
       cancelled: {

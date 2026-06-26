@@ -3,17 +3,19 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { exportToExcel } from '@/utils/export';
+import { ClinicalExportModal } from '@/components/ClinicalExportModal';
 import { api } from '@/utils/api';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import {
   Search, Loader2, Download, RefreshCw, AlertCircle,
   ClipboardList, ChevronLeft, ChevronRight, FileCheck,
-  FileX, ClipboardEdit, Users, CheckCircle2, Clock,
+  FileX, ClipboardEdit, Users, CheckCircle2, Clock, FileText,
 } from 'lucide-react';
 
 interface NewClientIntake {
   _id: string;
+  appointment_id?: string;
   client_name: string;
   client_id_number: string;
   college_unit: string;
@@ -33,7 +35,7 @@ const CPS_ROLES = ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'];
 
 const STATUS_CONFIG: Record<string, { cls: string; label: string }> = {
   NEW:         { cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',    label: 'New' },
-  COMPLETED:   { cls: 'bg-green-50 text-green-700 ring-1 ring-green-200', label: 'Completed' },
+  COMPLETED:   { cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200', label: 'Completed' },
   IN_PROGRESS: { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', label: 'In Progress' },
   PENDING:     { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', label: 'Pending' },
   CANCELLED:   { cls: 'bg-red-50 text-red-600 ring-1 ring-red-200',       label: 'Cancelled' },
@@ -58,6 +60,7 @@ export default function NewIntakesPage() {
   const [total, setTotal]         = useState(0);
   const [totals, setTotals]       = useState({ total: 0, new: 0, inProgress: 0, completed: 0 });
   const [exporting, setExporting] = useState(false);
+  const [exportTarget, setExportTarget] = useState<{ intakeId: string; appointmentId: string | null } | null>(null);
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
   const [userRole] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
@@ -156,24 +159,39 @@ export default function NewIntakesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await r.json();
-      const rows = (d.intakes || []) as NewClientIntake[];
+      const rows = (d.data || []) as NewClientIntake[];
+      const fmtService = (v: string) => ({
+        personal_counseling: 'Personal Counseling',
+        career_counseling: 'Career Counseling',
+        group_counseling: 'Group Counseling',
+        psychological_testing: 'Psychological Testing',
+        consultation: 'Consultation',
+      } as Record<string, string>)[v] ?? v ?? '—';
+      const fmtSource = (v: string) => ({ online: 'Online', walkin: 'Walk-in' } as Record<string, string>)[v] ?? v ?? '—';
+      const fmtTriage = (v: string) => ({
+        ENDORSE_CC: 'Endorsed to Counselor',
+        ENDORSE_CP: 'Endorsed to Psychologist',
+        CLOSE_AT_INTAKE: 'Closed at Intake',
+      } as Record<string, string>)[v] ?? (v ? v : '—');
       exportToExcel({
         headers: ['Date', 'Client Name', 'ID Number', 'College/Unit', 'Program', 'Service', 'Source',
           ...(userRole !== 'IC' ? ['IC Assigned'] : []),
-          'Packet', 'Status'],
+          'Packet', 'Triage Decision', 'Status'],
         rows: rows.map(i => [
           fmt(i.created_date),
           i.client_name || '—',
           i.client_id_number || '—',
           i.college_unit || '—',
           i.program || '—',
-          i.service_requested || '—',
-          i.source || '—',
+          fmtService(i.service_requested),
+          fmtSource(i.source),
           ...(userRole !== 'IC' ? [i.intake_counselor_name || '—'] : []),
           i.intake_packet_submitted ? 'Ready' : 'Pending',
+          fmtTriage((i as any).action_taken),
           i.status || '—',
         ]),
         filename: 'intake-tracker',
+        sheetName: 'Intake Tracker',
       });
     } catch (e) {
       console.error('Export failed', e);
@@ -185,6 +203,7 @@ export default function NewIntakesPage() {
   const end   = Math.min(page * PAGE_SIZE, total);
 
   return (
+    <>
     <DashboardPageWrapper title={userRole === 'IC' ? 'Intake Tracker' : 'New Client Intakes'} subtitle="Track and manage new counseling intake requests">
 
       {/* Summary cards — click to filter */}
@@ -193,7 +212,7 @@ export default function NewIntakesPage() {
           { label: 'Total',       value: totals.total,      icon: ClipboardList, filter: '',            activeRing: 'ring-gray-400',   activeBg: 'bg-gray-50',   activeTxt: 'text-gray-800',   inactTxt: 'text-gray-700' },
           { label: 'New',         value: totals.new,        icon: AlertCircle,   filter: 'NEW',         activeRing: 'ring-blue-400',   activeBg: 'bg-blue-50',   activeTxt: 'text-blue-700',   inactTxt: totals.new > 0 ? 'text-blue-600' : 'text-gray-400' },
           { label: 'In Progress', value: totals.inProgress, icon: Clock,         filter: 'IN_PROGRESS', activeRing: 'ring-amber-400',  activeBg: 'bg-amber-50',  activeTxt: 'text-amber-700',  inactTxt: totals.inProgress > 0 ? 'text-amber-600' : 'text-gray-400' },
-          { label: 'Completed',   value: totals.completed,  icon: CheckCircle2,  filter: 'COMPLETED',   activeRing: 'ring-[#1a5228]',  activeBg: 'bg-green-50',  activeTxt: 'text-[#1a5228]',  inactTxt: 'text-[#1a5228]' },
+          { label: 'Completed',   value: totals.completed,  icon: CheckCircle2,  filter: 'COMPLETED',   activeRing: 'ring-[#2563eb]',  activeBg: 'bg-green-50',  activeTxt: 'text-[#2563eb]',  inactTxt: 'text-[#2563eb]' },
         ].map(s => {
           const isActive = statusFilter === s.filter;
           return (
@@ -219,12 +238,12 @@ export default function NewIntakesPage() {
           <div className="flex items-center gap-1 px-5 pt-4 pb-0">
             <button
               onClick={() => { setMineOnly(true); setPage(1); }}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${mineOnly ? 'bg-[#1a5228] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${mineOnly ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
               My Intakes
             </button>
             <button
               onClick={() => { setMineOnly(false); setPage(1); }}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${!mineOnly ? 'bg-[#1a5228] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${!mineOnly ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
               All Intakes
             </button>
           </div>
@@ -238,19 +257,19 @@ export default function NewIntakesPage() {
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search name or ID…"
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none"
+              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none"
             />
           </div>
           <input
             type="month" value={month}
             onChange={e => { setMonth(e.target.value); setPage(1); }}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#1a5228]/30 focus:outline-none"
+            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#2563eb]/30 focus:outline-none"
           />
           <button onClick={fetchIntakes} className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition" title="Refresh">
             <RefreshCw size={14} />
           </button>
           <button onClick={handleExport} disabled={exporting}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50 bg-[#1a5228] hover:bg-[#16451f]">
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50 bg-[#2563eb] hover:bg-[#16451f]">
             {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             Export
           </button>
@@ -331,8 +350,8 @@ export default function NewIntakesPage() {
                         {userRole !== 'IC' && (
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
-                                <Users size={11} className="text-[#1a5228]" />
+                              <div className="w-6 h-6 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+                                <Users size={11} className="text-[#2563eb]" />
                               </div>
                               <span className="text-sm text-gray-700 truncate max-w-[120px]">
                                 {intake.intake_counselor_name || '—'}
@@ -351,7 +370,7 @@ export default function NewIntakesPage() {
                         {/* Packet */}
                         <td className="px-5 py-4">
                           {intake.intake_packet_submitted
-                            ? <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-50 text-green-700 ring-1 ring-green-200">
+                            ? <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-50 text-blue-700 ring-1 ring-green-200">
                                 <FileCheck size={11} /> Ready
                               </span>
                             : <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-orange-50 text-orange-600 ring-1 ring-orange-200">
@@ -368,19 +387,30 @@ export default function NewIntakesPage() {
 
                         {/* Action */}
                         <td className="px-5 py-4">
-                          {intake.case_id
-                            ? <Link href={`/cases/${intake.case_id}?tab=intake-summary`}>
-                                <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#1a5228] text-white font-medium hover:bg-[#16451f] transition whitespace-nowrap">
-                                  {intake.status === 'COMPLETED'
-                                    ? <><FileCheck size={12} /> View Form</>
-                                    : <><ClipboardEdit size={12} /> Fill IC Form</>}
-                                </button>
-                              </Link>
-                            : <Link href="/appointment-requests">
-                                <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition whitespace-nowrap">
-                                  Conduct Intake
-                                </button>
-                              </Link>}
+                          <div className="flex items-center gap-2">
+                            {intake.case_id
+                              ? <Link href={`/cases/${intake.case_id}?tab=intake-summary`}>
+                                  <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#2563eb] text-white font-medium hover:bg-[#16451f] transition whitespace-nowrap">
+                                    {intake.status === 'COMPLETED'
+                                      ? <><FileCheck size={12} /> View Form</>
+                                      : <><ClipboardEdit size={12} /> Fill IC Form</>}
+                                  </button>
+                                </Link>
+                              : <Link href="/appointment-requests">
+                                  <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition whitespace-nowrap">
+                                    Conduct Intake
+                                  </button>
+                                </Link>}
+                            {(intake.intake_packet_submitted || intake.status === 'COMPLETED') && (
+                              <button
+                                title="Export clinical documentation (PDF)"
+                                onClick={() => setExportTarget({ intakeId: intake._id, appointmentId: intake.appointment_id ?? null })}
+                                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition whitespace-nowrap"
+                              >
+                                <FileText size={12} /> Export
+                              </button>
+                            )}
+                          </div>
                         </td>
 
                       </tr>
@@ -411,5 +441,14 @@ export default function NewIntakesPage() {
         )}
       </div>
     </DashboardPageWrapper>
+
+    {exportTarget && (
+      <ClinicalExportModal
+        intakeId={exportTarget.intakeId}
+        appointmentId={exportTarget.appointmentId}
+        onClose={() => setExportTarget(null)}
+      />
+    )}
+    </>
   );
 }

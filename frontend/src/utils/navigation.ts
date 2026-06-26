@@ -17,7 +17,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard',         href: '/dashboard',       id: 'dashboard'      },
     { label: 'Book Appointment',  href: '/book-appointment',id: 'book-appointment'},
     { label: 'My Appointments',   href: '/my-appointments', id: 'my-appointments' },
-    { label: 'Journal',           href: '/journal',         id: 'journal'         },
+{ label: 'Journal',           href: '/journal',         id: 'journal'         },
     { label: 'Wellness Resources',href: '/resources',       id: 'resources'       },
     { label: 'Profile',           href: '/profile',         id: 'profile'         },
   ];
@@ -161,6 +161,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     'cases':                'cases',
     'high-risk':            'high-risk',
     'mhbot':                'mhbot',
+    'ema':                  'ema',
     'queue':                'cm-queue',
 
     // Admin / DPO

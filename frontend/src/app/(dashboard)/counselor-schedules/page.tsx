@@ -35,10 +35,10 @@ function formatDt(dt: string | undefined) {
 
 function statusBadge(status: string) {
   const map: Record<string, string> = {
-    CONFIRMED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    CONFIRMED: 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400',
     REQUESTED: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
     PENDING_APPROVAL: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    MATCHED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    MATCHED: 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400',
     COMPLETED: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
     CANCELLED: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
   };
@@ -185,14 +185,14 @@ export default function CounselorSchedulesPage() {
                 <div key={row.counselor_id} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                   {/* Header row */}
                   <div className="px-5 py-4 flex items-center gap-4 bg-white dark:bg-gray-900">
-                    <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-700 dark:text-green-300 font-semibold text-sm flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-green-300 font-semibold text-sm flex-shrink-0">
                       {row.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{row.name}</p>
                         {isHeavy && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-medium">Heavy load</span>}
-                        {isLight && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-medium">Light load</span>}
+                        {isLight && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400 font-medium">Light load</span>}
                       </div>
                       <div className="flex gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1"><Calendar size={11} /> {row.thisWeek} this week</span>

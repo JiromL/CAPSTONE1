@@ -151,7 +151,7 @@ function VerifyEmailContent() {
           </div>
 
           <button
-            className="w-full px-4 py-2 bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-800 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 bg-green-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={loading || code.length !== 6}
           >
@@ -177,7 +177,7 @@ function VerifyEmailContent() {
         </div>
 
         {msg && (
-          <p className="mt-4 text-sm text-green-700 dark:text-green-400 p-3 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded">
+          <p className="mt-4 text-sm text-blue-700 dark:text-green-400 p-3 bg-green-50 dark:bg-blue-900 border border-green-200 dark:border-blue-700 rounded">
             {msg}
           </p>
         )}

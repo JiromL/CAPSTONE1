@@ -91,7 +91,7 @@ export default function RegisterPage() {
           />
           
           <button 
-            className="w-full px-4 py-2 bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-800 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed" 
+            className="w-full px-4 py-2 bg-green-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed" 
             type="submit"
             disabled={loading}
           >
@@ -99,7 +99,7 @@ export default function RegisterPage() {
           </button>
         </form>
         
-        {msg && <p className="mt-4 text-sm text-green-700 dark:text-green-400">{msg}</p>}
+        {msg && <p className="mt-4 text-sm text-blue-700 dark:text-green-400">{msg}</p>}
         {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
         
         <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">

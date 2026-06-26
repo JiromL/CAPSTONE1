@@ -54,7 +54,7 @@ export default function DatabasePage() {
               <p className="font-medium text-sm text-gray-900 dark:text-gray-50">Connection</p>
               <p className="text-xs text-gray-500 mt-0.5 capitalize">{health?.mongodb || (loading ? 'Checking…' : '—')}</p>
             </div>
-            <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${mongoOk ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${mongoOk ? 'bg-green-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
               {mongoOk ? 'OK' : 'Error'}
             </span>
           </div>
@@ -82,7 +82,7 @@ export default function DatabasePage() {
                   <p className="text-sm font-mono font-medium text-gray-900 dark:text-gray-50">{col.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{col.description}</p>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${mongoOk ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${mongoOk ? 'bg-green-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
                   {mongoOk ? 'Active' : 'Unknown'}
                 </span>
               </div>

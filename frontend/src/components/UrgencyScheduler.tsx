@@ -140,7 +140,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
       case 'YELLOW':
         return 'text-yellow-900';
       case 'GREEN':
-        return 'text-green-900';
+        return 'text-blue-900';
       default:
         return 'text-gray-900';
     }
@@ -259,7 +259,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
                       </div>
                       <div className="flex items-center gap-2">
                         {index === 0 && (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
+                          <span className="px-2 py-1 bg-green-100 text-blue-800 text-xs font-semibold rounded">
                             RECOMMENDED
                           </span>
                         )}

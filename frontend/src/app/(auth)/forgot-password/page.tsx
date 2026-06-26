@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
 
           {submitted ? (
             <div>
-              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
               </p>
               <Link
                 href="/login"
-                className="block w-full text-center py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="block w-full text-center py-2.5 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 Back to login
               </Link>
@@ -119,7 +119,7 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+                  className="w-full bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
                 >
                   {loading ? 'Sending…' : 'Send reset link'}
                 </button>

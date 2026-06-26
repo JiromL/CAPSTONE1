@@ -70,7 +70,7 @@ export default function CasePrintPage() {
       {/* Print button */}
       <div className="no-print fixed top-4 right-4 flex gap-2 z-50">
         <button onClick={() => window.print()}
-          className="px-4 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-lg shadow hover:bg-green-800 transition">
+          className="px-4 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-800 transition">
           Print / Save as PDF
         </button>
         <button onClick={() => window.close()}
@@ -82,9 +82,9 @@ export default function CasePrintPage() {
       <div className="max-w-3xl mx-auto px-8 py-10 text-sm">
 
         {/* Header */}
-        <div className="flex items-start justify-between border-b-2 border-[#1a5228] pb-4 mb-6">
+        <div className="flex items-start justify-between border-b-2 border-[#2563eb] pb-4 mb-6">
           <div>
-            <p className="text-xl font-bold text-[#1a5228]">De La Salle University</p>
+            <p className="text-xl font-bold text-[#2563eb]">De La Salle University</p>
             <p className="text-sm text-gray-600">Counseling & Psychology Services</p>
             <p className="text-xs text-gray-400 mt-0.5">Case Summary Record — CONFIDENTIAL</p>
           </div>
@@ -223,7 +223,7 @@ export default function CasePrintPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <p className="text-xs font-bold text-[#1a5228] uppercase tracking-wide border-b border-[#1a5228]/20 pb-1 mb-2">{title}</p>
+      <p className="text-xs font-bold text-[#2563eb] uppercase tracking-wide border-b border-[#2563eb]/20 pb-1 mb-2">{title}</p>
       {children}
     </div>
   );

@@ -61,7 +61,7 @@ const SERVICES = [
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/25 focus:border-[#1a5228] focus:outline-none transition';
+const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/25 focus:border-[#2563eb] focus:outline-none transition';
 const SELECT = INPUT;
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ export default function WalkInSelfCheckinPage() {
     return (
       <div className="min-h-screen bg-[#f0f7f2] flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-[#1a5228] px-6 py-8 text-center">
+          <div className="bg-[#2563eb] px-6 py-8 text-center">
             <CheckCircle2 size={48} className="text-white mx-auto mb-3" />
             <h1 className="text-xl font-bold text-white">Check-In Complete</h1>
             <p className="text-green-200 text-sm mt-1">Please show this to the CPS staff</p>
@@ -205,12 +205,12 @@ export default function WalkInSelfCheckinPage() {
           <div className="p-6 text-center space-y-4">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">Reference Number</p>
-              <p className="text-3xl font-mono font-bold text-[#1a5228] tracking-wider">{result.counseling_id}</p>
+              <p className="text-3xl font-mono font-bold text-[#2563eb] tracking-wider">{result.counseling_id}</p>
             </div>
             <div className="bg-green-50 rounded-xl p-4 text-sm text-gray-600 space-y-1">
               <p>Your forms have been submitted.</p>
               <p>Please present this reference number at the front desk.</p>
-              <p className="font-medium text-[#1a5228] mt-2">A staff member will assist you shortly.</p>
+              <p className="font-medium text-[#2563eb] mt-2">A staff member will assist you shortly.</p>
             </div>
             <button
               onClick={() => { setResult(null); setStep('icf'); setIcf({ ...INIT_ICF }); setSpif({ ...INIT_SPIF }); setPhq4([-1,-1,-1,-1]); }}
@@ -237,7 +237,7 @@ export default function WalkInSelfCheckinPage() {
   return (
     <div className="min-h-screen bg-[#f0f7f2] pb-8">
       {/* Header */}
-      <div className="bg-[#1a5228] px-4 pt-8 pb-6 text-center">
+      <div className="bg-[#2563eb] px-4 pt-8 pb-6 text-center">
         <div className="flex items-center justify-center gap-2 mb-1">
           <Heart size={18} className="text-green-300" />
           <span className="text-green-200 text-xs font-semibold tracking-widest uppercase">DLSU — CPS</span>
@@ -255,11 +255,11 @@ export default function WalkInSelfCheckinPage() {
             return (
               <div key={s.id} className="flex flex-col items-center gap-1 flex-1">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                  done ? 'bg-[#1a5228] text-white' : active ? 'bg-[#1a5228] text-white ring-2 ring-[#1a5228]/30' : 'bg-gray-100 text-gray-400'
+                  done ? 'bg-[#2563eb] text-white' : active ? 'bg-[#2563eb] text-white ring-2 ring-[#2563eb]/30' : 'bg-gray-100 text-gray-400'
                 }`}>
                   {done ? <CheckCircle2 size={14} /> : i + 1}
                 </div>
-                <span className={`text-[10px] font-medium text-center leading-tight ${active ? 'text-[#1a5228]' : 'text-gray-400'}`}>{s.label}</span>
+                <span className={`text-[10px] font-medium text-center leading-tight ${active ? 'text-[#2563eb]' : 'text-gray-400'}`}>{s.label}</span>
               </div>
             );
           })}
@@ -326,7 +326,7 @@ export default function WalkInSelfCheckinPage() {
               </F>
             </Card>
 
-            <Card icon={ClipboardList} title="Service Information" accent="bg-green-50 text-green-700">
+            <Card icon={ClipboardList} title="Service Information" accent="bg-green-50 text-blue-700">
               <F label="Referred by" req>
                 <select className={SELECT} value={icf.referral_source} onChange={e => setIcf(p => ({ ...p, referral_source: e.target.value }))}>
                   <option value="">Select referral source</option>
@@ -343,7 +343,7 @@ export default function WalkInSelfCheckinPage() {
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
                     <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="prior" checked={icf.prior_consultation === (v === 'Yes')} onChange={() => setIcf(p => ({ ...p, prior_consultation: v === 'Yes' }))} className="accent-[#1a5228]" />
+                      <input type="radio" name="prior" checked={icf.prior_consultation === (v === 'Yes')} onChange={() => setIcf(p => ({ ...p, prior_consultation: v === 'Yes' }))} className="accent-[#2563eb]" />
                       {v}
                     </label>
                   ))}
@@ -362,7 +362,7 @@ export default function WalkInSelfCheckinPage() {
                 <p className="font-semibold text-gray-800">De La Salle University — Counseling &amp; Psychology Services (CPS)</p>
 
                 <div className="border border-green-200 rounded-lg p-2.5 bg-green-50/50">
-                  <p className="font-bold text-[#1a5228] text-xs uppercase tracking-wide mb-1">I. Informed Consent for Counseling Services</p>
+                  <p className="font-bold text-[#2563eb] text-xs uppercase tracking-wide mb-1">I. Informed Consent for Counseling Services</p>
                   <p>CPS provides mental health support, counseling, and psychological services to enrolled students on a voluntary basis. You may discontinue at any time without penalty. Under RA 11036 (Mental Health Act of 2018), you have the right to access services and to be treated with dignity.</p>
                 </div>
 
@@ -384,11 +384,11 @@ export default function WalkInSelfCheckinPage() {
                 </div>
               </div>
               <label className="flex items-start gap-2 cursor-pointer mt-2">
-                <input type="checkbox" className="mt-0.5 accent-[#1a5228]" checked={icf.consent_to_service} onChange={e => setIcf(p => ({ ...p, consent_to_service: e.target.checked }))} />
+                <input type="checkbox" className="mt-0.5 accent-[#2563eb]" checked={icf.consent_to_service} onChange={e => setIcf(p => ({ ...p, consent_to_service: e.target.checked }))} />
                 <span className="text-xs text-gray-700">I have read and understood Sections I and II. I voluntarily consent to receive counseling and psychological services from DLSU CPS and acknowledge the limits of confidentiality.</span>
               </label>
               <label className="flex items-start gap-2 cursor-pointer">
-                <input type="checkbox" className="mt-0.5 accent-[#1a5228]" checked={icf.consent_to_data} onChange={e => setIcf(p => ({ ...p, consent_to_data: e.target.checked }))} />
+                <input type="checkbox" className="mt-0.5 accent-[#2563eb]" checked={icf.consent_to_data} onChange={e => setIcf(p => ({ ...p, consent_to_data: e.target.checked }))} />
                 <span className="text-xs text-gray-700">I have read and understood Sections III and IV. I consent to the collection, processing, and storage of my personal and sensitive personal information in accordance with RA 10173 (Data Privacy Act of 2012).</span>
               </label>
             </Card>
@@ -421,7 +421,7 @@ export default function WalkInSelfCheckinPage() {
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
                     <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="med" checked={spif.medication === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, medication: v === 'Yes' }))} className="accent-[#1a5228]" />
+                      <input type="radio" name="med" checked={spif.medication === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, medication: v === 'Yes' }))} className="accent-[#2563eb]" />
                       {v}
                     </label>
                   ))}
@@ -436,7 +436,7 @@ export default function WalkInSelfCheckinPage() {
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
                     <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="fam" checked={spif.family_history === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, family_history: v === 'Yes' }))} className="accent-[#1a5228]" />
+                      <input type="radio" name="fam" checked={spif.family_history === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, family_history: v === 'Yes' }))} className="accent-[#2563eb]" />
                       {v}
                     </label>
                   ))}
@@ -451,7 +451,7 @@ export default function WalkInSelfCheckinPage() {
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
                     <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="diag" checked={spif.previous_diagnosis === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, previous_diagnosis: v === 'Yes' }))} className="accent-[#1a5228]" />
+                      <input type="radio" name="diag" checked={spif.previous_diagnosis === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, previous_diagnosis: v === 'Yes' }))} className="accent-[#2563eb]" />
                       {v}
                     </label>
                   ))}
@@ -525,7 +525,7 @@ export default function WalkInSelfCheckinPage() {
             </Card>
 
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-xs text-gray-600 space-y-1">
-              <p className="font-semibold text-green-800">Before you submit:</p>
+              <p className="font-semibold text-blue-800">Before you submit:</p>
               <p>• Please ensure your information is accurate.</p>
               <p>• A staff member will review your forms and call your name shortly.</p>
               <p>• Your data is kept confidential under DLSU&apos;s Privacy Policy.</p>
@@ -541,11 +541,11 @@ export default function WalkInSelfCheckinPage() {
             </button>
           )}
           {step !== 'confirm' ? (
-            <button onClick={next} className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl bg-[#1a5228] text-white text-sm font-semibold hover:bg-[#163d1e] transition">
+            <button onClick={next} className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl bg-[#2563eb] text-white text-sm font-semibold hover:bg-[#163d1e] transition">
               Continue <ChevronRight size={16} />
             </button>
           ) : (
-            <button onClick={submit} disabled={submitting} className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl bg-[#1a5228] text-white text-sm font-semibold hover:bg-[#163d1e] transition disabled:opacity-60">
+            <button onClick={submit} disabled={submitting} className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl bg-[#2563eb] text-white text-sm font-semibold hover:bg-[#163d1e] transition disabled:opacity-60">
               {submitting ? 'Submitting…' : 'Submit Check-In'}
             </button>
           )}

@@ -87,7 +87,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
-              <Link href="/appointments" className="text-xs text-[#1a5228] hover:underline">View all</Link>
+              <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
             </div>
             {todayList.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-36 text-center">
@@ -104,7 +104,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
                         {fmtTime(a.preferred_date || a.scheduled_start)} · {METHOD_LABEL[a.method] || a.preferred_method || 'In-person'}
                       </p>
                     </div>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-blue-700 border border-green-100 font-medium">
                       Confirmed
                     </span>
                   </div>
@@ -124,7 +124,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
                   </span>
                 )}
               </p>
-              <Link href="/appointment-requests" className="text-xs text-[#1a5228] hover:underline">View all</Link>
+              <Link href="/appointment-requests" className="text-xs text-[#2563eb] hover:underline">View all</Link>
             </div>
             {pendingList.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-36 text-center">
@@ -144,7 +144,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
                     </div>
                     <Link href="/appointment-requests">
                       <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-colors flex-shrink-0"
-                        style={{ backgroundColor: '#1a5228' }}>
+                        style={{ backgroundColor: '#2563eb' }}>
                         Assign
                       </button>
                     </Link>

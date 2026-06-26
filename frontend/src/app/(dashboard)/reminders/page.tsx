@@ -418,7 +418,7 @@ export default function RemindersPage() {
                           {getReminderTypeLabel(reminder.reminder_type)}
                         </span>
                         {reminder.sent && (
-                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-blue-900 text-blue-800 dark:text-green-200">
                             Sent
                           </span>
                         )}
@@ -434,7 +434,7 @@ export default function RemindersPage() {
                       {!reminder.acknowledged && !isPast && (
                         <button
                           onClick={() => handleAcknowledge(reminder.reminder_id)}
-                          className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
+                          className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                           title="Acknowledge"
                         >
                           <Check size={20} />

@@ -48,12 +48,21 @@ export default function ProfilePage() {
   async function fetchMyPerma() {
     setLoadingPerma(true);
     try {
-      const r = await fetch(api('/api/mhbot/my-perma'), {
+      // Always load from saved snapshots (works with or without EMA connected)
+      const r = await fetch(api('/api/mhbot/my-snapshots'), {
         headers: { Authorization: `Bearer ${cpsToken()}` },
       });
       const d = await r.json();
-      // Merge so username set on login isn't lost if DB lookup returns empty
-      setPermaData((prev: any) => ({ ...prev, ...d, mhbot_username: d.mhbot_username || prev?.mhbot_username }));
+      setPermaData((prev: any) => ({
+        connected: prev?.connected ?? false,
+        mhbot_username: prev?.mhbot_username || '',
+        latest_label: d.latest_label,
+        latest_date: d.latest_date,
+        history: (d.snapshots || []).map((s: any) => ({
+          perma_label: s.perma_label,
+          date: s.raw_date || s.entry_date,
+        })),
+      }));
     } catch {}
     finally { setLoadingPerma(false); }
   }
@@ -69,37 +78,15 @@ export default function ProfilePage() {
       });
       const d = await r.json();
       if (r.ok) {
-        setMhbotStep(2);
-        setMhbotError('');
+        setShowMhbotForm(false);
+        setMhbotUser(''); setMhbotPass('');
+        setPermaData({ connected: true, mhbot_username: d.mhbot_username, latest_label: d.latest_label });
+        fetchMyPerma();
       } else {
         setMhbotError(d.error || 'Login failed');
       }
     } catch { setMhbotError('Network error'); }
     finally { setMhbotLogging(false); }
-  }
-
-  async function handleSetIdentifier(e: React.FormEvent) {
-    e.preventDefault();
-    if (!emaIdentifier.trim()) return;
-    setSavingId(true); setMhbotError('');
-    try {
-      const r = await fetch(api('/api/mhbot/auth/set-identifier'), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: emaIdentifier.trim() }),
-      });
-      const d = await r.json();
-      if (r.ok) {
-        setShowMhbotForm(false);
-        setMhbotStep(1);
-        setMhbotUser(''); setMhbotPass(''); setEmaIdentifier('');
-        setPermaData({ connected: true, mhbot_username: d.mhbot_username });
-        fetchMyPerma();
-      } else {
-        setMhbotError(d.error || 'Failed to save identifier');
-      }
-    } catch { setMhbotError('Network error'); }
-    finally { setSavingId(false); }
   }
 
   async function handleEmaConsent() {
@@ -335,12 +322,13 @@ export default function ProfilePage() {
   };
 
   return (
+    <>
     <DashboardPageWrapper title="My Profile">
       <div className="max-w-3xl mx-auto">
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded">
-            <p className="text-sm text-green-700 dark:text-green-300">{successMessage}</p>
+          <div className="mb-4 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded">
+            <p className="text-sm text-blue-700 dark:text-green-300">{successMessage}</p>
           </div>
         )}
 
@@ -463,7 +451,7 @@ export default function ProfilePage() {
                             key={sc}
                             type="button"
                             onClick={() => setFormData(f => ({ ...f, course: sc }))}
-                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-green-300 transition-colors"
                           >
                             {sc}
                           </button>
@@ -557,33 +545,30 @@ export default function ProfilePage() {
               /* Not connected */
               !showMhbotForm ? (
                 <div className="flex flex-col gap-3">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Connect your MHBot account to see your PERMA wellbeing history here.
-                    {permaData?.expired && <span className="text-orange-500 ml-1">Your previous session expired.</span>}
-                  </p>
-                  <button onClick={() => {
-                    if (emaConsentGiven) { setShowMhbotForm(true); setMhbotError(''); }
-                    else { setShowEmaConsent(true); setEmaConsentChecked(false); setEmaConsentError(''); }
-                  }}
-                    className="w-fit flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition">
-                    <LogIn size={13} /> Connect EMA
-                  </button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => {
+                      if (emaConsentGiven) { setShowMhbotForm(true); setMhbotError(''); }
+                      else { setShowEmaConsent(true); setEmaConsentChecked(false); setEmaConsentError(''); }
+                    }}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition">
+                      <LogIn size={13} /> Connect EMA
+                    </button>
+                  </div>
                 </div>
-              ) : mhbotStep === 1 ? (
+              ) : (
                 <form onSubmit={handleMhbotLogin} className="space-y-3 max-w-sm">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Step 1 of 2 — verify your EMA account</p>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">EMA Username</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">EMA Username</label>
                     <input type="text" value={mhbotUser} onChange={e => setMhbotUser(e.target.value)} required
                       placeholder="Your EMA login username"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Password</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Password</label>
                     <div className="relative">
                       <input type={mhbotShowPw ? 'text' : 'password'} value={mhbotPass} onChange={e => setMhbotPass(e.target.value)} required
                         placeholder="••••••••"
-                        className="w-full px-3 py-2 pr-9 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                        className="w-full px-3 py-2 pr-9 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:outline-none" />
                       <button type="button" onClick={() => setMhbotShowPw(p => !p)}
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
                         {mhbotShowPw ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -591,90 +576,137 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {mhbotError && <p className="text-xs text-red-500">{mhbotError}</p>}
+                  <p className="text-xs text-gray-400">Use the same credentials you use to log into the EMA chatbot.</p>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => { setShowMhbotForm(false); setMhbotStep(1); }}
-                      className="px-4 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <button type="button" onClick={() => setShowMhbotForm(false)}
+                      className="px-4 py-2 text-xs border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition">
                       Cancel
                     </button>
                     <button type="submit" disabled={mhbotLogging}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition">
-                      {mhbotLogging ? <Loader2 size={12} className="animate-spin" /> : <LogIn size={12} />}
-                      {mhbotLogging ? 'Verifying…' : 'Verify Account'}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <form onSubmit={handleSetIdentifier} className="space-y-3 max-w-sm">
-                  <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 font-medium">
-                    <CheckCircle size={13} /> EMA account verified
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Step 2 of 2 — enter your EMA identifier. This is the internal ID (e.g. <span className="font-mono">ema_vHS</span>) shown in EMA, not your login username.</p>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">EMA Identifier</label>
-                    <input type="text" value={emaIdentifier} onChange={e => setEmaIdentifier(e.target.value)} required
-                      placeholder="e.g. ema_vHS"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none font-mono" />
-                  </div>
-                  {mhbotError && <p className="text-xs text-red-500">{mhbotError}</p>}
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setMhbotStep(1)}
-                      className="px-4 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                      Back
-                    </button>
-                    <button type="submit" disabled={savingId || !emaIdentifier.trim()}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition">
-                      {savingId ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
-                      {savingId ? 'Saving…' : 'Save & Connect'}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition">
+                      {mhbotLogging ? <><Loader2 size={12} className="animate-spin" /> Connecting…</> : <><LogIn size={12} /> Connect & Recover History</>}
                     </button>
                   </div>
                 </form>
               )
             ) : (
-              /* Connected — show PERMA history */
-              <div className="space-y-3">
-                {!permaData.latest_label && (!permaData.history || permaData.history.length === 0) ? (
-                  <div className="py-3">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No PERMA assessments recorded yet.</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Complete a PERMA survey through the MHBot chat to see your wellbeing status here.
-                    </p>
-                  </div>
-                ) : (
-                  <>
+              /* Connected — PERMA line graph */
+              (() => {
+                const LABEL_SCORE: Record<string, number> = {
+                  'In Crisis': 1, 'Struggling': 2, 'Surviving': 3, 'Thriving': 4, 'Excelling': 5,
+                };
+                const LABEL_COLOR: Record<string, string> = {
+                  'In Crisis': '#ef4444', 'Struggling': '#f97316', 'Surviving': '#eab308',
+                  'Thriving': '#22c55e', 'Excelling': '#16a34a',
+                };
+                const ZONE_BG: { y: number; h: number; color: string; label: string }[] = [
+                  { y: 0,   h: 20, color: '#fef2f2', label: 'In Crisis' },
+                  { y: 20,  h: 20, color: '#fff7ed', label: 'Struggling' },
+                  { y: 40,  h: 20, color: '#fefce8', label: 'Surviving' },
+                  { y: 60,  h: 20, color: '#f0fdf4', label: 'Thriving' },
+                  { y: 80,  h: 20, color: '#dcfce7', label: 'Excelling' },
+                ];
+                const history = [...(permaData.history || [])].reverse(); // oldest first
+                const points = history
+                  .map((e: any) => ({ label: e.perma_label, date: e.date, score: LABEL_SCORE[e.perma_label] }))
+                  .filter((p: any) => p.score !== undefined);
+
+                const W = 480, H = 100, PAD_L = 60, PAD_R = 16, PAD_T = 8, PAD_B = 20;
+                const chartW = W - PAD_L - PAD_R;
+                const chartH = H - PAD_T - PAD_B;
+                const xOf = (i: number) => PAD_L + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2);
+                const yOf = (score: number) => PAD_T + chartH - ((score - 1) / 4) * chartH;
+
+                const pathD = points.length > 1
+                  ? points.reduce((d: string, p: any, i: number) => {
+                      const x = xOf(i); const y = yOf(p.score);
+                      if (i === 0) return `M${x},${y}`;
+                      const px = xOf(i - 1); const py = yOf(points[i - 1].score);
+                      const cpx = (px + x) / 2;
+                      return `${d} C${cpx},${py} ${cpx},${y} ${x},${y}`;
+                    }, '')
+                  : '';
+
+                const latest = permaData.latest_label;
+                const prev = points.length >= 2 ? points[points.length - 2]?.label : null;
+                const latestScore = LABEL_SCORE[latest] ?? 0;
+                const prevScore = LABEL_SCORE[prev] ?? 0;
+                const trend = !prev ? null : latestScore > prevScore ? 'up' : latestScore < prevScore ? 'down' : 'same';
+
+                return (
+                  <div className="space-y-3">
+                    {/* Current label + trend */}
                     <div className="flex items-center gap-3">
-                      <div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Current Status</p>
-                        <PermaBadge label={permaData.latest_label} />
-                      </div>
+                      <PermaBadge label={latest} />
+                      {trend === 'up' && <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">↑ Improving</span>}
+                      {trend === 'down' && <span className="text-xs text-red-500 font-medium flex items-center gap-0.5">↓ Declining</span>}
+                      {trend === 'same' && <span className="text-xs text-gray-400">→ Stable</span>}
                       {permaData.latest_date && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 ml-2">
-                          as of {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </p>
+                        <span className="text-xs text-gray-400 ml-auto">
+                          {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
                       )}
                     </div>
 
-                    {permaData.history?.length > 1 && (
-                      <div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Recent History</p>
-                        <div className="space-y-1.5">
-                          {permaData.history.slice(0, 5).map((entry: any, i: number) => (
-                            <div key={i} className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-                              <span className="w-28 shrink-0 text-gray-400">
-                                {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </span>
-                              <PermaBadge label={entry.perma_label} />
-                            </div>
+                    {/* SVG line chart */}
+                    {points.length === 0 ? (
+                      <p className="text-xs text-gray-400 py-2">No assessments recorded yet. Complete a PERMA survey in the EMA chatbot.</p>
+                    ) : (
+                      <div className="rounded-xl overflow-hidden border border-gray-100 bg-white">
+                        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 120 }}>
+                          {/* Zone backgrounds */}
+                          {ZONE_BG.map(z => (
+                            <rect key={z.label} x={PAD_L} y={PAD_T + chartH - (z.y / 100) * chartH - (z.h / 100) * chartH}
+                              width={chartW} height={(z.h / 100) * chartH} fill={z.color} />
                           ))}
-                        </div>
+                          {/* Y-axis labels */}
+                          {[1,2,3,4,5].map(score => (
+                            <text key={score} x={PAD_L - 6} y={yOf(score) + 3.5}
+                              textAnchor="end" fontSize={7} fill="#9ca3af">
+                              {['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]}
+                            </text>
+                          ))}
+                          {/* Grid lines */}
+                          {[1,2,3,4,5].map(score => (
+                            <line key={score} x1={PAD_L} x2={PAD_L + chartW} y1={yOf(score)} y2={yOf(score)}
+                              stroke="#e5e7eb" strokeWidth={0.5} strokeDasharray="3,2" />
+                          ))}
+                          {/* Fill area under line */}
+                          {pathD && points.length > 1 && (
+                            <path
+                              d={`${pathD} L${xOf(points.length - 1)},${yOf(1) + chartH * 0.05} L${xOf(0)},${yOf(1) + chartH * 0.05} Z`}
+                              fill={LABEL_COLOR[latest] ?? '#6b7280'} fillOpacity={0.08}
+                            />
+                          )}
+                          {/* Line */}
+                          {pathD && (
+                            <path d={pathD} fill="none"
+                              stroke={LABEL_COLOR[latest] ?? '#6b7280'} strokeWidth={2}
+                              strokeLinecap="round" />
+                          )}
+                          {/* Dots + date labels */}
+                          {points.map((p: any, i: number) => (
+                            <g key={i}>
+                              <circle cx={xOf(i)} cy={yOf(p.score)} r={3.5}
+                                fill={LABEL_COLOR[p.label] ?? '#6b7280'} stroke="white" strokeWidth={1.5} />
+                              {(i === 0 || i === points.length - 1 || points.length <= 6) && (
+                                <text x={xOf(i)} y={H - 4} textAnchor="middle" fontSize={6.5} fill="#9ca3af">
+                                  {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </text>
+                              )}
+                            </g>
+                          ))}
+                        </svg>
                       </div>
                     )}
-                  </>
-                )}
 
-                <p className="text-xs text-gray-400 dark:text-gray-500 pt-1">
-                  Connected as <span className="font-medium">{permaData.mhbot_username || '—'}</span>
-                </p>
-              </div>
+                    <p className="text-xs text-gray-400">
+                      Connected as <span className="font-medium text-gray-500">{permaData.mhbot_username || '—'}</span>
+                      {' · '}{points.length} assessment{points.length !== 1 ? 's' : ''} recorded
+                    </p>
+                  </div>
+                );
+              })()
             )}
           </div>
         )}
@@ -700,7 +732,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                 <Activity size={16} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
@@ -721,7 +753,7 @@ export default function ProfilePage() {
 
             <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition mb-4">
               <input type="checkbox" checked={emaConsentChecked} onChange={e => setEmaConsentChecked(e.target.checked)}
-                className="w-4 h-4 mt-0.5 accent-[#1a5228] flex-shrink-0" />
+                className="w-4 h-4 mt-0.5 accent-[#2563eb] flex-shrink-0" />
               <span className="text-sm text-gray-700 dark:text-gray-300">
                 I consent to CPS accessing my EMA wellness data to support my counseling sessions, in accordance with the Data Privacy Act of 2012 (RA 10173).
               </span>
@@ -735,7 +767,7 @@ export default function ProfilePage() {
                 Cancel
               </button>
               <button onClick={handleEmaConsent} disabled={!emaConsentChecked || emaConsentSaving}
-                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 bg-green-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
                 {emaConsentSaving && <Loader2 size={13} className="animate-spin" />}
                 I Agree &amp; Continue
               </button>
@@ -749,7 +781,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                 <Lock size={16} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
@@ -803,7 +835,7 @@ export default function ProfilePage() {
                       { ok: /[0-9]/.test(pwForm.newPw),                     label: 'Number' },
                       { ok: pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0, label: 'Match' },
                     ].map(({ ok, label }) => (
-                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
+                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
                         {ok ? '✓' : '○'} {label}
                       </span>
                     ))}
@@ -820,7 +852,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleChangePassword}
                     disabled={pwSaving}
-                    className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition"
+                    className="flex-1 py-2.5 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition"
                   >
                     {pwSaving ? 'Saving…' : 'Update Password'}
                   </button>
@@ -831,6 +863,7 @@ export default function ProfilePage() {
         </div>
       )}
     </DashboardPageWrapper>
+    </>
   );
 }
 

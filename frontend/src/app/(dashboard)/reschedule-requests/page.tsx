@@ -136,7 +136,7 @@ export default function RescheduleRequestsPage() {
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                   className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
                     isActive
-                      ? 'bg-[#1a5228]/5 text-[#1a5228] border-b-2 border-[#1a5228]'
+                      ? 'bg-[#2563eb]/5 text-[#2563eb] border-b-2 border-[#2563eb]'
                       : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                   }`}>
                   {tab.key === 'pending'  && <Clock size={13} />}
@@ -145,7 +145,7 @@ export default function RescheduleRequestsPage() {
                   {tab.label}
                   {cnt > 0 && (
                     <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 ${
-                      isActive ? 'bg-[#1a5228] text-white' : 'bg-gray-200 text-gray-600'
+                      isActive ? 'bg-[#2563eb] text-white' : 'bg-gray-200 text-gray-600'
                     }`}>{cnt}</span>
                   )}
                 </button>
@@ -179,7 +179,7 @@ export default function RescheduleRequestsPage() {
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold mt-0.5"
-                      style={{ backgroundColor: '#1a5228' }}>
+                      style={{ backgroundColor: '#2563eb' }}>
                       {(req.student_name || 'S').charAt(0)}
                     </div>
 
@@ -204,7 +204,7 @@ export default function RescheduleRequestsPage() {
                           req.status === 'pending'
                             ? 'bg-amber-50 text-amber-700'
                             : req.status === 'approved'
-                            ? 'bg-green-50 text-green-700'
+                            ? 'bg-green-50 text-blue-700'
                             : 'bg-gray-100 text-gray-500 line-through'
                         }`}>
                           {fmtDate(req.requested_start)} {fmtTime(req.requested_start)}
@@ -307,7 +307,7 @@ export default function RescheduleRequestsPage() {
               {/* Action feedback */}
               {actionMsg && (
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm mb-4 ${
-                  actionMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+                  actionMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'
                 }`}>
                   {actionMsg.type === 'ok' ? <Check size={14} /> : <X size={14} />}
                   {actionMsg.text}
@@ -329,7 +329,7 @@ export default function RescheduleRequestsPage() {
                     onClick={() => doAction(selected._id, 'approve')}
                     disabled={actionLoading}
                     className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-40"
-                    style={{ backgroundColor: '#1a5228' }}
+                    style={{ backgroundColor: '#2563eb' }}
                   >
                     {actionLoading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                     Approve
@@ -352,7 +352,7 @@ export default function RescheduleRequestsPage() {
 function StatusBadge({ status }: { status: string }) {
   const cls =
     status === 'pending'  ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
-    status === 'approved' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' :
+    status === 'approved' ? 'bg-green-50 text-blue-700 ring-1 ring-green-200' :
     'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
   return (
     <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${cls}`}>

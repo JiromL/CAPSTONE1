@@ -10,9 +10,9 @@ interface User { _id: string; name: string; email: string; role: string; is_acti
 const VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'STAFF', 'STUDENT'];
 const roleColors: Record<string, string> = {
   ADMIN:'bg-red-100 text-red-800', DPO:'bg-purple-100 text-purple-800',
-  COUNSELOR:'bg-blue-100 text-blue-800', PSYCHOLOGIST:'bg-green-100 text-green-800',
+  COUNSELOR:'bg-blue-100 text-blue-800', PSYCHOLOGIST:'bg-green-100 text-blue-800',
   IC:'bg-orange-100 text-orange-800', STAFF:'bg-yellow-100 text-yellow-800',
-  STUDENT:'bg-green-100 text-green-800',
+  STUDENT:'bg-green-100 text-blue-800',
 };
 
 export default function RolesPage() {
@@ -66,7 +66,7 @@ export default function RolesPage() {
     <DashboardPageWrapper title="Role Management" subtitle="Assign and manage user roles">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {message && (
-          <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>{message.text}</div>
+          <div className={`p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 border border-green-200 text-blue-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>{message.text}</div>
         )}
         <div className="flex gap-3 flex-wrap">
           <div className="relative flex-1 min-w-48">

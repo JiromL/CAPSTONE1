@@ -85,9 +85,9 @@ const STATUS_BADGE: Record<string, string> = {
   REQUESTED:            'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   PENDING_APPROVAL:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   RESCHEDULE_REQUESTED: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
-  CONFIRMED:            'bg-green-50 text-green-700 ring-1 ring-green-200',
-  APPROVED:             'bg-green-50 text-green-700 ring-1 ring-green-200',
-  MATCHED:              'bg-green-50 text-green-700 ring-1 ring-green-200',
+  CONFIRMED:            'bg-green-50 text-blue-700 ring-1 ring-green-200',
+  APPROVED:             'bg-green-50 text-blue-700 ring-1 ring-green-200',
+  MATCHED:              'bg-green-50 text-blue-700 ring-1 ring-green-200',
   CHECKED_IN:           'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
   EVALUATION:           'bg-amber-50 text-amber-700 ring-1 ring-amber-300',
   FOLLOW_UP:            'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
@@ -719,7 +719,7 @@ export default function AppointmentsDashboard() {
         <SummaryCard icon={CalendarDays} label="Total" value={dashboard.summary?.total_appointments ?? apts.length} cls="text-gray-800" />
         <SummaryCard icon={AlertCircle}  label="New Requests" value={newCount}
           cls={newCount > 0 ? 'text-amber-600' : 'text-gray-400'} highlight={newCount > 0} />
-        <SummaryCard icon={CheckCircle}  label="Confirmed" value={confirmedCount} cls="text-[#1a5228]" />
+        <SummaryCard icon={CheckCircle}  label="Confirmed" value={confirmedCount} cls="text-[#2563eb]" />
         <SummaryCard icon={Star}         label="Post-Session" value={evalCount}
           cls={evalCount > 0 ? 'text-amber-600' : 'text-gray-400'} highlight={evalCount > 0} />
       </div>
@@ -738,13 +738,13 @@ export default function AppointmentsDashboard() {
         </div>
       )}
       {isIC && intakeReady.length > 0 && (
-        <div className="flex items-center gap-3 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl px-4 py-3 text-sm">
-          <ClipboardList size={14} className="text-[#1a5228] flex-shrink-0" />
-          <span className="text-[#1a5228]">
+        <div className="flex items-center gap-3 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl px-4 py-3 text-sm">
+          <ClipboardList size={14} className="text-[#2563eb] flex-shrink-0" />
+          <span className="text-[#2563eb]">
             <strong>{intakeReady.length}</strong> intake interview{intakeReady.length !== 1 ? 's' : ''} confirmed — conduct the intake assessment to assign to a counselor.
           </span>
           <button onClick={() => setActiveTab('confirmed')}
-            className="ml-auto text-xs font-semibold text-[#1a5228] underline underline-offset-2 hover:text-green-900">
+            className="ml-auto text-xs font-semibold text-[#2563eb] underline underline-offset-2 hover:text-blue-900">
             Go to Confirmed
           </button>
         </div>
@@ -797,13 +797,13 @@ export default function AppointmentsDashboard() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search…"
-                className="pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none w-44"
+                className="pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none w-44"
               />
             </div>
             <button
               onClick={() => { resetScheduleForm(); setShowScheduleModal(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition"
-              style={{ backgroundColor: '#1a5228' }}
+              style={{ backgroundColor: '#2563eb' }}
             >
               <Plus size={15} /> Schedule for Student
             </button>
@@ -819,13 +819,13 @@ export default function AppointmentsDashboard() {
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
                   isActive
-                    ? 'bg-[#1a5228]/5 text-[#1a5228] border-b-2 border-[#1a5228]'
+                    ? 'bg-[#2563eb]/5 text-[#2563eb] border-b-2 border-[#2563eb]'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}>
                 {tab.label}
                 {cnt > 0 && (
                   <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 ${
-                    isActive ? 'bg-[#1a5228] text-white' : 'bg-gray-200 text-gray-600'
+                    isActive ? 'bg-[#2563eb] text-white' : 'bg-gray-200 text-gray-600'
                   }`}>
                     {cnt}
                   </span>
@@ -966,7 +966,7 @@ export default function AppointmentsDashboard() {
                                     onClick={() => confirmIntakeSlot(apt.appointment_id)}
                                     disabled={confirmingSlotId === apt.appointment_id}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50"
-                                    style={{ backgroundColor: '#1a5228' }}>
+                                    style={{ backgroundColor: '#2563eb' }}>
                                     {confirmingSlotId === apt.appointment_id
                                       ? <Loader2 size={11} className="animate-spin" />
                                       : <CheckCircle size={11} />}
@@ -976,14 +976,14 @@ export default function AppointmentsDashboard() {
                                 {canAssign && isNew && !apt.counselor_id && (
                                   <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
-                                    style={{ backgroundColor: '#1a5228' }}>
+                                    style={{ backgroundColor: '#2563eb' }}>
                                     <UserCheck size={12} /> Assign Counselor
                                   </button>
                                 )}
                                 {canAssign && isNew && apt.counselor_id && !isIC && (
                                   <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
-                                    style={{ backgroundColor: '#1a5228' }}>
+                                    style={{ backgroundColor: '#2563eb' }}>
                                     <UserCheck size={12} /> Assign Counselor
                                   </button>
                                 )}
@@ -991,7 +991,7 @@ export default function AppointmentsDashboard() {
                                 {isConfirmed && apt.status !== 'RESCHEDULE_REQUESTED' && apt.purpose === 'intake_interview' && (dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR') && (
                                   <button onClick={() => router.push(`/ic/intake/conduct/${apt.appointment_id}`)}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
-                                    style={{ backgroundColor: '#1a5228' }}>
+                                    style={{ backgroundColor: '#2563eb' }}>
                                     <ClipboardList size={11} /> Conduct Intake
                                   </button>
                                 )}
@@ -1036,7 +1036,7 @@ export default function AppointmentsDashboard() {
                                       </div>
                                       <button onClick={() => doSessionAction(apt.appointment_id, 'set-referral', { notes: pendingAction.notes })}
                                         disabled={actioningId === apt.appointment_id}
-                                        className="px-2.5 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                        className="px-2.5 py-1 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
                                         {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
                                       </button>
                                       <button onClick={() => setPendingAction(null)}
@@ -1214,8 +1214,8 @@ export default function AppointmentsDashboard() {
                                   <button key={i} type="button" disabled={!selectable}
                                     onClick={() => { setAssignForm(f => ({ ...f, date: ds })); setSelectedSlot(null); fetchOpenSlots(ds); setAssignCalMonth({ year, month }); }}
                                     className={`mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-medium transition
-                                      ${isSelected ? 'bg-[#1a5228] text-white font-bold' :
-                                        isToday && selectable ? 'ring-2 ring-[#1a5228] text-[#1a5228] font-bold' :
+                                      ${isSelected ? 'bg-[#2563eb] text-white font-bold' :
+                                        isToday && selectable ? 'ring-2 ring-[#2563eb] text-[#2563eb] font-bold' :
                                         selectable ? 'hover:bg-gray-100 text-gray-700' :
                                         'text-gray-300 cursor-not-allowed'}`}>
                                     {day}
@@ -1237,7 +1237,7 @@ export default function AppointmentsDashboard() {
                                   <p className="text-xs font-semibold text-gray-700 leading-tight">{selectedDayLabel}</p>
                                   {selectedSlot && (
                                     <div className="mt-1.5 flex items-center gap-1.5">
-                                      <span className="px-2 py-0.5 rounded-lg bg-[#1a5228] text-white text-[11px] font-bold">{fmtSlotTime(selectedSlot.time)}</span>
+                                      <span className="px-2 py-0.5 rounded-lg bg-[#2563eb] text-white text-[11px] font-bold">{fmtSlotTime(selectedSlot.time)}</span>
                                       <span className="text-[10px] text-gray-500 truncate">{selectedSlot.counselor_name?.split(' ')[0]}</span>
                                     </div>
                                   )}
@@ -1261,16 +1261,16 @@ export default function AppointmentsDashboard() {
                                     return (
                                       <button key={i} type="button" onClick={() => setSelectedSlot(s)}
                                         className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition ${
-                                          isSel ? 'border-[#1a5228] bg-[#1a5228]/5' : 'border-gray-200 bg-white hover:border-[#1a5228]/40 hover:bg-gray-50'
+                                          isSel ? 'border-[#2563eb] bg-[#2563eb]/5' : 'border-gray-200 bg-white hover:border-[#2563eb]/40 hover:bg-gray-50'
                                         }`}>
                                         <div className="flex-1 min-w-0">
-                                          <p className={`text-xs font-bold ${isSel ? 'text-[#1a5228]' : 'text-gray-800'}`}>{fmtSlotTime(s.time)}</p>
+                                          <p className={`text-xs font-bold ${isSel ? 'text-[#2563eb]' : 'text-gray-800'}`}>{fmtSlotTime(s.time)}</p>
                                           <p className="text-[10px] text-gray-400 truncate">{s.counselor_name}</p>
                                         </div>
                                         <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                          isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
+                                          isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-blue-700'
                                         }`}>{isOnline ? 'Online' : 'F2F'}</span>
-                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#1a5228] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
+                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
                                       </button>
                                     );
                                   })}
@@ -1290,7 +1290,7 @@ export default function AppointmentsDashboard() {
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Office / Room</label>
                       <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
                         placeholder="e.g. Room 203, CPS Office"
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                     </div>
                   )}
                 </>
@@ -1303,7 +1303,7 @@ export default function AppointmentsDashboard() {
                     </label>
                     <select value={assignForm.counselorId}
                       onChange={e => { const cid = e.target.value; setAssignForm(f => ({ ...f, counselorId: cid })); fetchFreeSlots(cid, assignForm.date); }}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                       <option value="">Select…</option>
                       {counselors
                         .filter(c => {
@@ -1325,7 +1325,7 @@ export default function AppointmentsDashboard() {
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date <span className="text-red-400 normal-case font-normal">*</span></label>
                       <input type="date" value={assignForm.date}
                         onChange={e => { const d = e.target.value; setAssignForm(f => ({ ...f, date: d })); fetchFreeSlots(assignForm.counselorId, d); }}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -1334,14 +1334,14 @@ export default function AppointmentsDashboard() {
                       </label>
                       {freeSlots.length > 0 ? (
                         <select value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                           <option value="">Pick a free slot…</option>
                           {freeSlots.map(t => { const [h, m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12=h%12||12; return <option key={t} value={t}>{h12}:{String(m).padStart(2,'0')} {ap}</option>; })}
                         </select>
                       ) : (
                         <div className="space-y-1">
                           <input type="time" step="1800" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                           {assignForm.counselorId && assignForm.date && !loadingSlots && (
                             <p className="text-[10px] text-amber-500">No availability set — entering manually</p>
                           )}
@@ -1356,7 +1356,7 @@ export default function AppointmentsDashboard() {
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Office / Room</label>
                       <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
                         placeholder="e.g. Room 203, CPS Office, Bldg. A"
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                       <p className="text-xs text-gray-400 mt-1">Let the student know where to go.</p>
                     </div>
                   )}
@@ -1364,7 +1364,7 @@ export default function AppointmentsDashboard() {
               )}
 
               {assignMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${assignMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-lg ${assignMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
                   {assignMsg.text}
                 </p>
               )}
@@ -1377,7 +1377,7 @@ export default function AppointmentsDashboard() {
                 <button onClick={handleAssign}
                   disabled={assigningId === assignTarget.appointment_id || !assignForm.counselorId || !assignForm.date || !assignForm.time}
                   className="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-40 flex items-center justify-center gap-2"
-                  style={{ backgroundColor: '#1a5228' }}>
+                  style={{ backgroundColor: '#2563eb' }}>
                   {assigningId === assignTarget.appointment_id
                     ? <><Loader2 size={14} className="animate-spin" /> Assigning…</>
                     : <><UserCheck size={14} /> Assign & Confirm</>}
@@ -1415,7 +1415,7 @@ export default function AppointmentsDashboard() {
                   </div>
                 ) : (
                   <div className="relative">
-                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:ring-2 focus-within:ring-[#1a5228]/30 focus-within:border-[#1a5228]">
+                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:ring-2 focus-within:ring-[#2563eb]/30 focus-within:border-[#2563eb]">
                       <Search size={15} className="text-gray-400 flex-shrink-0" />
                       <input value={studentQuery} onChange={e => searchStudents(e.target.value)}
                         placeholder="Search by name or email…"
@@ -1444,7 +1444,7 @@ export default function AppointmentsDashboard() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Purpose</label>
                 <select value={schedPurpose} onChange={e => setSchedPurpose(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                   <option value="counseling">Counseling</option>
                   <option value="follow_up_counselling">Follow-up Counseling</option>
                   <option value="intake_interview">Intake Interview</option>
@@ -1457,14 +1457,14 @@ export default function AppointmentsDashboard() {
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Concern / Notes</label>
                 <textarea value={schedConcern} onChange={e => setSchedConcern(e.target.value)}
                   placeholder="Brief description…" rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none resize-none" />
               </div>
 
               {/* Mode */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mode</label>
                 <select value={schedMethod} onChange={e => setSchedMethod(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                   <option value="in-person">Face to Face</option>
                   <option value="google-meet">Google Meet</option>
                   <option value="zoom">Zoom</option>
@@ -1475,7 +1475,7 @@ export default function AppointmentsDashboard() {
               <div className="border-t border-gray-100 pt-4 space-y-3">
                 <p className="text-xs text-gray-400">Optional — assign a counselor and time now, or leave blank to assign later.</p>
                 <select value={schedCounselor} onChange={e => setSchedCounselor(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                   <option value="">Assign counselor later…</option>
                   {counselors.map(c => (
                     <option key={c._id} value={c._id}>
@@ -1485,14 +1485,14 @@ export default function AppointmentsDashboard() {
                 </select>
                 <div className="grid grid-cols-2 gap-2">
                   <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
-                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                   <input type="time" step="1800" value={schedTime} onChange={e => setSchedTime(e.target.value)}
-                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                 </div>
               </div>
 
               {scheduleMsg && (
-                <p className={`text-xs px-3 py-2 rounded-xl ${scheduleMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-xl ${scheduleMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
                   {scheduleMsg.text}
                 </p>
               )}
@@ -1504,7 +1504,7 @@ export default function AppointmentsDashboard() {
                 </button>
                 <button onClick={handleScheduleSubmit} disabled={submittingSchedule || !selectedStudent}
                   className="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-40 flex items-center justify-center gap-2"
-                  style={{ backgroundColor: '#1a5228' }}>
+                  style={{ backgroundColor: '#2563eb' }}>
                   {submittingSchedule && <Loader2 size={14} className="animate-spin" />}
                   Create Appointment
                 </button>
@@ -1529,21 +1529,21 @@ export default function AppointmentsDashboard() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New Time</label>
                 <input type="time" step="1800" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reason <span className="font-normal normal-case text-gray-400">(optional)</span></label>
                 <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
                   rows={2} placeholder="Why is this session being rescheduled?"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-[#1a5228] focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none resize-none" />
               </div>
               {reschedMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${reschedMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-lg ${reschedMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
                   {reschedMsg.text}
                 </p>
               )}
@@ -1701,7 +1701,7 @@ export default function AppointmentsDashboard() {
                 Cancel
               </button>
               <button onClick={doCompleteWithTermination} disabled={submittingTermination}
-                className="px-4 py-1.5 text-xs bg-[#1a5228] hover:bg-green-800 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
+                className="px-4 py-1.5 text-xs bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
                 {submittingTermination ? <Loader2 size={12} className="animate-spin" /> : <ThumbsUp size={12} />}
                 Complete & Close Case
               </button>
@@ -1730,7 +1730,7 @@ export default function AppointmentsDashboard() {
                   Reassign Counselor <span className="font-normal normal-case text-gray-400">(leave blank to keep current)</span>
                 </label>
                 <select value={editCounselor} onChange={e => setEditCounselor(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                   <option value="">— Keep: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'} —</option>
                   {counselors.map((c: any) => (
                     <option key={c._id} value={c._id}>{c.last_name?.toUpperCase()}, {c.first_name} ({c.role})</option>
@@ -1743,12 +1743,12 @@ export default function AppointmentsDashboard() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date</label>
                   <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Time</label>
                   <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
                 </div>
               </div>
 
@@ -1757,11 +1757,11 @@ export default function AppointmentsDashboard() {
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Office / Room</label>
                 <input type="text" value={editOffice} onChange={e => setEditOffice(e.target.value)}
                   placeholder="e.g. Room 203, CPS Office"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:ring-2 focus:ring-[#1a5228]/30 focus:border-[#1a5228] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
               </div>
 
               {editMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${editMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-lg ${editMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
                   {editMsg.text}
                 </p>
               )}
@@ -1773,7 +1773,7 @@ export default function AppointmentsDashboard() {
                 </button>
                 <button onClick={doEdit} disabled={submittingEdit}
                   className="flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ backgroundColor: '#1a5228' }}>
+                  style={{ backgroundColor: '#2563eb' }}>
                   {submittingEdit && <Loader2 size={13} className="animate-spin" />}
                   Save Changes
                 </button>
@@ -1874,7 +1874,7 @@ export default function AppointmentsDashboard() {
                           ].map(x => (
                             <div key={x.l} className={`rounded-xl p-3 text-center ${x.risk ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'}`}>
                               <p className="text-xs text-gray-500 mb-0.5">{x.l}</p>
-                              <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-green-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
+                              <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-blue-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
                               <p className={`text-[10px] font-semibold ${x.risk ? 'text-red-500' : 'text-green-600'}`}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                             </div>
                           ))}
@@ -1913,13 +1913,13 @@ export default function AppointmentsDashboard() {
                           <div key={k}>
                             <label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
                             <input value={formsDraftIcf[k] || ''} onChange={e => setFormsDraftIcf(p => ({...p,[k]:e.target.value}))}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white" />
+                              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white" />
                           </div>
                         ))}
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Service Requested</label>
                           <select value={formsDraftIcf.service_requested || ''} onChange={e => setFormsDraftIcf(p => ({...p,service_requested:e.target.value}))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
                             <option value="">—</option>
                             {['personal_counseling','academic_concerns','career_guidance','family_concerns','relationship_concerns','crisis_support','psychiatric_evaluation','other'].map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
                           </select>
@@ -1927,7 +1927,7 @@ export default function AppointmentsDashboard() {
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Referral Source</label>
                           <select value={formsDraftIcf.referral_source || ''} onChange={e => setFormsDraftIcf(p => ({...p,referral_source:e.target.value}))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
                             <option value="">—</option>
                             {['self_referred','faculty_referred','parent_referred','friend_referred','online_referral','office_referred'].map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
                           </select>
@@ -1935,7 +1935,7 @@ export default function AppointmentsDashboard() {
                         <div className="col-span-2">
                           <label className="block text-xs text-gray-500 mb-1">Presenting Concern</label>
                           <textarea rows={3} value={formsDraftIcf.presenting_concern || ''} onChange={e => setFormsDraftIcf(p => ({...p,presenting_concern:e.target.value}))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none resize-none dark:bg-gray-800 dark:text-white" />
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none resize-none dark:bg-gray-800 dark:text-white" />
                         </div>
                       </div>
                     </div>
@@ -1943,21 +1943,21 @@ export default function AppointmentsDashboard() {
                     <div>
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Personal Background (SPIF-IF)</p>
                       <div className="grid grid-cols-3 gap-3">
-                        <div><label className="block text-xs text-gray-500 mb-1">Birthdate</label><input type="date" value={formsDraftSpif.birthdate||''} onChange={e=>setFormsDraftSpif(p=>({...p,birthdate:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/></div>
+                        <div><label className="block text-xs text-gray-500 mb-1">Birthdate</label><input type="date" value={formsDraftSpif.birthdate||''} onChange={e=>setFormsDraftSpif(p=>({...p,birthdate:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/></div>
                         {(['gender','civil_status','family_composition'] as string[]).map(k => (
                           <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
-                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
+                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
                           </div>
                         ))}
                         {(['living_with','existing_medical_conditions','current_medications'] as string[]).map(k => (
                           <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
-                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} placeholder="None" className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
+                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} placeholder="None" className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
                           </div>
                         ))}
                         <div className="col-span-3 grid grid-cols-2 gap-3">
                           {(['previous_counseling','previous_psychiatric'] as string[]).map(k=>(
                             <label key={k} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
-                              <input type="checkbox" checked={!!formsDraftSpif[k]} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-green-700"/>
+                              <input type="checkbox" checked={!!formsDraftSpif[k]} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-blue-700"/>
                               <span className="text-xs text-gray-700 dark:text-gray-300 capitalize">{k.replace(/_/g,' ')}?</span>
                             </label>
                           ))}
@@ -1975,7 +1975,7 @@ export default function AppointmentsDashboard() {
                             <div className="flex gap-1">
                               {[0,1,2,3].map(v=>(
                                 <button key={v} onClick={()=>{const a=[...formsDraftPhq4];a[i]=a[i]===v?null:v;setFormsDraftPhq4(a)}}
-                                  className={`w-8 h-8 rounded-lg text-xs font-semibold border-2 transition ${formsDraftPhq4[i]===v?'bg-[#1a5228] border-[#1a5228] text-white':'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-[#1a5228]/40 bg-white dark:bg-gray-900'}`}>
+                                  className={`w-8 h-8 rounded-lg text-xs font-semibold border-2 transition ${formsDraftPhq4[i]===v?'bg-[#2563eb] border-[#2563eb] text-white':'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-[#2563eb]/40 bg-white dark:bg-gray-900'}`}>
                                   {v}
                                 </button>
                               ))}
@@ -1984,7 +1984,7 @@ export default function AppointmentsDashboard() {
                         ))}
                       </div>
                     </div>
-                    {formsMsg && <p className={`text-xs font-medium ${formsMsg.includes('saved')||formsMsg.includes('saved') ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>{formsMsg}</p>}
+                    {formsMsg && <p className={`text-xs font-medium ${formsMsg.includes('saved')||formsMsg.includes('saved') ? 'text-blue-700 dark:text-green-400' : 'text-red-600'}`}>{formsMsg}</p>}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-40 text-sm text-gray-400">No forms submitted yet.</div>
@@ -1997,7 +1997,7 @@ export default function AppointmentsDashboard() {
                 <>
                   <button onClick={() => setFormsEditing(false)} className="text-xs text-gray-500 hover:text-gray-700 transition">Cancel</button>
                   <button onClick={saveForms} disabled={formsSaving}
-                    className="flex items-center gap-2 px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 disabled:opacity-50 transition">
+                    className="flex items-center gap-2 px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 transition">
                     {formsSaving ? <Loader2 size={13} className="animate-spin" /> : null}
                     {formsSaving ? 'Saving…' : 'Save Forms'}
                   </button>
@@ -2006,7 +2006,7 @@ export default function AppointmentsDashboard() {
                 <>
                   <span />
                   <button onClick={() => setFormsEditing(true)}
-                    className="flex items-center gap-2 px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition">
+                    className="flex items-center gap-2 px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
                     Fill In Forms
                   </button>
                 </>

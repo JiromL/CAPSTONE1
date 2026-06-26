@@ -5,9 +5,10 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
+import { ClinicalExportModal } from '@/components/ClinicalExportModal';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 
 interface SessionNote {
@@ -82,7 +83,7 @@ function SupervisorActions({ noteId, onAction }: {
         <button
           onClick={() => act('approve')}
           disabled={busy}
-          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition disabled:opacity-50"
+          className="px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition disabled:opacity-50"
         >Approve</button>
         <button
           onClick={() => act('reject')}
@@ -110,7 +111,7 @@ function SafetyListSection({ label, hint, items, onAdd, onRemove }: {
         <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), commit())}
           className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
           placeholder="Add item…" />
-        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm"><Plus size={14} /></button>
+        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white rounded text-sm"><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((item, i) => (
@@ -146,7 +147,7 @@ function ContactSection({ label, hint, items, fields, onAdd, onRemove }: {
         <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
           className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
           placeholder="Phone" />
-        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm"><Plus size={14} /></button>
+        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white rounded text-sm"><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((c, i) => (
@@ -183,7 +184,7 @@ function ProfessionalContactSection({ items, onAdd, onRemove }: {
         <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
           className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
           placeholder="Phone / hotline" />
-        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm"><Plus size={14} /></button>
+        <button onClick={commit} className="px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white rounded text-sm"><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((c, i) => (
@@ -234,6 +235,7 @@ export default function CaseDetailPage() {
   const [intakeFormError, setIntakeFormError] = useState('');
   const [intakeFormSuccess, setIntakeFormSuccess] = useState(false);
 
+  const [showExportModal, setShowExportModal] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
   const [savingNote, setSavingNote] = useState(false);
@@ -864,7 +866,7 @@ export default function CaseDetailPage() {
   ];
 
   const RISK_BADGE: Record<string, string> = {
-    GREEN:    'bg-green-50 text-green-700 ring-1 ring-green-200',
+    GREEN:    'bg-green-50 text-blue-700 ring-1 ring-green-200',
     YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
     RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
     CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
@@ -876,13 +878,14 @@ export default function CaseDetailPage() {
   const riskLevel = (caseData?.risk_level || 'GREEN').toUpperCase();
 
   return (
+    <>
     <DashboardPageWrapper
       title="Case Details"
       subtitle={caseData?.case_number ? `Case ${caseData.case_number}` : 'Loading…'}
     >
       {/* Back navigation + Print */}
       <div className="mb-4 flex items-center justify-between">
-        <Link href="/cases" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a5228] transition-colors">
+        <Link href="/cases" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2563eb] transition-colors">
           <ArrowLeft size={15} /> Back to Cases
         </Link>
         {caseData && (
@@ -905,7 +908,7 @@ export default function CaseDetailPage() {
         </div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-blue-700">
           {success}
         </div>
       )}
@@ -914,7 +917,7 @@ export default function CaseDetailPage() {
       {caseData && (
         <div className="mb-5 bg-white rounded-xl border border-gray-200 px-5 py-4 flex flex-wrap items-center gap-4">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold flex-shrink-0"
-            style={{ backgroundColor: '#1a5228' }}>
+            style={{ backgroundColor: '#2563eb' }}>
             {studentName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -943,7 +946,7 @@ export default function CaseDetailPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition ${
               activeTab === tab.id
-                ? 'border-[#1a5228] text-[#1a5228]'
+                ? 'border-[#2563eb] text-[#2563eb]'
                 : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
             }`}
           >
@@ -985,7 +988,7 @@ export default function CaseDetailPage() {
                 <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   caseData.risk_level === 'RED' ? 'bg-red-100 text-red-800' :
                   caseData.risk_level === 'YELLOW' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-green-100 text-green-800'
+                  'bg-green-100 text-blue-800'
                 }`}>
                   {caseData.risk_level || 'GREEN'}
                 </span>
@@ -1035,7 +1038,7 @@ export default function CaseDetailPage() {
                         <button
                           onClick={() => handleCompleteAndDocument(appt._id)}
                           disabled={completingAppt === appt._id}
-                          className="flex-shrink-0 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition disabled:opacity-50"
+                          className="flex-shrink-0 px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition disabled:opacity-50"
                         >
                           {completingAppt === appt._id ? 'Completing…' : 'Complete & Document'}
                         </button>
@@ -1092,7 +1095,7 @@ export default function CaseDetailPage() {
                   const delta = (SCORE[permaHistory[0].perma_label!] ?? 0) - (SCORE[caseData.initial_perma_label] ?? 0);
                   if (delta === 0) return null;
                   return (
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                       {delta > 0 ? `↑ +${delta}` : `↓ ${delta}`} levels
                     </span>
                   );
@@ -1108,133 +1111,245 @@ export default function CaseDetailPage() {
         <div className="space-y-4">
           {!intakeSummaryLoaded && (
             <div className="flex items-center justify-center p-12">
-              <Loader2 size={24} className="animate-spin text-green-700" />
+              <Loader2 size={24} className="animate-spin text-[#2563eb]" />
             </div>
           )}
           {intakeSummaryLoaded && !intakeSummary && (
-            <div className="bg-white rounded-lg border border-gray-200 p-10 text-center">
-              <FileText size={28} className="mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500 text-sm">No intake record found for this case.</p>
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <FileText size={32} className="mx-auto mb-3 text-gray-200" />
+              <p className="text-sm font-medium text-gray-500">No intake record found for this case.</p>
+              <p className="text-xs text-gray-400 mt-1">The intake may not have been completed yet.</p>
             </div>
           )}
           {intakeSummary && (() => {
-            // Prefer IC interview form scores if available, fall back to triage scores
             const icInterviewForm = caseData?.intake_interview_form;
             const phq9 = icInterviewForm?.phq9_score ?? intakeSummary.phq9_score;
             const gad7 = icInterviewForm?.gad7_score ?? intakeSummary.gad7_score;
             const decision = intakeSummary.triage_decision;
             const risk = (intakeSummary.risk_level || 'GREEN').toUpperCase();
-            const RISK_CL: Record<string, string> = {
-              GREEN: 'bg-green-100 text-green-800', YELLOW: 'bg-yellow-100 text-yellow-800',
-              RED: 'bg-red-100 text-red-800', CRITICAL: 'bg-red-200 text-red-900 font-bold',
+
+            const RISK_CONFIG: Record<string, { bar: string; badge: string; label: string }> = {
+              GREEN:    { bar: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',    label: 'Low Risk'      },
+              YELLOW:   { bar: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 ring-amber-200',          label: 'Moderate Risk' },
+              RED:      { bar: 'bg-red-500',     badge: 'bg-red-50 text-red-700 ring-red-200',                label: 'High Risk'     },
+              CRITICAL: { bar: 'bg-red-700',     badge: 'bg-red-100 text-red-900 ring-red-300 font-bold',     label: 'Critical Risk' },
             };
-            const phq9Sev = phq9 == null ? '—' : phq9 <= 4 ? 'Minimal' : phq9 <= 9 ? 'Mild' : phq9 <= 14 ? 'Moderate' : phq9 <= 19 ? 'Moderately Severe' : 'Severe';
-            const gad7Sev = gad7 == null ? '—' : gad7 <= 4 ? 'Minimal' : gad7 <= 9 ? 'Mild' : gad7 <= 14 ? 'Moderate' : 'Severe';
-            const decisionLabel: Record<string, string> = { ENDORSE_CC: 'Endorsed → Counselor (CC)', ENDORSE_CP: 'Endorsed → Psychologist (CP)', CLOSE_AT_INTAKE: 'Closed at Intake' };
-            const decisionCls: Record<string, string> = { ENDORSE_CC: 'bg-blue-50 border-blue-200 text-blue-800', ENDORSE_CP: 'bg-purple-50 border-purple-200 text-purple-800', CLOSE_AT_INTAKE: 'bg-gray-50 border-gray-200 text-gray-700' };
-            const icf = intakePacket?.icf || {};
+            const riskCfg = RISK_CONFIG[risk] ?? RISK_CONFIG['GREEN'];
+
+            const phq9Sev   = phq9 == null ? null : phq9 <= 4 ? { l: 'Minimal',           c: 'text-emerald-600' }
+                            : phq9 <= 9    ? { l: 'Mild',               c: 'text-amber-600'   }
+                            : phq9 <= 14   ? { l: 'Moderate',           c: 'text-orange-600'  }
+                            : phq9 <= 19   ? { l: 'Moderately Severe',  c: 'text-red-600'     }
+                            :                { l: 'Severe',             c: 'text-red-700'     };
+            const gad7Sev   = gad7 == null ? null : gad7 <= 4 ? { l: 'Minimal',   c: 'text-emerald-600' }
+                            : gad7 <= 9    ? { l: 'Mild',       c: 'text-amber-600'   }
+                            : gad7 <= 14   ? { l: 'Moderate',   c: 'text-orange-600'  }
+                            :                { l: 'Severe',     c: 'text-red-600'     };
+
+            const DECISION_CONFIG: Record<string, { label: string; sub: string; cls: string; dot: string }> = {
+              ENDORSE_CC:      { label: 'Endorsed to Counselor',     sub: 'CC', cls: 'border-blue-200 bg-blue-50/60',   dot: 'bg-blue-500'   },
+              ENDORSE_CP:      { label: 'Endorsed to Psychologist',  sub: 'CP', cls: 'border-violet-200 bg-violet-50/60', dot: 'bg-violet-500' },
+              CLOSE_AT_INTAKE: { label: 'Closed at Intake',          sub: '',   cls: 'border-gray-200 bg-gray-50',      dot: 'bg-gray-400'   },
+            };
+            const decisionCfg = DECISION_CONFIG[decision] ?? null;
+
+            const icf  = intakePacket?.icf  || {};
             const spif = intakePacket?.spif || {};
             const phq4r = intakePacket?.phq4_responses || [];
             const phq2Score = phq4r.length >= 2 ? phq4r[0] + phq4r[1] : null;
             const gad2Score = phq4r.length >= 4 ? phq4r[2] + phq4r[3] : null;
+
+            const fmtDt = (s: string) => {
+              try { return new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); }
+              catch { return s; }
+            };
+
+            const ScoreBar = ({ value, max, thresholds }: { value: number | null; max: number; thresholds: number[] }) => {
+              if (value == null) return <div className="h-2 rounded-full bg-gray-100 w-full" />;
+              const pct = Math.min(100, (value / max) * 100);
+              const zone = thresholds.filter(t => value > t).length;
+              const barColors = ['bg-emerald-400', 'bg-amber-400', 'bg-orange-400', 'bg-red-500', 'bg-red-700'];
+              return (
+                <div className="h-2 rounded-full bg-gray-100 w-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${barColors[zone]}`} style={{ width: `${pct}%` }} />
+                </div>
+              );
+            };
+
             return (
               <>
-                {/* Triage decision banner */}
-                {decision && (
-                  <div className={`rounded-lg border px-5 py-4 ${decisionCls[decision] || 'bg-gray-50 border-gray-200 text-gray-700'}`}>
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-0.5 opacity-60">Triage Decision</p>
-                    <p className="text-base font-bold">{decisionLabel[decision] || decision}</p>
-                    {intakeSummary.endorsement_notes && (
-                      <p className="text-sm mt-1 opacity-80">{intakeSummary.endorsement_notes}</p>
+                {/* ── Top bar: export + metadata ── */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <span>{intakeSummary.source === 'walkin' ? 'Walk-in intake' : 'Online booking'}</span>
+                    {intakeSummary.triaged_at && (
+                      <><span>·</span><span>Triaged {fmtDt(intakeSummary.triaged_at)}</span></>
                     )}
+                  </div>
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition font-medium"
+                  >
+                    <Download size={12} /> Export PDF
+                  </button>
+                </div>
+
+                {/* ── Triage outcome card ── */}
+                {decisionCfg ? (
+                  <div className={`rounded-xl border-2 p-5 ${decisionCfg.cls}`}>
+                    <div className="flex items-start gap-4">
+                      <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${decisionCfg.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Triage Decision</p>
+                          {decisionCfg.sub && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 font-bold text-gray-500">{decisionCfg.sub}</span>
+                          )}
+                        </div>
+                        <p className="text-base font-bold text-gray-900 mt-0.5">{decisionCfg.label}</p>
+                        {intakeSummary.endorsement_notes && (
+                          <p className="text-sm text-gray-600 mt-2 leading-relaxed border-t border-black/5 pt-2">{intakeSummary.endorsement_notes}</p>
+                        )}
+                      </div>
+                      <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold ring-1 ${riskCfg.badge}`}>{riskCfg.label}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
+                    Triage not yet completed
                   </div>
                 )}
 
-                {/* Score cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <p className="text-xs text-gray-500 font-medium mb-1">PHQ-9 Score</p>
-                    <p className="text-2xl font-bold text-gray-900">{phq9 ?? '—'}<span className="text-xs text-gray-400 font-normal ml-1">/ 27</span></p>
-                    <p className="text-xs text-gray-500 mt-0.5">{phq9Sev}</p>
+                {/* ── Clinical scores ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* PHQ-9 */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">PHQ-9</p>
+                        <p className="text-[10px] text-gray-400">Depression</p>
+                      </div>
+                      {phq9 != null ? (
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-gray-900">{phq9}</span>
+                          <span className="text-xs text-gray-400 ml-1">/ 27</span>
+                        </div>
+                      ) : <span className="text-sm text-gray-300">Not administered</span>}
+                    </div>
+                    <ScoreBar value={phq9} max={27} thresholds={[4, 9, 14, 19]} />
+                    {phq9Sev && <p className={`text-xs font-semibold mt-1.5 ${phq9Sev.c}`}>{phq9Sev.l}</p>}
+                    {phq9 == null && <div className="h-5" />}
                   </div>
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <p className="text-xs text-gray-500 font-medium mb-1">GAD-7 Score</p>
-                    <p className="text-2xl font-bold text-gray-900">{gad7 ?? '—'}<span className="text-xs text-gray-400 font-normal ml-1">/ 21</span></p>
-                    <p className="text-xs text-gray-500 mt-0.5">{gad7Sev}</p>
-                  </div>
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <p className="text-xs text-gray-500 font-medium mb-1">Risk Level</p>
-                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${RISK_CL[risk] || RISK_CL['GREEN']}`}>{risk}</span>
+
+                  {/* GAD-7 */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">GAD-7</p>
+                        <p className="text-[10px] text-gray-400">Anxiety</p>
+                      </div>
+                      {gad7 != null ? (
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-gray-900">{gad7}</span>
+                          <span className="text-xs text-gray-400 ml-1">/ 21</span>
+                        </div>
+                      ) : <span className="text-sm text-gray-300">Not administered</span>}
+                    </div>
+                    <ScoreBar value={gad7} max={21} thresholds={[4, 9, 14]} />
+                    {gad7Sev && <p className={`text-xs font-semibold mt-1.5 ${gad7Sev.c}`}>{gad7Sev.l}</p>}
+                    {gad7 == null && <div className="h-5" />}
                   </div>
                 </div>
 
-                {/* PHQ-4 pre-screen from packet */}
+                {/* PHQ-4 pre-screen */}
                 {phq4r.length >= 4 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-5">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">PHQ-4 Pre-Screen</h4>
+                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">PHQ-4 Pre-Screen</p>
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500">PHQ-2</p>
-                        <p className="text-xl font-bold text-gray-900">{phq2Score}<span className="text-xs text-gray-400">/6</span></p>
-                        <p className="text-xs text-gray-400">{phq2Score != null && phq2Score >= 3 ? 'Positive screen' : 'Negative'}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500">GAD-2</p>
-                        <p className="text-xl font-bold text-gray-900">{gad2Score}<span className="text-xs text-gray-400">/6</span></p>
-                        <p className="text-xs text-gray-400">{gad2Score != null && gad2Score >= 3 ? 'Positive screen' : 'Negative'}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500">Total</p>
-                        <p className="text-xl font-bold text-gray-900">{phq2Score != null && gad2Score != null ? phq2Score + gad2Score : '—'}<span className="text-xs text-gray-400">/12</span></p>
-                      </div>
+                      {[
+                        { label: 'PHQ-2', score: phq2Score, max: 6, threshold: 3, name: 'Depression screen' },
+                        { label: 'GAD-2', score: gad2Score, max: 6, threshold: 3, name: 'Anxiety screen'    },
+                        { label: 'Total', score: phq2Score != null && gad2Score != null ? phq2Score + gad2Score : null, max: 12, threshold: 6, name: 'Combined' },
+                      ].map(({ label, score, max, threshold, name }) => (
+                        <div key={label} className="text-center">
+                          <p className="text-[10px] text-gray-400 mb-1">{name}</p>
+                          <p className="text-xs font-bold text-gray-500 mb-0.5">{label}</p>
+                          <p className="text-xl font-bold text-gray-900">{score ?? '—'}<span className="text-xs font-normal text-gray-400">/{max}</span></p>
+                          {score != null && (
+                            <span className={`text-[10px] font-semibold mt-0.5 inline-block ${score >= threshold ? 'text-red-500' : 'text-emerald-600'}`}>
+                              {score >= threshold ? '⚑ Positive' : '✓ Negative'}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* ICF presenting concern */}
+                {/* Presenting concern */}
                 {(icf.presenting_concern || intakeSummary.concern) && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-5">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Presenting Concern</h4>
-                    <p className="text-sm text-gray-700">{icf.presenting_concern || intakeSummary.concern}</p>
+                  <div className="bg-white rounded-xl border border-gray-200 p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Presenting Concern</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{icf.presenting_concern || intakeSummary.concern}</p>
+                    {icf.service_requested && (
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <span className="text-xs text-gray-400">Service requested:</span>
+                        <span className="text-xs font-medium text-gray-700 capitalize">{icf.service_requested.replace(/_/g, ' ')}</span>
+                        {icf.referral_source && (
+                          <><span className="text-gray-200">·</span>
+                          <span className="text-xs text-gray-400">via <span className="text-gray-600 capitalize">{icf.referral_source.replace(/-/g, ' ')}</span></span></>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* ICF details */}
-                {Object.keys(icf).length > 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-5">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Intake Counseling Form (ICF)</h4>
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                      {icf.year_level && <div><dt className="text-xs text-gray-500">Year Level</dt><dd className="font-medium text-gray-800">{icf.year_level}</dd></div>}
-                      {icf.college && <div><dt className="text-xs text-gray-500">College / Unit</dt><dd className="font-medium text-gray-800">{icf.college}</dd></div>}
-                      {icf.degree_program && <div><dt className="text-xs text-gray-500">Degree Program</dt><dd className="font-medium text-gray-800">{icf.degree_program}</dd></div>}
-                      {icf.civil_status && <div><dt className="text-xs text-gray-500">Civil Status</dt><dd className="font-medium text-gray-800">{icf.civil_status}</dd></div>}
-                      {icf.referral_source && <div><dt className="text-xs text-gray-500">Referral Source</dt><dd className="font-medium text-gray-800">{icf.referral_source}</dd></div>}
-                      {icf.service_requested && <div><dt className="text-xs text-gray-500">Service Requested</dt><dd className="font-medium text-gray-800">{icf.service_requested}</dd></div>}
-                      {icf.has_previous_consultation != null && <div><dt className="text-xs text-gray-500">Prior Consultation</dt><dd className="font-medium text-gray-800">{icf.has_previous_consultation ? 'Yes' : 'No'}</dd></div>}
-                      {icf.medication_history && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Medication History</dt><dd className="text-gray-800">{icf.medication_history}</dd></div>}
-                      {icf.family_background && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Family Background</dt><dd className="text-gray-800">{icf.family_background}</dd></div>}
-                    </dl>
+                {/* ICF + SPIF combined student background */}
+                {(Object.keys(icf).length > 0 || Object.keys(spif).length > 0) && (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Student Background</p>
+                    </div>
+                    <div className="p-5">
+                      {/* Two-column field grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+                        {[
+                          { label: 'College / Unit',       val: icf.college },
+                          { label: 'Program',              val: icf.program ?? icf.degree_program },
+                          { label: 'Year Level',           val: icf.year_level },
+                          { label: 'Gender',               val: spif.gender },
+                          { label: 'Civil Status',         val: spif.civil_status ?? icf.civil_status },
+                          { label: 'Birthdate',            val: spif.birthdate ? new Date(spif.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null },
+                          { label: 'Living With',          val: spif.living_with },
+                          { label: 'Family Composition',   val: spif.family_composition },
+                          { label: 'Birth Order',          val: spif.birth_order ? `${spif.birth_order} of ${spif.number_of_siblings ?? '?'}` : null },
+                          { label: 'Prior Consultation',   val: icf.has_previous_consultation != null ? (icf.has_previous_consultation ? 'Yes' : 'No') : (spif.previous_counseling != null ? (spif.previous_counseling ? 'Yes' : 'No') : null) },
+                          { label: 'Referral Source',      val: icf.referral_source?.replace(/-/g, ' ') },
+                          { label: 'Nationality',          val: spif.nationality },
+                        ].filter(f => f.val).map(({ label, val: v }) => (
+                          <div key={label}>
+                            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+                            <p className="text-sm text-gray-800 capitalize">{String(v)}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Full-width text fields */}
+                      {[
+                        { label: 'Current Address',            val: spif.address },
+                        { label: 'Medical Conditions',         val: spif.existing_medical_conditions ?? icf.medication_history },
+                        { label: 'Current Medications',        val: spif.current_medications },
+                        { label: 'Previous Counseling Details',val: spif.previous_counseling_details ?? icf.family_background },
+                        { label: 'Emergency Contact',          val: icf.emergency_contact_name ? `${icf.emergency_contact_name} (${icf.emergency_contact_relationship ?? '—'}) · ${icf.emergency_contact_phone ?? '—'}` : null },
+                      ].filter(f => f.val).map(({ label, val: v }) => (
+                        <div key={label} className="mt-4 pt-4 border-t border-gray-100 first:mt-3 first:pt-3">
+                          <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+                          <p className="text-sm text-gray-700 leading-relaxed">{String(v)}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-
-                {/* SPIF details */}
-                {Object.keys(spif).length > 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-5">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Student Profile & Intake Form (SPIF-IF)</h4>
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                      {spif.academic_standing && <div><dt className="text-xs text-gray-500">Academic Standing</dt><dd className="font-medium text-gray-800">{spif.academic_standing}</dd></div>}
-                      {spif.living_arrangement && <div><dt className="text-xs text-gray-500">Living Arrangement</dt><dd className="font-medium text-gray-800">{spif.living_arrangement}</dd></div>}
-                      {spif.support_system && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Support System</dt><dd className="text-gray-800">{spif.support_system}</dd></div>}
-                      {spif.coping_strategies && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Coping Strategies</dt><dd className="text-gray-800">{spif.coping_strategies}</dd></div>}
-                      {spif.additional_notes && <div className="sm:col-span-2"><dt className="text-xs text-gray-500">Additional Notes</dt><dd className="text-gray-800">{spif.additional_notes}</dd></div>}
-                    </dl>
-                  </div>
-                )}
-
-                {/* Intake metadata */}
-                <div className="text-xs text-gray-400 pt-1">
-                  {intakeSummary.triaged_at && <span>Triaged {new Date(intakeSummary.triaged_at).toLocaleString()}</span>}
-                </div>
               </>
             );
           })()}
@@ -1265,9 +1380,9 @@ export default function CaseDetailPage() {
             <button
               onClick={() => setShowNoteForm(!showNoteForm)}
               className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-              style={{ backgroundColor: '#1a5228' }}
+              style={{ backgroundColor: '#2563eb' }}
               onMouseOver={e => (e.currentTarget.style.backgroundColor = '#14401e')}
-              onMouseOut={e => (e.currentTarget.style.backgroundColor = '#1a5228')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = '#2563eb')}
             >
               <Plus size={15} /> Add Note
             </button>
@@ -1330,7 +1445,7 @@ export default function CaseDetailPage() {
                         key={fmt}
                         type="button"
                         onClick={() => setNoteForm({ ...noteForm, note_format: fmt })}
-                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-blue-700 dark:text-green-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                       >
                         {fmt === 'SOAP' ? 'SOAP Template' : 'Freeform'}
                       </button>
@@ -1347,13 +1462,13 @@ export default function CaseDetailPage() {
                       { key: 'soap_plan', label: 'P — Plan', hint: 'Next steps, homework, referrals, follow-up schedule' },
                     ] as const).map(({ key, label, hint }) => (
                       <div key={key} className="md:col-span-2">
-                        <label className="block text-xs font-semibold text-green-700 dark:text-green-400 mb-0.5">{label}</label>
+                        <label className="block text-xs font-semibold text-blue-700 dark:text-green-400 mb-0.5">{label}</label>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{hint}</p>
                         <textarea
                           value={noteForm[key] as string}
                           onChange={(e) => setNoteForm({ ...noteForm, [key]: e.target.value })}
                           rows={3}
-                          className="w-full px-3 py-2 text-sm border border-green-200 dark:border-green-800 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-green-500 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-green-200 dark:border-blue-800 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-green-500 outline-none"
                         />
                       </div>
                     ))}
@@ -1411,7 +1526,7 @@ export default function CaseDetailPage() {
                   onClick={handleSaveNote}
                   disabled={savingNote}
                   className="text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition"
-                  style={{ backgroundColor: '#1a5228' }}
+                  style={{ backgroundColor: '#2563eb' }}
                 >
                   {savingNote ? 'Saving…' : 'Save Note'}
                 </button>
@@ -1453,7 +1568,7 @@ export default function CaseDetailPage() {
                         <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">{note.symptom_severity}</span>
                       )}
                       {note.supervisor_approved === true && (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium rounded-full">✓ Approved</span>
+                        <span className="px-2 py-0.5 bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400 text-xs font-medium rounded-full">✓ Approved</span>
                       )}
                       {note.supervisor_approved === false && note.supervisor_name && (
                         <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium rounded-full">✗ Rejected</span>
@@ -1468,25 +1583,25 @@ export default function CaseDetailPage() {
                     <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
                       {note.soap.subjective && (
                         <div>
-                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">S — Subjective</p>
+                          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">S — Subjective</p>
                           <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.subjective}</p>
                         </div>
                       )}
                       {note.soap.objective && (
                         <div>
-                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">O — Objective</p>
+                          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">O — Objective</p>
                           <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.objective}</p>
                         </div>
                       )}
                       {note.soap.assessment && (
                         <div>
-                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">A — Assessment</p>
+                          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">A — Assessment</p>
                           <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.assessment}</p>
                         </div>
                       )}
                       {note.soap.plan && (
                         <div>
-                          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">P — Plan</p>
+                          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">P — Plan</p>
                           <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.plan}</p>
                         </div>
                       )}
@@ -1666,7 +1781,7 @@ export default function CaseDetailPage() {
                           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${g.status === 'achieved' ? 'bg-green-500' : g.status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-300'}`} />
                           <span className="flex-1 text-gray-800 dark:text-gray-200">{g.goal}</span>
                           {g.target_date && <span className="text-xs text-gray-400">{new Date(g.target_date).toLocaleDateString()}</span>}
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${g.status === 'achieved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : g.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{g.status.replace('_', ' ')}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${g.status === 'achieved' ? 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400' : g.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{g.status.replace('_', ' ')}</span>
                         </div>
                       ))}
                     </div>
@@ -1676,7 +1791,7 @@ export default function CaseDetailPage() {
                   <div>
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Interventions</p>
                     <div className="flex flex-wrap gap-2">
-                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">{iv}</span>)}
+                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-green-50 dark:bg-blue-900/30 text-blue-700 dark:text-green-300 rounded-full">{iv}</span>)}
                     </div>
                   </div>
                 )}
@@ -1737,7 +1852,7 @@ export default function CaseDetailPage() {
               </div>
               <div className="flex items-end">
                 <button onClick={handleAddDiagnosis} disabled={savingDiag || !diagForm.code || !diagForm.description}
-                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition">
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition">
                   {savingDiag ? 'Adding…' : 'Add'}
                 </button>
               </div>
@@ -1758,10 +1873,10 @@ export default function CaseDetailPage() {
             <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
               {diagnoses.map((d, i) => (
                 <div key={i} className="flex items-center gap-3 px-5 py-3">
-                  <span className="font-mono text-sm font-bold text-green-700 dark:text-green-400 w-20 flex-shrink-0">{d.code}</span>
+                  <span className="font-mono text-sm font-bold text-blue-700 dark:text-green-400 w-20 flex-shrink-0">{d.code}</span>
                   <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{d.description}</span>
                   <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">{d.system}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
                   <button onClick={() => handleRemoveDiagnosis(i)} className="text-gray-300 hover:text-red-500 transition ml-1"><XIcon size={14} /></button>
                 </div>
               ))}
@@ -1781,7 +1896,7 @@ export default function CaseDetailPage() {
                 {safetyPlanExists ? 'Safety Plan' : 'Create Safety Plan'}
               </h2>
               {safetyPlanExists && !editingSafetyPlan && (
-                <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded">On file</span>
+                <span className="text-xs bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400 px-2 py-0.5 rounded">On file</span>
               )}
             </div>
             {safetyPlanExists && !editingSafetyPlan && (
@@ -1969,11 +2084,11 @@ export default function CaseDetailPage() {
 
           {/* ── Assessment result banner ── */}
           {assessmentResult && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-4 flex items-start gap-3">
+            <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-xl p-4 flex items-start gap-3">
               <Activity size={16} className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-green-800 dark:text-green-300">Assessment recorded</p>
-                <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                <p className="text-sm font-semibold text-blue-800 dark:text-green-300">Assessment recorded</p>
+                <p className="text-xs text-blue-700 dark:text-green-400 mt-0.5">
                   Score: <span className="font-bold">{assessmentResult.score}/{assessmentResult.max}</span>
                   <span className="mx-1.5">·</span>
                   Severity: <span className="font-bold">{assessmentResult.severity}</span>
@@ -2026,7 +2141,7 @@ export default function CaseDetailPage() {
                 <button
                   onClick={handleSubmitAssessment}
                   disabled={savingAssessment || Object.keys(assessmentResponses).length < assessmentTemplate.questions.length}
-                  className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition"
+                  className="px-5 py-2 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition"
                 >
                   {savingAssessment ? 'Saving…' : 'Save Assessment'}
                 </button>
@@ -2134,7 +2249,7 @@ export default function CaseDetailPage() {
                 </div>
                 <div className="self-end">
                   <button onClick={handleAddSchedule} disabled={savingSchedule}
-                    className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
+                    className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-blue-700 text-white'}`}>
                     <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
                   </button>
                 </div>
@@ -2222,7 +2337,7 @@ export default function CaseDetailPage() {
                   <button
                     onClick={linkMhbot}
                     disabled={linkingMhbot || !mhbotUsername.trim()}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
                   >
                     {linkingMhbot ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
                     Link
@@ -2269,6 +2384,15 @@ export default function CaseDetailPage() {
         </div>
       )}
     </DashboardPageWrapper>
+
+    {showExportModal && intakeSummary && (
+      <ClinicalExportModal
+        intakeId={intakeSummary._id}
+        appointmentId={intakeSummary.appointment_id ?? null}
+        onClose={() => setShowExportModal(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -2290,7 +2414,7 @@ interface ICInterviewSectionProps {
 function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-      <div className="px-5 py-3 bg-[#1a5228] text-white">
+      <div className="px-5 py-3 bg-[#2563eb] text-white">
         <h3 className="text-sm font-semibold">{title}</h3>
       </div>
       <div className="p-5 space-y-4">{children}</div>
@@ -2312,7 +2436,7 @@ function RadioField({ label, name, options, value, onChange, required, hasError 
             <input type="radio" name={name} value={opt}
               checked={value === opt}
               onChange={() => onChange(opt)}
-              className="w-4 h-4 text-[#1a5228] border-gray-300" />
+              className="w-4 h-4 text-[#2563eb] border-gray-300" />
             <span className="text-sm text-gray-700">{opt}</span>
           </label>
         ))}
@@ -2342,7 +2466,7 @@ function CheckboxField({ label, name, options, value, onChange, required, hasOth
                   const arr = value || [];
                   onChange(e.target.checked ? [...arr, opt] : arr.filter((x: string) => x !== opt));
                 }}
-                className="w-4 h-4 mt-0.5 text-[#1a5228] border-gray-300 rounded" />
+                className="w-4 h-4 mt-0.5 text-[#2563eb] border-gray-300 rounded" />
               {isOtherOpt ? (
                 <span className="text-sm text-gray-700 flex items-center gap-2 flex-1">
                   Other:
@@ -2379,14 +2503,14 @@ function CheckboxFieldWithOther({ label, name, options, value, otherValue, onCha
                   const arr = value || [];
                   onChange(e.target.checked ? [...arr, opt] : arr.filter((x: string) => x !== opt));
                 }}
-                className="w-4 h-4 mt-0.5 text-[#1a5228] border-gray-300 rounded" />
+                className="w-4 h-4 mt-0.5 text-[#2563eb] border-gray-300 rounded" />
               {isOther ? (
                 <span className="text-sm text-gray-700 flex items-center gap-2 flex-1">
                   Other:
                   {(value || []).includes('Other:') && (
                     <input type="text" value={otherValue}
                       onChange={e => onOtherChange(e.target.value)}
-                      className="flex-1 text-sm border-b border-gray-300 focus:border-[#1a5228] outline-none px-1"
+                      className="flex-1 text-sm border-b border-gray-300 focus:border-[#2563eb] outline-none px-1"
                       placeholder="Please specify..." />
                   )}
                 </span>
@@ -2413,14 +2537,14 @@ function TextareaField({ label, fieldKey, value, onChange, placeholder, helperTe
       {helperText && <p className="text-xs text-gray-400 mb-2 italic">{helperText}</p>}
       <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
         placeholder={placeholder}
-        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-transparent outline-none resize-none ${hasError ? 'border-red-400' : 'border-gray-200'}`} />
+        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none resize-none ${hasError ? 'border-red-400' : 'border-gray-200'}`} />
     </div>
   );
 }
 
 function ReadBadge({ value }: { value: string }) {
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#1a5228]/10 text-[#1a5228] mr-1.5 mb-1.5">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#2563eb]/10 text-[#2563eb] mr-1.5 mb-1.5">
       {value}
     </span>
   );
@@ -2429,7 +2553,7 @@ function ReadBadge({ value }: { value: string }) {
 function ReadSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-      <div className="px-5 py-3 bg-[#1a5228] text-white">
+      <div className="px-5 py-3 bg-[#2563eb] text-white">
         <h3 className="text-sm font-semibold">{title}</h3>
       </div>
       <div className="p-5 space-y-3">{children}</div>
@@ -2494,7 +2618,7 @@ function getGAD7Severity(score: number): string {
 
 function getSeverityClass(severity: string): string {
   switch (severity) {
-    case 'Minimal': return 'bg-green-100 text-green-800';
+    case 'Minimal': return 'bg-green-100 text-blue-800';
     case 'Mild': return 'bg-yellow-100 text-yellow-800';
     case 'Moderate': return 'bg-orange-100 text-orange-800';
     case 'Moderately Severe': return 'bg-red-100 text-red-800';
@@ -2541,7 +2665,7 @@ function PsychometricQuestionList({
                     name={`q_${idx}_${maxScore}`}
                     checked={responses[idx] === opt.val}
                     onChange={() => setResponse(idx, opt.val)}
-                    className="w-4 h-4 text-[#1a5228]"
+                    className="w-4 h-4 text-[#2563eb]"
                   />
                   <span className="text-xs text-gray-500 text-center leading-tight w-16">{opt.label}</span>
                 </label>
@@ -2709,7 +2833,7 @@ function getStepStatus(step: number, draft: any): StepStatus {
 }
 
 function StepStatusIcon({ status }: { status: StepStatus }) {
-  if (status === 'complete') return <span className="text-[#1a5228] font-bold text-sm">✓</span>;
+  if (status === 'complete') return <span className="text-[#2563eb] font-bold text-sm">✓</span>;
   if (status === 'partial') return <span className="text-orange-500 font-bold text-sm">●</span>;
   if (status === 'error') return <span className="text-red-500 font-bold text-sm">⚠</span>;
   return <span className="text-gray-300 text-sm">○</span>;
@@ -2821,7 +2945,7 @@ function ICInterviewSection({
         <h2 className="text-base font-semibold text-gray-800">IC Interview Documentation</h2>
         {intakeForm && !intakeFormEditing && (
           <button onClick={() => setIntakeFormEditing(true)}
-            className="text-sm text-[#1a5228] font-medium hover:underline">
+            className="text-sm text-[#2563eb] font-medium hover:underline">
             Edit
           </button>
         )}
@@ -2893,7 +3017,7 @@ function ICInterviewSection({
                     <span className="text-xs text-gray-400 ml-1">/ 27</span>
                   </div>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                    intakeForm.phq9_score <= 4 ? 'bg-green-100 text-green-800' :
+                    intakeForm.phq9_score <= 4 ? 'bg-green-100 text-blue-800' :
                     intakeForm.phq9_score <= 9 ? 'bg-yellow-100 text-yellow-800' :
                     intakeForm.phq9_score <= 14 ? 'bg-orange-100 text-orange-800' :
                     intakeForm.phq9_score <= 19 ? 'bg-red-100 text-red-800' :
@@ -2917,7 +3041,7 @@ function ICInterviewSection({
                     <span className="text-xs text-gray-400 ml-1">/ 21</span>
                   </div>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                    intakeForm.gad7_score <= 4 ? 'bg-green-100 text-green-800' :
+                    intakeForm.gad7_score <= 4 ? 'bg-green-100 text-blue-800' :
                     intakeForm.gad7_score <= 9 ? 'bg-yellow-100 text-yellow-800' :
                     intakeForm.gad7_score <= 14 ? 'bg-orange-100 text-orange-800' :
                     'bg-red-100 text-red-800'
@@ -3049,7 +3173,7 @@ function ICInterviewSection({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-[#1a5228] h-2 rounded-full transition-all duration-300"
+                className="bg-[#2563eb] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${((currentStep + 1) / WIZARD_STEPS.length) * 100}%` }}
               />
             </div>
@@ -3068,12 +3192,12 @@ function ICInterviewSection({
                       onClick={() => setCurrentStep(idx)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors ${
                         isActive
-                          ? 'bg-[#1a5228] text-white'
+                          ? 'bg-[#2563eb] text-white'
                           : 'hover:bg-gray-100 text-gray-700'
                       }`}
                     >
                       <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
-                        isActive ? 'bg-white text-[#1a5228]' : 'bg-gray-200 text-gray-600'
+                        isActive ? 'bg-white text-[#2563eb]' : 'bg-gray-200 text-gray-600'
                       }`}>{idx + 1}</span>
                       <span className="text-xs font-medium leading-tight flex-1 min-w-0 truncate">{step.short}</span>
                       {!isActive && <StepStatusIcon status={status} />}
@@ -3512,7 +3636,7 @@ function ICInterviewSection({
                       value={d.ic_name || ''}
                       onChange={e => upd('ic_name', e.target.value)}
                       placeholder="Full name of Intake Counselor"
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-transparent outline-none ${
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none ${
                         stepErrors[10]?.some(e => e.includes('IC Name')) ? 'border-red-400' : 'border-gray-200'
                       }`}
                     />
@@ -3528,7 +3652,7 @@ function ICInterviewSection({
                       type="date"
                       value={d.ic_signature_date || ''}
                       onChange={e => upd('ic_signature_date', e.target.value)}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#1a5228] focus:border-transparent outline-none ${
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none ${
                         stepErrors[10]?.some(e => e.includes('Signature Date')) ? 'border-red-400' : 'border-gray-200'
                       }`}
                     />
@@ -3558,7 +3682,7 @@ function ICInterviewSection({
               )}
 
               {/* Status messages */}
-              {intakeFormSuccess && <p className="text-sm text-green-700 font-medium mb-3">Saved successfully.</p>}
+              {intakeFormSuccess && <p className="text-sm text-blue-700 font-medium mb-3">Saved successfully.</p>}
               {intakeFormError && <p className="text-sm text-red-600 mb-3">{intakeFormError}</p>}
 
               {/* Navigation buttons */}
@@ -3579,14 +3703,14 @@ function ICInterviewSection({
                   {currentStep < WIZARD_STEPS.length - 1 ? (
                     <button
                       onClick={handleNext}
-                      className="px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] transition">
+                      className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] transition">
                       Next →
                     </button>
                   ) : (
                     <button
                       onClick={handleSaveForm}
                       disabled={intakeFormSaving}
-                      className="px-5 py-2 bg-[#1a5228] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] disabled:opacity-50 transition flex items-center gap-2">
+                      className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] disabled:opacity-50 transition flex items-center gap-2">
                       {intakeFormSaving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save Form'}
                     </button>
                   )}

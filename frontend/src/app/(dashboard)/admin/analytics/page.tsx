@@ -287,14 +287,14 @@ export default function AnalyticsDashboardPage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Three-category client tracking summary</p>
             </div>
             <a href="/admin/reports/export"
-              className="text-xs text-green-700 dark:text-green-400 hover:underline font-medium">
+              className="text-xs text-blue-700 dark:text-green-400 hover:underline font-medium">
               Export spreadsheets →
             </a>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="rounded-lg p-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/40">
-              <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">New Client Requests</p>
-              <p className="text-3xl font-bold text-green-800 dark:text-green-300">{cpsSummary.new_clients.total}</p>
+            <div className="rounded-lg p-4 bg-green-50 dark:bg-blue-900/20 border border-green-100 dark:border-blue-800/40">
+              <p className="text-xs font-medium text-blue-700 dark:text-green-400 mb-1">New Client Requests</p>
+              <p className="text-3xl font-bold text-blue-800 dark:text-green-300">{cpsSummary.new_clients.total}</p>
               <p className="text-xs text-green-600 dark:text-green-500 mt-1">{cpsSummary.new_clients.this_month} this month</p>
             </div>
             <div className="rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40">

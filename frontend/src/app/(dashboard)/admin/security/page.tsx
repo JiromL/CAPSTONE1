@@ -59,7 +59,7 @@ export default function SecurityPage() {
   return (
     <DashboardPageWrapper title="Security Settings" subtitle="Password policy, login security, and authentication">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {saved && <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">Security settings saved.</div>}
+        {saved && <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700">Security settings saved.</div>}
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">

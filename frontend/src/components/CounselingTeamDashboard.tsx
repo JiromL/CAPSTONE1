@@ -86,22 +86,22 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
         <>
         {/* New case assignments banner */}
         {newCases.length > 0 && (
-          <div className="mb-5 bg-[#1a5228]/5 border border-[#1a5228]/20 rounded-xl p-4">
+          <div className="mb-5 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-[#1a5228]" />
-                <p className="text-xs font-semibold text-[#1a5228] uppercase tracking-wider">
+                <AlertTriangle size={14} className="text-[#2563eb]" />
+                <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wider">
                   New Cases Assigned to You ({newCases.length})
                 </p>
               </div>
-              <Link href="/cases" className="text-xs text-[#1a5228] underline underline-offset-2 hover:text-green-900">
+              <Link href="/cases" className="text-xs text-[#2563eb] underline underline-offset-2 hover:text-blue-900">
                 View all cases
               </Link>
             </div>
             <div className="flex flex-wrap gap-2">
               {newCases.map((c: any, i: number) => (
                 <Link key={i} href="/cases"
-                  className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-[#1a5228]/10 hover:border-[#1a5228]/30 transition-colors">
+                  className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-[#2563eb]/10 hover:border-[#2563eb]/30 transition-colors">
                   {c.risk_level && c.risk_level !== 'GREEN' && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
                       c.risk_level === 'CRITICAL' ? 'bg-red-100 text-red-900' :
@@ -129,7 +129,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
-              <Link href="/appointments" className="text-xs text-[#1a5228] hover:underline">View all</Link>
+              <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
             </div>
             {todayAppts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-28 text-center">
@@ -146,7 +146,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                         {fmtTime(a.preferred_date || a.scheduled_start)} · {a.counselor_name || 'Counselor TBD'}
                       </p>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-blue-700 border border-green-100 font-medium">
                       Confirmed
                     </span>
                   </div>
@@ -163,7 +163,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                       {pendingEval.length}
                     </span>
                   </p>
-                  <Link href="/appointment-requests" className="text-xs text-[#1a5228] hover:underline">Review</Link>
+                  <Link href="/appointment-requests" className="text-xs text-[#2563eb] hover:underline">Review</Link>
                 </div>
                 {pendingEval.slice(0, 3).map((a: any, i: number) => (
                   <div key={i} className="py-1.5 flex items-center justify-between">
@@ -181,9 +181,9 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
             <div className="divide-y divide-gray-100">
               {LINKS.map(({ href, label }) => (
                 <Link key={href} href={href}
-                  className="flex items-center justify-between py-2.5 text-sm text-gray-700 hover:text-[#1a5228] transition-colors group">
+                  className="flex items-center justify-between py-2.5 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
                   <span>{label}</span>
-                  <ArrowRight size={14} className="text-gray-300 group-hover:text-[#1a5228] transition-colors" />
+                  <ArrowRight size={14} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
                 </Link>
               ))}
             </div>

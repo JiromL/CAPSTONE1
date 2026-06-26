@@ -55,18 +55,18 @@ function phq9Sev(s: number) {
   if (s >= 15) return { label: 'Mod-Severe', cls: 'text-red-600 bg-red-50' };
   if (s >= 10) return { label: 'Moderate', cls: 'text-amber-700 bg-amber-100' };
   if (s >= 5)  return { label: 'Mild', cls: 'text-yellow-700 bg-yellow-100' };
-  return { label: 'Minimal', cls: 'text-green-700 bg-green-100' };
+  return { label: 'Minimal', cls: 'text-blue-700 bg-green-100' };
 }
 function gad7Sev(s: number) {
   if (s >= 15) return { label: 'Severe', cls: 'text-red-700 bg-red-100' };
   if (s >= 10) return { label: 'Moderate', cls: 'text-amber-700 bg-amber-100' };
   if (s >= 5)  return { label: 'Mild', cls: 'text-yellow-700 bg-yellow-100' };
-  return { label: 'Minimal', cls: 'text-green-700 bg-green-100' };
+  return { label: 'Minimal', cls: 'text-blue-700 bg-green-100' };
 }
 
 function RiskBadge({ risk }: { risk: string }) {
   const map: Record<string, { cls: string; icon: React.ReactNode; label: string }> = {
-    GREEN:    { cls: 'bg-green-50 text-green-700 border-green-200',    icon: <Shield size={13} />,       label: 'Code Green — Low Risk' },
+    GREEN:    { cls: 'bg-green-50 text-blue-700 border-green-200',    icon: <Shield size={13} />,       label: 'Code Green — Low Risk' },
     YELLOW:   { cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: <Activity size={13} />,     label: 'Code Yellow — Moderate Risk' },
     RED:      { cls: 'bg-red-50 text-red-700 border-red-200',          icon: <AlertTriangle size={13} />, label: 'Code Red — High Risk' },
     CRITICAL: { cls: 'bg-red-100 text-red-800 border-red-400',         icon: <ShieldAlert size={13} />,   label: 'CRITICAL — Immediate Response' },
@@ -289,7 +289,7 @@ export default function ConductIntakePage() {
       <DashboardPageWrapper title="Conduct Intake" subtitle="">
         <div className="max-w-lg mx-auto mt-8">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className={`px-6 pt-8 pb-6 text-center ${prevRisk === 'CRITICAL' || prevRisk === 'RED' ? 'bg-red-700' : 'bg-[#1a5228]'}`}>
+            <div className={`px-6 pt-8 pb-6 text-center ${prevRisk === 'CRITICAL' || prevRisk === 'RED' ? 'bg-red-700' : 'bg-[#2563eb]'}`}>
               <CheckCircle2 size={40} className="text-white mx-auto mb-3" />
               <h2 className="text-lg font-bold text-white">Triage Already Submitted</h2>
               <p className="text-white/80 text-sm mt-1">{intake.student_name || '—'}</p>
@@ -324,7 +324,7 @@ export default function ConductIntakePage() {
                 </div>
               )}
               <button onClick={() => router.push('/appointment-requests')}
-                className="w-full py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition">
+                className="w-full py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
                 Back to Pending Intakes
               </button>
             </div>
@@ -340,7 +340,7 @@ export default function ConductIntakePage() {
       <DashboardPageWrapper title="Conduct Intake" subtitle="">
         <div className="max-w-lg mx-auto mt-8">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className={`px-6 pt-8 pb-6 text-center ${displayRisk === 'CRITICAL' || displayRisk === 'RED' ? 'bg-red-700' : 'bg-[#1a5228]'}`}>
+            <div className={`px-6 pt-8 pb-6 text-center ${displayRisk === 'CRITICAL' || displayRisk === 'RED' ? 'bg-red-700' : 'bg-[#2563eb]'}`}>
               <CheckCircle2 size={40} className="text-white mx-auto mb-3" />
               <h2 className="text-lg font-bold text-white">Triage Submitted</h2>
               <p className="text-white/80 text-sm mt-1">{intake.student_name || '—'}</p>
@@ -367,7 +367,7 @@ export default function ConductIntakePage() {
                 )}
               </div>
               <button onClick={() => router.push('/appointment-requests')}
-                className="w-full py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition">
+                className="w-full py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
                 Back to Pending Intakes
               </button>
             </div>
@@ -401,7 +401,7 @@ export default function ConductIntakePage() {
         {/* Score bar */}
         <div className="flex items-center gap-3 mb-4 px-1">
           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-[#1a5228] rounded-full transition-all"
+            <div className="h-full bg-[#2563eb] rounded-full transition-all"
               style={{ width: `${(answered / questions.length) * 100}%` }} />
           </div>
           <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">{answered}/{questions.length} answered</span>
@@ -444,8 +444,8 @@ export default function ConductIntakePage() {
                       onClick={() => { const a = [...answers]; a[i] = a[i] === f.v ? null : f.v; setAnswers(a); }}
                       className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition
                         ${answers[i] === f.v
-                          ? 'bg-[#1a5228] border-[#1a5228] shadow-sm'
-                          : 'border-gray-300 hover:border-[#1a5228]/50 bg-white'}`}>
+                          ? 'bg-[#2563eb] border-[#2563eb] shadow-sm'
+                          : 'border-gray-300 hover:border-[#2563eb]/50 bg-white'}`}>
                       {answers[i] === f.v && <div className="w-3 h-3 rounded-full bg-white" />}
                     </button>
                   </div>
@@ -465,14 +465,14 @@ export default function ConductIntakePage() {
         {/* Patient header — persistent throughout */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="flex flex-wrap items-start gap-4 p-4">
-            <div className="w-10 h-10 rounded-full bg-[#1a5228]/10 flex items-center justify-center flex-shrink-0">
-              <User size={18} className="text-[#1a5228]" />
+            <div className="w-10 h-10 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+              <User size={18} className="text-[#2563eb]" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold text-gray-900">{studentName}</h2>
                 {packet && (
-                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">
+                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-green-100 text-blue-700 rounded-full font-bold">
                     <FileText size={10} /> Intake Forms Submitted
                   </span>
                 )}
@@ -487,7 +487,7 @@ export default function ConductIntakePage() {
               {csrsDone && csrsRisk() && (
                 <div className="bg-white rounded-xl p-3 text-center border border-red-200 shadow-sm min-w-[60px]">
                   <p className="text-xs text-red-500 font-semibold">C-SSRS</p>
-                  <p className={`text-xs font-bold mt-1 ${csrsRisk() === 'GREEN' ? 'text-green-700' : csrsRisk() === 'YELLOW' ? 'text-yellow-700' : 'text-red-700'}`}>
+                  <p className={`text-xs font-bold mt-1 ${csrsRisk() === 'GREEN' ? 'text-blue-700' : csrsRisk() === 'YELLOW' ? 'text-yellow-700' : 'text-red-700'}`}>
                     {csrsRisk()}
                   </p>
                 </div>
@@ -503,8 +503,8 @@ export default function ConductIntakePage() {
               <button
                 onClick={() => i < stepIdx ? setStep(s.key) : undefined}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition
-                  ${step === s.key ? 'bg-[#1a5228] text-white shadow-sm'
-                  : i < stepIdx ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200'
+                  ${step === s.key ? 'bg-[#2563eb] text-white shadow-sm'
+                  : i < stepIdx ? 'bg-green-100 text-blue-700 cursor-pointer hover:bg-green-200'
                   : 'bg-gray-100 text-gray-400 cursor-default'}`}>
                 {i < stepIdx ? <Check size={11} /> : <span className="w-3 h-3 rounded-full border-current border flex items-center justify-center text-[9px] font-bold">{i+1}</span>}
                 {s.label}
@@ -519,7 +519,7 @@ export default function ConductIntakePage() {
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-green-50">
               <div className="flex items-center gap-3">
-                <Eye size={16} className="text-green-700" />
+                <Eye size={16} className="text-blue-700" />
                 <div>
                   <p className="text-sm font-bold text-gray-900">
                     {packet ? 'Intake Packet' : 'Intake Forms (Not Pre-Submitted)'}
@@ -601,7 +601,7 @@ export default function ConductIntakePage() {
                         ].map(x => (
                           <div key={x.l} className={`rounded-xl p-3 text-center ${x.risk ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'}`}>
                             <p className="text-xs text-gray-500 mb-0.5">{x.l}</p>
-                            <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-green-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
+                            <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-blue-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
                             <p className={`text-[10px] font-semibold ${x.risk ? 'text-red-500' : 'text-green-600'}`}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                           </div>
                         ))}
@@ -622,7 +622,7 @@ export default function ConductIntakePage() {
                 </div>
                 <div className="px-5 py-4 border-t border-gray-100 flex justify-end bg-gray-50">
                   <button onClick={() => setStep('phq9')}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition">
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
                     Proceed to PHQ-9 <ChevronRight size={14} />
                   </button>
                 </div>
@@ -652,7 +652,7 @@ export default function ConductIntakePage() {
                         <input
                           value={draftIcf[f.key] || ''}
                           onChange={e => setDraftIcf(p => ({ ...p, [f.key]: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none"
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none"
                         />
                       </div>
                     ))}
@@ -660,7 +660,7 @@ export default function ConductIntakePage() {
                       <label className="block text-xs text-gray-500 mb-1">Service Requested</label>
                       <select value={draftIcf.service_requested || ''}
                         onChange={e => setDraftIcf(p => ({ ...p, service_requested: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white">
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white">
                         <option value="">— Select —</option>
                         {['personal_counseling','academic_concerns','career_guidance','family_concerns','relationship_concerns','crisis_support','psychiatric_evaluation','other'].map(s => (
                           <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
@@ -671,7 +671,7 @@ export default function ConductIntakePage() {
                       <label className="block text-xs text-gray-500 mb-1">Referral Source</label>
                       <select value={draftIcf.referral_source || ''}
                         onChange={e => setDraftIcf(p => ({ ...p, referral_source: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white">
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white">
                         <option value="">— Select —</option>
                         {['self_referred','faculty_referred','parent_referred','friend_referred','online_referral','office_referred'].map(s => (
                           <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
@@ -690,7 +690,7 @@ export default function ConductIntakePage() {
                             <label className="block text-xs text-gray-400 mb-1">{f.label}</label>
                             <input value={draftIcf[f.key] || ''}
                               onChange={e => setDraftIcf(p => ({ ...p, [f.key]: e.target.value }))}
-                              className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none" />
+                              className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none" />
                           </div>
                         ))}
                       </div>
@@ -699,7 +699,7 @@ export default function ConductIntakePage() {
                       <label className="block text-xs text-gray-500 mb-1">Presenting Concern</label>
                       <textarea rows={3} value={draftIcf.presenting_concern || ''}
                         onChange={e => setDraftIcf(p => ({ ...p, presenting_concern: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none resize-none" />
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none resize-none" />
                     </div>
                   </div>
                 </div>
@@ -712,7 +712,7 @@ export default function ConductIntakePage() {
                       <label className="block text-xs text-gray-500 mb-1">Birthdate</label>
                       <input type="date" value={draftSpif.birthdate || ''}
                         onChange={e => setDraftSpif(p => ({ ...p, birthdate: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none" />
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none" />
                     </div>
                     {([
                       { key: 'gender',       label: 'Gender',       opts: ['male','female','non_binary','prefer_not_to_say'] },
@@ -723,7 +723,7 @@ export default function ConductIntakePage() {
                         <label className="block text-xs text-gray-500 mb-1">{f.label}</label>
                         <select value={draftSpif[f.key] || ''}
                           onChange={e => setDraftSpif(p => ({ ...p, [f.key]: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white">
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white">
                           <option value="">—</option>
                           {f.opts.map(o => <option key={o} value={o}>{o.replace(/_/g,' ')}</option>)}
                         </select>
@@ -739,7 +739,7 @@ export default function ConductIntakePage() {
                         <input value={draftSpif[f.key] || ''}
                           onChange={e => setDraftSpif(p => ({ ...p, [f.key]: e.target.value }))}
                           placeholder="None"
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none" />
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none" />
                       </div>
                     ))}
                     <div className="col-span-3 grid grid-cols-2 gap-3">
@@ -750,7 +750,7 @@ export default function ConductIntakePage() {
                         <label key={f.key} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
                           <input type="checkbox" checked={!!draftSpif[f.key]}
                             onChange={e => setDraftSpif(p => ({ ...p, [f.key]: e.target.checked }))}
-                            className="w-4 h-4 rounded border-gray-300 text-green-700" />
+                            className="w-4 h-4 rounded border-gray-300 text-blue-700" />
                           <span className="text-sm text-gray-700">{f.label}</span>
                         </label>
                       ))}
@@ -760,7 +760,7 @@ export default function ConductIntakePage() {
                         <label className="block text-xs text-gray-500 mb-1">Counseling Details</label>
                         <input value={draftSpif.previous_counseling_details || ''}
                           onChange={e => setDraftSpif(p => ({ ...p, previous_counseling_details: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none" />
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none" />
                       </div>
                     )}
                   </div>
@@ -785,8 +785,8 @@ export default function ConductIntakePage() {
                               onClick={() => { const a = [...draftPhq4]; a[i] = a[i] === f.v ? null : f.v; setDraftPhq4(a); }}
                               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border-2 transition
                                 ${draftPhq4[i] === f.v
-                                  ? 'bg-[#1a5228] border-[#1a5228] text-white'
-                                  : 'border-gray-200 text-gray-600 hover:border-[#1a5228]/40 bg-white'}`}>
+                                  ? 'bg-[#2563eb] border-[#2563eb] text-white'
+                                  : 'border-gray-200 text-gray-600 hover:border-[#2563eb]/40 bg-white'}`}>
                               {f.v}
                             </button>
                           ))}
@@ -797,7 +797,7 @@ export default function ConductIntakePage() {
                 </div>
 
                 {packetMsg && (
-                  <p className={`text-xs font-medium ${packetMsg.includes('saved') ? 'text-green-700' : 'text-red-600'}`}>{packetMsg}</p>
+                  <p className={`text-xs font-medium ${packetMsg.includes('saved') ? 'text-blue-700' : 'text-red-600'}`}>{packetMsg}</p>
                 )}
               </div>
             )}
@@ -818,7 +818,7 @@ export default function ConductIntakePage() {
                   {savingPacket ? 'Saving…' : 'Save Forms'}
                 </button>
                 <button onClick={() => setStep('phq9')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition">
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
                   {packet ? 'Proceed to PHQ-9' : 'Skip & Go to PHQ-9'} <ChevronRight size={14} />
                 </button>
               </div>
@@ -854,7 +854,7 @@ export default function ConductIntakePage() {
                 Skip assessment
               </button>
               <button onClick={handlePhq9Next} disabled={!phq9Done}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 disabled:opacity-40 transition">
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-40 transition">
                 {phq9Done && phq9[8]! > 0 ? 'C-SSRS Required' : 'Continue to GAD-7'} <ChevronRight size={14} />
               </button>
             </div>
@@ -891,7 +891,7 @@ export default function ConductIntakePage() {
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                       {[{ v: true, l: 'YES', cls: cssr[i] === true ? 'bg-red-600 text-white border-red-600' : 'border-gray-300 text-red-600 hover:border-red-400 hover:bg-red-50' },
-                        { v: false, l: 'NO',  cls: cssr[i] === false ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-green-700 hover:border-green-400 hover:bg-green-50' }]
+                        { v: false, l: 'NO',  cls: cssr[i] === false ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-blue-700 hover:border-green-400 hover:bg-green-50' }]
                         .map(opt => (
                         <button key={String(opt.v)} onClick={() => { const a = [...cssr]; a[i] = a[i] === opt.v ? null : opt.v; setCssr(a); }}
                           className={`px-4 py-1.5 rounded-lg text-xs font-bold border-2 transition ${opt.cls}`}>
@@ -927,7 +927,7 @@ export default function ConductIntakePage() {
                   Skip assessment
                 </button>
                 <button onClick={() => setStep('gad7')} disabled={!csrsDone}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 disabled:opacity-40 transition">
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-40 transition">
                   Continue to GAD-7 <ChevronRight size={14} />
                 </button>
               </div>
@@ -964,7 +964,7 @@ export default function ConductIntakePage() {
                   Skip assessment
                 </button>
                 <button onClick={() => setStep('triage')} disabled={!gad7Done}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 disabled:opacity-40 transition">
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-40 transition">
                   Triage Decision <ChevronRight size={14} />
                 </button>
               </div>
@@ -1014,7 +1014,7 @@ export default function ConductIntakePage() {
                   Clinical Override <span className="normal-case text-gray-400 font-normal">(optional — use if your judgment differs from the algorithm)</span>
                 </label>
                 <select value={riskOverride} onChange={e => setRiskOverride(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white">
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white">
                   <option value="">— Use algorithm result: {calculatedRisk} —</option>
                   <option value="GREEN">Code Green — Low Risk</option>
                   <option value="YELLOW">Code Yellow — Moderate Risk</option>
@@ -1056,9 +1056,9 @@ export default function ConductIntakePage() {
                   ].map(opt => (
                     <label key={opt.v}
                       className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition
-                        ${decision === opt.v ? 'border-[#1a5228] bg-green-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                        ${decision === opt.v ? 'border-[#2563eb] bg-green-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
                       <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition
-                        ${decision === opt.v ? 'bg-[#1a5228] border-[#1a5228]' : 'border-gray-300'}`}>
+                        ${decision === opt.v ? 'bg-[#2563eb] border-[#2563eb]' : 'border-gray-300'}`}>
                         {decision === opt.v && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                       <input type="radio" name="decision" value={opt.v} checked={decision === opt.v} onChange={() => setDecision(opt.v)} className="sr-only" />
@@ -1085,7 +1085,7 @@ export default function ConductIntakePage() {
                     <select
                       value={assignedCounselorId}
                       onChange={e => setAssignedCounselorId(e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none bg-white">
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white">
                       <option value="">— Select {decision === 'ENDORSE_CC' ? 'a counselor' : 'a psychologist'} —</option>
                       {counselorOptions.map(c => (
                         <option key={c._id} value={c._id}>{c.label}</option>
@@ -1103,7 +1103,7 @@ export default function ConductIntakePage() {
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Clinical Notes & Endorsement Rationale</label>
                 <textarea rows={4} value={endNotes} onChange={e => setEndNotes(e.target.value)}
                   placeholder="Document your clinical observations, MSE notes, endorsement rationale, or closure reason…"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1a5228]/25 focus:outline-none resize-none bg-white" />
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none resize-none bg-white" />
               </div>
 
               {error && (
@@ -1118,7 +1118,7 @@ export default function ConductIntakePage() {
                 <ChevronLeft size={13} /> GAD-7
               </button>
               <button onClick={handleSubmit} disabled={submitting || !decision}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#1a5228] text-white text-sm font-semibold rounded-xl hover:bg-green-800 disabled:opacity-40 transition">
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-40 transition">
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                 {submitting ? 'Submitting…' : 'Submit Triage Decision'}
               </button>

@@ -35,7 +35,7 @@ const CPS_ROLES = ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'];
 
 const STATUS_CONFIG: Record<string, { cls: string; label: string }> = {
   NEW:         { cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',    label: 'New' },
-  COMPLETED:   { cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200', label: 'Completed' },
+  COMPLETED:   { cls: 'bg-green-50 text-green-700 ring-1 ring-green-200', label: 'Completed' },
   IN_PROGRESS: { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', label: 'In Progress' },
   PENDING:     { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', label: 'Pending' },
   CANCELLED:   { cls: 'bg-red-50 text-red-600 ring-1 ring-red-200',       label: 'Cancelled' },
@@ -62,6 +62,7 @@ export default function NewIntakesPage() {
   const [exporting, setExporting] = useState(false);
   const [exportTarget, setExportTarget] = useState<{ intakeId: string; appointmentId: string | null } | null>(null);
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
+  const [permaError, setPermaError] = useState(false);
   const [userRole] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
     return JSON.parse(localStorage.getItem('user') || '{}').role || '';
@@ -81,45 +82,30 @@ export default function NewIntakesPage() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ usernames }),
       });
-      if (r.ok) setPermaLabels((await r.json()).labels || {});
-    } catch {}
+      if (r.ok) {
+        setPermaLabels((await r.json()).labels || {});
+        setPermaError(false);
+      } else {
+        setPermaError(true);
+      }
+    } catch {
+      setPermaError(true);
+    }
   }
 
   const fetchTotals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const params = new URLSearchParams({ page: '1', limit: '1' });
+      const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (month)  params.append('month', month);
       if (mineOnly && userRole === 'IC') params.append('mine', 'true');
-
-      const fetchCount = async (status: string) => {
-        const p = new URLSearchParams(params);
-        p.set('status', status);
-        p.set('limit', '1');
-        const r = await fetch(api(`/api/client-tracking/new-intakes?${p}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!r.ok) return 0;
-        const d = await r.json();
-        return d.total || 0;
-      };
-
-      const [allTotal, newTotal, ipTotal, completedTotal] = await Promise.all([
-        (async () => {
-          const r = await fetch(api(`/api/client-tracking/new-intakes?${params}`), {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!r.ok) return 0;
-          const d = await r.json();
-          return d.total || 0;
-        })(),
-        fetchCount('NEW'),
-        Promise.all(['PENDING', 'IN_PROGRESS'].map(s => fetchCount(s))).then(counts => counts.reduce((a, b) => a + b, 0)),
-        fetchCount('COMPLETED'),
-      ]);
-
-      setTotals({ total: allTotal, new: newTotal, inProgress: ipTotal, completed: completedTotal });
+      const r = await fetch(api(`/api/client-tracking/new-intakes/counts?${params}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) return;
+      const d = await r.json();
+      setTotals({ total: d.total, new: d.new, inProgress: d.inProgress, completed: d.completed });
     } catch {}
   };
 
@@ -210,9 +196,9 @@ export default function NewIntakesPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Total',       value: totals.total,      icon: ClipboardList, filter: '',            activeRing: 'ring-gray-400',   activeBg: 'bg-gray-50',   activeTxt: 'text-gray-800',   inactTxt: 'text-gray-700' },
-          { label: 'New',         value: totals.new,        icon: AlertCircle,   filter: 'NEW',         activeRing: 'ring-blue-400',   activeBg: 'bg-blue-50',   activeTxt: 'text-blue-700',   inactTxt: totals.new > 0 ? 'text-blue-600' : 'text-gray-400' },
+          { label: 'New',         value: totals.new,        icon: AlertCircle,   filter: 'NEW',         activeRing: 'ring-blue-400',   activeBg: 'bg-blue-50',   activeTxt: 'text-[#2563eb]',   inactTxt: totals.new > 0 ? 'text-[#2563eb]' : 'text-gray-400' },
           { label: 'In Progress', value: totals.inProgress, icon: Clock,         filter: 'IN_PROGRESS', activeRing: 'ring-amber-400',  activeBg: 'bg-amber-50',  activeTxt: 'text-amber-700',  inactTxt: totals.inProgress > 0 ? 'text-amber-600' : 'text-gray-400' },
-          { label: 'Completed',   value: totals.completed,  icon: CheckCircle2,  filter: 'COMPLETED',   activeRing: 'ring-[#2563eb]',  activeBg: 'bg-green-50',  activeTxt: 'text-[#2563eb]',  inactTxt: 'text-[#2563eb]' },
+          { label: 'Completed',   value: totals.completed,  icon: CheckCircle2,  filter: 'COMPLETED',   activeRing: 'ring-green-400',  activeBg: 'bg-green-50',  activeTxt: 'text-green-700',  inactTxt: 'text-[#2563eb]' },
         ].map(s => {
           const isActive = statusFilter === s.filter;
           return (
@@ -307,7 +293,12 @@ export default function NewIntakesPage() {
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">IC Assigned</th>
                     )}
                     {CPS_ROLES.includes(userRole) && (
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">EMA</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        EMA
+                        {permaError && (
+                          <span className="ml-1.5 text-[10px] text-amber-500 font-normal normal-case tracking-normal" title="PERMA labels could not be loaded">⚠ unavailable</span>
+                        )}
+                      </th>
                     )}
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Packet</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
@@ -370,7 +361,7 @@ export default function NewIntakesPage() {
                         {/* Packet */}
                         <td className="px-5 py-4">
                           {intake.intake_packet_submitted
-                            ? <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-50 text-blue-700 ring-1 ring-green-200">
+                            ? <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-50 text-green-700 ring-1 ring-green-200">
                                 <FileCheck size={11} /> Ready
                               </span>
                             : <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-orange-50 text-orange-600 ring-1 ring-orange-200">

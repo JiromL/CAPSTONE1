@@ -7,134 +7,6 @@ import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, CheckCircle, AlertCircle, ClipboardList, CalendarClock, ChevronRight } from 'lucide-react';
 
-const PERMA_BARS: { label: string; color: string }[] = [
-  { label: 'Excelling',  color: 'bg-green-500'  },
-  { label: 'Thriving',   color: 'bg-teal-500'   },
-  { label: 'Surviving',  color: 'bg-yellow-500' },
-  { label: 'Struggling', color: 'bg-orange-500' },
-  { label: 'In Crisis',  color: 'bg-red-500'    },
-];
-
-function PermaDistributionWidget() {
-  const [data, setData] = useState<{ total_students_tracked: number; distribution: Record<string, number> } | null>(null);
-  const [notConnected, setNotConnected] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(api('/api/mhbot/stats/perma-distribution'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => {
-        if (r.status === 401) { setNotConnected(true); return null; }
-        return r.ok ? r.json() : null;
-      })
-      .then(d => { if (d) setData(d); })
-      .catch(() => setNotConnected(true));
-  }, []);
-
-  const dist = data?.distribution ?? {};
-  const total = data?.total_students_tracked ?? 0;
-  const maxCount = Math.max(1, ...Object.values(dist));
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student Wellbeing Overview</p>
-        {total > 0 && <span className="text-xs text-gray-400">{total} tracked</span>}
-      </div>
-      {notConnected || (!data && !notConnected) ? (
-        <p className="text-xs text-gray-400 text-center py-8">
-          {notConnected ? 'Connect MHBot to see wellbeing data.' : 'Loading…'}
-        </p>
-      ) : (
-        <div className="space-y-2.5">
-          {PERMA_BARS.map(({ label, color }) => {
-            const count = dist[label] ?? 0;
-            if (count === 0 && dist['No Data'] === total) return null;
-            return (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-20 flex-shrink-0">{label}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full ${color} transition-all`}
-                    style={{ width: `${(count / maxCount) * 100}%` }}
-                  />
-                </div>
-                <span className="text-xs font-medium text-gray-600 w-4 text-right">{count}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-blue-700'  },
-  'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
-  'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
-  'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
-  'In Crisis':  { bg: 'bg-red-500',    text: 'text-red-700'    },
-  'No Data':    { bg: 'bg-gray-300',   text: 'text-gray-500'   },
-};
-const TREND_LABELS = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'];
-
-function PermaTrendsWidget() {
-  const [data, setData] = useState<{ months: string[]; monthly: Record<string, Record<string, number>> } | null>(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(api('/api/mhbot/stats/perma-trends'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d); })
-      .catch(() => {});
-  }, []);
-
-  if (!data) return null;
-
-  const months = data.months ?? [];
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Wellbeing Trends — Last 6 Months</p>
-      <div className="space-y-3">
-        {months.map(month => {
-          const counts = data.monthly[month] ?? {};
-          const total = TREND_LABELS.reduce((s, l) => s + (counts[l] ?? 0), 0);
-          const label = new Date(month + '-15').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-          return (
-            <div key={month} className="flex items-start gap-3">
-              <span className="text-xs text-gray-400 w-12 flex-shrink-0 pt-0.5">{label}</span>
-              <div className="flex-1 space-y-1">
-                {total === 0 ? (
-                  <span className="text-xs text-gray-300 italic">No data</span>
-                ) : (
-                  TREND_LABELS.filter(l => counts[l] > 0).map(l => {
-                    const c = counts[l] ?? 0;
-                    const pct = total > 0 ? (c / total) * 100 : 0;
-                    const col = PERMA_TREND_COLORS[l] ?? PERMA_TREND_COLORS['No Data'];
-                    return (
-                      <div key={l} className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden flex-shrink-0">
-                          <div className={`h-1.5 rounded-full ${col.bg}`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className={`text-[10px] font-medium ${col.text}`}>{l}: {c}</span>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 interface DashboardProps { user: any; onLogout: () => void; }
 
 export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
@@ -205,7 +77,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
             count: null, countColor: '' },
         ].map(({ label, href, icon: Icon, count, countColor }) => (
           <Link key={href} href={href}
-            className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-[#2563eb]/40 hover:bg-green-50/40 transition group">
+            className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 hover:border-[#2563eb]/40 hover:bg-blue-50/40 transition group">
             <div className="w-8 h-8 rounded-lg bg-[#2563eb]/8 flex items-center justify-center flex-shrink-0">
               <Icon size={15} className="text-[#2563eb]" />
             </div>
@@ -228,7 +100,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* Pending confirmation */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-200 rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Pending Confirmation</p>
@@ -265,8 +137,8 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                       </p>
                     </div>
                     <Link href="/appointment-requests">
-                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
-                        Confirm
+                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition flex-shrink-0">
+                        Review →
                       </button>
                     </Link>
                   </div>
@@ -276,7 +148,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* Today's intakes */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-200 rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Today's Intakes</p>
               <Link href="/appointment-requests" className="text-xs text-[#2563eb] hover:underline font-medium">View all</Link>
@@ -298,7 +170,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                       <p className="text-xs text-gray-400">{fmtTime(a.preferred_date || a.scheduled_start)}</p>
                     </div>
                     <Link href="/appointment-requests">
-                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
+                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition flex-shrink-0">
                         Conduct
                       </button>
                     </Link>
@@ -308,11 +180,6 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
             )}
           </div>
 
-          {/* PERMA wellbeing overview */}
-          <PermaDistributionWidget />
-
-          {/* PERMA trends over time */}
-          <PermaTrendsWidget />
 
         </div>
       )}

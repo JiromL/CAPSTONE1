@@ -58,7 +58,7 @@ export default function SupervisionPage() {
   const riskBadge = (level: string) => {
     if (level === 'RED') return 'bg-red-100 text-red-800';
     if (level === 'YELLOW') return 'bg-yellow-100 text-yellow-800';
-    return 'bg-green-100 text-blue-800';
+    return 'bg-green-100 text-green-800';
   };
 
   return (
@@ -72,7 +72,7 @@ export default function SupervisionPage() {
           {/* Summary stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Cases', value: stats?.total_cases ?? 0, icon: <ClipboardList size={18} />, color: 'text-blue-600' },
+              { label: 'Total Cases', value: stats?.total_cases ?? 0, icon: <ClipboardList size={18} />, color: 'text-green-600' },
               { label: 'Active Cases', value: stats?.active_cases ?? 0, icon: <Users size={18} />, color: 'text-green-600' },
               { label: 'High-Risk (RED)', value: stats?.high_risk ?? 0, icon: <AlertTriangle size={18} />, color: 'text-red-600' },
               { label: 'Pending Handoffs', value: stats?.pending_referrals ?? 0, icon: <GitBranch size={18} />, color: 'text-orange-600' },

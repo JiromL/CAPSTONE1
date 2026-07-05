@@ -122,7 +122,7 @@ export default function CounselorsAvailabilityPage() {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Active Counselors</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{counselorStats.length}</p>
               </div>
-              <Users className="text-blue-600 dark:text-blue-400" size={32} />
+              <Users className="text-green-600 dark:text-green-400" size={32} />
             </div>
           </div>
           <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg p-6 border border-green-200 dark:border-blue-700">
@@ -212,7 +212,7 @@ export default function CounselorsAvailabilityPage() {
                           </span>
                         )}
                         {isUnderloaded && (
-                          <span className="px-3 py-1 bg-green-100 dark:bg-blue-900/30 text-blue-700 dark:text-green-300 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-green-100 dark:bg-blue-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
                             ✓ Available
                           </span>
                         )}
@@ -235,7 +235,7 @@ export default function CounselorsAvailabilityPage() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Next 7 Days</p>
-                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{counselor.upcomingWeek}</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{counselor.upcomingWeek}</p>
                       </div>
                     </div>
 

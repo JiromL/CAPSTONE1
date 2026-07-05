@@ -48,7 +48,6 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
         return;
       }
 
-      console.log('[ScheduleCalendar] Fetching case with ID:', caseId?.substring(0, 8) + '...');
 
       // For now, we'll fetch the case to get the case's assigned counselor
       const response = await fetch(api(`/api/cases/${caseId}`), {
@@ -59,22 +58,17 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
         },
       });
 
-      console.log('[ScheduleCalendar] Case fetch response:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[ScheduleCalendar] Case response keys:', Object.keys(data));
         
         // Handle both response formats: direct case object or { case: {...} }
         const caseData = data.case || data;
         
-        console.log('[ScheduleCalendar] Case data keys:', Object.keys(caseData));
-        console.log('[ScheduleCalendar] assigned_counselor_id:', caseData.assigned_counselor_id);
         
         // Try multiple field names
         const counselorId = caseData.assigned_counselor_id || caseData.counselor_id || caseData.counselorId;
         if (counselorId) {
-          console.log('[ScheduleCalendar] Setting counselor ID:', counselorId.substring(0, 8) + '...');
           setCounselorId(counselorId);
           setLoadingError(null);
         } else {
@@ -216,7 +210,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
         <div
           className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
             message.type === 'success'
-              ? 'bg-green-100 dark:bg-blue-900/30 text-blue-700 dark:text-green-300'
+              ? 'bg-green-100 dark:bg-blue-900/30 text-green-700 dark:text-green-300'
               : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
           }`}
         >

@@ -135,7 +135,7 @@ export default function ReferralsPage() {
           </div>
         )}
         {createSuccess && (
-          <div className="p-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded text-sm text-blue-700 dark:text-green-300">
+          <div className="p-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded text-sm text-green-700 dark:text-green-300">
             {createSuccess}
           </div>
         )}
@@ -310,7 +310,7 @@ function ReferralCard({ referral }: { referral: Referral }) {
     SUBMITTED: 'bg-blue-100 text-blue-800',
     ACKNOWLEDGED: 'bg-yellow-100 text-yellow-800',
     IN_PROGRESS: 'bg-orange-100 text-orange-800',
-    COMPLETED: 'bg-green-100 text-blue-800',
+    COMPLETED: 'bg-green-100 text-green-800',
     ASSIGNED: 'bg-purple-100 text-purple-800',
     UNDER_INVESTIGATION: 'bg-red-100 text-red-800',
   };

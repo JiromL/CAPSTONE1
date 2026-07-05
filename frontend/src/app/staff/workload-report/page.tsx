@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Users, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { api } from '@/utils/api';
 import PageShell from '@/components/PageShell';
 
 export default function WorkloadReportPage() {
@@ -13,7 +14,7 @@ export default function WorkloadReportPage() {
     const fetchReport = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('/api/appointments/staff/workload-report', {
+        const response = await fetch(api('/api/appointments/staff/workload-report'), {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -63,8 +64,8 @@ export default function WorkloadReportPage() {
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
-          <p className="text-blue-700 dark:text-blue-300 text-sm font-medium">Total Counselors</p>
-          <p className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2">{counselors.length}</p>
+          <p className="text-green-700 dark:text-green-300 text-sm font-medium">Total Counselors</p>
+          <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{counselors.length}</p>
         </div>
 
         <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 p-4">
@@ -78,8 +79,8 @@ export default function WorkloadReportPage() {
         </div>
 
         <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg border border-green-200 dark:border-blue-800 p-4">
-          <p className="text-blue-700 dark:text-green-300 text-sm font-medium">Utilization</p>
-          <p className="text-3xl font-bold text-blue-900 dark:text-green-100 mt-2">{utilizationRate}%</p>
+          <p className="text-green-700 dark:text-green-300 text-sm font-medium">Utilization</p>
+          <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{utilizationRate}%</p>
         </div>
       </div>
 
@@ -125,7 +126,7 @@ export default function WorkloadReportPage() {
                   full: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
                   high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
                   medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-                  low: 'bg-green-100 dark:bg-blue-900/30 text-blue-800 dark:text-green-300',
+                  low: 'bg-green-100 dark:bg-blue-900/30 text-green-800 dark:text-green-300',
                 };
 
                 return (

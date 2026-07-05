@@ -40,19 +40,8 @@ const TABS = [
 
 type TabKey = typeof TABS[number]['key'];
 
-const TAB_ACTIVE_CLS: Record<TabKey, string> = {
-  upcoming:   'bg-blue-50 text-blue-700 border-b-2 border-blue-500',
-  evaluation: 'bg-amber-50 text-amber-700 border-b-2 border-amber-500',
-  past:       'bg-green-50 text-[#2563eb] border-b-2 border-[#2563eb]',
-  cancelled:  'bg-red-50 text-red-600 border-b-2 border-red-500',
-};
-
-const TAB_ICON_CLS: Record<TabKey, string> = {
-  upcoming:   'text-blue-600',
-  evaluation: 'text-amber-600',
-  past:       'text-[#2563eb]',
-  cancelled:  'text-red-500',
-};
+const TAB_ACTIVE_CLS = 'text-[#2563eb] border-b-2 border-[#2563eb]';
+const TAB_ICON_CLS = 'text-[#2563eb]';
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
   upcoming:   ['REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
@@ -62,21 +51,21 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  REQUESTED:            { label: 'Pending',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  PENDING_APPROVAL:     { label: 'Under Review',       cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
-  PENDING_STUDENT_APPROVAL: { label: 'Confirm Schedule',       cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
-  EVALUATION:           { label: 'For Evaluation',     cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-300' },
-  FOLLOW_UP:            { label: 'Follow-Up',          cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' },
-  REFERRAL:             { label: 'Referral',           cls: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' },
-  COMPLETED:            { label: 'Completed',          cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
-  CANCELLED:            { label: 'Cancelled',          cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
-  DENIED:               { label: 'Denied',             cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
-  NO_SHOW:              { label: 'No Show',            cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  REQUESTED:                { label: 'Pending review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  PENDING_APPROVAL:         { label: 'Pending review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  MATCHED:                  { label: 'Pending review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  CONFIRMED:                { label: 'Confirmed',           cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  APPROVED:                 { label: 'Confirmed',           cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CHECKED_IN:               { label: 'Confirmed',           cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  RESCHEDULE_REQUESTED:     { label: 'Reschedule pending',  cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  PENDING_STUDENT_APPROVAL: { label: 'Action required',     cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  EVALUATION:               { label: 'Rate your session',   cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  FOLLOW_UP:                { label: 'Completed',           cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+  REFERRAL:                 { label: 'Completed',           cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+  COMPLETED:                { label: 'Completed',           cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+  CANCELLED:                { label: 'Cancelled',           cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  DENIED:                   { label: 'Cancelled',           cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+  NO_SHOW:                  { label: 'Missed',              cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
 };
 
 const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
@@ -445,9 +434,9 @@ export default function MyAppointmentsPage() {
                 });
               }}
                 className={`flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
-                  isActive ? TAB_ACTIVE_CLS[tab.key] : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                  isActive ? TAB_ACTIVE_CLS : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}>
-                <Icon size={18} className={isActive ? TAB_ICON_CLS[tab.key] : 'text-gray-400'} />
+                <Icon size={18} className={isActive ? TAB_ICON_CLS : 'text-gray-400'} />
                 <span>{tab.label}</span>
                 {cnt > 0 && !seenTabs.has(tab.key) && (
                   <span className="absolute -top-1 -right-0.5 text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none bg-gray-700 text-white">
@@ -577,7 +566,7 @@ export default function MyAppointmentsPage() {
                         )}
                         {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === true && (
                           <button onClick={() => openViewForms(appt)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
                             <Eye size={11} /> View Forms
                           </button>
                         )}
@@ -630,7 +619,7 @@ export default function MyAppointmentsPage() {
                             <button
                               onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
                               title="Request reschedule"
-                              className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition">
+                              className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-green-600 transition">
                               <RotateCcw size={14} />
                             </button>
                           )}
@@ -727,7 +716,7 @@ export default function MyAppointmentsPage() {
                 )}
                 {detailAppt.meeting_link && (
                   <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700 hover:bg-green-100 transition font-medium">
+                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
                     <Video size={14} /> Join Session
                   </a>
                 )}

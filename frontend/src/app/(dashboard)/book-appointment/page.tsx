@@ -25,10 +25,10 @@ const PLATFORMS = [
 ];
 
 const PHQ4Q = [
-  { text: 'Little interest or pleasure in doing things', sub: 'PHQ-2 Depression Screener' },
-  { text: 'Feeling down, depressed, or hopeless',        sub: 'PHQ-2 Depression Screener' },
-  { text: 'Feeling nervous, anxious, or on edge',        sub: 'GAD-2 Anxiety Screener' },
-  { text: 'Not being able to stop or control worrying',  sub: 'GAD-2 Anxiety Screener' },
+  { text: 'Little interest or pleasure in doing things' },
+  { text: 'Feeling down, depressed, or hopeless' },
+  { text: 'Feeling nervous, anxious, or on edge' },
+  { text: 'Not being able to stop or control worrying' },
 ];
 
 const FREQ = [
@@ -39,9 +39,9 @@ const FREQ = [
 ];
 
 const INTAKE_STEPS = [
-  { num: 1, label: 'Contact Form',    sub: 'ICF',     color: 'bg-sky-500' },
-  { num: 2, label: 'Personal Info',   sub: 'SPIF-IF', color: 'bg-violet-500' },
-  { num: 3, label: 'Mental Screen',   sub: 'PHQ-4',   color: 'bg-orange-500' },
+  { num: 1, label: 'Contact Form',  color: 'bg-sky-500' },
+  { num: 2, label: 'Personal Info', color: 'bg-violet-500' },
+  { num: 3, label: 'Mental Screen', color: 'bg-orange-500' },
 ];
 
 const DRAFT_KEY = 'bookAppointmentDraft_v2';
@@ -90,7 +90,6 @@ function StepWizard({ current }: { current: number }) {
                 {done ? <Check size={16} /> : s.num}
               </div>
               <p className={`text-[11px] font-semibold mt-1.5 text-center leading-tight ${active ? 'text-[#2563eb]' : done ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
-              <span className={`text-[9px] uppercase tracking-wide font-bold mt-0.5 ${active ? 'text-[#2563eb]/60' : 'text-gray-300'}`}>{s.sub}</span>
             </div>
             {i < INTAKE_STEPS.length - 1 && (
               <div className={`mt-4 h-0.5 w-8 mx-1 ${i < current ? 'bg-[#2563eb]' : 'bg-gray-200'}`} />
@@ -443,8 +442,8 @@ export default function BookAppointmentPage() {
           <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4 mb-6">
             <CheckCircle size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-bold text-blue-800">Appointment Booked — Ticket #{ticketNumber}</p>
-              <p className="text-xs text-blue-700 mt-0.5">Please complete the intake forms below. Your IC will review these before your session to better prepare.</p>
+              <p className="text-sm font-bold text-green-800">Appointment Booked — Ticket #{ticketNumber}</p>
+              <p className="text-xs text-green-700 mt-0.5">Please complete the intake forms below. Your IC will review these before your session to better prepare.</p>
             </div>
           </div>
 
@@ -465,9 +464,9 @@ export default function BookAppointmentPage() {
               {intakeStep===2 && <Brain size={16} className="text-orange-600" />}
               <div>
                 <p className="text-sm font-bold text-gray-900">
-                  {intakeStep===0 && 'Initial Contact Form (ICF)'}
-                  {intakeStep===1 && 'Personal Background (SPIF-IF)'}
-                  {intakeStep===2 && 'Mental Health Screener (PHQ-4)'}
+                  {intakeStep===0 && 'Contact Form'}
+                  {intakeStep===1 && 'Personal Background'}
+                  {intakeStep===2 && 'Mental Health Screener'}
                 </p>
                 <p className="text-xs text-gray-500">
                   {intakeStep===0 && 'Basic information, emergency contact, and presenting concern'}
@@ -622,11 +621,7 @@ export default function BookAppointmentPage() {
                     <p className="text-xs text-orange-600 mt-0.5">Select the answer that best describes how you've been feeling. This helps your counselor assess your current wellbeing.</p>
                   </div>
 
-                  <div className="flex items-center gap-2 px-1">
-                    <div className="flex-1 h-px bg-blue-200" />
-                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide px-2">PHQ-2 — Depression Screener</span>
-                    <div className="flex-1 h-px bg-blue-200" />
-                  </div>
+                  <div className="h-px bg-gray-100" />
                   {PHQ4Q.slice(0,2).map((q,i) => (
                     <div key={i} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
                       <p className="text-sm font-semibold text-gray-800 mb-3">
@@ -645,11 +640,7 @@ export default function BookAppointmentPage() {
                     </div>
                   ))}
 
-                  <div className="flex items-center gap-2 px-1 mt-2">
-                    <div className="flex-1 h-px bg-amber-200" />
-                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide px-2">GAD-2 — Anxiety Screener</span>
-                    <div className="flex-1 h-px bg-amber-200" />
-                  </div>
+                  <div className="h-px bg-gray-100 mt-2" />
                   {PHQ4Q.slice(2,4).map((q,i) => (
                     <div key={i} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
                       <p className="text-sm font-semibold text-gray-800 mb-3">
@@ -726,15 +717,30 @@ export default function BookAppointmentPage() {
               </div>
             </div>
           </div>
-          {isSlotBooking && (
-            <div className="flex items-start gap-3 bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4">
-              <CalendarCheck size={16} className="text-sky-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-sky-800">Pending IC confirmation</p>
-                <p className="text-xs text-sky-700 mt-0.5">Your intake counselor will review and confirm your slot. You'll see the status update in My Appointments.</p>
-              </div>
-            </div>
-          )}
+          {/* What happens next */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">What happens next</p>
+            <ol className="space-y-3">
+              {(isSlotBooking ? [
+                { label: 'IC reviews your slot', desc: 'Your intake counselor will confirm or adjust your reserved time within 1–2 business days.' },
+                { label: 'Check your email', desc: 'You\'ll receive a confirmation email at your DLSU address once your appointment is confirmed.' },
+                { label: 'Attend your intake interview', desc: 'Bring a valid DLSU ID. The session is confidential and takes about 30–45 minutes.' },
+              ] : [
+                { label: 'Office reviews your request', desc: 'The CPS office will review your request and reach out within 1–2 business days.' },
+                { label: 'Check your email', desc: 'You\'ll receive scheduling details at your DLSU email address.' },
+                { label: 'Attend your intake interview', desc: 'Bring a valid DLSU ID. The session is confidential and takes about 30–45 minutes.' },
+              ]).map((s, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="w-5 h-5 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-[10px] font-bold text-[#2563eb] flex-shrink-0 mt-0.5">{i + 1}</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{s.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{s.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
           {formSkipped && (
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
               <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
@@ -802,7 +808,7 @@ export default function BookAppointmentPage() {
 
               {/* III. Privacy Notice */}
               <div className="border border-blue-200 rounded-lg p-3 bg-blue-50/50">
-                <p className="font-bold text-blue-800 text-xs uppercase tracking-wide mb-2">III. Privacy Notice</p>
+                <p className="font-bold text-green-800 text-xs uppercase tracking-wide mb-2">III. Privacy Notice</p>
                 <p className="text-xs text-gray-600 mb-1 font-medium">Information we collect:</p>
                 <ul className="text-xs text-gray-600 ml-4 list-disc space-y-0.5 mb-2">
                   <li>Personal information: name, student ID, contact details, college, and program</li>
@@ -944,7 +950,7 @@ export default function BookAppointmentPage() {
       <div className="max-w-2xl mx-auto">
         {hasDraft && (
           <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm">
-            <span className="text-blue-600 font-medium">Draft loaded from previous session.</span>
+            <span className="text-green-600 font-medium">Draft loaded from previous session.</span>
             <button onClick={clearDraft} className="text-xs text-gray-400 hover:text-red-500">Clear draft</button>
           </div>
         )}

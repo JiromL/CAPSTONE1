@@ -250,7 +250,7 @@ def get_user_perma(username):
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 401
+        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
 
     limit = min(request.args.get('limit', 5, type=int), 100)
     # Resolve student user_id for denormalized save
@@ -277,7 +277,7 @@ def lookup_perma_by_username():
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 401
+        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
 
     data = request.get_json() or {}
     username = data.get('username', '').strip()
@@ -307,7 +307,7 @@ def batch_perma_labels():
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to MHBot'}), 401
+        return jsonify({'error': 'Not connected to MHBot'}), 503
 
     data = request.get_json() or {}
     usernames = data.get('usernames', [])
@@ -333,7 +333,7 @@ def get_pending_students_with_perma():
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 401
+        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
 
     try:
         pending = db.db.appointments.find({'status': {'$in': ['REQUESTED', 'PENDING_APPROVAL']}}).sort('requested_start', -1)
@@ -381,7 +381,7 @@ def link_case_to_mhbot(case_id):
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 401
+        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
 
     data = request.get_json() or {}
     mhbot_username = data.get('mhbot_username', '').strip()
@@ -448,7 +448,7 @@ def get_cm_queue():
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to EMA. Please log in via the EMA page.'}), 401
+        return jsonify({'error': 'Not connected to EMA. Please log in via the EMA page.'}), 503
 
     try:
         flagged_labels = {'Struggling', 'In Crisis'}
@@ -494,7 +494,7 @@ def get_perma_distribution():
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 401
+        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
 
     try:
         labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
@@ -590,7 +590,7 @@ def get_perma_trends():
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to MHBot'}), 401
+        return jsonify({'error': 'Not connected to MHBot'}), 503
 
     from datetime import datetime as dt
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
@@ -651,7 +651,7 @@ def sync_all_perma():
 
     token = _get_user_token(user_id)
     if not token:
-        return jsonify({'error': 'Not connected to EMA. Please log in first.'}), 401
+        return jsonify({'error': 'Not connected to EMA. Please log in first.'}), 503
 
     limit = min(request.args.get('limit', 50, type=int), 200)
     students = list(db.db.users.find(
@@ -836,113 +836,6 @@ def ema_webhook():
         logger.warning('EMA webhook: no CPS student found for mhbot_username=%s email=%s — snapshot saved without user link', mhbot_username, email)
 
     return jsonify({'received': True, 'label': perma_label, 'student_found': student is not None}), 200
-
-
-@mhbot_bp.route('/debug/probe', methods=['GET'])
-@jwt_required()
-def debug_probe():
-    """Probe EMA API chat routes using ema_nhS credentials."""
-    import json as json_mod
-    # Login fresh as ema_nhS to get a chat-scoped token
-    login_resp = requests.post(f"{MHBOT_BASE_URL}/api/v1/auth/login",
-        data={'grant_type': 'password', 'username': 'ema_nhS', 'password': 'tmp!QLFv', 'scope': 'chat'},
-        headers={'accept': 'application/json'}, timeout=10)
-    if login_resp.status_code != 200:
-        return jsonify({'error': 'Login failed', 'detail': login_resp.text}), 400
-    token = login_resp.json().get('access_token', '')
-    if not token:
-        return jsonify({'error': 'No token returned'}), 400
-
-    results = {}
-    chat_paths = [
-        '/api/v1/chat/history',
-        '/api/v1/chat/sessions',
-        '/api/v1/chat/perma',
-        '/api/v1/chat/perma_history',
-        '/api/v1/chat/labels',
-        '/api/v1/user/perma',
-        '/api/v1/user/perma_history',
-        '/api/v1/user/history',
-        '/api/v1/history',
-        '/api/v1/perma',
-        '/api/v1/perma/me',
-        '/api/v1/chat/me/perma',
-        '/api/v1/me/perma',
-        '/api/v1/me/history',
-        '/api/v1/me',
-    ]
-    probe_urls = [f"{MHBOT_BASE_URL}{p}" for p in chat_paths]
-    for url in probe_urls:
-        try:
-            r = requests.get(url, headers=_auth_headers(token), timeout=5)
-            results[url] = {'status': r.status_code, 'body': r.text[:300]}
-        except Exception as e:
-            results[url] = {'error': str(e)}
-    return jsonify(results), 200
-
-
-@mhbot_bp.route('/debug/token-info', methods=['GET'])
-@jwt_required()
-def debug_token_info():
-    """Decode the stored EMA JWT to find the ema_XXX identifier."""
-    import base64, json as json_mod
-    user_id = get_jwt_identity()
-    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    token = user.get('mhbot_token', '')
-    if not token:
-        return jsonify({'error': 'Not connected to EMA'}), 400
-    try:
-        parts = token.split('.')
-        payload_b64 = parts[1] + '=='  # pad
-        payload = json_mod.loads(base64.urlsafe_b64decode(payload_b64).decode())
-        return jsonify({'payload': payload, 'stored_username': user.get('mhbot_username')}), 200
-    except Exception as e:
-        return jsonify({'error': str(e), 'token_preview': token[:40]}), 500
-
-
-@mhbot_bp.route('/debug/users', methods=['GET'])
-@jwt_required()
-def debug_ema_users():
-    """List EMA users to find the correct username format for the history API."""
-    user_id = get_jwt_identity()
-    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    token = user.get('mhbot_token', '')
-    if not token:
-        return jsonify({'error': 'Not connected to EMA'}), 400
-    url = f"{MHBOT_BASE_URL}/api/v1/dashboard/users"
-    try:
-        resp = requests.get(url, headers=_auth_headers(token), timeout=10)
-        return jsonify({'status_code': resp.status_code, 'raw': resp.json() if resp.status_code == 200 else resp.text}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@mhbot_bp.route('/debug/raw-history', methods=['GET'])
-@jwt_required()
-def debug_raw_history():
-    """Return raw EMA API response for debugging label issues."""
-    user_id = get_jwt_identity()
-    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    token = user.get('mhbot_token', '')
-    mhbot_username = user.get('mhbot_username', '')
-    if not token or not mhbot_username:
-        return jsonify({'error': 'Not connected to EMA'}), 400
-    url = f"{MHBOT_BASE_URL}/api/v1/dashboard/user_perma_history/{mhbot_username}"
-    try:
-        resp = requests.get(url, headers=_auth_headers(token), params={'offset': 0, 'limit': 5}, timeout=10)
-        return jsonify({
-            'status_code': resp.status_code,
-            'mhbot_username': mhbot_username,
-            'raw': resp.json() if resp.status_code == 200 else resp.text,
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 @mhbot_bp.route('/health', methods=['GET'])

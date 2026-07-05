@@ -65,7 +65,7 @@ def get_new_intakes():
     if month:
         from datetime import datetime as dt
         start = dt.strptime(f"{month}-01", '%Y-%m-%d')
-        end   = dt(start.year, start.month + 1 if start.month < 12 else 1, 1)
+        end   = dt(start.year + 1 if start.month == 12 else start.year, start.month + 1 if start.month < 12 else 1, 1)
         query['created_at'] = {'$gte': start, '$lt': end}
 
     total   = db.db.intakes.count_documents(query)
@@ -116,6 +116,7 @@ def get_new_intakes():
             'action_taken':           r.get('triage_decision',''),
             'status':                 r.get('status','PENDING'),
             'created_date':           r.get('created_at','').isoformat() if hasattr(r.get('created_at',''), 'isoformat') else str(r.get('created_at','')),
+            'appointment_id':          str(r['appointment_id']) if r.get('appointment_id') else None,
             'intake_packet_submitted': str(r.get('appointment_id','')) in packets_submitted,
             'mhbot_username': s.get('mhbot_username') if s else None,
             'case_id': case_map.get(str(r.get('student_id', '')), None),
@@ -126,6 +127,54 @@ def get_new_intakes():
         'total': total,
         'page':  page,
         'pages': (total + limit - 1) // limit,
+    }), 200
+
+
+@client_tracking_bp.route('/new-intakes/counts', methods=['GET'])
+@jwt_required()
+def get_new_intakes_counts():
+    """Return status counts for new intakes in a single query."""
+    user = get_user_from_token()
+    if user['role'] == UserRole.STUDENT:
+        return jsonify({"error": "Access denied"}), 403
+
+    search = request.args.get('search', '')
+    month  = request.args.get('month', '')
+    mine   = request.args.get('mine', 'false').lower() == 'true'
+
+    base_query = {}
+    if mine and user['role'] == UserRole.IC:
+        base_query['counselor_id'] = user['_id']
+    if search:
+        base_query['$or'] = [
+            {'responses.first_name': {'$regex': search, '$options': 'i'}},
+            {'responses.last_name':  {'$regex': search, '$options': 'i'}},
+            {'responses.email':      {'$regex': search, '$options': 'i'}},
+            {'responses.student_id': {'$regex': search, '$options': 'i'}},
+        ]
+    if month:
+        from datetime import datetime as dt
+        start = dt.strptime(f"{month}-01", '%Y-%m-%d')
+        end   = dt(start.year + 1 if start.month == 12 else start.year, start.month + 1 if start.month < 12 else 1, 1)
+        base_query['created_at'] = {'$gte': start, '$lt': end}
+
+    pipeline = [
+        {'$match': base_query},
+        {'$group': {'_id': '$status', 'count': {'$sum': 1}}},
+    ]
+    rows = list(db.db.intakes.aggregate(pipeline))
+    by_status = {r['_id']: r['count'] for r in rows}
+
+    total      = sum(by_status.values())
+    new_count  = by_status.get('NEW', 0)
+    in_progress = by_status.get('PENDING', 0) + by_status.get('IN_PROGRESS', 0)
+    completed  = by_status.get('COMPLETED', 0)
+
+    return jsonify({
+        'total': total,
+        'new': new_count,
+        'inProgress': in_progress,
+        'completed': completed,
     }), 200
 
 

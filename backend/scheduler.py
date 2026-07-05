@@ -150,26 +150,34 @@ PERMA_SYNC_INTERVAL_SECONDS = 6 * 60 * 60  # every 6 hours
 _last_perma_sync = 0
 
 
+def _get_fresh_ema_token():
+    """Login to EMA with staff credentials from env and return a fresh dashboard token."""
+    import os, requests as req
+    base = os.getenv('MHBOT_BASE_URL', 'https://pchrd-ema.dlsu.edu.ph/backend')
+    username = os.getenv('MHBOT_USERNAME', '')
+    password = os.getenv('MHBOT_PASSWORD', '')
+    if not username or not password:
+        return None
+    try:
+        r = req.post(f'{base}/api/v1/auth/login',
+            data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'chat dashboard'},
+            headers={'accept': 'application/json'}, timeout=10)
+        if r.ok:
+            return r.json().get('access_token')
+    except Exception as e:
+        print(f'[Scheduler] EMA login error: {e}')
+    return None
+
+
 def _sync_perma_labels(app):
     """Fetch latest PERMA history from EMA for all linked students and save to DB."""
     with app.app_context():
         from models import db
-        from blueprints.mhbot_integration import get_perma_history, _get_user_token
+        from blueprints.mhbot_integration import get_perma_history
 
-        now = datetime.utcnow()
-
-        # Find any staff member with a valid EMA token to use for fetching
-        staff_token = None
-        staff_user = db.db.users.find_one({
-            'mhbot_token': {'$exists': True, '$ne': ''},
-            'mhbot_token_expires_at': {'$gt': now},
-            'role': {'$in': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN']},
-        })
-        if staff_user:
-            staff_token = staff_user.get('mhbot_token', '')
-
+        staff_token = _get_fresh_ema_token()
         if not staff_token:
-            print('[Scheduler] PERMA sync skipped — no staff EMA token available')
+            print('[Scheduler] PERMA sync skipped — EMA login failed (check MHBOT_USERNAME/PASSWORD in .env)')
             return
 
         students = list(db.db.users.find(

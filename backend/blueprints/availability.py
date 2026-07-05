@@ -619,3 +619,86 @@ def bulk_create_availability():
         'total_slots': len(created_slots),
         'slots': created_slots
     }), 201
+
+
+@availability_bp.route('/my-slots', methods=['GET'])
+@jwt_required()
+def get_my_slots():
+    """Return the requesting counselor/psychologist's own free slots for a given date.
+    Used by the schedule modal so staff see only their own availability.
+
+    Query params:
+      date – YYYY-MM-DD (required)
+    """
+    user_id = get_jwt_identity()
+    date_str = request.args.get('date')
+    if not date_str:
+        return jsonify({'error': 'date is required'}), 400
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'date must be YYYY-MM-DD'}), 400
+
+    try:
+        user_id_obj = ObjectId(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid user'}), 400
+
+    user = db.db.users.find_one({'_id': user_id_obj})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    SLOT_DURATION = 60
+    dow = target_date.weekday()
+
+    doc = db.db.counselor_availability.find_one({'counselor_id': user_id_obj})
+    if not doc or not doc.get('schedule'):
+        return jsonify({'slots': [], 'message': 'No availability configured for this date'}), 200
+
+    working = next((e for e in doc['schedule'] if e.get('day_of_week') == dow), None)
+    if not working:
+        return jsonify({'slots': [], 'message': 'No availability on this day'}), 200
+
+    session_method = working.get('method') or working.get('session_method') or 'in-person'
+    sh, sm = map(int, working['start_time'].split(':'))
+    eh, em = map(int, working['end_time'].split(':'))
+    cursor = target_date.replace(hour=sh, minute=sm, second=0, microsecond=0)
+    day_end = target_date.replace(hour=eh, minute=em, second=0, microsecond=0)
+
+    all_slots = []
+    while cursor + timedelta(minutes=SLOT_DURATION) <= day_end:
+        all_slots.append(cursor)
+        cursor += timedelta(minutes=SLOT_DURATION)
+
+    day_start_dt = target_date.replace(hour=0, minute=0, second=0)
+    day_end_dt   = target_date.replace(hour=23, minute=59, second=59)
+    booked = list(db.db.appointments.find({
+        'counselor_id': user_id_obj,
+        'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'PENDING_STUDENT_APPROVAL']},
+        '$or': [
+            {'scheduled_start': {'$gte': day_start_dt, '$lte': day_end_dt}},
+            {'requested_start':  {'$gte': day_start_dt, '$lte': day_end_dt}},
+        ],
+    }))
+
+    def is_booked(slot_dt):
+        slot_end = slot_dt + timedelta(minutes=SLOT_DURATION)
+        for apt in booked:
+            apt_start = apt.get('scheduled_start') or apt.get('requested_start')
+            if not apt_start:
+                continue
+            if isinstance(apt_start, str):
+                try:
+                    apt_start = datetime.fromisoformat(apt_start)
+                except Exception:
+                    continue
+            apt_end = apt_start + timedelta(minutes=SLOT_DURATION)
+            if slot_dt < apt_end and slot_end > apt_start:
+                return True
+        return False
+
+    slots = [
+        {'time': s.strftime('%H:%M'), 'method': session_method}
+        for s in all_slots if not is_booked(s)
+    ]
+    return jsonify({'slots': slots, 'date': date_str}), 200

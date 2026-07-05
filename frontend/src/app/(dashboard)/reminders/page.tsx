@@ -418,7 +418,7 @@ export default function RemindersPage() {
                           {getReminderTypeLabel(reminder.reminder_type)}
                         </span>
                         {reminder.sent && (
-                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-blue-900 text-blue-800 dark:text-green-200">
+                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-blue-900 text-green-800 dark:text-blue-200">
                             Sent
                           </span>
                         )}

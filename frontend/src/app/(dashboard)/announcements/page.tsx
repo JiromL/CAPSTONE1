@@ -25,7 +25,7 @@ const EVENT_TYPES = [
 
 const TYPE_STYLES: Record<string, { bg: string; text: string }> = {
   webinar: { bg: 'bg-blue-50',   text: 'text-blue-600' },
-  event:   { bg: 'bg-green-50',  text: 'text-blue-700' },
+  event:   { bg: 'bg-green-50',  text: 'text-green-700' },
   notice:  { bg: 'bg-orange-50', text: 'text-orange-600' },
   info:    { bg: 'bg-gray-100',  text: 'text-gray-600' },
 };

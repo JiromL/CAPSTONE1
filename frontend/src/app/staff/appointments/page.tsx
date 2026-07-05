@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Search, Filter, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { api } from '@/utils/api';
 import PageShell from '@/components/PageShell';
 
 export default function AppointmentsPage() {
@@ -27,7 +28,7 @@ export default function AppointmentsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/appointments', {
+      const response = await fetch(api('/api/appointments'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -92,12 +93,12 @@ export default function AppointmentsPage() {
       },
       confirmed: {
         bg: 'bg-blue-100 dark:bg-blue-900/30',
-        text: 'text-blue-800 dark:text-blue-300',
+        text: 'text-green-800 dark:text-green-300',
         icon: CheckCircle,
       },
       completed: {
         bg: 'bg-green-100 dark:bg-blue-900/30',
-        text: 'text-blue-800 dark:text-green-300',
+        text: 'text-green-800 dark:text-green-300',
         icon: CheckCircle,
       },
       cancelled: {
@@ -184,7 +185,7 @@ export default function AppointmentsPage() {
 
       {/* Results Count */}
       <div className="mb-4 flex items-center gap-2">
-        <Calendar size={20} className="text-blue-600" />
+        <Calendar size={20} className="text-green-600" />
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Showing <span className="font-semibold text-gray-900 dark:text-gray-50">{filtered.length}</span> of{' '}
           <span className="font-semibold text-gray-900 dark:text-gray-50">{appointments.length}</span> appointments

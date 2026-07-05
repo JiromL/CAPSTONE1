@@ -249,7 +249,7 @@ export default function WalkInIntakePage() {
                   <p className="text-sm font-semibold text-gray-900">{selected.first_name} {selected.last_name}</p>
                   <p className="text-xs text-gray-400">{selected.email}</p>
                 </div>
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-50 text-blue-700 border border-green-100 font-medium">Has account</span>
+                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">Has account</span>
               </div>
             </div>
 
@@ -388,7 +388,7 @@ function FormFooter({ error, success, loading, onCancel }: {
       {success && (
         <div className="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
           <CheckCircle2 size={15} className="text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-blue-700">{success}</p>
+          <p className="text-sm text-green-700">{success}</p>
         </div>
       )}
       <div className="flex gap-3">

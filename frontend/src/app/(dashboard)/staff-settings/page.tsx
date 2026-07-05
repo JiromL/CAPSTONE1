@@ -337,7 +337,7 @@ export default function StaffSettingsPage() {
   return (
     <DashboardPageWrapper title="Settings" subtitle="Configure your work preferences and availability">
       {toast && (
-        <div className={`mb-4 p-4 rounded-lg ${toast.type === 'success' ? 'bg-green-50 text-blue-800' : 'bg-red-50 text-red-800'}`}>
+        <div className={`mb-4 p-4 rounded-lg ${toast.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
           {toast.message}
         </div>
       )}
@@ -407,7 +407,7 @@ export default function StaffSettingsPage() {
               onClick={() => setActiveTab('booking-rules')}
               className={`px-4 py-3 font-medium border-b-2 transition ${
                 activeTab === 'booking-rules'
-                  ? 'border-green-600 text-green-600'
+                  ? 'border-blue-600 text-green-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -599,7 +599,7 @@ export default function StaffSettingsPage() {
                 Connect your Google account so confirmed appointments automatically appear in your calendar and students receive calendar invites.
               </p>
               {calendarConnected === null ? (
-                <div className="w-5 h-5 border-2 border-gray-200 border-t-green-500 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
               ) : calendarConnected ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-green-400">
@@ -731,7 +731,7 @@ export default function StaffSettingsPage() {
                     }}
                     className={`w-12 h-12 rounded-lg text-sm font-medium border-2 transition ${
                       bookingRules.operating_days.includes(i)
-                        ? 'bg-green-600 border-green-600 text-white'
+                        ? 'bg-green-600 border-blue-600 text-white'
                         : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400'
                     }`}
                   >
@@ -751,7 +751,7 @@ export default function StaffSettingsPage() {
                   <select
                     value={bookingRules.operating_hours_start}
                     onChange={e => setBookingRules({ ...bookingRules, operating_hours_start: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -761,7 +761,7 @@ export default function StaffSettingsPage() {
                   <select
                     value={bookingRules.last_slot_start}
                     onChange={e => setBookingRules({ ...bookingRules, last_slot_start: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -771,7 +771,7 @@ export default function StaffSettingsPage() {
                   <select
                     value={bookingRules.operating_hours_end}
                     onChange={e => setBookingRules({ ...bookingRules, operating_hours_end: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -790,7 +790,7 @@ export default function StaffSettingsPage() {
                     type="number" min="0" max="30"
                     value={bookingRules.min_days_ahead}
                     onChange={e => setBookingRules({ ...bookingRules, min_days_ahead: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-xs text-gray-400 mt-1">e.g. 1 = tomorrow earliest</p>
                 </div>
@@ -800,7 +800,7 @@ export default function StaffSettingsPage() {
                     type="number" min="1" max="365"
                     value={bookingRules.max_days_ahead}
                     onChange={e => setBookingRules({ ...bookingRules, max_days_ahead: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-xs text-gray-400 mt-1">e.g. 30 = up to a month out</p>
                 </div>
@@ -809,7 +809,7 @@ export default function StaffSettingsPage() {
                   <select
                     value={bookingRules.slot_duration_minutes}
                     onChange={e => setBookingRules({ ...bookingRules, slot_duration_minutes: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     {[30, 45, 50, 60, 90].map(v => <option key={v} value={v}>{v} min</option>)}
                   </select>
@@ -826,7 +826,7 @@ export default function StaffSettingsPage() {
                   type="date"
                   value={newBlackout}
                   onChange={e => setNewBlackout(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   type="button"
@@ -836,7 +836,7 @@ export default function StaffSettingsPage() {
                       setNewBlackout('');
                     }
                   }}
-                  className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-blue-700 text-white text-sm rounded-lg transition"
+                  className="flex items-center gap-1 px-3 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-sm rounded-lg transition"
                 >
                   <Plus size={14} /> Add
                 </button>
@@ -859,7 +859,7 @@ export default function StaffSettingsPage() {
             <button
               onClick={handleSaveBookingRules}
               disabled={savingRules}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition"
             >
               <Save size={15} />
               {savingRules ? 'Saving…' : 'Save Booking Rules'}

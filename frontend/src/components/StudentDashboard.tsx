@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { DashboardLayout } from './DashboardLayout';
-import { DashboardCalendar } from './Calendar';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
@@ -23,7 +22,7 @@ interface Announcement {
 
 const TYPE_STYLES: Record<string, { label: string; bg: string; text: string }> = {
   webinar: { label: 'Webinar',    bg: 'bg-blue-50',   text: 'text-blue-600' },
-  event:   { label: 'Event',      bg: 'bg-green-50',  text: 'text-blue-700' },
+  event:   { label: 'Event',      bg: 'bg-green-50',  text: 'text-green-700' },
   notice:  { label: 'Notice',     bg: 'bg-orange-50', text: 'text-orange-600' },
   info:    { label: 'Info',       bg: 'bg-gray-100',  text: 'text-gray-600' },
 };
@@ -41,7 +40,6 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [loading, setLoading]             = useState(true);
   const [isCheckInOnly, setIsCheckInOnly] = useState(false);
   const [resourceCount, setResourceCount] = useState(0);
-  const [selectedDate, setSelectedDate]   = useState<Date | null>(null);
   const [mounted, setMounted]             = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -99,44 +97,70 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           <Loader2 size={18} className="animate-spin" /> Loading…
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Left column */}
-          <div className="lg:col-span-2 space-y-5">
+        <div className="space-y-5">
+          <div className="space-y-5">
 
-            {/* Next appointment */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Next Appointment</p>
-              {nextAppt ? (
-                <div>
-                  <p className="text-base font-semibold text-gray-900">{fmtDate(nextAppt.requested_start)}</p>
-                  <p className="text-sm font-medium mt-0.5" style={{ color: '#2563eb' }}>{fmtTime(nextAppt.requested_start)}</p>
-                  <p className="text-sm text-gray-500 mt-1">{nextAppt.counselor_name || 'Assigned Counselor'}</p>
-                  <span className="inline-block mt-3 px-2.5 py-1 text-xs rounded-full bg-green-50 text-blue-700 font-medium border border-green-100">
-                    {nextAppt.status}
-                  </span>
+            {/* Next appointment / Onboarding */}
+            {appointments.length === 0 && !isCheckInOnly ? (
+              <div className="bg-[#2563eb] rounded-lg p-5 text-white">
+                <p className="text-xs font-semibold text-white/70 uppercase tracking-widest mb-3">Welcome to CPS</p>
+                <h3 className="text-lg font-bold mb-1">Hi, {firstName}! Let's get you started.</h3>
+                <p className="text-sm text-white/80 mb-4 leading-relaxed">
+                  You're all set up. Book your first counseling appointment whenever you're ready — it's confidential and free for all DLSU students.
+                </p>
+                <div className="space-y-2 mb-5">
+                  {[
+                    { step: '1', text: 'Book an appointment below' },
+                    { step: '2', text: 'Attend your intake interview' },
+                    { step: '3', text: 'Get matched with a counselor' },
+                  ].map(s => (
+                    <div key={s.step} className="flex items-center gap-3 text-sm text-white/80">
+                      <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">{s.step}</span>
+                      {s.text}
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500">No upcoming appointments.</p>
-              )}
-              {!isCheckInOnly && (
                 <Link href="/book-appointment">
-                  <button className="mt-4 w-full py-2 text-sm font-medium text-white rounded-lg transition-colors"
-                    style={{ backgroundColor: '#2563eb' }}>
-                    Book an Appointment
+                  <button className="w-full py-2.5 bg-white text-[#2563eb] text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+                    Book Your First Appointment →
                   </button>
                 </Link>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-lg p-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Next Appointment</p>
+                {nextAppt ? (
+                  <div>
+                    <p className="text-base font-semibold text-gray-900">{fmtDate(nextAppt.requested_start)}</p>
+                    <p className="text-sm font-medium mt-0.5" style={{ color: '#2563eb' }}>{fmtTime(nextAppt.requested_start)}</p>
+                    <p className="text-sm text-gray-500 mt-1">{nextAppt.counselor_name || 'Assigned Counselor'}</p>
+                    <span className="inline-block mt-3 px-2.5 py-1 text-xs rounded-full bg-green-50 text-green-700 font-medium border border-green-100">
+                      {nextAppt.status}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No upcoming appointments.</p>
+                )}
+                {!isCheckInOnly && (
+                  <Link href="/book-appointment">
+                    <button className="mt-4 w-full py-2 text-sm font-medium text-white rounded-lg transition-colors"
+                      style={{ backgroundColor: '#2563eb' }}>
+                      Book an Appointment
+                    </button>
+                  </Link>
+                )}
+              </div>
+            )}
 
             {/* CPS Announcements */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-gray-200 rounded-lg p-5">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">CPS Updates & Events</p>
 
               {announcements.length === 0 ? (
                 <p className="text-sm text-gray-400 py-4 text-center">No announcements at this time.</p>
               ) : (
-                <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto pr-1">
-                  {announcements.map(a => {
+                <div className="divide-y divide-gray-100">
+                  {announcements.slice(0, 3).map(a => {
                     const style = TYPE_STYLES[a.event_type] || TYPE_STYLES.info;
                     return (
                       <button
@@ -150,11 +174,11 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
                                 {style.label}
                               </span>
-                              {a.pinned && <span className="text-xs text-gray-400">📌</span>}
+                              {a.pinned && <span className="text-xs text-gray-400 font-medium">Pinned</span>}
                             </div>
                             <p className="text-sm font-medium text-gray-800 leading-snug">{a.title}</p>
                             {a.event_date && (
-                              <p className="text-xs text-gray-400 mt-1">📅 {fmtEventDate(a.event_date)}</p>
+                              <p className="text-xs text-gray-400 mt-1">{fmtEventDate(a.event_date)}</p>
                             )}
                           </div>
                           <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 flex-shrink-0 transition-colors" />
@@ -164,23 +188,16 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   })}
                 </div>
               )}
+              {announcements.length > 3 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <a href="/announcements" className="text-xs text-[#2563eb] hover:underline font-medium">
+                    See all announcements →
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Calendar */}
-          <div>
-            <DashboardCalendar
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-              title="Appointment Schedule"
-              showAppointments={true}
-              appointments={appointments.map((a: any) => ({
-                date: new Date(a.requested_start || new Date()),
-                title: 'Counseling Session',
-                time: a.status || 'Scheduled',
-              }))}
-            />
-          </div>
         </div>
       )}
       {/* Announcement modal */}
@@ -210,7 +227,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                       <span className={`text-sm font-medium px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
                         {typeLabel}
                       </span>
-                      {a.pinned && <span className="text-sm text-gray-400">📌 Pinned</span>}
+                      {a.pinned && <span className="text-sm text-gray-400 font-medium">Pinned</span>}
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 leading-snug">{a.title}</h3>
                   </div>
@@ -227,8 +244,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
                 {/* Event date */}
                 {a.event_date && (
-                  <div className="flex items-center gap-2 text-base text-gray-500 mb-5 bg-gray-50 rounded-lg px-4 py-3">
-                    <span>📅</span>
+                  <div className="text-base text-gray-500 mb-5 bg-gray-50 rounded-lg px-4 py-3">
                     <span className="font-medium">{fmtEventDate(a.event_date)}</span>
                   </div>
                 )}

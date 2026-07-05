@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Clock, AlertCircle, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { api } from '@/utils/api';
 
 interface TimeSlot {
   date: string;
@@ -35,7 +36,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/intake/available-slots?risk_level=${riskLevel}&count=8`,
+        api(`/api/intake/available-slots?risk_level=${riskLevel}&count=8`),
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -91,7 +92,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
         parseInt(minutes)
       ).toISOString();
 
-      const response = await fetch('/api/intake/select-appointment-time', {
+      const response = await fetch(api('/api/intake/select-appointment-time'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +141,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
       case 'YELLOW':
         return 'text-yellow-900';
       case 'GREEN':
-        return 'text-blue-900';
+        return 'text-green-900';
       default:
         return 'text-gray-900';
     }
@@ -259,11 +260,11 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
                       </div>
                       <div className="flex items-center gap-2">
                         {index === 0 && (
-                          <span className="px-2 py-1 bg-green-100 text-blue-800 text-xs font-semibold rounded">
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
                             RECOMMENDED
                           </span>
                         )}
-                        {selectedSlot === slot && <ChevronRight className="w-5 h-5 text-blue-500" />}
+                        {selectedSlot === slot && <ChevronRight className="w-5 h-5 text-green-500" />}
                       </div>
                     </div>
                   </button>

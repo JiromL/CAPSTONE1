@@ -127,7 +127,7 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
       <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
         <div className="flex items-center gap-2">
           <Wifi size={14} className="text-green-500" />
-          <p className="text-sm text-blue-700">Connected as <span className="font-semibold">{username}</span></p>
+          <p className="text-sm text-green-700">Connected as <span className="font-semibold">{username}</span></p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={load} className="p-1.5 rounded hover:bg-green-100 text-gray-400 hover:text-gray-600 transition">
@@ -256,7 +256,7 @@ function StaffView({ username, onDisconnect }: { username: string; onDisconnect:
           : serverUp ? <Wifi size={15} className="text-green-500 shrink-0" />
           : <WifiOff size={15} className="text-red-400 shrink-0" />}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-blue-700">
+          <p className="text-sm font-medium text-green-700">
             Connected as <span className="font-semibold">{username}</span>
           </p>
           {serverUp === false && (

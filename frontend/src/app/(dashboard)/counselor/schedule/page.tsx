@@ -222,8 +222,8 @@ export default function CounselorSchedulePage() {
   const getStatusColor = (status: string) => {
     const statusMap: { [key: string]: { bg: string; text: string; label: string } } = {
       PENDING_APPROVAL: { bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-700 dark:text-yellow-300', label: 'Pending Approval' },
-      CONFIRMED: { bg: 'bg-green-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-green-300', label: 'Confirmed' },
-      COMPLETED: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-300', label: 'Completed' },
+      CONFIRMED: { bg: 'bg-green-50 dark:bg-blue-900/20', text: 'text-green-700 dark:text-green-300', label: 'Confirmed' },
+      COMPLETED: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-green-700 dark:text-green-300', label: 'Completed' },
       CANCELLED: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-300', label: 'Cancelled' },
       REQUESTED: { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-700 dark:text-purple-300', label: 'Requested' },
     };
@@ -450,7 +450,7 @@ export default function CounselorSchedulePage() {
 // Stat Card Component
 function StatCard({ label, value, color = 'blue' }: { label: string; value: number; color?: string }) {
   const colorMap: { [key: string]: string } = {
-    blue: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20',
+    blue: 'text-green-600 dark:text-green-400 bg-blue-50 dark:bg-blue-900/20',
     green: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-blue-900/20',
     amber: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20',
     red: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20',
@@ -664,12 +664,12 @@ function AppointmentDetailsModal({
           {/* Meeting Link */}
           {appointment.meeting_link && (
             <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-700 dark:text-green-300 font-medium mb-2">Meeting Link</p>
+              <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">Meeting Link</p>
               <a
                 href={appointment.meeting_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-green-600 dark:text-green-400 hover:text-blue-700 dark:hover:text-green-300 font-medium break-all"
+                className="flex items-center gap-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium break-all"
               >
                 {appointment.meeting_link}
                 <ExternalLink className="w-4 h-4 flex-shrink-0" />

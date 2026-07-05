@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get('expired') === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -116,7 +118,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-white dark:bg-gray-950">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-[45%] bg-green-600 flex-col justify-between p-10">
+      <div className="hidden lg:flex lg:w-[45%] bg-[#2563eb] flex-col justify-between p-10">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
             <span className="text-white text-sm font-bold">CPS</span>
@@ -142,7 +144,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#2563eb] flex items-center justify-center">
               <span className="text-white text-xs font-bold">CPS</span>
             </div>
             <span className="font-semibold text-gray-900 dark:text-white">CPS System</span>
@@ -150,6 +152,12 @@ export default function LoginPage() {
 
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Welcome back</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Sign in to your DLSU CPS account</p>
+
+          {sessionExpired && (
+            <div className="mb-4 px-4 py-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+              Your session has expired. Please sign in again to continue.
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
@@ -165,10 +173,10 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@university.edu"
+                placeholder="you@dlsu.edu.ph"
                 required
                 autoComplete="email"
-                className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
             </div>
 
@@ -182,7 +190,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                  className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -196,13 +204,13 @@ export default function LoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <Link href="/forgot-password" className="text-xs text-green-600 dark:text-green-400 hover:underline">
+              <Link href="/forgot-password" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
                 Forgot password?
               </Link>
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+              className="w-full bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
@@ -223,7 +231,7 @@ export default function LoginPage() {
             <div>
               {!googleReady && (
                 <div className="flex items-center justify-center gap-2 py-2.5 text-xs text-gray-400 dark:text-gray-500">
-                  <div className="w-4 h-4 border-2 border-gray-200 border-t-green-500 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
                   Loading Google Sign-In…
                 </div>
               )}
@@ -233,7 +241,7 @@ export default function LoginPage() {
               />
               {googleReady && (
                 <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2">
-                  Use your @university.edu Google account
+                  Use your @dlsu.edu.ph Google account
                 </p>
               )}
             </div>
@@ -242,14 +250,14 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               No account?{' '}
-              <Link href="/register" className="text-green-600 dark:text-green-400 font-medium hover:underline">
-                Create one
+              <Link href="/register" className="text-blue-600 dark:text-blue-400 font-medium hover:underline">
+                Register your account
               </Link>
             </p>
           </div>
 
           <p className="mt-6 text-xs text-center text-gray-400 dark:text-gray-600">
-            Only @university.edu accounts are permitted
+            Only @dlsu.edu.ph accounts are permitted
           </p>
         </div>
       </div>

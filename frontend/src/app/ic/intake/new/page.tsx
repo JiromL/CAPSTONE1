@@ -10,13 +10,9 @@ export default function NewIntakePage() {
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmitIntake = async (data: any) => {
-    await createIntake({
-      ...data,
-      student_id: localStorage.getItem('student_id') || undefined,
-    });
+    await createIntake(data);
     setSubmitted(true);
-    // Reset after 2 seconds
-    setTimeout(() => setSubmitted(false), 2000);
+    setTimeout(() => setSubmitted(false), 3000);
   };
 
   return (

@@ -168,7 +168,7 @@ export default function VideoLinksPage() {
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <p className="text-gray-600 dark:text-gray-400 text-sm">Active Now</p>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{activeLinks.length}</p>
+            <p className="text-3xl font-bold text-[#2563eb] dark:text-blue-400">{activeLinks.length}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <p className="text-gray-600 dark:text-gray-400 text-sm">Upcoming</p>
@@ -208,7 +208,7 @@ export default function VideoLinksPage() {
                     href={link.link_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-lg transition font-medium"
                   >
                     <Video size={18} />
                     Join Session

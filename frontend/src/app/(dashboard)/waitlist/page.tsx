@@ -119,7 +119,7 @@ export default function WaitlistPage() {
             { label: 'Waiting',  value: stats.waiting,  icon: <Clock size={16}/>,       color: 'text-yellow-500' },
             { label: 'Promoted', value: stats.promoted, icon: <CheckCircle size={16}/>, color: 'text-green-500' },
             { label: 'Removed',  value: stats.removed,  icon: <Trash2 size={16}/>,      color: 'text-gray-400' },
-            { label: 'Total',    value: stats.total,    icon: <Users size={16}/>,        color: 'text-green-500' },
+            { label: 'Total',    value: stats.total,    icon: <Users size={16}/>,        color: 'text-[#2563eb]' },
           ].map(s => (
             <div key={s.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
               <span className={s.color}>{s.icon}</span>
@@ -174,7 +174,7 @@ export default function WaitlistPage() {
               <div className="flex items-start gap-4 min-w-0">
                 {/* Position badge */}
                 {tab === 'waiting' && (
-                  <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-950 text-blue-700 dark:text-green-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
                     #{entry.position}
                   </div>
                 )}
@@ -208,7 +208,7 @@ export default function WaitlistPage() {
                   <button
                     onClick={() => setShowPromoteModal(entry)}
                     disabled={actionId === entry.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
                   >
                     <TrendingUp size={12} /> Promote
                   </button>
@@ -246,7 +246,7 @@ export default function WaitlistPage() {
               onChange={e => setPromoteNotes(e.target.value)}
               placeholder="Optional notes for the student…"
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-green-500 mb-4"
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
             />
             <div className="flex gap-2 justify-end">
               <button
@@ -258,7 +258,7 @@ export default function WaitlistPage() {
               <button
                 onClick={() => promote(showPromoteModal)}
                 disabled={actionId === showPromoteModal.id}
-                className="px-4 py-2 text-sm bg-green-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 text-sm bg-[#2563eb] hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 flex items-center gap-2"
               >
                 {actionId === showPromoteModal.id && <Loader2 size={13} className="animate-spin" />}
                 Notify Student

@@ -326,7 +326,7 @@ export default function WalkInSelfCheckinPage() {
               </F>
             </Card>
 
-            <Card icon={ClipboardList} title="Service Information" accent="bg-green-50 text-blue-700">
+            <Card icon={ClipboardList} title="Service Information" accent="bg-green-50 text-green-700">
               <F label="Referred by" req>
                 <select className={SELECT} value={icf.referral_source} onChange={e => setIcf(p => ({ ...p, referral_source: e.target.value }))}>
                   <option value="">Select referral source</option>
@@ -372,7 +372,7 @@ export default function WalkInSelfCheckinPage() {
                 </div>
 
                 <div className="border border-blue-200 rounded-lg p-2.5 bg-blue-50/50">
-                  <p className="font-bold text-blue-800 text-xs uppercase tracking-wide mb-1">III. Privacy Notice</p>
+                  <p className="font-bold text-green-800 text-xs uppercase tracking-wide mb-1">III. Privacy Notice</p>
                   <p className="mb-1"><span className="font-medium">Data collected:</span> Personal information, mental health history, assessment results (PHQ-9, GAD-7, C-SSRS), session notes, emergency contact, and wellness monitoring data.</p>
                   <p><span className="font-medium">Who may access:</span> Only authorized CPS personnel directly involved in your care (Intake Counselors, Counselors, Psychologists, Case Managers, Administrative Staff, and DPO). Your data will not be shared with other departments or third parties without your consent, except under Section II. Records are retained for a minimum of ten (10) years from your last session.</p>
                 </div>
@@ -525,7 +525,7 @@ export default function WalkInSelfCheckinPage() {
             </Card>
 
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-xs text-gray-600 space-y-1">
-              <p className="font-semibold text-blue-800">Before you submit:</p>
+              <p className="font-semibold text-green-800">Before you submit:</p>
               <p>• Please ensure your information is accurate.</p>
               <p>• A staff member will review your forms and call your name shortly.</p>
               <p>• Your data is kept confidential under DLSU&apos;s Privacy Policy.</p>

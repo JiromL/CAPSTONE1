@@ -72,7 +72,7 @@ function PermaDistributionWidget() {
 }
 
 const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-blue-700'  },
+  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700'  },
   'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
   'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
   'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
@@ -242,7 +242,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
                         {fmtTime(a.preferred_date || a.scheduled_start)} · {(a.method || 'in-person').replace(/_/g, ' ')}
                       </p>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-blue-700 border border-green-100 font-medium">Confirmed</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">Confirmed</span>
                   </div>
                 ))}
               </div>

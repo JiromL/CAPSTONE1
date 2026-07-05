@@ -56,13 +56,13 @@ export function AppointmentConfirmation({
         <div className="flex flex-wrap gap-4">
           <button
             onClick={handlePrint}
-            className="flex-1 min-w-[180px] bg-white hover:bg-gray-100 text-blue-900 font-bold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg"
+            className="flex-1 min-w-[180px] bg-white hover:bg-gray-100 text-gray-900 font-bold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg"
           >
             🖨️ Print
           </button>
           <button
             onClick={handleDownloadClick}
-            className="flex-1 min-w-[180px] bg-green-50 hover:bg-green-100 text-blue-900 font-bold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg border-2 border-green-200"
+            className="flex-1 min-w-[180px] bg-green-50 hover:bg-green-100 text-green-900 font-bold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg border-2 border-green-200"
           >
             📥 Download PDF
           </button>
@@ -137,7 +137,7 @@ export function AppointmentConfirmation({
               <ul className="space-y-2 ml-4">
                 {screeningsCompleted.map((screening, idx) => (
                   <li key={idx} className="text-gray-800 flex items-center gap-2">
-                    <span className="text-blue-700">✓</span>
+                    <span className="text-green-700">✓</span>
                     <span>{screening}</span>
                   </li>
                 ))}

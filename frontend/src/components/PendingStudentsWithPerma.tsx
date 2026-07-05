@@ -12,7 +12,7 @@ interface PendingStudent {
 }
 
 export const PERMA_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
-  'Excelling':  { bg: 'bg-green-100 dark:bg-blue-900/30',   text: 'text-blue-700 dark:text-green-400',   dot: 'bg-green-500'  },
+  'Excelling':  { bg: 'bg-green-100 dark:bg-blue-900/30',   text: 'text-green-700 dark:text-green-400',   dot: 'bg-green-500'  },
   'Thriving':   { bg: 'bg-teal-100 dark:bg-teal-900/30',     text: 'text-teal-700 dark:text-teal-400',     dot: 'bg-teal-500'   },
   'Surviving':  { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400', dot: 'bg-yellow-500' },
   'Struggling': { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500' },
@@ -104,12 +104,12 @@ export default function PendingStudentsWithPerma() {
             value={searchUsername}
             onChange={e => setSearchUsername(e.target.value)}
             placeholder="e.g. ema_lVk"
-            className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             type="submit"
             disabled={searching || !searchUsername.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
           >
             {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
             Lookup
@@ -171,7 +171,7 @@ export default function PendingStudentsWithPerma() {
                         <button
                           onClick={() => linkAccount(s.case_id, lookupResult.username)}
                           disabled={linkingId === s.case_id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50"
                         >
                           {linkingId === s.case_id ? <Loader2 size={11} className="animate-spin" /> : <Link2 size={11} />}
                           Link {lookupResult.username}

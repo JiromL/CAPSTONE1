@@ -59,7 +59,7 @@ export default function AssessmentsPage() {
     return (
       <DashboardPageWrapper title="Assessments" subtitle="">
         <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
       </DashboardPageWrapper>
     );
@@ -106,7 +106,7 @@ export default function AssessmentsPage() {
           {/* Standard explainer (no EMA / Excelling / Thriving) */}
           {!isLocked && !isAssisted && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 flex gap-3">
-              <Info size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <Info size={16} className="text-[#2563eb] dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 Assessments (PHQ-9, GAD-7, PSS) are administered by your counselor during sessions.
                 Your counselor interprets the results with you. If you have questions, speak with your assigned counselor.
@@ -117,8 +117,8 @@ export default function AssessmentsPage() {
 
           {/* Summary count (no scores) */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <BarChart3 size={22} className="text-green-600 dark:text-green-400" />
+            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <BarChart3 size={22} className="text-[#2563eb] dark:text-blue-400" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{assessments.length}</p>
@@ -163,7 +163,7 @@ export default function AssessmentsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
-            <BarChart3 size={24} className="text-blue-500" />
+            <BarChart3 size={24} className="text-[#2563eb]" />
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{assessments.length}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Total intakes</p>

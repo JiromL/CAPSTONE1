@@ -112,7 +112,7 @@ export default function AvailabilityPage() {
     <DashboardPageWrapper title="My Availability" subtitle="Set the days and hours you're available for appointments">
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium
-          ${toast.ok ? 'bg-green-50 text-blue-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          ${toast.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
           {toast.ok && <Check size={15} />}
           {toast.msg}
         </div>
@@ -180,7 +180,7 @@ export default function AvailabilityPage() {
                               title={v === 'in-person' ? 'Face to Face' : 'Online'}
                               className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border transition
                                 ${entry.session_method === v
-                                  ? v === 'in-person' ? 'bg-green-50 text-[#2563eb] border-[#2563eb]/40'
+                                  ? v === 'in-person' ? 'bg-blue-50 text-[#2563eb] border-[#2563eb]/40'
                                                       : 'bg-blue-50 text-blue-700 border-blue-300'
                                   : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'}`}>
                               {v === 'in-person' ? <MapPin size={10} /> : <Monitor size={10} />}

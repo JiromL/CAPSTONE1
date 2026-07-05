@@ -117,7 +117,7 @@ export default function FeedbackPage() {
           </p>
           <button
             onClick={reset}
-            className="px-6 py-2.5 bg-green-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-6 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
             Submit Another
           </button>
@@ -178,8 +178,8 @@ export default function FeedbackPage() {
                       onClick={() => setSessionFormat(sessionFormat === f.value ? '' : f.value)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all ${
                         sessionFormat === f.value
-                          ? 'bg-green-600 border-green-600 text-white'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-green-600'
+                          ? 'bg-green-600 border-blue-600 text-white'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-blue-600'
                       }`}
                     >
                       <span>{f.icon}</span> {f.label}
@@ -196,7 +196,7 @@ export default function FeedbackPage() {
                   <select
                     value={appointmentId}
                     onChange={e => setAppointmentId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a session…</option>
                     {completedAppts.map(a => {
@@ -277,7 +277,7 @@ export default function FeedbackPage() {
               placeholder="Share any comments, suggestions, or specific experiences…"
               maxLength={1000}
               rows={4}
-              className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none"
+              className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none"
             />
             <div className="flex justify-end mt-1.5">
               <span className="text-xs text-gray-400">{content.length}/1000</span>
@@ -287,7 +287,7 @@ export default function FeedbackPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
             {loading ? 'Submitting…' : 'Submit Feedback'}

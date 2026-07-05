@@ -2,17 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import PageShell from '@/components/PageShell';
-import { AlertTriangle, Eye } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { api } from '@/utils/api';
 
 export default function MissingDataPage() {
   const [intakes, setIntakes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedIntake, setSelectedIntake] = useState(null);
+
+  const token = () => localStorage.getItem('token');
 
   useEffect(() => {
     const fetchIntakes = async () => {
       try {
-        const res = await fetch('/api/intakes/incomplete');
+        const res = await fetch(api('/api/intake/list?status=incomplete'), {
+          headers: { Authorization: `Bearer ${token()}` },
+        });
         if (res.ok) {
           const data = await res.json();
           setIntakes(Array.isArray(data) ? data : data.intakes || []);
@@ -38,19 +42,23 @@ export default function MissingDataPage() {
   return (
     <PageShell title="Missing Data QA" subtitle="Track and resolve incomplete intake information">
       <div className="space-y-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-yellow-900">Incomplete Intakes</p>
-            <p className="text-sm text-yellow-800 mt-1">{intakes.length} intakes have missing required information</p>
+            <p className="font-semibold text-amber-900">Incomplete Intakes</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              {loading ? 'Loading…' : `${intakes.length} intake${intakes.length !== 1 ? 's' : ''} have missing required information`}
+            </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="flex items-center justify-center py-12 gap-2 text-gray-400 text-sm">
+            <Loader2 size={16} className="animate-spin" /> Loading…
+          </div>
         ) : intakes.length === 0 ? (
           <div className="text-center py-12 text-gray-600">
-            <Eye className="mx-auto mb-4 text-gray-400" size={32} />
+            <CheckCircle2 className="mx-auto mb-4 text-green-400" size={32} />
             <p>All intakes have complete data</p>
           </div>
         ) : (
@@ -58,24 +66,26 @@ export default function MissingDataPage() {
             {intakes.map(intake => {
               const missing = getMissingFields(intake);
               return (
-                <div key={intake._id} className="border rounded-lg p-4 hover:shadow transition">
-                  <div className="flex items-start justify-between">
+                <div key={intake._id} className="border border-gray-200 rounded-xl p-4 hover:shadow-sm transition bg-white">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{intake.student_name}</h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {missing.map(field => (
-                          <span key={field} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {missing.length > 0 ? missing.map(field => (
+                          <span key={field} className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
                             Missing: {field}
                           </span>
-                        ))}
+                        )) : (
+                          <span className="text-xs text-gray-400">No missing fields detected</span>
+                        )}
                       </div>
                     </div>
-                    <button 
-                      onClick={() => setSelectedIntake(intake)}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200"
+                    <a
+                      href={`/ic/intake/conduct/${intake._id}`}
+                      className="px-3 py-1.5 bg-[#2563eb] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex-shrink-0"
                     >
                       Review
-                    </button>
+                    </a>
                   </div>
                 </div>
               );

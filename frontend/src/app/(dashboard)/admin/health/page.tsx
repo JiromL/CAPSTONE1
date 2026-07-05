@@ -48,7 +48,7 @@ export default function HealthPage() {
                 <p className="font-medium text-gray-900 dark:text-gray-50 text-sm">{c.label}</p>
                 <p className="text-xs text-gray-500 mt-0.5 capitalize">{c.detail}</p>
               </div>
-              <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${c.ok ? 'bg-green-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+              <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${c.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                 {c.ok ? 'OK' : 'Error'}
               </span>
             </div>

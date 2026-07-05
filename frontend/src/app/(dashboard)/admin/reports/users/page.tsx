@@ -21,7 +21,7 @@ const ROLE_COLOR: Record<string, string> = {
   ADMIN: 'bg-red-100 text-red-800',
   DPO: 'bg-purple-100 text-purple-800',
   PSYCHOLOGIST: 'bg-blue-100 text-blue-800',
-  COUNSELOR: 'bg-green-100 text-blue-800',
+  COUNSELOR: 'bg-green-100 text-green-800',
   IC: 'bg-yellow-100 text-yellow-800',
   STAFF: 'bg-gray-100 text-gray-700',
   STUDENT: 'bg-sky-100 text-sky-800',

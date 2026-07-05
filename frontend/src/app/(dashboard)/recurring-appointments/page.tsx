@@ -128,14 +128,14 @@ export default function RecurringAppointmentsPage() {
           <div className="text-left space-y-1.5 mb-8 bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
             {success.sessions.map(s => (
               <div key={s.session} className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                <span className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-950 text-blue-700 dark:text-green-300 text-xs flex items-center justify-center font-medium">{s.session}</span>
+                <span className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 text-xs flex items-center justify-center font-medium">{s.session}</span>
                 <span>{new Date(s.date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
               </div>
             ))}
           </div>
           <button
             onClick={() => setSuccess(null)}
-            className="px-6 py-2.5 bg-green-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors"
+            className="px-6 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors"
           >
             Schedule Another Series
           </button>
@@ -175,7 +175,7 @@ export default function RecurringAppointmentsPage() {
                   value={studentSearch}
                   onChange={e => setStudentSearch(e.target.value)}
                   placeholder="Search by name or email…"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {studentSearch && (
                   <div className="mt-1 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-100 dark:divide-gray-800">
@@ -213,7 +213,7 @@ export default function RecurringAppointmentsPage() {
                   min={new Date().toISOString().split('T')[0]}
                   onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
                   required
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -223,7 +223,7 @@ export default function RecurringAppointmentsPage() {
                   value={form.time}
                   onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
                   required
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -239,7 +239,7 @@ export default function RecurringAppointmentsPage() {
                     onClick={() => setForm(f => ({ ...f, recurrence: opt.value }))}
                     className={`flex-1 p-3 rounded-lg border text-left transition-colors ${
                       form.recurrence === opt.value
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950/50 text-blue-700 dark:text-green-300'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300'
                         : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
@@ -256,7 +256,7 @@ export default function RecurringAppointmentsPage() {
                 <select
                   value={form.sessions}
                   onChange={e => setForm(f => ({ ...f, sessions: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {[2,3,4,5,6,8,10,12,16,20,24].map(n => (
                     <option key={n} value={n}>{n} sessions</option>
@@ -268,7 +268,7 @@ export default function RecurringAppointmentsPage() {
                 <select
                   value={form.duration_minutes}
                   onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="30">30 min</option>
                   <option value="45">45 min</option>
@@ -288,7 +288,7 @@ export default function RecurringAppointmentsPage() {
                 type="text"
                 value={form.purpose}
                 onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -298,7 +298,7 @@ export default function RecurringAppointmentsPage() {
                 value={form.concern}
                 onChange={e => setForm(f => ({ ...f, concern: e.target.value }))}
                 placeholder="e.g., Anxiety management, academic stress…"
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -315,7 +315,7 @@ export default function RecurringAppointmentsPage() {
                     onClick={() => setForm(f => ({ ...f, preferred_method: opt.value }))}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition-colors ${
                       form.preferred_method === opt.value
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950/50 text-blue-700 dark:text-green-300'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300'
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
                     }`}
                   >
@@ -333,7 +333,7 @@ export default function RecurringAppointmentsPage() {
                   value={form.meeting_link}
                   onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))}
                   placeholder="https://…"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             )}
@@ -344,7 +344,7 @@ export default function RecurringAppointmentsPage() {
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -358,7 +358,7 @@ export default function RecurringAppointmentsPage() {
               <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto">
                 {preview.map(s => (
                   <div key={s.session} className="flex items-center gap-2 text-xs text-blue-700 dark:text-green-300">
-                    <span className="w-4 h-4 rounded-full bg-green-200 dark:bg-blue-800 flex items-center justify-center font-medium text-blue-800 dark:text-green-200 flex-shrink-0">{s.session}</span>
+                    <span className="w-4 h-4 rounded-full bg-green-200 dark:bg-blue-800 flex items-center justify-center font-medium text-green-800 dark:text-green-200 flex-shrink-0">{s.session}</span>
                     {s.date}
                   </div>
                 ))}
@@ -369,7 +369,7 @@ export default function RecurringAppointmentsPage() {
           <button
             type="submit"
             disabled={submitting || !selectedStudent || !form.start_date}
-            className="w-full py-3 bg-green-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 bg-[#2563eb] hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {submitting
               ? <><Loader2 size={16} className="animate-spin" /> Creating Sessions…</>

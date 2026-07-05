@@ -130,7 +130,7 @@ function CheckInContent() {
 
             <div className="px-6 pb-5">
               <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-center">
-                <p className="text-xs text-blue-700 font-medium">Student has been marked as arrived</p>
+                <p className="text-xs text-green-700 font-medium">Student has been marked as arrived</p>
               </div>
             </div>
           </div>

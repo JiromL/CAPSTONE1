@@ -59,9 +59,9 @@ const PURPOSE_LABEL: Record<string, string> = {
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   PENDING_APPROVAL:     { label: 'Under Review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
   RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
   PENDING_STUDENT_APPROVAL: { label: 'Awaiting Confirmation', cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
@@ -75,7 +75,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 const RISK_CLS: Record<string, string> = {
-  GREEN:    'bg-green-100 text-blue-700',
+  GREEN:    'bg-green-100 text-green-700',
   YELLOW:   'bg-yellow-100 text-yellow-700',
   RED:      'bg-red-100 text-red-700',
   CRITICAL: 'bg-red-200 text-red-900 font-semibold',
@@ -445,7 +445,7 @@ export default function AppointmentsPage() {
                             {/* Join session */}
                             {apt.meeting_link && isConfirmed && (
                               <a href={apt.meeting_link} target="_blank" rel="noreferrer"
-                                className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition font-semibold">
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition font-semibold">
                                 <Video size={11} /> Join
                               </a>
                             )}
@@ -475,11 +475,11 @@ export default function AppointmentsPage() {
                                     <textarea rows={1} value={pendingAction.notes}
                                       onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
                                       placeholder="Optional notes…"
-                                      className="w-40 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-green-500 resize-none" />
+                                      className="w-40 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-blue-500 resize-none" />
                                   </div>
                                   <button onClick={() => doAction(aptId, 'set-referral', { notes: pendingAction.notes })}
                                     disabled={actioningId === aptId}
-                                    className="px-2.5 py-1 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                    className="px-2.5 py-1 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
                                     {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
                                   </button>
                                   <button onClick={() => setPendingAction(null)}
@@ -580,7 +580,7 @@ export default function AppointmentsPage() {
               )}
               {detailAppt.meeting_link && (
                 <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700 hover:bg-green-100 transition font-medium">
+                  className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
                   <Video size={14} /> Join Session
                 </a>
               )}
@@ -808,7 +808,7 @@ export default function AppointmentsPage() {
                     <input type="date" value={schedDate}
                       onChange={e => { setSchedDate(e.target.value); setSchedTime(''); loadMySlots(e.target.value); }}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                   </div>
                   {schedDate && (
                     <div>
@@ -839,12 +839,12 @@ export default function AppointmentsPage() {
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
                       <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Time</label>
                       <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
                   </div>
                 </>
@@ -853,7 +853,7 @@ export default function AppointmentsPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Method</label>
                 <select value={schedMethod} onChange={e => setSchedMethod(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                   <option value="in_person">Face to Face</option>
                   <option value="google_meet">Google Meet</option>
                   <option value="zoom">Zoom</option>
@@ -863,7 +863,7 @@ export default function AppointmentsPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Room / Office <span className="text-gray-400">(optional)</span></label>
                 <input type="text" value={schedOffice} onChange={e => setSchedOffice(e.target.value)}
                   placeholder="e.g. CPS Room 301"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               {schedMsg && (
                 <p className={`text-xs ${schedMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{schedMsg.text}</p>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Users, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { api } from '@/utils/api';
 import PageShell from '@/components/PageShell';
 
 export default function BatchAssignPage() {
@@ -20,7 +21,7 @@ export default function BatchAssignPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/appointments/staff/batch-assign', {
+      const response = await fetch(api('/api/appointments/staff/batch-assign'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +97,7 @@ export default function BatchAssignPage() {
             {success && (
               <div className="mt-4 p-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg flex gap-2">
                 <CheckCircle size={20} className="text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-sm text-blue-800 dark:text-green-300">Assignments completed!</span>
+                <span className="text-sm text-green-800 dark:text-green-300">Assignments completed!</span>
               </div>
             )}
 
@@ -139,7 +140,7 @@ export default function BatchAssignPage() {
                           {new Date(apt.scheduled_start).toLocaleString()}
                         </p>
                       </div>
-                      <span className="px-2 py-1 bg-green-100 dark:bg-blue-900/30 text-blue-800 dark:text-green-300 text-xs font-medium rounded">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-blue-900/30 text-green-800 dark:text-green-300 text-xs font-medium rounded">
                         Assigned
                       </span>
                     </div>

@@ -125,7 +125,7 @@ export default function CounselorEmergencyPage() {
     return (
       <DashboardPageWrapper title="Emergency Intakes" subtitle="Manage urgent student requests">
         <div className="flex items-center justify-center h-64">
-          <Loader className="animate-spin text-blue-600" size={32} />
+          <Loader className="animate-spin text-[#2563eb]" size={32} />
         </div>
       </DashboardPageWrapper>
     );
@@ -137,7 +137,7 @@ export default function CounselorEmergencyPage() {
         <div
           className={`mb-6 p-4 rounded-lg text-sm ${
             message.type === 'success'
-              ? 'bg-green-50 dark:bg-blue-900/20 text-blue-700 dark:text-green-400 border border-green-200 dark:border-blue-800'
+              ? 'bg-green-50 dark:bg-blue-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-blue-800'
               : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
           }`}
         >

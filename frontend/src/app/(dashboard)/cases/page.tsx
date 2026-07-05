@@ -8,26 +8,26 @@ import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import { Search, Loader2, AlertCircle, ChevronRight, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
 
 const RISK_BADGE: Record<string, string> = {
-  GREEN:    'bg-green-50 text-blue-700 ring-1 ring-green-200',
+  GREEN:    'bg-green-50 text-green-700 ring-1 ring-green-200',
   YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
   CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  ACTIVE:               'bg-green-50 text-blue-700 ring-1 ring-green-200',
+  ACTIVE:               'bg-green-50 text-green-700 ring-1 ring-green-200',
   NEW:                  'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
   INTAKE_SCHEDULED:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   PENDING_TERMINATION:  'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
   CLOSED:               'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
   CANCELLED:            'bg-red-50 text-red-600 ring-1 ring-red-200',
-  open:                 'bg-green-50 text-blue-700 ring-1 ring-green-200',
+  open:                 'bg-green-50 text-green-700 ring-1 ring-green-200',
   closed:               'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
   intake_scheduled:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
 };
 
 const CLIENT_STATUS_BADGE: Record<string, string> = {
-  ACTIVE:                 'bg-green-50 text-blue-700 ring-1 ring-green-200',
+  ACTIVE:                 'bg-green-50 text-green-700 ring-1 ring-green-200',
   CHECK_IN_ONLY:          'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
   WITH_MH_CHECK_IN:       'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
   UNDER_ACCOMMODATION:    'bg-purple-50 text-purple-700 ring-1 ring-purple-200',

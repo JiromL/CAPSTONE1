@@ -580,7 +580,6 @@ export default function IntakePage() {
     // Calculate urgency level based on thresholds
     const urgency = calculateUrgencyLevel(scores);
     setUrgencyLevel(urgency);
-    console.log('🎯 Calculated Urgency Level:', urgency, 'from scores:', scores);
     
     // Set urgency to true if RED, false otherwise
     const isUrgent = urgency === 'RED';
@@ -634,7 +633,6 @@ export default function IntakePage() {
           payload[`${assessment}_responses`] = assessmentResponses[assessment] || [];
         });
         
-        console.log('📅 Calculating appointment with scores:', payload);
         
         const response = await fetch(api('/api/intake/calculate-appointment'), {
           method: 'POST',
@@ -647,7 +645,6 @@ export default function IntakePage() {
         
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Appointment calculated:', data);
           setAutomaticAppointmentInfo(data);
           
           // Extract date part from ISO format (YYYY-MM-DD)
@@ -691,7 +688,6 @@ export default function IntakePage() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Available times fetched:', data);
         setAvailableTimes(data.available_times || []);
         
         // Auto-select first available time
@@ -763,7 +759,6 @@ export default function IntakePage() {
   const handleSubmitIntake = async () => {
     // Refresh appointment check before submission
     // This catches the edge case where user booked in another tab
-    console.log('🔄 Refreshing active appointment check before submission...');
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('access_token');
       if (token) {
@@ -786,7 +781,6 @@ export default function IntakePage() {
             }
             const errorMsg = `You already have an active appointment scheduled for ${appointmentTimeStr}. Please complete or cancel your existing appointment before booking a new one.`;
             alert('⚠️ ' + errorMsg);
-            console.warn('⚠️ Active appointment found during submission attempt:', errorMsg);
             setActiveAppointmentError({
               hasError: true,
               message: errorMsg,
@@ -829,10 +823,6 @@ export default function IntakePage() {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      console.log('🔐 TOKEN DEBUG:');
-      console.log('   Token exists:', !!token);
-      console.log('   Token length:', token?.length);
-      console.log('   Token preview:', token?.substring(0, 30) + '...');
       
       if (!token) {
         alert('❌ No authentication token found! Please log in again.');
@@ -870,14 +860,6 @@ export default function IntakePage() {
       let finalToken = localStorage.getItem('token') || localStorage.getItem('access_token');
       const endpoint = api('/api/intake/submit');
       
-      console.log('📡 INTAKE SUBMISSION DEBUG:');
-      console.log('   Endpoint:', endpoint);
-      console.log('   Token from localStorage:', !!finalToken ? `${finalToken.substring(0, 30)}...` : 'NULL');
-      console.log('   Auth header:', finalToken ? `Bearer ${finalToken.substring(0, 20)}...` : 'NOT SET');
-      console.log('   Appointment override:', appointmentOverridden);
-      console.log('   Automatic date:', automaticAppointmentInfo?.automatic_date);
-      console.log('   Selected date:', appointmentDate);
-      console.log('   Payload keys:', Object.keys(payload));
       
       if (!finalToken) {
         throw new Error('No authentication token found. Please log in again.');
@@ -892,7 +874,6 @@ export default function IntakePage() {
         body: JSON.stringify(payload)
       });
 
-      console.log('📤 Response status:', response.status, response.ok);
       
       if (!response.ok) {
         if (response.status === 401) {
@@ -919,7 +900,6 @@ export default function IntakePage() {
           });
           
           alert('⚠️ ' + fullMessage);
-          console.warn('⚠️ Conflict (409) - Cannot proceed:', fullMessage);
           setIsSubmitting(false);
           return;
         }
@@ -936,11 +916,6 @@ export default function IntakePage() {
       }
 
       const data = await response.json();
-      console.log('✅ FULL API RESPONSE:', JSON.stringify(data, null, 2));
-      console.log('🔍 Response keys:', Object.keys(data));
-      console.log('📅 data.appointment exists?', !!data.appointment);
-      console.log('📅 data.appointment value:', data.appointment);
-      console.log('📅 type of data.appointment:', typeof data.appointment);
       
       // Check if appointment is null, undefined, or has the wrong structure
       if (!data.appointment) {
@@ -950,24 +925,12 @@ export default function IntakePage() {
       }
       
       if (data.appointment) {
-        console.log('   - join_url:', data.appointment.join_url);
-        console.log('   - meeting_id:', data.appointment.meeting_id);
-        console.log('   - platform:', data.appointment.platform);
-        console.log('   - preferred_platform:', data.appointment.preferred_platform);
       } else {
-        console.log('⚠️ WARNING: data.appointment is undefined or null!');
-        console.log('Available top-level fields in response:', Object.entries(data).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v).substring(0, 50) : v}`).join(', '));
       }
       
-      console.log('📌 About to set state...');
-      console.log('   setCounselingId:', data.counseling_id);
-      console.log('   setAppointmentData:', data.appointment);
       setCounselingId(data.counseling_id);
       setAppointmentData(data.appointment);
-      console.log('✅ State setters called');
-      console.log('📌 About to setStep("complete")');
       setStep('complete');
-      console.log('✅ setStep("complete") called');
     } catch (error) {
       console.error('❌ ERROR DURING SUBMISSION:', error);
       if (error instanceof Error) {
@@ -1969,7 +1932,7 @@ export default function IntakePage() {
                             <span className="font-semibold text-gray-900 dark:text-white">{timeSlot.time}</span>
                             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                               timeSlot.available_counselors >= 3
-                                ? 'bg-green-100 text-blue-800 dark:bg-blue-900 dark:text-green-200'
+                                ? 'bg-green-100 text-green-800 dark:bg-blue-900 dark:text-green-200'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             }`}>
                               {timeSlot.available_counselors} counselor{timeSlot.available_counselors !== 1 ? 's' : ''} available
@@ -2111,7 +2074,7 @@ export default function IntakePage() {
 
               {/* Appointment Confirmation */}
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-3">Your Appointment Details</h3>
+                <h3 className="font-semibold text-green-900 dark:text-green-200 mb-3">Your Appointment Details</h3>
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">📅 Date</span>
@@ -2133,20 +2096,20 @@ export default function IntakePage() {
               {/* Available Counselors */}
               {selectedTimeSlot && selectedTimeSlot.counselor_details && (
                 <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 dark:text-green-200 mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-green-900 dark:text-green-200 mb-3 flex items-center gap-2">
                     <span>👥</span> Available Counselors
                   </h3>
                   <div className="space-y-2">
                     {selectedTimeSlot.counselor_details.map((counselor: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-3 p-2 bg-white dark:bg-gray-800 rounded">
-                        <span className="w-8 h-8 flex items-center justify-center bg-green-200 dark:bg-blue-700 rounded-full text-sm font-bold text-blue-900 dark:text-green-100">
+                        <span className="w-8 h-8 flex items-center justify-center bg-green-200 dark:bg-blue-700 rounded-full text-sm font-bold text-green-900 dark:text-green-100">
                           {idx + 1}
                         </span>
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-50">{counselor.counselor_name}</span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-blue-700 dark:text-green-300 mt-3">
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-3">
                     ✓ A counselor will be assigned to best match your needs
                   </p>
                 </div>
@@ -2207,7 +2170,7 @@ export default function IntakePage() {
             <div className="px-8 pb-8">
               {/* Info: PDF Export Available After Submission */}
               <div className="mb-6 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded">
-                <p className="text-sm text-blue-900 dark:text-green-200">
+                <p className="text-sm text-green-900 dark:text-green-200">
                   <span className="font-semibold">📄 After submission:</span> You'll receive an official confirmation document that you can print or download as PDF, and a confirmation email will be sent to you.
                 </p>
               </div>

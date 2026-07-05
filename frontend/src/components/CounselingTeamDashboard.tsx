@@ -146,7 +146,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                         {fmtTime(a.preferred_date || a.scheduled_start)} · {a.counselor_name || 'Counselor TBD'}
                       </p>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-blue-700 border border-green-100 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
                       Confirmed
                     </span>
                   </div>

@@ -128,7 +128,7 @@ function VerifyEmailContent() {
         <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-50">Verify Your Email</h1>
 
         <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
+          <p className="text-sm text-green-800 dark:text-green-200">
             We sent a verification code to <strong>{email || 'your email'}</strong>. Click the button in the email or enter the code below.
           </p>
         </div>
@@ -164,7 +164,7 @@ function VerifyEmailContent() {
             Didn't receive the code?
           </p>
           <button
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm text-green-600 dark:text-green-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleResend}
             disabled={resending || resendCooldown > 0}
           >
@@ -177,7 +177,7 @@ function VerifyEmailContent() {
         </div>
 
         {msg && (
-          <p className="mt-4 text-sm text-blue-700 dark:text-green-400 p-3 bg-green-50 dark:bg-blue-900 border border-green-200 dark:border-blue-700 rounded">
+          <p className="mt-4 text-sm text-green-700 dark:text-green-400 p-3 bg-green-50 dark:bg-blue-900 border border-green-200 dark:border-blue-700 rounded">
             {msg}
           </p>
         )}

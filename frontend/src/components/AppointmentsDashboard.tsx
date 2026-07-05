@@ -85,9 +85,9 @@ const STATUS_BADGE: Record<string, string> = {
   REQUESTED:            'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   PENDING_APPROVAL:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   RESCHEDULE_REQUESTED: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
-  CONFIRMED:            'bg-green-50 text-blue-700 ring-1 ring-green-200',
-  APPROVED:             'bg-green-50 text-blue-700 ring-1 ring-green-200',
-  MATCHED:              'bg-green-50 text-blue-700 ring-1 ring-green-200',
+  CONFIRMED:            'bg-green-50 text-green-700 ring-1 ring-green-200',
+  APPROVED:             'bg-green-50 text-green-700 ring-1 ring-green-200',
+  MATCHED:              'bg-green-50 text-green-700 ring-1 ring-green-200',
   CHECKED_IN:           'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
   EVALUATION:           'bg-amber-50 text-amber-700 ring-1 ring-amber-300',
   FOLLOW_UP:            'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
@@ -1032,11 +1032,11 @@ export default function AppointmentsDashboard() {
                                         <textarea rows={1} value={pendingAction.notes}
                                           onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
                                           placeholder="Optional notes…"
-                                          className="w-40 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-green-500 resize-none" />
+                                          className="w-40 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-blue-500 resize-none" />
                                       </div>
                                       <button onClick={() => doSessionAction(apt.appointment_id, 'set-referral', { notes: pendingAction.notes })}
                                         disabled={actioningId === apt.appointment_id}
-                                        className="px-2.5 py-1 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                        className="px-2.5 py-1 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
                                         {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
                                       </button>
                                       <button onClick={() => setPendingAction(null)}
@@ -1268,7 +1268,7 @@ export default function AppointmentsDashboard() {
                                           <p className="text-[10px] text-gray-400 truncate">{s.counselor_name}</p>
                                         </div>
                                         <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                          isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-blue-700'
+                                          isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
                                         }`}>{isOnline ? 'Online' : 'F2F'}</span>
                                         {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
                                       </button>
@@ -1364,7 +1364,7 @@ export default function AppointmentsDashboard() {
               )}
 
               {assignMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${assignMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-lg ${assignMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                   {assignMsg.text}
                 </p>
               )}
@@ -1492,7 +1492,7 @@ export default function AppointmentsDashboard() {
               </div>
 
               {scheduleMsg && (
-                <p className={`text-xs px-3 py-2 rounded-xl ${scheduleMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-xl ${scheduleMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                   {scheduleMsg.text}
                 </p>
               )}
@@ -1543,7 +1543,7 @@ export default function AppointmentsDashboard() {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none resize-none" />
               </div>
               {reschedMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${reschedMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-lg ${reschedMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                   {reschedMsg.text}
                 </p>
               )}
@@ -1678,7 +1678,7 @@ export default function AppointmentsDashboard() {
             <select
               value={terminationType}
               onChange={e => setTerminationType(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-green-500 mb-3"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 mb-3"
             >
               <option value="MUTUAL">Mutual — goals met, both agree</option>
               <option value="CLIENT_INITIATED_PLANNED">Client-Initiated (Planned) — client ready to stop</option>
@@ -1693,7 +1693,7 @@ export default function AppointmentsDashboard() {
               value={terminationNotes}
               onChange={e => setTerminationNotes(e.target.value)}
               placeholder="Document therapeutic gains, transition plan, or reason for closure…"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-green-500 resize-none mb-4"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 resize-none mb-4"
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setTerminationTarget(null)}
@@ -1761,7 +1761,7 @@ export default function AppointmentsDashboard() {
               </div>
 
               {editMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${editMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'}`}>
+                <p className={`text-xs px-3 py-2 rounded-lg ${editMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                   {editMsg.text}
                 </p>
               )}

@@ -16,7 +16,6 @@ export default function ManualNotifyForm() {
     setLoadingHistory(true);
     setHistoryError(null);
     const url = api(`/api/v1/dashboard/user_perma_history/${encodeURIComponent(username)}?offset=0&limit=100`);
-    console.log('fetching history from', url);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(url, {

@@ -328,7 +328,7 @@ export default function ProfilePage() {
         {/* Success Message */}
         {successMessage && (
           <div className="mb-4 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded">
-            <p className="text-sm text-blue-700 dark:text-green-300">{successMessage}</p>
+            <p className="text-sm text-green-700 dark:text-green-300">{successMessage}</p>
           </div>
         )}
 
@@ -451,7 +451,7 @@ export default function ProfilePage() {
                             key={sc}
                             type="button"
                             onClick={() => setFormData(f => ({ ...f, course: sc }))}
-                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-green-300 transition-colors"
+                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-blue-900/40 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                           >
                             {sc}
                           </button>
@@ -650,7 +650,16 @@ export default function ProfilePage() {
 
                     {/* SVG line chart */}
                     {points.length === 0 ? (
-                      <p className="text-xs text-gray-400 py-2">No assessments recorded yet. Complete a PERMA survey in the EMA chatbot.</p>
+                      <div className="py-4 flex flex-col items-center gap-2 text-center">
+                        <p className="text-sm text-gray-500 font-medium">No assessments recorded yet</p>
+                        <p className="text-xs text-gray-400 max-w-xs">
+                          Complete a conversation in the EMA chatbot to generate your first PERMA wellness label.
+                          Your results will appear here automatically.
+                        </p>
+                        <p className="text-xs text-[#2563eb] font-medium mt-1">
+                          → Open the EMA chatbot using the button at the bottom-right of the screen
+                        </p>
+                      </div>
                     ) : (
                       <div className="rounded-xl overflow-hidden border border-gray-100 bg-white">
                         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 120 }}>
@@ -741,9 +750,9 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-4 text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-4 text-xs text-green-800 dark:text-green-300 leading-relaxed">
               <p className="font-semibold mb-1">What this consent allows:</p>
-              <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
+              <ul className="list-disc list-inside space-y-1 text-green-700 dark:text-green-400">
                 <li>CPS will access your EMA wellbeing labels (e.g. Thriving, Surviving)</li>
                 <li>Your counselor may use this to suggest relevant pre-session assessments</li>
                 <li>Only your assigned counselor or psychologist can view this data</li>
@@ -767,7 +776,7 @@ export default function ProfilePage() {
                 Cancel
               </button>
               <button onClick={handleEmaConsent} disabled={!emaConsentChecked || emaConsentSaving}
-                className="flex-1 py-2.5 bg-green-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
                 {emaConsentSaving && <Loader2 size={13} className="animate-spin" />}
                 I Agree &amp; Continue
               </button>
@@ -817,7 +826,7 @@ export default function ProfilePage() {
                         value={pwForm[key]}
                         onChange={e => setPwForm(f => ({ ...f, [key]: e.target.value }))}
                         onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
-                        className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white dark:focus:bg-gray-900"
+                        className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-900"
                         placeholder={key === 'current' ? 'Enter current password' : key === 'newPw' ? 'At least 8 characters' : 'Re-enter new password'}
                       />
                       <button type="button" onClick={toggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -835,7 +844,7 @@ export default function ProfilePage() {
                       { ok: /[0-9]/.test(pwForm.newPw),                     label: 'Number' },
                       { ok: pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0, label: 'Match' },
                     ].map(({ ok, label }) => (
-                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
+                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
                         {ok ? '✓' : '○'} {label}
                       </span>
                     ))}
@@ -852,7 +861,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleChangePassword}
                     disabled={pwSaving}
-                    className="flex-1 py-2.5 bg-green-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition"
+                    className="flex-1 py-2.5 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition"
                   >
                     {pwSaving ? 'Saving…' : 'Update Password'}
                   </button>

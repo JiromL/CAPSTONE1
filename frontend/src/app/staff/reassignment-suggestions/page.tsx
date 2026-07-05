@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Lightbulb, AlertCircle, CheckCircle, ArrowRight, User } from 'lucide-react';
+import { api } from '@/utils/api';
 import PageShell from '@/components/PageShell';
 
 export default function ReassignmentSuggestionsPage() {
@@ -19,7 +20,7 @@ export default function ReassignmentSuggestionsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/appointments/staff/reassignment-suggestions', {
+      const response = await fetch(api('/api/appointments/staff/reassignment-suggestions'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -82,7 +83,7 @@ export default function ReassignmentSuggestionsPage() {
       {successMsg && (
         <div className="mb-4 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg flex gap-2">
           <CheckCircle size={20} className="text-green-600 dark:text-green-400 flex-shrink-0" />
-          <span className="text-blue-800 dark:text-green-300">{successMsg}</span>
+          <span className="text-green-800 dark:text-green-300">{successMsg}</span>
         </div>
       )}
 
@@ -95,11 +96,11 @@ export default function ReassignmentSuggestionsPage() {
 
       {suggestions.length === 0 ? (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-12 text-center">
-          <Lightbulb size={48} className="mx-auto text-blue-400 mb-4" />
-          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+          <Lightbulb size={48} className="mx-auto text-green-400 mb-4" />
+          <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
             No Reassignments Needed
           </h3>
-          <p className="text-blue-800 dark:text-blue-300">
+          <p className="text-green-800 dark:text-green-300">
             Workload is well balanced across all counselors. Check back later for new recommendations.
           </p>
         </div>
@@ -195,7 +196,7 @@ export default function ReassignmentSuggestionsPage() {
                 <button
                   onClick={() => applySuggestion(suggestion)}
                   disabled={processing === suggestion.appointment_id}
-                  className="w-full bg-green-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition"
+                  className="w-full bg-[#2563eb] hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition"
                 >
                   {processing === suggestion.appointment_id ? 'Applying...' : 'Apply Suggestion'}
                 </button>

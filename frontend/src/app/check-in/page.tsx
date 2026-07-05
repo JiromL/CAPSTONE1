@@ -87,7 +87,7 @@ function CheckInContent() {
         {/* Card */}
         {state === 'loading' && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
-            <Loader2 size={32} className="animate-spin text-green-500 mx-auto mb-3" />
+            <Loader2 size={32} className="animate-spin text-blue-500 mx-auto mb-3" />
             <p className="text-sm font-medium text-gray-700">Verifying QR code…</p>
             <p className="text-xs text-gray-400 mt-1">Please wait</p>
           </div>
@@ -182,7 +182,7 @@ export default function CheckInPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-green-500" />
+        <Loader2 size={28} className="animate-spin text-blue-500" />
       </div>
     }>
       <CheckInContent />

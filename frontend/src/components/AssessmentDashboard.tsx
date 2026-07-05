@@ -185,7 +185,7 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
                   {dashboardData.summary.critical_alerts || 0}
                 </p>
               </div>
-              <div className="border border-green-200 dark:border-blue-800 rounded p-4 bg-green-50 dark:bg-blue-900/20 col-span-2">
+              <div className="border border-green-200 dark:border-blue-800 rounded p-4 bg-green-50 dark:bg-green-900/20 col-span-2">
                 <p className="text-xs text-green-600 dark:text-green-400 mb-1">Risk Distribution</p>
                 <div className="flex gap-2 text-sm">
                   <span className="font-semibold">🟢 {dashboardData.summary.risk_distribution?.GREEN || 0}</span>

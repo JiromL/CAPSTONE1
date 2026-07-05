@@ -77,7 +77,7 @@ export default function CounselorProfilePage() {
       <DashboardPageWrapper title="Counselor Profile" subtitle="Your profile information">
         <div className="flex items-center justify-center h-96">
           <div className="flex flex-col items-center gap-3">
-            <Loader className="animate-spin text-green-600" size={32} />
+            <Loader className="animate-spin text-blue-600" size={32} />
             <p className="text-gray-600">Loading profile...</p>
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function CounselorProfilePage() {
             )}
 
             {displayProfile.languages && displayProfile.languages.length > 0 && (
-              <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="text-green-600 dark:text-green-400" size={20} />
                   <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Languages</p>

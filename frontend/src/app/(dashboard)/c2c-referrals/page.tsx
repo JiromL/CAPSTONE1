@@ -27,8 +27,8 @@ const URGENCY_COLORS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  accepted: 'bg-green-100 text-blue-800 dark:bg-blue-900/40 dark:text-green-300',
-  completed: 'bg-green-100 text-blue-800 dark:bg-blue-900/40 dark:text-green-300',
+  accepted: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  completed: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   declined: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
 };
 
@@ -64,7 +64,7 @@ export default function C2CReferralsPage() {
           </p>
           <button
             onClick={load}
-            className="flex items-center gap-2 text-sm text-green-600 hover:text-blue-700 dark:text-green-400"
+            className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 dark:text-green-400"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -80,7 +80,7 @@ export default function C2CReferralsPage() {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
           </div>
         ) : referrals.length === 0 ? (
           <div className="text-center py-16 text-gray-400 dark:text-gray-500">

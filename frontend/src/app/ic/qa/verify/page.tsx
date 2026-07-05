@@ -68,7 +68,7 @@ export default function VerifyPage() {
                     <p className="text-xs text-gray-500 mt-1">Completed: {new Date(intake.completed_date).toLocaleDateString()}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="px-3 py-1 bg-green-100 text-blue-700 rounded text-sm font-medium hover:bg-green-200 flex items-center gap-1">
+                    <button className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm font-medium hover:bg-green-200 flex items-center gap-1">
                       <CheckCircle2 size={14} /> Approve
                     </button>
                     <button className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm font-medium hover:bg-red-200 flex items-center gap-1">

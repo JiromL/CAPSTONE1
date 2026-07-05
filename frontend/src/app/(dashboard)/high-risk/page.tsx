@@ -13,7 +13,7 @@ const RISK_CONFIG: Record<string, { label: string; badge: string }> = {
   red:      { label: 'High Risk',  badge: 'bg-red-50 text-red-700 ring-1 ring-red-200' },
   critical: { label: 'Critical',   badge: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold' },
   yellow:   { label: 'Moderate',   badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  green:    { label: 'Low Risk',   badge: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  green:    { label: 'Low Risk',   badge: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
 };
 
 function getRisk(level: string) {

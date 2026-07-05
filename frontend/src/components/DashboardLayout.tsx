@@ -78,8 +78,8 @@ export function DashboardLayout({
     if (!user) return '';
     const fn = user.first_name || '';
     const ln = user.last_name  || '';
-    if (fn && ln) return `${ln.toUpperCase()}, ${fn.toUpperCase()}`;
-    return (user.name || user.email || '').toUpperCase();
+    if (fn && ln) return `${fn} ${ln}`;
+    return user.name || user.email || '';
   })();
 
   const idNumber = user?.id_number || user?.student_id || '';
@@ -90,11 +90,11 @@ export function DashboardLayout({
       <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-200 flex-shrink-0">
         <Image src="/dlsu-seal.svg" alt="DLSU" width={40} height={40} className="flex-shrink-0" />
         <div className="min-w-0">
-          <p className="text-sm font-bold text-[#2563eb] leading-tight">DLSU</p>
+          <p className="text-sm font-bold text-blue-600 leading-tight">DLSU</p>
           <p className="text-[10px] text-gray-500 leading-tight">Counseling &amp; Psychology</p>
         </div>
         {/* Mobile close */}
-        <button onClick={() => setMobileOpen(false)}
+        <button onClick={() => setMobileOpen(false)} aria-label="Close menu"
           className="lg:hidden ml-auto p-1 text-gray-400 hover:text-gray-600">
           <X size={16} />
         </button>
@@ -110,17 +110,17 @@ export function DashboardLayout({
           const content = (
             <div className={`flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
               isActive
-                ? 'text-[#2563eb] font-semibold bg-green-50 border-r-[3px] border-[#2563eb]'
-                : 'text-gray-600 hover:text-[#2563eb] hover:bg-gray-50'
+                ? 'text-blue-600 font-semibold bg-blue-50 border-r-[3px] border-blue-600'
+                : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
             }`}>
               {icon && (
-                <span className={`flex-shrink-0 ${isActive ? 'text-[#2563eb]' : 'text-gray-400'}`}>
+                <span className={`flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
                   {icon}
                 </span>
               )}
               <span className="flex-1 truncate">{item.label}</span>
               {item.badge != null && item.badge > 0 && (
-                <span className="bg-[#2563eb] text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
                   {item.badge}
                 </span>
               )}
@@ -149,7 +149,7 @@ export function DashboardLayout({
       <div className="border-t border-gray-200 px-5 py-4 flex-shrink-0">
         {lastLogin && (
           <p className="text-[11px] text-gray-400 mb-3">
-            Last Login : <span className="font-medium text-gray-500">{lastLogin}</span>
+            Last login: <span className="font-medium text-gray-500">{lastLogin}</span>
           </p>
         )}
         <button onClick={onLogout}
@@ -162,7 +162,7 @@ export function DashboardLayout({
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f4f4] flex">
+    <div className="min-h-screen bg-gray-100 flex">
 
       {/* Mobile backdrop */}
       {mobileOpen && (
@@ -185,7 +185,7 @@ export function DashboardLayout({
         {/* Top header */}
         <header className="sticky top-0 z-20 h-14 flex items-center justify-between px-5 bg-white border-b border-gray-200">
           {/* Mobile hamburger */}
-          <button onClick={() => setMobileOpen(true)}
+          <button onClick={() => setMobileOpen(true)} aria-label="Open menu"
             className="lg:hidden p-2 -ml-1 rounded text-gray-500 hover:bg-gray-100 transition-colors">
             <Menu size={20} />
           </button>
@@ -199,17 +199,20 @@ export function DashboardLayout({
           {/* Right: bells + user */}
           <div className="flex items-center gap-4 ml-auto">
             {/* Notification bell */}
-            <Link href="/reminders" className="relative text-gray-500 hover:text-[#2563eb] transition-colors">
+            <Link href="/reminders" title="Reminders"
+              aria-label={reminderCount > 0 ? `Reminders (${reminderCount} unread)` : 'Reminders'}
+              className="relative p-1 rounded text-gray-500 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-blue-600 transition-colors">
               <Bell size={20} />
               {reminderCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-blue-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
                   {reminderCount}
                 </span>
               )}
             </Link>
 
             {/* Calendar */}
-            <Link href="/appointments" className="text-gray-500 hover:text-[#2563eb] transition-colors" title="Appointments">
+            <Link href="/appointments" title="Appointments" aria-label="Appointments"
+              className="p-1 rounded text-gray-500 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-blue-600 transition-colors">
               <Calendar size={20} />
             </Link>
 
@@ -233,8 +236,8 @@ export function DashboardLayout({
                   </p>
                 )}
               </div>
-              <div className="w-8 h-8 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                {fullName.charAt(0) || 'U'}
+              <div aria-hidden="true" className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {fullName.charAt(0).toUpperCase() || 'U'}
               </div>
             </div>
           </div>

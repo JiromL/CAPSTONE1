@@ -99,7 +99,7 @@ export default function RegisterPage() {
           </button>
         </form>
         
-        {msg && <p className="mt-4 text-sm text-blue-700 dark:text-green-400">{msg}</p>}
+        {msg && <p className="mt-4 text-sm text-green-700 dark:text-green-400">{msg}</p>}
         {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
         
         <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">

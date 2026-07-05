@@ -327,8 +327,8 @@ export default function ProfilePage() {
       <div className="max-w-3xl mx-auto">
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded">
-            <p className="text-sm text-blue-700 dark:text-green-300">{successMessage}</p>
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-blue-700 rounded">
+            <p className="text-sm text-green-700 dark:text-green-300">{successMessage}</p>
           </div>
         )}
 
@@ -451,7 +451,7 @@ export default function ProfilePage() {
                             key={sc}
                             type="button"
                             onClick={() => setFormData(f => ({ ...f, course: sc }))}
-                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-green-300 transition-colors"
+                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-blue-900/40 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                           >
                             {sc}
                           </button>
@@ -732,7 +732,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                 <Activity size={16} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
@@ -781,7 +781,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                 <Lock size={16} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
@@ -835,7 +835,7 @@ export default function ProfilePage() {
                       { ok: /[0-9]/.test(pwForm.newPw),                     label: 'Number' },
                       { ok: pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0, label: 'Match' },
                     ].map(({ ok, label }) => (
-                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
+                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
                         {ok ? '✓' : '○'} {label}
                       </span>
                     ))}

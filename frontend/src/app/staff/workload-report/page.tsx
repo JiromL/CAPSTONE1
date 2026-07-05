@@ -77,9 +77,9 @@ export default function WorkloadReportPage() {
           <p className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2">{totalAssigned}</p>
         </div>
 
-        <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg border border-green-200 dark:border-blue-800 p-4">
-          <p className="text-blue-700 dark:text-green-300 text-sm font-medium">Utilization</p>
-          <p className="text-3xl font-bold text-blue-900 dark:text-green-100 mt-2">{utilizationRate}%</p>
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-blue-800 p-4">
+          <p className="text-green-700 dark:text-green-300 text-sm font-medium">Utilization</p>
+          <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{utilizationRate}%</p>
         </div>
       </div>
 
@@ -125,7 +125,7 @@ export default function WorkloadReportPage() {
                   full: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
                   high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
                   medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-                  low: 'bg-green-100 dark:bg-blue-900/30 text-blue-800 dark:text-green-300',
+                  low: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
                 };
 
                 return (

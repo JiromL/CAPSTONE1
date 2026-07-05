@@ -174,7 +174,7 @@ export default function WaitlistPage() {
               <div className="flex items-start gap-4 min-w-0">
                 {/* Position badge */}
                 {tab === 'waiting' && (
-                  <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-950 text-blue-700 dark:text-green-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
                     #{entry.position}
                   </div>
                 )}

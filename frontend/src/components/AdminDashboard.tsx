@@ -71,7 +71,7 @@ function PermaDistributionWidget() {
 }
 
 const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-blue-700'  },
+  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700' },
   'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
   'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
   'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },

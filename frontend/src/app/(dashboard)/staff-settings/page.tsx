@@ -337,7 +337,7 @@ export default function StaffSettingsPage() {
   return (
     <DashboardPageWrapper title="Settings" subtitle="Configure your work preferences and availability">
       {toast && (
-        <div className={`mb-4 p-4 rounded-lg ${toast.type === 'success' ? 'bg-green-50 text-blue-800' : 'bg-red-50 text-red-800'}`}>
+        <div className={`mb-4 p-4 rounded-lg ${toast.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
           {toast.message}
         </div>
       )}
@@ -599,10 +599,10 @@ export default function StaffSettingsPage() {
                 Connect your Google account so confirmed appointments automatically appear in your calendar and students receive calendar invites.
               </p>
               {calendarConnected === null ? (
-                <div className="w-5 h-5 border-2 border-gray-200 border-t-green-500 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
               ) : calendarConnected ? (
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-green-400">
+                  <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
                     <CheckCircle size={16} />
                     <span className="font-medium">Connected</span>
                     <span className="text-gray-400 dark:text-gray-500 text-xs">· Appointments sync automatically</span>

@@ -62,7 +62,7 @@ export function AppointmentConfirmation({
           </button>
           <button
             onClick={handleDownloadClick}
-            className="flex-1 min-w-[180px] bg-green-50 hover:bg-green-100 text-blue-900 font-bold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg border-2 border-green-200"
+            className="flex-1 min-w-[180px] bg-green-50 hover:bg-green-100 text-green-900 font-bold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg border-2 border-green-200"
           >
             📥 Download PDF
           </button>

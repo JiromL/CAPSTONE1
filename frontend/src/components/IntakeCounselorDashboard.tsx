@@ -71,7 +71,7 @@ function PermaDistributionWidget() {
 }
 
 const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-blue-700'  },
+  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700' },
   'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
   'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
   'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
@@ -265,7 +265,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                       </p>
                     </div>
                     <Link href="/appointment-requests">
-                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
+                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition flex-shrink-0">
                         Confirm
                       </button>
                     </Link>
@@ -298,7 +298,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                       <p className="text-xs text-gray-400">{fmtTime(a.preferred_date || a.scheduled_start)}</p>
                     </div>
                     <Link href="/appointment-requests">
-                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-[#16451f] transition flex-shrink-0">
+                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition flex-shrink-0">
                         Conduct
                       </button>
                     </Link>

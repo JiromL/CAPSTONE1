@@ -270,7 +270,7 @@ export default function CheckInTrackingPage() {
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.concern}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            c.status === 'Active' ? 'bg-green-100 text-blue-800 dark:bg-blue-900 dark:text-green-200'
+                            c.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                               : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
                             {c.status}
                           </span>

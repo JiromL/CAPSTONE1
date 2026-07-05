@@ -46,8 +46,8 @@ function ConnectCard({
     <div className="max-w-sm mx-auto mt-6">
       <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         <div className="flex flex-col items-center mb-6">
-          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-3">
-            <Activity size={22} className="text-green-600" />
+          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3">
+            <Activity size={22} className="text-blue-600" />
           </div>
           <h2 className="text-base font-semibold text-gray-900">Connect to EMA</h2>
           <p className="text-xs text-gray-400 text-center mt-1">
@@ -78,7 +78,7 @@ function ConnectCard({
           </div>
           {err && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
           <button type="submit" disabled={busy}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2563eb] hover:bg-[#163d20] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition mt-1">
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition mt-1">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
             {busy ? 'Connecting…' : 'Connect'}
           </button>
@@ -168,7 +168,7 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
                 {label === 'Thriving'   && 'You\'re in a generally positive mental state with minor concerns.'}
                 {label === 'Surviving'  && 'You\'re coping but experiencing some difficulties. Your IC can help if needed.'}
                 {label === 'Struggling' && 'You\'re experiencing significant challenges. A Case Manager will reach out to support you.'}
-                {label === 'In Crisis'  && 'You\'ve been flagged for immediate support. A Case Manager will contact you — please reach out to the CPS office directly if you need help now.'}
+                {label === 'In Crisis'  && 'It looks like you may need support right now — you don\'t have to face this alone. A Case Manager will reach out to you soon. If you need help immediately, please contact the CPS office or the hotlines below.'}
               </p>
               {(label === 'Struggling' || label === 'In Crisis') && (
                 <p className="text-xs text-gray-500 mt-2">

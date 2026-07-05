@@ -866,7 +866,7 @@ export default function CaseDetailPage() {
   ];
 
   const RISK_BADGE: Record<string, string> = {
-    GREEN:    'bg-green-50 text-blue-700 ring-1 ring-green-200',
+    GREEN:    'bg-green-50 text-green-700 ring-1 ring-green-200',
     YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
     RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
     CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
@@ -908,7 +908,7 @@ export default function CaseDetailPage() {
         </div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-blue-700">
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
           {success}
         </div>
       )}
@@ -988,7 +988,7 @@ export default function CaseDetailPage() {
                 <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   caseData.risk_level === 'RED' ? 'bg-red-100 text-red-800' :
                   caseData.risk_level === 'YELLOW' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-green-100 text-blue-800'
+                  'bg-green-100 text-green-800'
                 }`}>
                   {caseData.risk_level || 'GREEN'}
                 </span>
@@ -1095,7 +1095,7 @@ export default function CaseDetailPage() {
                   const delta = (SCORE[permaHistory[0].perma_label!] ?? 0) - (SCORE[caseData.initial_perma_label] ?? 0);
                   if (delta === 0) return null;
                   return (
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {delta > 0 ? `↑ +${delta}` : `↓ ${delta}`} levels
                     </span>
                   );
@@ -1445,7 +1445,7 @@ export default function CaseDetailPage() {
                         key={fmt}
                         type="button"
                         onClick={() => setNoteForm({ ...noteForm, note_format: fmt })}
-                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-blue-700 dark:text-green-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                       >
                         {fmt === 'SOAP' ? 'SOAP Template' : 'Freeform'}
                       </button>
@@ -1462,7 +1462,7 @@ export default function CaseDetailPage() {
                       { key: 'soap_plan', label: 'P — Plan', hint: 'Next steps, homework, referrals, follow-up schedule' },
                     ] as const).map(({ key, label, hint }) => (
                       <div key={key} className="md:col-span-2">
-                        <label className="block text-xs font-semibold text-blue-700 dark:text-green-400 mb-0.5">{label}</label>
+                        <label className="block text-xs font-semibold text-green-700 dark:text-green-400 mb-0.5">{label}</label>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{hint}</p>
                         <textarea
                           value={noteForm[key] as string}
@@ -1568,7 +1568,7 @@ export default function CaseDetailPage() {
                         <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">{note.symptom_severity}</span>
                       )}
                       {note.supervisor_approved === true && (
-                        <span className="px-2 py-0.5 bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400 text-xs font-medium rounded-full">✓ Approved</span>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium rounded-full">✓ Approved</span>
                       )}
                       {note.supervisor_approved === false && note.supervisor_name && (
                         <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium rounded-full">✗ Rejected</span>
@@ -1781,7 +1781,7 @@ export default function CaseDetailPage() {
                           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${g.status === 'achieved' ? 'bg-green-500' : g.status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-300'}`} />
                           <span className="flex-1 text-gray-800 dark:text-gray-200">{g.goal}</span>
                           {g.target_date && <span className="text-xs text-gray-400">{new Date(g.target_date).toLocaleDateString()}</span>}
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${g.status === 'achieved' ? 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400' : g.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{g.status.replace('_', ' ')}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${g.status === 'achieved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : g.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{g.status.replace('_', ' ')}</span>
                         </div>
                       ))}
                     </div>
@@ -1791,7 +1791,7 @@ export default function CaseDetailPage() {
                   <div>
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Interventions</p>
                     <div className="flex flex-wrap gap-2">
-                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-green-50 dark:bg-blue-900/30 text-blue-700 dark:text-green-300 rounded-full">{iv}</span>)}
+                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">{iv}</span>)}
                     </div>
                   </div>
                 )}
@@ -1873,10 +1873,10 @@ export default function CaseDetailPage() {
             <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
               {diagnoses.map((d, i) => (
                 <div key={i} className="flex items-center gap-3 px-5 py-3">
-                  <span className="font-mono text-sm font-bold text-blue-700 dark:text-green-400 w-20 flex-shrink-0">{d.code}</span>
+                  <span className="font-mono text-sm font-bold text-green-700 dark:text-green-400 w-20 flex-shrink-0">{d.code}</span>
                   <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{d.description}</span>
                   <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">{d.system}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
                   <button onClick={() => handleRemoveDiagnosis(i)} className="text-gray-300 hover:text-red-500 transition ml-1"><XIcon size={14} /></button>
                 </div>
               ))}
@@ -1896,7 +1896,7 @@ export default function CaseDetailPage() {
                 {safetyPlanExists ? 'Safety Plan' : 'Create Safety Plan'}
               </h2>
               {safetyPlanExists && !editingSafetyPlan && (
-                <span className="text-xs bg-green-100 text-blue-700 dark:bg-blue-900/30 dark:text-green-400 px-2 py-0.5 rounded">On file</span>
+                <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded">On file</span>
               )}
             </div>
             {safetyPlanExists && !editingSafetyPlan && (
@@ -2084,11 +2084,11 @@ export default function CaseDetailPage() {
 
           {/* ── Assessment result banner ── */}
           {assessmentResult && (
-            <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-xl p-4 flex items-start gap-3">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-blue-700 rounded-xl p-4 flex items-start gap-3">
               <Activity size={16} className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-blue-800 dark:text-green-300">Assessment recorded</p>
-                <p className="text-xs text-blue-700 dark:text-green-400 mt-0.5">
+                <p className="text-sm font-semibold text-green-800 dark:text-green-300">Assessment recorded</p>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
                   Score: <span className="font-bold">{assessmentResult.score}/{assessmentResult.max}</span>
                   <span className="mx-1.5">·</span>
                   Severity: <span className="font-bold">{assessmentResult.severity}</span>
@@ -2618,7 +2618,7 @@ function getGAD7Severity(score: number): string {
 
 function getSeverityClass(severity: string): string {
   switch (severity) {
-    case 'Minimal': return 'bg-green-100 text-blue-800';
+    case 'Minimal': return 'bg-green-100 text-green-800';
     case 'Mild': return 'bg-yellow-100 text-yellow-800';
     case 'Moderate': return 'bg-orange-100 text-orange-800';
     case 'Moderately Severe': return 'bg-red-100 text-red-800';
@@ -3017,7 +3017,7 @@ function ICInterviewSection({
                     <span className="text-xs text-gray-400 ml-1">/ 27</span>
                   </div>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                    intakeForm.phq9_score <= 4 ? 'bg-green-100 text-blue-800' :
+                    intakeForm.phq9_score <= 4 ? 'bg-green-100 text-green-800' :
                     intakeForm.phq9_score <= 9 ? 'bg-yellow-100 text-yellow-800' :
                     intakeForm.phq9_score <= 14 ? 'bg-orange-100 text-orange-800' :
                     intakeForm.phq9_score <= 19 ? 'bg-red-100 text-red-800' :
@@ -3041,7 +3041,7 @@ function ICInterviewSection({
                     <span className="text-xs text-gray-400 ml-1">/ 21</span>
                   </div>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                    intakeForm.gad7_score <= 4 ? 'bg-green-100 text-blue-800' :
+                    intakeForm.gad7_score <= 4 ? 'bg-green-100 text-green-800' :
                     intakeForm.gad7_score <= 9 ? 'bg-yellow-100 text-yellow-800' :
                     intakeForm.gad7_score <= 14 ? 'bg-orange-100 text-orange-800' :
                     'bg-red-100 text-red-800'
@@ -3703,14 +3703,14 @@ function ICInterviewSection({
                   {currentStep < WIZARD_STEPS.length - 1 ? (
                     <button
                       onClick={handleNext}
-                      className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] transition">
+                      className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
                       Next →
                     </button>
                   ) : (
                     <button
                       onClick={handleSaveForm}
                       disabled={intakeFormSaving}
-                      className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-[#16451f] disabled:opacity-50 transition flex items-center gap-2">
+                      className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-2">
                       {intakeFormSaving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save Form'}
                     </button>
                   )}

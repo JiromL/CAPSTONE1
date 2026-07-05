@@ -55,18 +55,18 @@ function phq9Sev(s: number) {
   if (s >= 15) return { label: 'Mod-Severe', cls: 'text-red-600 bg-red-50' };
   if (s >= 10) return { label: 'Moderate', cls: 'text-amber-700 bg-amber-100' };
   if (s >= 5)  return { label: 'Mild', cls: 'text-yellow-700 bg-yellow-100' };
-  return { label: 'Minimal', cls: 'text-blue-700 bg-green-100' };
+  return { label: 'Minimal', cls: 'text-green-700 bg-green-100' };
 }
 function gad7Sev(s: number) {
   if (s >= 15) return { label: 'Severe', cls: 'text-red-700 bg-red-100' };
   if (s >= 10) return { label: 'Moderate', cls: 'text-amber-700 bg-amber-100' };
   if (s >= 5)  return { label: 'Mild', cls: 'text-yellow-700 bg-yellow-100' };
-  return { label: 'Minimal', cls: 'text-blue-700 bg-green-100' };
+  return { label: 'Minimal', cls: 'text-green-700 bg-green-100' };
 }
 
 function RiskBadge({ risk }: { risk: string }) {
   const map: Record<string, { cls: string; icon: React.ReactNode; label: string }> = {
-    GREEN:    { cls: 'bg-green-50 text-blue-700 border-green-200',    icon: <Shield size={13} />,       label: 'Code Green — Low Risk' },
+    GREEN:    { cls: 'bg-green-50 text-green-700 border-green-200',    icon: <Shield size={13} />,       label: 'Code Green — Low Risk' },
     YELLOW:   { cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: <Activity size={13} />,     label: 'Code Yellow — Moderate Risk' },
     RED:      { cls: 'bg-red-50 text-red-700 border-red-200',          icon: <AlertTriangle size={13} />, label: 'Code Red — High Risk' },
     CRITICAL: { cls: 'bg-red-100 text-red-800 border-red-400',         icon: <ShieldAlert size={13} />,   label: 'CRITICAL — Immediate Response' },
@@ -472,7 +472,7 @@ export default function ConductIntakePage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold text-gray-900">{studentName}</h2>
                 {packet && (
-                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-green-100 text-blue-700 rounded-full font-bold">
+                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">
                     <FileText size={10} /> Intake Forms Submitted
                   </span>
                 )}
@@ -504,7 +504,7 @@ export default function ConductIntakePage() {
                 onClick={() => i < stepIdx ? setStep(s.key) : undefined}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition
                   ${step === s.key ? 'bg-[#2563eb] text-white shadow-sm'
-                  : i < stepIdx ? 'bg-green-100 text-blue-700 cursor-pointer hover:bg-green-200'
+                  : i < stepIdx ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200'
                   : 'bg-gray-100 text-gray-400 cursor-default'}`}>
                 {i < stepIdx ? <Check size={11} /> : <span className="w-3 h-3 rounded-full border-current border flex items-center justify-center text-[9px] font-bold">{i+1}</span>}
                 {s.label}
@@ -891,7 +891,7 @@ export default function ConductIntakePage() {
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                       {[{ v: true, l: 'YES', cls: cssr[i] === true ? 'bg-red-600 text-white border-red-600' : 'border-gray-300 text-red-600 hover:border-red-400 hover:bg-red-50' },
-                        { v: false, l: 'NO',  cls: cssr[i] === false ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-blue-700 hover:border-green-400 hover:bg-green-50' }]
+                        { v: false, l: 'NO',  cls: cssr[i] === false ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-green-700 hover:border-green-400 hover:bg-green-50' }]
                         .map(opt => (
                         <button key={String(opt.v)} onClick={() => { const a = [...cssr]; a[i] = a[i] === opt.v ? null : opt.v; setCssr(a); }}
                           className={`px-4 py-1.5 rounded-lg text-xs font-bold border-2 transition ${opt.cls}`}>

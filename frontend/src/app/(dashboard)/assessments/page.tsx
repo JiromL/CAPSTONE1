@@ -59,7 +59,7 @@ export default function AssessmentsPage() {
     return (
       <DashboardPageWrapper title="Assessments" subtitle="">
         <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
       </DashboardPageWrapper>
     );
@@ -117,7 +117,7 @@ export default function AssessmentsPage() {
 
           {/* Summary count (no scores) */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <BarChart3 size={22} className="text-green-600 dark:text-green-400" />
             </div>
             <div>

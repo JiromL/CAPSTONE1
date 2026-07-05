@@ -112,7 +112,7 @@ export default function AvailabilityPage() {
     <DashboardPageWrapper title="My Availability" subtitle="Set the days and hours you're available for appointments">
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium
-          ${toast.ok ? 'bg-green-50 text-blue-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          ${toast.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
           {toast.ok && <Check size={15} />}
           {toast.msg}
         </div>

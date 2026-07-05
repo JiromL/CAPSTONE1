@@ -35,7 +35,7 @@ const CPS_ROLES = ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'];
 
 const STATUS_CONFIG: Record<string, { cls: string; label: string }> = {
   NEW:         { cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',    label: 'New' },
-  COMPLETED:   { cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200', label: 'Completed' },
+  COMPLETED:   { cls: 'bg-green-50 text-green-700 ring-1 ring-green-200', label: 'Completed' },
   IN_PROGRESS: { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', label: 'In Progress' },
   PENDING:     { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', label: 'Pending' },
   CANCELLED:   { cls: 'bg-red-50 text-red-600 ring-1 ring-red-200',       label: 'Cancelled' },
@@ -269,7 +269,7 @@ export default function NewIntakesPage() {
             <RefreshCw size={14} />
           </button>
           <button onClick={handleExport} disabled={exporting}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50 bg-[#2563eb] hover:bg-[#16451f]">
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50 bg-[#2563eb] hover:bg-blue-700">
             {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             Export
           </button>
@@ -370,7 +370,7 @@ export default function NewIntakesPage() {
                         {/* Packet */}
                         <td className="px-5 py-4">
                           {intake.intake_packet_submitted
-                            ? <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-50 text-blue-700 ring-1 ring-green-200">
+                            ? <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-50 text-green-700 ring-1 ring-green-200">
                                 <FileCheck size={11} /> Ready
                               </span>
                             : <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-orange-50 text-orange-600 ring-1 ring-orange-200">
@@ -390,7 +390,7 @@ export default function NewIntakesPage() {
                           <div className="flex items-center gap-2">
                             {intake.case_id
                               ? <Link href={`/cases/${intake.case_id}?tab=intake-summary`}>
-                                  <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#2563eb] text-white font-medium hover:bg-[#16451f] transition whitespace-nowrap">
+                                  <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#2563eb] text-white font-medium hover:bg-blue-700 transition whitespace-nowrap">
                                     {intake.status === 'COMPLETED'
                                       ? <><FileCheck size={12} /> View Form</>
                                       : <><ClipboardEdit size={12} /> Fill IC Form</>}

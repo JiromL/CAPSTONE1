@@ -204,7 +204,7 @@ export default function RescheduleRequestsPage() {
                           req.status === 'pending'
                             ? 'bg-amber-50 text-amber-700'
                             : req.status === 'approved'
-                            ? 'bg-green-50 text-blue-700'
+                            ? 'bg-green-50 text-green-700'
                             : 'bg-gray-100 text-gray-500 line-through'
                         }`}>
                           {fmtDate(req.requested_start)} {fmtTime(req.requested_start)}
@@ -307,7 +307,7 @@ export default function RescheduleRequestsPage() {
               {/* Action feedback */}
               {actionMsg && (
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm mb-4 ${
-                  actionMsg.type === 'ok' ? 'bg-green-50 text-blue-700' : 'bg-red-50 text-red-600'
+                  actionMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
                 }`}>
                   {actionMsg.type === 'ok' ? <Check size={14} /> : <X size={14} />}
                   {actionMsg.text}
@@ -352,7 +352,7 @@ export default function RescheduleRequestsPage() {
 function StatusBadge({ status }: { status: string }) {
   const cls =
     status === 'pending'  ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
-    status === 'approved' ? 'bg-green-50 text-blue-700 ring-1 ring-green-200' :
+    status === 'approved' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' :
     'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
   return (
     <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${cls}`}>

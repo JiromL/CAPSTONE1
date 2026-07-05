@@ -125,7 +125,7 @@ export default function CounselorsAvailabilityPage() {
               <Users className="text-blue-600 dark:text-blue-400" size={32} />
             </div>
           </div>
-          <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg p-6 border border-green-200 dark:border-blue-700">
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 border border-green-200 dark:border-blue-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Appointments</p>
@@ -212,7 +212,7 @@ export default function CounselorsAvailabilityPage() {
                           </span>
                         )}
                         {isUnderloaded && (
-                          <span className="px-3 py-1 bg-green-100 dark:bg-blue-900/30 text-blue-700 dark:text-green-300 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
                             ✓ Available
                           </span>
                         )}

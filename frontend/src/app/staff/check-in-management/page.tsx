@@ -135,9 +135,9 @@ export default function CheckInManagementPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="border border-green-200 dark:border-blue-800 bg-green-50 dark:bg-blue-900/20 rounded-lg p-4">
+          <div className="border border-green-200 dark:border-blue-800 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
             <p className="text-xs text-green-600 dark:text-green-400">Active Clients</p>
-            <p className="text-2xl font-bold text-blue-900 dark:text-green-100">{statusCounts.active}</p>
+            <p className="text-2xl font-bold text-green-900 dark:text-green-100">{statusCounts.active}</p>
           </div>
           <div className="border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
             <p className="text-xs text-yellow-600 dark:text-yellow-400">Overdue Check-Ins</p>
@@ -192,7 +192,7 @@ export default function CheckInManagementPage() {
                   client.status === 'overdue'
                     ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20'
                     : client.status === 'active'
-                    ? 'border-green-200 dark:border-blue-800 bg-green-50 dark:bg-blue-900/20'
+                    ? 'border-green-200 dark:border-blue-800 bg-green-50 dark:bg-green-900/20'
                     : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
                 }`}
               >
@@ -204,7 +204,7 @@ export default function CheckInManagementPage() {
                         client.status === 'overdue'
                           ? 'bg-yellow-200 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-100'
                           : client.status === 'active'
-                          ? 'bg-green-200 dark:bg-blue-700 text-blue-900 dark:text-green-100'
+                          ? 'bg-green-200 dark:bg-blue-700 text-green-900 dark:text-green-100'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                       }`}>
                         {client.status.toUpperCase()}

@@ -37,7 +37,7 @@ function fmtRelative(d: string) {
 }
 
 const RISK_COLOR: Record<string, { bar: string; badge: string; label: string }> = {
-  GREEN:    { bar: 'bg-green-400',  badge: 'bg-green-50 text-blue-700 ring-1 ring-green-200',   label: 'Low Risk' },
+  GREEN:    { bar: 'bg-green-400',  badge: 'bg-green-50 text-green-700 ring-1 ring-green-200',   label: 'Low Risk' },
   YELLOW:   { bar: 'bg-amber-400',  badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',   label: 'Moderate' },
   RED:      { bar: 'bg-red-400',    badge: 'bg-red-50 text-red-700 ring-1 ring-red-200',         label: 'High Risk' },
   CRITICAL: { bar: 'bg-red-600',    badge: 'bg-red-100 text-red-800 ring-1 ring-red-300',        label: 'Critical' },
@@ -116,7 +116,7 @@ export default function PendingIntakesPage() {
             {/* Forms badge */}
             <div className="flex-shrink-0">
               {intake.intake_packet_submitted
-                ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-green-50 text-blue-700 ring-1 ring-green-200"><FileCheck size={9} /> Forms ready</span>
+                ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-green-50 text-green-700 ring-1 ring-green-200"><FileCheck size={9} /> Forms ready</span>
                 : <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-orange-50 text-orange-600 ring-1 ring-orange-200"><FileX size={9} /> No forms</span>}
             </div>
           </div>

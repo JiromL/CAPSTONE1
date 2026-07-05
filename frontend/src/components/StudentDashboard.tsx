@@ -109,9 +109,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               {nextAppt ? (
                 <div>
                   <p className="text-base font-semibold text-gray-900">{fmtDate(nextAppt.requested_start)}</p>
-                  <p className="text-sm font-medium mt-0.5" style={{ color: '#2563eb' }}>{fmtTime(nextAppt.requested_start)}</p>
+                  <p className="text-sm font-medium mt-0.5 text-blue-600">{fmtTime(nextAppt.requested_start)}</p>
                   <p className="text-sm text-gray-500 mt-1">{nextAppt.counselor_name || 'Assigned Counselor'}</p>
-                  <span className="inline-block mt-3 px-2.5 py-1 text-xs rounded-full bg-green-50 text-blue-700 font-medium border border-green-100">
+                  <span className="inline-block mt-3 px-2.5 py-1 text-xs rounded-full bg-green-50 text-green-700 font-medium border border-green-100">
                     {nextAppt.status}
                   </span>
                 </div>
@@ -120,8 +120,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               )}
               {!isCheckInOnly && (
                 <Link href="/book-appointment">
-                  <button className="mt-4 w-full py-2 text-sm font-medium text-white rounded-lg transition-colors"
-                    style={{ backgroundColor: '#2563eb' }}>
+                  <button className="mt-4 w-full py-2 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors">
                     Book an Appointment
                   </button>
                 </Link>
@@ -196,11 +195,11 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             {/* Panel */}
             <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
               {/* Top color strip */}
-              <div className="h-1.5 w-full" style={{ backgroundColor:
-                a.event_type === 'webinar' ? '#3b82f6' :
-                a.event_type === 'event'   ? '#2563eb' :
-                a.event_type === 'notice'  ? '#f97316' : '#9ca3af'
-              }} />
+              <div className={`h-1.5 w-full ${
+                a.event_type === 'webinar' ? 'bg-blue-500' :
+                a.event_type === 'event'   ? 'bg-green-500' :
+                a.event_type === 'notice'  ? 'bg-orange-500' : 'bg-gray-400'
+              }`} />
 
               <div className="p-7">
                 {/* Header */}
@@ -236,8 +235,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 {/* Link button */}
                 {a.link ? (
                   <a href={a.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-3 text-base font-medium text-white rounded-lg transition"
-                    style={{ backgroundColor: '#2563eb' }}>
+                    className="flex items-center justify-center gap-2 w-full py-3 text-base font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition">
                     <ExternalLink size={16} /> Open Link
                   </a>
                 ) : (

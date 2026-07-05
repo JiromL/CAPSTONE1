@@ -115,7 +115,7 @@ function VerifyEmailContent() {
     return (
       <PageShell title="Verify Email" subtitle="Confirm your DLSU email address" hideNav>
         <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-800 p-10 text-center">
-          <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400 text-sm">Verifying your email…</p>
         </div>
       </PageShell>
@@ -177,7 +177,7 @@ function VerifyEmailContent() {
         </div>
 
         {msg && (
-          <p className="mt-4 text-sm text-blue-700 dark:text-green-400 p-3 bg-green-50 dark:bg-blue-900 border border-green-200 dark:border-blue-700 rounded">
+          <p className="mt-4 text-sm text-green-700 dark:text-green-400 p-3 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-blue-700 rounded">
             {msg}
           </p>
         )}

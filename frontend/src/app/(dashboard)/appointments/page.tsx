@@ -59,9 +59,9 @@ const PURPOSE_LABEL: Record<string, string> = {
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   PENDING_APPROVAL:     { label: 'Under Review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
   RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
   PENDING_STUDENT_APPROVAL: { label: 'Awaiting Confirmation', cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
@@ -75,7 +75,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 const RISK_CLS: Record<string, string> = {
-  GREEN:    'bg-green-100 text-blue-700',
+  GREEN:    'bg-green-100 text-green-700',
   YELLOW:   'bg-yellow-100 text-yellow-700',
   RED:      'bg-red-100 text-red-700',
   CRITICAL: 'bg-red-200 text-red-900 font-semibold',
@@ -445,7 +445,7 @@ export default function AppointmentsPage() {
                             {/* Join session */}
                             {apt.meeting_link && isConfirmed && (
                               <a href={apt.meeting_link} target="_blank" rel="noreferrer"
-                                className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition font-semibold">
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition font-semibold">
                                 <Video size={11} /> Join
                               </a>
                             )}
@@ -580,7 +580,7 @@ export default function AppointmentsPage() {
               )}
               {detailAppt.meeting_link && (
                 <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700 hover:bg-green-100 transition font-medium">
+                  className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
                   <Video size={14} /> Join Session
                 </a>
               )}

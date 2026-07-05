@@ -224,7 +224,7 @@ export default function ScheduleCalendarPage() {
               </div>
             </div>
           </div>
-          <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg p-6 border border-green-200 dark:border-blue-700">
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 border border-green-200 dark:border-blue-700">
             <div className="flex items-center gap-3">
               <Clock className="text-green-600 dark:text-green-400" size={24} />
               <div>

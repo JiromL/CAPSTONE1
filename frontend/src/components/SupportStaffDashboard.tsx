@@ -104,7 +104,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
                         {fmtTime(a.preferred_date || a.scheduled_start)} · {METHOD_LABEL[a.method] || a.preferred_method || 'In-person'}
                       </p>
                     </div>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-blue-700 border border-green-100 font-medium">
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
                       Confirmed
                     </span>
                   </div>

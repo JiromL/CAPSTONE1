@@ -12,7 +12,7 @@ interface PendingStudent {
 }
 
 export const PERMA_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
-  'Excelling':  { bg: 'bg-green-100 dark:bg-blue-900/30',   text: 'text-blue-700 dark:text-green-400',   dot: 'bg-green-500'  },
+  'Excelling':  { bg: 'bg-green-100 dark:bg-green-900/30',   text: 'text-green-700 dark:text-green-400',   dot: 'bg-green-500'  },
   'Thriving':   { bg: 'bg-teal-100 dark:bg-teal-900/30',     text: 'text-teal-700 dark:text-teal-400',     dot: 'bg-teal-500'   },
   'Surviving':  { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400', dot: 'bg-yellow-500' },
   'Struggling': { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500' },

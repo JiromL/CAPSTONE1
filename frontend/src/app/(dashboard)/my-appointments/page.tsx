@@ -64,9 +64,9 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   REQUESTED:            { label: 'Pending',            cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
   PENDING_APPROVAL:     { label: 'Under Review',       cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
-  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-blue-700 ring-1 ring-green-200' },
+  CONFIRMED:            { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  APPROVED:             { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
+  MATCHED:              { label: 'Confirmed',          cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
   CHECKED_IN:           { label: 'Checked In',         cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
   RESCHEDULE_REQUESTED:     { label: 'Reschedule Pending',    cls: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' },
   PENDING_STUDENT_APPROVAL: { label: 'Confirm Schedule',       cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' },
@@ -577,7 +577,7 @@ export default function MyAppointmentsPage() {
                         )}
                         {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === true && (
                           <button onClick={() => openViewForms(appt)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
                             <Eye size={11} /> View Forms
                           </button>
                         )}
@@ -727,7 +727,7 @@ export default function MyAppointmentsPage() {
                 )}
                 {detailAppt.meeting_link && (
                   <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-blue-700 hover:bg-green-100 transition font-medium">
+                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
                     <Video size={14} /> Join Session
                   </a>
                 )}

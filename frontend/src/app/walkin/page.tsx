@@ -326,7 +326,7 @@ export default function WalkInSelfCheckinPage() {
               </F>
             </Card>
 
-            <Card icon={ClipboardList} title="Service Information" accent="bg-green-50 text-blue-700">
+            <Card icon={ClipboardList} title="Service Information" accent="bg-green-50 text-green-700">
               <F label="Referred by" req>
                 <select className={SELECT} value={icf.referral_source} onChange={e => setIcf(p => ({ ...p, referral_source: e.target.value }))}>
                   <option value="">Select referral source</option>

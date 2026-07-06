@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Power, Menu, Bell, X, Search } from 'lucide-react';
+import { Power, Menu, Bell, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getMenuIcon } from '@/utils/dashboard-icons';
@@ -189,16 +189,6 @@ export function DashboardLayout({
           <div className="hidden lg:block">
             <p className="text-xs text-gray-400">Hi, {firstName}</p>
             <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
-          </div>
-
-          {/* Search bar */}
-          <div className="hidden lg:flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-64 mx-6 hover:border-gray-300 transition-colors focus-within:border-[#2563eb] focus-within:ring-2 focus-within:ring-[#2563eb]/20">
-            <Search size={15} className="text-gray-400 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Search…"
-              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
-            />
           </div>
 
           {/* Right actions */}

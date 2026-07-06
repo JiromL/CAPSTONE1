@@ -242,7 +242,7 @@ export default function JournalPage() {
         </div>
       ) : entries.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-52 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-2xl mb-3">📖</p>
+          <BookOpen size={28} className="text-gray-300 mb-3" />
           <p className="font-medium text-gray-700">No entries yet</p>
           <p className="text-sm text-gray-400 mt-1">Your journal is private. Start writing today.</p>
         </div>

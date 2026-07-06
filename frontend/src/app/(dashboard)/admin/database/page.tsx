@@ -46,7 +46,7 @@ export default function DatabasePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5 flex items-center gap-4">
             {mongoOk
               ? <CheckCircle size={22} className="text-green-500 flex-shrink-0" />
               : <XCircle size={22} className="text-red-500 flex-shrink-0" />}
@@ -58,19 +58,19 @@ export default function DatabasePage() {
               {mongoOk ? 'OK' : 'Error'}
             </span>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
             <p className="text-xs text-gray-500">Database</p>
             <p className="font-semibold text-gray-900 dark:text-gray-50 mt-1">MongoDB</p>
             <p className="text-xs text-gray-400 mt-0.5">Atlas / Replica Set</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
             <p className="text-xs text-gray-500">Collections</p>
             <p className="font-semibold text-gray-900 dark:text-gray-50 mt-1">{COLLECTIONS.length}</p>
             <p className="text-xs text-gray-400 mt-0.5">Active collections</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
             <Database size={14} className="text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Collections</h3>
@@ -91,7 +91,7 @@ export default function DatabasePage() {
         </div>
 
         {health && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Health Response</h3>
             <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 rounded p-3 overflow-auto">
               {JSON.stringify(health, null, 2)}

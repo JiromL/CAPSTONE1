@@ -258,7 +258,7 @@ export default function RemindersPage() {
 
         {/* New Reminder Form */}
         {showNewReminder && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Reminder</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -372,7 +372,7 @@ export default function RemindersPage() {
         {/* Reminders List */}
         <div className="space-y-4">
           {remindersData.reminders.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-8 text-center">
               <Clock className="mx-auto text-gray-400 dark:text-gray-600 mb-4" size={48} />
               <p className="text-gray-700 dark:text-gray-300 font-medium">No reminders</p>
               <p className="text-gray-600 dark:text-gray-400 text-sm">Create a new reminder to get started</p>
@@ -383,7 +383,7 @@ export default function RemindersPage() {
               return (
                 <div
                   key={reminder.reminder_id}
-                  className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition ${
+                  className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4 transition ${
                     reminder.acknowledged ? 'opacity-60' : ''
                   }`}
                 >

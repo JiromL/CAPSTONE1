@@ -77,7 +77,7 @@ export default function SupervisionPage() {
               { label: 'High-Risk (RED)', value: stats?.high_risk ?? 0, icon: <AlertTriangle size={18} />, color: 'text-red-600' },
               { label: 'Pending Handoffs', value: stats?.pending_referrals ?? 0, icon: <GitBranch size={18} />, color: 'text-orange-600' },
             ].map((s) => (
-              <div key={s.label} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div key={s.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
                 <div className={`mb-2 ${s.color}`}>{s.icon}</div>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{s.value}</p>
                 <p className="text-xs text-gray-500 mt-1">{s.label}</p>
@@ -87,7 +87,7 @@ export default function SupervisionPage() {
 
           {/* Referral summary */}
           {referralSummary && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-4">Referral Overview</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
                 {[
@@ -105,7 +105,7 @@ export default function SupervisionPage() {
           )}
 
           {/* Cases table */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Active Caseload</h3>
             </div>

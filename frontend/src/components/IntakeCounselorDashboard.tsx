@@ -77,7 +77,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
             count: null, countColor: '' },
         ].map(({ label, href, icon: Icon, count, countColor }) => (
           <Link key={href} href={href}
-            className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 hover:border-[#2563eb]/40 hover:bg-blue-50/40 transition group">
+            className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 hover:border-[#2563eb]/40 hover:bg-blue-50/40 transition group">
             <div className="w-8 h-8 rounded-lg bg-[#2563eb]/8 flex items-center justify-center flex-shrink-0">
               <Icon size={15} className="text-[#2563eb]" />
             </div>
@@ -100,7 +100,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* Pending confirmation */}
-          <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Pending Confirmation</p>
@@ -148,7 +148,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* Today's intakes */}
-          <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Today's Intakes</p>
               <Link href="/appointment-requests" className="text-xs text-[#2563eb] hover:underline font-medium">View all</Link>

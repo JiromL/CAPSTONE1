@@ -115,7 +115,7 @@ function SafetyListSection({ label, hint, items, onAdd, onRemove }: {
   const [val, setVal] = useState('');
   const commit = () => { if (val.trim()) { onAdd(val.trim()); setVal(''); } };
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
       <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
       <p className="text-xs text-gray-400 mb-2">{hint}</p>
       <div className="flex gap-2 mb-2">
@@ -148,7 +148,7 @@ function ContactSection({ label, hint, items, fields, onAdd, onRemove }: {
     if (form.name.trim()) { onAdd({ ...form }); setForm({ name: '', phone: '' }); }
   };
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
       <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
       <p className="text-xs text-gray-400 mb-2">{hint}</p>
       <div className="flex gap-2 mb-2">
@@ -184,7 +184,7 @@ function ProfessionalContactSection({ items, onAdd, onRemove }: {
     if (form.name.trim()) { onAdd({ ...form }); setForm({ name: '', phone: '', role: '' }); }
   };
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
       <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">Professional / Crisis Contacts</p>
       <p className="text-xs text-gray-400 mb-2">Counselors, psychiatrists, crisis hotlines the client can reach out to.</p>
       <div className="flex gap-2 mb-2 flex-wrap">
@@ -928,7 +928,7 @@ export default function CaseDetailPage() {
 
       {/* ── Student identity banner — always visible ─────────────── */}
       {caseData && (
-        <div className="mb-5 bg-white rounded-xl border border-gray-200 px-5 py-4 flex flex-wrap items-center gap-4">
+        <div className="mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex flex-wrap items-center gap-4">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold flex-shrink-0"
             style={{ backgroundColor: '#2563eb' }}>
             {studentName.charAt(0).toUpperCase()}
@@ -983,7 +983,7 @@ export default function CaseDetailPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Case Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
@@ -1030,7 +1030,7 @@ export default function CaseDetailPage() {
           </div>
 
           {caseAppointments.length > 0 && (
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Active Appointments</h3>
               <div className="space-y-3">
                 {caseAppointments.map((appt) => {
@@ -1063,7 +1063,7 @@ export default function CaseDetailPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-3">Update Client Status</h3>
             <select
               value={caseData.client_status || 'ACTIVE'}
@@ -1081,7 +1081,7 @@ export default function CaseDetailPage() {
           </div>
 
           {caseData.presenting_issue && (
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-2">Presenting Issue</h3>
               <p className="text-sm text-gray-700 dark:text-gray-300">{caseData.presenting_issue}</p>
             </div>
@@ -1089,7 +1089,7 @@ export default function CaseDetailPage() {
 
           {/* Feature 5: Wellbeing Outcome Tracking */}
           {caseData.initial_perma_label && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Wellbeing Outcome</p>
               <div className="flex items-center gap-4">
                 <div className="text-center">
@@ -1128,7 +1128,7 @@ export default function CaseDetailPage() {
             </div>
           )}
           {intakeSummaryLoaded && !intakeSummary && (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
               <FileText size={32} className="mx-auto mb-3 text-gray-200" />
               <p className="text-sm font-medium text-gray-500">No intake record found for this case.</p>
               <p className="text-xs text-gray-400 mt-1">The intake may not have been completed yet.</p>
@@ -1201,7 +1201,7 @@ export default function CaseDetailPage() {
                   </div>
                   <button
                     onClick={() => setShowExportModal(true)}
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition font-medium"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-2xl border border-gray-100 shadow-sm text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition font-medium"
                   >
                     <Download size={12} /> Export PDF
                   </button>
@@ -1236,7 +1236,7 @@ export default function CaseDetailPage() {
                 {/* ── Clinical scores ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* PHQ-9 */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">PHQ-9</p>
@@ -1255,7 +1255,7 @@ export default function CaseDetailPage() {
                   </div>
 
                   {/* GAD-7 */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">GAD-7</p>
@@ -1276,7 +1276,7 @@ export default function CaseDetailPage() {
 
                 {/* PHQ-4 pre-screen */}
                 {phq4r.length >= 4 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">PHQ-4 Pre-Screen</p>
                     <div className="grid grid-cols-3 gap-3">
                       {[
@@ -1301,7 +1301,7 @@ export default function CaseDetailPage() {
 
                 {/* Presenting concern */}
                 {(icf.presenting_concern || intakeSummary.concern) && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Presenting Concern</p>
                     <p className="text-sm text-gray-700 leading-relaxed">{icf.presenting_concern || intakeSummary.concern}</p>
                     {icf.service_requested && (
@@ -1319,7 +1319,7 @@ export default function CaseDetailPage() {
 
                 {/* ICF + SPIF combined student background */}
                 {(Object.keys(icf).length > 0 || Object.keys(spif).length > 0) && (
-                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Student Background</p>
                     </div>
@@ -1402,7 +1402,7 @@ export default function CaseDetailPage() {
           </div>
 
           {showNoteForm && (
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-4">New Session Note</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1554,7 +1554,7 @@ export default function CaseDetailPage() {
           )}
 
           {sessionNotes.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-12 text-center">
               <FileText size={28} className="mx-auto mb-3 text-gray-400" />
               <p className="text-gray-600 dark:text-gray-400">No session notes yet.</p>
               <p className="text-xs text-gray-500 mt-1">Click "Add Note" to record a session.</p>
@@ -1562,7 +1562,7 @@ export default function CaseDetailPage() {
           ) : (
             <div className="space-y-3">
               {sessionNotes.map((note) => (
-                <div key={note.note_id} className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+                <div key={note.note_id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
@@ -1696,7 +1696,7 @@ export default function CaseDetailPage() {
 
           <div className="space-y-4">
             {editingPlan ? (
-              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-6">
                 {/* Goals */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1784,7 +1784,7 @@ export default function CaseDetailPage() {
                 </div>
               </div>
             ) : treatmentPlan.goals.length > 0 || treatmentPlan.interventions.length > 0 || treatmentPlan.progress_summary ? (
-              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-5">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-5">
                 {treatmentPlan.goals.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Goals</p>
@@ -1822,7 +1822,7 @@ export default function CaseDetailPage() {
                 )}
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-12 text-center">
                 <Target size={28} className="mx-auto mb-3 text-gray-400" />
                 <p className="text-gray-600 dark:text-gray-400">No treatment plan on file.</p>
                 <p className="text-xs text-gray-500 mt-1">Click "Create Plan" to add goals, interventions, and a progress summary.</p>
@@ -1838,7 +1838,7 @@ export default function CaseDetailPage() {
           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Diagnoses</h3>
 
           {/* Add form */}
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Add Diagnosis</p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="md:col-span-1">
@@ -1879,11 +1879,11 @@ export default function CaseDetailPage() {
 
           {/* Diagnosis list */}
           {diagnoses.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-10 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-10 text-center">
               <p className="text-gray-500 dark:text-gray-400 text-sm">No diagnoses recorded.</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
               {diagnoses.map((d, i) => (
                 <div key={i} className="flex items-center gap-3 px-5 py-3">
                   <span className="font-mono text-sm font-bold text-[#2563eb] dark:text-blue-400 w-20 flex-shrink-0">{d.code}</span>
@@ -1926,7 +1926,7 @@ export default function CaseDetailPage() {
                 { label: 'Social Distractions', items: safetyPlan.social_distractions, color: 'purple' },
                 { label: 'Reasons for Living', items: safetyPlan.reasons_to_live, color: 'green' },
               ].map(sec => (
-                <div key={sec.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div key={sec.label} className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{sec.label}</p>
                   {sec.items.length === 0 ? (
                     <p className="text-xs text-gray-400 italic">None recorded</p>
@@ -1944,7 +1944,7 @@ export default function CaseDetailPage() {
               ))}
 
               {/* Social contacts */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Social Contacts (People to Call)</p>
                 {safetyPlan.social_contacts.length === 0 ? (
                   <p className="text-xs text-gray-400 italic">None recorded</p>
@@ -1961,7 +1961,7 @@ export default function CaseDetailPage() {
               </div>
 
               {/* Professional contacts */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Professional / Crisis Contacts</p>
                 {safetyPlan.professional_contacts.length === 0 ? (
                   <p className="text-xs text-gray-400 italic">None recorded</p>
@@ -1980,11 +1980,11 @@ export default function CaseDetailPage() {
 
               {/* Means restriction + follow-up */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Means Restriction</p>
                   <p className="text-sm text-gray-800 dark:text-gray-200">{safetyPlan.means_restriction || <span className="italic text-gray-400">Not recorded</span>}</p>
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Follow-Up Date</p>
                   <p className="text-sm text-gray-800 dark:text-gray-200">{safetyPlan.follow_up_date || <span className="italic text-gray-400">Not set</span>}</p>
                 </div>
@@ -2034,7 +2034,7 @@ export default function CaseDetailPage() {
               />
 
               {/* Means restriction */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">
                   Means Restriction
                 </label>
@@ -2050,7 +2050,7 @@ export default function CaseDetailPage() {
 
               {/* Follow-up + Signature */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                   <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Follow-Up Date</label>
                   <input
                     type="date"
@@ -2059,7 +2059,7 @@ export default function CaseDetailPage() {
                     className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
                   <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Counselor Name</label>
                   <input
                     type="text"
@@ -2113,7 +2113,7 @@ export default function CaseDetailPage() {
 
           {/* ── Record assessment form ── */}
           {recordingType && assessmentTemplate ? (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{assessmentTemplate.name}</p>
@@ -2163,7 +2163,7 @@ export default function CaseDetailPage() {
             </div>
           ) : (
             /* ── Pick assessment to record ── */
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
               <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Record Assessment</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Administer and record a standardized assessment for this client. Results are for clinical use only — not shared with the student.</p>
               <div className="flex flex-wrap gap-2">
@@ -2193,7 +2193,7 @@ export default function CaseDetailPage() {
             ) : assessmentHistory.length === 0 ? (
               <p className="text-sm text-gray-400 italic">No assessments recorded yet.</p>
             ) : (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -2236,7 +2236,7 @@ export default function CaseDetailPage() {
           <div>
             <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Repeating Schedules</p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Auto-queue assessments at regular intervals.</p>
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4 space-y-3">
               <div className="flex flex-wrap gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-0.5">Assessment</label>
@@ -2274,7 +2274,7 @@ export default function CaseDetailPage() {
             ) : (
               <div className="space-y-2 mt-3">
                 {assessmentSchedules.filter(s => s.active).map(s => (
-                  <div key={s.schedule_id} className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+                  <div key={s.schedule_id} className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg px-4 py-3">
                     <div>
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">{s.assessment_type}</span>
                       <span className="text-xs text-gray-500 ml-2">every {s.interval_days} days</span>
@@ -2313,7 +2313,7 @@ export default function CaseDetailPage() {
       {activeTab === 'perma' && (
         <div className="space-y-5 max-w-2xl">
           {/* Link / Unlink MHBot account */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
               <Activity size={14} className="text-[#2563eb]" /> MHBot Account
             </p>
@@ -2367,7 +2367,7 @@ export default function CaseDetailPage() {
 
           {/* PERMA history */}
           {caseData?.student?.mhbot_username && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
               <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">PERMA History</p>
               {permaLoading ? (
                 <div className="flex justify-center py-8 text-gray-400">
@@ -2426,7 +2426,7 @@ interface ICInterviewSectionProps {
 
 function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
       <div className="px-5 py-3 bg-[#2563eb] text-white">
         <h3 className="text-sm font-semibold">{title}</h3>
       </div>
@@ -2565,7 +2565,7 @@ function ReadBadge({ value }: { value: string }) {
 
 function ReadSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
       <div className="px-5 py-3 bg-[#2563eb] text-white">
         <h3 className="text-sm font-semibold">{title}</h3>
       </div>

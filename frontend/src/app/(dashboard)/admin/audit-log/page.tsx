@@ -131,7 +131,7 @@ export default function AuditLogPage() {
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
           {loading ? (
             <div className="p-8 text-center text-sm text-gray-500">Loading…</div>
           ) : filtered.length === 0 ? (

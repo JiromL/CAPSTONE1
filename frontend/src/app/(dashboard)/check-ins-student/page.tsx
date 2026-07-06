@@ -145,7 +145,7 @@ export default function CheckInPage() {
               <Loader2 size={20} className="animate-spin" /> Loading…
             </div>
           ) : checkInHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-52 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
+            <div className="flex flex-col items-center justify-center h-52 text-center bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl">
               <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-blue-900/30 flex items-center justify-center mb-4 text-2xl">✓</div>
               <p className="font-medium text-gray-900 dark:text-white mb-1">No check-ins yet</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Let your support team know how you're doing</p>
@@ -159,7 +159,7 @@ export default function CheckInPage() {
                 const wc  = WELLNESS_COLORS[ci.wellness_rating] ?? '#6366f1';
                 const exp = expandedId === ci._id;
                 return (
-                  <div key={ci._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div key={ci._id} className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
                     <div className="h-1" style={{ background: wc }} />
                     <div className="p-4">
                       <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ export default function CheckInPage() {
               </div>
 
               {/* Wellness slider */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">Wellness Rating</p>
                   <div
@@ -280,7 +280,7 @@ export default function CheckInPage() {
               </div>
 
               {/* Mood chips */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                   How are you feeling? <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
                 </p>
@@ -303,7 +303,7 @@ export default function CheckInPage() {
               </div>
 
               {/* Concern */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4">
                 <label className="text-sm font-semibold text-gray-900 dark:text-white block mb-2">
                   Current concerns <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
                 </label>
@@ -317,7 +317,7 @@ export default function CheckInPage() {
               </div>
 
               {/* Support needed */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4">
                 <label
                   className="flex items-center gap-3 cursor-pointer"
                   onClick={() => setNeedsSupport(!needsSupport)}
@@ -356,7 +356,7 @@ export default function CheckInPage() {
               </div>
 
               {/* Notes */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4">
                 <label className="text-sm font-semibold text-gray-900 dark:text-white block mb-2">
                   Additional notes <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
                 </label>

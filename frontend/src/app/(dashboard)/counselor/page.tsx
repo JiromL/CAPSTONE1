@@ -115,7 +115,7 @@ export default function CounselorProfilePage() {
     <DashboardPageWrapper title="Counselor Profile" subtitle="Your professional profile">
       <div className="max-w-4xl space-y-6">
         {/* Main Profile Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 shadow-md p-8">
           {/* Header */}
           <div className="flex items-start justify-between mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-6">

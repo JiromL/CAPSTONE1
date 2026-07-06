@@ -42,7 +42,7 @@ export default function HealthPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {checks.map((c) => (
-            <div key={c.label} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4">
+            <div key={c.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5 flex items-center gap-4">
               {c.ok ? <CheckCircle size={22} className="text-green-500 flex-shrink-0" /> : <XCircle size={22} className="text-red-500 flex-shrink-0" />}
               <div>
                 <p className="font-medium text-gray-900 dark:text-gray-50 text-sm">{c.label}</p>
@@ -55,7 +55,7 @@ export default function HealthPage() {
           ))}
         </div>
         {health && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Raw Response</h3>
             <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 rounded p-3 overflow-auto">
               {JSON.stringify(health, null, 2)}

@@ -97,7 +97,7 @@ export default function CasesReportPage() {
               {statCards.map((card) => (
                 <div
                   key={card.label}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5"
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5"
                   style={{ borderLeftWidth: 4, borderLeftColor: card.accent }}
                 >
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{card.label}</p>
@@ -108,7 +108,7 @@ export default function CasesReportPage() {
 
             {/* Monthly Breakdown Table */}
             {monthly.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Monthly Case Breakdown (Last 6 Months)</h2>
                 </div>

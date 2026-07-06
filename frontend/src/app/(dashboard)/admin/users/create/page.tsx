@@ -145,7 +145,7 @@ export default function AddUserPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Info */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 border-b border-gray-100 dark:border-gray-700 pb-2">
               Personal Information
             </h3>
@@ -206,7 +206,7 @@ export default function AddUserPage() {
           </div>
 
           {/* Role */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 border-b border-gray-100 dark:border-gray-700 pb-2">
               Role &amp; Access
             </h3>
@@ -227,7 +227,7 @@ export default function AddUserPage() {
           </div>
 
           {/* Password */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 border-b border-gray-100 dark:border-gray-700 pb-2">
               Password
             </h3>

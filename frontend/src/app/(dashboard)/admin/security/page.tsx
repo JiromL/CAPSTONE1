@@ -61,7 +61,7 @@ export default function SecurityPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {saved && <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">Security settings saved.</div>}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Lock size={15} className="text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Password Policy</h3>
@@ -73,7 +73,7 @@ export default function SecurityPage() {
           <Toggle label="Require special characters" desc="Passwords must include symbols like !, @, #." k="requireSpecialChars" />
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Shield size={15} className="text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Login Security</h3>
@@ -84,7 +84,7 @@ export default function SecurityPage() {
           <Toggle label="Log all login events" desc="Record successful and failed login attempts in the audit log." k="logAllLogins" />
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Key size={15} className="text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Authentication</h3>

@@ -116,7 +116,7 @@ export default function AssessmentsPage() {
 
 
           {/* Summary count (no scores) */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
               <BarChart3 size={22} className="text-[#2563eb] dark:text-blue-400" />
             </div>
@@ -128,7 +128,7 @@ export default function AssessmentsPage() {
 
           {/* Session list — date only, no scores */}
           {assessments.length > 0 && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
               <p className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800">
                 Sessions
               </p>
@@ -162,7 +162,7 @@ export default function AssessmentsPage() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
             <BarChart3 size={24} className="text-[#2563eb]" />
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{assessments.length}</p>
@@ -172,7 +172,7 @@ export default function AssessmentsPage() {
         </div>
 
         {assessments.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
             <p className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800">
               Recent Intakes
             </p>
@@ -200,7 +200,7 @@ export default function AssessmentsPage() {
         )}
 
         {assessments.length === 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-12 text-center">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-12 text-center">
             <FileText size={28} className="mx-auto mb-3 text-gray-400" />
             <p className="text-sm text-gray-500 dark:text-gray-400">No intake assessments on file</p>
           </div>

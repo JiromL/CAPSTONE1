@@ -101,7 +101,7 @@ export default function ComplianceReportPage() {
           <div className="space-y-6">
             {/* Intake Funnel */}
             {intake && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <CheckCircle size={16} style={{ color: '#2563eb' }} />
                   <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Intake Form Compliance</h2>
@@ -141,7 +141,7 @@ export default function ComplianceReportPage() {
 
             {/* Appointment Compliance */}
             {appointments && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <CheckCircle size={16} style={{ color: '#2563eb' }} />
                   <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Appointment Compliance</h2>

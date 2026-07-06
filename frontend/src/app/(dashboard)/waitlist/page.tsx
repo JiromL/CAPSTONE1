@@ -121,7 +121,7 @@ export default function WaitlistPage() {
             { label: 'Removed',  value: stats.removed,  icon: <Trash2 size={16}/>,      color: 'text-gray-400' },
             { label: 'Total',    value: stats.total,    icon: <Users size={16}/>,        color: 'text-[#2563eb]' },
           ].map(s => (
-            <div key={s.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div key={s.label} className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
               <span className={s.color}>{s.icon}</span>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
@@ -169,7 +169,7 @@ export default function WaitlistPage() {
           {entries.map(entry => (
             <div
               key={entry.id}
-              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start justify-between gap-4"
+              className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4 flex items-start justify-between gap-4"
             >
               <div className="flex items-start gap-4 min-w-0">
                 {/* Position badge */}

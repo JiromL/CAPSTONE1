@@ -94,7 +94,7 @@ function CustomTooltip({ active, payload, label, isDark }: { active?: boolean; p
 
 function KpiCard({ label, value, sub, icon, accent }: { label: string; value: string | number; sub?: string; icon: React.ReactNode; accent: string }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start gap-3">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4 flex items-start gap-3">
       <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: accent + '1a' }}>
         <span style={{ color: accent }}>{icon}</span>
       </div>
@@ -109,7 +109,7 @@ function KpiCard({ label, value, sub, icon, accent }: { label: string; value: st
 
 function ChartCard({ title, subtitle, children, loading }: { title: string; subtitle?: string; children: React.ReactNode; loading?: boolean }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
       <div className="mb-4">
         <p className="text-sm font-semibold text-gray-900 dark:text-white">{title}</p>
         {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{subtitle}</p>}
@@ -280,7 +280,7 @@ export default function AnalyticsDashboardPage() {
 
       {/* ── CPS Client Overview ───────────────────────────────────────── */}
       {cpsSummary && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 mb-6">
+        <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">CPS Client Overview</p>
@@ -500,7 +500,7 @@ export default function AnalyticsDashboardPage() {
 
       {/* ── Row 6: Appointment KPIs ────────────────────────────────────── */}
       {apptStats && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+        <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
           <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Appointment Performance (Last 30 Days)</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[

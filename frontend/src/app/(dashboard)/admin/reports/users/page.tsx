@@ -90,22 +90,22 @@ export default function UsersReportPage() {
           <>
             {/* Top summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#2563eb' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#2563eb' }}>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Users</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{totalUsers}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Active</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{totalActive}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#6b7280' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5" style={{ borderLeftWidth: 4, borderLeftColor: '#6b7280' }}>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Inactive</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{totalUsers - totalActive}</p>
               </div>
             </div>
 
             {/* Role breakdown table */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
                 <Users size={16} className="text-gray-500" />
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Users by Role</h2>

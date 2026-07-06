@@ -108,7 +108,7 @@ export default function CheckInsPage() {
       {activeTab === 'summary' && summary && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Client Status Distribution */}
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-50 mb-4">
               Client Status Distribution
             </h3>
@@ -129,7 +129,7 @@ export default function CheckInsPage() {
           </div>
 
           {/* Check-In Type Distribution */}
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-50 mb-4">
               Check-In Type Distribution
             </h3>
@@ -150,7 +150,7 @@ export default function CheckInsPage() {
           </div>
 
           {/* Overall Stats */}
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-50 mb-4">
               Overall Statistics
             </h3>
@@ -191,7 +191,7 @@ export default function CheckInsPage() {
           </div>
 
           {/* Contact Methods */}
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-50 mb-4">
               Contact Methods Used
             </h3>

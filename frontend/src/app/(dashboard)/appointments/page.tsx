@@ -298,7 +298,7 @@ export default function AppointmentsPage() {
             { label: 'Post-Session', value: dashboard.summary.awaiting_evaluation ?? 0,          cls: 'text-amber-600' },
             { label: 'Follow-Up',    value: (dashboard.summary.follow_up ?? 0) + (dashboard.summary.referral ?? 0), cls: 'text-indigo-600' },
           ].map(c => (
-            <div key={c.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
+            <div key={c.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
               <p className="text-xs text-gray-400 mb-1">{c.label}</p>
               <p className={`text-2xl font-semibold ${c.cls}`}>{c.value}</p>
             </div>

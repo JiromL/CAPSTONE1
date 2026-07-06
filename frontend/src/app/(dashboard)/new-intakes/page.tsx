@@ -388,7 +388,7 @@ export default function NewIntakesPage() {
                                   </button>
                                 </Link>
                               : <Link href="/appointment-requests">
-                                  <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition whitespace-nowrap">
+                                  <button className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-2xl border border-gray-100 shadow-sm text-gray-500 font-medium hover:bg-gray-50 transition whitespace-nowrap">
                                     Conduct Intake
                                   </button>
                                 </Link>}
@@ -396,7 +396,7 @@ export default function NewIntakesPage() {
                               <button
                                 title="Export clinical documentation (PDF)"
                                 onClick={() => setExportTarget({ intakeId: intake._id, appointmentId: intake.appointment_id ?? null })}
-                                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition whitespace-nowrap"
+                                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-2xl border border-gray-100 shadow-sm text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition whitespace-nowrap"
                               >
                                 <FileText size={12} /> Export
                               </button>
@@ -418,12 +418,12 @@ export default function NewIntakesPage() {
               </p>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition">
+                  className="p-1.5 rounded-2xl border border-gray-100 shadow-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition">
                   <ChevronLeft size={14} />
                 </button>
                 <span className="text-xs text-gray-500 px-2">Page {page} of {totalPages}</span>
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                  className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition">
+                  className="p-1.5 rounded-2xl border border-gray-100 shadow-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition">
                   <ChevronRight size={14} />
                 </button>
               </div>

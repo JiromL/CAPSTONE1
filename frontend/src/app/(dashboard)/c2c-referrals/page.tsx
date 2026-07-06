@@ -89,7 +89,7 @@ export default function C2CReferralsPage() {
             <p className="text-sm mt-1">Counselor-to-counselor transfers will appear here</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+          <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>

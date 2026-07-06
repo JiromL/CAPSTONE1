@@ -56,7 +56,7 @@ export default function AlertsPage() {
         )}
         <div className="space-y-3">
           {rules.map((rule) => (
-            <div key={rule.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+            <div key={rule.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <Bell size={15} className={`mt-0.5 flex-shrink-0 ${rule.enabled ? 'text-blue-500' : 'text-gray-400'}`} />

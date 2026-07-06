@@ -156,7 +156,7 @@ export default function RecurringAppointmentsPage() {
           )}
 
           {/* Student selector */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4">
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
               <User size={12} className="inline mr-1" /> Student
             </label>
@@ -200,7 +200,7 @@ export default function RecurringAppointmentsPage() {
           </div>
 
           {/* Schedule */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4 space-y-4">
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               <Calendar size={12} className="inline mr-1" /> Schedule
             </label>
@@ -280,7 +280,7 @@ export default function RecurringAppointmentsPage() {
           </div>
 
           {/* Session Details */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4 space-y-3">
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Session Details</label>
             <div>
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Purpose</label>

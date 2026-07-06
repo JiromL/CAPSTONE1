@@ -38,7 +38,7 @@ function PermaDistributionWidget() {
   const maxCount = Math.max(1, ...Object.values(dist));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student Wellbeing Overview</p>
         {total > 0 && <span className="text-xs text-gray-400">{total} tracked</span>}
@@ -99,7 +99,7 @@ function PermaTrendsWidget() {
   const months = data.months ?? [];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Wellbeing Trends — Last 6 Months</p>
       <div className="space-y-3">
         {months.map(month => {
@@ -153,6 +153,7 @@ const RISK_LABEL_CLS: Record<string, string> = {
 
 export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [todayAppts, setTodayAppts]       = useState<any[]>([]);
   const [loading, setLoading]             = useState(true);
   const [mounted, setMounted]             = useState(false);
 
@@ -164,8 +165,23 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
     if (!token) { setLoading(false); return; }
     (async () => {
       try {
-        const data = await fetchDashboardData(token).catch(() => null);
-        if (data) setDashboardData(data);
+        const [dash, apptRes] = await Promise.all([
+          fetchDashboardData(token).catch(() => null),
+          fetch(api('/api/appointments/dashboard/role-view'), { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (dash) setDashboardData(dash);
+        if (apptRes.ok) {
+          const d = await apptRes.json();
+          const todayStr = new Date().toDateString();
+          const allAppts: any[] = d.appointments || [];
+          const confirmed = allAppts.filter((a: any) => {
+            const dt = a.preferred_date || a.scheduled_start || a.requested_start || '';
+            try { return new Date(dt).toDateString() === todayStr &&
+              ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes((a.status || '').toUpperCase()); }
+            catch { return false; }
+          });
+          setTodayAppts(confirmed.slice(0, 6));
+        }
       } finally { setLoading(false); }
     })();
   }, [mounted]);
@@ -174,6 +190,10 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   const alerts    = dashboardData?.alerts || [];
   const cases     = dashboardData?.recent_cases || [];
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Psychologist';
+
+  const fmtTime = (s: string) => {
+    try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return '—'; }
+  };
 
   const dateLabel = new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -200,8 +220,36 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
           {/* PERMA trends over time */}
           <PermaTrendsWidget />
 
+          {/* Today's sessions */}
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
+              <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
+            </div>
+            {todayAppts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-36 text-center">
+                <p className="text-sm text-gray-600 font-medium">No sessions today</p>
+                <p className="text-xs text-gray-400 mt-1">Confirmed appointments will appear here.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {todayAppts.map((a: any, i: number) => (
+                  <div key={i} className="py-2.5 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{a.student_name || 'Student'}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {fmtTime(a.preferred_date || a.scheduled_start)} · {(a.method || 'in-person').replace(/_/g, ' ')}
+                      </p>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">Confirmed</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Alerts */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
                 High-Risk Alerts
@@ -247,7 +295,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* Recent cases */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Recent Cases</p>
               <Link href="/cases" className="text-xs text-[#2563eb] hover:underline">View all</Link>

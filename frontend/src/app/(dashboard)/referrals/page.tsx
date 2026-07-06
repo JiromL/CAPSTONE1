@@ -149,7 +149,7 @@ export default function ReferralsPage() {
               { label: 'Internal', value: summary.by_type.INTERNAL },
               { label: 'Pending Handoffs', value: summary.pending_warm_handoffs },
             ].map((s) => (
-              <div key={s.label} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+              <div key={s.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4 text-center">
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{s.value}</p>
                 <p className="text-xs text-gray-500 mt-1">{s.label}</p>
               </div>
@@ -159,7 +159,7 @@ export default function ReferralsPage() {
 
         {/* Create referral (staff only) */}
         {canCreateReferral && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Create Referral</h2>
               <button
@@ -179,7 +179,7 @@ export default function ReferralsPage() {
               Pending Warm Handoffs ({pendingHandoffs.length})
             </h2>
             {pendingHandoffs.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-8 text-center">
                 <p className="text-sm text-gray-500">No pending warm handoffs.</p>
               </div>
             ) : (
@@ -195,11 +195,11 @@ export default function ReferralsPage() {
         {/* Student view */}
         {isStudent && (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-8 text-center">
               <p className="text-gray-600 dark:text-gray-400">No referrals on file.</p>
               <p className="text-sm text-gray-500 mt-1">Your counselor may create referrals for specialized services as needed.</p>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">About Referrals</h3>
               <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc pl-5">
                 <li>Mental health specialists and psychiatrists</li>
@@ -316,7 +316,7 @@ function ReferralCard({ referral }: { referral: Referral }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
       <div className="flex items-start justify-between mb-2">
         <div>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">

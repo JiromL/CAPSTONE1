@@ -67,7 +67,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* System snapshot */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">System Snapshot</p>
               <div className="space-y-1">
                 {[
@@ -89,7 +89,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
 
             <div className="space-y-5">
               {/* Data governance */}
-              <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Data Governance</p>
                 <div className="divide-y divide-gray-100">
                   {[
@@ -109,7 +109,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
               </div>
 
               {/* Clinical oversight */}
-              <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Clinical Oversight</p>
                 <div className="divide-y divide-gray-100">
                   {[

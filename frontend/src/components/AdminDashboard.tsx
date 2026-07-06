@@ -37,7 +37,7 @@ function PermaDistributionWidget() {
   const maxCount = Math.max(1, ...Object.values(dist));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student Wellbeing Overview</p>
         {total > 0 && <span className="text-xs text-gray-400">{total} tracked</span>}
@@ -98,7 +98,7 @@ function PermaTrendsWidget() {
   const months = data.months ?? [];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Wellbeing Trends — Last 6 Months</p>
       <div className="space-y-3">
         {months.map(month => {
@@ -219,7 +219,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* System overview */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">System Overview</p>
               <div className="space-y-3">
                 {[
@@ -240,7 +240,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
 
             {/* Quick access split */}
             <div className="space-y-5">
-              <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">System</p>
                 <div className="divide-y divide-gray-100">
                   {SYSTEM_LINKS.map(({ href, label }) => (
@@ -252,7 +252,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
                   ))}
                 </div>
               </div>
-              <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Clinical</p>
                 <div className="divide-y divide-gray-100">
                   {CLINICAL_LINKS.map(({ href, label }) => (

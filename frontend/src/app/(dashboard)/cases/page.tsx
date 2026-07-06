@@ -132,7 +132,7 @@ export default function CasesPage() {
           { label: 'High Risk',   value: highRisk,     icon: ShieldAlert, cls: highRisk > 0 ? 'text-red-600' : 'text-gray-400' },
           { label: 'Closed',      value: closedCount,  icon: FolderX, cls: 'text-gray-400' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
             <s.icon size={18} className={s.cls} />
             <div>
               <p className="text-xs text-gray-400">{s.label}</p>

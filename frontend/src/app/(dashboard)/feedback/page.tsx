@@ -140,7 +140,7 @@ export default function FeedbackPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
 
           {/* ── Category ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">What is your feedback about?</p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">You can give feedback even if you haven't had a session yet.</p>
             <div className="grid grid-cols-2 gap-2">
@@ -165,7 +165,7 @@ export default function FeedbackPage() {
 
           {/* ── Session format + appointment link (only when Counseling Session selected) ── */}
           {showSessionFormat && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 space-y-4">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                   Session format <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
@@ -214,7 +214,7 @@ export default function FeedbackPage() {
           )}
 
           {/* ── Rating ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">How would you rate your experience?</p>
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map(s => (
@@ -243,7 +243,7 @@ export default function FeedbackPage() {
           </div>
 
           {/* ── Would recommend ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Would you recommend our services?</p>
             <div className="flex gap-3">
               {RECOMMEND_OPTIONS.map(opt => (
@@ -267,7 +267,7 @@ export default function FeedbackPage() {
           </div>
 
           {/* ── Comments ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
             <label className="text-sm font-semibold text-gray-900 dark:text-white block mb-3">
               Tell us more <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
             </label>

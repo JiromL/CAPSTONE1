@@ -50,21 +50,21 @@ export default function HighRiskPage() {
 
       {/* Summary strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
           <ShieldAlert size={18} className="text-gray-500" />
           <div>
             <p className="text-xs text-gray-400">Total Flagged</p>
             <p className="text-xl font-semibold text-gray-800">{cases.length}</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
           <AlertTriangle size={18} className={redCount > 0 ? 'text-red-500' : 'text-gray-300'} />
           <div>
             <p className="text-xs text-gray-400">High Risk / Critical</p>
             <p className={`text-xl font-semibold ${redCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>{redCount}</p>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
           <Phone size={18} className="text-[#2563eb]" />
           <div>
             <p className="text-xs text-gray-400">Philippine Mental Health Crisis Lines</p>
@@ -147,7 +147,7 @@ export default function HighRiskPage() {
       </div>
 
       {/* Guidelines */}
-      <div className="mt-4 bg-white rounded-xl border border-gray-200 px-5 py-4">
+      <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Monitoring Guidelines</p>
         <ul className="space-y-1.5 text-sm text-gray-600">
           {[

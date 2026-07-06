@@ -244,7 +244,7 @@ export default function VideoLinksPage() {
               {upcomingLinks.map(link => (
                 <div
                   key={link.video_link_id}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:shadow-md transition"
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4 cursor-pointer hover:shadow-md transition"
                   onClick={() => setExpandedId(expandedId === link.video_link_id ? null : link.video_link_id)}
                 >
                   <div className="flex items-start justify-between">
@@ -349,7 +349,7 @@ export default function VideoLinksPage() {
               {pastLinks.map(link => (
                 <div
                   key={link.video_link_id}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 opacity-60"
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4 opacity-60"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -369,7 +369,7 @@ export default function VideoLinksPage() {
 
         {/* Empty State */}
         {videoLinks.length === 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-8 text-center">
             <Video className="mx-auto text-gray-400 dark:text-gray-600 mb-4" size={48} />
             <p className="text-gray-700 dark:text-gray-300 font-medium">No video links available</p>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Video links will appear here when your counselor creates them for your sessions</p>

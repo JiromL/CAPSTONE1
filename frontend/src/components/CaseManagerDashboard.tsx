@@ -76,7 +76,7 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
         {/* Stat strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-4">
+            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4">
               {loading ? (
                 <div className="h-8 w-16 bg-gray-100 rounded animate-pulse mb-1" />
               ) : (
@@ -97,7 +97,7 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
 
         {/* Distribution bar */}
         {dist && !emaError && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-semibold text-gray-800">EMA Well-being Distribution</p>
               <button onClick={load} className="text-gray-400 hover:text-gray-600 transition">
@@ -130,7 +130,7 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
         )}
 
         {/* Quick links */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Quick Access</p>
           <div className="divide-y divide-gray-100">
             {[

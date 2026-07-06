@@ -313,7 +313,7 @@ export default function DocumentationPage() {
         </div>
 
         {/* Documents List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
           {filteredDocs.length > 0 ? (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredDocs.map((doc) => (

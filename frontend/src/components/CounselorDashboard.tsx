@@ -38,7 +38,7 @@ function PermaDistributionWidget() {
   const maxCount = Math.max(1, ...Object.values(dist));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student Wellbeing Overview</p>
         {total > 0 && <span className="text-xs text-gray-400">{total} tracked</span>}
@@ -99,7 +99,7 @@ function PermaTrendsWidget() {
   const months = data.months ?? [];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 col-span-1 lg:col-span-2">
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 col-span-1 lg:col-span-2">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Wellbeing Trends — Last 6 Months</p>
       <div className="space-y-3">
         {months.map(month => {
@@ -222,7 +222,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
           <PermaTrendsWidget />
 
           {/* Today's sessions */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
               <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
@@ -250,7 +250,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* High-risk alerts or recent cases */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
                 {alerts.length > 0 ? 'High-Risk Alerts' : 'Active Cases'}

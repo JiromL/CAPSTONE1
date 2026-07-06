@@ -21,7 +21,7 @@ export default function PermissionsPage() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-4">
           This matrix is for reference only. It reflects the permissions as coded at the last deployment and does not update automatically. To change permissions, a code change is required.
         </div>
-        <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700">
           <table className="w-full text-xs">
             <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
               <tr>

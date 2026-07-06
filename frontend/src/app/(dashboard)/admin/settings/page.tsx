@@ -83,7 +83,7 @@ export default function SettingsPage() {
 }
 const inp = "w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50";
 function Sec({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+  return <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 border-b border-gray-100 dark:border-gray-700 pb-2">{title}</h3>
     {children}
   </div>;

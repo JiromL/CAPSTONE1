@@ -159,7 +159,7 @@ export default function JournalPage() {
 
       {/* Compose / Edit panel */}
       {composing && (
-        <div className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm shadow-sm overflow-hidden">
           {/* Page-top strip */}
           <div className="h-1.5 w-full" style={{ backgroundColor: getMood(mood).color }} />
           <div className="p-6">
@@ -241,7 +241,7 @@ export default function JournalPage() {
           <Loader2 size={18} className="animate-spin" /> Loading entries…
         </div>
       ) : entries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-52 text-center bg-white rounded-xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center h-52 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
           <p className="text-2xl mb-3">📖</p>
           <p className="font-medium text-gray-700">No entries yet</p>
           <p className="text-sm text-gray-400 mt-1">Your journal is private. Start writing today.</p>

@@ -206,7 +206,7 @@ export default function ExportDataPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {summaryLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 animate-pulse h-20" />
+            <div key={i} className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4 animate-pulse h-20" />
           ))
         ) : summary ? (
           <>
@@ -240,7 +240,7 @@ export default function ExportDataPage() {
       {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">{success}</div>}
 
       {/* ── Date filter ────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 mb-5">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 mb-5">
         <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Export Filter</p>
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
@@ -259,7 +259,7 @@ export default function ExportDataPage() {
       </div>
 
       {/* ── Export All ─────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 mb-5">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 mb-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Export All 3 Sheets</p>
@@ -283,7 +283,7 @@ export default function ExportDataPage() {
       <div className="space-y-3 mb-6">
         {SHEETS.map(sheet => (
           <div key={sheet.id}
-            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+            className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -320,7 +320,7 @@ export default function ExportDataPage() {
 
       {/* ── Preview table ──────────────────────────────────────────────── */}
       {preview && preview.rows.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6">
+        <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden mb-6">
           <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
               Preview — {preview.sheet} (first 5 rows)
@@ -377,7 +377,7 @@ function SummaryCard({
   label: string; primary: number; sub: string; accent: string; icon: React.ReactNode;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start gap-3">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-4 flex items-start gap-3">
       <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: accent + '1a', color: accent }}>
         {icon}

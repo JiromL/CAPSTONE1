@@ -9,6 +9,7 @@ import {
   AlertCircle, CheckCircle, Loader2, Save, Check,
   ChevronRight, ChevronLeft, User, Brain, ClipboardCheck,
   BookOpen, Phone, Clock, CalendarCheck, UserCheck, ClipboardList,
+  MapPin, Video,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -1165,14 +1166,30 @@ export default function BookAppointmentPage() {
                             <Loader2 size={13} className="animate-spin" /> Loading counselors…
                           </div>
                         ) : counselorList.length > 0 ? (
-                          <select value={selectedCounselorId} onChange={e => setSelectedCounselorId(e.target.value)} className={IC}>
-                            <option value="">Select a counselor or psychologist…</option>
-                            {counselorList.map((c: any) => (
-                              <option key={c._id} value={c._id}>
-                                {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role === 'PSYCHOLOGIST' ? ' — Psychologist' : ' — Counselor'}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto pr-0.5">
+                            {counselorList.map((c: any) => {
+                              const isPsych = c.role === 'PSYCHOLOGIST';
+                              const displayName = `${c.first_name} ${c.last_name}`;
+                              const selected = selectedCounselorId === c._id;
+                              return (
+                                <button key={c._id} type="button" onClick={() => setSelectedCounselorId(c._id)}
+                                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition ${
+                                    selected ? 'border-[#2563eb] bg-[#2563eb]/5' : 'border-gray-100 bg-white hover:border-gray-200'
+                                  }`}>
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                    selected ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {c.first_name?.charAt(0)}{c.last_name?.charAt(0)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm font-semibold truncate ${selected ? 'text-[#2563eb]' : 'text-gray-800'}`}>{displayName}</p>
+                                    <p className="text-[10px] text-gray-400">{isPsych ? 'Psychologist' : 'Counselor'}</p>
+                                  </div>
+                                  {selected && <Check size={14} className="text-[#2563eb] flex-shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
                         ) : (
                           <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                             No counselors are currently available. Please contact the CPS office directly.
@@ -1188,8 +1205,8 @@ export default function BookAppointmentPage() {
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Session Mode <span className="text-red-400">*</span></label>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { v: 'F2F',    label: 'Face to Face', sub: 'Visit the CPS office', icon: '🏫' },
-                          { v: 'Online', label: 'Online',        sub: 'Video call session',   icon: '💻' },
+                          { v: 'F2F',    label: 'Face to Face', sub: 'Visit the CPS office', Icon: MapPin  },
+                          { v: 'Online', label: 'Online',        sub: 'Video call session',   Icon: Video   },
                         ].map(m => (
                           <button key={m.v} type="button"
                             onClick={() => {
@@ -1200,12 +1217,16 @@ export default function BookAppointmentPage() {
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition ${
                               slotMethod === m.v ? 'border-[#2563eb] bg-[#2563eb]/5' : 'border-gray-200 bg-white hover:border-gray-300'
                             }`}>
-                            <span className="text-xl">{m.icon}</span>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              slotMethod === m.v ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              <m.Icon size={15} />
+                            </div>
                             <div>
                               <p className={`text-sm font-semibold ${slotMethod === m.v ? 'text-[#2563eb]' : 'text-gray-800'}`}>{m.label}</p>
                               <p className="text-[10px] text-gray-400">{m.sub}</p>
                             </div>
-                            {slotMethod === m.v && <span className="ml-auto w-5 h-5 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">✓</span>}
+                            {slotMethod === m.v && <Check size={14} className="ml-auto text-[#2563eb] flex-shrink-0" />}
                           </button>
                         ))}
                       </div>
@@ -1215,15 +1236,16 @@ export default function BookAppointmentPage() {
                           <p className="text-xs font-bold text-blue-700 mb-2">Preferred Platform</p>
                           <div className="flex gap-2">
                             {([
-                              { value: 'google-meet' as const, label: 'Google Meet', icon: '🎥' },
-                              { value: 'zoom'        as const, label: 'Zoom',        icon: '📹' },
+                              { value: 'google-meet' as const, label: 'Google Meet' },
+                              { value: 'zoom'        as const, label: 'Zoom'        },
                             ] as const).map(p => (
                               <button key={p.value} type="button"
                                 onClick={() => setPrefPlatform(p.value)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-xs font-semibold transition ${
                                   prefPlatform === p.value ? 'border-blue-500 bg-blue-100 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
                                 }`}>
-                                <span>{p.icon}</span> {p.label}
+                                {prefPlatform === p.value && <Check size={12} />}
+                                {p.label}
                               </button>
                             ))}
                           </div>

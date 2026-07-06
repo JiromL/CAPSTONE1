@@ -162,7 +162,7 @@ export default function CheckInTrackingPage() {
             ) : ccClients.length === 0 ? (
               <div className="py-12 text-center text-sm text-gray-500">No counseling check-in cases found.</div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                     <tr>
@@ -210,7 +210,7 @@ export default function CheckInTrackingPage() {
         {activeTab === 'non-counseling' && (
           <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <input type="text" placeholder="Search name or ID…" value={ncSearch}
                   onChange={(e) => { setNcSearch(e.target.value); setNcPage(1); }}
@@ -247,7 +247,7 @@ export default function CheckInTrackingPage() {
             {ncLoading ? (
               <div className="py-12 text-center text-sm text-gray-500">Loading…</div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                     <tr>

@@ -126,7 +126,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* Today's sessions + pending evaluations */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
               <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
@@ -176,7 +176,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* Quick navigation */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Quick Access</p>
             <div className="divide-y divide-gray-100">
               {LINKS.map(({ href, label }) => (

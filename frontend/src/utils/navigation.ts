@@ -170,6 +170,9 @@ export function getActiveSectionFromPath(pathname: string): string {
     'analytics':            'analytics',
     'audit-log':            'audit',
 
+    // Schedules
+    'counselor-schedules':  'counselor-schedules',
+
     // Availability
     'availability':         'availability',
 

@@ -104,7 +104,8 @@ export function DashboardLayout({
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
         {menuItems.map((item, index) => {
-          const isActive = activeSection && item.id && activeSection === item.id;
+          const isActive = (activeSection && item.id && activeSection === item.id)
+            || (!activeSection && item.href && pathname === item.href);
           const icon = item.icon || (item.id ? getMenuIcon(item.id) : null);
 
           const content = (

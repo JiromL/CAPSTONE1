@@ -203,7 +203,15 @@ export default function ProfilePage() {
     fetch(api('/api/users/profile'), {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(r => {
+        if (r.status === 401 || r.status === 404) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return Promise.reject('session_expired');
+        }
+        return r.ok ? r.json() : Promise.reject(r.status);
+      })
       .then(user => {
         const fresh = {
           firstName: user.first_name || '',
@@ -225,7 +233,7 @@ export default function ProfilePage() {
         localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...user }));
         if (user.role === 'STUDENT') fetchMyPerma();
       })
-      .catch(err => console.error('Failed to fetch profile from API:', err));
+      .catch(err => { if (err !== 'session_expired') console.error('Failed to fetch profile from API:', err); });
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

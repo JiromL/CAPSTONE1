@@ -118,7 +118,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                     Confidential, free counseling for all DLSU students. Book an appointment, attend your intake, and get matched with a counselor.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {['In-person', 'Online', 'Confidential', 'Free'].map(t => (
+                    {['In-person', 'Online', 'Confidential'].map(t => (
                       <span key={t} className="text-xs bg-white/20 text-white px-3 py-1 rounded-full font-medium">{t}</span>
                     ))}
                   </div>

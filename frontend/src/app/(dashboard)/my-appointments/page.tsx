@@ -189,7 +189,7 @@ export default function MyAppointmentsPage() {
       const r = await fetch(api('/api/appointments/my-appointments'), {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (r.status === 401) { router.replace('/login'); return; }
+      if (r.status === 401 || r.status === 404) { router.replace('/login'); return; }
       if (r.ok) {
         const d = await r.json();
         const apts: Appointment[] = d.appointments || [];

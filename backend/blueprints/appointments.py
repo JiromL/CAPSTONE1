@@ -3076,6 +3076,10 @@ def list_reschedule_requests():
     if not user or user.get('role') not in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
         return jsonify({'error': 'Access denied'}), 403
 
+    role = user.get('role', '')
+    user_obj_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
+    is_counselor_role = role in ['COUNSELOR', 'PSYCHOLOGIST', 'IC']
+
     status_filter = request.args.get('status', 'pending')
 
     if status_filter == 'pending':
@@ -3086,6 +3090,10 @@ def list_reschedule_requests():
         query = {"reschedule_denied": True}
     else:
         query = {"rescheduled_at": {"$exists": True}}
+
+    # Counselors only see reschedule requests for their own appointments
+    if is_counselor_role:
+        query["counselor_id"] = user_obj_id
 
     raw = list(db.db.appointments.find(query).sort("rescheduled_at", -1).limit(100))
 
@@ -3146,6 +3154,10 @@ def approve_reschedule_request(request_id):
 
     initiated_by = apt.get('reschedule_requested_by_role', 'STUDENT')
     student_approving = is_student and initiated_by != 'STUDENT' and str(user.get('_id')) == str(apt.get('student_id'))
+    # Counselors can only approve their own appointments' reschedule requests
+    if role in ['COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+        if str(apt.get('counselor_id', '')) != str(user_id):
+            return jsonify({'error': 'Access denied — not your appointment'}), 403
     if not is_staff_side and not student_approving:
         return jsonify({'error': 'Access denied'}), 403
 
@@ -3198,6 +3210,10 @@ def deny_reschedule_request(request_id):
 
     initiated_by = apt.get('reschedule_requested_by_role', 'STUDENT')
     student_denying = is_student and initiated_by != 'STUDENT' and str(user.get('_id')) == str(apt.get('student_id'))
+    # Counselors can only deny their own appointments' reschedule requests
+    if role in ['COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+        if str(apt.get('counselor_id', '')) != str(user_id):
+            return jsonify({'error': 'Access denied — not your appointment'}), 403
     if not is_staff_side and not student_denying:
         return jsonify({'error': 'Access denied'}), 403
 

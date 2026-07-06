@@ -48,7 +48,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/walk-in-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/staff/walkin-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/check-in-tracking': ['STAFF', 'ADMIN', 'DPO'],
-  '/reschedule-requests': ['STAFF', 'ADMIN', 'DPO'],
+  '/reschedule-requests': ['STAFF', 'ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC'],
   '/staff-settings': ['STAFF', 'ADMIN', 'DPO'],
   '/waitlist': ['STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/recurring-appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN'],

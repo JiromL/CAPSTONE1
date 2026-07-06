@@ -37,26 +37,28 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ COUNSELOR ============
   // Most frequent: Cases (daily notes) → Sessions (schedule) → Availability → EMA
   const counselorItems: MenuItem[] = [
-    { label: 'Dashboard',       href: '/dashboard',    id: 'dashboard'    },
-    { label: 'Cases',           href: '/cases',        id: 'cases'        },
-    { label: 'My Sessions',     href: '/appointments', id: 'appointments' },
-    { label: 'My Availability', href: '/availability', id: 'availability' },
-    { label: 'EMA',             href: '/mhbot',        id: 'mhbot'        },
-    { label: 'Announcements',   href: '/announcements',id: 'announcements'},
-    { label: 'Profile',         href: '/profile',      id: 'profile'      },
+    { label: 'Dashboard',            href: '/dashboard',           id: 'dashboard'          },
+    { label: 'Cases',                href: '/cases',               id: 'cases'              },
+    { label: 'My Sessions',          href: '/appointments',        id: 'appointments'       },
+    { label: 'Reschedule Requests',  href: '/reschedule-requests', id: 'reschedule-requests'},
+    { label: 'My Availability',      href: '/availability',        id: 'availability'       },
+    { label: 'EMA',                  href: '/mhbot',               id: 'mhbot'              },
+    { label: 'Announcements',        href: '/announcements',       id: 'announcements'      },
+    { label: 'Profile',              href: '/profile',             id: 'profile'            },
   ];
 
   // ============ PSYCHOLOGIST ============
   // Most frequent: High-Risk (unique role) → Cases → Sessions → Availability → EMA
   const psychologistItems: MenuItem[] = [
-    { label: 'Dashboard',            href: '/dashboard',    id: 'dashboard'    },
-    { label: 'High-Risk Monitoring', href: '/high-risk',    id: 'high-risk'    },
-    { label: 'Cases',                href: '/cases',        id: 'cases'        },
-    { label: 'My Sessions',          href: '/appointments', id: 'appointments' },
-    { label: 'My Availability',      href: '/availability', id: 'availability' },
-    { label: 'EMA',                  href: '/mhbot',        id: 'mhbot'        },
-    { label: 'Announcements',        href: '/announcements',id: 'announcements'},
-    { label: 'Profile',              href: '/profile',      id: 'profile'      },
+    { label: 'Dashboard',            href: '/dashboard',           id: 'dashboard'          },
+    { label: 'High-Risk Monitoring', href: '/high-risk',           id: 'high-risk'          },
+    { label: 'Cases',                href: '/cases',               id: 'cases'              },
+    { label: 'My Sessions',          href: '/appointments',        id: 'appointments'       },
+    { label: 'Reschedule Requests',  href: '/reschedule-requests', id: 'reschedule-requests'},
+    { label: 'My Availability',      href: '/availability',        id: 'availability'       },
+    { label: 'EMA',                  href: '/mhbot',               id: 'mhbot'              },
+    { label: 'Announcements',        href: '/announcements',       id: 'announcements'      },
+    { label: 'Profile',              href: '/profile',             id: 'profile'            },
   ];
 
   // ============ CASE MANAGER ============

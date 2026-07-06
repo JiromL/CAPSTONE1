@@ -92,7 +92,7 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles 
       onLogout={handleLogout}
       menuItems={menuItems}
       title={title}
-      subtitle={subtitle || 'Campus Counseling Services'}
+      subtitle={subtitle}
       activeSection={activeSection}
     >
       {children}

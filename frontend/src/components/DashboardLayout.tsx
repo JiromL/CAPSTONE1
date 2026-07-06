@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Power, Menu, Bell, X, ChevronRight, Calendar } from 'lucide-react';
+import { Power, Menu, Bell, X, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getMenuIcon } from '@/utils/dashboard-icons';
@@ -27,8 +27,16 @@ interface DashboardLayoutProps {
   onMenuClick?: (id: string) => void;
 }
 
-// Items that show a right chevron (have sub-sections)
-const HAS_CHEVRON = new Set(['profile', 'services', 'cases', 'counseling-cases', 'admin']);
+const ROLE_LABEL: Record<string, string> = {
+  IC: 'Intake Counselor',
+  COUNSELOR: 'Counselor',
+  PSYCHOLOGIST: 'Psychologist',
+  CASE_MANAGER: 'Case Manager',
+  STAFF: 'Office Assistant',
+  ADMIN: 'Administrator',
+  DPO: 'Data Privacy Officer',
+  STUDENT: 'Student',
+};
 
 export function DashboardLayout({
   user,
@@ -40,9 +48,8 @@ export function DashboardLayout({
   activeSection,
   onMenuClick,
 }: DashboardLayoutProps) {
-  const [mobileOpen, setMobileOpen]   = useState(false);
+  const [mobileOpen, setMobileOpen]       = useState(false);
   const [reminderCount, setReminderCount] = useState(0);
-  const [lastLogin, setLastLogin]     = useState<string>('');
   const pathname = usePathname();
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -62,11 +69,6 @@ export function DashboardLayout({
       })
       .catch(() => {});
 
-    // Last login — store on each visit
-    const stored = localStorage.getItem('last_login_display');
-    if (stored) {
-      setLastLogin(stored);
-    }
     const now = new Date().toLocaleDateString('en-US', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
@@ -74,26 +76,24 @@ export function DashboardLayout({
     localStorage.setItem('last_login_display', now);
   }, []);
 
-  const fullName = (() => {
-    if (!user) return '';
-    const fn = user.first_name || '';
-    const ln = user.last_name  || '';
-    if (fn && ln) return `${ln.toUpperCase()}, ${fn.toUpperCase()}`;
-    return (user.name || user.email || '').toUpperCase();
-  })();
-
-  const idNumber = user?.id_number || user?.student_id || '';
+  const firstName  = user?.first_name || user?.name?.split(' ')[0] || 'User';
+  const lastName   = user?.last_name  || '';
+  const initials   = firstName.charAt(0).toUpperCase() + (lastName.charAt(0) || '').toUpperCase();
+  const roleLabel  = ROLE_LABEL[user?.role] ?? (user?.role || 'User');
+  const idNumber   = user?.id_number || user?.student_id || '';
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
+
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-200 flex-shrink-0">
-        <Image src="/dlsu-seal.svg" alt="DLSU" width={40} height={40} className="flex-shrink-0" />
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-[#2563eb] leading-tight">DLSU</p>
-          <p className="text-[10px] text-gray-500 leading-tight">Counseling &amp; Psychology</p>
+      <div className="flex items-center gap-3 px-5 py-5 flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-[#2563eb] flex items-center justify-center flex-shrink-0">
+          <Image src="/dlsu-seal.svg" alt="DLSU" width={24} height={24} className="brightness-[10]" />
         </div>
-        {/* Mobile close */}
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-gray-900 leading-tight">CPS Portal</p>
+          <p className="text-[10px] text-gray-400 leading-tight">DLSU Counseling</p>
+        </div>
         <button onClick={() => setMobileOpen(false)}
           className="lg:hidden ml-auto p-1 text-gray-400 hover:text-gray-600">
           <X size={16} />
@@ -101,31 +101,29 @@ export function DashboardLayout({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2">
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
         {menuItems.map((item, index) => {
           const isActive = activeSection && item.id && activeSection === item.id;
           const icon = item.icon || (item.id ? getMenuIcon(item.id) : null);
-          const hasChevron = item.id ? HAS_CHEVRON.has(item.id) : false;
 
           const content = (
-            <div className={`flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
+            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
               isActive
-                ? 'text-[#2563eb] font-semibold bg-green-50 border-r-[3px] border-[#2563eb]'
-                : 'text-gray-600 hover:text-[#2563eb] hover:bg-gray-50'
+                ? 'bg-[#2563eb] text-white font-semibold shadow-sm'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
             }`}>
               {icon && (
-                <span className={`flex-shrink-0 ${isActive ? 'text-[#2563eb]' : 'text-gray-400'}`}>
+                <span className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`}>
                   {icon}
                 </span>
               )}
               <span className="flex-1 truncate">{item.label}</span>
               {item.badge != null && item.badge > 0 && (
-                <span className="bg-[#2563eb] text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                  isActive ? 'bg-white/25 text-white' : 'bg-[#2563eb] text-white'
+                }`}>
                   {item.badge}
                 </span>
-              )}
-              {hasChevron && !item.badge && (
-                <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
               )}
             </div>
           );
@@ -145,24 +143,19 @@ export function DashboardLayout({
         })}
       </nav>
 
-      {/* Last login + logout */}
-      <div className="border-t border-gray-200 px-5 py-4 flex-shrink-0">
-        {lastLogin && (
-          <p className="text-[11px] text-gray-400 mb-3">
-            Last Login : <span className="font-medium text-gray-500">{lastLogin}</span>
-          </p>
-        )}
+      {/* Logout */}
+      <div className="px-3 py-4 flex-shrink-0 border-t border-gray-100">
         <button onClick={onLogout}
-          className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 transition-colors">
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
           <Power size={15} />
-          <span>Logout</span>
+          <span>Sign out</span>
         </button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f4f4] flex">
+    <div className="min-h-screen bg-[#f5f6fa] flex">
 
       {/* Mobile backdrop */}
       {mobileOpen && (
@@ -171,8 +164,8 @@ export function DashboardLayout({
 
       {/* Sidebar */}
       <aside className={`
-        fixed left-0 top-0 h-screen z-30 w-60
-        bg-white border-r border-gray-200
+        fixed left-0 top-0 h-screen z-30 w-64
+        bg-white border-r border-gray-100
         transition-transform duration-300 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -180,69 +173,63 @@ export function DashboardLayout({
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-h-screen lg:ml-60">
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
 
         {/* Top header */}
-        <header className="sticky top-0 z-20 h-14 flex items-center justify-between px-5 bg-white border-b border-gray-200">
+        <header className="sticky top-0 z-20 h-16 flex items-center justify-between px-6 bg-white border-b border-gray-100">
+
           {/* Mobile hamburger */}
           <button onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 -ml-1 rounded text-gray-500 hover:bg-gray-100 transition-colors">
+            className="lg:hidden p-2 -ml-1 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors">
             <Menu size={20} />
           </button>
 
-          {/* Page title */}
+          {/* Greeting */}
           <div className="hidden lg:block">
-            <p className="text-sm font-semibold text-gray-800">{title}</p>
-            {subtitle && <p className="text-xs text-gray-400 leading-tight">{subtitle}</p>}
+            <p className="text-xs text-gray-400">Hi, {firstName}</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
           </div>
 
-          {/* Right: bells + user */}
-          <div className="flex items-center gap-4 ml-auto">
-            {/* Notification bell */}
-            <Link href="/reminders" className="relative text-gray-500 hover:text-[#2563eb] transition-colors">
-              <Bell size={20} />
+          {/* Search bar */}
+          <div className="hidden lg:flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-64 mx-6 hover:border-gray-300 transition-colors focus-within:border-[#2563eb] focus-within:ring-2 focus-within:ring-[#2563eb]/20">
+            <Search size={15} className="text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Search…"
+              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+            />
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-3 ml-auto lg:ml-0">
+
+            {/* Notifications */}
+            <Link href="/reminders"
+              className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
+              <Bell size={18} />
               {reminderCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-blue-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
-                  {reminderCount}
-                </span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#2563eb] rounded-full ring-2 ring-white" />
               )}
             </Link>
 
-            {/* Calendar */}
-            <Link href="/appointments" className="text-gray-500 hover:text-[#2563eb] transition-colors" title="Appointments">
-              <Calendar size={20} />
-            </Link>
-
-            {/* User info */}
-            <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
-              <div className="text-right leading-tight">
-                <p className="text-sm font-semibold text-gray-900">{fullName}</p>
-                {idNumber && <p className="text-xs text-gray-500">{idNumber}</p>}
-                {!idNumber && (
-                  <p className="text-xs text-gray-500">
-                    {({
-                      IC: 'Intake Counselor',
-                      COUNSELOR: 'Counselor',
-                      PSYCHOLOGIST: 'Psychologist',
-                      CASE_MANAGER: 'Case Manager',
-                      STAFF: 'Office Assistant',
-                      ADMIN: 'Administrator',
-                      DPO: 'Data Privacy Officer',
-                      STUDENT: 'Student',
-                    } as Record<string,string>)[user?.role] ?? user?.role}
-                  </p>
-                )}
+            {/* Avatar */}
+            <div className="flex items-center gap-2 pl-3 border-l border-gray-100">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold text-gray-800 leading-tight">
+                  {firstName} {lastName}
+                </p>
+                <p className="text-[10px] text-gray-400 leading-tight">{roleLabel}</p>
               </div>
-              <div className="w-8 h-8 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                {fullName.charAt(0) || 'U'}
+              <div className="w-9 h-9 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-sm font-bold flex-shrink-0 ring-2 ring-blue-100">
+                {initials || 'U'}
               </div>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-5 lg:p-8">
-          <div className="max-w-5xl mx-auto">
+        <main className="flex-1 p-5 lg:p-7">
+          <div className="max-w-6xl mx-auto">
             {children}
           </div>
         </main>

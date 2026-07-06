@@ -4,24 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+import Image from 'next/image';
 import {
-  AlertCircle, CheckCircle, Loader2, Save, Send, Check,
-  ChevronRight, ChevronLeft, User, FileText, Brain, ClipboardCheck,
-  BookOpen, Heart, Phone, GraduationCap, Clock, CalendarX, CalendarCheck, UserCheck, ClipboardList,
+  AlertCircle, CheckCircle, Loader2, Save, Check,
+  ChevronRight, ChevronLeft, User, Brain, ClipboardCheck,
+  BookOpen, Phone, Clock, CalendarCheck, UserCheck, ClipboardList,
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PURPOSES = [
-  { value: 'intake_interview',       label: 'Intake Interview', desc: 'First-time visit — includes intake forms' },
-  { value: 'counseling',             label: 'Counseling',       desc: 'Continuing counseling session' },
-  { value: 'follow_up_counselling',  label: 'Follow-up',        desc: 'Follow-up counseling session' },
-  { value: 'others',                 label: 'Others',           desc: 'Other type of session' },
-];
-
-const PLATFORMS = [
-  { value: 'in-person',   label: 'Face to Face',  desc: 'Visit the CPS office' },
-  { value: 'google-meet', label: 'Google Meet',   desc: 'Online video call' },
-  { value: 'zoom',        label: 'Zoom',          desc: 'Online video call' },
+  { value: 'intake_interview',      label: 'Intake Interview', desc: 'First-time visit — includes intake forms' },
+  { value: 'counseling',            label: 'Counseling',       desc: 'Continuing counseling session' },
+  { value: 'follow_up_counselling', label: 'Follow-up',        desc: 'Follow-up counseling session' },
+  { value: 'others',                label: 'Others',           desc: 'Other type of session' },
 ];
 
 const PHQ4Q = [
@@ -39,9 +34,15 @@ const FREQ = [
 ];
 
 const INTAKE_STEPS = [
-  { num: 1, label: 'Contact Form',  color: 'bg-sky-500' },
-  { num: 2, label: 'Personal Info', color: 'bg-violet-500' },
-  { num: 3, label: 'Mental Screen', color: 'bg-orange-500' },
+  { label: 'Contact Form',  desc: 'Basic info & emergency contact' },
+  { label: 'Personal Info', desc: 'Background & health history' },
+  { label: 'Mental Screen', desc: 'PHQ-4 wellbeing screener' },
+];
+
+const BOOK_STEPS = [
+  { label: 'Session Type', desc: 'Purpose & session mode' },
+  { label: 'Date & Time',  desc: 'Pick a date and time slot' },
+  { label: 'Details',      desc: 'Concern & referral info' },
 ];
 
 const DRAFT_KEY = 'bookAppointmentDraft_v2';
@@ -77,23 +78,33 @@ function F({ label, req, children, span }: { label: string; req?: boolean; child
   );
 }
 
-function StepWizard({ current }: { current: number }) {
+function VerticalStepTracker({ steps, current }: { steps: { label: string; desc?: string }[]; current: number }) {
   return (
-    <div className="flex items-start justify-center gap-0 mb-6">
-      {INTAKE_STEPS.map((s, i) => {
+    <div>
+      {steps.map((step, i) => {
         const done = i < current, active = i === current;
         return (
-          <div key={i} className="flex items-start">
-            <div className="flex flex-col items-center w-24">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition
-                ${done ? 'bg-[#2563eb] border-[#2563eb] text-white' : active ? 'bg-white border-[#2563eb] text-[#2563eb]' : 'bg-white border-gray-200 text-gray-400'}`}>
-                {done ? <Check size={16} /> : s.num}
+          <div key={i} className="flex items-start gap-3">
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 text-xs font-bold transition-all
+                ${done   ? 'bg-[#2563eb] border-[#2563eb] text-white'  :
+                  active ? 'border-[#2563eb] bg-white text-[#2563eb]'  :
+                           'border-gray-200 bg-white text-gray-400'}`}>
+                {done ? <Check size={12} /> : i + 1}
               </div>
-              <p className={`text-[11px] font-semibold mt-1.5 text-center leading-tight ${active ? 'text-[#2563eb]' : done ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
+              {i < steps.length - 1 && (
+                <div className="border-l-2 border-dashed border-gray-200 my-1" style={{ width: 1, minHeight: 28 }} />
+              )}
             </div>
-            {i < INTAKE_STEPS.length - 1 && (
-              <div className={`mt-4 h-0.5 w-8 mx-1 ${i < current ? 'bg-[#2563eb]' : 'bg-gray-200'}`} />
-            )}
+            <div className="pb-5 min-w-0">
+              <p className={`text-xs font-semibold leading-tight
+                ${active ? 'text-[#2563eb]' : done ? 'text-gray-700' : 'text-gray-400'}`}>
+                {step.label}
+              </p>
+              {step.desc && (active || done) && (
+                <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{step.desc}</p>
+              )}
+            </div>
           </div>
         );
       })}
@@ -134,7 +145,7 @@ export default function BookAppointmentPage() {
   const [purpose, setPurpose]             = useState('intake_interview');
   const [specifyOthers, setSpecifyOthers] = useState('');
   const [concern, setConcern]             = useState('');
-  const [slotMethod, setSlotMethod]        = useState('F2F');
+  const [slotMethod, setSlotMethod]       = useState('F2F');
   const [prefPlatform, setPrefPlatform]   = useState<'google-meet' | 'zoom'>('google-meet');
   const [referralType, setReferralType]   = useState('self-referred');
   const [referredBy, setReferredBy]       = useState('');
@@ -146,25 +157,27 @@ export default function BookAppointmentPage() {
   const [noSlotsNextDate, setNoSlotsNextDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
   const [requestAnyway, setRequestAnyway] = useState(false);
-  const [methodFilter, setMethodFilter]   = useState<'all' | 'in-person' | 'online'>('all');
 
   // Assigned counselor (for counseling / follow-up)
   const [assignedCounselor, setAssignedCounselor] = useState<{ id: string; name: string; role: string } | null | undefined>(undefined);
-  const [counselorList, setCounselorList]   = useState<any[] | null>(null); // null = loading, [] = none found
+  const [counselorList, setCounselorList]   = useState<any[] | null>(null);
   const [selectedCounselorId, setSelectedCounselorId] = useState('');
 
   // EMA label (for PHQ-4 skip logic)
-  const [emaLabel, setEmaLabel]           = useState<string | null>(null);
+  const [emaLabel, setEmaLabel] = useState<string | null>(null);
 
   // Intake packet
-  const [showIntake, setShowIntake]       = useState(false);
-  const [intakeStep, setIntakeStep]       = useState(0);
-  const [intakeError, setIntakeError]     = useState('');
+  const [showIntake, setShowIntake]             = useState(false);
+  const [intakeStep, setIntakeStep]             = useState(0);
+  const [intakeError, setIntakeError]           = useState('');
   const [intakeSubmitting, setIntakeSubmitting] = useState(false);
-  const [appointmentId, setAppointmentId] = useState('');
-  const [formSkipped, setFormSkipped]     = useState(false);
-  const [showConfirm, setShowConfirm]     = useState(false);
-  const [showFormsChoice, setShowFormsChoice] = useState(false);
+  const [appointmentId, setAppointmentId]       = useState('');
+  const [formSkipped, setFormSkipped]           = useState(false);
+  const [showConfirm, setShowConfirm]           = useState(false);
+  const [showFormsChoice, setShowFormsChoice]   = useState(false);
+
+  // Booking step wizard (for main form)
+  const [bookStep, setBookStep] = useState(0);
 
   const [icf, setIcf] = useState({
     first_name:'', last_name:'', middle_name:'', email:'', student_id:'', phone:'',
@@ -199,7 +212,6 @@ export default function BookAppointmentPage() {
         const r = await fetch(api('/api/appointments/active'), { headers: { Authorization: `Bearer ${token}` } });
         if (r.ok) { const d = await r.json(); setBookingGate(d.booking_gate ?? (d.can_self_book ? 'eligible' : 'no_case')); setGateMessage(d.message ?? ''); if (d.has_active_appointment) setActiveAppt(d); }
       } catch {}
-      // Fetch EMA label for PHQ-4 skip logic
       try {
         const r = await fetch(api('/api/mhbot/my-perma'), { headers: { Authorization: `Bearer ${token}` } });
         if (r.ok) { const d = await r.json(); if (d.mhbot_username) setEmaLabel(d.latest_label ?? null); }
@@ -209,11 +221,9 @@ export default function BookAppointmentPage() {
         setHasDraft(true);
         try { const d = JSON.parse(draft); if (d.purpose) setPurpose(d.purpose); if (d.concern) setConcern(d.concern); if (d.referralType) setReferralType(d.referralType); if (d.referredBy) setReferredBy(d.referredBy); if (d.prefDate) setPrefDate(d.prefDate); if (d.prefTime) setPrefTime(d.prefTime); } catch {}
       }
-      // Resume intake forms for an existing appointment
       if (resumeId) {
         setAppointmentId(resumeId);
         setTicketNumber(resumeId.slice(-8).toUpperCase());
-        // Restore saved form progress if available
         try {
           const saved = localStorage.getItem(`cps_forms_${resumeId}`);
           if (saved) {
@@ -238,13 +248,11 @@ export default function BookAppointmentPage() {
         }
         setShowIntake(true);
       }
-
       setLoading(false);
     };
     init();
   }, [router, resumeId]);
 
-  // When purpose changes: resolve assigned counselor (or open request for 'others')
   useEffect(() => {
     setPrefTime(''); setSlotCounselorId(''); setSlotMethod('F2F');
     setSlots([]); setNoSlotsNextDate(null);
@@ -252,10 +260,8 @@ export default function BookAppointmentPage() {
 
     if (purpose === 'others') { setRequestAnyway(true); return; }
     setRequestAnyway(false);
+    if (purpose === 'intake_interview') return;
 
-    if (purpose === 'intake_interview') return; // slots handled by date effect
-
-    // counseling / follow_up — look up assigned counselor
     const token = localStorage.getItem('token');
     fetch(api('/api/appointments/my-counselor'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
@@ -275,7 +281,6 @@ export default function BookAppointmentPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purpose]);
 
-  // Fetch slots whenever date, purpose, or selected counselor changes
   useEffect(() => {
     if (!prefDate || purpose === 'others') { setSlots([]); setNoSlotsNextDate(null); return; }
     const token = localStorage.getItem('token');
@@ -322,14 +327,31 @@ export default function BookAppointmentPage() {
   const maxDate = new Date(today); maxDate.setDate(today.getDate() + bookingRules.max_days_ahead);
   const toDS = (d: Date) => d.toISOString().split('T')[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); setError(null);
+  const handleNextBookStep = () => {
+    setError(null);
+    if (bookStep === 0) {
+      if (!purpose) { setError('Please select a session type.'); return; }
+      if (purpose !== 'others' && !slotMethod) { setError('Please select a session mode.'); return; }
+      if (['counseling','follow_up_counselling'].includes(purpose) && assignedCounselor === null && !selectedCounselorId) {
+        setError('Please select a counselor.'); return;
+      }
+      if (purpose === 'others') { setBookStep(2); return; }
+      setBookStep(1);
+    } else if (bookStep === 1) {
+      if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
+      if (!prefTime && !requestAnyway) { setError('Please select a time slot, or click "Request Anyway".'); return; }
+      setBookStep(2);
+    }
+  };
+
+  const handleSubmit = () => {
+    setError(null);
     const fp = purpose === 'others' ? specifyOthers.trim() : purpose;
-    if (!fp)           { setError('Please select a purpose.'); return; }
+    if (!fp) { setError('Please select a purpose.'); return; }
     if (purpose !== 'others') {
       if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
       if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
-      if (['counseling', 'follow_up_counselling'].includes(purpose) && !selectedCounselorId && !requestAnyway) {
+      if (['counseling','follow_up_counselling'].includes(purpose) && !selectedCounselorId && !requestAnyway) {
         setError('Please select a counselor.'); return;
       }
     }
@@ -402,12 +424,12 @@ export default function BookAppointmentPage() {
   };
 
   if (loading) return (
-    <DashboardPageWrapper title="Counselling Sessions" subtitle="">
+    <DashboardPageWrapper title="Book Appointment" subtitle="">
       <div className="flex items-center justify-center h-48"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
     </DashboardPageWrapper>
   );
 
-  // ── Gate ─────────────────────────────────────────────────────────────────────
+  // ── Gate ──────────────────────────────────────────────────────────────────────
   const GATES: Record<string, any> = {
     has_active_appointment: { icon:'📋', title:'You already have an active appointment', color:'bg-yellow-50 border-yellow-300 text-yellow-800', cta:{ label:'View Appointments', href:'/my-appointments' } },
     no_case:                { icon:'🏥', title:'Walk-in intake required for first-time clients', color:'bg-blue-50 border-blue-300 text-blue-800' },
@@ -432,259 +454,319 @@ export default function BookAppointmentPage() {
     );
   }
 
+  // ── Shared sidebar for intake / booking ────────────────────────────────────────
+  const initials = ((user?.first_name?.charAt(0)||'') + (user?.last_name?.charAt(0)||'')).toUpperCase() || 'U';
+
   // ── Intake packet ─────────────────────────────────────────────────────────────
   if (showIntake) {
-    const phq2 = (phq4[0]??0)+(phq4[1]??0), gad2 = (phq4[2]??0)+(phq4[3]??0);
     return (
       <DashboardPageWrapper title="Book Appointment" subtitle="Complete your intake forms">
-        <div className="max-w-2xl mx-auto">
-          {/* Booking confirmed banner */}
-          <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4 mb-6">
-            <CheckCircle size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-bold text-green-800">Appointment Booked — Ticket #{ticketNumber}</p>
-              <p className="text-xs text-green-700 mt-0.5">Please complete the intake forms below. Your IC will review these before your session to better prepare.</p>
+        <div className="flex gap-5 items-start">
+
+          {/* Left sidebar */}
+          <div className="w-52 flex-shrink-0 hidden lg:flex flex-col gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-[#2563eb] flex items-center justify-center flex-shrink-0">
+                  <Image src="/dlsu-seal.svg" alt="DLSU" width={22} height={22} className="brightness-[10]" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-900">Intake Forms</p>
+                  <p className="text-[10px] text-gray-400">CPS · DLSU</p>
+                </div>
+              </div>
+
+              {/* User info */}
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-8 h-8 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-gray-800 truncate">{user?.first_name} {user?.last_name}</p>
+                  <p className="text-[10px] text-gray-400 truncate">Student</p>
+                </div>
+              </div>
+
+              {/* Booked badge */}
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mb-5">
+                <CheckCircle size={13} className="text-green-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-green-800">Slot Reserved</p>
+                  <p className="text-[10px] text-green-600 truncate">Ticket #{ticketNumber}</p>
+                </div>
+              </div>
+
+              <VerticalStepTracker steps={INTAKE_STEPS} current={intakeStep} />
             </div>
           </div>
 
-          <StepWizard current={intakeStep} />
-
-          {intakeError && (
-            <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-4">
-              <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />{intakeError}
+          {/* Center: form content */}
+          <div className="flex-1 min-w-0 space-y-4">
+            {/* Mobile step progress */}
+            <div className="lg:hidden flex items-center gap-1 mb-2">
+              {INTAKE_STEPS.map((s, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
+                    i < intakeStep ? 'bg-[#2563eb] border-[#2563eb] text-white' :
+                    i === intakeStep ? 'border-[#2563eb] text-[#2563eb]' : 'border-gray-200 text-gray-400'
+                  }`}>
+                    {i < intakeStep ? <Check size={10} /> : i + 1}
+                  </div>
+                  {i < INTAKE_STEPS.length - 1 && (
+                    <div className={`h-px w-8 ${i < intakeStep ? 'bg-[#2563eb]' : 'bg-gray-200'}`} />
+                  )}
+                </div>
+              ))}
+              <span className="ml-2 text-xs text-gray-500 font-medium">{INTAKE_STEPS[intakeStep]?.label}</span>
             </div>
-          )}
 
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            {/* Step header */}
-            <div className={`px-5 py-4 border-b border-gray-100 flex items-center gap-2
-              ${intakeStep===0 ? 'bg-sky-50' : intakeStep===1 ? 'bg-violet-50' : 'bg-orange-50'}`}>
-              {intakeStep===0 && <ClipboardCheck size={16} className="text-sky-600" />}
-              {intakeStep===1 && <BookOpen size={16} className="text-violet-600" />}
-              {intakeStep===2 && <Brain size={16} className="text-orange-600" />}
-              <div>
-                <p className="text-sm font-bold text-gray-900">
-                  {intakeStep===0 && 'Contact Form'}
-                  {intakeStep===1 && 'Personal Background'}
-                  {intakeStep===2 && 'Mental Health Screener'}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {intakeStep===0 && 'Basic information, emergency contact, and presenting concern'}
-                  {intakeStep===1 && 'Personal, family, and health background — helps your counselor prepare'}
-                  {intakeStep===2 && 'Short 4-question mental health screening — over the last 2 weeks'}
-                </p>
+            {/* Booked banner (mobile visible too) */}
+            <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
+              <CheckCircle size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-green-800">Appointment Booked — Ticket #{ticketNumber}</p>
+                <p className="text-xs text-green-700 mt-0.5">Please complete the intake forms below. Your IC will review these before your session.</p>
               </div>
             </div>
 
-            <div className="p-5 space-y-4">
+            {intakeError && (
+              <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />{intakeError}
+              </div>
+            )}
 
-              {/* ICF */}
-              {intakeStep === 0 && (
-                <div className="space-y-4">
-                  <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-bold text-sky-700 flex items-center gap-1"><User size={11} /> Student Information</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <F label="First Name" req><input className={IC} value={icf.first_name} onChange={e => setIcf(p=>({...p,first_name:e.target.value}))} placeholder="Juan" /></F>
-                      <F label="Middle Name"><input className={IC} value={icf.middle_name} onChange={e => setIcf(p=>({...p,middle_name:e.target.value}))} placeholder="Optional" /></F>
-                      <F label="Last Name" req><input className={IC} value={icf.last_name} onChange={e => setIcf(p=>({...p,last_name:e.target.value}))} placeholder="dela Cruz" /></F>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <F label="Email" req><input type="email" className={IC} value={icf.email} onChange={e => setIcf(p=>({...p,email:e.target.value}))} /></F>
-                      <F label="Student ID"><input className={IC} value={icf.student_id} onChange={e => setIcf(p=>({...p,student_id:e.target.value}))} /></F>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <F label="Phone"><input className={IC} value={icf.phone} onChange={e => setIcf(p=>({...p,phone:e.target.value}))} /></F>
-                      <F label="College"><input className={IC} value={icf.college} onChange={e => setIcf(p=>({...p,college:e.target.value}))} placeholder="e.g. CLA" /></F>
-                      <F label="Program"><input className={IC} value={icf.program} onChange={e => setIcf(p=>({...p,program:e.target.value}))} placeholder="e.g. AB Psych" /></F>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <F label="Year Level">
-                        <select className={IC} value={icf.year_level} onChange={e => setIcf(p=>({...p,year_level:e.target.value}))}>
-                          <option value="">— Select —</option>
-                          {['1st Year','2nd Year','3rd Year','4th Year','5th Year','Graduate'].map(y=><option key={y} value={y}>{y}</option>)}
-                        </select>
-                      </F>
-                      <F label="Service Requested">
-                        <select className={IC} value={icf.service_requested} onChange={e => setIcf(p=>({...p,service_requested:e.target.value}))}>
-                          <option value="personal_counseling">Personal Counseling</option>
-                          <option value="academic_counseling">Academic Counseling</option>
-                          <option value="career_counseling">Career Counseling</option>
-                          <option value="crisis_support">Crisis Support</option>
-                        </select>
-                      </F>
-                    </div>
-                  </div>
-
-                  <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-bold text-sky-700 flex items-center gap-1"><Phone size={11} /> Emergency Contact</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <F label="Full Name"><input className={IC} value={icf.emergency_contact_name} onChange={e => setIcf(p=>({...p,emergency_contact_name:e.target.value}))} placeholder="Name" /></F>
-                      <F label="Relationship"><input className={IC} value={icf.emergency_contact_relationship} onChange={e => setIcf(p=>({...p,emergency_contact_relationship:e.target.value}))} placeholder="e.g. Parent" /></F>
-                      <F label="Phone"><input className={IC} value={icf.emergency_contact_phone} onChange={e => setIcf(p=>({...p,emergency_contact_phone:e.target.value}))} placeholder="+63 9XX XXX XXXX" /></F>
-                    </div>
-                  </div>
-
-                  <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-2">
-                    <p className="text-xs font-bold text-sky-700 flex items-center gap-1"><ClipboardCheck size={11} /> Presenting Concern</p>
-                    <F label="" req>
-                      <textarea className={IC} rows={3} value={icf.presenting_concern} onChange={e => setIcf(p=>({...p,presenting_concern:e.target.value}))} placeholder="What brings you to CPS? Briefly describe your main concern or what you'd like help with…" />
-                    </F>
-                  </div>
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+              {/* Step header */}
+              <div className={`px-5 py-4 border-b border-gray-100 flex items-center gap-3
+                ${intakeStep===0 ? 'bg-sky-50' : intakeStep===1 ? 'bg-violet-50' : 'bg-orange-50'}`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+                  ${intakeStep===0 ? 'bg-sky-100' : intakeStep===1 ? 'bg-violet-100' : 'bg-orange-100'}`}>
+                  {intakeStep===0 && <ClipboardCheck size={16} className="text-sky-600" />}
+                  {intakeStep===1 && <BookOpen size={16} className="text-violet-600" />}
+                  {intakeStep===2 && <Brain size={16} className="text-orange-600" />}
                 </div>
-              )}
-
-              {/* SPIF */}
-              {intakeStep === 1 && (
-                <div className="space-y-4">
-                  <p className="text-xs text-gray-500 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">This background information is confidential and helps your counselor better understand your situation before your session.</p>
-                  <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-bold text-violet-700">Personal Information</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <F label="Date of Birth"><input type="date" className={IC} value={spif.birthdate} onChange={e => setSpif(p=>({...p,birthdate:e.target.value}))} /></F>
-                      <F label="Gender">
-                        <select className={IC} value={spif.gender} onChange={e => setSpif(p=>({...p,gender:e.target.value}))}>
-                          <option value="">— Select —</option>
-                          {['male','female','non-binary','prefer_not_to_say','other'].map(v=><option key={v} value={v}>{v.replace('_',' ')}</option>)}
-                        </select>
-                      </F>
-                      <F label="Civil Status">
-                        <select className={IC} value={spif.civil_status} onChange={e => setSpif(p=>({...p,civil_status:e.target.value}))}>
-                          <option value="single">Single</option>
-                          <option value="in_relationship">In a relationship</option>
-                          <option value="married">Married</option>
-                          <option value="separated">Separated</option>
-                        </select>
-                      </F>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <F label="Religion"><input className={IC} value={spif.religion} onChange={e => setSpif(p=>({...p,religion:e.target.value}))} placeholder="e.g. Roman Catholic" /></F>
-                      <F label="Nationality"><input className={IC} value={spif.nationality} onChange={e => setSpif(p=>({...p,nationality:e.target.value}))} /></F>
-                    </div>
-                    <F label="Home Address"><input className={IC} value={spif.address} onChange={e => setSpif(p=>({...p,address:e.target.value}))} placeholder="City, Province" /></F>
-                  </div>
-                  <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-bold text-violet-700">Family</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <F label="Family Composition">
-                        <select className={IC} value={spif.family_composition} onChange={e => setSpif(p=>({...p,family_composition:e.target.value}))}>
-                          <option value="complete">Complete (both parents)</option>
-                          <option value="separated">Separated / Divorced</option>
-                          <option value="single_parent">Single Parent</option>
-                          <option value="extended">Extended Family</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </F>
-                      <F label="Currently Living With"><input className={IC} value={spif.living_with} onChange={e => setSpif(p=>({...p,living_with:e.target.value}))} placeholder="e.g. Parents, Dormitory, Alone" /></F>
-                    </div>
-                  </div>
-                  <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-bold text-violet-700">Health & Mental Health History</p>
-                    <F label="Existing Medical Conditions"><input className={IC} value={spif.existing_medical_conditions} onChange={e => setSpif(p=>({...p,existing_medical_conditions:e.target.value}))} placeholder="None, or briefly describe" /></F>
-                    <F label="Current Medications"><input className={IC} value={spif.current_medications} onChange={e => setSpif(p=>({...p,current_medications:e.target.value}))} placeholder="None, or list medications" /></F>
-                    <label className="flex items-start gap-2.5 cursor-pointer">
-                      <input type="checkbox" checked={spif.previous_counseling} onChange={e => setSpif(p=>({...p,previous_counseling:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#2563eb]" />
-                      <span className="text-sm text-gray-700">I have previously received counseling or therapy</span>
-                    </label>
-                    {spif.previous_counseling && <F label="Brief details"><input className={IC} value={spif.previous_counseling_details} onChange={e => setSpif(p=>({...p,previous_counseling_details:e.target.value}))} placeholder="When, where, for what reason" /></F>}
-                    <label className="flex items-start gap-2.5 cursor-pointer">
-                      <input type="checkbox" checked={spif.previous_psychiatric} onChange={e => setSpif(p=>({...p,previous_psychiatric:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#2563eb]" />
-                      <span className="text-sm text-gray-700">I have previously received psychiatric treatment or been given a diagnosis</span>
-                    </label>
-                    {spif.previous_psychiatric && <F label="Brief details"><input className={IC} value={spif.previous_psychiatric_details} onChange={e => setSpif(p=>({...p,previous_psychiatric_details:e.target.value}))} placeholder="Diagnosis, medications if any, when" /></F>}
-                  </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">
+                    {intakeStep===0 ? 'Contact Form' : intakeStep===1 ? 'Personal Background' : 'Mental Health Screener'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {intakeStep===0 ? 'Basic information, emergency contact, and presenting concern' :
+                     intakeStep===1 ? 'Personal, family, and health background — helps your counselor prepare' :
+                                     'Short 4-question mental health screening — over the last 2 weeks'}
+                  </p>
                 </div>
-              )}
+                <span className="ml-auto text-xs text-gray-400 font-medium flex-shrink-0">Step {intakeStep+1} / 3</span>
+              </div>
 
-              {/* PHQ-4 */}
-              {intakeStep === 2 && (
-                <div className="space-y-3">
-                  {/* Skip banner for Struggling / In Crisis */}
-                  {(emaLabel === 'Struggling' || emaLabel === 'In Crisis') && (
-                    <div className={`rounded-xl px-4 py-3 border flex items-start gap-3 ${emaLabel === 'In Crisis' ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
-                      <AlertCircle size={15} className={`flex-shrink-0 mt-0.5 ${emaLabel === 'In Crisis' ? 'text-red-500' : 'text-orange-500'}`} />
-                      <div className="flex-1">
-                        <p className={`text-xs font-bold ${emaLabel === 'In Crisis' ? 'text-red-800' : 'text-orange-800'}`}>
-                          Your EMA data shows you are currently {emaLabel}
+              <div className="p-5 space-y-4">
+                {/* ICF */}
+                {intakeStep === 0 && (
+                  <div className="space-y-4">
+                    <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-sky-700 flex items-center gap-1"><User size={11} /> Student Information</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <F label="First Name" req><input className={IC} value={icf.first_name} onChange={e => setIcf(p=>({...p,first_name:e.target.value}))} placeholder="Juan" /></F>
+                        <F label="Middle Name"><input className={IC} value={icf.middle_name} onChange={e => setIcf(p=>({...p,middle_name:e.target.value}))} placeholder="Optional" /></F>
+                        <F label="Last Name" req><input className={IC} value={icf.last_name} onChange={e => setIcf(p=>({...p,last_name:e.target.value}))} placeholder="dela Cruz" /></F>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <F label="Email" req><input type="email" className={IC} value={icf.email} onChange={e => setIcf(p=>({...p,email:e.target.value}))} /></F>
+                        <F label="Student ID"><input className={IC} value={icf.student_id} onChange={e => setIcf(p=>({...p,student_id:e.target.value}))} /></F>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <F label="Phone"><input className={IC} value={icf.phone} onChange={e => setIcf(p=>({...p,phone:e.target.value}))} /></F>
+                        <F label="College"><input className={IC} value={icf.college} onChange={e => setIcf(p=>({...p,college:e.target.value}))} placeholder="e.g. CLA" /></F>
+                        <F label="Program"><input className={IC} value={icf.program} onChange={e => setIcf(p=>({...p,program:e.target.value}))} placeholder="e.g. AB Psych" /></F>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <F label="Year Level">
+                          <select className={IC} value={icf.year_level} onChange={e => setIcf(p=>({...p,year_level:e.target.value}))}>
+                            <option value="">— Select —</option>
+                            {['1st Year','2nd Year','3rd Year','4th Year','5th Year','Graduate'].map(y=><option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </F>
+                        <F label="Service Requested">
+                          <select className={IC} value={icf.service_requested} onChange={e => setIcf(p=>({...p,service_requested:e.target.value}))}>
+                            <option value="personal_counseling">Personal Counseling</option>
+                            <option value="academic_counseling">Academic Counseling</option>
+                            <option value="career_counseling">Career Counseling</option>
+                            <option value="crisis_support">Crisis Support</option>
+                          </select>
+                        </F>
+                      </div>
+                    </div>
+
+                    <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-sky-700 flex items-center gap-1"><Phone size={11} /> Emergency Contact</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <F label="Full Name"><input className={IC} value={icf.emergency_contact_name} onChange={e => setIcf(p=>({...p,emergency_contact_name:e.target.value}))} placeholder="Name" /></F>
+                        <F label="Relationship"><input className={IC} value={icf.emergency_contact_relationship} onChange={e => setIcf(p=>({...p,emergency_contact_relationship:e.target.value}))} placeholder="e.g. Parent" /></F>
+                        <F label="Phone"><input className={IC} value={icf.emergency_contact_phone} onChange={e => setIcf(p=>({...p,emergency_contact_phone:e.target.value}))} placeholder="+63 9XX XXX XXXX" /></F>
+                      </div>
+                    </div>
+
+                    <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-2">
+                      <p className="text-xs font-bold text-sky-700 flex items-center gap-1"><ClipboardCheck size={11} /> Presenting Concern</p>
+                      <F label="" req>
+                        <textarea className={IC} rows={3} value={icf.presenting_concern} onChange={e => setIcf(p=>({...p,presenting_concern:e.target.value}))} placeholder="What brings you to CPS? Briefly describe your main concern…" />
+                      </F>
+                    </div>
+                  </div>
+                )}
+
+                {/* SPIF */}
+                {intakeStep === 1 && (
+                  <div className="space-y-4">
+                    <p className="text-xs text-gray-500 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">This background information is confidential and helps your counselor better understand your situation.</p>
+                    <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-violet-700">Personal Information</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <F label="Date of Birth"><input type="date" className={IC} value={spif.birthdate} onChange={e => setSpif(p=>({...p,birthdate:e.target.value}))} /></F>
+                        <F label="Gender">
+                          <select className={IC} value={spif.gender} onChange={e => setSpif(p=>({...p,gender:e.target.value}))}>
+                            <option value="">— Select —</option>
+                            {['male','female','non-binary','prefer_not_to_say','other'].map(v=><option key={v} value={v}>{v.replace('_',' ')}</option>)}
+                          </select>
+                        </F>
+                        <F label="Civil Status">
+                          <select className={IC} value={spif.civil_status} onChange={e => setSpif(p=>({...p,civil_status:e.target.value}))}>
+                            <option value="single">Single</option>
+                            <option value="in_relationship">In a relationship</option>
+                            <option value="married">Married</option>
+                            <option value="separated">Separated</option>
+                          </select>
+                        </F>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <F label="Religion"><input className={IC} value={spif.religion} onChange={e => setSpif(p=>({...p,religion:e.target.value}))} placeholder="e.g. Roman Catholic" /></F>
+                        <F label="Nationality"><input className={IC} value={spif.nationality} onChange={e => setSpif(p=>({...p,nationality:e.target.value}))} /></F>
+                      </div>
+                      <F label="Home Address"><input className={IC} value={spif.address} onChange={e => setSpif(p=>({...p,address:e.target.value}))} placeholder="City, Province" /></F>
+                    </div>
+                    <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-violet-700">Family</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <F label="Family Composition">
+                          <select className={IC} value={spif.family_composition} onChange={e => setSpif(p=>({...p,family_composition:e.target.value}))}>
+                            <option value="complete">Complete (both parents)</option>
+                            <option value="separated">Separated / Divorced</option>
+                            <option value="single_parent">Single Parent</option>
+                            <option value="extended">Extended Family</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </F>
+                        <F label="Currently Living With"><input className={IC} value={spif.living_with} onChange={e => setSpif(p=>({...p,living_with:e.target.value}))} placeholder="e.g. Parents, Dormitory" /></F>
+                      </div>
+                    </div>
+                    <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-violet-700">Health &amp; Mental Health History</p>
+                      <F label="Existing Medical Conditions"><input className={IC} value={spif.existing_medical_conditions} onChange={e => setSpif(p=>({...p,existing_medical_conditions:e.target.value}))} placeholder="None, or briefly describe" /></F>
+                      <F label="Current Medications"><input className={IC} value={spif.current_medications} onChange={e => setSpif(p=>({...p,current_medications:e.target.value}))} placeholder="None, or list medications" /></F>
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" checked={spif.previous_counseling} onChange={e => setSpif(p=>({...p,previous_counseling:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#2563eb]" />
+                        <span className="text-sm text-gray-700">I have previously received counseling or therapy</span>
+                      </label>
+                      {spif.previous_counseling && <F label="Brief details"><input className={IC} value={spif.previous_counseling_details} onChange={e => setSpif(p=>({...p,previous_counseling_details:e.target.value}))} placeholder="When, where, for what reason" /></F>}
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" checked={spif.previous_psychiatric} onChange={e => setSpif(p=>({...p,previous_psychiatric:e.target.checked}))} className="mt-0.5 w-4 h-4 accent-[#2563eb]" />
+                        <span className="text-sm text-gray-700">I have previously received psychiatric treatment or been given a diagnosis</span>
+                      </label>
+                      {spif.previous_psychiatric && <F label="Brief details"><input className={IC} value={spif.previous_psychiatric_details} onChange={e => setSpif(p=>({...p,previous_psychiatric_details:e.target.value}))} placeholder="Diagnosis, medications if any, when" /></F>}
+                    </div>
+                  </div>
+                )}
+
+                {/* PHQ-4 */}
+                {intakeStep === 2 && (
+                  <div className="space-y-3">
+                    {(emaLabel === 'Struggling' || emaLabel === 'In Crisis') && (
+                      <div className={`rounded-xl px-4 py-3 border flex items-start gap-3 ${emaLabel === 'In Crisis' ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
+                        <AlertCircle size={15} className={`flex-shrink-0 mt-0.5 ${emaLabel === 'In Crisis' ? 'text-red-500' : 'text-orange-500'}`} />
+                        <div className="flex-1">
+                          <p className={`text-xs font-bold ${emaLabel === 'In Crisis' ? 'text-red-800' : 'text-orange-800'}`}>
+                            Your EMA data shows you are currently {emaLabel}
+                          </p>
+                          <p className={`text-xs mt-0.5 ${emaLabel === 'In Crisis' ? 'text-red-700' : 'text-orange-700'}`}>
+                            Your IC will already be briefed. You can complete the screener below, or skip it.
+                          </p>
+                        </div>
+                        <button onClick={() => handleIntakeSubmit(true)}
+                          className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition ${emaLabel === 'In Crisis' ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
+                          Skip PHQ-4
+                        </button>
+                      </div>
+                    )}
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+                      <p className="text-xs font-bold text-orange-800">Over the last 2 weeks, how often have you been bothered by the following?</p>
+                      <p className="text-xs text-orange-600 mt-0.5">This helps your counselor assess your current wellbeing.</p>
+                    </div>
+                    <div className="h-px bg-gray-100" />
+                    {PHQ4Q.slice(0,2).map((q,i) => (
+                      <div key={i} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+                        <p className="text-sm font-semibold text-gray-800 mb-3">
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold mr-2">{i+1}</span>
+                          {q.text}
                         </p>
-                        <p className={`text-xs mt-0.5 ${emaLabel === 'In Crisis' ? 'text-red-700' : 'text-orange-700'}`}>
-                          Your IC will already be briefed on your wellbeing status. You can still complete the screener below, or skip it — your IC will follow up with you directly.
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {FREQ.map(opt => (
+                            <button key={opt.v} onClick={() => { const n=[...phq4]; n[i]=opt.v; setPhq4(n); }}
+                              className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-2 transition text-center
+                                ${phq4[i]===opt.v ? opt.sel : `border-gray-200 bg-white ${opt.col} hover:border-gray-300`}`}>
+                              <span className="block text-base font-bold">{opt.v}</span>{opt.s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="h-px bg-gray-100 mt-2" />
+                    {PHQ4Q.slice(2,4).map((q,i) => (
+                      <div key={i} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+                        <p className="text-sm font-semibold text-gray-800 mb-3">
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold mr-2">{i+3}</span>
+                          {q.text}
                         </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {FREQ.map(opt => (
+                            <button key={opt.v} onClick={() => { const n=[...phq4]; n[i+2]=opt.v; setPhq4(n); }}
+                              className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-2 transition text-center
+                                ${phq4[i+2]===opt.v ? opt.sel : `border-gray-200 bg-white ${opt.col} hover:border-gray-300`}`}>
+                              <span className="block text-base font-bold">{opt.v}</span>{opt.s}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <button onClick={() => handleIntakeSubmit(true)}
-                        className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition ${emaLabel === 'In Crisis' ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
-                        Skip PHQ-4
-                      </button>
-                    </div>
-                  )}
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-                    <p className="text-xs font-bold text-orange-800">Over the last 2 weeks, how often have you been bothered by the following?</p>
-                    <p className="text-xs text-orange-600 mt-0.5">Select the answer that best describes how you've been feeling. This helps your counselor assess your current wellbeing.</p>
+                    ))}
                   </div>
+                )}
+              </div>
 
-                  <div className="h-px bg-gray-100" />
-                  {PHQ4Q.slice(0,2).map((q,i) => (
-                    <div key={i} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-                      <p className="text-sm font-semibold text-gray-800 mb-3">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold mr-2">{i+1}</span>
-                        {q.text}
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {FREQ.map(opt => (
-                          <button key={opt.v} onClick={() => { const n=[...phq4]; n[i]=opt.v; setPhq4(n); }}
-                            className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-2 transition text-center
-                              ${phq4[i]===opt.v ? opt.sel : `border-gray-200 bg-white ${opt.col} hover:border-gray-300`}`}>
-                            <span className="block text-base font-bold">{opt.v}</span>{opt.s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="h-px bg-gray-100 mt-2" />
-                  {PHQ4Q.slice(2,4).map((q,i) => (
-                    <div key={i} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-                      <p className="text-sm font-semibold text-gray-800 mb-3">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold mr-2">{i+3}</span>
-                        {q.text}
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {FREQ.map(opt => (
-                          <button key={opt.v} onClick={() => { const n=[...phq4]; n[i+2]=opt.v; setPhq4(n); }}
-                            className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-2 transition text-center
-                              ${phq4[i+2]===opt.v ? opt.sel : `border-gray-200 bg-white ${opt.col} hover:border-gray-300`}`}>
-                            <span className="block text-base font-bold">{opt.v}</span>{opt.s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                </div>
-              )}
-            </div>
-
-            <div className="px-5 py-4 border-t border-gray-100 flex gap-3 bg-gray-50/50 flex-wrap">
-              {intakeStep > 0 && (
-                <button onClick={() => { setIntakeError(''); setIntakeStep(s=>s-1); }} className="flex items-center gap-1.5 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
-                  <ChevronLeft size={14} /> Back
+              {/* Navigation */}
+              <div className="px-5 py-4 border-t border-gray-100 flex gap-3 bg-gray-50/50 flex-wrap">
+                {intakeStep > 0 && (
+                  <button onClick={() => { setIntakeError(''); setIntakeStep(s=>s-1); }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                    <ChevronLeft size={14} /> Back
+                  </button>
+                )}
+                <button onClick={saveFormsProgress}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition">
+                  <Save size={13} /> Save &amp; Exit
                 </button>
-              )}
-              <button onClick={saveFormsProgress} className="flex items-center gap-1.5 px-4 py-2.5 text-sm border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition">
-                <Save size={13} /> Save &amp; Exit
-              </button>
-              <div className="flex-1" />
-              {intakeStep < 2 ? (
-                <button onClick={() => { if (validateIntakeStep()) setIntakeStep(s=>s+1); }} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ backgroundColor:'#2563eb' }}>
-                  Continue <ChevronRight size={14} />
-                </button>
-              ) : (
-                <button onClick={() => handleIntakeSubmit(false)}
-                  disabled={intakeSubmitting || phq4.some(v=>v===null)}
-                  className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition" style={{ backgroundColor:'#2563eb' }}>
-                  {intakeSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  {intakeSubmitting ? 'Submitting…' : 'Submit Intake Forms'}
-                </button>
-              )}
+                <div className="flex-1" />
+                {intakeStep < 2 ? (
+                  <button onClick={() => { if (validateIntakeStep()) setIntakeStep(s=>s+1); }}
+                    className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition bg-[#2563eb] hover:bg-blue-800">
+                    Continue <ChevronRight size={14} />
+                  </button>
+                ) : (
+                  <button onClick={() => handleIntakeSubmit(false)}
+                    disabled={intakeSubmitting || phq4.some(v=>v===null)}
+                    className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition bg-[#2563eb] hover:bg-blue-800">
+                    {intakeSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                    {intakeSubmitting ? 'Submitting…' : 'Submit Intake Forms'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -692,7 +774,7 @@ export default function BookAppointmentPage() {
     );
   }
 
-  // ── Success ────────────────────────────────────────────────────────────────
+  // ── Success ────────────────────────────────────────────────────────────────────
   if (success) {
     const isSlotBooking = !requestAnyway && !!prefTime;
     return (
@@ -709,15 +791,14 @@ export default function BookAppointmentPage() {
                 <p className="text-lg font-bold">Ticket #{ticketNumber}</p>
                 {isSlotBooking ? (
                   <p className="text-sm text-green-100 mt-1">
-                    Your slot at <strong>{(() => { const [h,m]=prefTime.split(':').map(Number); const ap=h>=12?'PM':'AM'; const h12=h%12||12; return `${h12}:${String(m).padStart(2,'0')} ${ap}`; })()}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it shortly.
+                    Your slot at <strong>{fmtT(prefTime)}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it shortly.
                   </p>
                 ) : (
-                  <p className="text-sm text-green-100 mt-1">Our office will review your request and contact you to schedule a session. By sharing your Ticket Number with your counselor during the session, you confirm consent to receive services.</p>
+                  <p className="text-sm text-green-100 mt-1">Our office will review your request and contact you to schedule a session.</p>
                 )}
               </div>
             </div>
           </div>
-          {/* What happens next */}
           <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">What happens next</p>
             <ol className="space-y-3">
@@ -731,7 +812,7 @@ export default function BookAppointmentPage() {
                 { label: 'Attend your intake interview', desc: 'Bring a valid DLSU ID. The session is confidential and takes about 30–45 minutes.' },
               ]).map((s, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <span className="w-5 h-5 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-[10px] font-bold text-[#2563eb] flex-shrink-0 mt-0.5">{i + 1}</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-[10px] font-bold text-[#2563eb] flex-shrink-0 mt-0.5">{i+1}</span>
                   <div>
                     <p className="text-sm font-medium text-gray-900">{s.label}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{s.desc}</p>
@@ -740,7 +821,6 @@ export default function BookAppointmentPage() {
               ))}
             </ol>
           </div>
-
           {formSkipped && (
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
               <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
@@ -752,23 +832,45 @@ export default function BookAppointmentPage() {
           )}
           <div className="flex gap-3">
             <button onClick={() => router.push('/my-appointments')} className="px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">View My Appointments</button>
-            <button onClick={() => { setSuccess(false); setConcern(''); setPrefDate(''); setPrefTime(''); setPurpose('counseling'); setFormSkipped(false); }} className="px-5 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition">New Request</button>
+            <button onClick={() => { setSuccess(false); setConcern(''); setPrefDate(''); setPrefTime(''); setPurpose('counseling'); setFormSkipped(false); setBookStep(0); }} className="px-5 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition">New Request</button>
           </div>
         </div>
       </DashboardPageWrapper>
     );
   }
 
-  // ── Main form ─────────────────────────────────────────────────────────────────
+  // ── Calendar helpers ────────────────────────────────────────────────────────────
+  const { year, month } = calendarMonth;
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const blanks = (firstDay + 6) % 7;
+  const cells: (number | null)[] = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const isSelectable = (day: number) => {
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const d = new Date(ds + 'T12:00:00');
+    return d >= minDate && d <= maxDate && !bookingRules.blackout_dates.includes(ds);
+  };
+
+  const seen = new Set<string>();
+  const filteredSlots = slots
+    .filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase())
+    .filter(s => {
+      const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.counselor_id}`;
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+
+  // ── Main form ──────────────────────────────────────────────────────────────────
   return (
-    <DashboardPageWrapper title="Book Appointment" subtitle="Schedule a counseling session with CPS">
+    <DashboardPageWrapper title="Book Appointment" subtitle="">
 
       {/* Consent modal */}
       {showConsent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
-
-            {/* Header */}
             <div className="px-7 pt-7 pb-4 border-b border-gray-100 text-center flex-shrink-0">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <CheckCircle className="w-6 h-6 text-[#2563eb]" />
@@ -776,24 +878,17 @@ export default function BookAppointmentPage() {
               <h2 className="text-lg font-bold text-gray-900">Informed Consent Form</h2>
               <p className="text-sm text-gray-400 mt-1">Please read the full document carefully before agreeing.</p>
             </div>
-
-            {/* Scrollable document */}
             <div className="overflow-y-auto flex-1 px-7 py-5 space-y-4 text-sm text-gray-700 leading-relaxed">
-
               <div>
-                <p className="font-bold text-gray-900 mb-1">De La Salle University — Counseling & Psychology Services (CPS)</p>
+                <p className="font-bold text-gray-900 mb-1">De La Salle University — Counseling &amp; Psychology Services (CPS)</p>
                 <p className="text-xs text-gray-500">This form is required before you can access counseling and psychological services. Please read each section carefully.</p>
               </div>
-
-              {/* I. Informed Consent for Counseling Services */}
               <div className="border border-green-200 rounded-lg p-3 bg-green-50/50">
                 <p className="font-bold text-[#2563eb] text-xs uppercase tracking-wide mb-2">I. Informed Consent for Counseling Services</p>
                 <p className="text-xs text-gray-600 mb-1">The DLSU Counseling &amp; Psychology Services (CPS) provides mental health support, counseling, and psychological services to enrolled students. Services include individual counseling, psychological assessment, crisis intervention, and referral to appropriate resources.</p>
                 <p className="text-xs text-gray-600 mb-1">Participation is voluntary. You may ask questions at any time and may discontinue at any time without penalty.</p>
                 <p className="text-xs text-gray-600">Under the Mental Health Act of 2018 (RA 11036), you have the right to access mental health services, to be treated with dignity and respect, and to have your mental health information kept confidential.</p>
               </div>
-
-              {/* II. Limits of Confidentiality */}
               <div className="border border-amber-200 rounded-lg p-3 bg-amber-50/50">
                 <p className="font-bold text-amber-800 text-xs uppercase tracking-wide mb-2">II. Limits of Confidentiality Statement</p>
                 <p className="text-xs text-gray-600 mb-1">All information shared during counseling sessions is strictly confidential and will not be disclosed without your written consent, <span className="font-semibold">except</span> in the following circumstances:</p>
@@ -803,10 +898,7 @@ export default function BookAppointmentPage() {
                   <li>When disclosure is required by a court order or by law</li>
                   <li>When required by university policy to protect the safety and welfare of the community</li>
                 </ul>
-                <p className="text-xs text-gray-500 mt-2">In such cases, only the minimum necessary information will be disclosed to the appropriate parties.</p>
               </div>
-
-              {/* III. Privacy Notice */}
               <div className="border border-blue-200 rounded-lg p-3 bg-blue-50/50">
                 <p className="font-bold text-green-800 text-xs uppercase tracking-wide mb-2">III. Privacy Notice</p>
                 <p className="text-xs text-gray-600 mb-1 font-medium">Information we collect:</p>
@@ -818,32 +910,17 @@ export default function BookAppointmentPage() {
                   <li>Emergency contact information</li>
                   <li>Wellness monitoring data from linked EMA accounts (if applicable)</li>
                 </ul>
-                <p className="text-xs text-gray-600 mb-1 font-medium">Who may access your information:</p>
-                <p className="text-xs text-gray-600 mb-1">Only authorized CPS personnel directly involved in your care: Intake Counselors, Counselors, Psychologists, Case Managers (crisis monitoring), Administrative Staff (scheduling only), and the Data Privacy Officer (compliance only). Your data will not be shared with other departments, faculty, parents, or third parties without your explicit consent, except under Section II above.</p>
                 <p className="text-xs text-gray-600"><span className="font-medium">Retention:</span> Records are kept for a minimum of ten (10) years from your last session, after which they are securely disposed of.</p>
               </div>
-
-              {/* IV. Consent for Data Processing */}
               <div className="border border-purple-200 rounded-lg p-3 bg-purple-50/50">
                 <p className="font-bold text-purple-800 text-xs uppercase tracking-wide mb-2">IV. Consent for Data Processing (RA 10173 — Data Privacy Act of 2012)</p>
                 <p className="text-xs text-gray-600 mb-1">Your mental health records are classified as <span className="font-medium">sensitive personal information</span> under RA 10173 and require your explicit consent to process.</p>
-                <p className="text-xs text-gray-600 mb-1 font-medium">Your rights as a data subject:</p>
-                <ul className="text-xs text-gray-600 ml-4 list-disc space-y-0.5 mb-2">
-                  <li><span className="font-medium">Right to be informed</span> — to know how your data is being used</li>
-                  <li><span className="font-medium">Right to access</span> — to request a copy of your personal data on file</li>
-                  <li><span className="font-medium">Right to rectification</span> — to correct inaccurate personal data</li>
-                  <li><span className="font-medium">Right to object</span> — to object to processing in certain circumstances</li>
-                  <li><span className="font-medium">Right to erasure</span> — to request deletion, subject to legal retention requirements</li>
-                </ul>
-                <div className="bg-white/70 rounded p-2 border border-purple-100">
+                <div className="bg-white/70 rounded p-2 border border-purple-100 mt-2">
                   <p className="text-xs text-gray-500 font-medium">DLSU Data Privacy Officer</p>
                   <p className="text-xs text-gray-500">2401 Taft Avenue, Malate, Manila 1004 · dpo@dlsu.edu.ph</p>
                 </div>
               </div>
-
             </div>
-
-            {/* Checkboxes + buttons */}
             <div className="px-7 pb-6 pt-4 border-t border-gray-100 flex-shrink-0 space-y-3">
               {[
                 { k: 'counseling' as const, t: 'I have read and understood the nature of counseling services, confidentiality, and its exceptions. I voluntarily consent to receive counseling and psychological services from DLSU CPS.' },
@@ -888,8 +965,8 @@ export default function BookAppointmentPage() {
                 <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
                   <span className="text-gray-500">Date &amp; Time</span>
                   <span className="font-medium text-gray-800">
-                    {new Date(prefDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    {prefTime && ` at ${(() => { const [h,m]=prefTime.split(':').map(Number); const ap=h>=12?'PM':'AM'; const h12=h%12||12; return `${h12}:${String(m).padStart(2,'0')} ${ap}`; })()}`}
+                    {new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+                    {prefTime && ` at ${fmtT(prefTime)}`}
                   </span>
                 </div>
               )}
@@ -922,7 +999,7 @@ export default function BookAppointmentPage() {
         </div>
       )}
 
-      {/* Forms choice — fill now or later */}
+      {/* Forms choice modal */}
       {showFormsChoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7">
@@ -947,388 +1024,434 @@ export default function BookAppointmentPage() {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto">
-        {hasDraft && (
-          <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm">
-            <span className="text-green-600 font-medium">Draft loaded from previous session.</span>
-            <button onClick={clearDraft} className="text-xs text-gray-400 hover:text-red-500">Clear draft</button>
-          </div>
-        )}
+      {/* Draft banner */}
+      {hasDraft && (
+        <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm">
+          <span className="text-green-600 font-medium">Draft loaded from previous session.</span>
+          <button onClick={clearDraft} className="text-xs text-gray-400 hover:text-red-500">Clear draft</button>
+        </div>
+      )}
 
-        {purpose === 'intake_interview' && (
-          <div className="mb-4 bg-sky-50 border border-sky-100 rounded-xl px-4 py-3 flex items-start gap-2">
-            <ClipboardCheck size={14} className="text-sky-600 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-sky-700"><strong>Intake Interview selected:</strong> After submitting, you'll complete short intake forms (ICF, SPIF-IF, PHQ-4) to help your counselor prepare for your session.</p>
-          </div>
-        )}
+      {/* ── 3-panel layout ─────────────────────────────────────────────────── */}
+      <div className="flex gap-5 items-start">
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100">
-            <h2 className="text-base font-bold text-gray-900">Counseling Request</h2>
-            <p className="text-xs text-gray-400 mt-0.5">De La Salle University — Counseling &amp; Psychology Services</p>
-          </div>
+        {/* LEFT SIDEBAR */}
+        <div className="w-52 flex-shrink-0 hidden lg:flex flex-col gap-4">
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            {/* Purpose selection — card style */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                Purpose <span className="text-red-400">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {PURPOSES.map(p => (
-                  <label key={p.value}
-                    className={`flex items-start gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition
-                      ${purpose===p.value ? 'border-[#2563eb] bg-green-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
-                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition
-                      ${purpose===p.value ? 'bg-[#2563eb] border-[#2563eb]' : 'border-gray-300'}`}>
-                      {purpose===p.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <input type="radio" name="purpose" value={p.value} checked={purpose===p.value} onChange={() => setPurpose(p.value)} className="sr-only" />
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">{p.label}</p>
-                      <p className="text-xs text-gray-400">{p.desc}</p>
-                    </div>
-                  </label>
-                ))}
+          {/* Branding + user + step tracker */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-9 h-9 rounded-xl bg-[#2563eb] flex items-center justify-center flex-shrink-0">
+                <Image src="/dlsu-seal.svg" alt="DLSU" width={22} height={22} className="brightness-[10]" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-900">Book Appointment</p>
+                <p className="text-[10px] text-gray-400">CPS · DLSU</p>
               </div>
             </div>
 
-            {purpose === 'others' && (
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Specify <span className="text-red-400">*</span></label>
-                <input value={specifyOthers} onChange={e => setSpecifyOthers(e.target.value)} placeholder="Please specify…" className={IC} />
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-8 h-8 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {initials}
               </div>
-            )}
-
-            {/* Assigned Counselor (counseling / follow-up only) */}
-            {['counseling', 'follow_up_counselling'].includes(purpose) && (
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                  Counselor <span className="text-red-400">*</span>
-                </label>
-
-                {assignedCounselor === undefined && (
-                  <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
-                    <Loader2 size={13} className="animate-spin" /> Looking up your assigned counselor…
-                  </div>
-                )}
-
-                {assignedCounselor && assignedCounselor !== undefined && (
-                  <div className="flex items-center gap-3 p-3 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
-                      <UserCheck size={14} className="text-[#2563eb]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {assignedCounselor.name.split(' ').reverse().join(', ').replace(',', ', ').toUpperCase().replace(/,\s(.+)/, (_, f) => `, ${f.charAt(0).toUpperCase()}${f.slice(1).toLowerCase()}`)}
-                      </p>
-                      <p className="text-xs text-gray-400">{assignedCounselor.role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'} · Assigned to your case</p>
-                    </div>
-                    <span className="text-[10px] font-semibold text-[#2563eb] bg-green-50 px-2 py-0.5 rounded-full border border-green-200">Assigned</span>
-                  </div>
-                )}
-
-                {assignedCounselor === null && (
-                  counselorList === null ? (
-                    <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
-                      <Loader2 size={13} className="animate-spin" /> Loading counselors…
-                    </div>
-                  ) : counselorList.length > 0 ? (
-                    <select value={selectedCounselorId} onChange={e => setSelectedCounselorId(e.target.value)} className={IC}>
-                      <option value="">Select a counselor or psychologist…</option>
-                      {counselorList.map((c: any) => (
-                        <option key={c._id} value={c._id}>
-                          {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role === 'PSYCHOLOGIST' ? ' — Psychologist' : ' — Counselor'}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                      No counselors are currently available. Please contact the CPS office directly.
-                    </p>
-                  )
-                )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-gray-800 truncate">{user?.first_name} {user?.last_name}</p>
+                <p className="text-[10px] text-gray-400">Student</p>
               </div>
-            )}
+            </div>
 
-            {/* Method + Date + Slot Picker */}
-            {purpose !== 'others' && (purpose === 'intake_interview' || !!selectedCounselorId) && (
-            <div className="space-y-3">
+            <VerticalStepTracker steps={BOOK_STEPS} current={bookStep} />
+          </div>
 
-              {/* Step 1: F2F or Online */}
+          {/* Selections summary (shown after step 0) */}
+          {bookStep >= 1 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Your selections</p>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Session Mode <span className="text-red-400">*</span></label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { v: 'F2F',    label: 'Face to Face', sub: 'Visit the CPS office', icon: '🏫' },
-                    { v: 'Online', label: 'Online',        sub: 'Video call session',   icon: '💻' },
-                  ].map(m => (
-                    <button key={m.v} type="button"
-                      onClick={() => {
-                        setSlotMethod(m.v);
-                        setPrefDate(''); setPrefTime(''); setSlotCounselorId('');
-                        setSlots([]); setNoSlotsNextDate(null); setRequestAnyway(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition ${
-                        slotMethod === m.v
-                          ? 'border-[#2563eb] bg-[#2563eb]/5'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}>
-                      <span className="text-xl">{m.icon}</span>
-                      <div>
-                        <p className={`text-sm font-semibold ${slotMethod === m.v ? 'text-[#2563eb]' : 'text-gray-800'}`}>{m.label}</p>
-                        <p className="text-[10px] text-gray-400">{m.sub}</p>
+                <p className="text-[10px] text-gray-400">Session type</p>
+                <p className="text-xs font-semibold text-gray-800">{PURPOSES.find(p=>p.value===purpose)?.label || purpose}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400">Mode</p>
+                <p className="text-xs font-semibold text-gray-800">
+                  {slotMethod === 'F2F' ? 'Face to Face' : `Online · ${prefPlatform === 'google-meet' ? 'Google Meet' : 'Zoom'}`}
+                </p>
+              </div>
+              {bookStep >= 2 && prefDate && (
+                <div>
+                  <p className="text-[10px] text-gray-400">Date &amp; Time</p>
+                  <p className="text-xs font-semibold text-gray-800">
+                    {new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',weekday:'short'})}
+                    {prefTime && <><br />{fmtT(prefTime)}</>}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* CENTER */}
+        <div className="flex-1 min-w-0">
+
+          {/* Step 0: Session Type */}
+          {bookStep === 0 && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <p className="text-sm font-bold text-gray-900">What type of session?</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Select the purpose of your visit to CPS</p>
+                </div>
+                <div className="p-5 space-y-4">
+
+                  {/* Purpose cards */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {PURPOSES.map(p => (
+                      <label key={p.value}
+                        className={`flex items-start gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition
+                          ${purpose===p.value ? 'border-[#2563eb] bg-blue-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                        <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition
+                          ${purpose===p.value ? 'bg-[#2563eb] border-[#2563eb]' : 'border-gray-300'}`}>
+                          {purpose===p.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                        <input type="radio" name="purpose" value={p.value} checked={purpose===p.value} onChange={() => setPurpose(p.value)} className="sr-only" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">{p.label}</p>
+                          <p className="text-xs text-gray-400">{p.desc}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {purpose === 'others' && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Specify <span className="text-red-400">*</span></label>
+                      <input value={specifyOthers} onChange={e => setSpecifyOthers(e.target.value)} placeholder="Please specify…" className={IC} />
+                    </div>
+                  )}
+
+                  {purpose === 'intake_interview' && (
+                    <div className="flex items-start gap-2 bg-sky-50 border border-sky-100 rounded-xl px-4 py-3">
+                      <ClipboardCheck size={14} className="text-sky-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-sky-700"><strong>Intake Interview selected:</strong> After submitting, you&apos;ll complete short intake forms (ICF, SPIF-IF, PHQ-4) to help your counselor prepare.</p>
+                    </div>
+                  )}
+
+                  {/* Counselor (counseling / follow-up only) */}
+                  {['counseling','follow_up_counselling'].includes(purpose) && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Counselor <span className="text-red-400">*</span></label>
+                      {assignedCounselor === undefined && (
+                        <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+                          <Loader2 size={13} className="animate-spin" /> Looking up your assigned counselor…
+                        </div>
+                      )}
+                      {assignedCounselor && (
+                        <div className="flex items-center gap-3 p-3 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl">
+                          <div className="w-8 h-8 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+                            <UserCheck size={14} className="text-[#2563eb]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900">
+                              {assignedCounselor.name.split(' ').reverse().join(', ').replace(',', ', ').toUpperCase().replace(/,\s(.+)/, (_, f) => `, ${f.charAt(0).toUpperCase()}${f.slice(1).toLowerCase()}`)}
+                            </p>
+                            <p className="text-xs text-gray-400">{assignedCounselor.role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'} · Assigned to your case</p>
+                          </div>
+                          <span className="text-[10px] font-semibold text-[#2563eb] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">Assigned</span>
+                        </div>
+                      )}
+                      {assignedCounselor === null && (
+                        counselorList === null ? (
+                          <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+                            <Loader2 size={13} className="animate-spin" /> Loading counselors…
+                          </div>
+                        ) : counselorList.length > 0 ? (
+                          <select value={selectedCounselorId} onChange={e => setSelectedCounselorId(e.target.value)} className={IC}>
+                            <option value="">Select a counselor or psychologist…</option>
+                            {counselorList.map((c: any) => (
+                              <option key={c._id} value={c._id}>
+                                {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role === 'PSYCHOLOGIST' ? ' — Psychologist' : ' — Counselor'}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                            No counselors are currently available. Please contact the CPS office directly.
+                          </p>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {/* Session mode */}
+                  {purpose !== 'others' && (purpose === 'intake_interview' || !!selectedCounselorId || assignedCounselor) && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Session Mode <span className="text-red-400">*</span></label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { v: 'F2F',    label: 'Face to Face', sub: 'Visit the CPS office', icon: '🏫' },
+                          { v: 'Online', label: 'Online',        sub: 'Video call session',   icon: '💻' },
+                        ].map(m => (
+                          <button key={m.v} type="button"
+                            onClick={() => {
+                              setSlotMethod(m.v);
+                              setPrefDate(''); setPrefTime(''); setSlotCounselorId('');
+                              setSlots([]); setNoSlotsNextDate(null); setRequestAnyway(false);
+                            }}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition ${
+                              slotMethod === m.v ? 'border-[#2563eb] bg-[#2563eb]/5' : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}>
+                            <span className="text-xl">{m.icon}</span>
+                            <div>
+                              <p className={`text-sm font-semibold ${slotMethod === m.v ? 'text-[#2563eb]' : 'text-gray-800'}`}>{m.label}</p>
+                              <p className="text-[10px] text-gray-400">{m.sub}</p>
+                            </div>
+                            {slotMethod === m.v && <span className="ml-auto w-5 h-5 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">✓</span>}
+                          </button>
+                        ))}
                       </div>
-                      {slotMethod === m.v && <span className="ml-auto w-5 h-5 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">✓</span>}
-                    </button>
-                  ))}
+
+                      {slotMethod === 'Online' && (
+                        <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                          <p className="text-xs font-bold text-blue-700 mb-2">Preferred Platform</p>
+                          <div className="flex gap-2">
+                            {([
+                              { value: 'google-meet' as const, label: 'Google Meet', icon: '🎥' },
+                              { value: 'zoom'        as const, label: 'Zoom',        icon: '📹' },
+                            ] as const).map(p => (
+                              <button key={p.value} type="button"
+                                onClick={() => setPrefPlatform(p.value)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-xs font-semibold transition ${
+                                  prefPlatform === p.value ? 'border-blue-500 bg-blue-100 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+                                }`}>
+                                <span>{p.icon}</span> {p.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-blue-500 mt-2">Your IC will send the meeting link before the session.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* Step 2: Platform (only for Online) */}
-              {slotMethod === 'Online' && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-                  <p className="text-xs font-bold text-blue-700 mb-2">Preferred Platform</p>
-                  <div className="flex gap-2">
-                    {([
-                      { value: 'google-meet' as const, label: 'Google Meet', icon: '🎥' },
-                      { value: 'zoom'        as const, label: 'Zoom',        icon: '📹' },
-                    ] as const).map(p => (
-                      <button key={p.value} type="button"
-                        onClick={() => setPrefPlatform(p.value)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-xs font-semibold transition ${
-                          prefPlatform === p.value
-                            ? 'border-blue-500 bg-blue-100 text-blue-700'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+          {/* Step 1: Date (Calendar) */}
+          {bookStep === 1 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100">
+                <p className="text-sm font-bold text-gray-900">Select a date</p>
+                <p className="text-xs text-gray-400 mt-0.5">Available dates are shown — choose one to see time slots</p>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-bold text-gray-800">{monthLabel}</p>
+                  <div className="flex gap-1">
+                    <button type="button" onClick={() => setCalendarMonth(m => { const d = new Date(m.year, m.month - 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                      <ChevronLeft size={15} />
+                    </button>
+                    <button type="button" onClick={() => setCalendarMonth(m => { const d = new Date(m.year, m.month + 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-7 mb-2">
+                  {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d => (
+                    <div key={d} className="text-center text-[11px] font-semibold text-gray-400 py-1">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-y-1">
+                  {cells.map((day, i) => {
+                    if (!day) return <div key={i} />;
+                    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                    const selectable = isSelectable(day);
+                    const isSelected = prefDate === ds;
+                    const isToday = ds === toDS(new Date());
+                    return (
+                      <button key={i} type="button" disabled={!selectable}
+                        onClick={() => { setPrefDate(ds); setPrefTime(''); setSlotCounselorId(''); setRequestAnyway(false); }}
+                        className={`mx-auto w-9 h-9 flex items-center justify-center rounded-full text-sm font-medium transition
+                          ${isSelected ? 'bg-[#2563eb] text-white font-bold shadow-sm' :
+                            isToday && selectable ? 'ring-2 ring-[#2563eb] text-[#2563eb] font-bold' :
+                            selectable ? 'hover:bg-gray-100 text-gray-700' :
+                            'text-gray-300 cursor-not-allowed'}`}>
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* No slots — request anyway */}
+                {prefDate && !slotsLoading && filteredSlots.length === 0 && (
+                  <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-amber-800 mb-1">No available slots on this date</p>
+                    {noSlotsNextDate && (
+                      <p className="text-xs text-amber-700 mb-2">
+                        Next available: <button onClick={() => { setPrefDate(noSlotsNextDate); setCalendarMonth({ year: parseInt(noSlotsNextDate.split('-')[0]), month: parseInt(noSlotsNextDate.split('-')[1]) - 1 }); }} className="font-semibold underline">{new Date(noSlotsNextDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</button>
+                      </p>
+                    )}
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input type="checkbox" checked={requestAnyway} onChange={e => setRequestAnyway(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[#2563eb]" />
+                      <span className="text-xs text-amber-700">Submit a general request — the CPS office will schedule me</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Details */}
+          {bookStep === 2 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100">
+                <p className="text-sm font-bold text-gray-900">Session details</p>
+                <p className="text-xs text-gray-400 mt-0.5">Tell your counselor what brings you in</p>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Presenting Concern</label>
+                  <textarea value={concern} onChange={e => setConcern(e.target.value)} rows={4}
+                    placeholder="Briefly describe what you'd like to talk about or any concerns you'd like your counselor to know before the session…"
+                    className={IC} />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Referral</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: 'self-referred', label: 'Self-referred', desc: 'I came on my own' },
+                      { v: 'referred',      label: 'Referred',      desc: 'Referred by someone' },
+                    ].map(r => (
+                      <button key={r.v} type="button" onClick={() => setReferralType(r.v)}
+                        className={`flex items-start gap-2.5 p-3 rounded-xl border-2 text-left transition ${
+                          referralType === r.v ? 'border-[#2563eb] bg-blue-50' : 'border-gray-100 hover:border-gray-200'
                         }`}>
-                        <span>{p.icon}</span> {p.label}
+                        <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition
+                          ${referralType === r.v ? 'bg-[#2563eb] border-[#2563eb]' : 'border-gray-300'}`}>
+                          {referralType === r.v && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">{r.label}</p>
+                          <p className="text-xs text-gray-400">{r.desc}</p>
+                        </div>
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-blue-500 mt-2">Your IC will send the meeting link before the session.</p>
-                </div>
-              )}
-
-              {/* Step 3 & 4: Calendar + Slots */}
-              {(() => {
-                const { year, month } = calendarMonth;
-                const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const blanks = (firstDay + 6) % 7; // shift to Mon-start
-                const cells: (number | null)[] = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
-                while (cells.length % 7 !== 0) cells.push(null);
-                const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-                const isSelectable = (day: number) => {
-                  const ds = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                  const d = new Date(ds + 'T12:00:00');
-                  return d >= minDate && d <= maxDate && !bookingRules.blackout_dates.includes(ds);
-                };
-
-                const seen = new Set<string>();
-                const filtered = slots
-                  .filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase())
-                  .filter(s => {
-                    const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.counselor_id}`;
-                    if (seen.has(key)) return false;
-                    seen.add(key); return true;
-                  });
-
-                const selectedDayLabel = prefDate
-                  ? new Date(prefDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-                  : null;
-
-                return (
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                      Select Date &amp; Time <span className="text-red-400">*</span>
-                    </label>
-
-                    <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
-                      <div className="flex gap-0 divide-x divide-gray-200">
-
-                        {/* Calendar */}
-                        <div className="flex-1 p-4 min-w-0">
-                          <div className="flex items-center justify-between mb-3">
-                            <p className="text-sm font-bold text-gray-800">{monthLabel}</p>
-                            <div className="flex gap-1">
-                              <button type="button" onClick={() => setCalendarMonth(m => {
-                                const d = new Date(m.year, m.month - 1); return { year: d.getFullYear(), month: d.getMonth() };
-                              })} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
-                                <ChevronLeft size={14} />
-                              </button>
-                              <button type="button" onClick={() => setCalendarMonth(m => {
-                                const d = new Date(m.year, m.month + 1); return { year: d.getFullYear(), month: d.getMonth() };
-                              })} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
-                                <ChevronRight size={14} />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-7 mb-1">
-                            {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d => (
-                              <div key={d} className="text-center text-[10px] font-semibold text-gray-400 py-1">{d}</div>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-7 gap-y-0.5">
-                            {cells.map((day, i) => {
-                              if (!day) return <div key={i} />;
-                              const ds = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                              const selectable = isSelectable(day);
-                              const isSelected = prefDate === ds;
-                              const isToday = ds === toDS(new Date());
-                              return (
-                                <button key={i} type="button" disabled={!selectable}
-                                  onClick={() => { setPrefDate(ds); setPrefTime(''); setSlotCounselorId(''); setRequestAnyway(false); setCalendarMonth({ year, month }); }}
-                                  className={`mx-auto w-8 h-8 flex items-center justify-center rounded-full text-xs font-medium transition
-                                    ${isSelected ? 'bg-[#2563eb] text-white font-bold' :
-                                      isToday && selectable ? 'ring-2 ring-[#2563eb] text-[#2563eb] font-bold' :
-                                      selectable ? 'hover:bg-gray-100 text-gray-700' :
-                                      'text-gray-300 cursor-not-allowed'}`}>
-                                  {day}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Time slots panel */}
-                        <div className="flex-1 flex flex-col min-w-0">
-                          {!prefDate ? (
-                            <div className="flex-1 flex items-center justify-center p-4">
-                              <p className="text-xs text-gray-400 text-center">Select a date to see available slots</p>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="px-3 pt-3 pb-2 border-b border-gray-100">
-                                <p className="text-xs font-semibold text-gray-700">{selectedDayLabel}</p>
-                                {prefTime && (
-                                  <div className="mt-1.5 flex items-center gap-1.5">
-                                    <span className="px-2.5 py-1 rounded-lg bg-[#2563eb] text-white text-xs font-bold">{fmtT(prefTime)}</span>
-                                    <button type="button" onClick={() => { setPrefTime(''); setSlotCounselorId(''); }}
-                                      className="text-[10px] text-gray-400 hover:text-gray-600 underline">change</button>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 overflow-y-auto max-h-56 p-2.5 space-y-1.5">
-                                {slotsLoading && (
-                                  <div className="flex items-center justify-center py-6 gap-2 text-xs text-gray-400">
-                                    <Loader2 size={12} className="animate-spin" /> Loading…
-                                  </div>
-                                )}
-                                {!slotsLoading && filtered.length > 0 && filtered.map((s, i) => {
-                                  const isSel = prefTime === s.time && slotCounselorId === s.counselor_id;
-                                  return (
-                                    <button key={i} type="button"
-                                      onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
-                                      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-center transition border
-                                        ${isSel ? 'bg-[#2563eb] text-white border-[#2563eb]' : 'border-gray-200 text-gray-700 hover:border-[#2563eb] hover:text-[#2563eb]'}`}>
-                                      {fmtT(s.time)}
-                                    </button>
-                                  );
-                                })}
-                                {!slotsLoading && filtered.length === 0 && slots.length > 0 && (
-                                  <div className="px-2 py-3 text-center">
-                                    <p className="text-xs text-amber-700">No {slotMethod === 'Online' ? 'online' : 'F2F'} slots.</p>
-                                    {slots.some(s => s.method?.toLowerCase() !== slotMethod.toLowerCase()) && (
-                                      <button type="button" onClick={() => { setSlotMethod(slotMethod === 'F2F' ? 'Online' : 'F2F'); setPrefTime(''); setSlotCounselorId(''); }}
-                                        className="text-[11px] font-bold text-amber-700 underline mt-1">
-                                        Switch to {slotMethod === 'F2F' ? 'Online' : 'F2F'}
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                                {!slotsLoading && slots.length === 0 && !requestAnyway && (
-                                  <div className="px-2 py-3 space-y-2 text-center">
-                                    <p className="text-xs text-gray-500">No slots on this date.</p>
-                                    {noSlotsNextDate && (
-                                      <button type="button" onClick={() => { setPrefDate(noSlotsNextDate); setCalendarMonth({ year: parseInt(noSlotsNextDate.split('-')[0]), month: parseInt(noSlotsNextDate.split('-')[1]) - 1 }); }}
-                                        className="text-[11px] font-bold text-[#2563eb] underline block">
-                                        Next: {new Date(noSlotsNextDate + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' })}
-                                      </button>
-                                    )}
-                                    <button type="button" onClick={() => setRequestAnyway(true)}
-                                      className="w-full py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-[11px] font-semibold text-amber-700 hover:bg-amber-100 transition">
-                                      Open request
-                                    </button>
-                                  </div>
-                                )}
-                                {requestAnyway && (
-                                  <div className="px-2 py-3 text-center space-y-1">
-                                    <p className="text-xs font-semibold text-blue-700">Open request</p>
-                                    <p className="text-[10px] text-blue-500">OA will schedule you</p>
-                                    <button type="button" onClick={() => setRequestAnyway(false)} className="text-[10px] text-blue-400 underline">Change</button>
-                                  </div>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-            )} {/* end purpose !== 'others' */}
-
-            {/* Others open-request note */}
-            {purpose === 'others' && (
-              <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-                <CalendarCheck size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-blue-800">Open request</p>
-                  <p className="text-xs text-blue-600 mt-0.5">A CPS staff member will review your concern and contact you to arrange a schedule.</p>
+                  {referralType === 'referred' && (
+                    <input value={referredBy} onChange={e => setReferredBy(e.target.value)}
+                      placeholder="Name / position of person who referred you" className={`${IC} mt-2`} />
+                  )}
                 </div>
               </div>
-            )}
-
-            {/* Concern */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Concern / Need <span className="text-red-400">*</span></label>
-              <textarea value={concern} onChange={e => setConcern(e.target.value)} rows={3} placeholder="Briefly describe what you'd like to talk about or get help with…"
-                className={`${IC} resize-none`} />
             </div>
+          )}
 
-            {/* Referral */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Referral</label>
-              <div className="flex gap-4">
-                {[{ v:'self-referred', l:'Self Referred' },{ v:'referred', l:'Referred by someone' }].map(r => (
-                  <label key={r.v} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                    <input type="radio" name="referral" value={r.v} checked={referralType===r.v} onChange={() => setReferralType(r.v)} className="w-4 h-4 accent-[#2563eb]" />{r.l}
-                  </label>
-                ))}
-              </div>
-              {referralType === 'referred' && (
-                <input value={referredBy} onChange={e => setReferredBy(e.target.value)} placeholder="Name or organization that referred you" className={`mt-2 ${IC}`} />
-              )}
+          {/* Error */}
+          {error && (
+            <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mt-3">
+              <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />{error}
             </div>
+          )}
 
-            {error && (
-              <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
-                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />{error}
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-1 border-t border-gray-100">
-              <button type="button" onClick={() => router.push('/my-appointments')} className="px-4 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition">Go Back</button>
-              <button type="button" onClick={saveDraft} disabled={savingDraft} className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition">
-                <Save size={13} />{savingDraft ? 'Saved!' : 'Save Draft'}
+          {/* Navigation */}
+          <div className="flex items-center gap-3 mt-4">
+            {bookStep > 0 && (
+              <button onClick={() => { setError(null); setBookStep(s => s - 1); }}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                <ChevronLeft size={14} /> Back
               </button>
-              <button type="submit" disabled={submitting || consentGiven === false}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition" style={{ backgroundColor:'#2563eb' }}>
-                {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={13} />}
-                {submitting ? 'Submitting…' : purpose==='intake_interview' ? 'Book & Continue to Intake Forms' : 'Submit Request'}
+            )}
+            <button onClick={saveDraft}
+              className="flex items-center gap-1.5 px-3 py-2.5 text-sm border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
+              <Save size={13} className={savingDraft ? 'animate-pulse' : ''} />
+              {savingDraft ? 'Saved' : 'Save Draft'}
+            </button>
+            <div className="flex-1" />
+            {bookStep < 2 ? (
+              <button onClick={handleNextBookStep}
+                className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition bg-[#2563eb] hover:bg-blue-800">
+                Continue <ChevronRight size={14} />
               </button>
-            </div>
-          </form>
+            ) : (
+              <button onClick={handleSubmit} disabled={submitting}
+                className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50">
+                {submitting ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}
+                {submitting ? 'Submitting…' : 'Review & Book'}
+              </button>
+            )}
+          </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
-          Office hours: {fmtT(bookingRules.operating_hours_start)} – {fmtT(bookingRules.operating_hours_end)} ·{' '}
-          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_,i) => bookingRules.operating_days.includes(i)).join(', ')}
-        </p>
+        {/* RIGHT: Time slots — shown on step 1 */}
+        {bookStep === 1 && (
+          <div className="w-52 flex-shrink-0 hidden xl:flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="text-xs font-bold text-gray-900">
+                {prefDate
+                  ? new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})
+                  : 'Select a date'}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                {prefDate ? `${slotMethod === 'F2F' ? 'Face to Face' : 'Online'} slots` : 'Available time slots will appear here'}
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3">
+              {!prefDate && (
+                <div className="flex flex-col items-center justify-center h-40 text-center">
+                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center mb-2">
+                    <Clock size={18} className="text-gray-300" />
+                  </div>
+                  <p className="text-xs text-gray-400">Pick a date on the calendar</p>
+                </div>
+              )}
+
+              {prefDate && slotsLoading && (
+                <div className="flex items-center justify-center h-24 gap-2 text-gray-400 text-xs">
+                  <Loader2 size={13} className="animate-spin" /> Loading slots…
+                </div>
+              )}
+
+              {prefDate && !slotsLoading && filteredSlots.length > 0 && (
+                <div className="space-y-1.5">
+                  {filteredSlots.map((s, i) => {
+                    const selected = prefTime === s.time && slotCounselorId === s.counselor_id;
+                    return (
+                      <button key={i} type="button"
+                        onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl border-2 transition ${
+                          selected ? 'border-[#2563eb] bg-[#2563eb] text-white' : 'border-gray-100 bg-white hover:border-[#2563eb]/30 hover:bg-blue-50'
+                        }`}>
+                        <p className={`text-xs font-bold ${selected ? 'text-white' : 'text-gray-800'}`}>{fmtT(s.time)}</p>
+                        {s.counselor_name && purpose !== 'intake_interview' && (
+                          <p className={`text-[10px] mt-0.5 truncate ${selected ? 'text-blue-100' : 'text-gray-400'}`}>{s.counselor_name}</p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {prefDate && !slotsLoading && filteredSlots.length === 0 && !requestAnyway && (
+                <div className="text-center py-6">
+                  <p className="text-xs text-gray-400">No {slotMethod === 'F2F' ? 'face-to-face' : 'online'} slots available.</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Try a different date or check below to request anyway.</p>
+                </div>
+              )}
+
+              {requestAnyway && (
+                <div className="mt-2 flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <Check size={12} className="text-amber-600 flex-shrink-0" />
+                  <p className="text-[10px] text-amber-700 font-medium">General request — CPS will schedule you</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </DashboardPageWrapper>
   );

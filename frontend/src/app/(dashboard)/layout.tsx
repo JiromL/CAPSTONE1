@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { EmaFloatingChat } from '@/components/EmaFloatingChat';
+
 
 export default function DashboardLayout({
   children,
@@ -81,10 +81,5 @@ export default function DashboardLayout({
     );
   }
 
-  return (
-    <>
-      {children}
-      <EmaFloatingChat />
-    </>
-  );
+  return <>{children}</>;
 }

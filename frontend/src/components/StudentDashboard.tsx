@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays } from 'lucide-react';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -34,13 +34,13 @@ function fmtEventDate(s: string) {
 }
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
-  const [appointments, setAppointments]   = useState<any[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [appointments, setAppointments]         = useState<any[]>([]);
+  const [announcements, setAnnouncements]       = useState<Announcement[]>([]);
   const [openAnnouncement, setOpenAnnouncement] = useState<Announcement | null>(null);
-  const [loading, setLoading]             = useState(true);
-  const [isCheckInOnly, setIsCheckInOnly] = useState(false);
-  const [resourceCount, setResourceCount] = useState(0);
-  const [mounted, setMounted]             = useState(false);
+  const [loading, setLoading]                   = useState(true);
+  const [isCheckInOnly, setIsCheckInOnly]       = useState(false);
+  const [resourceCount, setResourceCount]       = useState(0);
+  const [mounted, setMounted]                   = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -65,120 +65,129 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     })();
   }, [mounted]);
 
-  const upcoming  = appointments
-    .filter(a => ['pending','requested','scheduled','confirmed','matched'].includes((a.status||'').toLowerCase()))
+  // Only show appointments with a confirmed date/time slot as "upcoming"
+  const upcoming = appointments
+    .filter(a => ['scheduled','confirmed','matched'].includes((a.status||'').toLowerCase()) && a.requested_start)
     .sort((a, b) => new Date(a.requested_start||0).getTime() - new Date(b.requested_start||0).getTime());
+
+  // Unconfirmed requests (no slot yet) shown separately
+  const pendingRequests = appointments
+    .filter(a => ['pending','requested'].includes((a.status||'').toLowerCase()));
 
   const nextAppt  = upcoming[0];
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Student';
 
-  const fmtDate = (s: string) => { try { return new Date(s).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); } catch { return s; } };
   const fmtTime = (s: string) => { try { return new Date(s).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}); } catch { return ''; } };
+  const apptDay = (s: string) => { try { return new Date(s).toLocaleDateString('en-US',{weekday:'short'}); } catch { return ''; } };
+  const apptNum = (s: string) => { try { return new Date(s).getDate(); } catch { return ''; } };
+  const apptMon = (s: string) => { try { return new Date(s).toLocaleDateString('en-US',{month:'short',year:'numeric'}); } catch { return ''; } };
 
   const menuItems = getMenuItemsByRole(user.role).map(item =>
     item.id === 'resources' ? { ...item, badge: resourceCount } : item
   );
 
-  const todayStr = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-  });
+  const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
-
-      {/* Greeting */}
-      <div className="mb-6 pb-5 border-b border-gray-200">
-        <p className="text-xs text-gray-400 mb-0.5">{todayStr}</p>
-        <h2 className="text-xl font-semibold text-gray-900">Good day, {firstName}.</h2>
-      </div>
+    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard">
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
+        <div className="flex items-center justify-center h-48 text-gray-400 gap-2 text-sm">
           <Loader2 size={18} className="animate-spin" /> Loading…
         </div>
       ) : (
-        <div className="space-y-5">
-          <div className="space-y-5">
+        <div className="flex flex-col xl:flex-row gap-6">
 
-            {/* Next appointment / Onboarding */}
-            {appointments.length === 0 && !isCheckInOnly ? (
-              <div className="bg-[#2563eb] rounded-lg p-5 text-white">
-                <p className="text-xs font-semibold text-white/70 uppercase tracking-widest mb-3">Welcome to CPS</p>
-                <h3 className="text-lg font-bold mb-1">Hi, {firstName}! Let's get you started.</h3>
-                <p className="text-sm text-white/80 mb-4 leading-relaxed">
-                  You're all set up. Book your first counseling appointment whenever you're ready — it's confidential and free for all DLSU students.
-                </p>
-                <div className="space-y-2 mb-5">
-                  {[
-                    { step: '1', text: 'Book an appointment below' },
-                    { step: '2', text: 'Attend your intake interview' },
-                    { step: '3', text: 'Get matched with a counselor' },
-                  ].map(s => (
-                    <div key={s.step} className="flex items-center gap-3 text-sm text-white/80">
-                      <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">{s.step}</span>
-                      {s.text}
-                    </div>
-                  ))}
-                </div>
-                <Link href="/book-appointment">
-                  <button className="w-full py-2.5 bg-white text-[#2563eb] text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-                    Book Your First Appointment →
-                  </button>
-                </Link>
-              </div>
-            ) : (
-              <div className="bg-white border border-gray-200 rounded-lg p-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Next Appointment</p>
-                {nextAppt ? (
-                  <div>
-                    <p className="text-base font-semibold text-gray-900">{fmtDate(nextAppt.requested_start)}</p>
-                    <p className="text-sm font-medium mt-0.5" style={{ color: '#2563eb' }}>{fmtTime(nextAppt.requested_start)}</p>
-                    <p className="text-sm text-gray-500 mt-1">{nextAppt.counselor_name || 'Assigned Counselor'}</p>
-                    <span className="inline-block mt-3 px-2.5 py-1 text-xs rounded-full bg-green-50 text-green-700 font-medium border border-green-100">
-                      {nextAppt.status}
-                    </span>
+          {/* ── Left column ─────────────────────────────────────────── */}
+          <div className="flex-1 space-y-5 min-w-0">
+
+            {/* Hero banner */}
+            {upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
+              <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
+                {/* Decorative circles */}
+                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
+                <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
+                <div className="relative z-10">
+                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">
+                    Welcome to CPS
+                  </p>
+                  <h3 className="text-xl font-bold mb-2 leading-snug">
+                    No need to wait, {firstName}.<br />Book your session online.
+                  </h3>
+                  <p className="text-sm text-blue-100 mb-6 leading-relaxed max-w-sm">
+                    Confidential, free counseling for all DLSU students. Book an appointment, attend your intake, and get matched with a counselor.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {['In-person', 'Online', 'Confidential', 'Free'].map(t => (
+                      <span key={t} className="text-xs bg-white/20 text-white px-3 py-1 rounded-full font-medium">{t}</span>
+                    ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No upcoming appointments.</p>
-                )}
-                {!isCheckInOnly && (
                   <Link href="/book-appointment">
-                    <button className="mt-4 w-full py-2 text-sm font-medium text-white rounded-lg transition-colors"
-                      style={{ backgroundColor: '#2563eb' }}>
-                      Book an Appointment
+                    <button className="px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
+                      Book an Appointment →
                     </button>
                   </Link>
-                )}
+                </div>
+              </div>
+            ) : (
+              <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
+                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
+                <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
+                <div className="relative z-10">
+                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">
+                    Your counseling journey
+                  </p>
+                  <h3 className="text-xl font-bold mb-2">Keep going, {firstName}.</h3>
+                  <p className="text-sm text-blue-100 mb-6 leading-relaxed max-w-sm">
+                    {upcoming.length > 0
+                      ? `You have ${upcoming.length} confirmed session${upcoming.length !== 1 ? 's' : ''} scheduled.`
+                      : `You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review.`}
+                  </p>
+                  {!isCheckInOnly && (
+                    <Link href="/book-appointment">
+                      <button className="px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
+                        Book Another Appointment →
+                      </button>
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
 
             {/* CPS Announcements */}
-            <div className="bg-white border border-gray-200 rounded-lg p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">CPS Updates & Events</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-bold text-gray-900">CPS Updates &amp; Events</p>
+                {announcements.length > 3 && (
+                  <a href="/announcements" className="text-xs text-[#2563eb] hover:underline font-medium">
+                    View All →
+                  </a>
+                )}
+              </div>
 
               {announcements.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4 text-center">No announcements at this time.</p>
+                <p className="text-sm text-gray-400 text-center py-6">No announcements at this time.</p>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="space-y-1">
                   {announcements.slice(0, 3).map(a => {
                     const style = TYPE_STYLES[a.event_type] || TYPE_STYLES.info;
                     return (
                       <button
                         key={a.id}
                         onClick={() => setOpenAnnouncement(a)}
-                        className="w-full text-left py-3.5 hover:bg-gray-50 -mx-1 px-1 rounded-lg transition-colors group"
+                        className="w-full text-left px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors group"
                       >
                         <div className="flex items-center gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
                                 {style.label}
                               </span>
-                              {a.pinned && <span className="text-xs text-gray-400 font-medium">Pinned</span>}
+                              {a.pinned && <span className="text-[10px] text-gray-400 font-medium">Pinned</span>}
                             </div>
-                            <p className="text-sm font-medium text-gray-800 leading-snug">{a.title}</p>
+                            <p className="text-sm font-medium text-gray-800 leading-snug truncate">{a.title}</p>
                             {a.event_date && (
-                              <p className="text-xs text-gray-400 mt-1">{fmtEventDate(a.event_date)}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{fmtEventDate(a.event_date)}</p>
                             )}
                           </div>
                           <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 flex-shrink-0 transition-colors" />
@@ -188,77 +197,151 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   })}
                 </div>
               )}
-              {announcements.length > 3 && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <a href="/announcements" className="text-xs text-[#2563eb] hover:underline font-medium">
-                    See all announcements →
-                  </a>
+            </div>
+          </div>
+
+          {/* ── Right column — Upcoming appointments ────────────────── */}
+          <div className="w-full xl:w-72 flex-shrink-0 space-y-5">
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-bold text-gray-900">Upcoming Sessions</p>
+                <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <CalendarDays size={13} />
+                  <span>{monthYear}</span>
+                </div>
+              </div>
+
+              {/* Confirmed upcoming sessions */}
+              {upcoming.length === 0 && pendingRequests.length === 0 ? (
+                <div className="text-center py-8">
+                  <CalendarDays size={32} className="mx-auto text-gray-200 mb-3" />
+                  <p className="text-sm text-gray-400">No upcoming sessions.</p>
+                  {!isCheckInOnly && (
+                    <Link href="/book-appointment">
+                      <button className="mt-3 text-xs text-[#2563eb] hover:underline font-medium">
+                        Book one now →
+                      </button>
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {upcoming.slice(0, 5).map((appt, i) => (
+                    <Link key={appt.id || appt._id || i} href="/my-appointments">
+                      <div className={`flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer ${
+                        i === 0 ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'
+                      }`}>
+                        <div className={`flex-shrink-0 w-10 text-center rounded-xl py-1.5 ${
+                          i === 0 ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <p className="text-[10px] font-medium leading-none mb-0.5">{apptDay(appt.requested_start)}</p>
+                          <p className="text-base font-bold leading-none">{apptNum(appt.requested_start)}</p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 truncate">
+                            {appt.counselor_name || 'CPS Counselor'}
+                          </p>
+                          <p className="text-[10px] text-gray-400 truncate">
+                            {fmtTime(appt.requested_start)}
+                            {appt.requested_end ? ` – ${fmtTime(appt.requested_end)}` : ''}
+                          </p>
+                        </div>
+                        <ChevronRight size={13} className={i === 0 ? 'text-blue-300' : 'text-gray-300'} />
+                      </div>
+                    </Link>
+                  ))}
+
+                  {/* Pending requests — shown below confirmed sessions */}
+                  {pendingRequests.length > 0 && (
+                    <>
+                      {upcoming.length > 0 && <div className="h-px bg-gray-100 my-1" />}
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1 pt-1">
+                        Pending Requests
+                      </p>
+                      {pendingRequests.slice(0, 3).map((appt, i) => (
+                        <Link key={appt.id || appt._id || i} href="/my-appointments">
+                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+                              <CalendarDays size={14} className="text-amber-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-700 truncate">
+                                {appt.purpose === 'intake_interview' ? 'Intake Interview' :
+                                 appt.purpose === 'counseling' ? 'Counseling' :
+                                 appt.purpose === 'follow_up_counselling' ? 'Follow-up' : 'Session Request'}
+                              </p>
+                              <p className="text-[10px] text-amber-600 font-medium">Pending review</p>
+                            </div>
+                            <ChevronRight size={13} className="text-gray-300" />
+                          </div>
+                        </Link>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {upcoming.length > 5 && (
+                <div className="mt-3 pt-3 border-t border-gray-100 text-center">
+                  <Link href="/my-appointments">
+                    <span className="text-xs text-[#2563eb] hover:underline font-medium">
+                      View all {upcoming.length} sessions →
+                    </span>
+                  </Link>
                 </div>
               )}
             </div>
+
           </div>
 
         </div>
       )}
+
       {/* Announcement modal */}
       {openAnnouncement && (() => {
         const a     = openAnnouncement;
         const style = TYPE_STYLES[a.event_type] || TYPE_STYLES.info;
-        const typeLabel = style.label;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/40" onClick={() => setOpenAnnouncement(null)} />
-
-            {/* Panel */}
             <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-              {/* Top color strip */}
               <div className="h-1.5 w-full" style={{ backgroundColor:
                 a.event_type === 'webinar' ? '#3b82f6' :
                 a.event_type === 'event'   ? '#2563eb' :
                 a.event_type === 'notice'  ? '#f97316' : '#9ca3af'
               }} />
-
               <div className="p-7">
-                {/* Header */}
                 <div className="flex items-start justify-between gap-3 mb-5">
                   <div>
                     <div className="flex items-center gap-2 mb-3">
-                      <span className={`text-sm font-medium px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                        {typeLabel}
+                      <span className={`text-sm font-semibold px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
+                        {style.label}
                       </span>
                       {a.pinned && <span className="text-sm text-gray-400 font-medium">Pinned</span>}
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 leading-snug">{a.title}</h3>
                   </div>
                   <button onClick={() => setOpenAnnouncement(null)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0 mt-0.5">
+                    className="p-2 hover:bg-gray-100 rounded-xl transition flex-shrink-0">
                     <X size={18} className="text-gray-400" />
                   </button>
                 </div>
-
-                {/* Body */}
-                {a.body && (
-                  <p className="text-base text-gray-600 leading-relaxed mb-5">{a.body}</p>
-                )}
-
-                {/* Event date */}
+                {a.body && <p className="text-base text-gray-600 leading-relaxed mb-5">{a.body}</p>}
                 {a.event_date && (
-                  <div className="text-base text-gray-500 mb-5 bg-gray-50 rounded-lg px-4 py-3">
-                    <span className="font-medium">{fmtEventDate(a.event_date)}</span>
+                  <div className="text-sm text-gray-500 mb-5 bg-gray-50 rounded-xl px-4 py-3 font-medium">
+                    {fmtEventDate(a.event_date)}
                   </div>
                 )}
-
-                {/* Link button */}
                 {a.link ? (
                   <a href={a.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-3 text-base font-medium text-white rounded-lg transition"
+                    className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-white rounded-xl transition"
                     style={{ backgroundColor: '#2563eb' }}>
-                    <ExternalLink size={16} /> Open Link
+                    <ExternalLink size={15} /> Open Link
                   </a>
                 ) : (
                   <button onClick={() => setOpenAnnouncement(null)}
-                    className="w-full py-3 text-base font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                    className="w-full py-3 text-sm font-medium border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
                     Close
                   </button>
                 )}

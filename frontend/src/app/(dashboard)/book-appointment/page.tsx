@@ -855,14 +855,16 @@ export default function BookAppointmentPage() {
     return d >= minDate && d <= maxDate && !bookingRules.blackout_dates.includes(ds);
   };
 
+  const methodSlots = slots.filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase());
+  const slotCountByTime: Record<string, number> = {};
+  methodSlots.forEach(s => { slotCountByTime[s.time] = (slotCountByTime[s.time] || 0) + 1; });
+
   const seen = new Set<string>();
-  const filteredSlots = slots
-    .filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase())
-    .filter(s => {
-      const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.counselor_id}`;
-      if (seen.has(key)) return false;
-      seen.add(key); return true;
-    });
+  const filteredSlots = methodSlots.filter(s => {
+    const key = purpose === 'intake_interview' ? s.time : `${s.time}|${s.counselor_id}`;
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 
   // ── Main form ──────────────────────────────────────────────────────────────────
   return (
@@ -1444,13 +1446,24 @@ export default function BookAppointmentPage() {
                     return (
                       <button key={i} type="button"
                         onClick={() => { setPrefTime(s.time); setSlotCounselorId(s.counselor_id); setRequestAnyway(false); }}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl border-2 transition ${
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 transition ${
                           selected ? 'border-[#2563eb] bg-[#2563eb] text-white' : 'border-gray-100 bg-white hover:border-[#2563eb]/30 hover:bg-blue-50'
                         }`}>
-                        <p className={`text-xs font-bold ${selected ? 'text-white' : 'text-gray-800'}`}>{fmtT(s.time)}</p>
-                        {s.counselor_name && purpose !== 'intake_interview' && (
-                          <p className={`text-[10px] mt-0.5 truncate ${selected ? 'text-blue-100' : 'text-gray-400'}`}>{s.counselor_name}</p>
-                        )}
+                        <div className="min-w-0">
+                          <p className={`text-xs font-bold ${selected ? 'text-white' : 'text-gray-800'}`}>{fmtT(s.time)}</p>
+                          {s.counselor_name && purpose !== 'intake_interview' && (
+                            <p className={`text-[10px] mt-0.5 truncate ${selected ? 'text-blue-100' : 'text-gray-400'}`}>{s.counselor_name}</p>
+                          )}
+                        </div>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2 ${
+                          selected
+                            ? 'bg-white/20 text-white'
+                            : slotCountByTime[s.time] === 1
+                              ? 'bg-red-50 text-red-500'
+                              : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {slotCountByTime[s.time]} slot{slotCountByTime[s.time] !== 1 ? 's' : ''} left
+                        </span>
                       </button>
                     );
                   })}

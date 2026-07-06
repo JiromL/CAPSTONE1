@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
+import { EmaFloatingChat } from './EmaFloatingChat';
 
 interface MenuItem {
   label: string;
@@ -234,6 +235,8 @@ export function DashboardLayout({
           </div>
         </main>
       </div>
+
+      {user?.role === 'STUDENT' && <EmaFloatingChat />}
     </div>
   );
 }

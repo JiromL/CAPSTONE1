@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogIn, LogOut, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -542,53 +542,12 @@ export default function ProfilePage() {
                 <Loader2 size={14} className="animate-spin" /> Loading…
               </div>
             ) : !permaData?.connected ? (
-              /* Not connected */
-              !showMhbotForm ? (
-                <div className="flex flex-col gap-3">
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => {
-                      if (emaConsentGiven) { setShowMhbotForm(true); setMhbotError(''); }
-                      else { setShowEmaConsent(true); setEmaConsentChecked(false); setEmaConsentError(''); }
-                    }}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition">
-                      <LogIn size={13} /> Connect EMA
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleMhbotLogin} className="space-y-3 max-w-sm">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">EMA Username</label>
-                    <input type="text" value={mhbotUser} onChange={e => setMhbotUser(e.target.value)} required
-                      placeholder="Your EMA login username"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Password</label>
-                    <div className="relative">
-                      <input type={mhbotShowPw ? 'text' : 'password'} value={mhbotPass} onChange={e => setMhbotPass(e.target.value)} required
-                        placeholder="••••••••"
-                        className="w-full px-3 py-2 pr-9 text-sm border border-gray-300 rounded-lg placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:outline-none" />
-                      <button type="button" onClick={() => setMhbotShowPw(p => !p)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
-                        {mhbotShowPw ? <EyeOff size={13} /> : <Eye size={13} />}
-                      </button>
-                    </div>
-                  </div>
-                  {mhbotError && <p className="text-xs text-red-500">{mhbotError}</p>}
-                  <p className="text-xs text-gray-400">Use the same credentials you use to log into the EMA chatbot.</p>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setShowMhbotForm(false)}
-                      className="px-4 py-2 text-xs border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition">
-                      Cancel
-                    </button>
-                    <button type="submit" disabled={mhbotLogging}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition">
-                      {mhbotLogging ? <><Loader2 size={12} className="animate-spin" /> Connecting…</> : <><LogIn size={12} /> Connect & Recover History</>}
-                    </button>
-                  </div>
-                </form>
-              )
+              <div className="flex flex-col items-start gap-1.5 py-2">
+                <p className="text-sm text-gray-500">Not connected to EMA yet.</p>
+                <p className="text-xs text-gray-400">
+                  Open the <span className="text-[#2563eb] font-medium">EMA chatbot</span> using the button at the bottom-right of the screen and sign in — your wellbeing history will appear here automatically.
+                </p>
+              </div>
             ) : (
               /* Connected — PERMA line graph */
               (() => {
@@ -611,7 +570,7 @@ export default function ProfilePage() {
                   .map((e: any) => ({ label: e.perma_label, date: e.date, score: LABEL_SCORE[e.perma_label] }))
                   .filter((p: any) => p.score !== undefined);
 
-                const W = 480, H = 100, PAD_L = 60, PAD_R = 16, PAD_T = 8, PAD_B = 20;
+                const W = 540, H = 160, PAD_L = 72, PAD_R = 16, PAD_T = 12, PAD_B = 28;
                 const chartW = W - PAD_L - PAD_R;
                 const chartH = H - PAD_T - PAD_B;
                 const xOf = (i: number) => PAD_L + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2);
@@ -632,37 +591,38 @@ export default function ProfilePage() {
                 const latestScore = LABEL_SCORE[latest] ?? 0;
                 const prevScore = LABEL_SCORE[prev] ?? 0;
                 const trend = !prev ? null : latestScore > prevScore ? 'up' : latestScore < prevScore ? 'down' : 'same';
+                const latestColor = LABEL_COLOR[latest] ?? '#6b7280';
 
                 return (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Current label + trend */}
                     <div className="flex items-center gap-3">
                       <PermaBadge label={latest} />
-                      {trend === 'up' && <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">↑ Improving</span>}
-                      {trend === 'down' && <span className="text-xs text-red-500 font-medium flex items-center gap-0.5">↓ Declining</span>}
-                      {trend === 'same' && <span className="text-xs text-gray-400">→ Stable</span>}
+                      {trend === 'up' && <span className="text-xs text-green-600 font-semibold flex items-center gap-0.5">↑ Improving</span>}
+                      {trend === 'down' && <span className="text-xs text-red-500 font-semibold flex items-center gap-0.5">↓ Declining</span>}
+                      {trend === 'same' && <span className="text-xs text-gray-400 font-medium">→ Stable</span>}
                       {permaData.latest_date && (
                         <span className="text-xs text-gray-400 ml-auto">
-                          {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          Last assessed {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       )}
                     </div>
 
                     {/* SVG line chart */}
                     {points.length === 0 ? (
-                      <div className="py-4 flex flex-col items-center gap-2 text-center">
+                      <div className="py-6 flex flex-col items-center gap-2 text-center border border-dashed border-gray-200 rounded-2xl">
+                        <Activity size={22} className="text-gray-300" />
                         <p className="text-sm text-gray-500 font-medium">No assessments recorded yet</p>
                         <p className="text-xs text-gray-400 max-w-xs">
                           Complete a conversation in the EMA chatbot to generate your first PERMA wellness label.
-                          Your results will appear here automatically.
                         </p>
                         <p className="text-xs text-[#2563eb] font-medium mt-1">
-                          → Open the EMA chatbot using the button at the bottom-right of the screen
+                          → Use the chat button at the bottom-right
                         </p>
                       </div>
                     ) : (
-                      <div className="rounded-xl overflow-hidden border border-gray-100 bg-white">
-                        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 120 }}>
+                      <div className="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm">
+                        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 180 }}>
                           {/* Zone backgrounds */}
                           {ZONE_BG.map(z => (
                             <rect key={z.label} x={PAD_L} y={PAD_T + chartH - (z.y / 100) * chartH - (z.h / 100) * chartH}
@@ -670,48 +630,65 @@ export default function ProfilePage() {
                           ))}
                           {/* Y-axis labels */}
                           {[1,2,3,4,5].map(score => (
-                            <text key={score} x={PAD_L - 6} y={yOf(score) + 3.5}
-                              textAnchor="end" fontSize={7} fill="#9ca3af">
+                            <text key={score} x={PAD_L - 8} y={yOf(score) + 4}
+                              textAnchor="end" fontSize={8.5} fill={LABEL_COLOR[['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]] ?? '#9ca3af'} fontWeight="500">
                               {['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]}
                             </text>
                           ))}
                           {/* Grid lines */}
                           {[1,2,3,4,5].map(score => (
                             <line key={score} x1={PAD_L} x2={PAD_L + chartW} y1={yOf(score)} y2={yOf(score)}
-                              stroke="#e5e7eb" strokeWidth={0.5} strokeDasharray="3,2" />
+                              stroke="#e5e7eb" strokeWidth={0.75} strokeDasharray="4,3" />
                           ))}
-                          {/* Fill area under line */}
+                          {/* Gradient fill under line */}
                           {pathD && points.length > 1 && (
-                            <path
-                              d={`${pathD} L${xOf(points.length - 1)},${yOf(1) + chartH * 0.05} L${xOf(0)},${yOf(1) + chartH * 0.05} Z`}
-                              fill={LABEL_COLOR[latest] ?? '#6b7280'} fillOpacity={0.08}
-                            />
+                            <>
+                              <defs>
+                                <linearGradient id="permaGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor={latestColor} stopOpacity="0.18" />
+                                  <stop offset="100%" stopColor={latestColor} stopOpacity="0.01" />
+                                </linearGradient>
+                              </defs>
+                              <path
+                                d={`${pathD} L${xOf(points.length - 1)},${PAD_T + chartH} L${xOf(0)},${PAD_T + chartH} Z`}
+                                fill="url(#permaGrad)"
+                              />
+                            </>
                           )}
                           {/* Line */}
                           {pathD && (
                             <path d={pathD} fill="none"
-                              stroke={LABEL_COLOR[latest] ?? '#6b7280'} strokeWidth={2}
-                              strokeLinecap="round" />
+                              stroke={latestColor} strokeWidth={2.5}
+                              strokeLinecap="round" strokeLinejoin="round" />
                           )}
                           {/* Dots + date labels */}
-                          {points.map((p: any, i: number) => (
-                            <g key={i}>
-                              <circle cx={xOf(i)} cy={yOf(p.score)} r={3.5}
-                                fill={LABEL_COLOR[p.label] ?? '#6b7280'} stroke="white" strokeWidth={1.5} />
-                              {(i === 0 || i === points.length - 1 || points.length <= 6) && (
-                                <text x={xOf(i)} y={H - 4} textAnchor="middle" fontSize={6.5} fill="#9ca3af">
-                                  {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </text>
-                              )}
-                            </g>
-                          ))}
+                          {points.map((p: any, i: number) => {
+                            const isLast = i === points.length - 1;
+                            const showDate = i === 0 || isLast || points.length <= 7;
+                            return (
+                              <g key={i}>
+                                {isLast && (
+                                  <circle cx={xOf(i)} cy={yOf(p.score)} r={9}
+                                    fill={LABEL_COLOR[p.label] ?? '#6b7280'} fillOpacity={0.15} />
+                                )}
+                                <circle cx={xOf(i)} cy={yOf(p.score)} r={isLast ? 5 : 4}
+                                  fill={LABEL_COLOR[p.label] ?? '#6b7280'} stroke="white" strokeWidth={2} />
+                                {showDate && (
+                                  <text x={xOf(i)} y={H - 6} textAnchor="middle" fontSize={7.5} fill="#9ca3af">
+                                    {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </text>
+                                )}
+                              </g>
+                            );
+                          })}
                         </svg>
                       </div>
                     )}
 
                     <p className="text-xs text-gray-400">
-                      Connected as <span className="font-medium text-gray-500">{permaData.mhbot_username || '—'}</span>
-                      {' · '}{points.length} assessment{points.length !== 1 ? 's' : ''} recorded
+                      Connected as <span className="font-medium text-gray-600">{permaData.mhbot_username || '—'}</span>
+                      <span className="mx-1.5 text-gray-200">·</span>
+                      {points.length} assessment{points.length !== 1 ? 's' : ''} recorded
                     </p>
                   </div>
                 );

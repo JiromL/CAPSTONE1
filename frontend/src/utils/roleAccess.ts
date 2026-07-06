@@ -52,7 +52,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/staff-settings': ['STAFF', 'ADMIN', 'DPO'],
   '/waitlist': ['STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/recurring-appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN'],
-  '/mhbot': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/mhbot': ['STUDENT', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Counselor/Psychologist pages
   '/appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],

@@ -303,7 +303,9 @@ export default function AppointmentsDashboard() {
         ri.ok ? ri.json() : { users: [] },
         rp.ok ? rp.json() : { users: [] },
       ]);
-      setCounselors([...(di.users || []), ...(dc.users || []), ...(dp.users || [])]);
+      const all = [...(di.users || []), ...(dc.users || []), ...(dp.users || [])];
+      const seen = new Set<string>();
+      setCounselors(all.filter(c => { if (seen.has(c._id)) return false; seen.add(c._id); return true; }));
     } catch {}
   };
 
@@ -1160,7 +1162,9 @@ export default function AppointmentsDashboard() {
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition ${
                       assignMode === m ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
                     }`}>
-                    {m === 'slots' ? '📅 Available Slots' : '✏️ Manual Entry'}
+                    {m === 'slots'
+                      ? <span className="flex items-center justify-center gap-1.5"><CalendarDays size={13} /> Available Slots</span>
+                      : <span className="flex items-center justify-center gap-1.5"><Pencil size={12} /> Manual Entry</span>}
                   </button>
                 ))}
               </div>
@@ -1313,7 +1317,7 @@ export default function AppointmentsDashboard() {
                         })
                         .map(c => (
                           <option key={c._id} value={c._id}>
-                            {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
+                            {`${c.first_name} ${c.last_name || ''}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
                           </option>
                         ))}
                     </select>
@@ -1479,7 +1483,7 @@ export default function AppointmentsDashboard() {
                   <option value="">Assign counselor later…</option>
                   {counselors.map(c => (
                     <option key={c._id} value={c._id}>
-                      {`${c.last_name?.toUpperCase()}, ${c.first_name}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
+                      {`${c.first_name} ${c.last_name || ''}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
                     </option>
                   ))}
                 </select>
@@ -1733,7 +1737,7 @@ export default function AppointmentsDashboard() {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
                   <option value="">— Keep: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'} —</option>
                   {counselors.map((c: any) => (
-                    <option key={c._id} value={c._id}>{c.last_name?.toUpperCase()}, {c.first_name} ({c.role})</option>
+                    <option key={c._id} value={c._id}>{c.first_name} {c.last_name || ''} — {ROLE_LABEL[c.role] ?? c.role}</option>
                   ))}
                 </select>
               </div>

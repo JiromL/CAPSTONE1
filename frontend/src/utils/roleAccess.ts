@@ -43,6 +43,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/case-manager/queue': ['CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Staff pages
+  '/counselor-schedules': ['IC', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/appointment-requests': ['IC', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/walk-in-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/staff/walkin-intake': ['STAFF', 'ADMIN', 'DPO'],

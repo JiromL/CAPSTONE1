@@ -75,12 +75,13 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ STAFF (Office Assistant) ============
   // Most frequent: Appointment Requests → Walk-In (daily) → Reschedule (occasional)
   const staffItems: MenuItem[] = [
-    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'          },
-    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'       },
-    { label: 'Walk-In Intake',       href: '/staff/walkin-intake',  id: 'walk-in-intake'     },
-    { label: 'Reschedule Requests',  href: '/reschedule-requests',  id: 'reschedule-requests'},
-    { label: 'Announcements',        href: '/announcements',        id: 'announcements'      },
-    { label: 'Profile',              href: '/profile',              id: 'profile'            },
+    { label: 'Dashboard',            href: '/dashboard',             id: 'dashboard'          },
+    { label: 'Appointment Requests', href: '/appointment-requests',  id: 'appointments'       },
+    { label: 'Counselor Schedules',  href: '/counselor-schedules',   id: 'counselor-schedules'},
+    { label: 'Walk-In Intake',       href: '/staff/walkin-intake',   id: 'walk-in-intake'     },
+    { label: 'Reschedule Requests',  href: '/reschedule-requests',   id: 'reschedule-requests'},
+    { label: 'Announcements',        href: '/announcements',         id: 'announcements'      },
+    { label: 'Profile',              href: '/profile',               id: 'profile'            },
   ];
 
   // ============ ADMIN ============

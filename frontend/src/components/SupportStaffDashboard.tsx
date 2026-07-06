@@ -102,6 +102,12 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
                       <p className="text-sm font-medium text-gray-800">{a.student_name || 'Student'}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {fmtTime(a.preferred_date || a.scheduled_start)} · {METHOD_LABEL[a.method] || a.preferred_method || 'In-person'}
+                        {a.counselor_name && a.counselor_name !== 'Not Assigned' && (
+                          <span className="text-gray-300"> · </span>
+                        )}
+                        {a.counselor_name && a.counselor_name !== 'Not Assigned' && (
+                          <span className="text-[#2563eb]">{a.counselor_name}</span>
+                        )}
                       </p>
                     </div>
                     <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">

@@ -137,19 +137,19 @@ export default function CounselorSchedulesPage() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Counselors</p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{totalCounselors}</p>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Sessions This Week</p>
             <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{totalThisWeek}</p>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Load</p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{avgLoad}</p>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Most Available</p>
             <p className="text-sm font-semibold text-green-600 dark:text-green-400 truncate">{lightestCounselor?.name ?? '—'}</p>
           </div>
@@ -159,7 +159,7 @@ export default function CounselorSchedulesPage() {
         <div className="flex gap-2">
           {(['thisWeek', 'load', 'name'] as const).map(s => (
             <button key={s} onClick={() => setSortBy(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${sortBy === s ? 'bg-green-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${sortBy === s ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
               {s === 'thisWeek' ? 'This Week' : s === 'load' ? 'Total Load' : 'Name'}
             </button>
           ))}
@@ -182,10 +182,10 @@ export default function CounselorSchedulesPage() {
               const isHeavy = row.thisWeek > avgLoad + 2;
               const isLight = row.thisWeek <= 1;
               return (
-                <div key={row.counselor_id} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                <div key={row.counselor_id} className="border border-gray-100 shadow-sm rounded-2xl overflow-hidden">
                   {/* Header row */}
                   <div className="px-5 py-4 flex items-center gap-4 bg-white dark:bg-gray-900">
-                    <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/40 flex items-center justify-center text-green-700 dark:text-green-300 font-semibold text-sm flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-[#2563eb] font-semibold text-sm flex-shrink-0">
                       {row.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">

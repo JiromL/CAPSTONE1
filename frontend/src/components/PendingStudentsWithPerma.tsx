@@ -96,7 +96,7 @@ export default function PendingStudentsWithPerma() {
   return (
     <div className="space-y-5">
       {/* Lookup */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
         <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Lookup MHBot Username</p>
         <form onSubmit={lookup} className="flex gap-2">
           <input
@@ -139,7 +139,7 @@ export default function PendingStudentsWithPerma() {
       </div>
 
       {/* Pending students */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
           <p className="text-sm font-semibold text-gray-900 dark:text-white">
             Pending Appointments <span className="ml-1 text-xs font-normal text-gray-400">({students.length})</span>

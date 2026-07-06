@@ -197,7 +197,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
 
       {/* Queue Statistics */}
       {queueStats && (
-        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
           <div className="text-center">
             <p className="text-2xl font-bold text-red-600">{queueStats.urgent_red || 0}</p>
             <p className="text-xs text-gray-600">Urgent Cases</p>

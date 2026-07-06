@@ -119,7 +119,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
         Create Check-In
       </h3>
@@ -262,7 +262,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
             {formData.action_items.map((item, index) => (
               <div
                 key={index}
-                className="flex items-start justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+                className="flex items-start justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700"
               >
                 <div className="flex-1">
                   <p className="text-sm text-gray-900 dark:text-gray-50 font-medium">
@@ -365,7 +365,7 @@ export function CheckInHistory({ checkIns, isLoading = false }: CheckInHistoryPr
 
   if (checkIns.length === 0) {
     return (
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-8 text-center">
         <Calendar className="mx-auto text-gray-400 dark:text-gray-500 mb-3" size={32} />
         <p className="text-gray-900 dark:text-gray-50 font-medium">No check-ins yet</p>
         <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -380,7 +380,7 @@ export function CheckInHistory({ checkIns, isLoading = false }: CheckInHistoryPr
       {checkIns.map((checkIn, index) => (
         <div
           key={index}
-          className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition"
+          className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4 hover:shadow-md transition"
         >
           <div className="flex items-start justify-between mb-3">
             <div>

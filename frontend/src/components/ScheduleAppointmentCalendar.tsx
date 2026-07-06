@@ -203,7 +203,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Schedule Appointment</h3>
 
       {message && (
@@ -306,7 +306,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
 
       {/* Available slots for selected date */}
       {selectedSlot && (
-        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-600">
           <h5 className="font-medium text-gray-900 dark:text-gray-50 mb-2">Selected Slot:</h5>
           <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <Clock size={16} />

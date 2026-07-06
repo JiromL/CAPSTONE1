@@ -705,19 +705,36 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded p-6 bg-white dark:bg-gray-800">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Account Settings</h3>
-          <div className="space-y-2">
-            <div onClick={openPwModal}><AccountOption label="Change Password" description="Update your account password" /></div>
-            <AccountOption label="Notification Preferences" description="Manage notifications" />
-            <AccountOption label="Privacy Settings" description="Control information visibility" />
-            <AccountOption label="Two-Factor Authentication" description="Secure with 2FA" isEnabled={true} />
-            {userRole && ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(userRole) && (
-              <Link href="/staff-settings">
-                <AccountOption label="Work Preferences & Availability" description="Configure availability without pricing" />
-              </Link>
-            )}
-          </div>
+        <div className="mt-5 bg-white border border-gray-100 shadow-sm rounded-2xl p-5 flex flex-col gap-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Account</p>
+          <button onClick={openPwModal}
+            className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gray-50 transition text-left group">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-[#2563eb]/10 transition">
+                <Lock size={14} className="text-gray-500 group-hover:text-[#2563eb] transition" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-800">Change Password</p>
+                <p className="text-xs text-gray-400">Update your account password</p>
+              </div>
+            </div>
+            <span className="text-gray-300 group-hover:text-[#2563eb] transition text-lg leading-none">›</span>
+          </button>
+          {userRole && ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(userRole) && (
+            <Link href="/staff-settings"
+              className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gray-50 transition group">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-[#2563eb]/10 transition">
+                  <User size={14} className="text-gray-500 group-hover:text-[#2563eb] transition" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Work Preferences & Availability</p>
+                  <p className="text-xs text-gray-400">Set your schedule and session preferences</p>
+                </div>
+              </div>
+              <span className="text-gray-300 group-hover:text-[#2563eb] transition text-lg leading-none">›</span>
+            </Link>
+          )}
         </div>
       </div>
 

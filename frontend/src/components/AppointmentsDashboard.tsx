@@ -242,6 +242,10 @@ export default function AppointmentsDashboard() {
 
   // Close at intake
   const [closeIntakeTarget, setCloseIntakeTarget] = useState<Appointment | null>(null);
+  const [cancelTarget, setCancelTarget]           = useState<Appointment | null>(null);
+  const [cancelReason, setCancelReason]           = useState('');
+  const [cancelMsg, setCancelMsg]                 = useState<{type:'ok'|'err';text:string}|null>(null);
+  const [cancellingId, setCancellingId]           = useState<string|null>(null);
   const [closeIntakeReason, setCloseIntakeReason] = useState('');
   const [closingIntake, setClosingIntake]         = useState(false);
   const [closeIntakeMsg, setCloseIntakeMsg]       = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -508,6 +512,26 @@ export default function AppointmentsDashboard() {
         setFollowUpMsg({ type: 'err', text: d.error || 'Failed to schedule follow-up.' });
       }
     } finally { setSubmittingFollowUp(false); }
+  };
+
+  const doCancel = async () => {
+    if (!cancelTarget) return;
+    setCancellingId(cancelTarget.appointment_id);
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/appointments/${cancelTarget.appointment_id}/cancel`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: cancelReason || 'Cancelled by office assistant' }),
+      });
+      if (r.ok) {
+        setCancelMsg({ type: 'ok', text: 'Appointment cancelled.' });
+        setTimeout(() => { setCancelTarget(null); setCancelReason(''); setCancelMsg(null); fetchDashboard(); }, 1000);
+      } else {
+        const e = await r.json();
+        setCancelMsg({ type: 'err', text: e.error || 'Failed to cancel.' });
+      }
+    } finally { setCancellingId(null); }
   };
 
   const doReschedule = async () => {
@@ -1025,6 +1049,12 @@ export default function AppointmentsDashboard() {
                                     </button>
                                   </>
                                 )}
+                                {isConfirmed && isOA && (
+                                  <button onClick={() => { setCancelTarget(apt); setCancelReason(''); setCancelMsg(null); }}
+                                    className="flex items-center gap-1 px-2.5 py-1 border border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold rounded-lg transition">
+                                    <XCircle size={11} /> Cancel
+                                  </button>
+                                )}
 
                                 {isEval && canManage && (
                                   pendingAction?.aptId === apt.appointment_id ? (
@@ -1379,7 +1409,7 @@ export default function AppointmentsDashboard() {
                   Cancel
                 </button>
                 <button onClick={handleAssign}
-                  disabled={assigningId === assignTarget.appointment_id || !assignForm.counselorId || !assignForm.date || !assignForm.time}
+                  disabled={assigningId === assignTarget.appointment_id || (assignMode === 'slots' ? !selectedSlot : (!assignForm.counselorId || !assignForm.date || !assignForm.time))}
                   className="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-40 flex items-center justify-center gap-2"
                   style={{ backgroundColor: '#2563eb' }}>
                   {assigningId === assignTarget.appointment_id
@@ -1519,6 +1549,43 @@ export default function AppointmentsDashboard() {
       )}
 
       {/* ── Counselor Reschedule Modal ───────────────────────────────────── */}
+      {cancelTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">Cancel Appointment</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Student: <strong>{cancelTarget.student_name}</strong></p>
+              </div>
+              <button onClick={() => setCancelTarget(null)} className="text-gray-400 hover:text-gray-600"><XCircle size={16} /></button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Reason for cancellation (e.g. walk-in, double booking, student request):</p>
+            <textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              rows={3}
+              placeholder="Walk-in appointment completed / Double booking / Student did not show…"
+              className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg mb-3 resize-none"
+            />
+            {cancelMsg && (
+              <p className={`text-xs px-3 py-2 rounded-lg mb-3 ${cancelMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                {cancelMsg.text}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button onClick={() => setCancelTarget(null)}
+                className="flex-1 px-4 py-2 text-sm border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                Keep
+              </button>
+              <button onClick={doCancel} disabled={!!cancellingId}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition disabled:opacity-50">
+                {cancellingId ? 'Cancelling…' : 'Cancel Appointment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {reschedTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">

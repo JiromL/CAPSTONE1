@@ -756,7 +756,7 @@ export default function BookAppointmentPage() {
                       </p>
                       <ul className="text-xs text-blue-700 space-y-1 list-none">
                         <li className="flex gap-2"><span className="text-blue-400 flex-shrink-0">1.</span><span>All information I have provided in this intake packet (including personal, health, and mental health records) is <strong>true and accurate</strong> to the best of my knowledge.</span></li>
-                        <li className="flex gap-2"><span className="text-blue-400 flex-shrink-0">2.</span><span>I <strong>consent to the collection and processing</strong> of my sensitive personal information, including health and mental health records, by the DLSU Center for Psychological Services, in accordance with <strong>RA 10173 (Data Privacy Act of 2012)</strong>.</span></li>
+                        <li className="flex gap-2"><span className="text-blue-400 flex-shrink-0">2.</span><span>I <strong>consent to the collection and processing</strong> of my sensitive personal information, including health and mental health records, by the DLSU Counseling and Psychological Services, in accordance with <strong>RA 10173 (Data Privacy Act of 2012)</strong>.</span></li>
                         <li className="flex gap-2"><span className="text-blue-400 flex-shrink-0">3.</span><span>I <strong>consent to receive counseling services</strong> and understand that session records may be kept for continuity of care.</span></li>
                       </ul>
                     </div>

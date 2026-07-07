@@ -2973,6 +2973,7 @@ def submit_intake_packet():
         'phq4_responses': phq4,
         'signature': signature,
         'signed_at': datetime.utcnow().isoformat() if signature else None,
+        'signature_covers': ['accuracy', 'data_privacy_consent', 'counseling_consent'] if signature else [],
         # Consent audit trail (RA 10173 compliance)
         'consent_audit': {
             'consent_to_service': icf.get('consent_to_service', False),

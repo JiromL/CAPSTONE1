@@ -749,11 +749,16 @@ export default function BookAppointmentPage() {
                 {/* Signature */}
                 {intakeStep === 3 && (
                   <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                      <p className="text-xs font-bold text-blue-800">Electronic Signature</p>
-                      <p className="text-xs text-blue-600 mt-0.5">
-                        By signing below, you confirm that all information provided in this intake packet is true and accurate to the best of your knowledge.
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 space-y-2">
+                      <p className="text-xs font-bold text-blue-800">Informed Consent &amp; Electronic Signature</p>
+                      <p className="text-xs text-blue-700 leading-relaxed">
+                        By signing below, I voluntarily confirm and agree to the following:
                       </p>
+                      <ul className="text-xs text-blue-700 space-y-1 list-none">
+                        <li className="flex gap-2"><span className="text-blue-400 flex-shrink-0">1.</span><span>All information I have provided in this intake packet (including personal, health, and mental health records) is <strong>true and accurate</strong> to the best of my knowledge.</span></li>
+                        <li className="flex gap-2"><span className="text-blue-400 flex-shrink-0">2.</span><span>I <strong>consent to the collection and processing</strong> of my sensitive personal information, including health and mental health records, by the DLSU Center for Psychological Services, in accordance with <strong>RA 10173 (Data Privacy Act of 2012)</strong>.</span></li>
+                        <li className="flex gap-2"><span className="text-blue-400 flex-shrink-0">3.</span><span>I <strong>consent to receive counseling services</strong> and understand that session records may be kept for continuity of care.</span></li>
+                      </ul>
                     </div>
                     <SignaturePad value={signature} onChange={setSignature} />
                   </div>

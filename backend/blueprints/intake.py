@@ -2940,6 +2940,7 @@ def submit_intake_packet():
     icf  = data.get('icf', {})
     spif = data.get('spif', {})
     phq4 = data.get('phq4_responses', [])
+    signature = data.get('signature')  # base64 PNG data URL
 
     # Validate PHQ-4
     if phq4 and len(phq4) != 4:
@@ -2970,6 +2971,8 @@ def submit_intake_packet():
         'icf': icf,
         'spif': spif,
         'phq4_responses': phq4,
+        'signature': signature,
+        'signed_at': datetime.utcnow().isoformat() if signature else None,
         # Consent audit trail (RA 10173 compliance)
         'consent_audit': {
             'consent_to_service': icf.get('consent_to_service', False),

@@ -9,8 +9,9 @@ import {
   AlertCircle, CheckCircle, Loader2, Save, Check,
   ChevronRight, ChevronLeft, User, Brain, ClipboardCheck,
   BookOpen, Phone, Clock, CalendarCheck, UserCheck, ClipboardList,
-  MapPin, Video,
+  MapPin, Video, PenLine,
 } from 'lucide-react';
+import { SignaturePad } from '@/components/SignaturePad';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PURPOSES = [
@@ -38,6 +39,7 @@ const INTAKE_STEPS = [
   { label: 'Contact Form',  desc: 'Basic info & emergency contact' },
   { label: 'Personal Info', desc: 'Background & health history' },
   { label: 'Mental Screen', desc: 'PHQ-4 wellbeing screener' },
+  { label: 'Signature',     desc: 'Sign to confirm your submission' },
 ];
 
 const BOOK_STEPS = [
@@ -170,6 +172,7 @@ export default function BookAppointmentPage() {
   // Intake packet
   const [showIntake, setShowIntake]             = useState(false);
   const [intakeStep, setIntakeStep]             = useState(0);
+  const [signature, setSignature]               = useState<string | null>(null);
   const [intakeError, setIntakeError]           = useState('');
   const [intakeSubmitting, setIntakeSubmitting] = useState(false);
   const [appointmentId, setAppointmentId]       = useState('');
@@ -408,6 +411,7 @@ export default function BookAppointmentPage() {
       if (!icf.presenting_concern.trim()) { setIntakeError('Please describe your presenting concern.'); return false; }
     }
     if (intakeStep === 2 && phq4.some(v => v === null)) { setIntakeError('Please answer all 4 questions.'); return false; }
+    if (intakeStep === 3 && !signature) { setIntakeError('Please draw your signature before submitting.'); return false; }
     setIntakeError(''); return true;
   };
 
@@ -417,7 +421,7 @@ export default function BookAppointmentPage() {
     try {
       const token = localStorage.getItem('token');
       const phq4Payload = skipPhq4 ? null : phq4;
-      const r = await fetch(api('/api/intake/packet'), { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ source:'online', submitted_by_role:'student', appointment_id:appointmentId, icf, spif, phq4_responses:phq4Payload, phq4_skipped: skipPhq4 }) });
+      const r = await fetch(api('/api/intake/packet'), { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ source:'online', submitted_by_role:'student', appointment_id:appointmentId, icf, spif, phq4_responses:phq4Payload, phq4_skipped: skipPhq4, signature }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to submit forms');
       setShowIntake(false); setSuccess(true);
@@ -539,24 +543,26 @@ export default function BookAppointmentPage() {
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
               {/* Step header */}
               <div className={`px-5 py-4 border-b border-gray-100 flex items-center gap-3
-                ${intakeStep===0 ? 'bg-sky-50' : intakeStep===1 ? 'bg-violet-50' : 'bg-orange-50'}`}>
+                ${intakeStep===0 ? 'bg-sky-50' : intakeStep===1 ? 'bg-violet-50' : intakeStep===2 ? 'bg-orange-50' : 'bg-blue-50'}`}>
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
-                  ${intakeStep===0 ? 'bg-sky-100' : intakeStep===1 ? 'bg-violet-100' : 'bg-orange-100'}`}>
+                  ${intakeStep===0 ? 'bg-sky-100' : intakeStep===1 ? 'bg-violet-100' : intakeStep===2 ? 'bg-orange-100' : 'bg-blue-100'}`}>
                   {intakeStep===0 && <ClipboardCheck size={16} className="text-sky-600" />}
                   {intakeStep===1 && <BookOpen size={16} className="text-violet-600" />}
                   {intakeStep===2 && <Brain size={16} className="text-orange-600" />}
+                  {intakeStep===3 && <PenLine size={16} className="text-[#2563eb]" />}
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-900">
-                    {intakeStep===0 ? 'Contact Form' : intakeStep===1 ? 'Personal Background' : 'Mental Health Screener'}
+                    {intakeStep===0 ? 'Contact Form' : intakeStep===1 ? 'Personal Background' : intakeStep===2 ? 'Mental Health Screener' : 'Signature'}
                   </p>
                   <p className="text-xs text-gray-500">
                     {intakeStep===0 ? 'Basic information, emergency contact, and presenting concern' :
                      intakeStep===1 ? 'Personal, family, and health background — helps your counselor prepare' :
-                                     'Short 4-question mental health screening — over the last 2 weeks'}
+                     intakeStep===2 ? 'Short 4-question mental health screening — over the last 2 weeks' :
+                                     'Sign to confirm that all information provided is true and accurate'}
                   </p>
                 </div>
-                <span className="ml-auto text-xs text-gray-400 font-medium flex-shrink-0">Step {intakeStep+1} / 3</span>
+                <span className="ml-auto text-xs text-gray-400 font-medium flex-shrink-0">Step {intakeStep+1} / 4</span>
               </div>
 
               <div className="p-5 space-y-4">
@@ -691,7 +697,7 @@ export default function BookAppointmentPage() {
                             Your IC will already be briefed. You can complete the screener below, or skip it.
                           </p>
                         </div>
-                        <button onClick={() => handleIntakeSubmit(true)}
+                        <button onClick={() => { setIntakeError(''); setIntakeStep(3); }}
                           className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition ${emaLabel === 'In Crisis' ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
                           Skip PHQ-4
                         </button>
@@ -739,6 +745,19 @@ export default function BookAppointmentPage() {
                     ))}
                   </div>
                 )}
+
+                {/* Signature */}
+                {intakeStep === 3 && (
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                      <p className="text-xs font-bold text-blue-800">Electronic Signature</p>
+                      <p className="text-xs text-blue-600 mt-0.5">
+                        By signing below, you confirm that all information provided in this intake packet is true and accurate to the best of your knowledge.
+                      </p>
+                    </div>
+                    <SignaturePad value={signature} onChange={setSignature} />
+                  </div>
+                )}
               </div>
 
               {/* Navigation */}
@@ -754,14 +773,14 @@ export default function BookAppointmentPage() {
                   <Save size={13} /> Save &amp; Exit
                 </button>
                 <div className="flex-1" />
-                {intakeStep < 2 ? (
+                {intakeStep < 3 ? (
                   <button onClick={() => { if (validateIntakeStep()) setIntakeStep(s=>s+1); }}
                     className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition bg-[#2563eb] hover:bg-blue-800">
                     Continue <ChevronRight size={14} />
                   </button>
                 ) : (
                   <button onClick={() => handleIntakeSubmit(false)}
-                    disabled={intakeSubmitting || phq4.some(v=>v===null)}
+                    disabled={intakeSubmitting || !signature}
                     className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition bg-[#2563eb] hover:bg-blue-800">
                     {intakeSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                     {intakeSubmitting ? 'Submitting…' : 'Submit Intake Forms'}

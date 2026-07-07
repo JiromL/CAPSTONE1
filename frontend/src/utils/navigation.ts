@@ -64,14 +64,16 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ CASE MANAGER ============
   // Most frequent: CM Queue (primary task) → Cases → High-Risk → EMA → Appointments
   const caseManagerItems: MenuItem[] = [
-    { label: 'Dashboard',       href: '/dashboard',           id: 'dashboard'     },
-    { label: 'CM Queue',        href: '/case-manager/queue',  id: 'cm-queue'      },
-    { label: 'Cases',           href: '/cases',               id: 'cases'         },
-    { label: 'High-Risk',       href: '/high-risk',           id: 'high-risk'     },
-    { label: 'Appointments',    href: '/appointments',        id: 'appointments'  },
-    { label: 'EMA',             href: '/mhbot',               id: 'mhbot'         },
-    { label: 'Announcements',   href: '/announcements',       id: 'announcements' },
-    { label: 'Profile',         href: '/profile',             id: 'profile'       },
+    { label: 'Dashboard',         href: '/dashboard',           id: 'dashboard'          },
+    { label: 'CM Queue',          href: '/case-manager/queue',  id: 'cm-queue'           },
+    { label: 'Cases',             href: '/cases',               id: 'cases'              },
+    { label: 'High-Risk',         href: '/high-risk',           id: 'high-risk'          },
+    { label: 'Counseling Cases',  href: '/counseling-cases',    id: 'counseling-cases'   },
+    { label: 'Referrals',         href: '/referrals',           id: 'referrals'          },
+    { label: 'Appointments',      href: '/appointments',        id: 'appointments'       },
+    { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests' },
+    { label: 'Announcements',     href: '/announcements',       id: 'announcements'      },
+    { label: 'Profile',           href: '/profile',             id: 'profile'            },
   ];
 
   // ============ STAFF (Office Assistant) ============

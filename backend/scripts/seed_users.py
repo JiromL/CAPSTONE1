@@ -286,6 +286,20 @@ def seed():
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
         },
+        # CASE MANAGER
+        {
+            'email': 'casemanager@university.edu',
+            'password_hash': generate_password_hash('casemanager123'),
+            'first_name': 'Morgan',
+            'last_name': 'Case',
+            'role': 'CASE_MANAGER',
+            'phone': '555-0045',
+            'department': 'Counseling',
+            'specializations': [],
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+        },
         # STAFF (Office Assistant / Scheduler)
         {
             'email': 'staff@university.edu',

@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { api } from '@/utils/api';
 import { ClinicalExportModal } from '@/components/ClinicalExportModal';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
+import { StructuredSOAPForm, StructuredSOAPData, emptyStructuredSOAP } from '@/components/StructuredSOAPForm';
+import { TerminationFormModal, TerminationFormData } from '@/components/TerminationFormModal';
 
 interface SessionNote {
   note_id: string;
@@ -18,6 +20,7 @@ interface SessionNote {
   note_content?: string;
   note_format?: 'SOAP' | 'freeform';
   soap?: { subjective?: string; objective?: string; assessment?: string; plan?: string };
+  structured_soap?: import('@/components/StructuredSOAPForm').StructuredSOAPData;
   mood_rating?: number;
   symptom_severity?: string;
   risk_flagged?: boolean;
@@ -249,8 +252,10 @@ export default function CaseDetailPage() {
   const [intakeFormSuccess, setIntakeFormSuccess] = useState(false);
 
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showTerminationForm, setShowTerminationForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
+  const [structuredSoap, setStructuredSoap] = useState<StructuredSOAPData>({ ...emptyStructuredSOAP });
   const [savingNote, setSavingNote] = useState(false);
 
   const [caseAppointments, setCaseAppointments] = useState<Array<{
@@ -793,14 +798,35 @@ export default function CaseDetailPage() {
     }
   };
 
+  const handleTerminateCase = async (formData: TerminationFormData) => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(api(`/api/cases/${caseId}/close`), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to terminate case');
+    }
+    setShowTerminationForm(false);
+    showSuccess('Case has been terminated and closed.');
+    // Reload case data to reflect CLOSED status
+    const r2 = await fetch(api(`/api/cases/${caseId}`), { headers: { Authorization: `Bearer ${token}` } });
+    if (r2.ok) setCaseData(await r2.json());
+  };
+
   const handleSaveNote = async () => {
     try {
       setSavingNote(true);
       const token = localStorage.getItem('token');
+      const payload = noteForm.note_format === 'SOAP'
+        ? { ...noteForm, structured_soap: structuredSoap }
+        : noteForm;
       const res = await fetch(api(`/api/counseling/case/${caseId}/session-note`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(noteForm),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -811,6 +837,7 @@ export default function CaseDetailPage() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       setNoteForm({ ...emptyNote, session_date: now.toISOString().slice(0, 16) });
+      setStructuredSoap({ ...emptyStructuredSOAP });
       await loadSessionNotes();
     } catch (err: any) {
       setError(err.message);
@@ -946,6 +973,14 @@ export default function CaseDetailPage() {
             </span>
             {caseData.case_number && (
               <span className="text-[11px] text-gray-400 font-mono">{caseData.case_number}</span>
+            )}
+            {!['CLOSED', 'closed'].includes(caseData.case_status || caseData.client_status || '') && (
+              <button
+                onClick={() => setShowTerminationForm(true)}
+                className="text-[11px] px-2.5 py-1 rounded-full font-medium bg-red-50 text-red-600 ring-1 ring-red-200 hover:bg-red-100 transition"
+              >
+                Terminate Case
+              </button>
             )}
           </div>
         </div>
@@ -1467,25 +1502,9 @@ export default function CaseDetailPage() {
                 </div>
 
                 {noteForm.note_format === 'SOAP' ? (
-                  <>
-                    {([
-                      { key: 'soap_subjective', label: 'S — Subjective', hint: "Client's own words, feelings, and complaints" },
-                      { key: 'soap_objective', label: 'O — Objective', hint: 'Observable data: behavior, appearance, test scores' },
-                      { key: 'soap_assessment', label: 'A — Assessment', hint: 'Clinician interpretation, risk level, diagnosis impression' },
-                      { key: 'soap_plan', label: 'P — Plan', hint: 'Next steps, homework, referrals, follow-up schedule' },
-                    ] as const).map(({ key, label, hint }) => (
-                      <div key={key} className="md:col-span-2">
-                        <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 mb-0.5">{label}</label>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{hint}</p>
-                        <textarea
-                          value={noteForm[key] as string}
-                          onChange={(e) => setNoteForm({ ...noteForm, [key]: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 text-sm border border-green-200 dark:border-blue-800 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
-                      </div>
-                    ))}
-                  </>
+                  <div className="md:col-span-2">
+                    <StructuredSOAPForm value={structuredSoap} onChange={setStructuredSoap} />
+                  </div>
                 ) : (
                   <>
                     {(['topics_discussed', 'interventions', 'client_response', 'progress_on_goals'] as const).map((field) => (
@@ -1591,8 +1610,53 @@ export default function CaseDetailPage() {
                       )}
                     </div>
                   </div>
-                  {/* SOAP format display */}
-                  {note.note_format === 'SOAP' && note.soap && (
+                  {/* Structured SOAP display */}
+                  {note.note_format === 'SOAP' && note.structured_soap && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                      {note.structured_soap.counseling_goal && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Session Goal</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300">{note.structured_soap.counseling_goal}</p>
+                        </div>
+                      )}
+                      {(['S','O','A','P'] as const).map(section => {
+                        const labels: Record<string,string> = { S: 'S — Subjective', O: 'O — Objective', A: 'A — Assessment', P: 'P — Plan' };
+                        const ss = note.structured_soap!;
+                        const items: string[] = section === 'S'
+                          ? [...ss.s_mood, ...ss.s_concerns, ...ss.s_coping]
+                          : section === 'O'
+                          ? [...ss.o_appearance, ...ss.o_affect, ...ss.o_behavior, ...ss.o_speech_thought]
+                          : section === 'A'
+                          ? [...ss.a_main_issues, ...(ss.a_progress ? [ss.a_progress] : []), ...(ss.a_risk_level ? [`Risk: ${ss.a_risk_level}`] : []), ...ss.a_clinical_impression]
+                          : [...ss.p_interventions, ...ss.p_homework, ...ss.p_follow_up, ...ss.p_case_status];
+                        if (!items.length) return null;
+                        return (
+                          <div key={section}>
+                            <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide mb-1">{labels[section]}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {items.map((item, i) => (
+                                <span key={i} className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">{item}</span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {note.structured_soap.a_remarks && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Assessment Remarks</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300">{note.structured_soap.a_remarks}</p>
+                        </div>
+                      )}
+                      {note.structured_soap.p_remarks && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Plan Remarks</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300">{note.structured_soap.p_remarks}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Legacy plain-text SOAP display */}
+                  {note.note_format === 'SOAP' && note.soap && !note.structured_soap && (
                     <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
                       {note.soap.subjective && (
                         <div>
@@ -2403,6 +2467,13 @@ export default function CaseDetailPage() {
         intakeId={intakeSummary._id}
         appointmentId={intakeSummary.appointment_id ?? null}
         onClose={() => setShowExportModal(false)}
+      />
+    )}
+    {showTerminationForm && (
+      <TerminationFormModal
+        studentName={studentName}
+        onClose={() => setShowTerminationForm(false)}
+        onSubmit={handleTerminateCase}
       />
     )}
     </>

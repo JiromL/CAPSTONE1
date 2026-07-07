@@ -50,13 +50,14 @@ def create_session_note(case_id):
         "session_date": session_date,
         "session_type": data['session_type'],
         "note_format": note_format,
-        # SOAP fields (populated when note_format == 'SOAP')
+        # SOAP fields
         "soap": {
             "subjective": data.get('soap_subjective', ''),
             "objective":  data.get('soap_objective', ''),
             "assessment": data.get('soap_assessment', ''),
             "plan":       data.get('soap_plan', ''),
         } if note_format == 'SOAP' else None,
+        "structured_soap": data.get('structured_soap') if note_format == 'SOAP' else None,
         # Freeform fields
         "topics_discussed": data.get('topics_discussed'),
         "interventions": data.get('interventions'),
@@ -268,6 +269,7 @@ def get_case_session_history(case_id):
             'note_content': n.get('note_content', ''),
             'note_format': n.get('note_format', 'freeform'),
             'soap': n.get('soap'),
+            'structured_soap': n.get('structured_soap'),
             'topics_discussed': n.get('topics_discussed', ''),
             'interventions': n.get('interventions', ''),
             'client_response': n.get('client_response', ''),

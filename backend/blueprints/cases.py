@@ -19,8 +19,8 @@ def has_permission(user_role, permission):
 
 def get_cases_for_user(user_id, user_role):
     """Get cases filtered by role"""
-    if user_role == UserRole.DPO or user_role == UserRole.ADMIN:
-        # DPO and ADMIN see all cases
+    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER]:
+        # These roles see all cases
         return {}
     elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
         return {'assigned_counselor_id': ObjectId(user_id)}
@@ -133,7 +133,7 @@ def create_checkin_case():
     user_id = get_jwt_identity()
     user = db.db.users.find_one({'_id': ObjectId(user_id)})
     
-    if not user or user.get('role') not in [UserRole.COUNSELOR, UserRole.PSYCHOLOGIST, UserRole.IC, UserRole.ADMIN, UserRole.DPO]:
+    if not user or user.get('role') not in [UserRole.COUNSELOR, UserRole.PSYCHOLOGIST, UserRole.IC, UserRole.CASE_MANAGER, UserRole.ADMIN, UserRole.DPO]:
         return jsonify({'error': 'Staff only'}), 403
     
     data = request.get_json()
@@ -311,10 +311,8 @@ def get_case(case_id):
     user_role = user.get('role')
     if user_role == UserRole.STUDENT and str(case['student_id']) != user_id:
         return jsonify({'error': 'Cannot view other student cases'}), 403
-    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
-        pass  # clinical staff can view any case
-    elif user_role == UserRole.IC:
-        pass  # IC can view any case — they need full context during and after intake
+    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.IC, UserRole.CASE_MANAGER, UserRole.ADMIN, UserRole.DPO]:
+        pass  # clinical staff and oversight roles can view any case
     
     # Serialize all ObjectId and datetime fields safely
     raw_student_id = case.get('student_id')
@@ -561,22 +559,55 @@ def close_case(case_id):
     if user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
         if str(case.get('assigned_counselor_id')) != user_id:
             return jsonify({'error': 'Case not assigned to you'}), 403
-    elif user_role not in [UserRole.DPO, UserRole.ADMIN]:
+    elif user_role not in [UserRole.CASE_MANAGER, UserRole.DPO, UserRole.ADMIN]:
         return jsonify({'error': 'Insufficient permissions'}), 403
-    
+
     data = request.get_json()
-    
+
+    termination_form = {
+        # Basic
+        'mode_of_session':          data.get('mode_of_session'),
+        'session_count':            data.get('session_count'),
+        # Termination
+        'reasons':                  data.get('reasons', []),
+        'reasons_other':            data.get('reasons_other'),
+        'summary':                  data.get('summary'),
+        'presenting_problem':       data.get('presenting_problem'),
+        'interventions_used':       data.get('interventions_used', []),
+        'interventions_other':      data.get('interventions_other'),
+        # Client reflections
+        'client_progress':          data.get('client_progress'),
+        'client_learnings':         data.get('client_learnings'),
+        'client_readiness':         data.get('client_readiness'),
+        # Counselor impression
+        'overall_progress':         data.get('overall_progress'),
+        'strengths':                data.get('strengths'),
+        'remaining_concerns':       data.get('remaining_concerns'),
+        'prognosis':                data.get('prognosis'),
+        # Relapse prevention
+        'warning_signs':            data.get('warning_signs'),
+        'coping_strategies':        data.get('coping_strategies'),
+        'crisis_plan':              data.get('crisis_plan'),
+        'crisis_contact':           data.get('crisis_contact'),
+        # Referral & follow-up
+        'referral_to':              data.get('referral_to', []),
+        'referral_details':         data.get('referral_details'),
+        'follow_up_recommendations':data.get('follow_up_recommendations'),
+        'follow_up_schedule':       data.get('follow_up_schedule'),
+    }
+
     db.db.cases.update_one(
         {'_id': ObjectId(case_id)},
         {'$set': {
             'case_status': CaseStatus.CLOSED.value,
-            'termination_reason': data.get('termination_reason'),
+            'termination_reason': data.get('termination_reason') or (', '.join(data.get('reasons', [])) if data.get('reasons') else None),
             'termination_date': datetime.utcnow(),
-            'final_notes': data.get('final_notes'),
+            'final_notes': data.get('final_notes') or data.get('summary'),
+            'termination_form': termination_form,
             'updated_at': datetime.utcnow()
         }}
     )
-    
+
     return jsonify({
         'success': True,
         'message': 'Case closed'

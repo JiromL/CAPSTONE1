@@ -381,8 +381,9 @@ def seed():
 
 
 def seed_availability():
-    """Seed counselor_weekly_schedule for all IC accounts."""
+    """Seed counselor_availability for all IC accounts."""
     db = get_db()
+    db.counselor_availability.delete_many({})
     db.counselor_weekly_schedule.delete_many({})
 
     # IC email → { session_method, schedule: [(dow, start, end), ...] }
@@ -479,10 +480,14 @@ def seed_availability():
         if not ic:
             print(f"  ⚠️  IC not found: {entry['email']} — skipped")
             continue
-        db.counselor_weekly_schedule.insert_one({
+        schedule_with_method = [
+            {**slot, 'method': entry['session_method']}
+            for slot in entry['schedule']
+        ]
+        db.counselor_availability.insert_one({
             'counselor_id': ic['_id'],
             'session_method': entry['session_method'],
-            'schedule': entry['schedule'],
+            'schedule': schedule_with_method,
             'updated_at': datetime.utcnow(),
         })
         days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']

@@ -5,11 +5,12 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { ClinicalExportModal } from '@/components/ClinicalExportModal';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts';
 import { StructuredSOAPForm, StructuredSOAPData, emptyStructuredSOAP } from '@/components/StructuredSOAPForm';
 import { TerminationFormModal, TerminationFormData } from '@/components/TerminationFormModal';
 
@@ -257,6 +258,10 @@ export default function CaseDetailPage() {
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
   const [structuredSoap, setStructuredSoap] = useState<StructuredSOAPData>({ ...emptyStructuredSOAP });
   const [savingNote, setSavingNote] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteForm, setEditNoteForm] = useState<{ topics_discussed: string; interventions: string; client_response: string; homework_assigned: string; mood_rating: number; risk_flagged: boolean; risk_notes: string; change_reason: string }>({ topics_discussed: '', interventions: '', client_response: '', homework_assigned: '', mood_rating: 5, risk_flagged: false, risk_notes: '', change_reason: '' });
+  const [savingEditNote, setSavingEditNote] = useState(false);
 
   const [caseAppointments, setCaseAppointments] = useState<Array<{
     _id: string; status: string; scheduled_at?: string; preferred_date?: string;
@@ -801,7 +806,7 @@ export default function CaseDetailPage() {
   const handleTerminateCase = async (formData: TerminationFormData) => {
     const token = localStorage.getItem('token');
     const res = await fetch(api(`/api/cases/${caseId}/close`), {
-      method: 'POST',
+      method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
     });
@@ -861,6 +866,37 @@ export default function CaseDetailPage() {
         const e = await r.json();
         setError(e.error || `Failed to ${action} note`);
       }
+    } catch (e: any) { setError(e.message); }
+  };
+
+  const handleUpdateNote = async (noteId: string) => {
+    try {
+      setSavingEditNote(true);
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/case-management/session-notes/${noteId}`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(editNoteForm),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Failed to update note'); }
+      showSuccess('Note updated');
+      setEditingNoteId(null);
+      await loadSessionNotes();
+    } catch (e: any) { setError(e.message); }
+    finally { setSavingEditNote(false); }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm('Delete this session note? This action can be reversed by an admin.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/case-management/session-notes/${noteId}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Failed to delete note'); }
+      showSuccess('Note deleted');
+      await loadSessionNotes();
     } catch (e: any) { setError(e.message); }
   };
 
@@ -1421,327 +1457,481 @@ export default function CaseDetailPage() {
       )}
 
       {/* ── Session Notes Tab ──────────────────────────────────── */}
-      {activeTab === 'session-notes' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Session Notes</h3>
-            <button
-              onClick={() => setShowNoteForm(!showNoteForm)}
-              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-              style={{ backgroundColor: '#2563eb' }}
-              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#14401e')}
-              onMouseOut={e => (e.currentTarget.style.backgroundColor = '#2563eb')}
-            >
-              <Plus size={15} /> Add Note
-            </button>
-          </div>
+      {activeTab === 'session-notes' && (() => {
+        const toggleNote = (id: string) => setExpandedNotes(prev => {
+          const next = new Set(prev);
+          next.has(id) ? next.delete(id) : next.add(id);
+          return next;
+        });
 
-          {showNoteForm && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-4">New Session Note</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Session Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    value={noteForm.session_date}
-                    onChange={(e) => setNoteForm({ ...noteForm, session_date: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Session Type</label>
-                  <select
-                    value={noteForm.session_type}
-                    onChange={(e) => setNoteForm({ ...noteForm, session_type: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                  >
-                    <option value="INDIVIDUAL">Individual</option>
-                    <option value="CRISIS">Crisis</option>
-                    <option value="FOLLOW_UP">Follow-up</option>
-                    <option value="INTAKE">Intake</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mood Rating (1–10)</label>
-                  <input
-                    type="number" min="1" max="10"
-                    value={noteForm.mood_rating}
-                    onChange={(e) => setNoteForm({ ...noteForm, mood_rating: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Symptom Severity</label>
-                  <select
-                    value={noteForm.symptom_severity}
-                    onChange={(e) => setNoteForm({ ...noteForm, symptom_severity: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                  >
-                    <option value="NONE">None</option>
-                    <option value="MILD">Mild</option>
-                    <option value="MODERATE">Moderate</option>
-                    <option value="SEVERE">Severe</option>
-                  </select>
-                </div>
+        const typeLabel: Record<string, string> = {
+          INDIVIDUAL: 'Individual', CRISIS: 'Crisis', FOLLOW_UP: 'Follow-up', INTAKE: 'Intake',
+        };
+        const typeColor: Record<string, string> = {
+          INDIVIDUAL: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+          CRISIS:     'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+          FOLLOW_UP:  'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+          INTAKE:     'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+        };
+        const sevColor: Record<string, string> = {
+          MILD:     'text-yellow-600 dark:text-yellow-400',
+          MODERATE: 'text-orange-600 dark:text-orange-400',
+          SEVERE:   'text-red-600 dark:text-red-400',
+        };
+        const moodBar = (r: number) => {
+          const pct = (r / 10) * 100;
+          const color = r <= 3 ? '#ef4444' : r <= 6 ? '#f59e0b' : '#10b981';
+          return (
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
+              </div>
+              <span className="text-xs font-semibold tabular-nums" style={{ color }}>{r}/10</span>
+            </div>
+          );
+        };
 
-                {/* Note format toggle */}
-                <div className="md:col-span-2">
-                  <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit">
+        const soapSections = [
+          { key: 'S', label: 'Subjective', color: '#2563eb', bg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300' },
+          { key: 'O', label: 'Objective',  color: '#7c3aed', bg: 'bg-violet-50 dark:bg-violet-900/20 text-violet-800 dark:text-violet-300' },
+          { key: 'A', label: 'Assessment', color: '#d97706', bg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300' },
+          { key: 'P', label: 'Plan',       color: '#059669', bg: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300' },
+        ] as const;
+
+        const avgMood = sessionNotes.filter(n => n.mood_rating).length
+          ? (sessionNotes.reduce((s, n) => s + (n.mood_rating || 0), 0) / sessionNotes.filter(n => n.mood_rating).length).toFixed(1)
+          : null;
+        const riskCount = sessionNotes.filter(n => n.risk_flagged).length;
+
+        return (
+          <div className="space-y-5">
+            {/* ── Header ── */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Session Notes</h3>
+                {sessionNotes.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {sessionNotes.length} session{sessionNotes.length !== 1 ? 's' : ''}
+                    {avgMood && ` · avg mood ${avgMood}/10`}
+                    {riskCount > 0 && ` · `}
+                    {riskCount > 0 && <span className="text-red-500 font-medium">{riskCount} risk flag{riskCount !== 1 ? 's' : ''}</span>}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setShowNoteForm(!showNoteForm)}
+                className="flex items-center gap-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                <Plus size={14} /> {showNoteForm ? 'Cancel' : 'Add Note'}
+              </button>
+            </div>
+
+            {/* ── Add Note Form ── */}
+            {showNoteForm && (
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">New Session Note</p>
+                  <div className="flex items-center gap-1 p-0.5 bg-gray-200 dark:bg-gray-700 rounded-lg">
                     {(['SOAP', 'freeform'] as const).map(fmt => (
-                      <button
-                        key={fmt}
-                        type="button"
+                      <button key={fmt} type="button"
                         onClick={() => setNoteForm({ ...noteForm, note_format: fmt })}
-                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-600 text-[#2563eb] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
                       >
-                        {fmt === 'SOAP' ? 'SOAP Template' : 'Freeform'}
+                        {fmt === 'SOAP' ? 'SOAP' : 'Freeform'}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                {noteForm.note_format === 'SOAP' ? (
-                  <div className="md:col-span-2">
-                    <StructuredSOAPForm value={structuredSoap} onChange={setStructuredSoap} />
-                  </div>
-                ) : (
-                  <>
-                    {(['topics_discussed', 'interventions', 'client_response', 'progress_on_goals'] as const).map((field) => (
-                      <div key={field} className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          {field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                        </label>
-                        <textarea
-                          value={noteForm[field] as string}
-                          onChange={(e) => setNoteForm({ ...noteForm, [field]: e.target.value })}
-                          rows={2}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                        />
-                      </div>
-                    ))}
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Homework / Tasks Assigned</label>
-                      <input
-                        type="text"
-                        value={noteForm.homework_assigned}
-                        onChange={(e) => setNoteForm({ ...noteForm, homework_assigned: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                      />
-                    </div>
-                  </>
-                )}
-                <div className="md:col-span-2 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="risk_flagged"
-                    checked={noteForm.risk_flagged}
-                    onChange={(e) => setNoteForm({ ...noteForm, risk_flagged: e.target.checked })}
-                    className="rounded"
-                  />
-                  <label htmlFor="risk_flagged" className="text-sm font-medium text-red-700 dark:text-red-400">Flag as Risk Concern</label>
-                </div>
-                {noteForm.risk_flagged && (
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Risk Notes</label>
-                    <textarea
-                      value={noteForm.risk_notes}
-                      onChange={(e) => setNoteForm({ ...noteForm, risk_notes: e.target.value })}
-                      rows={2}
-                      className="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={handleSaveNote}
-                  disabled={savingNote}
-                  className="text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition"
-                  style={{ backgroundColor: '#2563eb' }}
-                >
-                  {savingNote ? 'Saving…' : 'Save Note'}
-                </button>
-                <button
-                  onClick={() => setShowNoteForm(false)}
-                  className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {sessionNotes.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-12 text-center">
-              <FileText size={28} className="mx-auto mb-3 text-gray-400" />
-              <p className="text-gray-600 dark:text-gray-400">No session notes yet.</p>
-              <p className="text-xs text-gray-500 mt-1">Click "Add Note" to record a session.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {sessionNotes.map((note) => (
-                <div key={note.note_id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
-                  <div className="flex items-start justify-between mb-2">
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
-                        {new Date(note.session_date).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">{note.session_type}{note.counselor ? ` · ${note.counselor}` : ''}</p>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date & Time</label>
+                      <input type="datetime-local" value={noteForm.session_date}
+                        onChange={(e) => setNoteForm({ ...noteForm, session_date: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
                     </div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {note.risk_flagged && (
-                        <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">Risk</span>
-                      )}
-                      {note.mood_rating && (
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Mood {note.mood_rating}/10</span>
-                      )}
-                      {note.symptom_severity && note.symptom_severity !== 'NONE' && (
-                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">{note.symptom_severity}</span>
-                      )}
-                      {note.supervisor_approved === true && (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400 text-xs font-medium rounded-full">✓ Approved</span>
-                      )}
-                      {note.supervisor_approved === false && note.supervisor_name && (
-                        <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium rounded-full">✗ Rejected</span>
-                      )}
-                      {note.supervisor_approved === false && !note.supervisor_name && (
-                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-medium rounded-full">Pending review</span>
-                      )}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Session Type</label>
+                      <select value={noteForm.session_type}
+                        onChange={(e) => setNoteForm({ ...noteForm, session_type: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]">
+                        <option value="INDIVIDUAL">Individual</option>
+                        <option value="CRISIS">Crisis</option>
+                        <option value="FOLLOW_UP">Follow-up</option>
+                        <option value="INTAKE">Intake</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mood (1–10)</label>
+                      <input type="number" min="1" max="10" value={noteForm.mood_rating}
+                        onChange={(e) => setNoteForm({ ...noteForm, mood_rating: Number(e.target.value) })}
+                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Severity</label>
+                      <select value={noteForm.symptom_severity}
+                        onChange={(e) => setNoteForm({ ...noteForm, symptom_severity: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]">
+                        <option value="NONE">None</option>
+                        <option value="MILD">Mild</option>
+                        <option value="MODERATE">Moderate</option>
+                        <option value="SEVERE">Severe</option>
+                      </select>
                     </div>
                   </div>
-                  {/* Structured SOAP display */}
-                  {note.note_format === 'SOAP' && note.structured_soap && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
-                      {note.structured_soap.counseling_goal && (
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Session Goal</p>
-                          <p className="text-xs text-gray-700 dark:text-gray-300">{note.structured_soap.counseling_goal}</p>
+
+                  {noteForm.note_format === 'SOAP' ? (
+                    <StructuredSOAPForm value={structuredSoap} onChange={setStructuredSoap} />
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {(['topics_discussed', 'interventions', 'client_response', 'progress_on_goals'] as const).map((field) => (
+                        <div key={field}>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            {field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                          </label>
+                          <textarea value={noteForm[field] as string}
+                            onChange={(e) => setNoteForm({ ...noteForm, [field]: e.target.value })}
+                            rows={2}
+                            className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb] resize-none" />
                         </div>
-                      )}
-                      {(['S','O','A','P'] as const).map(section => {
-                        const labels: Record<string,string> = { S: 'S — Subjective', O: 'O — Objective', A: 'A — Assessment', P: 'P — Plan' };
-                        const ss = note.structured_soap!;
-                        const items: string[] = section === 'S'
-                          ? [...ss.s_mood, ...ss.s_concerns, ...ss.s_coping]
-                          : section === 'O'
-                          ? [...ss.o_appearance, ...ss.o_affect, ...ss.o_behavior, ...ss.o_speech_thought]
-                          : section === 'A'
-                          ? [...ss.a_main_issues, ...(ss.a_progress ? [ss.a_progress] : []), ...(ss.a_risk_level ? [`Risk: ${ss.a_risk_level}`] : []), ...ss.a_clinical_impression]
-                          : [...ss.p_interventions, ...ss.p_homework, ...ss.p_follow_up, ...ss.p_case_status];
-                        if (!items.length) return null;
-                        return (
-                          <div key={section}>
-                            <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide mb-1">{labels[section]}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {items.map((item, i) => (
-                                <span key={i} className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">{item}</span>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {note.structured_soap.a_remarks && (
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Assessment Remarks</p>
-                          <p className="text-xs text-gray-700 dark:text-gray-300">{note.structured_soap.a_remarks}</p>
-                        </div>
-                      )}
-                      {note.structured_soap.p_remarks && (
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Plan Remarks</p>
-                          <p className="text-xs text-gray-700 dark:text-gray-300">{note.structured_soap.p_remarks}</p>
-                        </div>
-                      )}
+                      ))}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Homework / Tasks</label>
+                        <input type="text" value={noteForm.homework_assigned}
+                          onChange={(e) => setNoteForm({ ...noteForm, homework_assigned: e.target.value })}
+                          className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                      </div>
                     </div>
                   )}
-                  {/* Legacy plain-text SOAP display */}
-                  {note.note_format === 'SOAP' && note.soap && !note.structured_soap && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                      {note.soap.subjective && (
-                        <div>
-                          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">S — Subjective</p>
-                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.subjective}</p>
-                        </div>
-                      )}
-                      {note.soap.objective && (
-                        <div>
-                          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">O — Objective</p>
-                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.objective}</p>
-                        </div>
-                      )}
-                      {note.soap.assessment && (
-                        <div>
-                          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">A — Assessment</p>
-                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.assessment}</p>
-                        </div>
-                      )}
-                      {note.soap.plan && (
-                        <div>
-                          <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wide">P — Plan</p>
-                          <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{note.soap.plan}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* Freeform format display */}
-                  {note.note_format !== 'SOAP' && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                      {note.topics_discussed && (
-                        <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide">Topics</p>
-                          <p className="text-sm text-gray-700 mt-0.5">{note.topics_discussed}</p>
-                        </div>
-                      )}
-                      {note.interventions && (
-                        <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide">Interventions</p>
-                          <p className="text-sm text-gray-700 mt-0.5">{note.interventions}</p>
-                        </div>
-                      )}
-                      {note.client_response && (
-                        <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide">Client Response</p>
-                          <p className="text-sm text-gray-700 mt-0.5">{note.client_response}</p>
-                        </div>
-                      )}
-                      {note.progress_on_goals && (
-                        <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide">Progress on Goals</p>
-                          <p className="text-sm text-gray-700 mt-0.5">{note.progress_on_goals}</p>
-                        </div>
-                      )}
-                      {note.homework_assigned && (
-                        <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wide">Homework</p>
-                          <p className="text-sm text-gray-700 mt-0.5">{note.homework_assigned}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* Supervisor comment if rejected */}
-                  {note.supervisor_approved === false && note.supervisor_comment && (
-                    <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-700 dark:text-red-300">
-                      <span className="font-semibold">Feedback:</span> {note.supervisor_comment}
-                    </div>
-                  )}
-                  {/* Supervisor sign-off actions */}
-                  {['PSYCHOLOGIST', 'ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name && (
-                    <SupervisorActions noteId={note.note_id} onAction={handleApproveNote} />
-                  )}
-                  {/* Approval info */}
-                  {note.supervisor_approved && note.supervisor_name && (
-                    <p className="mt-2 text-xs text-gray-400">
-                      Approved by <span className="font-medium">{note.supervisor_name}</span>
-                      {note.supervisor_action_at && ` · ${new Date(note.supervisor_action_at).toLocaleDateString()}`}
-                    </p>
+
+                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                    <input type="checkbox" checked={noteForm.risk_flagged}
+                      onChange={(e) => setNoteForm({ ...noteForm, risk_flagged: e.target.checked })}
+                      className="rounded border-gray-300 text-red-500 focus:ring-red-500" />
+                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Flag as Risk Concern</span>
+                  </label>
+                  {noteForm.risk_flagged && (
+                    <textarea value={noteForm.risk_notes}
+                      onChange={(e) => setNoteForm({ ...noteForm, risk_notes: e.target.value })}
+                      rows={2} placeholder="Describe the risk concern…"
+                      className="w-full px-3 py-2 text-xs border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-2">
+                  <button onClick={handleSaveNote} disabled={savingNote}
+                    className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors">
+                    {savingNote ? 'Saving…' : 'Save Note'}
+                  </button>
+                  <button onClick={() => setShowNoteForm(false)}
+                    className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Notes list ── */}
+            {sessionNotes.length === 0 ? (
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center">
+                <FileText size={28} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No session notes yet</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click "Add Note" to document the first session.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sessionNotes.map((note, idx) => {
+                  const num = sessionNotes.length - idx;
+                  const isExpanded = expandedNotes.has(note.note_id);
+                  const stype = note.session_type || 'INDIVIDUAL';
+                  const isRisk = note.risk_flagged;
+                  const accentColor = isRisk ? '#ef4444' : stype === 'CRISIS' ? '#ef4444' : stype === 'FOLLOW_UP' ? '#7c3aed' : stype === 'INTAKE' ? '#0891b2' : '#2563eb';
+                  const approvalStatus = note.supervisor_approved === true ? 'approved'
+                    : (note.supervisor_approved === false && note.supervisor_name) ? 'rejected'
+                    : (note.supervisor_approved === false && !note.supervisor_name) ? 'pending'
+                    : null;
+
+                  const fmtDate = (d: string) => {
+                    try {
+                      const dt = new Date(d);
+                      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        + ' · ' + dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    } catch { return d; }
+                  };
+
+                  const canEdit = ['COUNSELOR','PSYCHOLOGIST','IC','CASE_MANAGER'].includes(currentUser?.role || '');
+                  const isEditingThis = editingNoteId === note.note_id;
+
+                  return (
+                    <div key={note.note_id}
+                      className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
+                      style={{ borderLeft: `3px solid ${accentColor}` }}>
+
+                      {/* ── Card header (always visible) ── */}
+                      <div className="px-5 py-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <button className="flex items-start gap-3 min-w-0 flex-1 text-left" onClick={() => toggleNote(note.note_id)}>
+                            {/* Session number bubble */}
+                            <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white mt-0.5"
+                              style={{ background: accentColor }}>
+                              {num}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                                  {note.session_date ? fmtDate(note.session_date) : 'Date not set'}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeColor[stype] || typeColor['INDIVIDUAL']}`}>
+                                  {typeLabel[stype] || stype}
+                                </span>
+                                {note.note_format === 'SOAP' && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">SOAP</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                {note.counselor && (
+                                  <span className="text-xs text-gray-400">{note.counselor}</span>
+                                )}
+                                {note.mood_rating ? (
+                                  <span className="text-xs text-gray-400">Mood <span className="font-semibold text-gray-700 dark:text-gray-200">{note.mood_rating}/10</span></span>
+                                ) : null}
+                                {note.symptom_severity && note.symptom_severity !== 'NONE' && (
+                                  <span className={`text-xs font-medium ${sevColor[note.symptom_severity] || ''}`}>{note.symptom_severity}</span>
+                                )}
+                                {isRisk && (
+                                  <span className="text-xs font-semibold text-red-500">⚠ Risk flagged</span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {approvalStatus === 'approved' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">✓ Approved</span>
+                            )}
+                            {approvalStatus === 'rejected' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium">✗ Rejected</span>
+                            )}
+                            {approvalStatus === 'pending' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium">Pending review</span>
+                            )}
+                            {canEdit && (
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); if (isEditingThis) { setEditingNoteId(null); } else { setEditingNoteId(note.note_id); setEditNoteForm({ topics_discussed: note.topics_discussed || '', interventions: note.interventions || '', client_response: note.client_response || '', homework_assigned: note.homework_assigned || '', mood_rating: note.mood_rating || 5, risk_flagged: note.risk_flagged || false, risk_notes: note.risk_notes || '', change_reason: '' }); setExpandedNotes(prev => { const n = new Set(prev); n.add(note.note_id); return n; }); } }}
+                                  className={`p-1.5 rounded-lg transition-colors ${isEditingThis ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                  title="Edit note"
+                                >
+                                  <Pencil size={13} />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.note_id); }}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                  title="Delete note"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </>
+                            )}
+                            <button onClick={() => toggleNote(note.note_id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                              <ChevronDown size={15} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+                        </div>
+                        {/* Mood bar — always visible */}
+                        {note.mood_rating ? (
+                          <div className="mt-2.5 ml-10">
+                            {moodBar(note.mood_rating)}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* ── Expanded content ── */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-100 dark:border-gray-700">
+                          {/* SOAP structured */}
+                          {note.note_format === 'SOAP' && note.structured_soap && (
+                            <div className="p-5 space-y-4">
+                              {note.structured_soap.counseling_goal && (
+                                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Session Goal</p>
+                                  <p className="text-sm text-gray-700 dark:text-gray-200">{note.structured_soap.counseling_goal}</p>
+                                </div>
+                              )}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {soapSections.map(({ key, label, color, bg }) => {
+                                  const ss = note.structured_soap!;
+                                  const items: string[] = key === 'S'
+                                    ? [...(ss.s_mood||[]), ...(ss.s_concerns||[]), ...(ss.s_coping||[])]
+                                    : key === 'O'
+                                    ? [...(ss.o_appearance||[]), ...(ss.o_affect||[]), ...(ss.o_behavior||[]), ...(ss.o_speech_thought||[])]
+                                    : key === 'A'
+                                    ? [...(ss.a_main_issues||[]), ...(ss.a_progress?[ss.a_progress]:[]), ...(ss.a_risk_level?[`Risk: ${ss.a_risk_level}`]:[]), ...(ss.a_clinical_impression||[])]
+                                    : [...(ss.p_interventions||[]), ...(ss.p_homework||[]), ...(ss.p_follow_up||[]), ...(ss.p_case_status||[])];
+                                  const remarks = key === 'A' ? ss.a_remarks : key === 'P' ? ss.p_remarks : null;
+                                  if (!items.length && !remarks) return null;
+                                  return (
+                                    <div key={key} className="rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                      <div className="px-3 py-2 flex items-center gap-1.5" style={{ background: color + '12' }}>
+                                        <span className="text-xs font-bold" style={{ color }}>{key}</span>
+                                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</span>
+                                      </div>
+                                      <div className="px-3 py-2.5 space-y-1.5">
+                                        {items.length > 0 && (
+                                          <div className="flex flex-wrap gap-1">
+                                            {items.map((item, i) => (
+                                              <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${bg}`}>{item}</span>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {remarks && <p className="text-xs text-gray-600 dark:text-gray-300 italic">{remarks}</p>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          {/* Legacy SOAP */}
+                          {note.note_format === 'SOAP' && note.soap && !note.structured_soap && (
+                            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {(['subjective','objective','assessment','plan'] as const).map(k => {
+                                const v = note.soap![k]; if (!v) return null;
+                                const labels: Record<string,{letter:string;label:string;color:string}> = {
+                                  subjective: {letter:'S',label:'Subjective',color:'#2563eb'},
+                                  objective:  {letter:'O',label:'Objective', color:'#7c3aed'},
+                                  assessment: {letter:'A',label:'Assessment',color:'#d97706'},
+                                  plan:       {letter:'P',label:'Plan',      color:'#059669'},
+                                };
+                                const { letter, label, color } = labels[k];
+                                return (
+                                  <div key={k} className="rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                    <div className="px-3 py-2 flex items-center gap-1.5" style={{ background: color + '12' }}>
+                                      <span className="text-xs font-bold" style={{ color }}>{letter}</span>
+                                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</span>
+                                    </div>
+                                    <p className="px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{v}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {/* Freeform */}
+                          {note.note_format !== 'SOAP' && (
+                            <div className="p-5 space-y-3">
+                              {[
+                                { key: 'topics_discussed', label: 'Topics Discussed' },
+                                { key: 'interventions', label: 'Interventions' },
+                                { key: 'client_response', label: 'Client Response' },
+                                { key: 'progress_on_goals', label: 'Progress on Goals' },
+                                { key: 'homework_assigned', label: 'Homework / Tasks' },
+                              ].map(({ key, label }) => {
+                                const v = (note as any)[key]; if (!v) return null;
+                                return (
+                                  <div key={key}>
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                                    <p className="text-sm text-gray-700 dark:text-gray-200">{v}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Risk notes */}
+                          {note.risk_flagged && note.risk_notes && (
+                            <div className="mx-5 mb-4 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg">
+                              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5">⚠ Risk Notes</p>
+                              <p className="text-xs text-red-700 dark:text-red-300">{note.risk_notes}</p>
+                            </div>
+                          )}
+
+                          {/* Inline edit form */}
+                          {isEditingThis && (
+                            <div className="border-t border-blue-100 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-5 space-y-3">
+                              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-widest mb-2">Editing Note</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Mood (1–10)</label>
+                                  <input type="number" min="1" max="10" value={editNoteForm.mood_rating}
+                                    onChange={e => setEditNoteForm({ ...editNoteForm, mood_rating: Number(e.target.value) })}
+                                    className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                                </div>
+                                <div className="flex items-end pb-2">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={editNoteForm.risk_flagged}
+                                      onChange={e => setEditNoteForm({ ...editNoteForm, risk_flagged: e.target.checked })}
+                                      className="rounded border-gray-300 text-red-500 focus:ring-red-500" />
+                                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Risk Concern</span>
+                                  </label>
+                                </div>
+                              </div>
+                              {[
+                                { key: 'topics_discussed' as const, label: 'Topics Discussed' },
+                                { key: 'interventions' as const, label: 'Interventions' },
+                                { key: 'client_response' as const, label: 'Client Response' },
+                                { key: 'homework_assigned' as const, label: 'Homework / Tasks' },
+                              ].map(({ key, label }) => (
+                                <div key={key}>
+                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
+                                  <textarea value={editNoteForm[key] as string}
+                                    onChange={e => setEditNoteForm({ ...editNoteForm, [key]: e.target.value })}
+                                    rows={2}
+                                    className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb] resize-none" />
+                                </div>
+                              ))}
+                              {editNoteForm.risk_flagged && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Risk Notes</label>
+                                  <textarea value={editNoteForm.risk_notes}
+                                    onChange={e => setEditNoteForm({ ...editNoteForm, risk_notes: e.target.value })}
+                                    rows={2}
+                                    className="w-full px-3 py-2 text-xs border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
+                                </div>
+                              )}
+                              <div>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Reason for edit</label>
+                                <input type="text" value={editNoteForm.change_reason} placeholder="e.g. Added missing intervention details"
+                                  onChange={e => setEditNoteForm({ ...editNoteForm, change_reason: e.target.value })}
+                                  className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                              </div>
+                              <div className="flex gap-2 pt-1">
+                                <button onClick={() => handleUpdateNote(note.note_id)} disabled={savingEditNote}
+                                  className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-4 py-2 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors">
+                                  {savingEditNote ? 'Saving…' : 'Save Changes'}
+                                </button>
+                                <button onClick={() => setEditingNoteId(null)}
+                                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Approval footer */}
+                          {(approvalStatus || (['PSYCHOLOGIST','ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name)) && (
+                            <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between flex-wrap gap-2">
+                              {note.supervisor_approved === false && note.supervisor_comment && (
+                                <p className="text-xs text-red-600 dark:text-red-400"><span className="font-semibold">Feedback:</span> {note.supervisor_comment}</p>
+                              )}
+                              {note.supervisor_approved && note.supervisor_name && (
+                                <p className="text-xs text-gray-400">
+                                  Approved by <span className="font-medium text-gray-600 dark:text-gray-300">{note.supervisor_name}</span>
+                                  {note.supervisor_action_at && ` · ${new Date(note.supervisor_action_at).toLocaleDateString()}`}
+                                </p>
+                              )}
+                              {['PSYCHOLOGIST','ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name && (
+                                <SupervisorActions noteId={note.note_id} onAction={handleApproveNote} />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Treatment Plan Tab ─────────────────────────────────── */}
       {activeTab === 'treatment-plan' && (
@@ -2430,34 +2620,110 @@ export default function CaseDetailPage() {
           </div>
 
           {/* PERMA history */}
-          {caseData?.student?.mhbot_username && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">PERMA History</p>
-              {permaLoading ? (
-                <div className="flex justify-center py-8 text-gray-400">
-                  <Loader2 size={18} className="animate-spin mr-2" /> Loading…
+          {caseData?.student?.mhbot_username && (() => {
+            const LABEL_TO_SCORE: Record<string, number> = {
+              'Excelling': 5, 'Thriving': 4, 'Surviving': 3, 'Struggling': 2, 'In Crisis': 1,
+            };
+            const SCORE_TO_LABEL: Record<number, string> = {
+              5: 'Excelling', 4: 'Thriving', 3: 'Surviving', 2: 'Struggling', 1: 'In Crisis',
+            };
+            const SCORE_COLOR: Record<number, string> = {
+              5: '#10b981', 4: '#22c55e', 3: '#f59e0b', 2: '#f97316', 1: '#ef4444',
+            };
+            const chartData = [...permaHistory]
+              .filter(h => h.perma_label && LABEL_TO_SCORE[h.perma_label])
+              .reverse()
+              .map(h => ({
+                dateRaw: h.date,
+                date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                score: LABEL_TO_SCORE[h.perma_label!],
+                label: h.perma_label!,
+              }));
+
+            const latestScore = chartData.length ? chartData[chartData.length - 1].score : null;
+            const latestColor = latestScore ? SCORE_COLOR[latestScore] : '#2563eb';
+
+            const CustomTooltip = ({ active, payload }: any) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0].payload;
+              return (
+                <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg rounded-lg px-3 py-2 text-xs">
+                  <p className="text-gray-500 dark:text-gray-400 mb-0.5">
+                    {new Date(d.dateRaw).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                  <p className="font-semibold" style={{ color: SCORE_COLOR[d.score] }}>{d.label}</p>
                 </div>
-              ) : permaHistory.length === 0 ? (
-                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No PERMA records found</p>
-              ) : (
-                <div className="space-y-2">
-                  {permaHistory.map((h, i) => (
-                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(h.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                      </span>
-                      <PermaBadge label={h.perma_label} />
+              );
+            };
+
+            return (
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">PERMA History</p>
+                  {latestScore && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: latestColor + '18', color: latestColor }}>
+                      Latest: {SCORE_TO_LABEL[latestScore]}
+                    </span>
+                  )}
+                </div>
+                {permaLoading ? (
+                  <div className="flex justify-center py-12 text-gray-400">
+                    <Loader2 size={18} className="animate-spin mr-2" /> Loading…
+                  </div>
+                ) : chartData.length === 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No PERMA records found</p>
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="permaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={latestColor} stopOpacity={0.15} />
+                            <stop offset="95%" stopColor={latestColor} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.06} />
+                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                        <YAxis
+                          domain={[1, 5]} ticks={[1, 2, 3, 4, 5]}
+                          tickFormatter={(v: number) => SCORE_TO_LABEL[v] || ''}
+                          tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false}
+                          width={62}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <ReferenceLine y={3} stroke="#f59e0b" strokeDasharray="4 4" strokeOpacity={0.4} />
+                        <Area
+                          type="monotone" dataKey="score"
+                          stroke={latestColor} strokeWidth={2.5}
+                          fill="url(#permaGrad)" dot={{ r: 4, fill: latestColor, strokeWidth: 2, stroke: '#fff' }}
+                          activeDot={{ r: 6, fill: latestColor, stroke: '#fff', strokeWidth: 2 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                    {/* Recent entries table */}
+                    <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1.5">
+                      {[...permaHistory].slice(0, 6).map((h, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {new Date(h.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                          <PermaBadge label={h.perma_label} />
+                        </div>
+                      ))}
+                      {permaHistory.length > 6 && (
+                        <p className="text-xs text-gray-400 text-center pt-1">+{permaHistory.length - 6} earlier entries</p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-              {mhbotError && (
-                <p className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                  <AlertCircle size={11} /> {mhbotError}
-                </p>
-              )}
-            </div>
-          )}
+                  </>
+                )}
+                {mhbotError && (
+                  <p className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <AlertCircle size={11} /> {mhbotError}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </DashboardPageWrapper>

@@ -370,7 +370,7 @@ export default function BookAppointmentPage() {
       const token = localStorage.getItem('token');
       const fp = purpose === 'others' ? specifyOthers.trim() : purpose;
       const body: Record<string, any> = {
-        purpose: fp, concern, preferred_method: slotMethod,
+        purpose: fp, concern, preferred_method: slotMethod === 'F2F' ? 'in-person' : 'online',
         preferred_platform: slotMethod?.toLowerCase() === 'online' ? prefPlatform : null,
         referral_type: referralType, referred_by: referralType === 'referred' ? referredBy : null,
         agreed_to_terms: true,
@@ -879,7 +879,10 @@ export default function BookAppointmentPage() {
     return d >= minDate && d <= maxDate && !bookingRules.blackout_dates.includes(ds);
   };
 
-  const methodSlots = slots.filter(s => s.method?.toLowerCase() === slotMethod.toLowerCase());
+  const isF2F = (m?: string) => ['f2f', 'in-person', 'in_person', 'face-to-face', 'onsite'].includes((m || '').toLowerCase());
+  const methodSlots = slots.filter(s =>
+    slotMethod === 'F2F' ? isF2F(s.method) : !isF2F(s.method)
+  );
   const slotCountByTime: Record<string, number> = {};
   methodSlots.forEach(s => { slotCountByTime[s.time] = (slotCountByTime[s.time] || 0) + 1; });
 

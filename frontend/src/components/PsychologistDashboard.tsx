@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { fetchDashboardData } from '@/utils/dashboard-api';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, MoreHorizontal, Calendar } from 'lucide-react';
 
 const PERMA_BARS: { label: string; color: string }[] = [
   { label: 'Excelling',  color: 'bg-green-500'  },
@@ -138,6 +138,101 @@ function PermaTrendsWidget() {
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
+function getSessionType(a: any): string {
+  const ref = (a.referral_type || '').toUpperCase();
+  if (ref === 'WALKIN') return 'Walk-in';
+  if (ref.includes('EMERGENCY') || ref.includes('CRISIS')) return 'Crisis';
+  if (ref.includes('FOLLOW')) return 'Follow-up';
+  if (ref === 'INTAKE' || ref === 'EVALUATION') return 'Intake';
+  const status = (a.status || '').toUpperCase();
+  if (status === 'FOLLOW_UP') return 'Follow-up';
+  if (status === 'EVALUATION') return 'Intake';
+  if (status === 'REFERRAL') return 'Referral';
+  return 'Individual';
+}
+
+function SessionTypeBadge({ type }: { type: string }) {
+  const cfg: Record<string, string> = {
+    'Individual': 'text-blue-600 dark:text-blue-400',
+    'Follow-up':  'text-purple-600 dark:text-purple-400',
+    'Intake':     'text-teal-600 dark:text-teal-400',
+    'Crisis':     'text-red-600 dark:text-red-400',
+    'Walk-in':    'text-orange-600 dark:text-orange-400',
+    'Referral':   'text-indigo-600 dark:text-indigo-400',
+  };
+  return <span className={`text-sm ${cfg[type] || 'text-gray-600 dark:text-gray-300'}`}>{type}</span>;
+}
+
+function SessionStatusBadge({ status }: { status: string }) {
+  const s = (status || '').toUpperCase();
+  if (s === 'COMPLETED') return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">Completed</span>
+  );
+  if (s === 'CHECKED_IN') return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800">In Session</span>
+  );
+  if (s === 'CANCELLED' || s === 'NO_SHOW') return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">Cancelled</span>
+  );
+  return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[#2563eb] dark:text-blue-400 border border-blue-100 dark:border-blue-800">Upcoming</span>
+  );
+}
+
+function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: string) => string }) {
+  const sorted = [...appts].sort((a, b) => {
+    const da = new Date(a.preferred_date || a.scheduled_start || 0).getTime();
+    const db2 = new Date(b.preferred_date || b.scheduled_start || 0).getTime();
+    return da - db2;
+  });
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-2">
+          <Calendar size={15} className="text-[#2563eb]" />
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">Today's Schedule</p>
+        </div>
+        <Link href="/appointments" className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline font-medium">View all</Link>
+      </div>
+
+      {sorted.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-36 text-center px-5 pb-5">
+          <Calendar size={22} className="text-gray-300 dark:text-gray-600 mb-2" />
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No sessions today</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Confirmed appointments will appear here.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-[90px_1fr_110px_130px_36px] px-5 pb-2 gap-3">
+            {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
+              <p key={i} className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{h}</p>
+            ))}
+          </div>
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {sorted.map((a: any, i: number) => {
+              const time = fmtTime(a.preferred_date || a.scheduled_start || '');
+              const type = getSessionType(a);
+              return (
+                <div key={i} className="grid grid-cols-[90px_1fr_110px_130px_36px] items-center px-5 py-3.5 gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 tabular-nums">{time}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-200 truncate font-medium">{a.student_name || 'Student'}</span>
+                  <SessionTypeBadge type={type} />
+                  <SessionStatusBadge status={a.status} />
+                  <Link href={a.case_id ? `/cases/${a.case_id}` : '/appointments'}
+                    className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <MoreHorizontal size={15} />
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const RISK_DOT: Record<string, string> = {
   CRITICAL: 'bg-red-500',
   RED:      'bg-orange-400',
@@ -220,33 +315,8 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
           {/* PERMA trends over time */}
           <PermaTrendsWidget />
 
-          {/* Today's sessions */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
-              <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
-            </div>
-            {todayAppts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-36 text-center">
-                <p className="text-sm text-gray-600 font-medium">No sessions today</p>
-                <p className="text-xs text-gray-400 mt-1">Confirmed appointments will appear here.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {todayAppts.map((a: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{a.student_name || 'Student'}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {fmtTime(a.preferred_date || a.scheduled_start)} · {(a.method || 'in-person').replace(/_/g, ' ')}
-                      </p>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">Confirmed</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Today's Schedule */}
+          <TodayScheduleTable appts={todayAppts} fmtTime={fmtTime} />
 
           {/* Alerts */}
           <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">

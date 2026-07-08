@@ -513,14 +513,22 @@ def get_audit_logs():
         return jsonify({'error': 'Permission denied'}), 403
     
     logs = list(db.db.audit_logs.find({}).sort("timestamp", -1).limit(50))
-    
+
+    # Resolve actor names in one batch
+    actor_ids = [log['user_id'] for log in logs if log.get('user_id')]
+    users_map = {}
+    if actor_ids:
+        for u in db.db.users.find({'_id': {'$in': actor_ids}}, {'first_name': 1, 'last_name': 1, 'role': 1}):
+            users_map[str(u['_id'])] = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or str(u['_id'])
+
     for log in logs:
         log['_id'] = str(log['_id'])
-        if 'user_id' in log:
-            log['user_id'] = str(log['user_id'])
+        uid = str(log.get('user_id', '')) if log.get('user_id') else None
+        log['user_id'] = uid
+        log['actor_name'] = users_map.get(uid, 'System') if uid else 'System'
         if 'timestamp' in log:
             log['timestamp'] = log['timestamp'].isoformat()
-    
+
     return jsonify(logs), 200
 
 

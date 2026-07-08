@@ -91,14 +91,12 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ ADMIN ============
   // Most frequent: User Mgmt → Appointment Requests → New Intakes → Cases → Analytics
   const adminItems: MenuItem[] = [
-    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
-    { label: 'User Management',      href: '/admin/users',          id: 'admin'        },
-    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'New Intakes',          href: '/new-intakes',          id: 'new-intakes'  },
-    { label: 'Cases',                href: '/cases',                id: 'cases'        },
-    { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'    },
-    { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
-    { label: 'Profile',              href: '/profile',              id: 'profile'      },
+    { label: 'Dashboard',       href: '/dashboard',       id: 'dashboard'    },
+    { label: 'User Management', href: '/admin/users',     id: 'admin'        },
+    { label: 'Cases',           href: '/cases',           id: 'cases'        },
+    { label: 'Analytics',       href: '/admin/analytics', id: 'analytics'    },
+    { label: 'Announcements',   href: '/announcements',   id: 'announcements'},
+    { label: 'Profile',         href: '/profile',         id: 'profile'      },
   ];
 
   // ============ DPO (Data Protection Officer) ============

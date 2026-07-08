@@ -125,15 +125,78 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           <div className="flex-1 space-y-5 min-w-0">
 
             {/* Hero banner */}
-            {upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
+            {nextAppt ? (() => {
+              const title      = getSessionTitle(nextAppt);
+              const method     = getMethodLabel(nextAppt);
+              const dateStr    = fmtApptDate(nextAppt.requested_start);
+              const timeStr    = fmtTime(nextAppt.requested_start);
+              const counselor  = nextAppt.counselor_name || 'CPS Counselor';
+              const isOnline   = ['online','video'].includes((nextAppt.preferred_method || '').toLowerCase());
+              const meetingLink = nextAppt.meeting_link;
+              return (
+                <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
+                  <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
+                  <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
+                        Upcoming Appointment
+                      </p>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white text-[11px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                        Confirmed
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 leading-snug">{title}</h3>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100 mb-6">
+                      <span className="font-medium text-white">with {counselor}</span>
+                      {dateStr && (
+                        <span className="flex items-center gap-1.5">
+                          <CalendarDays size={13} className="text-blue-300" />{dateStr}
+                        </span>
+                      )}
+                      {timeStr && (
+                        <span className="flex items-center gap-1.5">
+                          <Clock size={13} className="text-blue-300" />{timeStr}
+                        </span>
+                      )}
+                      {method && (
+                        <span className="flex items-center gap-1.5">
+                          {isOnline
+                            ? <Video size={13} className="text-blue-300" />
+                            : <MapPin size={13} className="text-blue-300" />}
+                          {method} session
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      {isOnline && meetingLink ? (
+                        <a href={meetingLink} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
+                          <Video size={15} />Join Session
+                        </a>
+                      ) : (
+                        <Link href="/my-appointments">
+                          <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
+                            <CalendarDays size={15} />View Session
+                          </button>
+                        </Link>
+                      )}
+                      <Link href="/my-appointments">
+                        <button className="px-5 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold rounded-xl transition-colors">
+                          Reschedule
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })() : upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
               <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
-                {/* Decorative circles */}
                 <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
                 <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
                 <div className="relative z-10">
-                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">
-                    Welcome to CPS
-                  </p>
+                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">Welcome to CPS</p>
                   <h3 className="text-xl font-bold mb-2 leading-snug">
                     No need to wait, {firstName}.<br />Book your session online.
                   </h3>
@@ -157,14 +220,10 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
                 <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
                 <div className="relative z-10">
-                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">
-                    Your counseling journey
-                  </p>
+                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">Your counseling journey</p>
                   <h3 className="text-xl font-bold mb-2">Keep going, {firstName}.</h3>
                   <p className="text-sm text-blue-100 mb-6 leading-relaxed max-w-sm">
-                    {upcoming.length > 0
-                      ? `You have ${upcoming.length} confirmed session${upcoming.length !== 1 ? 's' : ''} scheduled.`
-                      : `You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review.`}
+                    {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review.`}
                   </p>
                   {!isCheckInOnly && (
                     <Link href="/book-appointment">
@@ -176,87 +235,6 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 </div>
               </div>
             )}
-
-            {/* Upcoming Appointment card — shown when there's a confirmed slot */}
-            {nextAppt && (() => {
-              const title      = getSessionTitle(nextAppt);
-              const method     = getMethodLabel(nextAppt);
-              const dateStr    = fmtApptDate(nextAppt.requested_start);
-              const timeStr    = fmtTime(nextAppt.requested_start);
-              const counselor  = nextAppt.counselor_name || 'CPS Counselor';
-              const isOnline   = ['online','video'].includes((nextAppt.preferred_method || '').toLowerCase());
-              const meetingLink = nextAppt.meeting_link;
-
-              return (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  {/* Top accent strip */}
-                  <div className="h-1 bg-[#2563eb]" />
-                  <div className="p-6">
-                    {/* Label + badge */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                        Upcoming Appointment
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-[11px] font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-                        Confirmed
-                      </span>
-                    </div>
-
-                    {/* Session title */}
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">{title}</h3>
-
-                    {/* Meta info */}
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-gray-500 mb-6">
-                      <span className="font-medium text-gray-700">with {counselor}</span>
-                      {dateStr && (
-                        <span className="flex items-center gap-1">
-                          <CalendarDays size={13} className="text-gray-400" />
-                          {dateStr}
-                        </span>
-                      )}
-                      {timeStr && (
-                        <span className="flex items-center gap-1">
-                          <Clock size={13} className="text-gray-400" />
-                          {timeStr}
-                        </span>
-                      )}
-                      {method && (
-                        <span className="flex items-center gap-1">
-                          {isOnline
-                            ? <Video size={13} className="text-gray-400" />
-                            : <MapPin size={13} className="text-gray-400" />}
-                          {method} session
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex gap-3">
-                      {isOnline && meetingLink ? (
-                        <a href={meetingLink} target="_blank" rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition-colors">
-                          <Video size={15} />
-                          Join Session
-                        </a>
-                      ) : (
-                        <Link href="/my-appointments" className="flex-1">
-                          <button className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition-colors">
-                            <CalendarDays size={15} />
-                            View Session
-                          </button>
-                        </Link>
-                      )}
-                      <Link href="/my-appointments" className="flex-1">
-                        <button className="w-full py-2.5 border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-semibold rounded-xl transition-colors">
-                          Reschedule
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* CPS Announcements */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

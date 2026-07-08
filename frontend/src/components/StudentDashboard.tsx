@@ -64,7 +64,56 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [resourceCount, setResourceCount]       = useState(0);
   const [mounted, setMounted]                   = useState(false);
 
+  // Reschedule modal state
+  const [reschedTarget, setReschedTarget]             = useState<any | null>(null);
+  const [reschedDate, setReschedDate]                 = useState('');
+  const [reschedTime, setReschedTime]                 = useState('');
+  const [reschedReason, setReschedReason]             = useState('');
+  const [rescheduling, setRescheduling]               = useState(false);
+  const [reschedError, setReschedError]               = useState('');
+  const [rescheduleSlots, setRescheduleSlots]         = useState<{ time: string }[]>([]);
+  const [rescheduleLoadingSlots, setRescheduleLoadingSlots] = useState(false);
+  const [rescheduleNextDate, setRescheduleNextDate]   = useState<string | null>(null);
+  const [reschedSuccess, setReschedSuccess]           = useState(false);
+
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!reschedDate) { setRescheduleSlots([]); setRescheduleNextDate(null); return; }
+    setRescheduleLoadingSlots(true);
+    setReschedTime('');
+    setRescheduleSlots([]);
+    setRescheduleNextDate(null);
+    const token = localStorage.getItem('token');
+    fetch(api(`/api/availability/open-slots?date=${reschedDate}`), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { setRescheduleSlots(d.slots || []); setRescheduleNextDate(d.next_available_date || null); })
+      .catch(() => setRescheduleSlots([]))
+      .finally(() => setRescheduleLoadingSlots(false));
+  }, [reschedDate]);
+
+  const handleReschedule = async () => {
+    if (!reschedTarget || !reschedDate || !reschedTime) { setReschedError('Please select a date and time.'); return; }
+    setRescheduling(true); setReschedError('');
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/${reschedTarget._id}/reschedule`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requested_start: `${reschedDate}T${reschedTime}:00`, reason: reschedReason }),
+      });
+      if (r.ok) {
+        setReschedSuccess(true);
+        setAppointments(prev => prev.map(a => a._id === reschedTarget._id ? { ...a, status: 'RESCHEDULE_REQUESTED' } : a));
+        setTimeout(() => { setReschedTarget(null); setReschedSuccess(false); setReschedDate(''); setReschedTime(''); setReschedReason(''); }, 1800);
+      } else {
+        const d = await r.json(); setReschedError(d.error || 'Failed to request reschedule.');
+      }
+    } catch { setReschedError('Network error.'); }
+    finally { setRescheduling(false); }
+  };
 
   useEffect(() => {
     if (!mounted) return;
@@ -178,15 +227,15 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                       ) : (
                         <Link href="/my-appointments">
                           <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
-                            <CalendarDays size={15} />View Session
+                            <Video size={15} />Join Session
                           </button>
                         </Link>
                       )}
-                      <Link href="/my-appointments">
-                        <button className="px-5 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold rounded-xl transition-colors">
-                          Reschedule
-                        </button>
-                      </Link>
+                      <button
+                        onClick={() => { setReschedTarget(nextAppt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); setReschedSuccess(false); }}
+                        className="px-5 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold rounded-xl transition-colors">
+                        Reschedule
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -432,6 +481,97 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           </div>
         );
       })()}
+
+      {/* ── Reschedule Modal ─────────────────────────────────────────── */}
+      {reschedTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-sm text-gray-900">Request Reschedule</h3>
+              <button onClick={() => setReschedTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={14} className="text-gray-400" />
+              </button>
+            </div>
+
+            {reschedSuccess ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mb-3">
+                  <CalendarDays size={22} className="text-green-600" />
+                </div>
+                <p className="font-semibold text-gray-900 mb-1">Request submitted!</p>
+                <p className="text-sm text-gray-400">Your counselor will confirm the new time.</p>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Date</label>
+                  <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Time</label>
+                  {!reschedDate ? (
+                    <p className="text-xs text-gray-400 italic">Select a date to see available slots.</p>
+                  ) : rescheduleLoadingSlots ? (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                      <Loader2 size={13} className="animate-spin" /> Checking availability…
+                    </div>
+                  ) : rescheduleSlots.length === 0 ? (
+                    <div className="text-xs text-gray-500 py-1">
+                      No slots available on this date.
+                      {rescheduleNextDate && (
+                        <span className="ml-1 text-[#2563eb] font-medium">
+                          Next available: <button type="button" onClick={() => setReschedDate(rescheduleNextDate)} className="underline underline-offset-2">{rescheduleNextDate}</button>
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {rescheduleSlots.map((s, i) => {
+                        const [h, m] = s.time.split(':').map(Number);
+                        const label = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                        return (
+                          <button key={i} type="button" onClick={() => setReschedTime(s.time)}
+                            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
+                              reschedTime === s.time
+                                ? 'border-[#2563eb] bg-[#2563eb]/5 text-[#2563eb]'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}>
+                            <Clock size={13} className={reschedTime === s.time ? 'text-[#2563eb]' : 'text-gray-400'} />
+                            <span className="font-bold tabular-nums">{label}</span>
+                            {reschedTime === s.time && <span className="ml-auto text-[10px] font-bold">✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                    Reason <span className="font-normal normal-case text-gray-400">(optional)</span>
+                  </label>
+                  <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
+                    placeholder="Why do you need to reschedule?"
+                    rows={2}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none resize-none" />
+                </div>
+                {reschedError && <p className="text-xs text-red-500">{reschedError}</p>}
+                <div className="flex gap-2">
+                  <button onClick={() => setReschedTarget(null)}
+                    className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                    Cancel
+                  </button>
+                  <button onClick={handleReschedule} disabled={rescheduling}
+                    className="flex-1 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                    {rescheduling && <Loader2 size={13} className="animate-spin" />}
+                    Submit Request
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

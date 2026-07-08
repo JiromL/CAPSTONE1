@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock } from 'lucide-react';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -31,6 +31,28 @@ function fmtEventDate(s: string) {
   return new Date(s).toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   });
+}
+
+function getSessionTitle(appt: any): string {
+  const p = (appt.purpose || '').toLowerCase();
+  if (p === 'intake_interview')       return 'Intake Interview';
+  if (p === 'follow_up_counselling')  return 'Follow-up Counseling Session';
+  if (p === 'group_session')          return 'Group Counseling Session';
+  if (p === 'counseling')             return 'Individual Counseling Session';
+  return 'Counseling Session';
+}
+
+function getMethodLabel(appt: any): string {
+  const m = (appt.preferred_method || appt.mode || '').toLowerCase();
+  if (m === 'online' || m === 'video') return 'Video';
+  if (m === 'onsite' || m === 'in_person' || m === 'face_to_face') return 'In-person';
+  return '';
+}
+
+function fmtApptDate(s: string): string {
+  try {
+    return new Date(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  } catch { return ''; }
 }
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
@@ -65,9 +87,10 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     })();
   }, [mounted]);
 
-  // Only show appointments with a confirmed date/time slot as "upcoming"
+  // Only show appointments with a confirmed date/time slot that haven't passed
+  const now = Date.now();
   const upcoming = appointments
-    .filter(a => ['scheduled','confirmed','matched'].includes((a.status||'').toLowerCase()) && a.requested_start)
+    .filter(a => ['scheduled','confirmed','matched'].includes((a.status||'').toLowerCase()) && a.requested_start && new Date(a.requested_start).getTime() > now)
     .sort((a, b) => new Date(a.requested_start||0).getTime() - new Date(b.requested_start||0).getTime());
 
   // Unconfirmed requests (no slot yet) shown separately
@@ -153,6 +176,87 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 </div>
               </div>
             )}
+
+            {/* Upcoming Appointment card — shown when there's a confirmed slot */}
+            {nextAppt && (() => {
+              const title      = getSessionTitle(nextAppt);
+              const method     = getMethodLabel(nextAppt);
+              const dateStr    = fmtApptDate(nextAppt.requested_start);
+              const timeStr    = fmtTime(nextAppt.requested_start);
+              const counselor  = nextAppt.counselor_name || 'CPS Counselor';
+              const isOnline   = ['online','video'].includes((nextAppt.preferred_method || '').toLowerCase());
+              const meetingLink = nextAppt.meeting_link;
+
+              return (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  {/* Top accent strip */}
+                  <div className="h-1 bg-[#2563eb]" />
+                  <div className="p-6">
+                    {/* Label + badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                        Upcoming Appointment
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-[11px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                        Confirmed
+                      </span>
+                    </div>
+
+                    {/* Session title */}
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">{title}</h3>
+
+                    {/* Meta info */}
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-gray-500 mb-6">
+                      <span className="font-medium text-gray-700">with {counselor}</span>
+                      {dateStr && (
+                        <span className="flex items-center gap-1">
+                          <CalendarDays size={13} className="text-gray-400" />
+                          {dateStr}
+                        </span>
+                      )}
+                      {timeStr && (
+                        <span className="flex items-center gap-1">
+                          <Clock size={13} className="text-gray-400" />
+                          {timeStr}
+                        </span>
+                      )}
+                      {method && (
+                        <span className="flex items-center gap-1">
+                          {isOnline
+                            ? <Video size={13} className="text-gray-400" />
+                            : <MapPin size={13} className="text-gray-400" />}
+                          {method} session
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-3">
+                      {isOnline && meetingLink ? (
+                        <a href={meetingLink} target="_blank" rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition-colors">
+                          <Video size={15} />
+                          Join Session
+                        </a>
+                      ) : (
+                        <Link href="/my-appointments" className="flex-1">
+                          <button className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition-colors">
+                            <CalendarDays size={15} />
+                            View Session
+                          </button>
+                        </Link>
+                      )}
+                      <Link href="/my-appointments" className="flex-1">
+                        <button className="w-full py-2.5 border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-semibold rounded-xl transition-colors">
+                          Reschedule
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* CPS Announcements */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

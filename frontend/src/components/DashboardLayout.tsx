@@ -188,7 +188,7 @@ export function DashboardLayout({
 
           {/* Page title */}
           <div className="hidden lg:block">
-            <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
+            <p className="text-xl font-bold text-gray-900">{title}</p>
           </div>
 
           {/* Right actions */}

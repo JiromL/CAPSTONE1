@@ -3595,12 +3595,19 @@ def confirm_intake_slot(appointment_id):
         return jsonify({'error': 'This slot booking is not assigned to you'}), 403
 
     now = datetime.utcnow()
-    db.db.appointments.update_one({'_id': apt_id}, {'$set': {
+    confirm_fields = {
         'status':       AppointmentStatus.CONFIRMED.value,
         'confirmed_by': uid_obj,
         'confirmed_at': now,
         'updated_at':   now,
-    }})
+    }
+    # Promote requested_start → scheduled_start if not already set
+    if not apt.get('scheduled_start') and apt.get('requested_start'):
+        confirm_fields['scheduled_start'] = apt['requested_start']
+    # Default method if missing
+    if not apt.get('preferred_method'):
+        confirm_fields['preferred_method'] = 'in-person'
+    db.db.appointments.update_one({'_id': apt_id}, {'$set': confirm_fields})
     audit_log(db.db, 'appointments', 'ic_confirmed_slot_booking', entity_id=appointment_id,
               new_values={'confirmed_by': str(uid_obj)})
     return jsonify({'message': 'Appointment confirmed.'}), 200

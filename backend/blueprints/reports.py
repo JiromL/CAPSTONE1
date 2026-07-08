@@ -88,7 +88,7 @@ def cps_export():
                 'counseling_cases':  _sheet_counseling_cases(start, end),
                 'checkins':          _sheet_checkins(start, end),
             }
-            audit_log(db.db, 'reports', 'export_all', extra={'month': month or 'all'})
+            audit_log(db.db, 'reports', 'export_all', new_values={'month': month or 'all'})
             return jsonify({
                 'sheet': 'all',
                 'month': month or 'all',
@@ -98,7 +98,7 @@ def cps_export():
         else:
             return jsonify({'error': 'Invalid sheet. Use: new-clients, counseling-cases, checkins, all'}), 400
 
-        audit_log(db.db, 'reports', f'export_{sheet}', extra={'month': month or 'all', 'rows': len(rows)})
+        audit_log(db.db, 'reports', f'export_{sheet}', new_values={'month': month or 'all', 'rows': len(rows)})
         return jsonify({'sheet': sheet, 'month': month or 'all', 'rows': rows, 'total': len(rows)}), 200
 
     except Exception as e:
@@ -332,7 +332,7 @@ def appointments_csv():
                 'Concern':        a.get('concern', ''),
             })
 
-        audit_log(db.db, 'reports', 'export_appointments', extra={'month': month or 'all', 'rows': len(rows)})
+        audit_log(db.db, 'reports', 'export_appointments', new_values={'month': month or 'all', 'rows': len(rows)})
         return jsonify({'rows': rows, 'total': len(rows), 'month': month or 'all'}), 200
 
     except Exception as e:
@@ -411,7 +411,7 @@ def case_summary(case_id):
             ],
         }
 
-        audit_log(db.db, 'reports', 'view_case_summary', extra={'case_id': case_id})
+        audit_log(db.db, 'reports', 'view_case_summary', new_values={'case_id': case_id})
         return jsonify(result), 200
 
     except Exception as e:

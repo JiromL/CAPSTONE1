@@ -186,9 +186,8 @@ export function DashboardLayout({
             <Menu size={20} />
           </button>
 
-          {/* Greeting */}
+          {/* Page title */}
           <div className="hidden lg:block">
-            <p className="text-xs text-gray-400">Hi, {firstName}</p>
             <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
           </div>
 

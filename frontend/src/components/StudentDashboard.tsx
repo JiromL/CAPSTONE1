@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, BookOpen, FileText } from 'lucide-react';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -178,7 +178,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         <div className="flex flex-col xl:flex-row gap-6">
 
           {/* ── Left column ─────────────────────────────────────────── */}
-          <div className="flex-1 space-y-5 min-w-0">
+          <div className="flex-1 space-y-4 min-w-0">
 
             {/* Hero banner */}
             {nextAppt ? (() => {
@@ -292,6 +292,27 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               </div>
             )}
 
+            {/* Quick actions */}
+            {!isCheckInOnly && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { href: '/book-appointment', icon: <CalendarDays size={18} />, label: 'Book Session', color: 'text-[#2563eb] bg-blue-50 border-blue-100' },
+                  { href: '/my-appointments',  icon: <FileText size={18} />,     label: 'My Appointments', color: 'text-violet-600 bg-violet-50 border-violet-100' },
+                  { href: '/resources',        icon: <BookOpen size={18} />,     label: 'Resources', color: 'text-teal-600 bg-teal-50 border-teal-100' },
+                  { href: '/reminders',        icon: <Clock size={18} />,        label: 'Reminders', color: 'text-amber-600 bg-amber-50 border-amber-100' },
+                ].map(q => (
+                  <Link key={q.href} href={q.href}>
+                    <div className={`flex flex-col items-center gap-2 py-4 rounded-2xl border bg-white hover:shadow-sm transition-all cursor-pointer text-center`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${q.color}`}>
+                        {q.icon}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-700">{q.label}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* CPS Announcements */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
@@ -313,19 +334,19 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                       <button
                         key={a.id}
                         onClick={() => setOpenAnnouncement(a)}
-                        className="w-full text-left px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors group"
+                        className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group border border-transparent hover:border-gray-100"
                       >
                         <div className="flex items-center gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide ${style.bg} ${style.text}`}>
                                 {style.label}
                               </span>
-                              {a.pinned && <span className="text-[10px] text-gray-400 font-medium">Pinned</span>}
+                              {a.pinned && <span className="text-[10px] text-gray-400 font-medium">· Pinned</span>}
                             </div>
-                            <p className="text-sm font-medium text-gray-800 leading-snug truncate">{a.title}</p>
+                            <p className="text-sm font-semibold text-gray-800 leading-snug truncate">{a.title}</p>
                             {a.event_date && (
-                              <p className="text-xs text-gray-400 mt-0.5">{fmtEventDate(a.event_date)}</p>
+                              <p className="text-[11px] text-gray-400 mt-0.5">{fmtEventDate(a.event_date)}</p>
                             )}
                           </div>
                           <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 flex-shrink-0 transition-colors" />

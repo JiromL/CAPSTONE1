@@ -813,11 +813,11 @@ export default function AppointmentsDashboard() {
       )}
 
       {/* ── Table card ────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
         {/* Card header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-800">Appointments</h2>
+          <h2 className="text-sm font-bold text-gray-900">Appointments</h2>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -891,7 +891,7 @@ export default function AppointmentsDashboard() {
 
                 return (
                   <React.Fragment key={apt.appointment_id}>
-                    <div className={`rounded-xl border p-4 transition-all ${cardCls}`}>
+                    <div className={`rounded-2xl border p-4 transition-all hover:shadow-sm ${cardCls}`}>
                       <div className="flex items-start gap-4">
                         <div className="flex-1 min-w-0">
 

@@ -41,7 +41,7 @@ const TABS = [
 
 type TabKey = typeof TABS[number]['key'];
 
-const TAB_ACTIVE_CLS = 'text-[#2563eb] border-b-2 border-[#2563eb]';
+const TAB_ACTIVE_CLS = 'text-[#2563eb] border-b-2 border-[#2563eb] bg-blue-50/50';
 const TAB_ICON_CLS = 'text-[#2563eb]';
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
@@ -419,7 +419,7 @@ export default function MyAppointmentsPage() {
       )}
 
       {/* Tab bar + table card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
         {/* Tabs */}
         <div className="flex items-end overflow-x-auto border-b border-gray-200 px-2 pt-2 gap-0.5 scrollbar-hide">
@@ -452,8 +452,8 @@ export default function MyAppointmentsPage() {
         </div>
 
         {/* Section label */}
-        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/40 flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
             {TABS.find(t => t.key === activeTab)?.label ?? 'Sessions'}
           </p>
         </div>
@@ -504,10 +504,10 @@ export default function MyAppointmentsPage() {
                 const awaitingConfirmation = appt.status === 'PENDING_STUDENT_APPROVAL';
 
                 return (
-                  <div key={appt._id} className={`rounded-xl border p-4 transition-all ${
+                  <div key={appt._id} className={`rounded-2xl border p-4 transition-all hover:shadow-sm ${
                     needsEval           ? 'bg-amber-50 border-amber-200'
                     : awaitingConfirmation ? 'bg-sky-50 border-sky-200'
-                    : 'bg-white border-gray-200 hover:border-gray-300'
+                    : 'bg-white border-gray-100 hover:border-gray-200'
                   }`}>
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">

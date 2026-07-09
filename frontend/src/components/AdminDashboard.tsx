@@ -37,14 +37,14 @@ function StatCard({ label, value, sub, highlight, action }: {
   highlight?: boolean; action?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl p-5 flex flex-col gap-2 min-h-[110px]">
-      <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{label}</p>
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 flex flex-col gap-2 min-h-[110px] hover:shadow-md transition-shadow">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
       {value !== undefined && (
-        <p className={`text-3xl font-bold leading-none ${highlight ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-gray-50'}`}>
+        <p className={`text-3xl font-bold leading-none tracking-tight ${highlight ? 'text-[#2563eb]' : 'text-gray-900'}`}>
           {value}
         </p>
       )}
-      {sub && <p className="text-xs text-gray-400 dark:text-gray-500">{sub}</p>}
+      {sub && <p className="text-xs text-gray-400 leading-snug">{sub}</p>}
       {action}
     </div>
   );

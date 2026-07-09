@@ -824,8 +824,8 @@ export default function BookAppointmentPage() {
               </div>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">What happens next</p>
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4 shadow-sm">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">What happens next</p>
             <ol className="space-y-3">
               {(isSlotBooking ? [
                 { label: 'IC reviews your slot', desc: 'Your intake counselor will confirm or adjust your reserved time within 1–2 business days.' },

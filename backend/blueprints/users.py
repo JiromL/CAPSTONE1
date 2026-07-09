@@ -151,10 +151,10 @@ def get_all_users():
         
         if not current_user:
             return jsonify({'error': 'User not found', 'user_id': str(user_id_obj)}), 404
-        
-        if current_user.get('role') != 'ADMIN':
+
+        if current_user.get('role') not in ('ADMIN', 'DPO'):
             return jsonify({'error': f'Unauthorized - admin access required. Your role: {current_user.get("role")}'}), 403
-        
+
         # Get all users
         users = list(db.db.users.find(
             {},

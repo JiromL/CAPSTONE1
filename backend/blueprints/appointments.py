@@ -65,20 +65,23 @@ def get_counselor_workload(counselor_id):
         return float('inf')  # Return high number if error
 
 
-def find_available_counselor(case_id, requested_start, requested_end, preferred_method=None):
+def find_available_counselor(case_id, requested_start, requested_end, preferred_method=None, purpose=None):
     """
-    Find an available counselor for the requested time slot
-    Uses load balancing - assigns to counselor with fewest appointments
-    Optionally filters by meeting method preference
+    Find an available counselor for the requested time slot.
+    Intake interviews are routed exclusively to IC role; all others go to COUNSELOR/PSYCHOLOGIST.
     """
     try:
         # Get the case to find the assigned counselor (if any)
         case = db.db.cases.find_one({"_id": case_id})
         if not case:
             return None
-        
-        # Get all available counselors (COUNSELOR, PSYCHOLOGIST roles)
-        available_roles = ['COUNSELOR', 'PSYCHOLOGIST']
+
+        # Intake appointments → only IC; everything else → COUNSELOR / PSYCHOLOGIST
+        if purpose == 'intake_interview':
+            available_roles = ['IC']
+        else:
+            available_roles = ['COUNSELOR', 'PSYCHOLOGIST']
+
         counselors = list(db.db.users.find({
             'role': {'$in': available_roles},
             'is_active': True
@@ -142,12 +145,13 @@ def auto_assign_appointment(appointment_id):
         if not preferred_method:
             preferred_method = 'in-person'  # Default to in-person
         
-        # Find available counselor that supports the preferred method
+        # Find available counselor — intake goes to IC only, others to COUNSELOR/PSYCHOLOGIST
         counselor = find_available_counselor(
             appointment['case_id'],
             appointment['requested_start'],
             appointment['requested_end'],
-            preferred_method  # Pass method preference
+            preferred_method,
+            purpose=appointment.get('purpose'),
         )
         
         if not counselor:
@@ -426,10 +430,15 @@ def get_my_appointments():
 @appointments_bp.route('/available-counselors', methods=['GET'])
 @jwt_required()
 def get_available_counselors():
-    """Return name + id + role for all active counselors and psychologists.
-    Used by students to pick a counselor when none is pre-assigned."""
+    """Return active staff eligible to handle an appointment.
+    Pass ?purpose=intake_interview to restrict to IC role only."""
+    purpose = request.args.get('purpose', '')
+    if purpose == 'intake_interview':
+        roles = ['IC']
+    else:
+        roles = ['COUNSELOR', 'PSYCHOLOGIST']
     counselors = list(db.db.users.find(
-        {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}, 'is_active': True},
+        {'role': {'$in': roles}, 'is_active': True},
         {'_id': 1, 'first_name': 1, 'last_name': 1, 'role': 1},
     ))
     return jsonify({'users': [
@@ -941,6 +950,14 @@ def match_counselor(appointment_id):
         
         if not counselor:
             return jsonify({'error': 'Counselor not found'}), 404
+
+        # Enforce role restriction: intake_interview → IC only; others → COUNSELOR/PSYCHOLOGIST
+        purpose = appointment.get('purpose', '')
+        c_role = (counselor.get('role') or '').upper()
+        if purpose == 'intake_interview' and c_role != 'IC':
+            return jsonify({'error': 'Intake interviews must be assigned to an Intake Counselor (IC).'}), 400
+        if purpose != 'intake_interview' and c_role == 'IC':
+            return jsonify({'error': 'Intake Counselors can only handle intake interview appointments.'}), 400
     else:
         # Auto-match algorithm - try automatic assignment
         success, counselor_id_str, message = auto_assign_appointment(apt_id)

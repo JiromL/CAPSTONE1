@@ -312,7 +312,10 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* ── Calendar ── */}
-          <AppointmentsCalendar appts={appts} />
+          <AppointmentsCalendar appts={appts.filter(a =>
+            a.counselor_name && a.counselor_name !== 'Not Assigned' &&
+            ['CONFIRMED','APPROVED','CHECKED_IN','MATCHED'].includes((a.status || '').toUpperCase())
+          )} />
 
           {/* ── Recent System Activity ── */}
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden">

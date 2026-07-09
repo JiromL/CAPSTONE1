@@ -345,7 +345,10 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* Full week calendar */}
-          <AppointmentsCalendar appts={allAppts} />
+          <AppointmentsCalendar appts={allAppts.filter(a =>
+            a.counselor_name && a.counselor_name !== 'Not Assigned' &&
+            ['CONFIRMED','APPROVED','CHECKED_IN','MATCHED'].includes((a.status || '').toUpperCase())
+          )} />
 
         </div>
       )}

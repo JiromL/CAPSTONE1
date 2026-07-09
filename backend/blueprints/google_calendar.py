@@ -136,17 +136,15 @@ def disconnect_calendar():
 
 def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None):
     """
-    Helper function to sync appointment to Google Calendar
-    Returns: calendar_event_id or None if calendar not connected
+    Sync appointment to Google Calendar and create a Meet link for online sessions.
+    Returns: (calendar_event_id, meet_link) or (None, None) if calendar not connected.
     """
     try:
-        tokens = get_tokens(db.db, current_app.config, user_id, 'google')
-        
-        if not tokens or not tokens.get('access_token'):
-            return None  # Calendar not connected
-        
-        access_token = tokens['access_token']
         google = GoogleIntegration(current_app.config)
+        access_token = google.get_valid_token(db.db, current_app.config, user_id)
+
+        if not access_token:
+            return None, None
         
         # Get user and case details
         try:
@@ -209,22 +207,36 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
                 'email': counselor['email'],
                 'optional': False
             })
-        
-        # Create event
-        result = google.create_calendar_event(access_token, event)
-        
-        # Store event ID in appointment
+
+        # Create Meet link for online appointments
+        is_online = appointment_data.get('preferred_method', '') in ('google_meet', 'google-meet', 'online', 'video')
+        result = google.create_calendar_event(access_token, event, create_meet_link=is_online)
+
+        meet_link = None
+        if is_online:
+            meet_link = result.get('hangoutLink')
+            if not meet_link:
+                try:
+                    meet_link = result['conferenceData']['entryPoints'][0]['uri']
+                except (KeyError, IndexError):
+                    pass
+
+        # Store event ID and meet link in appointment
         if result.get('id'):
+            update = {"calendar_event_id": result['id']}
+            if meet_link:
+                update["meeting_link"] = meet_link
+                update["is_telehealth"] = True
             db.db.appointments.update_one(
                 {"_id": appointment_data.get('_id') or ObjectId(appointment_data.get('id', ''))},
-                {"$set": {"calendar_event_id": result['id']}}
+                {"$set": update}
             )
-        
-        return result.get('id')
-    
+
+        return result.get('id'), meet_link
+
     except Exception as e:
         print(f"Calendar sync error: {str(e)}")
-        return None
+        return None, None
 
 
 def update_appointment_in_calendar(user_id, appointment_data):

@@ -252,20 +252,54 @@ class GoogleIntegration:
         save_tokens(db, config, user_id, 'google', access, refresh, expires_at=expires_at, scopes=self.scope.split())
         return tokens
 
-    def create_calendar_event(self, access_token, event):
-        """Create calendar event (therapy session/appointment)
-        event: {
-            'summary': 'Therapy Session - John Doe',
-            'description': 'Clinical assessment and treatment planning',
-            'start': {'dateTime': '2026-03-15T14:00:00', 'timeZone': 'America/New_York'},
-            'end': {'dateTime': '2026-03-15T15:00:00', 'timeZone': 'America/New_York'},
-            'attendees': [{'email': 'counselor@university.edu'}, {'email': 'student@university.edu'}],
-            'reminders': {'useDefault': False, 'overrides': [{'method': 'email', 'minutes': 24*60}]}
-        }
-        """
+    def refresh_access_token(self, refresh_token):
+        """Exchange a refresh token for a new access token."""
+        resp = requests.post('https://oauth2.googleapis.com/token', data={
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'refresh_token': refresh_token,
+            'grant_type': 'refresh_token',
+        }, timeout=10)
+        resp.raise_for_status()
+        return resp.json()  # contains access_token, expires_in
+
+    def get_valid_token(self, db_client, config, user_id):
+        """Get a valid (possibly refreshed) access token for a user."""
+        from integrations.token_store import get_tokens, save_tokens
+        from datetime import datetime, timedelta
+        tokens = get_tokens(db_client, config, user_id, 'google')
+        if not tokens:
+            return None
+        # Refresh if expired or close to expiry
+        expires_at = tokens.get('expires_at')
+        if expires_at and expires_at < datetime.utcnow() + timedelta(minutes=5):
+            try:
+                new = self.refresh_access_token(tokens['refresh_token'])
+                new_expiry = datetime.utcnow() + timedelta(seconds=new.get('expires_in', 3600))
+                save_tokens(db_client, config, user_id, 'google',
+                            new['access_token'], tokens['refresh_token'],
+                            expires_at=new_expiry, scopes=tokens.get('scopes', []))
+                return new['access_token']
+            except Exception as e:
+                print(f"Token refresh failed: {e}")
+                return None
+        return tokens['access_token']
+
+    def create_calendar_event(self, access_token, event, create_meet_link=False):
+        """Create a Calendar event. Pass create_meet_link=True to attach a Google Meet."""
+        if create_meet_link:
+            import uuid
+            event = dict(event)
+            event['conferenceData'] = {
+                'createRequest': {
+                    'requestId': str(uuid.uuid4()),
+                    'conferenceSolutionKey': {'type': 'hangoutsMeet'},
+                }
+            }
         url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+        params = {'conferenceDataVersion': 1} if create_meet_link else {}
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
-        resp = requests.post(url, json=event, headers=headers, timeout=10)
+        resp = requests.post(url, json=event, headers=headers, params=params, timeout=10)
         resp.raise_for_status()
         return resp.json()
 

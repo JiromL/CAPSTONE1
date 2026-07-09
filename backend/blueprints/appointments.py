@@ -972,11 +972,12 @@ def match_counselor(appointment_id):
             except Exception as e:
                 print(f"⚠ Could not parse scheduled times: {e}")
 
-        # Auto-create Zoom meeting if student requested Zoom
+        # Auto-create meeting link based on preferred method
         meeting_link = None
         meeting_id_str = None
         meeting_passcode = None
         preferred_method = appointment.get('preferred_method', '')
+
         if preferred_method == 'zoom' and scheduled_start:
             try:
                 from integrations.zoom import ZoomIntegration
@@ -994,6 +995,24 @@ def match_counselor(appointment_id):
                 print(f"✓ Zoom meeting created: {meeting_link}")
             except Exception as e:
                 print(f"⚠ Zoom meeting creation failed: {e}")
+
+        elif preferred_method in ('google_meet', 'google-meet', 'online') and scheduled_start:
+            try:
+                from blueprints.google_calendar import sync_appointment_to_calendar
+                counselor_id_str = str(counselor['_id'])
+                # Build a minimal appointment dict for the sync helper
+                appt_for_sync = dict(appointment)
+                appt_for_sync['scheduled_start'] = scheduled_start
+                appt_for_sync['scheduled_end'] = scheduled_end or scheduled_start + timedelta(minutes=60)
+                appt_for_sync['counselor_id'] = counselor['_id']
+                _, meet_link = sync_appointment_to_calendar(counselor_id_str, appt_for_sync)
+                if meet_link:
+                    meeting_link = meet_link
+                    print(f"✓ Google Meet created: {meeting_link}")
+                else:
+                    print("⚠ Google Meet: counselor has not connected Google Calendar")
+            except Exception as e:
+                print(f"⚠ Google Meet creation failed: {e}")
 
         # Build update fields
         update_fields = {
@@ -1515,7 +1534,7 @@ def confirm_appointment(appointment_id):
     if counselor_id:
         try:
             from blueprints.google_calendar import sync_appointment_to_calendar
-            calendar_event_id = sync_appointment_to_calendar(str(counselor_id), appointment)
+            calendar_event_id, _ = sync_appointment_to_calendar(str(counselor_id), appointment)
             if calendar_event_id:
                 db.db.appointments.update_one(
                     {"_id": appointment['_id']},

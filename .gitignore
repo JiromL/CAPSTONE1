@@ -42,6 +42,9 @@ nohup.out
 .env.local
 .env.*.local
 
+# Google OAuth client secrets
+client_secret*.json
+
 # Package managers
 package-lock.json
 yarn.lock

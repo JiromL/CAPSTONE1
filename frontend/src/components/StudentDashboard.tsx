@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, BookOpen, FileText } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock } from 'lucide-react';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -292,28 +292,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               </div>
             )}
 
-            {/* Quick actions */}
-            {!isCheckInOnly && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { href: '/book-appointment', icon: <CalendarDays size={18} />, label: 'Book Session', color: 'text-[#2563eb] bg-blue-50 border-blue-100' },
-                  { href: '/my-appointments',  icon: <FileText size={18} />,     label: 'My Appointments', color: 'text-violet-600 bg-violet-50 border-violet-100' },
-                  { href: '/resources',        icon: <BookOpen size={18} />,     label: 'Resources', color: 'text-teal-600 bg-teal-50 border-teal-100' },
-                  { href: '/reminders',        icon: <Clock size={18} />,        label: 'Reminders', color: 'text-amber-600 bg-amber-50 border-amber-100' },
-                ].map(q => (
-                  <Link key={q.href} href={q.href}>
-                    <div className={`flex flex-col items-center gap-2 py-4 rounded-2xl border bg-white hover:shadow-sm transition-all cursor-pointer text-center`}>
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${q.color}`}>
-                        {q.icon}
-                      </div>
-                      <span className="text-xs font-semibold text-gray-700">{q.label}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* CPS Announcements */}
+{/* CPS Announcements */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm font-bold text-gray-900">CPS Updates &amp; Events</p>

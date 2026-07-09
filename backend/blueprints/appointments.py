@@ -1546,19 +1546,22 @@ def confirm_appointment(appointment_id):
         print(f"⚠ Error sending confirmation: {e}")
         # Don't fail the appointment confirmation if email sending fails
     
-    # Auto-sync to Google Calendar if counselor has calendar connected
+    # Auto-sync to Google Calendar / create Meet link if counselor has calendar connected
     counselor_id = appointment.get('counselor_id')
     if counselor_id:
         try:
             from blueprints.google_calendar import sync_appointment_to_calendar
-            calendar_event_id, _ = sync_appointment_to_calendar(str(counselor_id), appointment)
+            calendar_event_id, meet_link = sync_appointment_to_calendar(str(counselor_id), appointment)
+            save_fields = {}
             if calendar_event_id:
-                db.db.appointments.update_one(
-                    {"_id": appointment['_id']},
-                    {"$set": {"calendar_event_id": calendar_event_id}}
-                )
+                save_fields['calendar_event_id'] = calendar_event_id
+            if meet_link and not appointment.get('meeting_link'):
+                save_fields['meeting_link']  = meet_link
+                save_fields['is_telehealth'] = True
+                print(f"✓ Google Meet created on confirm: {meet_link}")
+            if save_fields:
+                db.db.appointments.update_one({"_id": appointment['_id']}, {"$set": save_fields})
         except Exception as e:
-            # Calendar sync is optional, don't fail appointment confirmation
             print(f"Calendar sync error: {str(e)}")
     
     audit_log(db.db, 'appointment', 'confirm', entity_id=str(appointment['_id']), new_values={
@@ -3631,22 +3634,77 @@ def confirm_intake_slot(appointment_id):
         return jsonify({'error': 'This slot booking is not assigned to you'}), 403
 
     now = datetime.utcnow()
+    preferred_method = apt.get('preferred_method') or 'in-person'
+    scheduled_start  = apt.get('scheduled_start') or apt.get('requested_start')
+    scheduled_end    = apt.get('scheduled_end')   or (scheduled_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60)) if scheduled_start else None)
+
     confirm_fields = {
         'status':       AppointmentStatus.CONFIRMED.value,
         'confirmed_by': uid_obj,
         'confirmed_at': now,
         'updated_at':   now,
     }
-    # Promote requested_start → scheduled_start if not already set
-    if not apt.get('scheduled_start') and apt.get('requested_start'):
-        confirm_fields['scheduled_start'] = apt['requested_start']
-    # Default method if missing
+    if not apt.get('scheduled_start') and scheduled_start:
+        confirm_fields['scheduled_start'] = scheduled_start
     if not apt.get('preferred_method'):
-        confirm_fields['preferred_method'] = 'in-person'
+        confirm_fields['preferred_method'] = preferred_method
+
+    # Auto-create Google Meet link for online appointments
+    meeting_link = apt.get('meeting_link')
+    if not meeting_link and preferred_method in ('google_meet', 'google-meet', 'online') and scheduled_start:
+        try:
+            from blueprints.google_calendar import sync_appointment_to_calendar
+            appt_for_sync = dict(apt)
+            appt_for_sync['scheduled_start'] = scheduled_start
+            appt_for_sync['scheduled_end']   = scheduled_end
+            _, meet_link = sync_appointment_to_calendar(str(uid_obj), appt_for_sync)
+            if meet_link:
+                meeting_link = meet_link
+                confirm_fields['meeting_link']  = meet_link
+                confirm_fields['is_telehealth'] = True
+                print(f"✓ Google Meet created for IC-confirmed appointment: {meet_link}")
+            else:
+                print("⚠ Google Meet: IC has not connected Google Calendar")
+        except Exception as e:
+            print(f"⚠ Google Meet creation failed: {e}")
+
     db.db.appointments.update_one({'_id': apt_id}, {'$set': confirm_fields})
+
+    # Send confirmation email to student
+    try:
+        student   = db.db.users.find_one({'_id': apt.get('student_id')})
+        counselor = db.db.users.find_one({'_id': apt.get('counselor_id')}) if apt.get('counselor_id') else user
+        if student and scheduled_start:
+            from services.email_service import EmailService
+            appt_data = {
+                'student_name':    f"{student.get('first_name','')} {student.get('last_name','')}".strip(),
+                'student_id':      student.get('student_id', 'N/A'),
+                'student_email':   student.get('email', ''),
+                'student_contact': student.get('phone_number', student.get('email', '')),
+                'reference_id':    str(apt['_id']),
+                'appointment_date': scheduled_start.strftime('%B %d, %Y'),
+                'appointment_time': scheduled_start.strftime('%I:%M %p'),
+                'platform':        {'google_meet': 'Google Meet', 'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}.get(preferred_method, preferred_method),
+                'counselor_name':  f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip() if counselor else 'CPS Intake Counselor',
+                'concern':         apt.get('concern', ''),
+                'meeting_link':    meeting_link or '',
+                'screenings_completed': [],
+            }
+            EmailService().send_appointment_confirmation_email(
+                recipient_email=student.get('email', ''),
+                student_name=appt_data['student_name'],
+                appointment_details=appt_data,
+            )
+            print(f"✓ Confirmation email sent to {student.get('email')}")
+    except Exception as e:
+        print(f"⚠ Confirmation email failed: {e}")
+
     audit_log(db.db, 'appointments', 'ic_confirmed_slot_booking', entity_id=appointment_id,
-              new_values={'confirmed_by': str(uid_obj)})
-    return jsonify({'message': 'Appointment confirmed.'}), 200
+              new_values={'confirmed_by': str(uid_obj), 'meeting_link': meeting_link or ''})
+    return jsonify({
+        'message': 'Appointment confirmed.',
+        'meeting_link': meeting_link or None,
+    }), 200
 
 
 # ─── FLOWCHART-ALIGNED ENDPOINTS ───────────────────────────────────────────

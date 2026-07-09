@@ -289,7 +289,7 @@ export default function BookAppointmentPage() {
     if (!prefDate || purpose === 'others') { setSlots([]); setNoSlotsNextDate(null); return; }
     const token = localStorage.getItem('token');
     setSlotsLoading(true);
-    setPrefTime(''); setSlotCounselorId(''); setSlotMethod('F2F');
+    setPrefTime(''); setSlotCounselorId('');
 
     if (purpose === 'intake_interview') {
       fetch(api(`/api/availability/open-slots?date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
@@ -880,9 +880,10 @@ export default function BookAppointmentPage() {
   };
 
   const isF2F = (m?: string) => ['f2f', 'in-person', 'in_person', 'face-to-face', 'onsite'].includes((m || '').toLowerCase());
-  const methodSlots = slots.filter(s =>
-    slotMethod === 'F2F' ? isF2F(s.method) : !isF2F(s.method)
-  );
+  // For intake interview show all IC slots regardless of mode (IC sets the method); for others filter by selected mode
+  const methodSlots = purpose === 'intake_interview'
+    ? slots
+    : slots.filter(s => slotMethod === 'F2F' ? isF2F(s.method) : !isF2F(s.method));
   const slotCountByTime: Record<string, number> = {};
   methodSlots.forEach(s => { slotCountByTime[s.time] = (slotCountByTime[s.time] || 0) + 1; });
 
@@ -1446,7 +1447,11 @@ export default function BookAppointmentPage() {
                   : 'Select a date'}
               </p>
               <p className="text-[10px] text-gray-400 mt-0.5">
-                {prefDate ? `${slotMethod === 'F2F' ? 'Face to Face' : 'Online'} slots` : 'Available time slots will appear here'}
+                {prefDate
+                  ? purpose === 'intake_interview'
+                    ? 'IC available slots'
+                    : `${slotMethod === 'F2F' ? 'Face to Face' : 'Online'} slots`
+                  : 'Available time slots will appear here'}
               </p>
             </div>
 
@@ -1499,7 +1504,7 @@ export default function BookAppointmentPage() {
 
               {prefDate && !slotsLoading && filteredSlots.length === 0 && !requestAnyway && (
                 <div className="text-center py-6">
-                  <p className="text-xs text-gray-400">No {slotMethod === 'F2F' ? 'face-to-face' : 'online'} slots available.</p>
+                  <p className="text-xs text-gray-400">{purpose === 'intake_interview' ? 'No IC slots available on this date.' : `No ${slotMethod === 'F2F' ? 'face-to-face' : 'online'} slots available.`}</p>
                   <p className="text-[10px] text-gray-400 mt-1">Try a different date or check below to request anyway.</p>
                 </div>
               )}

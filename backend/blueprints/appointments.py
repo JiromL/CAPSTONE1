@@ -1114,8 +1114,12 @@ def match_counselor(appointment_id):
                 appt_display_time = (scheduled_start or appointment.get('requested_start'))
                 date_str = appt_display_time.strftime('%B %d, %Y') if appt_display_time else 'TBD'
                 time_str = appt_display_time.strftime('%I:%M %p') if appt_display_time else 'TBD'
-                platform_map = {'zoom': 'Zoom', 'google_meet': 'Google Meet', 'in_person': 'In-Person', 'in-person': 'In-Person', 'phone': 'Phone'}
-                platform_label = platform_map.get(preferred_method, preferred_method or 'In-Person')
+                preferred_platform_val = appointment.get('preferred_platform', '')
+                platform_map = {'zoom': 'Zoom', 'google_meet': 'Google Meet', 'google-meet': 'Google Meet', 'in_person': 'In-Person', 'in-person': 'In-Person', 'phone': 'Phone', 'online': 'Online'}
+                if preferred_method == 'online' and preferred_platform_val:
+                    platform_label = platform_map.get(preferred_platform_val, preferred_platform_val.replace('-', ' ').title())
+                else:
+                    platform_label = platform_map.get(preferred_method, preferred_method or 'In-Person')
 
                 meeting_section = ''
                 if meeting_link:
@@ -1482,14 +1486,21 @@ def confirm_appointment(appointment_id):
         appointment_time = appointment.get('requested_start', datetime.utcnow()).strftime('%I:%M %p')
         
         # Get platform (format properly)
-        platform = appointment.get('preferred_method', 'In-Person')
+        platform = appointment.get('preferred_method', 'in-person')
+        preferred_platform_val = appointment.get('preferred_platform', '')
         platform_map = {
             'in_person': 'In-Person',
+            'in-person': 'In-Person',
             'google_meet': 'Google Meet',
+            'google-meet': 'Google Meet',
             'zoom': 'Zoom',
-            'phone': 'Phone'
+            'phone': 'Phone',
+            'online': 'Online',
         }
-        platform = platform_map.get(platform.lower(), platform)
+        if platform == 'online' and preferred_platform_val:
+            platform = platform_map.get(preferred_platform_val, preferred_platform_val.replace('-', ' ').title())
+        else:
+            platform = platform_map.get((platform or '').lower(), platform or 'In-Person')
         
         # Prepare appointment data dict
         appointment_data = {
@@ -3684,7 +3695,7 @@ def confirm_intake_slot(appointment_id):
                 'reference_id':    str(apt['_id']),
                 'appointment_date': scheduled_start.strftime('%B %d, %Y'),
                 'appointment_time': scheduled_start.strftime('%I:%M %p'),
-                'platform':        {'google_meet': 'Google Meet', 'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}.get(preferred_method, preferred_method),
+                'platform':        (lambda pm, pp: {'google_meet': 'Google Meet', 'google-meet': 'Google Meet', 'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person', 'online': pp.replace('-', ' ').title() if pp else 'Online'}.get(pm, pm or 'In-Person'))(preferred_method, apt.get('preferred_platform', '')),
                 'counselor_name':  f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip() if counselor else 'CPS Intake Counselor',
                 'concern':         apt.get('concern', ''),
                 'meeting_link':    meeting_link or '',

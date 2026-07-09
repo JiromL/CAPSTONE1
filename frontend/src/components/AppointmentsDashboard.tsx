@@ -126,6 +126,8 @@ function fmtMethod(m?: string) {
   if (!m) return '—';
   if (m === 'in-person' || m === 'in_person') return 'Face to Face';
   if (m === 'google-meet' || m === 'google_meet') return 'Google Meet';
+  if (m === 'zoom') return 'Zoom';
+  if (m === 'online') return 'Online';
   return m.charAt(0).toUpperCase() + m.slice(1);
 }
 const PURPOSE_LABEL: Record<string, string> = {

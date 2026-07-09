@@ -44,8 +44,15 @@ function getSessionTitle(appt: any): string {
 
 function getMethodLabel(appt: any): string {
   const m = (appt.preferred_method || appt.mode || '').toLowerCase();
-  if (m === 'online' || m === 'video') return 'Video';
-  if (m === 'onsite' || m === 'in_person' || m === 'face_to_face') return 'In-person';
+  const p = (appt.preferred_platform || '').toLowerCase();
+  if (m === 'online' || m === 'video') {
+    if (p === 'google-meet' || p === 'google_meet') return 'Google Meet';
+    if (p === 'zoom') return 'Zoom';
+    return 'Online';
+  }
+  if (m === 'in-person' || m === 'onsite' || m === 'in_person' || m === 'face_to_face') return 'In-person';
+  if (m === 'google-meet' || m === 'google_meet') return 'Google Meet';
+  if (m === 'zoom') return 'Zoom';
   return '';
 }
 

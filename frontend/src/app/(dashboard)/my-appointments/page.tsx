@@ -17,6 +17,7 @@ interface Appointment {
   purpose?: string;
   concern?: string;
   preferred_method?: string;
+  preferred_platform?: string;
   preferred_time?: string;
   requested_start?: string;
   scheduled_start?: string;
@@ -97,12 +98,14 @@ function fmtPurpose(p?: string) {
   if (!p) return '—';
   return p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
-function fmtPlatform(m?: string) {
-  if (!m) return '—';
-  if (m === 'in-person' || m === 'in_person') return 'Face to Face';
-  if (m === 'google-meet' || m === 'google_meet') return 'Google Meet';
-  if (m === 'zoom') return 'Zoom';
-  return m;
+function fmtPlatform(m?: string, platform?: string) {
+  const effective = (m === 'online' && platform) ? platform : m;
+  if (!effective) return '—';
+  if (effective === 'in-person' || effective === 'in_person') return 'Face to Face';
+  if (effective === 'google-meet' || effective === 'google_meet') return 'Google Meet';
+  if (effective === 'zoom') return 'Zoom';
+  if (effective === 'online') return 'Online';
+  return effective.charAt(0).toUpperCase() + effective.slice(1);
 }
 function isUpcoming(dt?: string) {
   return dt ? new Date(dt) > new Date() : false;
@@ -529,7 +532,7 @@ export default function MyAppointmentsPage() {
                               <CalendarDays size={11} />{fmtDateTime(dt)}
                             </span>
                           )}
-                          <span>{fmtPlatform(appt.preferred_method)}</span>
+                          <span>{fmtPlatform(appt.preferred_method, appt.preferred_platform)}</span>
                         </div>
                         {appt.counselor_name ? (
                           <p className="mt-1 text-xs text-gray-600">With <span className="font-medium text-gray-800">{appt.counselor_name}</span></p>
@@ -679,7 +682,7 @@ export default function MyAppointmentsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     ['Session Type', PURPOSE_LABEL[detailAppt.purpose || ''] || fmtPurpose(detailAppt.purpose)],
-                    ['Mode', fmtPlatform(detailAppt.preferred_method)],
+                    ['Mode', fmtPlatform(detailAppt.preferred_method, detailAppt.preferred_platform)],
                   ].map(([k, v]) => (
                     <div key={k} className="bg-gray-50 rounded-lg p-3">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{k}</p>

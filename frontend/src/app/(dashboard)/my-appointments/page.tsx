@@ -377,11 +377,7 @@ export default function MyAppointmentsPage() {
     <DashboardPageWrapper title="My Appointments" subtitle="View and manage your counseling sessions">
 
       {/* Page header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800">My Counseling Sessions</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Track your sessions and take action on pending items</p>
-        </div>
+      <div className="flex items-center justify-end mb-5">
         <Link href="/book-appointment">
           <button className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 text-white text-sm font-medium rounded-lg transition shadow-sm">
             <Plus size={14} /> New Request
@@ -415,6 +411,22 @@ export default function MyAppointmentsPage() {
             className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
             View appointment
           </button>
+        </div>
+      )}
+
+      {/* No-show policy notice */}
+      {appointments.filter(a => a.status === 'NO_SHOW').length >= 1 && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm">
+          <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-red-800 font-medium">
+              You have {appointments.filter(a => a.status === 'NO_SHOW').length} missed session{appointments.filter(a => a.status === 'NO_SHOW').length > 1 ? 's' : ''} on record.
+            </p>
+            <p className="text-red-700 text-xs mt-0.5">
+              Per clinic policy, 3 consecutive missed sessions may result in automatic case closure.
+              Please contact the counseling office if you need to reschedule or have any concerns.
+            </p>
+          </div>
         </div>
       )}
 

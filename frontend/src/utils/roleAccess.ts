@@ -35,7 +35,8 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/feedback': ['STUDENT'],
 
   // Intake Counselor pages
-  '/new-intakes': ['IC', 'ADMIN', 'DPO'],
+  '/new-intakes':         ['IC', 'ADMIN', 'DPO'],
+  '/intake-management':   ['IC'],
   '/ic/intake/pending': ['IC', 'ADMIN', 'DPO'],
   '/reminders': ['IC', 'ADMIN', 'DPO'],
 
@@ -61,6 +62,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/counseling-cases': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/check-ins': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/my-referrals': ['COUNSELOR', 'PSYCHOLOGIST'],
   '/c2c-referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/counselor': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
   '/video-links': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],

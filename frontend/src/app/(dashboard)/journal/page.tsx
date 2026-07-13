@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
-import { Plus, Trash2, Edit2, X, Tag, Loader2, ChevronDown, ChevronUp, BookOpen, Flame } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Tag, Loader2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 
 interface JournalEntry {
   journal_id: string;
@@ -98,21 +98,12 @@ export default function JournalPage() {
     }
   };
 
-  const streak = (() => {
-    if (!entries.length) return 0;
-    const days: string[] = [];
-    for (const e of entries) {
-      const day = new Date(e.created_at).toDateString();
-      if (!days.includes(day)) days.push(day);
-    }
-    let s = 0;
-    let cursor = new Date(); cursor.setHours(0,0,0,0);
-    for (const day of days) {
-      const d = new Date(day);
-      const diff = Math.round((cursor.getTime() - d.getTime()) / 86400000);
-      if (diff === 0 || diff === 1) { s++; cursor = d; } else break;
-    }
-    return s;
+  const thisMonthCount = (() => {
+    const now = new Date();
+    return entries.filter(e => {
+      const d = new Date(e.created_at);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
   })();
 
   // Group entries by month
@@ -140,10 +131,10 @@ export default function JournalPage() {
               <BookOpen size={15} className="text-gray-400" />
               <span className="font-semibold text-gray-800">{total}</span> entries
             </span>
-            {streak > 0 && (
+            {thisMonthCount > 0 && (
               <span className="flex items-center gap-1.5 text-sm text-gray-600">
-                <Flame size={15} className="text-orange-400" />
-                <span className="font-semibold text-gray-800">{streak}</span>-day streak
+                <BookOpen size={15} className="text-[#2563eb]" />
+                <span className="font-semibold text-gray-800">{thisMonthCount}</span> this month
               </span>
             )}
           </div>

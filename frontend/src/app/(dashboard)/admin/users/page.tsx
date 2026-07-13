@@ -29,7 +29,7 @@ export default function UserManagementPage() {
   const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'STAFF', 'STUDENT'];
+  const VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'IC', 'STAFF', 'STUDENT'];
 
   useEffect(() => {
     fetchUsers();
@@ -164,6 +164,7 @@ export default function UserManagementPage() {
       COUNSELOR: 'bg-green-100 text-green-800',
       DPO: 'bg-purple-100 text-purple-800',
       IC: 'bg-yellow-100 text-yellow-800',
+      CASE_MANAGER: 'bg-teal-100 text-teal-800',
       STAFF: 'bg-gray-100 text-gray-800',
       STUDENT: 'bg-sky-100 text-sky-800',
     };

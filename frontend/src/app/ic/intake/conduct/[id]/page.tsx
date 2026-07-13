@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { ICInterviewWizard } from '@/components/ICInterviewWizard';
 import { api } from '@/utils/api';
 import {
   Loader2, ChevronLeft, ChevronRight, CheckCircle2,
   AlertTriangle, ShieldAlert, Shield, Activity,
   FileText, Eye, Check, User, Pencil, Save, X,
+  Users, ExternalLink, ClipboardList,
 } from 'lucide-react';
 
 // ── Assessments ────────────────────────────────────────────────────────────────
@@ -97,7 +99,7 @@ function ScoreChip({ label, score, max, sev }: { label: string; score: number | 
 
 function fmtFreq(v: number) { return ['Not at all','Several days','More than half','Nearly every day'][v] ?? `${v}`; }
 
-type Step = 'review' | 'phq9' | 'cssr_s' | 'gad7' | 'triage';
+type Step = 'review' | 'phq9' | 'cssr_s' | 'gad7' | 'ic_doc' | 'route';
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function ConductIntakePage() {
@@ -116,11 +118,22 @@ export default function ConductIntakePage() {
   const [gad7, setGad7] = useState<(number | null)[]>(Array(7).fill(null));
   const [cssr, setCssr] = useState<(boolean | null)[]>(Array(6).fill(null));
   const [riskOverride, setRiskOverride]         = useState('');
-  const [decision, setDecision]                 = useState('');
-  const [endNotes, setEndNotes]                 = useState('');
-  const [assignedCounselorId, setAssignedCounselorId] = useState('');
-  const [counselorOptions, setCounselorOptions] = useState<{ _id: string; label: string }[]>([]);
-  const [loadingCounselors, setLoadingCounselors] = useState(false);
+
+  // IC Documentation step state
+  const [caseId, setCaseId] = useState('');
+  const [icDocSaving, setIcDocSaving] = useState(false);
+  const [icDocError, setIcDocError] = useState('');
+  const [icDocSuccess, setIcDocSuccess] = useState(false);
+  const [icDocDraft, setIcDocDraft] = useState<any>(null);
+
+  // Referral step state
+  const [referralMode, setReferralMode] = useState<'specific' | 'pool'>('pool');
+  const [referralRole, setReferralRole] = useState<'COUNSELOR' | 'PSYCHOLOGIST'>('COUNSELOR');
+  const [referralUserId, setReferralUserId] = useState('');
+  const [referralUserOptions, setReferralUserOptions] = useState<{ _id: string; label: string }[]>([]);
+  const [referralNote, setReferralNote] = useState('');
+  const [referralSubmitting, setReferralSubmitting] = useState(false);
+  const [referralDone, setReferralDone] = useState(false);
 
   // Intake packet edit state
   const [editingPacket, setEditingPacket]   = useState(false);
@@ -137,12 +150,18 @@ export default function ConductIntakePage() {
       if (r.ok) {
         const data = await r.json();
         setIntake(data);
+        // Scores already saved (returning to a mid-flow session) — restore and jump to IC doc
+        if (data.case_id) {
+          setCaseId(String(data.case_id));
+          setStep('ic_doc');
+          return;
+        }
         const apptId = data.appointment_id || intakeId;
         try {
           const pr = await fetch(api(`/api/intake/packet/${apptId}`), { headers: { Authorization: `Bearer ${token}` } });
           if (pr.ok) {
             const pd = await pr.json();
-            if (pd.submitted !== false) { setPacket(pd); setStep('review'); }
+            if (pd.submitted !== false) { setPacket(pd); }
           }
         } catch {}
       }
@@ -161,24 +180,17 @@ export default function ConductIntakePage() {
     }
   }, [packet]);
 
+  // Load user options for specific referral assignment
   useEffect(() => {
-    if (decision !== 'ENDORSE_CC' && decision !== 'ENDORSE_CP') {
-      setCounselorOptions([]); setAssignedCounselorId(''); return;
-    }
-    const role = decision === 'ENDORSE_CC' ? 'COUNSELOR' : 'PSYCHOLOGIST';
-    setLoadingCounselors(true);
+    if (step !== 'route' || referralMode !== 'specific') return;
     const token = localStorage.getItem('token');
-    fetch(api(`/api/users?role=${role}`), { headers: { Authorization: `Bearer ${token}` } })
+    fetch(api(`/api/users?role=${referralRole}`), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : { users: [] })
-      .then(d => {
-        const opts = (d.users || []).map((u: any) => ({
-          _id: u._id,
-          label: `${(u.last_name || '').toUpperCase()}, ${u.first_name || ''}`,
-        }));
-        setCounselorOptions(opts);
-      })
-      .finally(() => setLoadingCounselors(false));
-  }, [decision]);
+      .then(d => setReferralUserOptions((d.users || []).map((u: any) => ({
+        _id: u._id,
+        label: `${(u.last_name || '').toUpperCase()}, ${u.first_name || ''}`,
+      }))));
+  }, [step, referralMode, referralRole]);
 
   const phq9Score = phq9.every(v => v !== null) ? phq9.reduce((a, b) => a! + b!, 0)! : null;
   const gad7Score = gad7.every(v => v !== null) ? gad7.reduce((a, b) => a! + b!, 0)! : null;
@@ -199,11 +211,12 @@ export default function ConductIntakePage() {
     return 'GREEN';
   }
 
-  const calculatedRisk = calcRisk();
-  const displayRisk    = riskOverride || calculatedRisk;
   const phq9Done = phq9.every(v => v !== null);
   const gad7Done = gad7.every(v => v !== null);
   const csrsDone = cssr.every(v => v !== null);
+  const calculatedRisk  = calcRisk();
+  const hasLocalScores  = phq9Done || gad7Done;
+  const displayRisk     = riskOverride || (hasLocalScores ? calculatedRisk : (intake?.risk_level || calculatedRisk));
 
   const savePacket = async () => {
     setSavingPacket(true); setPacketMsg('');
@@ -241,15 +254,18 @@ export default function ConductIntakePage() {
     setStep(phq9[8] !== null && phq9[8]! > 0 ? 'cssr_s' : 'gad7');
   };
 
-  const handleSubmit = async () => {
-    if (!decision) { setError('Please select a triage decision before submitting.'); return; }
-    if ((decision === 'ENDORSE_CC' || decision === 'ENDORSE_CP') && !assignedCounselorId) {
-      setError('Please select a counselor to assign before submitting.'); return;
-    }
+  // Auto-submit scores after GAD-7 — provisional decision derived from computed risk.
+  // The IC's formal recommendation is captured in step 10 of IC Documentation.
+  const handleAutoTriage = async () => {
+    if (caseId) { setStep('ic_doc'); return; } // already done (returning to page)
     setSubmitting(true); setError('');
     const token = localStorage.getItem('token');
     try {
       const realId = intake?._id || intakeId;
+      const provisionalDecision =
+        calculatedRisk === 'CRITICAL' ? 'CRISIS' :
+        calculatedRisk === 'RED'      ? 'ENDORSE_CP' :
+                                        'ENDORSE_CC';
       const r = await fetch(api(`/api/intake/${realId}/triage`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -258,15 +274,105 @@ export default function ConductIntakePage() {
           gad7_responses: gad7Done ? gad7 : [],
           cssr_responses: csrsDone ? cssr : [],
           risk_override: riskOverride || null,
-          triage_decision: decision,
-          endorsement_notes: endNotes,
-          assigned_counselor_id: assignedCounselorId || null,
+          triage_decision: provisionalDecision,
         }),
       });
       const d = await r.json();
-      if (r.ok) setDone(true);
-      else setError(d.error || 'Failed to submit triage.');
+      if (r.ok) {
+        const newCaseId = d.case_id || (() => {
+          // fallback: re-fetch intake for case_id
+          return fetch(api(`/api/intake/${realId}`), { headers: { Authorization: `Bearer ${token}` } })
+            .then(ir => ir.ok ? ir.json() : {})
+            .then(u => u.case_id || null);
+        })();
+        const resolved = typeof newCaseId === 'string' ? newCaseId : await newCaseId;
+        if (resolved) setCaseId(String(resolved));
+        setStep('ic_doc');
+      } else {
+        setError(d.error || 'Failed to save scores. Please try again.');
+      }
     } finally { setSubmitting(false); }
+  };
+
+  const handleIcDocSave = async (draft: any, isFinal: boolean) => {
+    if (!caseId) return;
+    setIcDocSaving(true); setIcDocError(''); setIcDocSuccess(false);
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/cases/${caseId}/intake-form`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft),
+      });
+      if (r.ok) {
+        setIcDocDraft(draft);
+        setIcDocSuccess(true);
+        setTimeout(() => setIcDocSuccess(false), 3000);
+        if (isFinal) {
+          // Determine referral type from recommendation
+          const recs: string[] = draft.recommendation || [];
+          const needsInternalReferral = recs.some(r =>
+            r.includes('Continue Counseling') || r.includes('CPS Psychologist')
+          );
+          const needsExternalReferral = recs.some(r =>
+            r.includes('Psychiatrist') || r.includes('External Support') || r.includes('Faculty / Staff')
+          );
+          if (needsInternalReferral || needsExternalReferral) {
+            if (recs.some(r => r.includes('CPS Psychologist'))) setReferralRole('PSYCHOLOGIST');
+            else setReferralRole('COUNSELOR');
+            setStep('route');
+          } else {
+            setDone(true);
+          }
+        }
+      } else {
+        const err = await r.json();
+        setIcDocError(err.error || 'Failed to save.');
+      }
+    } catch { setIcDocError('Network error.'); }
+    finally { setIcDocSaving(false); }
+  };
+
+  const handleReferralSubmit = async () => {
+    if (!caseId) return;
+    setReferralSubmitting(true);
+    const token = localStorage.getItem('token');
+    try {
+      const recs: string[] = icDocDraft?.recommendation || [];
+      const needsInternal = recs.some(r => r.includes('Continue Counseling') || r.includes('CPS Psychologist'));
+      const needsExternal = recs.some(r => r.includes('Psychiatrist') || r.includes('External Support') || r.includes('Faculty / Staff'));
+
+      if (needsInternal) {
+        await fetch(api('/api/referrals/initiate'), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            case_id: caseId,
+            referral_type: 'INTERNAL',
+            assigned_to_role: referralMode === 'pool' ? referralRole : null,
+            assigned_to_user: referralMode === 'specific' ? referralUserId : null,
+            reason: referralNote || recs.filter(r => r.includes('Continue') || r.includes('Psychologist')).join('; '),
+            urgency: displayRisk === 'CRITICAL' || displayRisk === 'RED' ? 'urgent' : 'routine',
+          }),
+        });
+      }
+      if (needsExternal) {
+        await fetch(api('/api/referrals/initiate'), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            case_id: caseId,
+            referral_type: 'EXTERNAL',
+            receiving_provider_name: recs.filter(r => r.includes('Psychiatrist') || r.includes('External') || r.includes('Faculty')).join('; '),
+            reason: referralNote,
+            urgency: 'routine',
+          }),
+        });
+      }
+      setReferralDone(true);
+      setDone(true);
+    } catch { /* fail silently — referral is best-effort */ setDone(true); }
+    finally { setReferralSubmitting(false); }
   };
 
   if (loading) return (
@@ -281,52 +387,36 @@ export default function ConductIntakePage() {
     </DashboardPageWrapper>
   );
 
-  // Already triaged — show read-only summary instead of the form again
-  if (intake.status === 'COMPLETED' && intake.triage_decision && !done) {
-    const prevRisk = intake.risk_level || 'GREEN';
-    const prevDecision = intake.triage_decision;
+  // ── Done ─────────────────────────────────────────────────────────────────────
+  if (done) {
     return (
-      <DashboardPageWrapper title="Conduct Intake" subtitle="">
+      <DashboardPageWrapper title="Intake Complete" subtitle="">
         <div className="max-w-lg mx-auto mt-8">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className={`px-6 pt-8 pb-6 text-center ${prevRisk === 'CRITICAL' || prevRisk === 'RED' ? 'bg-red-700' : 'bg-[#2563eb]'}`}>
+            <div className={`px-6 pt-8 pb-6 text-center ${displayRisk === 'CRITICAL' || displayRisk === 'RED' ? 'bg-red-700' : 'bg-[#2563eb]'}`}>
               <CheckCircle2 size={40} className="text-white mx-auto mb-3" />
-              <h2 className="text-lg font-bold text-white">Triage Already Submitted</h2>
+              <h2 className="text-lg font-bold text-white">Intake Session Complete</h2>
               <p className="text-white/80 text-sm mt-1">{intake.student_name || '—'}</p>
             </div>
             <div className="px-6 py-5 space-y-4">
-              <div className="flex justify-center"><RiskBadge risk={prevRisk} /></div>
-              <p className="text-sm text-gray-600 text-center">
-                {prevDecision === 'CLOSE_AT_INTAKE' && 'Case was closed at intake.'}
-                {prevDecision === 'ENDORSE_CC' && 'Case endorsed to a Continuing Counselor (CC).'}
-                {prevDecision === 'ENDORSE_CP' && 'Case endorsed to a Continuing Psychologist (CP).'}
-              </p>
-              {(intake.phq9_score != null || intake.gad7_score != null) && (
-                <div className="grid grid-cols-2 gap-3 text-center">
-                  {intake.phq9_score != null && (
-                    <div className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-400">PHQ-9</p>
-                      <p className="text-xl font-bold text-gray-800">{intake.phq9_score}/27</p>
-                    </div>
-                  )}
-                  {intake.gad7_score != null && (
-                    <div className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-400">GAD-7</p>
-                      <p className="text-xl font-bold text-gray-800">{intake.gad7_score}/21</p>
-                    </div>
-                  )}
-                </div>
-              )}
-              {intake.endorsement_notes && (
-                <div className="bg-gray-50 rounded-xl px-4 py-3">
-                  <p className="text-xs text-gray-400 mb-1">Clinical Notes</p>
-                  <p className="text-sm text-gray-700">{intake.endorsement_notes}</p>
-                </div>
-              )}
-              <button onClick={() => router.push('/appointment-requests')}
-                className="w-full py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
-                Back to Pending Intakes
-              </button>
+              <div className="flex justify-center"><RiskBadge risk={displayRisk} /></div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> Assessment scores recorded</div>
+                <div className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> IC Interview Documentation saved</div>
+                {referralDone && <div className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> Referral created</div>}
+              </div>
+              <div className="flex gap-2 pt-2">
+                {caseId && (
+                  <button onClick={() => router.push(`/cases/${caseId}?tab=intake-summary`)}
+                    className="flex-1 py-2.5 border border-[#2563eb] text-[#2563eb] text-sm font-semibold rounded-xl hover:bg-blue-50 transition">
+                    View Case
+                  </button>
+                )}
+                <button onClick={() => router.push('/intake-management')}
+                  className="flex-1 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
+                  Back to Intake Management
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -334,43 +424,149 @@ export default function ConductIntakePage() {
     );
   }
 
-  // ── Done ─────────────────────────────────────────────────────────────────────
-  if (done) {
+  // ── IC Documentation step ─────────────────────────────────────────────────
+  if (step === 'ic_doc') {
+    const sessionDate = intake?.scheduled_start || intake?.preferred_date || intake?.created_at;
+    const sessionInfo = {
+      date: sessionDate ? new Date(sessionDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
+      time: sessionDate ? new Date(sessionDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : undefined,
+      mode: intake?.method || intake?.session_type,
+      studentId: intake?.student_id || intake?.student?.school_id,
+      college: intake?.student?.college,
+    };
+    // Use local scores if gathered this session, otherwise fall back to what the server stored
+    const docPhq9Responses = phq9Done ? (phq9 as (number | null)[]) : (intake?.phq9_responses || new Array(9).fill(null));
+    const docPhq9Score     = phq9Done ? phq9Score : (intake?.phq9_score ?? null);
+    const docGad7Responses = gad7Done ? (gad7 as (number | null)[]) : (intake?.gad7_responses || new Array(7).fill(null));
+    const docGad7Score     = gad7Done ? gad7Score : (intake?.gad7_score ?? null);
     return (
-      <DashboardPageWrapper title="Conduct Intake" subtitle="">
-        <div className="max-w-lg mx-auto mt-8">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className={`px-6 pt-8 pb-6 text-center ${displayRisk === 'CRITICAL' || displayRisk === 'RED' ? 'bg-red-700' : 'bg-[#2563eb]'}`}>
-              <CheckCircle2 size={40} className="text-white mx-auto mb-3" />
-              <h2 className="text-lg font-bold text-white">Triage Submitted</h2>
-              <p className="text-white/80 text-sm mt-1">{intake.student_name || '—'}</p>
+      <DashboardPageWrapper title="IC Interview Documentation" subtitle="Complete during session">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {/* Risk + scores summary banner */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex flex-wrap items-center gap-4">
+            <RiskBadge risk={displayRisk} />
+            <div className="flex gap-3">
+              <ScoreChip label="PHQ-9" score={docPhq9Score} max={27} sev={docPhq9Score !== null ? phq9Sev(docPhq9Score) : undefined} />
+              <ScoreChip label="GAD-7" score={docGad7Score} max={21} sev={docGad7Score !== null ? gad7Sev(docGad7Score) : undefined} />
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div className="flex justify-center"><RiskBadge risk={displayRisk} /></div>
-              <p className="text-sm text-gray-600 text-center">
-                {decision === 'CLOSE_AT_INTAKE' && 'Case closed at intake — no continuing sessions needed.'}
-                {decision === 'ENDORSE_CC'       && 'Case endorsed to a Continuing Counselor (CC).'}
-                {decision === 'ENDORSE_CP'       && 'Case endorsed to a Continuing Psychologist (CP).'}
-              </p>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                {phq9Score !== null && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400">PHQ-9</p>
-                    <p className="text-xl font-bold text-gray-800">{phq9Score}/27</p>
-                  </div>
-                )}
-                {gad7Score !== null && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400">GAD-7</p>
-                    <p className="text-xl font-bold text-gray-800">{gad7Score}/21</p>
-                  </div>
-                )}
+            <p className="text-xs text-gray-400 ml-auto">
+              {displayRisk === 'GREEN'    && 'Intake within 2–3 days'}
+              {displayRisk === 'YELLOW'   && 'Same or next day response'}
+              {displayRisk === 'RED'      && 'Response within 30 minutes'}
+              {displayRisk === 'CRITICAL' && 'Immediate — activate protocol'}
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <ICInterviewWizard
+              caseId={caseId}
+              sessionInfo={sessionInfo}
+              triageScores={{
+                phq9Responses: docPhq9Responses,
+                phq9Score: docPhq9Score,
+                gad7Responses: docGad7Responses,
+                gad7Score: docGad7Score,
+              }}
+              saving={icDocSaving}
+              saveError={icDocError}
+              saveSuccess={icDocSuccess}
+              onSave={handleIcDocSave}
+              onComplete={(formData) => { setIcDocDraft(formData); }}
+            />
+          </div>
+        </div>
+      </DashboardPageWrapper>
+    );
+  }
+
+  // ── Referral step ─────────────────────────────────────────────────────────
+  if (step === 'route') {
+    const recs: string[] = icDocDraft?.recommendation || [];
+    const needsInternal = recs.some(r => r.includes('Continue Counseling') || r.includes('CPS Psychologist'));
+    const needsExternal = recs.some(r => r.includes('Psychiatrist') || r.includes('External Support') || r.includes('Faculty / Staff'));
+    return (
+      <DashboardPageWrapper title="Route Student" subtitle="Route the student based on your documentation recommendation">
+        <div className="max-w-2xl mx-auto space-y-4">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <CheckCircle2 size={14} className="text-green-500" />
+            <span>IC Documentation saved — now route the student</span>
+          </div>
+
+          {needsInternal && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 mb-1 flex items-center gap-2"><Users size={15} className="text-[#2563eb]" /> Internal CPS Referral</p>
+                <p className="text-xs text-gray-400">Assign to a specific clinician, or broadcast to the role pool for any available clinician to accept.</p>
               </div>
-              <button onClick={() => router.push('/appointment-requests')}
-                className="w-full py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
-                Back to Pending Intakes
-              </button>
+
+              {/* Role select */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Refer to</label>
+                <div className="flex gap-2">
+                  {(['COUNSELOR', 'PSYCHOLOGIST'] as const).map(r => (
+                    <button key={r} onClick={() => { setReferralRole(r); setReferralUserId(''); }}
+                      className={`flex-1 py-2 text-sm font-semibold rounded-xl border transition ${referralRole === r ? 'bg-[#2563eb] text-white border-[#2563eb]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#2563eb]'}`}>
+                      {r === 'COUNSELOR' ? 'Counselor' : 'Psychologist'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Specific vs Pool */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Assignment method</label>
+                <div className="flex gap-2">
+                  {[{ key: 'pool', label: 'Open pool — anyone can accept' }, { key: 'specific', label: 'Assign to specific person' }].map(opt => (
+                    <button key={opt.key} onClick={() => setReferralMode(opt.key as any)}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition ${referralMode === opt.key ? 'bg-[#2563eb] text-white border-[#2563eb]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#2563eb]'}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {referralMode === 'specific' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Select {referralRole === 'COUNSELOR' ? 'counselor' : 'psychologist'}</label>
+                  <select value={referralUserId} onChange={e => setReferralUserId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2563eb] outline-none">
+                    <option value="">— Select —</option>
+                    {referralUserOptions.map(u => <option key={u._id} value={u._id}>{u.label}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
+          )}
+
+          {needsExternal && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 mb-1 flex items-center gap-2"><ExternalLink size={15} className="text-purple-600" /> External Referral</p>
+                <p className="text-xs text-gray-400">A formal referral letter will be generated and attached to the case. Give this to the student.</p>
+              </div>
+              <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3 text-xs text-purple-700">
+                {recs.filter(r => r.includes('Psychiatrist') || r.includes('External Support') || r.includes('Faculty / Staff')).map((r, i) => (
+                  <p key={i}>• {r.split('–')[0].trim()}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Referral notes (optional)</label>
+            <textarea value={referralNote} onChange={e => setReferralNote(e.target.value)} rows={3}
+              placeholder="Additional context for the receiving clinician…"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2563eb] outline-none resize-none" />
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={() => setDone(true)}
+              className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition">
+              Skip referral
+            </button>
+            <button onClick={handleReferralSubmit} disabled={referralSubmitting || (needsInternal && referralMode === 'specific' && !referralUserId)}
+              className="flex-1 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 transition flex items-center justify-center gap-2">
+              {referralSubmitting ? <><Loader2 size={14} className="animate-spin" /> Submitting…</> : 'Submit Referral'}
+            </button>
           </div>
         </div>
       </DashboardPageWrapper>
@@ -386,7 +582,8 @@ export default function ConductIntakePage() {
     { key: 'phq9',   label: 'PHQ-9' },
     ...(phq9[8] !== null && phq9[8]! > 0 ? [{ key: 'cssr_s' as Step, label: 'C-SSRS' }] : []),
     { key: 'gad7',   label: 'GAD-7' },
-    { key: 'triage', label: 'Triage' },
+    { key: 'ic_doc', label: 'IC Documentation' },
+    { key: 'route',  label: 'Route' },
   ];
   const stepIdx = allSteps.findIndex(s => s.key === step);
 
@@ -459,7 +656,7 @@ export default function ConductIntakePage() {
   }
 
   return (
-    <DashboardPageWrapper title="Intake Interview" subtitle="Conduct triage assessment and make endorsement decision">
+    <DashboardPageWrapper title="Intake Interview" subtitle="Complete assessments and document the session">
       <div className="max-w-3xl mx-auto space-y-4">
 
         {/* Patient header — persistent throughout */}
@@ -953,37 +1150,38 @@ export default function ConductIntakePage() {
             <div className="p-5">
               <AssessmentTable questions={GAD7} answers={gad7} setAnswers={setGad7} />
             </div>
+            {error && (
+              <div className="mx-5 mb-3 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                <AlertTriangle size={13} className="flex-shrink-0" />{error}
+              </div>
+            )}
             <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
               <button onClick={() => setStep(phq9[8] !== null && phq9[8]! > 0 ? 'cssr_s' : 'phq9')}
                 className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
                 <ChevronLeft size={13} /> Back
               </button>
               <div className="flex items-center gap-4">
-                <button onClick={() => { setGad7(Array(7).fill(null)); setStep('triage'); }}
-                  className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition">
+                <button onClick={() => { setGad7(Array(7).fill(null)); handleAutoTriage(); }}
+                  disabled={submitting}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition disabled:opacity-40">
                   Skip assessment
                 </button>
-                <button onClick={() => setStep('triage')} disabled={!gad7Done}
+                <button onClick={handleAutoTriage} disabled={!gad7Done || submitting}
                   className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-40 transition">
-                  Triage Decision <ChevronRight size={14} />
+                  {submitting ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : <>Proceed to Documentation <ChevronRight size={14} /></>}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── Triage ─────────────────────────────────────────────────────── */}
-        {step === 'triage' && (
+        {/* placeholder to keep the diff anchor — triage step removed */}
+        {false && (
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
-              <p className="text-sm font-bold text-gray-900">Triage Decision</p>
-              <p className="text-xs text-gray-400 mt-0.5">Review all assessment data and determine the appropriate next step for this student.</p>
             </div>
             <div className="p-5 space-y-5">
-
-              {/* Score summary cards */}
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Assessment Summary</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <ScoreChip label="PHQ-9" score={phq9Score} max={27} sev={phq9Score !== null ? phq9Sev(phq9Score) : undefined} />
                   <ScoreChip label="GAD-7" score={gad7Score} max={21} sev={gad7Score !== null ? gad7Sev(gad7Score) : undefined} />
@@ -1027,101 +1225,6 @@ export default function ConductIntakePage() {
                   </p>
                 )}
               </div>
-
-              {/* Final risk display */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase mb-1">Final Risk Level</p>
-                  <RiskBadge risk={displayRisk} />
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-400 mb-1">Recommended response</p>
-                  <p className="text-xs font-semibold text-gray-700">
-                    {displayRisk === 'GREEN'    && 'Intake 2–3 days'}
-                    {displayRisk === 'YELLOW'   && 'Same or next day'}
-                    {displayRisk === 'RED'      && 'Within 30 minutes'}
-                    {displayRisk === 'CRITICAL' && 'Immediate — activate protocol'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Triage decision */}
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Triage Decision <span className="text-red-400">*</span></p>
-                <div className="space-y-2">
-                  {[
-                    { v: 'ENDORSE_CC',      l: 'Endorse to Continuing Counselor (CC)',    d: 'For developmental, non-clinical concerns. Assigns to a licensed counselor for ongoing sessions.' },
-                    { v: 'ENDORSE_CP',      l: 'Endorse to Continuing Psychologist (CP)', d: 'For clinical or psychiatric concerns. Assigns to a licensed psychologist for deeper assessment.' },
-                    { v: 'CLOSE_AT_INTAKE', l: 'Close at Intake',                          d: 'Concern addressed during this session. No continuing sessions required.' },
-                  ].map(opt => (
-                    <label key={opt.v}
-                      className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition
-                        ${decision === opt.v ? 'border-[#2563eb] bg-green-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
-                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition
-                        ${decision === opt.v ? 'bg-[#2563eb] border-[#2563eb]' : 'border-gray-300'}`}>
-                        {decision === opt.v && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-                      <input type="radio" name="decision" value={opt.v} checked={decision === opt.v} onChange={() => setDecision(opt.v)} className="sr-only" />
-                      <div>
-                        <p className="text-sm font-bold text-gray-800">{opt.l}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{opt.d}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Counselor assignment — shown when endorsing */}
-              {(decision === 'ENDORSE_CC' || decision === 'ENDORSE_CP') && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Assign {decision === 'ENDORSE_CC' ? 'Counselor' : 'Psychologist'} <span className="text-red-400">*</span>
-                  </label>
-                  {loadingCounselors ? (
-                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-                      <Loader2 size={12} className="animate-spin" /> Loading available staff…
-                    </div>
-                  ) : (
-                    <select
-                      value={assignedCounselorId}
-                      onChange={e => setAssignedCounselorId(e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white">
-                      <option value="">— Select {decision === 'ENDORSE_CC' ? 'a counselor' : 'a psychologist'} —</option>
-                      {counselorOptions.map(c => (
-                        <option key={c._id} value={c._id}>{c.label}</option>
-                      ))}
-                    </select>
-                  )}
-                  {counselorOptions.length === 0 && !loadingCounselors && (
-                    <p className="text-xs text-amber-600 mt-1">No available {decision === 'ENDORSE_CC' ? 'counselors' : 'psychologists'} found.</p>
-                  )}
-                </div>
-              )}
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Clinical Notes & Endorsement Rationale</label>
-                <textarea rows={4} value={endNotes} onChange={e => setEndNotes(e.target.value)}
-                  placeholder="Document your clinical observations, MSE notes, endorsement rationale, or closure reason…"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none resize-none bg-white" />
-              </div>
-
-              {error && (
-                <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-                  <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />{error}
-                </div>
-              )}
-            </div>
-
-            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-              <button onClick={() => setStep('gad7')} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-                <ChevronLeft size={13} /> GAD-7
-              </button>
-              <button onClick={handleSubmit} disabled={submitting || !decision}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-40 transition">
-                {submitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                {submitting ? 'Submitting…' : 'Submit Triage Decision'}
-              </button>
             </div>
           </div>
         )}

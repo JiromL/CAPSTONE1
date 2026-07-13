@@ -666,6 +666,7 @@ def submit_triage(intake_id):
         'calculated_risk': calculated_risk,
         'risk_level': risk_level,
         'triage_decision': decision,
+        'case_id': str(case_id) if case_id else None,
     }), 200
 
 

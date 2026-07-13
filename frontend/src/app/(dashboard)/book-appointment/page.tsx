@@ -129,11 +129,6 @@ export default function BookAppointmentPage() {
   const [ticketNumber, setTicketNumber] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
 
-  const [consentGiven, setConsentGiven]   = useState<boolean | null>(null);
-  const [showConsent, setShowConsent]     = useState(false);
-  const [consentChecks, setConsentChecks] = useState({ counseling: false, privacy: false });
-  const [savingConsent, setSavingConsent] = useState(false);
-  const [consentError, setConsentError]   = useState<string | null>(null);
 
   const [activeAppt, setActiveAppt] = useState<any>(null);
   const [bookingGate, setBookingGate] = useState<string | null>(null);
@@ -206,12 +201,6 @@ export default function BookAppointmentPage() {
       if (!raw || !token) { router.push('/login'); return; }
       const u = JSON.parse(raw); setUser(u);
       try { const r = await fetch(api('/api/staff/settings/booking-rules'), { headers: { Authorization: `Bearer ${token}` } }); if (r.ok) setBookingRules(await r.json()); } catch {}
-      try {
-        const r = await fetch(api('/api/consent/status'), { headers: { Authorization: `Bearer ${token}` } });
-        if (r.status === 401) { router.replace('/login'); return; }
-        if (r.ok) { const d = await r.json(); setConsentGiven(d.consent_given); if (!d.consent_given) setShowConsent(true); }
-        else { setConsentGiven(false); setShowConsent(true); }
-      } catch {}
       try {
         const r = await fetch(api('/api/appointments/active'), { headers: { Authorization: `Bearer ${token}` } });
         if (r.ok) { const d = await r.json(); setBookingGate(d.booking_gate ?? (d.can_self_book ? 'eligible' : 'no_case')); setGateMessage(d.message ?? ''); if (d.has_active_appointment) setActiveAppt(d); }
@@ -312,15 +301,6 @@ export default function BookAppointmentPage() {
       setSlots([]); setSlotsLoading(false);
     }
   }, [prefDate, selectedCounselorId, purpose]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleConsent = async () => {
-    if (!consentChecks.counseling || !consentChecks.privacy) return;
-    const token = localStorage.getItem('token'); setSavingConsent(true); setConsentError(null);
-    try {
-      const r = await fetch(api('/api/consent/submit'), { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ consent_types:['counseling_services','data_privacy'] }) });
-      if (r.ok) { setConsentGiven(true); setShowConsent(false); } else setConsentError('Failed to record consent.');
-    } catch { setConsentError('Error recording consent.'); } finally { setSavingConsent(false); }
-  };
 
   const saveDraft = () => { setSavingDraft(true); localStorage.setItem(DRAFT_KEY, JSON.stringify({ purpose, specifyOthers, concern, referralType, referredBy, prefDate, prefTime })); setHasDraft(true); setTimeout(() => setSavingDraft(false), 600); };
   const clearDraft = () => { localStorage.removeItem(DRAFT_KEY); setHasDraft(false); };
@@ -897,82 +877,6 @@ export default function BookAppointmentPage() {
   // ── Main form ──────────────────────────────────────────────────────────────────
   return (
     <DashboardPageWrapper title="Book Appointment" subtitle="">
-
-      {/* Consent modal */}
-      {showConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
-            <div className="px-7 pt-7 pb-4 border-b border-gray-100 text-center flex-shrink-0">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-6 h-6 text-[#2563eb]" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900">Informed Consent Form</h2>
-              <p className="text-sm text-gray-400 mt-1">Please read the full document carefully before agreeing.</p>
-            </div>
-            <div className="overflow-y-auto flex-1 px-7 py-5 space-y-4 text-sm text-gray-700 leading-relaxed">
-              <div>
-                <p className="font-bold text-gray-900 mb-1">De La Salle University — Counseling &amp; Psychology Services (CPS)</p>
-                <p className="text-xs text-gray-500">This form is required before you can access counseling and psychological services. Please read each section carefully.</p>
-              </div>
-              <div className="border border-green-200 rounded-lg p-3 bg-green-50/50">
-                <p className="font-bold text-[#2563eb] text-xs uppercase tracking-wide mb-2">I. Informed Consent for Counseling Services</p>
-                <p className="text-xs text-gray-600 mb-1">The DLSU Counseling &amp; Psychology Services (CPS) provides mental health support, counseling, and psychological services to enrolled students. Services include individual counseling, psychological assessment, crisis intervention, and referral to appropriate resources.</p>
-                <p className="text-xs text-gray-600 mb-1">Participation is voluntary. You may ask questions at any time and may discontinue at any time without penalty.</p>
-                <p className="text-xs text-gray-600">Under the Mental Health Act of 2018 (RA 11036), you have the right to access mental health services, to be treated with dignity and respect, and to have your mental health information kept confidential.</p>
-              </div>
-              <div className="border border-amber-200 rounded-lg p-3 bg-amber-50/50">
-                <p className="font-bold text-amber-800 text-xs uppercase tracking-wide mb-2">II. Limits of Confidentiality Statement</p>
-                <p className="text-xs text-gray-600 mb-1">All information shared during counseling sessions is strictly confidential and will not be disclosed without your written consent, <span className="font-semibold">except</span> in the following circumstances:</p>
-                <ul className="text-xs text-gray-600 ml-4 list-disc space-y-0.5">
-                  <li>When there is imminent risk of serious harm to yourself or to others</li>
-                  <li>When there is reasonable suspicion of child abuse or neglect</li>
-                  <li>When disclosure is required by a court order or by law</li>
-                  <li>When required by university policy to protect the safety and welfare of the community</li>
-                </ul>
-              </div>
-              <div className="border border-blue-200 rounded-lg p-3 bg-blue-50/50">
-                <p className="font-bold text-green-800 text-xs uppercase tracking-wide mb-2">III. Privacy Notice</p>
-                <p className="text-xs text-gray-600 mb-1 font-medium">Information we collect:</p>
-                <ul className="text-xs text-gray-600 ml-4 list-disc space-y-0.5 mb-2">
-                  <li>Personal information: name, student ID, contact details, college, and program</li>
-                  <li>Health and mental health information: presenting concerns, history, medication, and substance use</li>
-                  <li>Assessment results: PHQ-9, GAD-7, C-SSRS, and other psychological screening tools</li>
-                  <li>Session notes: mood, risk indicators, and treatment progress</li>
-                  <li>Emergency contact information</li>
-                  <li>Wellness monitoring data from linked EMA accounts (if applicable)</li>
-                </ul>
-                <p className="text-xs text-gray-600"><span className="font-medium">Retention:</span> Records are kept for a minimum of ten (10) years from your last session, after which they are securely disposed of.</p>
-              </div>
-              <div className="border border-purple-200 rounded-lg p-3 bg-purple-50/50">
-                <p className="font-bold text-purple-800 text-xs uppercase tracking-wide mb-2">IV. Consent for Data Processing (RA 10173 — Data Privacy Act of 2012)</p>
-                <p className="text-xs text-gray-600 mb-1">Your mental health records are classified as <span className="font-medium">sensitive personal information</span> under RA 10173 and require your explicit consent to process.</p>
-                <div className="bg-white/70 rounded p-2 border border-purple-100 mt-2">
-                  <p className="text-xs text-gray-500 font-medium">DLSU Data Privacy Officer</p>
-                  <p className="text-xs text-gray-500">2401 Taft Avenue, Malate, Manila 1004 · dpo@dlsu.edu.ph</p>
-                </div>
-              </div>
-            </div>
-            <div className="px-7 pb-6 pt-4 border-t border-gray-100 flex-shrink-0 space-y-3">
-              {[
-                { k: 'counseling' as const, t: 'I have read and understood the nature of counseling services, confidentiality, and its exceptions. I voluntarily consent to receive counseling and psychological services from DLSU CPS.' },
-                { k: 'privacy' as const,    t: 'I have read and understood how my personal and sensitive data will be collected, processed, and stored. I consent to data processing in accordance with RA 10173 (Data Privacy Act of 2012).' },
-              ].map(item => (
-                <label key={item.k} className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={consentChecks[item.k]} onChange={e => setConsentChecks(c => ({ ...c, [item.k]: e.target.checked }))} className="w-4 h-4 mt-0.5 accent-[#2563eb] flex-shrink-0" />
-                  <p className="text-xs text-gray-700 leading-relaxed">{item.t}</p>
-                </label>
-              ))}
-              {consentError && <p className="text-xs text-red-500">{consentError}</p>}
-              <button onClick={handleConsent} disabled={savingConsent || !consentChecks.counseling || !consentChecks.privacy}
-                className="w-full py-3 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 mt-1">
-                {savingConsent && <Loader2 size={14} className="animate-spin" />}
-                I Agree &amp; Continue
-              </button>
-              <button onClick={() => router.replace('/dashboard')} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Booking confirmation modal */}
       {showConfirm && (

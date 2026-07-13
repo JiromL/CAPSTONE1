@@ -11,6 +11,7 @@ import {
 
 interface Appointment {
   appointment_id: string;
+  case_id?: string;
   student_name: string;
   student_email: string;
   student_id_number?: string;
@@ -35,15 +36,17 @@ interface DashboardData {
 }
 
 const TABS = [
-  { key: 'active',     label: 'Active',       icon: CheckCircle },
-  { key: 'evaluation', label: 'Post-Session',  icon: Star },
-  { key: 'past',       label: 'Completed',     icon: History },
-  { key: 'cancelled',  label: 'Cancelled',     icon: X },
+  { key: 'active',      label: 'Active',       icon: CheckCircle },
+  { key: 'reschedule',  label: 'Reschedule',   icon: RotateCcw },
+  { key: 'evaluation',  label: 'Post-Session', icon: Star },
+  { key: 'past',        label: 'Completed',    icon: History },
+  { key: 'cancelled',   label: 'Cancelled',    icon: X },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
-  active:     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL', 'RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
+  active:     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL'],
+  reschedule: ['RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
   evaluation: ['EVALUATION'],
   past:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL'],
   cancelled:  ['CANCELLED', 'DENIED', 'NO_SHOW'],
@@ -129,6 +132,7 @@ export default function AppointmentsPage() {
   const [noShowTarget, setNoShowTarget] = useState<Appointment | null>(null);
   const [noShowReason, setNoShowReason] = useState('');
   const [submittingNoShow, setSubmittingNoShow] = useState(false);
+  const [noShowTermAlert, setNoShowTermAlert] = useState<{ caseId: string | null; studentName: string } | null>(null);
 
   // Schedule endorsed session modal
   const [schedTarget, setSchedTarget] = useState<Appointment | null>(null);
@@ -186,11 +190,13 @@ export default function AppointmentsPage() {
 
   const apts = Array.isArray(dashboard?.appointments) ? dashboard!.appointments! : [];
 
-  const filtered = apts.filter(a => TAB_STATUSES[activeTab].includes(a.status));
-
   const counts = Object.fromEntries(
     TABS.map(t => [t.key, apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length])
   ) as Record<TabKey, number>;
+
+  const visibleTabs = TABS.filter(tab => tab.key !== 'reschedule' || counts.reschedule > 0);
+  const displayTab = (activeTab === 'reschedule' && counts.reschedule === 0) ? 'active' : activeTab;
+  const filtered = apts.filter(a => TAB_STATUSES[displayTab].includes(a.status));
 
   const canManage = dashboard?.can_manage_sessions ?? false;
 
@@ -325,8 +331,8 @@ export default function AppointmentsPage() {
 
         {/* Tabs */}
         <div className="flex items-end overflow-x-auto border-b border-gray-100 px-2 pt-1.5 gap-0.5 scrollbar-hide">
-          {TABS.map(tab => {
-            const isActive = activeTab === tab.key;
+          {visibleTabs.map(tab => {
+            const isActive = displayTab === tab.key;
             const cnt = counts[tab.key];
             return (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -697,14 +703,69 @@ export default function AppointmentsPage() {
                 <button disabled={submittingNoShow}
                   onClick={async () => {
                     setSubmittingNoShow(true);
-                    await doAction(noShowTarget.appointment_id, 'mark-no-show', { reason: noShowReason });
+                    const token = localStorage.getItem('token');
+                    const r = await fetch(api(`/api/appointments/${noShowTarget.appointment_id}/mark-no-show`), {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ reason: noShowReason }),
+                    });
+                    if (r.ok) {
+                      const d = await r.json();
+                      setActionMsg({ id: noShowTarget.appointment_id, type: 'ok', text: 'Marked as No Show.' });
+                      setPendingAction(null);
+                      if (d.auto_terminated) {
+                        setNoShowTermAlert({ caseId: noShowTarget.case_id ?? null, studentName: noShowTarget.student_name ?? 'Student' });
+                      }
+                      setTimeout(() => load(), 900);
+                    } else {
+                      const e = await r.json();
+                      setActionMsg({ id: noShowTarget.appointment_id, type: 'err', text: e.error || 'Failed.' });
+                    }
                     setNoShowTarget(null);
+                    setNoShowReason('');
                     setSubmittingNoShow(false);
                   }}
                   className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
                   {submittingNoShow && <Loader2 size={13} className="animate-spin" />}
                   Confirm No Show
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── No-Show Auto-Termination Alert ───────────────────────── */}
+      {noShowTermAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-red-100 bg-red-50">
+              <h3 className="font-semibold text-sm text-red-800">Case Flagged for Termination</h3>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-700">
+                <strong>{noShowTermAlert.studentName}</strong> has now missed 3 consecutive sessions.
+                Per CPS protocol, this case has been flagged for administrative termination.
+              </p>
+              <p className="text-xs text-gray-500">
+                Go to the case page to review and confirm the closure. The student will be notified when you confirm.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setNoShowTermAlert(null)}
+                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Dismiss
+                </button>
+                {noShowTermAlert.caseId && (
+                  <a
+                    href={`/cases/${noShowTermAlert.caseId}`}
+                    onClick={() => setNoShowTermAlert(null)}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition text-center"
+                  >
+                    View Case
+                  </a>
+                )}
               </div>
             </div>
           </div>

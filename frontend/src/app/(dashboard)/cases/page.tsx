@@ -49,9 +49,8 @@ export default function CasesPage() {
   const [cases, setCases]       = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
-  const [search, setSearch]     = useState('');
-  const [filterStatus, setFilterStatus]       = useState('all');
-  const [filterClientStatus, setFilterClientStatus] = useState('all');
+  const [search, setSearch]       = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>('all');
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
@@ -79,8 +78,7 @@ export default function CasesPage() {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const url = filterStatus !== 'all' ? api(`/api/cases?status=${filterStatus}`) : api('/api/cases');
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const r = await fetch(api('/api/cases'), { headers: { Authorization: `Bearer ${token}` } });
         if (!r.ok) throw new Error(`${r.status}`);
         const d = await r.json();
         const items = d.cases || [];
@@ -95,7 +93,7 @@ export default function CasesPage() {
       } finally { setLoading(false); }
     };
     load();
-  }, [user, filterStatus]);
+  }, [user]);
 
   const title = (() => {
     switch (user?.role?.toUpperCase()) {
@@ -109,12 +107,24 @@ export default function CasesPage() {
   })();
 
   const filtered = cases.filter(c => {
-    const matchStatus = filterStatus === 'all' || c.status === filterStatus || c.case_status === filterStatus;
-    const matchClient = filterClientStatus === 'all' || c.client_status === filterClientStatus;
-    const t = search.toLowerCase();
+    const status  = (c.status || c.case_status || '').toUpperCase();
+    const risk    = (c.risk_level || '').toUpperCase();
+    const t       = search.toLowerCase();
+
+    const matchTab = (() => {
+      switch (activeTab) {
+        case 'active':    return ['ACTIVE', 'NEW', 'INTAKE_SCHEDULED'].includes(status);
+        case 'attention': return status === 'PENDING_TERMINATION';
+        case 'high-risk': return ['RED', 'CRITICAL'].includes(risk);
+        case 'closed':    return ['CLOSED', 'CANCELLED'].includes(status);
+        default:          return true;
+      }
+    })();
+
     const matchSearch = !t || [c.student_name, c.student_email, c.chief_complaint, c.presenting_issue, c.case_number, c._id]
       .some(v => v?.toLowerCase().includes(t));
-    return matchStatus && matchClient && matchSearch;
+
+    return matchTab && matchSearch;
   });
 
   const highRisk = cases.filter(c => ['RED', 'CRITICAL'].includes(c.risk_level?.toUpperCase())).length;
@@ -124,21 +134,24 @@ export default function CasesPage() {
   return (
     <DashboardPageWrapper title={title} subtitle="Manage and track student cases">
 
-      {/* Summary strip */}
+      {/* Summary strip — click to filter */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        {[
-          { label: 'Total Cases', value: cases.length, icon: Users, cls: 'text-gray-800' },
-          { label: 'Open',        value: openCount,    icon: FolderOpen, cls: 'text-[#2563eb]' },
-          { label: 'High Risk',   value: highRisk,     icon: ShieldAlert, cls: highRisk > 0 ? 'text-red-600' : 'text-gray-400' },
-          { label: 'Closed',      value: closedCount,  icon: FolderX, cls: 'text-gray-400' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+        {([
+          { label: 'Total Cases', value: cases.length, icon: Users,       cls: 'text-gray-800',                                  tab: 'all'       as const },
+          { label: 'Open',        value: openCount,    icon: FolderOpen,  cls: 'text-[#2563eb]',                                 tab: 'active'    as const },
+          { label: 'High Risk',   value: highRisk,     icon: ShieldAlert, cls: highRisk > 0 ? 'text-red-600' : 'text-gray-400', tab: 'high-risk' as const },
+          { label: 'Closed',      value: closedCount,  icon: FolderX,     cls: 'text-gray-400',                                  tab: 'closed'    as const },
+        ]).map(s => (
+          <button key={s.label} onClick={() => setActiveTab(s.tab)}
+            className={`bg-white rounded-2xl border shadow-sm px-4 py-3 flex items-center gap-3 text-left w-full transition-all hover:shadow-md ${
+              activeTab === s.tab ? 'border-[#2563eb]/40 ring-1 ring-[#2563eb]/20' : 'border-gray-100 hover:border-gray-200'
+            }`}>
             <s.icon size={18} className={s.cls} />
             <div>
               <p className="text-xs text-gray-400">{s.label}</p>
               <p className={`text-xl font-semibold ${s.cls}`}>{s.value}</p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -151,37 +164,45 @@ export default function CasesPage() {
       {/* Table card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-        {/* Search + filters */}
-        <div className="flex flex-wrap items-center gap-2 px-5 py-4 border-b border-gray-100">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search name, issue, case #…"
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none"
-            />
+        {/* Tab bar + search */}
+        <div className="border-b border-gray-100">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto">
+            {([
+              { id: 'all',       label: 'All',              count: cases.length },
+              { id: 'active',    label: 'Active',            count: cases.filter(c => ['ACTIVE','NEW','INTAKE_SCHEDULED'].includes((c.status||c.case_status||'').toUpperCase())).length },
+              { id: 'attention', label: 'Needs Attention',   count: cases.filter(c => (c.status||c.case_status||'').toUpperCase()==='PENDING_TERMINATION').length },
+              { id: 'high-risk', label: 'High Risk',         count: cases.filter(c => ['RED','CRITICAL'].includes((c.risk_level||'').toUpperCase())).length },
+              { id: 'closed',    label: 'Closed',            count: cases.filter(c => ['CLOSED','CANCELLED'].includes((c.status||c.case_status||'').toUpperCase())).length },
+            ] as const).map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-[#2563eb] text-[#2563eb]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}>
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold ${
+                    activeTab === tab.id ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-500'
+                  }`}>{tab.count}</span>
+                )}
+              </button>
+            ))}
           </div>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
-            <option value="all">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="NEW">New</option>
-            <option value="INTAKE_SCHEDULED">Intake Scheduled</option>
-            <option value="PENDING_TERMINATION">Pending Termination</option>
-            <option value="CLOSED">Closed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-          <select value={filterClientStatus} onChange={e => setFilterClientStatus(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
-            <option value="all">All Clients</option>
-            <option value="ACTIVE">Active</option>
-            <option value="CHECK_IN_ONLY">Check-In Only</option>
-            <option value="WITH_MH_CHECK_IN">With MH Check-In</option>
-            <option value="UNDER_ACCOMMODATION">Under Accommodation</option>
-            <option value="TERMINATION_PENDING">Termination Pending</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
+
+          {/* Search */}
+          <div className="px-4 pb-3 pt-2">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search name, issue, case #…"
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none"
+              />
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -194,7 +215,15 @@ export default function CasesPage() {
               <FolderOpen size={18} className="text-gray-400" />
             </div>
             <p className="text-sm font-medium text-gray-600">No cases found</p>
-            <p className="text-xs text-gray-400 mt-1">Try adjusting your filters or search term.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {search
+                ? 'No cases match your search.'
+                : activeTab === 'active'    ? 'No active cases.'
+                : activeTab === 'attention' ? 'No cases need attention.'
+                : activeTab === 'high-risk' ? 'No high-risk cases at this time.'
+                : activeTab === 'closed'    ? 'No closed cases.'
+                : 'No cases found.'}
+            </p>
           </div>
         ) : (
           <>

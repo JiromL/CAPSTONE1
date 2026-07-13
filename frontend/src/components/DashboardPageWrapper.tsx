@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Calendar, FileText, CheckCircle, AlertCircle, BookOpen, Heart, MessageCircle, Users, Brain, Shield, TrendingUp } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { getMenuItemsByRole, getActiveSectionFromPath } from '@/utils/navigation';
 import { canAccessPage } from '@/utils/roleAccess';
@@ -52,20 +52,10 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles 
     window.location.href = '/login';
   };
 
-  // Get menu items based on user role
-  const getMenuItems = (role: string) => {
-    return getMenuItemsByRole(role);
-  };
-
-  // Determine active section from pathname
-  const getActiveSection = (pathname: string) => {
-    return getActiveSectionFromPath(pathname);
-  };
-
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <Loader2 size={32} className="animate-spin text-[#2563eb]" />
       </div>
     );
   }
@@ -83,8 +73,8 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles 
     );
   }
 
-  const menuItems = getMenuItems(user.role);
-  const activeSection = getActiveSection(pathname);
+  const menuItems = getMenuItemsByRole(user.role);
+  const activeSection = getActiveSectionFromPath(pathname);
 
   return (
     <DashboardLayout

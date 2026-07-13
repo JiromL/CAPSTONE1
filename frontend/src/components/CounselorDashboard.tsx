@@ -6,132 +6,94 @@ import { useState, useEffect } from 'react';
 import { fetchDashboardData } from '@/utils/dashboard-api';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, Shield, MoreHorizontal, Calendar } from 'lucide-react';
+import { Loader2, Shield, MoreHorizontal, Calendar, AlertTriangle } from 'lucide-react';
 
-const PERMA_BARS: { label: string; color: string }[] = [
-  { label: 'Excelling',  color: 'bg-green-500'  },
-  { label: 'Thriving',   color: 'bg-teal-500'   },
-  { label: 'Surviving',  color: 'bg-yellow-500' },
-  { label: 'Struggling', color: 'bg-orange-500' },
-  { label: 'In Crisis',  color: 'bg-red-500'    },
-];
-
-function PermaDistributionWidget() {
-  const [data, setData] = useState<{ total_students_tracked: number; distribution: Record<string, number> } | null>(null);
-  const [notConnected, setNotConnected] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(api('/api/mhbot/stats/perma-distribution'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => {
-        if (r.status === 401) { setNotConnected(true); return null; }
-        return r.ok ? r.json() : null;
-      })
-      .then(d => { if (d) setData(d); })
-      .catch(() => setNotConnected(true));
-  }, []);
-
-  const dist = data?.distribution ?? {};
-  const total = data?.total_students_tracked ?? 0;
-  const maxCount = Math.max(1, ...Object.values(dist));
-
-  return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student Wellbeing Overview</p>
-        {total > 0 && <span className="text-xs text-gray-400">{total} tracked</span>}
-      </div>
-      {notConnected || (!data && !notConnected) ? (
-        <p className="text-xs text-gray-400 text-center py-8">
-          {notConnected ? 'Connect MHBot to see wellbeing data.' : 'Loading…'}
-        </p>
-      ) : (
-        <div className="space-y-2.5">
-          {PERMA_BARS.map(({ label, color }) => {
-            const count = dist[label] ?? 0;
-            if (count === 0 && dist['No Data'] === total) return null;
-            return (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-20 flex-shrink-0">{label}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full ${color} transition-all`}
-                    style={{ width: `${(count / maxCount) * 100}%` }}
-                  />
-                </div>
-                <span className="text-xs font-medium text-gray-600 w-4 text-right">{count}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+interface AttentionCase {
+  _id: string;
+  student_name: string;
+  case_status: string;
+  risk_level: string;
+  reason: string;
 }
 
-const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700'  },
-  'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
-  'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
-  'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
-  'In Crisis':  { bg: 'bg-red-500',    text: 'text-red-700'    },
-  'No Data':    { bg: 'bg-gray-300',   text: 'text-gray-500'   },
-};
-const TREND_LABELS = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'];
-
-function PermaTrendsWidget() {
-  const [data, setData] = useState<{ months: string[]; monthly: Record<string, Record<string, number>> } | null>(null);
+function CasesNeedingAttention() {
+  const [cases, setCases] = useState<AttentionCase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch(api('/api/mhbot/stats/perma-trends'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d); })
-      .catch(() => {});
+    fetch(api('/api/cases?limit=50'), { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        const all: any[] = d.cases || d || [];
+        const attention: AttentionCase[] = [];
+        for (const c of all) {
+          const status = (c.case_status || '').toUpperCase();
+          const risk = (c.risk_level || '').toUpperCase();
+          if (status === 'PENDING_TERMINATION') {
+            attention.push({ _id: c._id, student_name: c.student_name || 'Student', case_status: c.case_status, risk_level: c.risk_level, reason: '3 consecutive no-shows' });
+          } else if (risk === 'CRITICAL' || risk === 'RED') {
+            attention.push({ _id: c._id, student_name: c.student_name || 'Student', case_status: c.case_status, risk_level: c.risk_level, reason: `${c.risk_level} risk` });
+          }
+        }
+        setCases(attention.slice(0, 6));
+      })
+      .catch(() => { setFetchError(true); })
+      .finally(() => setLoading(false));
   }, []);
 
-  if (!data) return null;
-
-  const months = data.months ?? [];
+  const reasonColor = (c: AttentionCase) => {
+    if (c.case_status?.toUpperCase() === 'PENDING_TERMINATION') return 'text-red-600 dark:text-red-400';
+    const r = (c.risk_level || '').toUpperCase();
+    if (r === 'CRITICAL') return 'text-red-600 dark:text-red-400';
+    if (r === 'RED') return 'text-orange-600 dark:text-orange-400';
+    return 'text-gray-400';
+  };
 
   return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 col-span-1 lg:col-span-2">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Wellbeing Trends — Last 6 Months</p>
-      <div className="space-y-3">
-        {months.map(month => {
-          const counts = data.monthly[month] ?? {};
-          const total = TREND_LABELS.reduce((s, l) => s + (counts[l] ?? 0), 0);
-          const label = new Date(month + '-15').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-          return (
-            <div key={month} className="flex items-start gap-3">
-              <span className="text-xs text-gray-400 w-12 flex-shrink-0 pt-0.5">{label}</span>
-              <div className="flex-1 space-y-1">
-                {total === 0 ? (
-                  <span className="text-xs text-gray-300 italic">No data</span>
-                ) : (
-                  TREND_LABELS.filter(l => counts[l] > 0).map(l => {
-                    const c = counts[l] ?? 0;
-                    const pct = total > 0 ? (c / total) * 100 : 0;
-                    const col = PERMA_TREND_COLORS[l] ?? PERMA_TREND_COLORS['No Data'];
-                    return (
-                      <div key={l} className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden flex-shrink-0">
-                          <div className={`h-1.5 rounded-full ${col.bg}`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className={`text-[10px] font-medium ${col.text}`}>{l}: {c}</span>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          );
-        })}
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={14} className="text-amber-500" />
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cases Needing Attention</p>
+        </div>
+        <Link href="/cases" className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline font-medium">View all</Link>
       </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-32 text-gray-400 gap-2 text-xs">
+          <Loader2 size={14} className="animate-spin" /> Loading…
+        </div>
+      ) : fetchError ? (
+        <div className="flex flex-col items-center justify-center h-32 text-center">
+          <AlertTriangle size={18} className="text-amber-400 mb-2" />
+          <p className="text-sm text-gray-500">Could not load cases</p>
+          <p className="text-xs text-gray-400 mt-0.5">Check your connection and refresh the page.</p>
+        </div>
+      ) : cases.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-32 text-center">
+          <Shield size={22} className="text-green-400 mb-2" />
+          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">All cases on track</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">No cases require immediate attention.</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {cases.map(c => (
+            <div key={c._id} className="py-2.5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{c.student_name}</p>
+                <p className={`text-xs mt-0.5 font-medium ${reasonColor(c)}`}>{c.reason}</p>
+              </div>
+              <Link href={`/cases/${c._id}`}
+                className="flex-shrink-0 text-xs px-2.5 py-1 text-white rounded-lg transition-colors"
+                style={{ backgroundColor: '#2563eb' }}>
+                View
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -207,7 +169,7 @@ function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: str
           {/* Column headers */}
           <div className="grid grid-cols-[90px_1fr_110px_130px_36px] px-5 pb-2 gap-3">
             {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
-              <p key={i} className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{h}</p>
+              <p key={i} className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{h}</p>
             ))}
           </div>
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -234,18 +196,6 @@ function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: str
   );
 }
 
-const RISK_DOT: Record<string, string> = {
-  CRITICAL: 'bg-red-500',
-  RED:      'bg-orange-400',
-  YELLOW:   'bg-yellow-400',
-  GREEN:    'bg-green-500',
-};
-const RISK_TEXT: Record<string, string> = {
-  CRITICAL: 'text-red-600',
-  RED:      'text-orange-600',
-  YELLOW:   'text-yellow-600',
-  GREEN:    'text-green-600',
-};
 
 export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -284,9 +234,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   }, [mounted]);
 
   const menuItems   = getMenuItemsByRole(user.role);
-  const alerts      = dashboardData?.alerts || [];
-  const recentCases = dashboardData?.recent_cases || [];
-  const firstName   = user.first_name || user.name?.split(' ')[0] || 'Counselor';
+  const firstName = user.first_name || user.name?.split(' ')[0] || 'Counselor';
 
   const fmtTime = (s: string) => {
     try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return '—'; }
@@ -311,68 +259,11 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-          {/* PERMA wellbeing overview */}
-          <PermaDistributionWidget />
-
-          {/* PERMA trends over time */}
-          <PermaTrendsWidget />
-
           {/* Today's Schedule */}
           <TodayScheduleTable appts={todayAppts} fmtTime={fmtTime} />
 
-          {/* High-risk alerts or recent cases */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                {alerts.length > 0 ? 'High-Risk Alerts' : 'Active Cases'}
-              </p>
-              <Link href={alerts.length > 0 ? '/high-risk' : '/cases'} className="text-xs text-[#2563eb] hover:underline">View all</Link>
-            </div>
-
-            {alerts.length > 0 ? (
-              <div className="divide-y divide-gray-100">
-                {alerts.slice(0, 6).map((a: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {a.student_name || `ID: ${a.counseling_id || 'N/A'}`}
-                      </p>
-                      <p className={`text-xs mt-0.5 font-medium ${RISK_TEXT[a.risk_level] || 'text-gray-400'}`}>
-                        {a.risk_level} risk
-                      </p>
-                    </div>
-                    <Link href={`/cases/${a.case_id}`}>
-                      <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-colors"
-                        style={{ backgroundColor: '#2563eb' }}>View</button>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            ) : recentCases.length > 0 ? (
-              <div className="divide-y divide-gray-100">
-                {recentCases.slice(0, 6).map((c: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {c.student_name || `ID: ${c.counseling_id || 'N/A'}`}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{c.status || 'Active'}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${RISK_DOT[c.risk_level] || 'bg-gray-300'}`} />
-                      <span className="text-xs text-gray-400">{c.risk_level || 'GREEN'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-36 text-center">
-                <Shield size={22} className="text-green-400 mb-2" />
-                <p className="text-sm text-gray-600 font-medium">No active alerts</p>
-                <p className="text-xs text-gray-400 mt-1">All cases within normal range.</p>
-              </div>
-            )}
-          </div>
+          {/* Cases needing immediate attention */}
+          <CasesNeedingAttention />
 
         </div>
       )}

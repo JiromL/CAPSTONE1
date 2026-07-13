@@ -1679,7 +1679,7 @@ def mark_no_show(appointment_id):
                 db.db.cases.update_one(
                     {'_id': ObjectId(str(case_id))},
                     {'$set': {
-                        'status': CaseStatus.PENDING_TERMINATION.value,
+                        'case_status': CaseStatus.PENDING_TERMINATION.value,
                         'termination_type': TerminationType.ADMINISTRATIVE.value,
                         'termination_reason': '3 consecutive no-shows. Administrative termination per CPS protocol.',
                         'admin_termination_flagged_at': now,
@@ -1740,16 +1740,26 @@ def complete_appointment(appointment_id):
     actual_start = appointment.get('scheduled_start') or appointment.get('requested_start') or datetime.utcnow()
     actual_end = appointment.get('scheduled_end') or appointment.get('requested_end') or datetime.utcnow()
 
+    now_complete = datetime.utcnow()
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
         {"$set": {
             "status": AppointmentStatus.COMPLETED.value,
             "actual_start": actual_start,
             "actual_end": actual_end,
-            "completed_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "completed_at": now_complete,
+            "updated_at": now_complete,
         }}
     )
+
+    # Reset consecutive no-show counter — student attended
+    case_id_c = appointment.get('case_id')
+    if case_id_c:
+        db.db.missed_appointment_tracker.update_one(
+            {"case_id": case_id_c},
+            {"$set": {"consecutive_no_shows": 0, "last_attended_at": now_complete}},
+            upsert=False,
+        )
 
     return jsonify({
         'message': 'Appointment completed',

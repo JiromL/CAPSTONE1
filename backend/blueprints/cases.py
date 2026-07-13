@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from bson.objectid import ObjectId
-from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS
+from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
 
 cases_bp = Blueprint('cases', __name__, url_prefix='/api/cases')
 
@@ -341,6 +341,32 @@ def get_case(case_id):
                 'course': student_doc.get('course', '') or student_doc.get('program', ''),
             }
 
+    # Embed assigned counselor name
+    assigned_cid = case.get('assigned_counselor_id')
+    if assigned_cid:
+        try:
+            c_doc = db.db.users.find_one({'_id': ObjectId(str(assigned_cid))}, {'first_name': 1, 'last_name': 1, 'name': 1})
+            if c_doc:
+                serialized['counselor_name'] = (
+                    f"{c_doc.get('last_name','').upper()}, {c_doc.get('first_name','')}"
+                    if c_doc.get('last_name') else c_doc.get('name', '')
+                )
+        except Exception:
+            pass
+
+    # Embed intake counselor name (the IC who conducted the intake interview)
+    ic_id = case.get('intake_counselor_id')
+    if ic_id:
+        try:
+            ic_doc = db.db.users.find_one({'_id': ObjectId(str(ic_id))}, {'first_name': 1, 'last_name': 1, 'name': 1})
+            if ic_doc:
+                serialized['intake_counselor_name'] = (
+                    f"{ic_doc.get('first_name','')} {ic_doc.get('last_name','')}".strip()
+                    or ic_doc.get('name', '')
+                )
+        except Exception:
+            pass
+
     # Embed most recent appointment info (date, time, method) for IC form pre-fill.
     # Pre-intake appointments don't have case_id yet, so fall back to student_id.
     case_obj_id = case.get('_id')
@@ -360,6 +386,10 @@ def get_case(case_id):
             'method': appt.get('method') or appt.get('appointment_method') or appt.get('preferred_method') or '',
             'appointment_id': str(appt.get('_id', '')),
         }
+
+    # Embed consecutive no-show count from tracker
+    tracker = db.db.missed_appointment_tracker.find_one({'case_id': case.get('_id')})
+    serialized['consecutive_no_shows'] = tracker.get('consecutive_no_shows', 0) if tracker else 0
 
     return jsonify(serialized), 200
 
@@ -611,6 +641,87 @@ def close_case(case_id):
     return jsonify({
         'success': True,
         'message': 'Case closed'
+    }), 200
+
+
+@cases_bp.route('/<case_id>/confirm-no-show-termination', methods=['POST'])
+@jwt_required()
+def confirm_no_show_termination(case_id):
+    """Counselor confirms administrative termination after 3 consecutive no-shows"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    user_role = user.get('role')
+    if user_role not in [UserRole.COUNSELOR, UserRole.PSYCHOLOGIST, UserRole.CASE_MANAGER, UserRole.ADMIN, UserRole.DPO]:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        case = db.db.cases.find_one({'_id': ObjectId(case_id)})
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+
+    if case.get('case_status') != CaseStatus.PENDING_TERMINATION.value:
+        return jsonify({'error': 'Case is not pending termination'}), 400
+
+    if case.get('termination_type') != TerminationType.ADMINISTRATIVE.value:
+        return jsonify({'error': 'Case termination type is not administrative'}), 400
+
+    now = datetime.utcnow()
+    student_id = case.get('student_id')
+
+    db.db.cases.update_one(
+        {'_id': ObjectId(case_id)},
+        {'$set': {
+            'case_status': CaseStatus.CLOSED.value,
+            'termination_type': TerminationType.ADMINISTRATIVE.value,
+            'termination_reason': 'Administrative termination: 3 consecutive no-shows per CPS protocol.',
+            'termination_date': now,
+            'confirmed_by': user_id,
+            'confirmed_at': now,
+            'updated_at': now,
+        }}
+    )
+
+    # Auto-generate a case note documenting the closure
+    db.db.session_notes.insert_one({
+        'case_id': ObjectId(case_id),
+        'note_type': 'TERMINATION',
+        'note_format': 'NARRATIVE',
+        'content': (
+            'Case administratively terminated due to 3 consecutive no-shows per clinic protocol. '
+            'Student was unresponsive to scheduled sessions. '
+            'Case closed and student notified.'
+        ),
+        'authored_by': user_id,
+        'authored_by_name': user.get('name', ''),
+        'session_date': now,
+        'created_at': now,
+        'updated_at': now,
+    })
+
+    # Notify student
+    if student_id:
+        db.db.notifications.insert_one({
+            'type': 'CASE_CLOSED_NO_SHOW',
+            'case_id': case.get('_id'),
+            'message': (
+                'Your counseling case has been closed due to 3 consecutive missed appointments. '
+                'Please contact the counseling office if you wish to resume services.'
+            ),
+            'target_user_id': student_id,
+            'read': False,
+            'created_at': now,
+        })
+
+    return jsonify({
+        'success': True,
+        'message': 'Case closed due to 3 consecutive no-shows.',
     }), 200
 
 

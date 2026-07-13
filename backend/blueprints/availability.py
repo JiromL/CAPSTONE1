@@ -279,9 +279,13 @@ def get_open_slots():
     ics_sorted = sorted(ics, key=lambda ic: ic_load.get(ic['_id'], 0))
 
     def build_slots_for_date(date):
+        seen_times = set()
         combined = []
         for ic in ics_sorted:
             for s in slots_for_counselor(ic, date):
+                if s['time'] in seen_times:
+                    continue
+                seen_times.add(s['time'])
                 combined.append({
                     'time': s['time'],
                     'method': s['method'],

@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Power, Menu, Bell, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Power, Menu, Bell, X, CheckCheck } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
@@ -51,31 +51,47 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen]       = useState(false);
   const [reminderCount, setReminderCount] = useState(0);
+  const [reminders, setReminders]         = useState<any[]>([]);
+  const [bellOpen, setBellOpen]           = useState(false);
+  const bellRef                           = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  useEffect(() => {
+  const fetchReminders = useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
     fetch(api('/api/reminders'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (!d) return;
-        const reminders = d.reminders || d || [];
-        const pending = Array.isArray(reminders)
-          ? reminders.filter((r: any) => !r.is_read && !r.acknowledged).length
-          : 0;
+        const list: any[] = Array.isArray(d.reminders) ? d.reminders : Array.isArray(d) ? d : [];
+        const pending = list.filter((r: any) => !r.is_read && !r.acknowledged).length;
         setReminderCount(pending);
+        setReminders(list.slice(0, 6));
       })
       .catch(() => {});
+  }, []);
 
+  useEffect(() => {
+    fetchReminders();
     const now = new Date().toLocaleDateString('en-US', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
     });
     localStorage.setItem('last_login_display', now);
-  }, []);
+  }, [fetchReminders]);
+
+  useEffect(() => {
+    if (!bellOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [bellOpen]);
 
   const firstName  = user?.first_name || user?.name?.split(' ')[0] || 'User';
   const lastName   = user?.last_name  || '';
@@ -212,20 +228,59 @@ export function DashboardLayout({
           {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto lg:ml-0">
 
-            {/* Notifications */}
-            <Link href="/reminders"
-              className="relative w-8 h-8 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors">
-              <Bell size={17} />
-              {reminderCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-[#2563eb] rounded-full ring-2 ring-white" />
-              )}
-            </Link>
+            {/* Notifications dropdown */}
+            <div className="relative" ref={bellRef}>
+              <button
+                onClick={() => setBellOpen(v => { if (!v) setReminderCount(0); return !v; })}
+                className="relative w-8 h-8 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                <Bell size={17} />
+                {reminderCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-[#2563eb] rounded-full ring-2 ring-white" />
+                )}
+              </button>
 
-            {/* Avatar */}
-            <div className="flex items-center gap-2 pl-2 ml-1 border-l border-gray-100">
-              <div className="w-8 h-8 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 ring-2 ring-blue-100">
-                {initials || 'U'}
-              </div>
+              {bellOpen && (
+                <div className="absolute right-0 top-10 w-80 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notifications</p>
+                    {reminderCount > 0 && (
+                      <span className="text-xs font-bold text-[#2563eb]">{reminderCount} unread</span>
+                    )}
+                  </div>
+
+                  {reminders.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+                      <CheckCheck size={20} className="text-gray-300 mb-2" />
+                      <p className="text-sm text-gray-400">All caught up</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+                      {reminders.map((r: any, i: number) => {
+                        const isUnread = !r.is_read && !r.acknowledged;
+                        return (
+                          <div key={i} className={`px-4 py-3 hover:bg-gray-50 transition-colors ${isUnread ? 'bg-blue-50/40' : ''}`}>
+                            <p className={`text-xs leading-snug ${isUnread ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
+                              {r.message || r.title || 'Notification'}
+                            </p>
+                            {r.created_at && (
+                              <p className="text-[10px] text-gray-400 mt-0.5">
+                                {new Date(r.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="px-4 py-2.5 border-t border-gray-100">
+                    <Link href="/reminders" onClick={() => setBellOpen(false)}
+                      className="text-xs text-[#2563eb] font-medium hover:underline">
+                      View all notifications →
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

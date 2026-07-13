@@ -21,14 +21,15 @@ function getRisk(level: string) {
 }
 
 export default function HighRiskPage() {
-  const [cases, setCases]   = useState<any[]>([]);
-  const [tab, setTab]       = useState<'cases' | 'manual'>('cases');
-  const [loading, setLoading] = useState(true);
+  const [cases, setCases]       = useState<any[]>([]);
+  const [tab, setTab]           = useState<'cases' | 'manual'>('cases');
+  const [loading, setLoading]   = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     fetch(api('/api/high-risk/users'), { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         setCases((Array.isArray(data) ? data : []).map((u: any, i: number) => ({
           id: i,
@@ -38,7 +39,7 @@ export default function HighRiskPage() {
           riskLevel: (u.risk || 'unknown').toLowerCase(),
         })));
       })
-      .catch(console.error)
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -49,7 +50,7 @@ export default function HighRiskPage() {
     <DashboardPageWrapper title="High-Risk Monitoring" subtitle="Students flagged for elevated mental health risk">
 
       {/* Summary strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
           <ShieldAlert size={18} className="text-gray-500" />
           <div>
@@ -62,14 +63,6 @@ export default function HighRiskPage() {
           <div>
             <p className="text-xs text-gray-400">High Risk / Critical</p>
             <p className={`text-xl font-semibold ${redCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>{redCount}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-          <Phone size={18} className="text-[#2563eb]" />
-          <div>
-            <p className="text-xs text-gray-400">Philippine Mental Health Crisis Lines</p>
-            <p className="text-sm font-semibold text-gray-800">Hopeline PH: 8804-4673</p>
-            <p className="text-xs text-gray-500">Crisis Line: 0917-899-8727</p>
           </div>
         </div>
       </div>
@@ -105,6 +98,12 @@ export default function HighRiskPage() {
           loading ? (
             <div className="flex items-center justify-center h-44 gap-2 text-gray-400 text-sm">
               <Loader2 size={16} className="animate-spin" /> Loading…
+            </div>
+          ) : fetchError ? (
+            <div className="flex flex-col items-center justify-center h-44 text-center px-6">
+              <AlertTriangle size={22} className="text-amber-400 mb-3" />
+              <p className="text-sm font-medium text-gray-700">Could not load monitoring data</p>
+              <p className="text-xs text-gray-400 mt-1">Check your connection and refresh the page.</p>
             </div>
           ) : cases.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-44 text-center">
@@ -144,6 +143,18 @@ export default function HighRiskPage() {
             <ManualNotifyForm />
           </div>
         )}
+      </div>
+
+      {/* Crisis Resources */}
+      <div className="mt-4 bg-red-50 rounded-2xl border border-red-100 px-5 py-4 flex items-start gap-3">
+        <Phone size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1">Philippine Mental Health Crisis Lines</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-red-800">
+            <a href="tel:+6328044673" className="font-medium hover:underline">Hopeline PH: (02) 8804-4673</a>
+            <a href="tel:+639178998727" className="font-medium hover:underline">Crisis Line: 0917-899-8727</a>
+          </div>
+        </div>
       </div>
 
       {/* Guidelines */}
@@ -241,7 +252,7 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50"
               style={{ backgroundColor: '#2563eb' }}>
               {notifyState === 'loading' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-              Notify Counselor
+              Alert Counselor
             </button>
           )}
         </td>

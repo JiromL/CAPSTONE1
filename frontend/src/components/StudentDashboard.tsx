@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle } from 'lucide-react';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -71,6 +71,13 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [resourceCount, setResourceCount]       = useState(0);
   const [mounted, setMounted]                   = useState(false);
 
+  // Consent modal state
+  const [showConsent, setShowConsent]           = useState(false);
+  const [consentChecks, setConsentChecks]       = useState({ counseling: false, privacy: false });
+  const [savingConsent, setSavingConsent]       = useState(false);
+  const [consentError, setConsentError]         = useState<string | null>(null);
+  const [consentSuccess, setConsentSuccess]     = useState(false);
+
   // Reschedule modal state
   const [reschedTarget, setReschedTarget]             = useState<any | null>(null);
   const [reschedDate, setReschedDate]                 = useState('');
@@ -129,16 +136,18 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
     (async () => {
       try {
-        const [apptRes, caseRes, resRes, annoRes] = await Promise.all([
+        const [apptRes, caseRes, resRes, annoRes, consentRes] = await Promise.all([
           fetch(api('/api/appointments'), { headers: { Authorization: `Bearer ${token}` } }),
           fetch(api('/api/cases/my-current'), { headers: { Authorization: `Bearer ${token}` } }),
           fetch(api('/api/resources/student'), { headers: { Authorization: `Bearer ${token}` } }),
           fetch(api('/api/announcements?limit=10'), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch(api('/api/consent/status'), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         ]);
         if (apptRes.ok) { const d = await apptRes.json(); if (Array.isArray(d.appointments)) setAppointments(d.appointments); }
         if (caseRes.ok) { const d = await caseRes.json(); if (['CHECK_IN_ONLY','WITH_MH_CHECK_IN','UNDER_ACCOMMODATION'].includes(d.client_status)) setIsCheckInOnly(true); }
         if (resRes.ok)  { const d = await resRes.json(); setResourceCount(d.resources_count || 0); }
         if (annoRes?.ok) { const d = await annoRes.json(); setAnnouncements(d.announcements || []); }
+        if (consentRes?.ok) { const d = await consentRes.json(); if (!d.consent_given) setShowConsent(true); }
       } finally { setLoading(false); }
     })();
   }, [mounted]);
@@ -191,11 +200,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               const meetingLink = nextAppt.meeting_link;
               return (
                 <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
-                  <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
-                  <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
+                      <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide">
                         Upcoming Appointment
                       </p>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white text-[11px] font-semibold">
@@ -248,11 +255,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 </div>
               );
             })() : upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
-              <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
-                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
-                <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
-                <div className="relative z-10">
-                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">Welcome to CPS</p>
+              <div className="overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
+                <div>
+                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-3">Welcome to CPS</p>
                   <h3 className="text-xl font-bold mb-2 leading-snug">
                     No need to wait, {firstName}.<br />Book your session online.
                   </h3>
@@ -272,11 +277,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 </div>
               </div>
             ) : (
-              <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
-                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
-                <div className="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5" />
-                <div className="relative z-10">
-                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-3">Your counseling journey</p>
+              <div className="overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
+                <div>
+                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-3">Your counseling journey</p>
                   <h3 className="text-xl font-bold mb-2">Keep going, {firstName}.</h3>
                   <p className="text-sm text-blue-100 mb-6 leading-relaxed max-w-sm">
                     {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review.`}
@@ -394,7 +397,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   {pendingRequests.length > 0 && (
                     <>
                       {upcoming.length > 0 && <div className="h-px bg-gray-100 my-1" />}
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1 pt-1">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 pt-1">
                         Pending Requests
                       </p>
                       {pendingRequests.slice(0, 3).map((appt, i) => (
@@ -579,6 +582,81 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           </div>
         </div>
       )}
+      {/* ── Consent Modal (shown on first login, before any booking) ── */}
+      {showConsent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="bg-[#2563eb] px-6 py-5 text-white">
+              <h2 className="text-base font-bold">Before You Begin</h2>
+              <p className="text-xs text-blue-200 mt-1">Please review and accept the following before using CPS services.</p>
+            </div>
+            <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto text-sm text-gray-700">
+              <div>
+                <p className="font-semibold text-gray-800 mb-1">Confidentiality & Exceptions</p>
+                <p className="text-xs text-gray-600 leading-relaxed">All information shared during counseling sessions is strictly confidential and will not be disclosed without your written consent, <span className="font-semibold">except</span> in situations involving risk to your safety or others, court orders, or mandatory reporting obligations.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800 mb-1">Data Privacy</p>
+                <p className="text-xs text-gray-600 leading-relaxed">Your mental health records are classified as sensitive personal information under RA 10173 and require your explicit consent to process.</p>
+              </div>
+              <div className="space-y-3 pt-2">
+                {([
+                  { k: 'counseling' as const, t: 'I have read and understood the nature of counseling services, confidentiality, and its exceptions. I voluntarily consent to receive counseling and psychological services from DLSU CPS.' },
+                  { k: 'privacy'    as const, t: 'I have read and understood how my personal and sensitive data will be collected, processed, and stored. I consent to data processing in accordance with RA 10173 (Data Privacy Act of 2012).' },
+                ] as const).map(item => (
+                  <label key={item.k} className="flex gap-3 cursor-pointer">
+                    <input type="checkbox" checked={consentChecks[item.k]}
+                      onChange={e => setConsentChecks(c => ({ ...c, [item.k]: e.target.checked }))}
+                      className="w-4 h-4 mt-0.5 accent-[#2563eb] flex-shrink-0" />
+                    <span className="text-xs text-gray-700 leading-relaxed">{item.t}</span>
+                  </label>
+                ))}
+              </div>
+              {consentError && <p className="text-xs text-red-500">{consentError}</p>}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 space-y-2">
+              {consentSuccess ? (
+                <div className="flex items-center justify-center gap-2 py-2 text-green-600 text-sm">
+                  <CheckCircle size={16} /> Consent recorded. Thank you.
+                </div>
+              ) : (
+                <>
+                  <button
+                    disabled={savingConsent || !consentChecks.counseling || !consentChecks.privacy}
+                    onClick={async () => {
+                      setSavingConsent(true); setConsentError(null);
+                      try {
+                        const token = localStorage.getItem('token');
+                        const r = await fetch(api('/api/consent/submit'), {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ consent_types: ['counseling_services', 'data_privacy'] }),
+                        });
+                        if (r.ok) {
+                          setConsentSuccess(true);
+                          setTimeout(() => setShowConsent(false), 2000);
+                        } else {
+                          setConsentError('Failed to record consent. Please try again.');
+                        }
+                      } catch { setConsentError('Network error. Please try again.'); }
+                      finally { setSavingConsent(false); }
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-[#2563eb] text-white text-sm font-semibold disabled:opacity-50 transition flex items-center justify-center gap-2">
+                    {savingConsent && <Loader2 size={14} className="animate-spin" />}
+                    I Understand and Consent
+                  </button>
+                  <button
+                    onClick={() => setShowConsent(false)}
+                    className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition">
+                    Remind me later
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </DashboardLayout>
   );
 }

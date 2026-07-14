@@ -10,7 +10,7 @@ function SectionBox({ title, children }: { title: string; children: React.ReactN
   return (
     <div className="rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
       <div className="px-5 py-3 text-white" style={{ background: 'var(--color-primary)' }}>
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <h3 className="text-sm font-semibold" style={{ color: 'white' }}>{title}</h3>
       </div>
       <div className="p-5 space-y-4">{children}</div>
     </div>
@@ -113,7 +113,7 @@ export function ReadSection({ title, children }: { title: string; children: Reac
   return (
     <div className="rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
       <div className="px-5 py-3 text-white" style={{ background: 'var(--color-primary)' }}>
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <h3 className="text-sm font-semibold" style={{ color: 'white' }}>{title}</h3>
       </div>
       <div className="p-5 space-y-3">{children}</div>
     </div>

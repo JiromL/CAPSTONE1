@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
 
           {/* Main copy */}
           <div>
-            <h2 className="text-3xl font-extrabold text-white leading-snug mb-4">Reset your<br />password</h2>
+            <h2 className="text-3xl font-extrabold leading-snug mb-4" style={{ color: 'white' }}>Reset your<br />password</h2>
             <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
               Enter your DLSU email and we'll send you a link to reset your password.
             </p>

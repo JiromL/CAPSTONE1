@@ -292,7 +292,7 @@ export default function WalkinIntakePage() {
               <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.2)' }}>
                 <ShieldAlert size={28} className="text-white" />
               </div>
-              <h2 className="text-lg font-bold text-white">URGENT — Student Registered</h2>
+              <h2 className="text-lg font-bold" style={{ color: 'white' }}>URGENT — Student Registered</h2>
               <p className="text-sm mt-1" style={{ color: '#FEE2E2' }}>{studentLabel}</p>
               {intakeId && <p className="text-xs mt-1 font-mono" style={{ color: '#FECACA' }}>ID: {intakeId}</p>}
             </div>
@@ -339,7 +339,7 @@ export default function WalkinIntakePage() {
               <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.2)' }}>
                 <CheckCircle2 size={28} className="text-white" />
               </div>
-              <h2 className="text-lg font-bold text-white">Student Registered</h2>
+              <h2 className="text-lg font-bold" style={{ color: 'white' }}>Student Registered</h2>
               <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.85)' }}>{studentLabel}</p>
               {intakeId && <p className="text-xs mt-1 font-mono" style={{ color: 'rgba(255,255,255,0.7)' }}>ID: {intakeId}</p>}
             </div>

@@ -94,7 +94,7 @@ function ResetPasswordContent() {
 
           {/* Main copy */}
           <div>
-            <h2 className="text-3xl font-extrabold text-white leading-snug mb-4">Choose a new<br />password</h2>
+            <h2 className="text-3xl font-extrabold leading-snug mb-4" style={{ color: 'white' }}>Choose a new<br />password</h2>
             <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
               Make it strong and something you'll remember.
             </p>

@@ -161,7 +161,7 @@ export default function LoginPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: 'rgba(69,117,240,0.8)' }}>
               Counseling &amp; Psychological Services
             </p>
-            <h1 className="text-[2.6rem] font-extrabold text-white leading-[1.1] tracking-tight mb-5">
+            <h1 className="text-[2.6rem] font-extrabold leading-[1.1] tracking-tight mb-5" style={{ color: 'white' }}>
               Your well-being<br />comes first.
             </h1>
             <p className="text-[0.9375rem] leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>

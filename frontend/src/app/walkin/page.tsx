@@ -193,7 +193,7 @@ export default function WalkInSelfCheckinPage() {
         <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-card-lg)' }}>
           <div className="px-6 py-8 text-center" style={{ background: 'var(--color-primary)' }}>
             <CheckCircle2 size={48} className="text-white mx-auto mb-3" />
-            <h1 className="text-xl font-bold text-white">Check-In Complete</h1>
+            <h1 className="text-xl font-bold" style={{ color: 'white' }}>Check-In Complete</h1>
             <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.75)' }}>Please show this to the CPS staff</p>
           </div>
           <div className="p-6 text-center space-y-4">
@@ -234,7 +234,7 @@ export default function WalkInSelfCheckinPage() {
           <Heart size={18} style={{ color: 'rgba(255,255,255,0.6)' }} />
           <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.7)' }}>DLSU — CPS</span>
         </div>
-        <h1 className="text-white text-xl font-bold">Walk-In Self Check-In</h1>
+        <h1 className="text-xl font-bold" style={{ color: 'white' }}>Walk-In Self Check-In</h1>
         <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>Center for Psychological Services</p>
       </div>
 

@@ -395,8 +395,8 @@ export default function ConductIntakePage() {
           <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
             <div className="px-6 pt-8 pb-6 text-center" style={{ background: headerBg }}>
               <CheckCircle2 size={40} className="text-white mx-auto mb-3" />
-              <h2 className="text-lg font-bold text-white">Intake Session Complete</h2>
-              <p className="text-white/80 text-sm mt-1">{intake.student_name || '—'}</p>
+              <h2 className="text-lg font-bold" style={{ color: 'white' }}>Intake Session Complete</h2>
+              <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>{intake.student_name || '—'}</p>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div className="flex justify-center"><RiskBadge risk={displayRisk} /></div>

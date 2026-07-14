@@ -629,7 +629,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="px-6 py-5" style={{ background: 'var(--color-primary)' }}>
-              <h2 className="text-base font-bold text-white">Before You Begin</h2>
+              <h2 className="text-base font-bold" style={{ color: 'white' }}>Before You Begin</h2>
               <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>Please review and accept the following before using CPS services.</p>
             </div>
             <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto text-sm" style={{ color: 'var(--color-text-secondary)' }}>

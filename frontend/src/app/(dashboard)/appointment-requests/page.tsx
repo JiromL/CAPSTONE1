@@ -25,7 +25,7 @@ export default function AppointmentsRequestsPage() {
     return (
       <DashboardPageWrapper title="Appointments" subtitle="View appointment requests">
         <div className="flex items-center justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563eb]"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary)' }}></div>
         </div>
       </DashboardPageWrapper>
     );

@@ -15,16 +15,26 @@ const CATEGORIES = [
 ];
 
 const SESSION_FORMATS = [
-  { value: 'walk_in',    label: 'Walk-in',    icon: '🚶' },
-  { value: 'in_person',  label: 'In-person (booked)', icon: '🏠' },
-  { value: 'online',     label: 'Online (Google Meet / Zoom)', icon: '💻' },
-  { value: 'phone',      label: 'Phone call', icon: '📞' },
+  { value: 'walk_in',   label: 'Walk-in',                       icon: '🚶' },
+  { value: 'in_person', label: 'In-person (booked)',            icon: '🏠' },
+  { value: 'online',    label: 'Online (Google Meet / Zoom)',   icon: '💻' },
+  { value: 'phone',     label: 'Phone call',                    icon: '📞' },
 ];
 
-const RECOMMEND_OPTIONS = [
-  { value: 'yes',   label: 'Yes, definitely', icon: '👍', active: 'border-green-400  bg-green-50  dark:bg-blue-900/20'  },
-  { value: 'maybe', label: 'Maybe',           icon: '🤔', active: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' },
-  { value: 'no',    label: 'No',              icon: '👎', active: 'border-red-400    bg-red-50    dark:bg-red-900/20'    },
+type RecommendValue = 'yes' | 'maybe' | 'no';
+function recommendStyle(v: RecommendValue, selected: boolean): React.CSSProperties {
+  if (!selected) return { border: '2px solid var(--color-border)' };
+  switch (v) {
+    case 'yes':   return { border: '2px solid var(--color-success)', background: 'var(--color-success-surface)' };
+    case 'maybe': return { border: '2px solid var(--color-warning)', background: 'var(--color-warning-surface)' };
+    case 'no':    return { border: '2px solid var(--color-danger)',  background: 'var(--color-danger-surface)' };
+  }
+}
+
+const RECOMMEND_OPTIONS: { value: RecommendValue; label: string; icon: string }[] = [
+  { value: 'yes',   label: 'Yes, definitely', icon: '👍' },
+  { value: 'maybe', label: 'Maybe',           icon: '🤔' },
+  { value: 'no',    label: 'No',              icon: '👎' },
 ];
 
 const RATING_LABELS: Record<number, string> = {
@@ -38,19 +48,26 @@ interface CompletedAppt {
   requested_start?: string;
 }
 
+const Card = ({ children }: { children: React.ReactNode }) => (
+  <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+    {children}
+  </div>
+);
+
 export default function FeedbackPage() {
-  const [rating, setRating]             = useState(0);
-  const [hover, setHover]               = useState(0);
-  const [category, setCategory]         = useState('');
+  const [rating, setRating]           = useState(0);
+  const [hover, setHover]             = useState(0);
+  const [category, setCategory]       = useState('');
   const [sessionFormat, setSessionFormat] = useState('');
-  const [hadSession, setHadSession]     = useState<boolean | null>(null);
-  const [content, setContent]           = useState('');
-  const [wouldRecommend, setWouldRecommend] = useState('yes');
-  const [loading, setLoading]           = useState(false);
-  const [submitted, setSubmitted]       = useState(false);
-  const [error, setError]               = useState<string | null>(null);
+  const [hadSession, setHadSession]   = useState<boolean | null>(null);
+  const [content, setContent]         = useState('');
+  const [wouldRecommend, setWouldRecommend] = useState<RecommendValue>('yes');
+  const [loading, setLoading]         = useState(false);
+  const [submitted, setSubmitted]     = useState(false);
+  const [error, setError]             = useState<string | null>(null);
   const [completedAppts, setCompletedAppts] = useState<CompletedAppt[]>([]);
   const [appointmentId, setAppointmentId]   = useState('');
+  const [fContent, setFContent]       = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token') || localStorage.getItem('token');
@@ -86,9 +103,9 @@ export default function FeedbackPage() {
           category,
           content,
           would_recommend: wouldRecommend,
-          session_format:  showSessionFormat ? sessionFormat || null : null,
-          had_session:     hadSession,
-          appointment_id:  showSessionFormat && appointmentId ? appointmentId : undefined,
+          session_format: showSessionFormat ? sessionFormat || null : null,
+          had_session:    hadSession,
+          appointment_id: showSessionFormat && appointmentId ? appointmentId : undefined,
         }),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed to submit'); }
@@ -108,17 +125,17 @@ export default function FeedbackPage() {
     return (
       <DashboardPageWrapper title="Feedback" subtitle="Share your thoughts">
         <div className="max-w-md mx-auto flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center mb-6">
-            <CheckCircle size={40} className="text-green-600 dark:text-green-400" />
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+            style={{ background: 'var(--color-success-surface)' }}>
+            <CheckCircle size={40} style={{ color: 'var(--color-success)' }} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Thank you!</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>Thank you!</h2>
+          <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
             Your feedback has been submitted. It helps us improve our services for everyone.
           </p>
-          <button
-            onClick={reset}
-            className="px-6 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
+          <button onClick={reset}
+            className="px-6 py-2.5 text-white text-sm font-medium rounded-lg transition hover:opacity-90"
+            style={{ background: 'var(--color-primary)' }}>
             Submit Another
           </button>
         </div>
@@ -131,164 +148,146 @@ export default function FeedbackPage() {
       <div className="max-w-xl mx-auto">
 
         {error && (
-          <div className="mb-5 flex gap-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl p-4">
-            <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="mb-5 flex gap-2.5 rounded-xl p-4"
+            style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* ── Category ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">What is your feedback about?</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">You can give feedback even if you haven't had a session yet.</p>
+          {/* Category */}
+          <Card>
+            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>What is your feedback about?</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>You can give feedback even if you haven't had a session yet.</p>
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map(c => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => { setCategory(c.value); if (c.value !== 'session') setSessionFormat(''); }}
-                  className={`text-left p-3 rounded-xl border-2 transition-all ${
-                    category === c.value
-                      ? 'border-green-500 bg-green-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <span className="text-xl block mb-1">{c.icon}</span>
-                  <p className={`text-sm font-semibold ${category === c.value ? 'text-blue-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>{c.label}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-tight">{c.desc}</p>
-                </button>
-              ))}
+              {CATEGORIES.map(c => {
+                const sel = category === c.value;
+                return (
+                  <button key={c.value} type="button"
+                    onClick={() => { setCategory(c.value); if (c.value !== 'session') setSessionFormat(''); }}
+                    className="text-left p-3 rounded-xl transition-all"
+                    style={sel
+                      ? { border: '2px solid var(--color-primary)', background: 'var(--color-primary-surface)' }
+                      : { border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                    <span className="text-xl block mb-1">{c.icon}</span>
+                    <p className="text-sm font-semibold" style={{ color: sel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{c.label}</p>
+                    <p className="text-xs mt-0.5 leading-tight" style={{ color: 'var(--color-text-muted)' }}>{c.desc}</p>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </Card>
 
-          {/* ── Session format + appointment link (only when Counseling Session selected) ── */}
+          {/* Session format */}
           {showSessionFormat && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  Session format <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {SESSION_FORMATS.map(f => (
-                    <button
-                      key={f.value}
-                      type="button"
-                      onClick={() => setSessionFormat(sessionFormat === f.value ? '' : f.value)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all ${
-                        sessionFormat === f.value
-                          ? 'bg-green-600 border-blue-600 text-white'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-blue-600'
-                      }`}
-                    >
-                      <span>{f.icon}</span> {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {completedAppts.length > 0 && (
+            <Card>
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                    Which session are you rating? <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+                  <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                    Session format <span className="font-normal" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                   </p>
-                  <select
-                    value={appointmentId}
-                    onChange={e => setAppointmentId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select a session…</option>
-                    {completedAppts.map(a => {
-                      const dt = a.scheduled_start || a.requested_start;
-                      const label = dt
-                        ? new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                        : 'Session';
-                      const counselor = a.counselor_name ? ` · ${a.counselor_name}` : '';
-                      return <option key={a._id} value={a._id}>{label}{counselor}</option>;
+                  <div className="flex flex-wrap gap-2">
+                    {SESSION_FORMATS.map(f => {
+                      const sel = sessionFormat === f.value;
+                      return (
+                        <button key={f.value} type="button"
+                          onClick={() => setSessionFormat(sel ? '' : f.value)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all"
+                          style={sel
+                            ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: 'white', border: '1px solid var(--color-primary)' }
+                            : { border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}>
+                          <span>{f.icon}</span> {f.label}
+                        </button>
+                      );
                     })}
-                  </select>
+                  </div>
                 </div>
-              )}
-            </div>
+                {completedAppts.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                      Which session are you rating? <span className="font-normal" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+                    </p>
+                    <select value={appointmentId} onChange={e => setAppointmentId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+                      style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
+                      <option value="">Select a session…</option>
+                      {completedAppts.map(a => {
+                        const dt = a.scheduled_start || a.requested_start;
+                        const label = dt ? new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Session';
+                        return <option key={a._id} value={a._id}>{label}{a.counselor_name ? ` · ${a.counselor_name}` : ''}</option>;
+                      })}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </Card>
           )}
 
-          {/* ── Rating ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">How would you rate your experience?</p>
+          {/* Rating */}
+          <Card>
+            <p className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>How would you rate your experience?</p>
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onMouseEnter={() => setHover(s)}
-                  onMouseLeave={() => setHover(0)}
+                <button key={s} type="button"
+                  onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(0)}
                   onClick={() => setRating(s)}
-                  className="transition-transform hover:scale-110 focus:outline-none"
-                >
-                  <Star
-                    size={36}
-                    className={`transition-colors ${
-                      s <= displayRating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-gray-200 dark:text-gray-700'
-                    }`}
-                  />
+                  className="transition-transform hover:scale-110 focus:outline-none">
+                  <Star size={36}
+                    className="transition-colors"
+                    style={{ color: s <= displayRating ? '#FBBF24' : 'var(--color-border)', fill: s <= displayRating ? '#FBBF24' : 'none' }} />
                 </button>
               ))}
-              <span className="ml-2 text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[80px]">
+              <span className="ml-2 text-sm font-medium min-w-[80px]" style={{ color: 'var(--color-text-secondary)' }}>
                 {displayRating ? RATING_LABELS[displayRating] : 'Select…'}
               </span>
             </div>
-          </div>
+          </Card>
 
-          {/* ── Would recommend ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Would you recommend our services?</p>
+          {/* Recommend */}
+          <Card>
+            <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Would you recommend our services?</p>
             <div className="flex gap-3">
               {RECOMMEND_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
+                <button key={opt.value} type="button"
                   onClick={() => setWouldRecommend(opt.value)}
-                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${
-                    wouldRecommend === opt.value
-                      ? opt.active
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
+                  className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all"
+                  style={recommendStyle(opt.value, wouldRecommend === opt.value)}>
                   <span className="text-2xl">{opt.icon}</span>
-                  <span className={`text-xs font-medium ${wouldRecommend === opt.value ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {opt.label}
-                  </span>
+                  <span className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{opt.label}</span>
                 </button>
               ))}
             </div>
-          </div>
+          </Card>
 
-          {/* ── Comments ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
-            <label className="text-sm font-semibold text-gray-900 dark:text-white block mb-3">
-              Tell us more <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+          {/* Comments */}
+          <Card>
+            <label className="text-sm font-semibold block mb-3" style={{ color: 'var(--color-text-primary)' }}>
+              Tell us more <span className="font-normal" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
             </label>
-            <textarea
-              value={content}
-              onChange={e => setContent(e.target.value)}
+            <textarea value={content} onChange={e => setContent(e.target.value)}
               placeholder="Share any comments, suggestions, or specific experiences…"
-              maxLength={1000}
-              rows={4}
-              className="w-full px-3.5 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-900 transition resize-none"
-            />
+              maxLength={1000} rows={4} style={{
+                width: '100%',
+                padding: '0.75rem 0.875rem',
+                fontSize: '0.875rem',
+                borderRadius: '0.5rem',
+                outline: 'none',
+                resize: 'none',
+                background: 'var(--color-bg)',
+                border: `1px solid ${fContent ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                color: 'var(--color-text-primary)',
+              }}
+              onFocus={() => setFContent(true)} onBlur={() => setFContent(false)} />
             <div className="flex justify-end mt-1.5">
-              <span className="text-xs text-gray-400">{content.length}/1000</span>
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{content.length}/1000</span>
             </div>
-          </div>
+          </Card>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
-          >
+          <button type="submit" disabled={loading}
+            className="w-full flex items-center justify-center gap-2 py-3 text-white font-semibold rounded-xl transition hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'var(--color-primary)' }}>
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
             {loading ? 'Submitting…' : 'Submit Feedback'}
           </button>

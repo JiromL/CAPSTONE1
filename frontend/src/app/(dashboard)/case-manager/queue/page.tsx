@@ -19,86 +19,83 @@ interface QueueStudent {
   case_status: string | null;
 }
 
-const LABEL_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
-  'In Crisis':  { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500'    },
-  'Struggling': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
-};
+function labelStyle(label: string): { badge: React.CSSProperties; dot: React.CSSProperties } {
+  if (label === 'In Crisis') return {
+    badge: { background: 'var(--color-danger-surface)', color: 'var(--color-danger)' },
+    dot:   { background: 'var(--color-danger)' },
+  };
+  return {
+    badge: { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' },
+    dot:   { background: 'var(--color-warning)' },
+  };
+}
+
+function fmtDate(d: string | null) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 export default function CaseManagerQueuePage() {
   const [students, setStudents] = useState<QueueStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const load = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     const token = localStorage.getItem('token');
     try {
-      const r = await fetch(api('/api/mhbot/cm-queue'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) {
-        const e = await r.json();
-        throw new Error(e.error || 'Failed to load queue');
-      }
+      const r = await fetch(api('/api/mhbot/cm-queue'), { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Failed to load queue'); }
       const d = await r.json();
       setStudents(d.students || []);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
-    return (
-      s.student_name.toLowerCase().includes(q) ||
-      s.school_id.toLowerCase().includes(q) ||
-      s.college.toLowerCase().includes(q)
-    );
+    return s.student_name.toLowerCase().includes(q) || s.school_id.toLowerCase().includes(q) || s.college.toLowerCase().includes(q);
   });
 
-  const crisis = filtered.filter(s => s.latest_label === 'In Crisis');
+  const crisis    = filtered.filter(s => s.latest_label === 'In Crisis');
   const struggling = filtered.filter(s => s.latest_label === 'Struggling');
 
-  const fmtDate = (d: string | null) => {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
   const StudentCard = ({ s }: { s: QueueStudent }) => {
-    const cfg = LABEL_CONFIG[s.latest_label];
+    const { badge, dot } = labelStyle(s.latest_label);
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-start justify-between gap-4">
+      <div className="border rounded-xl p-4 flex items-start justify-between gap-4 transition"
+        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}>
         <div className="flex items-start gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-            <User size={16} className="text-gray-400" />
+          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--color-bg)' }}>
+            <User size={16} style={{ color: 'var(--color-text-muted)' }} />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-gray-900 text-sm truncate">{s.student_name || '—'}</p>
-            <p className="text-xs text-gray-500">{s.school_id || s.student_email}</p>
-            {s.college && <p className="text-xs text-gray-400">{s.college}</p>}
-            <p className="text-xs text-gray-400 mt-0.5">EMA check-in: {fmtDate(s.latest_date)}</p>
+            <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{s.student_name || '—'}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{s.school_id || s.student_email}</p>
+            {s.college && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{s.college}</p>}
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>EMA check-in: {fmtDate(s.latest_date)}</p>
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={badge}>
+            <span className="w-1.5 h-1.5 rounded-full" style={dot} />
             {s.latest_label}
           </span>
           {s.case_id ? (
-            <Link
-              href={`/cases/${s.case_id}`}
-              className="inline-flex items-center gap-1 text-xs text-[#2563eb] hover:underline font-medium"
-            >
+            <Link href={`/cases/${s.case_id}`}
+              className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+              style={{ color: 'var(--color-primary)' }}>
               View Case <ExternalLink size={11} />
             </Link>
           ) : (
-            <span className="text-xs text-gray-400">No case yet</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No case yet</span>
           )}
         </div>
       </div>
@@ -109,27 +106,28 @@ export default function CaseManagerQueuePage() {
     <DashboardPageWrapper title="CM Queue" subtitle="Students flagged as Struggling or In Crisis via EMA">
       <div className="max-w-3xl mx-auto space-y-5">
 
-        {/* Toolbar */}
         <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Search name, ID or college…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
-          />
-          <button
-            onClick={load}
-            disabled={loading}
-            className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition disabled:opacity-50"
-            title="Refresh"
-          >
+          <input type="text" placeholder="Search name, ID or college…"
+            value={search} onChange={e => setSearch(e.target.value)}
+            onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg outline-none transition"
+            style={{
+              background: 'var(--color-bg)',
+              border: `1px solid ${searchFocused ? 'var(--color-primary)' : 'var(--color-border)'}`,
+              color: 'var(--color-text-primary)',
+            }} />
+          <button onClick={load} disabled={loading} title="Refresh"
+            className="p-2 rounded-lg border transition disabled:opacity-50"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="flex items-start gap-2 p-4 rounded-lg border text-sm"
+            style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
             <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">{error}</p>
@@ -143,33 +141,35 @@ export default function CaseManagerQueuePage() {
         )}
 
         {loading && !error && (
-          <div className="py-16 text-center text-sm text-gray-400">Loading queue…</div>
+          <div className="py-16 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading queue…</div>
         )}
 
         {!loading && !error && filtered.length === 0 && (
           <div className="py-16 text-center">
-            <p className="text-sm font-medium text-gray-600">No flagged students</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No flagged students</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
               {search ? 'No results match your search.' : 'All tracked students are Surviving or above.'}
             </p>
           </div>
         )}
 
-        {/* In Crisis section */}
         {crisis.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-red-500" />
-              <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">In Crisis ({crisis.length})</p>
+              <AlertTriangle size={14} style={{ color: 'var(--color-danger)' }} />
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-danger)' }}>
+                In Crisis ({crisis.length})
+              </p>
             </div>
             {crisis.map(s => <StudentCard key={s.student_id} s={s} />)}
           </div>
         )}
 
-        {/* Struggling section */}
         {struggling.length > 0 && (
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide">Struggling ({struggling.length})</p>
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-warning)' }}>
+              Struggling ({struggling.length})
+            </p>
             {struggling.map(s => <StudentCard key={s.student_id} s={s} />)}
           </div>
         )}

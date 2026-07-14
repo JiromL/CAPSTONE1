@@ -2,16 +2,15 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function OfficeAssistantSettingsRedirect() {
   const router = useRouter();
-  useEffect(() => {
-    router.replace('/staff-settings');
-  }, [router]);
+  useEffect(() => { router.replace('/staff-settings'); }, [router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <Loader2 size={48} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
     </div>
   );
 }

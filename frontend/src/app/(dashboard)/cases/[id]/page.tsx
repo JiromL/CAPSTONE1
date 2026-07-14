@@ -40,6 +40,25 @@ interface SessionNote {
   supervisor_action_at?: string;
 }
 
+const IC    = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const IC_XS = 'w-full px-3 py-2 text-xs rounded-lg outline-none transition';
+const ICS: React.CSSProperties = { background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+
+function riskBadgeStyle(level: string): React.CSSProperties {
+  if (level === 'RED' || level === 'CRITICAL') return { background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' };
+  if (level === 'YELLOW') return { background: 'var(--color-warning-surface)', color: 'var(--color-warning)', boxShadow: '0 0 0 1px var(--color-warning)' };
+  return { background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' };
+}
+
+function noteTypeStyle(type: string): React.CSSProperties {
+  switch (type) {
+    case 'CRISIS':    return { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)'  };
+    case 'FOLLOW_UP': return { background: '#F5F3FF', color: '#7C3AED' };
+    case 'INTAKE':    return { background: '#CCFBF1', color: '#0D9488' };
+    default:          return { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' };
+  }
+}
+
 const emptyNote = {
   session_date: '',
   session_type: 'INDIVIDUAL',
@@ -83,28 +102,31 @@ function SupervisorActions({ noteId, onAction }: {
   };
 
   return (
-    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
-      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Supervisor Review</p>
+    <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+      <p className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Supervisor Review</p>
       <textarea
         value={comment}
         onChange={e => { setComment(e.target.value); if (rejectError) setRejectError(''); }}
         rows={2}
         placeholder="Feedback comment (required for rejection)…"
-        className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-1 focus:ring-blue-500"
+        className={IC_XS + ' resize-none'}
+        style={ICS}
       />
       {rejectError && (
-        <p className="text-xs text-red-500">{rejectError}</p>
+        <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{rejectError}</p>
       )}
       <div className="flex gap-2">
         <button
           onClick={() => act('approve')}
           disabled={busy}
-          className="px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-medium rounded transition disabled:opacity-50"
+          className="px-3 py-1.5 text-white text-xs font-medium rounded transition disabled:opacity-50 hover:opacity-90"
+          style={{ background: 'var(--color-primary)' }}
         >Approve</button>
         <button
           onClick={() => act('reject')}
           disabled={busy}
-          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition disabled:opacity-50"
+          className="px-3 py-1.5 text-white text-xs font-medium rounded transition disabled:opacity-50 hover:opacity-90"
+          style={{ background: 'var(--color-danger)' }}
         >Reject</button>
       </div>
     </div>
@@ -120,20 +142,26 @@ function SafetyListSection({ label, hint, items, onAdd, onRemove }: {
   const [val, setVal] = useState('');
   const commit = () => { if (val.trim()) { onAdd(val.trim()); setVal(''); } };
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
-      <p className="text-xs text-gray-400 mb-2">{hint}</p>
+    <div className="rounded-lg p-4 shadow-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+      <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+      <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>{hint}</p>
       <div className="flex gap-2 mb-2">
         <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), commit())}
-          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1 px-3 py-1.5 text-sm rounded outline-none transition"
+          style={ICS}
           placeholder="Add item…" />
-        <button onClick={commit} className="px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white rounded text-sm"><Plus size={14} /></button>
+        <button onClick={commit} className="px-3 py-1.5 text-white rounded text-sm hover:opacity-90 transition"
+          style={{ background: 'var(--color-primary)' }}><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((item, i) => (
-          <li key={`${item}-${i}`} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+          <li key={`${item}-${i}`} className="flex items-center justify-between text-sm rounded px-2 py-1"
+            style={{ background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
             <span>{item}</span>
-            <button onClick={() => onRemove(i)} className="text-gray-300 hover:text-red-500 ml-2"><XIcon size={13} /></button>
+            <button onClick={() => onRemove(i)} className="ml-2 transition"
+              style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}><XIcon size={13} /></button>
           </li>
         ))}
       </ul>
@@ -153,23 +181,28 @@ function ContactSection({ label, hint, items, fields, onAdd, onRemove }: {
     if (form.name.trim()) { onAdd({ ...form }); setForm({ name: '', phone: '' }); }
   };
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
-      <p className="text-xs text-gray-400 mb-2">{hint}</p>
+    <div className="rounded-lg p-4 shadow-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+      <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+      <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>{hint}</p>
       <div className="flex gap-2 mb-2">
         <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-          placeholder="Name" />
+          className="flex-1 px-3 py-1.5 text-sm rounded outline-none transition"
+          style={ICS} placeholder="Name" />
         <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-          placeholder="Phone" />
-        <button onClick={commit} className="px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white rounded text-sm"><Plus size={14} /></button>
+          className="w-36 px-3 py-1.5 text-sm rounded outline-none transition"
+          style={ICS} placeholder="Phone" />
+        <button onClick={commit} className="px-3 py-1.5 text-white rounded text-sm hover:opacity-90 transition"
+          style={{ background: 'var(--color-primary)' }}><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((c, i) => (
-          <li key={`item-${i}`} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
-            <span>{c.name} <span className="text-gray-400 text-xs ml-1">{c.phone}</span></span>
-            <button onClick={() => onRemove(i)} className="text-gray-300 hover:text-red-500 ml-2"><XIcon size={13} /></button>
+          <li key={`item-${i}`} className="flex items-center justify-between text-sm rounded px-2 py-1"
+            style={{ background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
+            <span>{c.name} <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>{c.phone}</span></span>
+            <button onClick={() => onRemove(i)} className="ml-2 transition"
+              style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}><XIcon size={13} /></button>
           </li>
         ))}
       </ul>
@@ -189,26 +222,31 @@ function ProfessionalContactSection({ items, onAdd, onRemove }: {
     if (form.name.trim()) { onAdd({ ...form }); setForm({ name: '', phone: '', role: '' }); }
   };
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">Professional / Crisis Contacts</p>
-      <p className="text-xs text-gray-400 mb-2">Counselors, psychiatrists, crisis hotlines the client can reach out to.</p>
+    <div className="rounded-lg p-4 shadow-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+      <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>Professional / Crisis Contacts</p>
+      <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>Counselors, psychiatrists, crisis hotlines the client can reach out to.</p>
       <div className="flex gap-2 mb-2 flex-wrap">
         <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          className="flex-1 min-w-[120px] border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-          placeholder="Name" />
+          className="flex-1 min-w-[120px] px-3 py-1.5 text-sm rounded outline-none transition"
+          style={ICS} placeholder="Name" />
         <input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-          className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-          placeholder="Role / org" />
+          className="w-32 px-3 py-1.5 text-sm rounded outline-none transition"
+          style={ICS} placeholder="Role / org" />
         <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-          className="w-36 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-          placeholder="Phone / hotline" />
-        <button onClick={commit} className="px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white rounded text-sm"><Plus size={14} /></button>
+          className="w-36 px-3 py-1.5 text-sm rounded outline-none transition"
+          style={ICS} placeholder="Phone / hotline" />
+        <button onClick={commit} className="px-3 py-1.5 text-white rounded text-sm hover:opacity-90 transition"
+          style={{ background: 'var(--color-primary)' }}><Plus size={14} /></button>
       </div>
       <ul className="space-y-1">
         {items.map((c, i) => (
-          <li key={`item-${i}`} className="flex items-center justify-between text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
-            <span>{c.name} <span className="text-gray-400 text-xs">{c.role}</span> <span className="text-gray-400 text-xs ml-1">{c.phone}</span></span>
-            <button onClick={() => onRemove(i)} className="text-gray-300 hover:text-red-500 ml-2"><XIcon size={13} /></button>
+          <li key={`item-${i}`} className="flex items-center justify-between text-sm rounded px-2 py-1"
+            style={{ background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
+            <span>{c.name} <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{c.role}</span> <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>{c.phone}</span></span>
+            <button onClick={() => onRemove(i)} className="ml-2 transition"
+              style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}><XIcon size={13} /></button>
           </li>
         ))}
       </ul>
@@ -936,7 +974,7 @@ export default function CaseDetailPage() {
     return (
       <DashboardPageWrapper title="Case Details" subtitle="">
         <div className="flex items-center justify-center p-8">
-          <Loader size={24} className="animate-spin text-blue-600" />
+          <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
         </div>
       </DashboardPageWrapper>
     );
@@ -950,12 +988,6 @@ export default function CaseDetailPage() {
     { id: 'history' as const,         label: checkInHistory.length > 0 ? `History (${checkInHistory.length})` : 'History' },
   ];
 
-  const RISK_BADGE: Record<string, string> = {
-    GREEN:    'bg-green-50 text-green-700 ring-1 ring-green-200',
-    YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-    RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
-    CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
-  };
 
   const studentName = caseData?.student?.name || caseData?.student_name || '—';
   const studentSchoolId = caseData?.student?.school_id || caseData?.student_id || '—';
@@ -970,7 +1002,10 @@ export default function CaseDetailPage() {
     >
       {/* Back navigation + Print */}
       <div className="mb-4 flex items-center justify-between">
-        <Link href="/cases" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2563eb] transition-colors">
+        <Link href="/cases" className="inline-flex items-center gap-1.5 text-sm transition"
+          style={{ color: 'var(--color-text-secondary)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}>
           <ArrowLeft size={15} /> Back to Cases
         </Link>
         {caseData && (
@@ -978,7 +1013,10 @@ export default function CaseDetailPage() {
             href={`/cases/${params.id}/print`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition"
+            style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <FileText size={13} /> Print Case Summary
           </a>
@@ -986,43 +1024,49 @@ export default function CaseDetailPage() {
       </div>
 
       {error && (
-        <div className="mb-4 flex gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
-          <AlertCircle className="text-red-600 flex-shrink-0" size={18} />
-          <p className="text-sm text-red-700">{error}</p>
-          <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700 text-lg leading-none">×</button>
+        <div className="mb-4 flex gap-3 rounded-lg p-4"
+          style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+          <AlertCircle className="flex-shrink-0" size={18} style={{ color: 'var(--color-danger)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto text-lg leading-none"
+            style={{ color: 'var(--color-danger)' }}>×</button>
         </div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+        <div className="mb-4 p-3 rounded text-sm"
+          style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)', color: 'var(--color-success)' }}>
           {success}
         </div>
       )}
 
       {/* ── Student identity banner — always visible ─────────────── */}
       {caseData && (
-        <div className="mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex flex-wrap items-center gap-4">
+        <div className="mb-5 rounded-2xl shadow-card px-5 py-4 flex flex-wrap items-center gap-4"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold flex-shrink-0"
-            style={{ backgroundColor: '#2563eb' }}>
+            style={{ background: 'var(--color-primary)' }}>
             {studentName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-base font-semibold text-gray-900 leading-tight">{studentName}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-mono">{studentSchoolId}{studentEmail ? ` · ${studentEmail}` : ''}</p>
+            <p className="text-base font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{studentName}</p>
+            <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-secondary)' }}>{studentSchoolId}{studentEmail ? ` · ${studentEmail}` : ''}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium ${RISK_BADGE[riskLevel] ?? RISK_BADGE['GREEN']}`}>
+            <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium" style={riskBadgeStyle(riskLevel)}>
               {riskLevel === 'GREEN' ? 'Low Risk' : riskLevel === 'YELLOW' ? 'Moderate' : riskLevel === 'RED' ? 'High Risk' : 'Critical'}
             </span>
-            <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+            <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium"
+              style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
               {(caseData.client_status || caseData.case_status || 'ACTIVE').replace(/_/g, ' ')}
             </span>
             {caseData.case_number && (
-              <span className="text-[11px] text-gray-400 font-mono">{caseData.case_number}</span>
+              <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-muted)' }}>{caseData.case_number}</span>
             )}
             {!['CLOSED', 'closed'].includes(caseData.case_status || caseData.client_status || '') && (
               <button
                 onClick={() => setShowTerminationForm(true)}
-                className="text-[11px] px-2.5 py-1 rounded-full font-medium bg-red-50 text-red-600 ring-1 ring-red-200 hover:bg-red-100 transition"
+                className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
+                style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}
               >
                 Terminate Case
               </button>
@@ -1033,13 +1077,14 @@ export default function CaseDetailPage() {
 
       {/* ── 3 Consecutive No-Show Banner ──────────────────────────────────── */}
       {caseData?.case_status === 'PENDING_TERMINATION' && caseData?.termination_type === 'ADMINISTRATIVE' && (
-        <div className="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3.5">
-          <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+        <div className="mb-4 flex items-start gap-3 rounded-xl px-4 py-3.5"
+          style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+          <AlertCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-danger)' }} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-danger)' }}>
               3 Consecutive No-Shows — Administrative Termination Required
             </p>
-            <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-danger)' }}>
               This student has missed {caseData.consecutive_no_shows ?? 3} consecutive sessions.
               Per CPS protocol, please review and confirm case closure. The student will be notified automatically.
             </p>
@@ -1047,7 +1092,8 @@ export default function CaseDetailPage() {
           <button
             onClick={handleConfirmNoShowTermination}
             disabled={confirmingNoShowTerm}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg transition disabled:opacity-50 hover:opacity-90"
+            style={{ background: 'var(--color-danger)' }}
           >
             {confirmingNoShowTerm && <Loader2 size={12} className="animate-spin" />}
             Confirm Termination
@@ -1056,16 +1102,17 @@ export default function CaseDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-0.5 border-b border-gray-200 overflow-x-auto">
+      <div className="mb-6 flex gap-0.5 border-b overflow-x-auto" style={{ borderColor: 'var(--color-border)' }}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition ${
-              activeTab === tab.id
-                ? 'border-[#2563eb] text-[#2563eb]'
-                : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
-            }`}
+            className="px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition"
+            style={activeTab === tab.id
+              ? { color: 'var(--color-primary)', borderBottomColor: 'var(--color-primary)' }
+              : { color: 'var(--color-text-secondary)', borderBottomColor: 'transparent' }}
+            onMouseEnter={e => { if (activeTab !== tab.id) e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+            onMouseLeave={e => { if (activeTab !== tab.id) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
           >
             {tab.label}
           </button>
@@ -1078,56 +1125,55 @@ export default function CaseDetailPage() {
 
           {/* Trend drop warning banner */}
           {permaTrendDrop && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <AlertCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2 rounded-xl px-4 py-3"
+              style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+              <AlertCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
               <div>
-                <p className="text-sm font-semibold text-amber-800">Wellbeing decline detected</p>
-                <p className="text-xs text-amber-700 mt-0.5">Recent EMA history shows a significant drop: <strong>{permaTrendDrop}</strong>. Consider earlier follow-up.</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-warning)' }}>Wellbeing decline detected</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-warning)' }}>Recent EMA history shows a significant drop: <strong>{permaTrendDrop}</strong>. Consider earlier follow-up.</p>
               </div>
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Case Information</h3>
+          <div className="rounded-2xl shadow-card p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Case Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Student ID</p>
-                <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">{caseData.student_id}</p>
+                <p style={{ color: 'var(--color-text-secondary)' }}>Student ID</p>
+                <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{caseData.student_id}</p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Client Status</p>
-                <span className="inline-block mt-0.5 px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
+                <p style={{ color: 'var(--color-text-secondary)' }}>Client Status</p>
+                <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
                   {caseData.client_status || 'N/A'}
                 </span>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Risk Level</p>
-                <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  caseData.risk_level === 'RED' ? 'bg-red-100 text-red-800' :
-                  caseData.risk_level === 'YELLOW' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-green-100 text-green-800'
-                }`}>
+                <p style={{ color: 'var(--color-text-secondary)' }}>Risk Level</p>
+                <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  style={riskBadgeStyle(caseData.risk_level || 'GREEN')}>
                   {caseData.risk_level || 'GREEN'}
                 </span>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Created</p>
-                <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">
+                <p style={{ color: 'var(--color-text-secondary)' }}>Created</p>
+                <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
                   {caseData.created_at ? new Date(caseData.created_at).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
               {caseData.target_sessions != null && (
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Sessions</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">
+                  <p style={{ color: 'var(--color-text-secondary)' }}>Sessions</p>
+                  <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
                     {caseData.session_count || 0} / {caseData.target_sessions}
                   </p>
                 </div>
               )}
               {caseData.transaction_type && (
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Transaction Type</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">{caseData.transaction_type}</p>
+                  <p style={{ color: 'var(--color-text-secondary)' }}>Transaction Type</p>
+                  <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{caseData.transaction_type}</p>
                 </div>
               )}
             </div>
@@ -1135,19 +1181,19 @@ export default function CaseDetailPage() {
 
           {/* IC Referral card — shown whenever endorsement data is present */}
           {(caseData.endorsed_to_role || caseData.counselor_name || caseData.intake_counselor_name) && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Intake Referral</h3>
+            <div className="rounded-2xl shadow-card p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Intake Referral</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 {caseData.intake_counselor_name && (
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Conducted by (IC)</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">{caseData.intake_counselor_name}</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }}>Conducted by (IC)</p>
+                    <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{caseData.intake_counselor_name}</p>
                   </div>
                 )}
                 {caseData.endorsed_to_role && (
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Referred to</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">
+                    <p style={{ color: 'var(--color-text-secondary)' }}>Referred to</p>
+                    <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
                       {caseData.endorsed_to_role === 'COUNSELOR' ? 'Counselor (CC)' :
                        caseData.endorsed_to_role === 'PSYCHOLOGIST' ? 'Psychologist (CP)' :
                        caseData.endorsed_to_role}
@@ -1156,12 +1202,13 @@ export default function CaseDetailPage() {
                 )}
                 {caseData.endorsed_to_role && (
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Assigned Counselor</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }}>Assigned Counselor</p>
                     {caseData.counselor_name ? (
-                      <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">{caseData.counselor_name}</p>
+                      <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{caseData.counselor_name}</p>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 mt-0.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      <span className="inline-flex items-center gap-1.5 mt-0.5 text-xs font-medium px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', border: '1px solid var(--color-warning)' }}>
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--color-warning)' }} />
                         Awaiting assignment from pool
                       </span>
                     )}
@@ -1169,16 +1216,16 @@ export default function CaseDetailPage() {
                 )}
                 {caseData.endorsed_at && (
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Endorsed on</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-50 mt-0.5">
+                    <p style={{ color: 'var(--color-text-secondary)' }}>Endorsed on</p>
+                    <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
                       {new Date(caseData.endorsed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                 )}
                 {caseData.endorsement_notes && (
                   <div className="md:col-span-2">
-                    <p className="text-gray-500 dark:text-gray-400">IC Notes</p>
-                    <p className="text-gray-700 dark:text-gray-300 mt-0.5 whitespace-pre-wrap">{caseData.endorsement_notes}</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }}>IC Notes</p>
+                    <p className="mt-0.5 whitespace-pre-wrap" style={{ color: 'var(--color-text-secondary)' }}>{caseData.endorsement_notes}</p>
                   </div>
                 )}
               </div>
@@ -1186,8 +1233,8 @@ export default function CaseDetailPage() {
           )}
 
           {caseAppointments.length > 0 && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Active Appointments</h3>
+            <div className="rounded-2xl shadow-card p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Active Appointments</h3>
               <div className="space-y-3">
                 {caseAppointments.map((appt) => {
                   const dateStr = appt.scheduled_at || appt.preferred_date;
@@ -1195,10 +1242,11 @@ export default function CaseDetailPage() {
                     ? new Date(dateStr).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
                     : 'No date set';
                   return (
-                    <div key={appt._id} className="flex items-center justify-between gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div key={appt._id} className="flex items-center justify-between gap-4 p-3 rounded-lg"
+                      style={{ background: 'var(--color-bg)' }}>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{displayDate}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{displayDate}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                           {appt.reference_id && <span className="mr-2">{appt.reference_id}</span>}
                           <span className="capitalize">{appt.status.toLowerCase().replace(/_/g, ' ')}</span>
                         </p>
@@ -1207,7 +1255,8 @@ export default function CaseDetailPage() {
                         <button
                           onClick={() => handleCompleteAndDocument(appt._id)}
                           disabled={completingAppt === appt._id}
-                          className="flex-shrink-0 px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition disabled:opacity-50"
+                          className="flex-shrink-0 px-3 py-1.5 text-white text-xs font-medium rounded-lg transition disabled:opacity-50 hover:opacity-90"
+                          style={{ background: 'var(--color-primary)' }}
                         >
                           {completingAppt === appt._id ? 'Completing…' : 'Complete & Document'}
                         </button>
@@ -1219,13 +1268,14 @@ export default function CaseDetailPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-3">Update Client Status</h3>
+          <div className="rounded-2xl shadow-card p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <h3 className="text-base font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Update Client Status</h3>
             <select
               value={caseData.client_status || 'ACTIVE'}
               onChange={(e) => handleUpdateStatus(e.target.value)}
               disabled={intakeLoading}
-              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+              className={IC}
+              style={{ ...ICS, maxWidth: 320 }}
             >
               <option value="ACTIVE">ACTIVE — Ongoing Counseling</option>
               <option value="INACTIVE">INACTIVE — Not Receiving Services</option>
@@ -1237,26 +1287,26 @@ export default function CaseDetailPage() {
           </div>
 
           {caseData.presenting_issue && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-2">Presenting Issue</h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{caseData.presenting_issue}</p>
+            <div className="rounded-2xl shadow-card p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>Presenting Issue</h3>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{caseData.presenting_issue}</p>
             </div>
           )}
 
           {/* Feature 5: Wellbeing Outcome Tracking */}
           {caseData.initial_perma_label && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Wellbeing Outcome</p>
+            <div className="mt-4 p-4 rounded-2xl shadow-card" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Wellbeing Outcome</p>
               <div className="flex items-center gap-4">
                 <div className="text-center">
-                  <p className="text-xs text-gray-400 mb-1">At intake</p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>At intake</p>
                   <PermaBadge label={caseData.initial_perma_label} />
                 </div>
                 <div className="flex-1 flex items-center justify-center">
-                  <div className="text-gray-300 text-lg">→</div>
+                  <div className="text-lg" style={{ color: 'var(--color-border)' }}>→</div>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-400 mb-1">Current</p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Current</p>
                   <PermaBadge label={permaHistory[0]?.perma_label ?? null} />
                 </div>
                 {permaHistory[0]?.perma_label && caseData.initial_perma_label && (() => {
@@ -1264,7 +1314,10 @@ export default function CaseDetailPage() {
                   const delta = (SCORE[permaHistory[0].perma_label!] ?? 0) - (SCORE[caseData.initial_perma_label] ?? 0);
                   if (delta === 0) return null;
                   return (
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className="text-xs font-bold px-2 py-1 rounded-full"
+                      style={delta > 0
+                        ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
+                        : { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)'  }}>
                       {delta > 0 ? `↑ +${delta}` : `↓ ${delta}`} levels
                     </span>
                   );
@@ -1280,14 +1333,14 @@ export default function CaseDetailPage() {
         <div className="space-y-4">
           {!intakeSummaryLoaded && (
             <div className="flex items-center justify-center p-12">
-              <Loader2 size={24} className="animate-spin text-[#2563eb]" />
+              <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
             </div>
           )}
           {intakeSummaryLoaded && !intakeSummary && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
-              <FileText size={32} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-sm font-medium text-gray-500">No intake record found for this case.</p>
-              <p className="text-xs text-gray-400 mt-1">The intake may not have been completed yet.</p>
+            <div className="rounded-2xl shadow-card p-12 text-center" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <FileText size={32} className="mx-auto mb-3" style={{ color: 'var(--color-border)' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No intake record found for this case.</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>The intake may not have been completed yet.</p>
             </div>
           )}
           {intakeSummary && (() => {
@@ -1297,28 +1350,28 @@ export default function CaseDetailPage() {
             const decision = intakeSummary.triage_decision;
             const risk = (intakeSummary.risk_level || 'GREEN').toUpperCase();
 
-            const RISK_CONFIG: Record<string, { bar: string; badge: string; label: string }> = {
-              GREEN:    { bar: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',    label: 'Low Risk'      },
-              YELLOW:   { bar: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 ring-amber-200',          label: 'Moderate Risk' },
-              RED:      { bar: 'bg-red-500',     badge: 'bg-red-50 text-red-700 ring-red-200',                label: 'High Risk'     },
-              CRITICAL: { bar: 'bg-red-700',     badge: 'bg-red-100 text-red-900 ring-red-300 font-bold',     label: 'Critical Risk' },
+            const RISK_CONFIG: Record<string, { bar: string; badgeStyle: React.CSSProperties; label: string }> = {
+              GREEN:    { bar: '#10b981', badgeStyle: { background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' }, label: 'Low Risk'      },
+              YELLOW:   { bar: '#f59e0b', badgeStyle: { background: 'var(--color-warning-surface)', color: 'var(--color-warning)', boxShadow: '0 0 0 1px var(--color-warning)' }, label: 'Moderate Risk' },
+              RED:      { bar: '#ef4444', badgeStyle: { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  boxShadow: '0 0 0 1px var(--color-danger)'  }, label: 'High Risk'     },
+              CRITICAL: { bar: '#b91c1c', badgeStyle: { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  boxShadow: '0 0 0 1px var(--color-danger)', fontWeight: 700 }, label: 'Critical Risk' },
             };
             const riskCfg = RISK_CONFIG[risk] ?? RISK_CONFIG['GREEN'];
 
-            const phq9Sev   = phq9 == null ? null : phq9 <= 4 ? { l: 'Minimal',           c: 'text-emerald-600' }
-                            : phq9 <= 9    ? { l: 'Mild',               c: 'text-amber-600'   }
-                            : phq9 <= 14   ? { l: 'Moderate',           c: 'text-orange-600'  }
-                            : phq9 <= 19   ? { l: 'Moderately Severe',  c: 'text-red-600'     }
-                            :                { l: 'Severe',             c: 'text-red-700'     };
-            const gad7Sev   = gad7 == null ? null : gad7 <= 4 ? { l: 'Minimal',   c: 'text-emerald-600' }
-                            : gad7 <= 9    ? { l: 'Mild',       c: 'text-amber-600'   }
-                            : gad7 <= 14   ? { l: 'Moderate',   c: 'text-orange-600'  }
-                            :                { l: 'Severe',     c: 'text-red-600'     };
+            const phq9Sev   = phq9 == null ? null : phq9 <= 4 ? { l: 'Minimal',           c: '#10b981' }
+                            : phq9 <= 9    ? { l: 'Mild',               c: '#d97706'   }
+                            : phq9 <= 14   ? { l: 'Moderate',           c: '#ea580c'  }
+                            : phq9 <= 19   ? { l: 'Moderately Severe',  c: '#dc2626'     }
+                            :                { l: 'Severe',             c: '#b91c1c'     };
+            const gad7Sev   = gad7 == null ? null : gad7 <= 4 ? { l: 'Minimal',   c: '#10b981' }
+                            : gad7 <= 9    ? { l: 'Mild',       c: '#d97706'   }
+                            : gad7 <= 14   ? { l: 'Moderate',   c: '#ea580c'  }
+                            :                { l: 'Severe',     c: '#dc2626'     };
 
-            const DECISION_CONFIG: Record<string, { label: string; sub: string; cls: string; dot: string }> = {
-              ENDORSE_CC:      { label: 'Endorsed to Counselor',     sub: 'CC', cls: 'border-blue-200 bg-blue-50/60',   dot: 'bg-blue-500'   },
-              ENDORSE_CP:      { label: 'Endorsed to Psychologist',  sub: 'CP', cls: 'border-violet-200 bg-violet-50/60', dot: 'bg-violet-500' },
-              CLOSE_AT_INTAKE: { label: 'Closed at Intake',          sub: '',   cls: 'border-gray-200 bg-gray-50',      dot: 'bg-gray-400'   },
+            const DECISION_CONFIG: Record<string, { label: string; sub: string; bgStyle: React.CSSProperties; dotColor: string }> = {
+              ENDORSE_CC:      { label: 'Endorsed to Counselor',    sub: 'CC', bgStyle: { border: '2px solid var(--color-primary)', background: 'var(--color-primary-surface)' }, dotColor: 'var(--color-primary)' },
+              ENDORSE_CP:      { label: 'Endorsed to Psychologist', sub: 'CP', bgStyle: { border: '2px solid #7c3aed', background: '#F5F3FF' }, dotColor: '#7c3aed' },
+              CLOSE_AT_INTAKE: { label: 'Closed at Intake',         sub: '',   bgStyle: { border: '2px solid var(--color-border)', background: 'var(--color-bg)' }, dotColor: 'var(--color-text-muted)' },
             };
             const decisionCfg = DECISION_CONFIG[decision] ?? null;
 
@@ -1334,13 +1387,13 @@ export default function CaseDetailPage() {
             };
 
             const ScoreBar = ({ value, max, thresholds }: { value: number | null; max: number; thresholds: number[] }) => {
-              if (value == null) return <div className="h-2 rounded-full bg-gray-100 w-full" />;
+              if (value == null) return <div className="h-2 rounded-full w-full" style={{ background: 'var(--color-border)' }} />;
               const pct = Math.min(100, (value / max) * 100);
               const zone = thresholds.filter(t => value > t).length;
-              const barColors = ['bg-emerald-400', 'bg-amber-400', 'bg-orange-400', 'bg-red-500', 'bg-red-700'];
+              const barColors = ['#10b981', '#d97706', '#ea580c', '#ef4444', '#b91c1c'];
               return (
-                <div className="h-2 rounded-full bg-gray-100 w-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${barColors[zone]}`} style={{ width: `${pct}%` }} />
+                <div className="h-2 rounded-full w-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColors[zone] }} />
                 </div>
               );
             };
@@ -1349,7 +1402,7 @@ export default function CaseDetailPage() {
               <>
                 {/* ── Top bar: export + metadata ── */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                     <span>{intakeSummary.source === 'walkin' ? 'Walk-in intake' : 'Online booking'}</span>
                     {intakeSummary.triaged_at && (
                       <><span>·</span><span>Triaged {fmtDt(intakeSummary.triaged_at)}</span></>
@@ -1357,7 +1410,10 @@ export default function CaseDetailPage() {
                   </div>
                   <button
                     onClick={() => setShowExportModal(true)}
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-2xl border border-gray-100 shadow-sm text-gray-500 hover:border-[#2563eb] hover:text-[#2563eb] transition font-medium"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-2xl shadow-sm font-medium transition"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                   >
                     <Download size={12} /> Export PDF
                   </button>
@@ -1365,26 +1421,27 @@ export default function CaseDetailPage() {
 
                 {/* ── Triage outcome card ── */}
                 {decisionCfg ? (
-                  <div className={`rounded-xl border-2 p-5 ${decisionCfg.cls}`}>
+                  <div className="rounded-xl p-5" style={decisionCfg.bgStyle}>
                     <div className="flex items-start gap-4">
-                      <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${decisionCfg.dot}`} />
+                      <div className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: decisionCfg.dotColor }} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Triage Decision</p>
+                          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Triage Decision</p>
                           {decisionCfg.sub && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 font-bold text-gray-500">{decisionCfg.sub}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                              style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>{decisionCfg.sub}</span>
                           )}
                         </div>
-                        <p className="text-base font-bold text-gray-900 mt-0.5">{decisionCfg.label}</p>
+                        <p className="text-base font-bold mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{decisionCfg.label}</p>
                         {intakeSummary.endorsement_notes && (
-                          <p className="text-sm text-gray-600 mt-2 leading-relaxed border-t border-black/5 pt-2">{intakeSummary.endorsement_notes}</p>
+                          <p className="text-sm mt-2 leading-relaxed pt-2" style={{ color: 'var(--color-text-secondary)', borderTop: '1px solid rgba(0,0,0,.05)' }}>{intakeSummary.endorsement_notes}</p>
                         )}
                       </div>
-                      <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold ring-1 ${riskCfg.badge}`}>{riskCfg.label}</span>
+                      <span className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold" style={riskCfg.badgeStyle}>{riskCfg.label}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
+                  <div className="rounded-xl p-4 text-center text-xs" style={{ border: '1px dashed var(--color-border)', color: 'var(--color-text-muted)' }}>
                     Triage not yet completed
                   </div>
                 )}
@@ -1392,48 +1449,48 @@ export default function CaseDetailPage() {
                 {/* ── Clinical scores ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* PHQ-9 */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">PHQ-9</p>
-                        <p className="text-[10px] text-gray-400">Depression</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>PHQ-9</p>
+                        <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Depression</p>
                       </div>
                       {phq9 != null ? (
                         <div className="text-right">
-                          <span className="text-2xl font-bold text-gray-900">{phq9}</span>
-                          <span className="text-xs text-gray-400 ml-1">/ 27</span>
+                          <span className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{phq9}</span>
+                          <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>/ 27</span>
                         </div>
-                      ) : <span className="text-sm text-gray-300">Not administered</span>}
+                      ) : <span className="text-sm" style={{ color: 'var(--color-border)' }}>Not administered</span>}
                     </div>
                     <ScoreBar value={phq9} max={27} thresholds={[4, 9, 14, 19]} />
-                    {phq9Sev && <p className={`text-xs font-semibold mt-1.5 ${phq9Sev.c}`}>{phq9Sev.l}</p>}
+                    {phq9Sev && <p className="text-xs font-semibold mt-1.5" style={{ color: phq9Sev.c }}>{phq9Sev.l}</p>}
                     {phq9 == null && <div className="h-5" />}
                   </div>
 
                   {/* GAD-7 */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">GAD-7</p>
-                        <p className="text-[10px] text-gray-400">Anxiety</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>GAD-7</p>
+                        <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Anxiety</p>
                       </div>
                       {gad7 != null ? (
                         <div className="text-right">
-                          <span className="text-2xl font-bold text-gray-900">{gad7}</span>
-                          <span className="text-xs text-gray-400 ml-1">/ 21</span>
+                          <span className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{gad7}</span>
+                          <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>/ 21</span>
                         </div>
-                      ) : <span className="text-sm text-gray-300">Not administered</span>}
+                      ) : <span className="text-sm" style={{ color: 'var(--color-border)' }}>Not administered</span>}
                     </div>
                     <ScoreBar value={gad7} max={21} thresholds={[4, 9, 14]} />
-                    {gad7Sev && <p className={`text-xs font-semibold mt-1.5 ${gad7Sev.c}`}>{gad7Sev.l}</p>}
+                    {gad7Sev && <p className="text-xs font-semibold mt-1.5" style={{ color: gad7Sev.c }}>{gad7Sev.l}</p>}
                     {gad7 == null && <div className="h-5" />}
                   </div>
                 </div>
 
                 {/* PHQ-4 pre-screen */}
                 {phq4r.length >= 4 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">PHQ-4 Pre-Screen</p>
+                  <div className="rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>PHQ-4 Pre-Screen</p>
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { label: 'PHQ-2', score: phq2Score, max: 6, threshold: 3, name: 'Depression screen' },
@@ -1441,11 +1498,12 @@ export default function CaseDetailPage() {
                         { label: 'Total', score: phq2Score != null && gad2Score != null ? phq2Score + gad2Score : null, max: 12, threshold: 6, name: 'Combined' },
                       ].map(({ label, score, max, threshold, name }) => (
                         <div key={label} className="text-center">
-                          <p className="text-[10px] text-gray-400 mb-1">{name}</p>
-                          <p className="text-xs font-bold text-gray-500 mb-0.5">{label}</p>
-                          <p className="text-xl font-bold text-gray-900">{score ?? '—'}<span className="text-xs font-normal text-gray-400">/{max}</span></p>
+                          <p className="text-[10px] mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</p>
+                          <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+                          <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{score ?? '—'}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{max}</span></p>
                           {score != null && (
-                            <span className={`text-[10px] font-semibold mt-0.5 inline-block ${score >= threshold ? 'text-red-500' : 'text-emerald-600'}`}>
+                            <span className="text-[10px] font-semibold mt-0.5 inline-block"
+                              style={{ color: score >= threshold ? '#ef4444' : '#10b981' }}>
                               {score >= threshold ? '⚑ Positive' : '✓ Negative'}
                             </span>
                           )}
@@ -1457,16 +1515,16 @@ export default function CaseDetailPage() {
 
                 {/* Presenting concern */}
                 {(icf.presenting_concern || intakeSummary.concern) && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Presenting Concern</p>
-                    <p className="text-sm text-gray-700 leading-relaxed">{icf.presenting_concern || intakeSummary.concern}</p>
+                  <div className="rounded-2xl shadow-card p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-muted)' }}>Presenting Concern</p>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{icf.presenting_concern || intakeSummary.concern}</p>
                     {icf.service_requested && (
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-xs text-gray-400">Service requested:</span>
-                        <span className="text-xs font-medium text-gray-700 capitalize">{icf.service_requested.replace(/_/g, ' ')}</span>
+                      <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Service requested:</span>
+                        <span className="text-xs font-medium capitalize" style={{ color: 'var(--color-text-primary)' }}>{icf.service_requested.replace(/_/g, ' ')}</span>
                         {icf.referral_source && (
-                          <><span className="text-gray-200">·</span>
-                          <span className="text-xs text-gray-400">via <span className="text-gray-600 capitalize">{icf.referral_source.replace(/-/g, ' ')}</span></span></>
+                          <><span style={{ color: 'var(--color-border)' }}>·</span>
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>via <span className="capitalize" style={{ color: 'var(--color-text-secondary)' }}>{icf.referral_source.replace(/-/g, ' ')}</span></span></>
                         )}
                       </div>
                     )}
@@ -1475,12 +1533,11 @@ export default function CaseDetailPage() {
 
                 {/* ICF + SPIF combined student background */}
                 {(Object.keys(icf).length > 0 || Object.keys(spif).length > 0) && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Student Background</p>
+                  <div className="rounded-2xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Student Background</p>
                     </div>
                     <div className="p-5">
-                      {/* Two-column field grid */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
                         {[
                           { label: 'College / Unit',       val: icf.college },
@@ -1497,13 +1554,12 @@ export default function CaseDetailPage() {
                           { label: 'Nationality',          val: spif.nationality },
                         ].filter(f => f.val).map(({ label, val: v }) => (
                           <div key={label}>
-                            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
-                            <p className="text-sm text-gray-800 capitalize">{String(v)}</p>
+                            <p className="text-[10px] font-medium uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+                            <p className="text-sm capitalize" style={{ color: 'var(--color-text-primary)' }}>{String(v)}</p>
                           </div>
                         ))}
                       </div>
 
-                      {/* Full-width text fields */}
                       {[
                         { label: 'Current Address',            val: spif.address },
                         { label: 'Medical Conditions',         val: spif.existing_medical_conditions ?? icf.medication_history },
@@ -1511,9 +1567,9 @@ export default function CaseDetailPage() {
                         { label: 'Previous Counseling Details',val: spif.previous_counseling_details ?? icf.family_background },
                         { label: 'Emergency Contact',          val: icf.emergency_contact_name ? `${icf.emergency_contact_name} (${icf.emergency_contact_relationship ?? '—'}) · ${icf.emergency_contact_phone ?? '—'}` : null },
                       ].filter(f => f.val).map(({ label, val: v }) => (
-                        <div key={label} className="mt-4 pt-4 border-t border-gray-100 first:mt-3 first:pt-3">
-                          <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">{label}</p>
-                          <p className="text-sm text-gray-700 leading-relaxed">{String(v)}</p>
+                        <div key={label} className="mt-4 pt-4 first:mt-3 first:pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+                          <p className="text-[10px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+                          <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{String(v)}</p>
                         </div>
                       ))}
                     </div>
@@ -1534,7 +1590,7 @@ export default function CaseDetailPage() {
               college: caseData?.student?.college || caseData?.student?.course,
             } : undefined;
             return (
-              <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <ICInterviewWizard
                   caseId={caseId}
                   sessionInfo={sessionInfo}
@@ -1562,23 +1618,15 @@ export default function CaseDetailPage() {
         const typeLabel: Record<string, string> = {
           INDIVIDUAL: 'Individual', CRISIS: 'Crisis', FOLLOW_UP: 'Follow-up', INTAKE: 'Intake',
         };
-        const typeColor: Record<string, string> = {
-          INDIVIDUAL: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-          CRISIS:     'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-          FOLLOW_UP:  'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-          INTAKE:     'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
-        };
-        const sevColor: Record<string, string> = {
-          MILD:     'text-yellow-600 dark:text-yellow-400',
-          MODERATE: 'text-orange-600 dark:text-orange-400',
-          SEVERE:   'text-red-600 dark:text-red-400',
+        const SEVERITY_COLOR: Record<string, string> = {
+          MILD: '#ca8a04', MODERATE: '#ea580c', SEVERE: '#dc2626',
         };
         const moodBar = (r: number) => {
           const pct = (r / 10) * 100;
-          const color = r <= 3 ? '#ef4444' : r <= 6 ? '#f59e0b' : '#10b981';
+          const color = r <= 3 ? 'var(--color-danger)' : r <= 6 ? 'var(--color-warning)' : 'var(--color-success)';
           return (
             <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
                 <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
               </div>
               <span className="text-xs font-semibold tabular-nums" style={{ color }}>{r}/10</span>
@@ -1587,10 +1635,10 @@ export default function CaseDetailPage() {
         };
 
         const soapSections = [
-          { key: 'S', label: 'Subjective', color: '#2563eb', bg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300' },
-          { key: 'O', label: 'Objective',  color: '#7c3aed', bg: 'bg-violet-50 dark:bg-violet-900/20 text-violet-800 dark:text-violet-300' },
-          { key: 'A', label: 'Assessment', color: '#d97706', bg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300' },
-          { key: 'P', label: 'Plan',       color: '#059669', bg: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300' },
+          { key: 'S', label: 'Subjective', color: 'var(--color-primary)', itemStyle: { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' } as React.CSSProperties },
+          { key: 'O', label: 'Objective',  color: '#7c3aed',              itemStyle: { background: '#F5F3FF', color: '#7C3AED' } as React.CSSProperties },
+          { key: 'A', label: 'Assessment', color: '#d97706',              itemStyle: { background: '#FEF3C7', color: '#d97706' } as React.CSSProperties },
+          { key: 'P', label: 'Plan',       color: '#059669',              itemStyle: { background: '#ECFDF5', color: '#059669' } as React.CSSProperties },
         ] as const;
 
         const avgMood = sessionNotes.filter(n => n.mood_rating).length
@@ -1603,19 +1651,20 @@ export default function CaseDetailPage() {
             {/* ── Header ── */}
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Session Notes</h3>
+                <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Session Notes</h3>
                 {sessionNotes.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                     {sessionNotes.length} session{sessionNotes.length !== 1 ? 's' : ''}
                     {avgMood && ` · avg mood ${avgMood}/10`}
                     {riskCount > 0 && ` · `}
-                    {riskCount > 0 && <span className="text-red-500 font-medium">{riskCount} risk flag{riskCount !== 1 ? 's' : ''}</span>}
+                    {riskCount > 0 && <span className="font-medium" style={{ color: 'var(--color-danger)' }}>{riskCount} risk flag{riskCount !== 1 ? 's' : ''}</span>}
                   </p>
                 )}
               </div>
               <button
                 onClick={() => setShowNoteForm(!showNoteForm)}
-                className="flex items-center gap-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 text-white px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}
               >
                 <Plus size={14} /> {showNoteForm ? 'Cancel' : 'Add Note'}
               </button>
@@ -1623,14 +1672,17 @@ export default function CaseDetailPage() {
 
             {/* ── Add Note Form ── */}
             {showNoteForm && (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">New Session Note</p>
-                  <div className="flex items-center gap-1 p-0.5 bg-gray-200 dark:bg-gray-700 rounded-lg">
+              <div className="rounded-2xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>New Session Note</p>
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'var(--color-border)' }}>
                     {(['SOAP', 'freeform'] as const).map(fmt => (
                       <button key={fmt} type="button"
                         onClick={() => setNoteForm({ ...noteForm, note_format: fmt })}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${noteForm.note_format === fmt ? 'bg-white dark:bg-gray-600 text-[#2563eb] shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                        className="px-3 py-1 text-xs font-medium rounded-md transition"
+                        style={noteForm.note_format === fmt
+                          ? { background: 'var(--color-surface)', color: 'var(--color-primary)', boxShadow: '0 1px 3px rgba(0,0,0,.1)' }
+                          : { color: 'var(--color-text-muted)' }}
                       >
                         {fmt === 'SOAP' ? 'SOAP' : 'Freeform'}
                       </button>
@@ -1640,16 +1692,16 @@ export default function CaseDetailPage() {
                 <div className="p-5 space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date & Time</label>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Date & Time</label>
                       <input type="datetime-local" value={noteForm.session_date}
                         onChange={(e) => setNoteForm({ ...noteForm, session_date: e.target.value })}
-                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                        className={IC_XS} style={ICS} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Session Type</label>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Session Type</label>
                       <select value={noteForm.session_type}
                         onChange={(e) => setNoteForm({ ...noteForm, session_type: e.target.value })}
-                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]">
+                        className={IC_XS} style={ICS}>
                         <option value="INDIVIDUAL">Individual</option>
                         <option value="CRISIS">Crisis</option>
                         <option value="FOLLOW_UP">Follow-up</option>
@@ -1657,16 +1709,16 @@ export default function CaseDetailPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mood (1–10)</label>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Mood (1–10)</label>
                       <input type="number" min="1" max="10" value={noteForm.mood_rating}
                         onChange={(e) => setNoteForm({ ...noteForm, mood_rating: Number(e.target.value) })}
-                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                        className={IC_XS} style={ICS} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Severity</label>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Severity</label>
                       <select value={noteForm.symptom_severity}
                         onChange={(e) => setNoteForm({ ...noteForm, symptom_severity: e.target.value })}
-                        className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]">
+                        className={IC_XS} style={ICS}>
                         <option value="NONE">None</option>
                         <option value="MILD">Mild</option>
                         <option value="MODERATE">Moderate</option>
@@ -1681,20 +1733,19 @@ export default function CaseDetailPage() {
                     <div className="grid grid-cols-1 gap-3">
                       {(['topics_discussed', 'interventions', 'client_response', 'progress_on_goals'] as const).map((field) => (
                         <div key={field}>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                             {field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                           </label>
                           <textarea value={noteForm[field] as string}
                             onChange={(e) => setNoteForm({ ...noteForm, [field]: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb] resize-none" />
+                            rows={2} className={IC_XS + ' resize-none'} style={ICS} />
                         </div>
                       ))}
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Homework / Tasks</label>
+                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Homework / Tasks</label>
                         <input type="text" value={noteForm.homework_assigned}
                           onChange={(e) => setNoteForm({ ...noteForm, homework_assigned: e.target.value })}
-                          className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                          className={IC_XS} style={ICS} />
                       </div>
                     </div>
                   )}
@@ -1702,23 +1753,28 @@ export default function CaseDetailPage() {
                   <label className="flex items-center gap-2 cursor-pointer w-fit">
                     <input type="checkbox" checked={noteForm.risk_flagged}
                       onChange={(e) => setNoteForm({ ...noteForm, risk_flagged: e.target.checked })}
-                      className="rounded border-gray-300 text-red-500 focus:ring-red-500" />
-                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Flag as Risk Concern</span>
+                      className="rounded" />
+                    <span className="text-xs font-medium" style={{ color: 'var(--color-danger)' }}>Flag as Risk Concern</span>
                   </label>
                   {noteForm.risk_flagged && (
                     <textarea value={noteForm.risk_notes}
                       onChange={(e) => setNoteForm({ ...noteForm, risk_notes: e.target.value })}
                       rows={2} placeholder="Describe the risk concern…"
-                      className="w-full px-3 py-2 text-xs border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
+                      className={IC_XS + ' resize-none'}
+                      style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-text-primary)' }} />
                   )}
                 </div>
-                <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-2">
+                <div className="px-5 py-3 flex items-center gap-2" style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
                   <button onClick={handleSaveNote} disabled={savingNote}
-                    className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors">
+                    className="text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition hover:opacity-90"
+                    style={{ background: 'var(--color-primary)' }}>
                     {savingNote ? 'Saving…' : 'Save Note'}
                   </button>
                   <button onClick={() => setShowNoteForm(false)}
-                    className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    className="px-4 py-2 rounded-lg text-sm transition"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Cancel
                   </button>
                 </div>
@@ -1727,10 +1783,10 @@ export default function CaseDetailPage() {
 
             {/* ── Notes list ── */}
             {sessionNotes.length === 0 ? (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center">
-                <FileText size={28} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No session notes yet</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click "Add Note" to document the first session.</p>
+              <div className="rounded-2xl shadow-card p-12 text-center" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <FileText size={28} className="mx-auto mb-3" style={{ color: 'var(--color-border)' }} />
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No session notes yet</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Click "Add Note" to document the first session.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1739,7 +1795,11 @@ export default function CaseDetailPage() {
                   const isExpanded = expandedNotes.has(note.note_id);
                   const stype = note.session_type || 'INDIVIDUAL';
                   const isRisk = note.risk_flagged;
-                  const accentColor = isRisk ? '#ef4444' : stype === 'CRISIS' ? '#ef4444' : stype === 'FOLLOW_UP' ? '#7c3aed' : stype === 'INTAKE' ? '#0891b2' : '#2563eb';
+                  const accentColor = isRisk ? 'var(--color-danger)'
+                    : stype === 'CRISIS' ? 'var(--color-danger)'
+                    : stype === 'FOLLOW_UP' ? '#7c3aed'
+                    : stype === 'INTAKE' ? '#0d9488'
+                    : 'var(--color-primary)';
                   const approvalStatus = note.supervisor_approved === true ? 'approved'
                     : (note.supervisor_approved === false && note.supervisor_name) ? 'rejected'
                     : (note.supervisor_approved === false && !note.supervisor_name) ? 'pending'
@@ -1758,8 +1818,8 @@ export default function CaseDetailPage() {
 
                   return (
                     <div key={note.note_id}
-                      className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
-                      style={{ borderLeft: `3px solid ${accentColor}` }}>
+                      className="rounded-xl shadow-card overflow-hidden"
+                      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderLeft: `3px solid ${accentColor}` }}>
 
                       {/* ── Card header (always visible) ── */}
                       <div className="px-5 py-4">
@@ -1772,61 +1832,73 @@ export default function CaseDetailPage() {
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                                <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                                   {note.session_date ? fmtDate(note.session_date) : 'Date not set'}
                                 </span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeColor[stype] || typeColor['INDIVIDUAL']}`}>
+                                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={noteTypeStyle(stype)}>
                                   {typeLabel[stype] || stype}
                                 </span>
                                 {note.note_format === 'SOAP' && (
-                                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">SOAP</span>
+                                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>SOAP</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                                 {note.counselor && (
-                                  <span className="text-xs text-gray-400">{note.counselor}</span>
+                                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{note.counselor}</span>
                                 )}
                                 {note.mood_rating ? (
-                                  <span className="text-xs text-gray-400">Mood <span className="font-semibold text-gray-700 dark:text-gray-200">{note.mood_rating}/10</span></span>
+                                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Mood <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{note.mood_rating}/10</span></span>
                                 ) : null}
                                 {note.symptom_severity && note.symptom_severity !== 'NONE' && (
-                                  <span className={`text-xs font-medium ${sevColor[note.symptom_severity] || ''}`}>{note.symptom_severity}</span>
+                                  <span className="text-xs font-medium" style={{ color: SEVERITY_COLOR[note.symptom_severity] }}>{note.symptom_severity}</span>
                                 )}
                                 {isRisk && (
-                                  <span className="text-xs font-semibold text-red-500">⚠ Risk flagged</span>
+                                  <span className="text-xs font-semibold" style={{ color: 'var(--color-danger)' }}>⚠ Risk flagged</span>
                                 )}
                               </div>
                             </div>
                           </button>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {approvalStatus === 'approved' && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">✓ Approved</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>✓ Approved</span>
                             )}
                             {approvalStatus === 'rejected' && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium">✗ Rejected</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>✗ Rejected</span>
                             )}
                             {approvalStatus === 'pending' && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium">Pending review</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>Pending review</span>
                             )}
                             {canEdit && (
                               <>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); if (isEditingThis) { setEditingNoteId(null); } else { setEditingNoteId(note.note_id); setEditNoteForm({ topics_discussed: note.topics_discussed || '', interventions: note.interventions || '', client_response: note.client_response || '', homework_assigned: note.homework_assigned || '', mood_rating: note.mood_rating || 5, risk_flagged: note.risk_flagged || false, risk_notes: note.risk_notes || '', change_reason: '' }); setExpandedNotes(prev => { const n = new Set(prev); n.add(note.note_id); return n; }); } }}
-                                  className={`p-1.5 rounded-lg transition-colors ${isEditingThis ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                  className="p-1.5 rounded-lg transition"
+                                  style={isEditingThis ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' } : { color: 'var(--color-text-muted)' }}
+                                  onMouseEnter={e => { if (!isEditingThis) { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}}
+                                  onMouseLeave={e => { if (!isEditingThis) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}}
                                   title="Edit note"
                                 >
                                   <Pencil size={13} />
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.note_id); }}
-                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                  className="p-1.5 rounded-lg transition"
+                                  style={{ color: 'var(--color-text-muted)' }}
+                                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}
                                   title="Delete note"
                                 >
                                   <Trash2 size={13} />
                                 </button>
                               </>
                             )}
-                            <button onClick={() => toggleNote(note.note_id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            <button onClick={() => toggleNote(note.note_id)} className="p-1.5 rounded-lg transition"
+                              style={{ color: 'var(--color-text-muted)' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                               <ChevronDown size={15} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                             </button>
                           </div>
@@ -1841,18 +1913,18 @@ export default function CaseDetailPage() {
 
                       {/* ── Expanded content ── */}
                       {isExpanded && (
-                        <div className="border-t border-gray-100 dark:border-gray-700">
+                        <div style={{ borderTop: '1px solid var(--color-border)' }}>
                           {/* SOAP structured */}
                           {note.note_format === 'SOAP' && note.structured_soap && (
                             <div className="p-5 space-y-4">
                               {note.structured_soap.counseling_goal && (
-                                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Session Goal</p>
-                                  <p className="text-sm text-gray-700 dark:text-gray-200">{note.structured_soap.counseling_goal}</p>
+                                <div className="px-3 py-2 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+                                  <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-text-muted)' }}>Session Goal</p>
+                                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{note.structured_soap.counseling_goal}</p>
                                 </div>
                               )}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {soapSections.map(({ key, label, color, bg }) => {
+                                {soapSections.map(({ key, label, color, itemStyle }) => {
                                   const ss = note.structured_soap!;
                                   const items: string[] = key === 'S'
                                     ? [...(ss.s_mood||[]), ...(ss.s_concerns||[]), ...(ss.s_coping||[])]
@@ -1864,20 +1936,20 @@ export default function CaseDetailPage() {
                                   const remarks = key === 'A' ? ss.a_remarks : key === 'P' ? ss.p_remarks : null;
                                   if (!items.length && !remarks) return null;
                                   return (
-                                    <div key={key} className="rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                      <div className="px-3 py-2 flex items-center gap-1.5" style={{ background: color + '12' }}>
+                                    <div key={key} className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+                                      <div className="px-3 py-2 flex items-center gap-1.5" style={{ background: color + '18' }}>
                                         <span className="text-xs font-bold" style={{ color }}>{key}</span>
-                                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</span>
+                                        <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
                                       </div>
                                       <div className="px-3 py-2.5 space-y-1.5">
                                         {items.length > 0 && (
                                           <div className="flex flex-wrap gap-1">
                                             {items.map((item, i) => (
-                                              <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${bg}`}>{item}</span>
+                                              <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={itemStyle}>{item}</span>
                                             ))}
                                           </div>
                                         )}
-                                        {remarks && <p className="text-xs text-gray-600 dark:text-gray-300 italic">{remarks}</p>}
+                                        {remarks && <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>{remarks}</p>}
                                       </div>
                                     </div>
                                   );
@@ -1891,19 +1963,19 @@ export default function CaseDetailPage() {
                               {(['subjective','objective','assessment','plan'] as const).map(k => {
                                 const v = note.soap![k]; if (!v) return null;
                                 const labels: Record<string,{letter:string;label:string;color:string}> = {
-                                  subjective: {letter:'S',label:'Subjective',color:'#2563eb'},
+                                  subjective: {letter:'S',label:'Subjective',color:'var(--color-primary)'},
                                   objective:  {letter:'O',label:'Objective', color:'#7c3aed'},
                                   assessment: {letter:'A',label:'Assessment',color:'#d97706'},
                                   plan:       {letter:'P',label:'Plan',      color:'#059669'},
                                 };
                                 const { letter, label, color } = labels[k];
                                 return (
-                                  <div key={k} className="rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                    <div className="px-3 py-2 flex items-center gap-1.5" style={{ background: color + '12' }}>
+                                  <div key={k} className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+                                    <div className="px-3 py-2 flex items-center gap-1.5" style={{ background: color + '18' }}>
                                       <span className="text-xs font-bold" style={{ color }}>{letter}</span>
-                                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</span>
+                                      <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
                                     </div>
-                                    <p className="px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{v}</p>
+                                    <p className="px-3 py-2.5 text-sm whitespace-pre-wrap" style={{ color: 'var(--color-text-primary)' }}>{v}</p>
                                   </div>
                                 );
                               })}
@@ -1922,8 +1994,8 @@ export default function CaseDetailPage() {
                                 const v = (note as any)[key]; if (!v) return null;
                                 return (
                                   <div key={key}>
-                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                                    <p className="text-sm text-gray-700 dark:text-gray-200">{v}</p>
+                                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+                                    <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{v}</p>
                                   </div>
                                 );
                               })}
@@ -1932,29 +2004,30 @@ export default function CaseDetailPage() {
 
                           {/* Risk notes */}
                           {note.risk_flagged && note.risk_notes && (
-                            <div className="mx-5 mb-4 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg">
-                              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5">⚠ Risk Notes</p>
-                              <p className="text-xs text-red-700 dark:text-red-300">{note.risk_notes}</p>
+                            <div className="mx-5 mb-4 px-3 py-2.5 rounded-lg"
+                              style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+                              <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--color-danger)' }}>⚠ Risk Notes</p>
+                              <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{note.risk_notes}</p>
                             </div>
                           )}
 
                           {/* Inline edit form */}
                           {isEditingThis && (
-                            <div className="border-t border-blue-100 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-5 space-y-3">
-                              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-widest mb-2">Editing Note</p>
+                            <div className="p-5 space-y-3" style={{ borderTop: '1px solid var(--color-primary)', background: 'var(--color-primary-surface)' }}>
+                              <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--color-primary)' }}>Editing Note</p>
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Mood (1–10)</label>
+                                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Mood (1–10)</label>
                                   <input type="number" min="1" max="10" value={editNoteForm.mood_rating}
                                     onChange={e => setEditNoteForm({ ...editNoteForm, mood_rating: Number(e.target.value) })}
-                                    className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                                    className={IC_XS} style={ICS} />
                                 </div>
                                 <div className="flex items-end pb-2">
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" checked={editNoteForm.risk_flagged}
                                       onChange={e => setEditNoteForm({ ...editNoteForm, risk_flagged: e.target.checked })}
-                                      className="rounded border-gray-300 text-red-500 focus:ring-red-500" />
-                                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Risk Concern</span>
+                                      className="rounded" />
+                                    <span className="text-xs font-medium" style={{ color: 'var(--color-danger)' }}>Risk Concern</span>
                                   </label>
                                 </div>
                               </div>
@@ -1965,35 +2038,38 @@ export default function CaseDetailPage() {
                                 { key: 'homework_assigned' as const, label: 'Homework / Tasks' },
                               ].map(({ key, label }) => (
                                 <div key={key}>
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
+                                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
                                   <textarea value={editNoteForm[key] as string}
                                     onChange={e => setEditNoteForm({ ...editNoteForm, [key]: e.target.value })}
-                                    rows={2}
-                                    className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb] resize-none" />
+                                    rows={2} className={IC_XS + ' resize-none'} style={ICS} />
                                 </div>
                               ))}
                               {editNoteForm.risk_flagged && (
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Risk Notes</label>
+                                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Risk Notes</label>
                                   <textarea value={editNoteForm.risk_notes}
                                     onChange={e => setEditNoteForm({ ...editNoteForm, risk_notes: e.target.value })}
-                                    rows={2}
-                                    className="w-full px-3 py-2 text-xs border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
+                                    rows={2} className={IC_XS + ' resize-none'}
+                                    style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-text-primary)' }} />
                                 </div>
                               )}
                               <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Reason for edit</label>
+                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Reason for edit</label>
                                 <input type="text" value={editNoteForm.change_reason} placeholder="e.g. Added missing intervention details"
                                   onChange={e => setEditNoteForm({ ...editNoteForm, change_reason: e.target.value })}
-                                  className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2563eb]" />
+                                  className={IC_XS} style={ICS} />
                               </div>
                               <div className="flex gap-2 pt-1">
                                 <button onClick={() => handleUpdateNote(note.note_id)} disabled={savingEditNote}
-                                  className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-4 py-2 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors">
+                                  className="text-white px-4 py-2 rounded-lg text-xs font-medium disabled:opacity-50 transition hover:opacity-90"
+                                  style={{ background: 'var(--color-primary)' }}>
                                   {savingEditNote ? 'Saving…' : 'Save Changes'}
                                 </button>
                                 <button onClick={() => setEditingNoteId(null)}
-                                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                  className="px-4 py-2 rounded-lg text-xs transition"
+                                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                                   Cancel
                                 </button>
                               </div>
@@ -2002,13 +2078,14 @@ export default function CaseDetailPage() {
 
                           {/* Approval footer */}
                           {(approvalStatus || (['PSYCHOLOGIST','ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name)) && (
-                            <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between flex-wrap gap-2">
+                            <div className="px-5 py-3 flex items-center justify-between flex-wrap gap-2"
+                              style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
                               {note.supervisor_approved === false && note.supervisor_comment && (
-                                <p className="text-xs text-red-600 dark:text-red-400"><span className="font-semibold">Feedback:</span> {note.supervisor_comment}</p>
+                                <p className="text-xs" style={{ color: 'var(--color-danger)' }}><span className="font-semibold">Feedback:</span> {note.supervisor_comment}</p>
                               )}
                               {note.supervisor_approved && note.supervisor_name && (
-                                <p className="text-xs text-gray-400">
-                                  Approved by <span className="font-medium text-gray-600 dark:text-gray-300">{note.supervisor_name}</span>
+                                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                  Approved by <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>{note.supervisor_name}</span>
                                   {note.supervisor_action_at && ` · ${new Date(note.supervisor_action_at).toLocaleDateString()}`}
                                 </p>
                               )}
@@ -2032,11 +2109,12 @@ export default function CaseDetailPage() {
       {activeTab === 'clinical-record' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Treatment Plan</h3>
+            <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Treatment Plan</h3>
             {!editingPlan && (
               <button
                 onClick={() => setEditingPlan(true)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}
               >
                 <Target size={15} /> {treatmentPlan ? 'Edit Plan' : 'Create Plan'}
               </button>
@@ -2045,136 +2123,154 @@ export default function CaseDetailPage() {
 
           <div className="space-y-4">
             {editingPlan ? (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-6">
+              <div className="rounded-2xl shadow-card p-6 space-y-6"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 {/* Goals */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Goals</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Goals</label>
                     <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, goals: [...tp.goals, { goal: '', target_date: '', status: 'not_started' }] }))}
-                      className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline">+ Add Goal</button>
+                      className="text-xs hover:underline" style={{ color: 'var(--color-primary)' }}>+ Add Goal</button>
                   </div>
                   <div className="space-y-2">
                     {treatmentPlan.goals.map((g, i) => (
                       <div key={i} className="flex gap-2 items-start">
                         <input type="text" value={g.goal} placeholder="Goal description"
                           onChange={e => setTreatmentPlan(tp => { const gs = [...tp.goals]; gs[i] = { ...gs[i], goal: e.target.value }; return { ...tp, goals: gs }; })}
-                          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                          className="flex-1 px-3 py-1.5 text-sm rounded-lg outline-none transition" style={ICS} />
                         <input type="date" value={g.target_date}
                           onChange={e => setTreatmentPlan(tp => { const gs = [...tp.goals]; gs[i] = { ...gs[i], target_date: e.target.value }; return { ...tp, goals: gs }; })}
-                          className="w-36 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                          className="w-36 px-2 py-1.5 text-sm rounded-lg outline-none transition" style={ICS} />
                         <select value={g.status}
                           onChange={e => setTreatmentPlan(tp => { const gs = [...tp.goals]; gs[i] = { ...gs[i], status: e.target.value as any }; return { ...tp, goals: gs }; })}
-                          className="w-32 px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50">
+                          className="w-32 px-2 py-1.5 text-xs rounded-lg outline-none transition" style={ICS}>
                           <option value="not_started">Not started</option>
                           <option value="in_progress">In progress</option>
                           <option value="achieved">Achieved</option>
                         </select>
                         <button onClick={() => setTreatmentPlan(tp => ({ ...tp, goals: tp.goals.filter((_, j) => j !== i) }))}
-                          className="text-red-400 hover:text-red-600 p-1"><XIcon size={14} /></button>
+                          className="p-1 transition" style={{ color: 'var(--color-danger)' }}><XIcon size={14} /></button>
                       </div>
                     ))}
-                    {treatmentPlan.goals.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500 italic">No goals added yet.</p>}
+                    {treatmentPlan.goals.length === 0 && <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No goals added yet.</p>}
                   </div>
                 </div>
 
                 {/* Interventions */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Interventions</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Interventions</label>
                     <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, interventions: [...tp.interventions, ''] }))}
-                      className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline">+ Add</button>
+                      className="text-xs hover:underline" style={{ color: 'var(--color-primary)' }}>+ Add</button>
                   </div>
                   <div className="space-y-2">
                     {treatmentPlan.interventions.map((iv, i) => (
                       <div key={i} className="flex gap-2">
                         <input type="text" value={iv} placeholder="e.g. CBT, mindfulness, psychoeducation"
                           onChange={e => setTreatmentPlan(tp => { const ivs = [...tp.interventions]; ivs[i] = e.target.value; return { ...tp, interventions: ivs }; })}
-                          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                          className="flex-1 px-3 py-1.5 text-sm rounded-lg outline-none transition" style={ICS} />
                         <button onClick={() => setTreatmentPlan(tp => ({ ...tp, interventions: tp.interventions.filter((_, j) => j !== i) }))}
-                          className="text-red-400 hover:text-red-600 p-1"><XIcon size={14} /></button>
+                          className="p-1 transition" style={{ color: 'var(--color-danger)' }}><XIcon size={14} /></button>
                       </div>
                     ))}
-                    {treatmentPlan.interventions.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500 italic">No interventions listed.</p>}
+                    {treatmentPlan.interventions.length === 0 && <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No interventions listed.</p>}
                   </div>
                 </div>
 
                 {/* Meta */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Estimated Duration</label>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Estimated Duration</label>
                     <input type="text" value={treatmentPlan.estimated_duration} placeholder="e.g. 12 sessions over 3 months"
                       onChange={e => setTreatmentPlan(tp => ({ ...tp, estimated_duration: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                      className={IC} style={ICS} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Next Review Date</label>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Next Review Date</label>
                     <input type="date" value={treatmentPlan.next_review_date}
                       onChange={e => setTreatmentPlan(tp => ({ ...tp, next_review_date: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                      className={IC} style={ICS} />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Progress Summary</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Progress Summary</label>
                   <textarea value={treatmentPlan.progress_summary} rows={3} placeholder="Overall progress notes and clinical impressions…"
                     onChange={e => setTreatmentPlan(tp => ({ ...tp, progress_summary: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                    className={IC + ' resize-none'} style={ICS} />
                 </div>
 
                 <div className="flex gap-3">
                   <button onClick={handleSaveTreatmentPlan} disabled={savingPlan}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition">
+                    className="text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition hover:opacity-90"
+                    style={{ background: 'var(--color-primary)' }}>
                     {savingPlan ? 'Saving…' : 'Save Plan'}
                   </button>
                   <button onClick={() => setEditingPlan(false)}
-                    className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    className="px-5 py-2 rounded-lg text-sm transition"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Cancel
                   </button>
                 </div>
               </div>
             ) : treatmentPlan.goals.length > 0 || treatmentPlan.interventions.length > 0 || treatmentPlan.progress_summary ? (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-5">
+              <div className="rounded-2xl shadow-card p-6 space-y-5"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 {treatmentPlan.goals.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Goals</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Goals</p>
                     <div className="space-y-1.5">
-                      {treatmentPlan.goals.map((g, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${g.status === 'achieved' ? 'bg-green-500' : g.status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-300'}`} />
-                          <span className="flex-1 text-gray-800 dark:text-gray-200">{g.goal}</span>
-                          {g.target_date && <span className="text-xs text-gray-400">{new Date(g.target_date).toLocaleDateString()}</span>}
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${g.status === 'achieved' ? 'bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400' : g.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{g.status.replace('_', ' ')}</span>
-                        </div>
-                      ))}
+                      {treatmentPlan.goals.map((g, i) => {
+                        const dotColor = g.status === 'achieved' ? 'var(--color-success)' : g.status === 'in_progress' ? 'var(--color-warning)' : 'var(--color-border)';
+                        const badgeStyle: React.CSSProperties = g.status === 'achieved'
+                          ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
+                          : g.status === 'in_progress'
+                          ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }
+                          : { background: 'var(--color-bg)', color: 'var(--color-text-muted)' };
+                        return (
+                          <div key={i} className="flex items-center gap-2 text-sm">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+                            <span className="flex-1" style={{ color: 'var(--color-text-primary)' }}>{g.goal}</span>
+                            {g.target_date && <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{new Date(g.target_date).toLocaleDateString()}</span>}
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={badgeStyle}>{g.status.replace('_', ' ')}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
                 {treatmentPlan.interventions.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Interventions</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Interventions</p>
                     <div className="flex flex-wrap gap-2">
-                      {treatmentPlan.interventions.map((iv, i) => <span key={i} className="text-xs px-2.5 py-1 bg-green-50 dark:bg-blue-900/30 text-green-700 dark:text-green-300 rounded-full">{iv}</span>)}
+                      {treatmentPlan.interventions.map((iv, i) => (
+                        <span key={i} className="text-xs px-2.5 py-1 rounded-full"
+                          style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>{iv}</span>
+                      ))}
                     </div>
                   </div>
                 )}
                 {(treatmentPlan.estimated_duration || treatmentPlan.next_review_date) && (
-                  <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex gap-6 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                     {treatmentPlan.estimated_duration && <span><span className="font-medium">Duration:</span> {treatmentPlan.estimated_duration}</span>}
                     {treatmentPlan.next_review_date && <span><span className="font-medium">Next review:</span> {new Date(treatmentPlan.next_review_date).toLocaleDateString()}</span>}
                   </div>
                 )}
                 {treatmentPlan.progress_summary && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Progress</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{treatmentPlan.progress_summary}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Progress</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--color-text-secondary)' }}>{treatmentPlan.progress_summary}</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-12 text-center">
-                <Target size={28} className="mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-600 dark:text-gray-400">No treatment plan on file.</p>
-                <p className="text-xs text-gray-500 mt-1">Click "Create Plan" to add goals, interventions, and a progress summary.</p>
+              <div className="rounded-2xl shadow-card p-12 text-center"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <Target size={28} className="mx-auto mb-3" style={{ color: 'var(--color-text-muted)' }} />
+                <p style={{ color: 'var(--color-text-secondary)' }}>No treatment plan on file.</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Click "Create Plan" to add goals, interventions, and a progress summary.</p>
               </div>
             )}
           </div>
@@ -2184,29 +2280,29 @@ export default function CaseDetailPage() {
       {/* ── Clinical Record Tab: Diagnoses ─────────────────────── */}
       {activeTab === 'clinical-record' && (
         <div className="space-y-5">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">Diagnoses</h3>
+          <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Diagnoses</h3>
 
           {/* Add form */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-5">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Add Diagnosis</p>
+          <div className="rounded-2xl shadow-card p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Add Diagnosis</p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="md:col-span-1">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Code</label>
                 <input type="text" value={diagForm.code} placeholder="e.g. F41.1" onChange={e => setDiagForm(f => ({ ...f, code: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                  className={IC} style={ICS} />
               </div>
               <div className="md:col-span-1">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">System</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>System</label>
                 <select value={diagForm.system} onChange={e => setDiagForm(f => ({ ...f, system: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50">
+                  className={IC} style={ICS}>
                   <option value="DSM-5">DSM-5</option>
                   <option value="ICD-10">ICD-10</option>
                 </select>
               </div>
               <div className="md:col-span-1">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Type</label>
                 <select value={diagForm.type} onChange={e => setDiagForm(f => ({ ...f, type: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50">
+                  className={IC} style={ICS}>
                   <option value="primary">Primary</option>
                   <option value="secondary">Secondary</option>
                   <option value="rule_out">Rule Out</option>
@@ -2214,34 +2310,46 @@ export default function CaseDetailPage() {
               </div>
               <div className="flex items-end">
                 <button onClick={handleAddDiagnosis} disabled={savingDiag || !diagForm.code || !diagForm.description}
-                  className="w-full px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition">
+                  className="w-full px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition hover:opacity-90"
+                  style={{ background: 'var(--color-primary)' }}>
                   {savingDiag ? 'Adding…' : 'Add'}
                 </button>
               </div>
               <div className="md:col-span-4">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Description</label>
                 <input type="text" value={diagForm.description} placeholder="e.g. Generalized Anxiety Disorder" onChange={e => setDiagForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50" />
+                  className={IC} style={ICS} />
               </div>
             </div>
           </div>
 
           {/* Diagnosis list */}
           {diagnoses.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-10 text-center">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No diagnoses recorded.</p>
+            <div className="rounded-2xl shadow-card p-10 text-center" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No diagnoses recorded.</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
-              {diagnoses.map((d, i) => (
-                <div key={i} className="flex items-center gap-3 px-5 py-3">
-                  <span className="font-mono text-sm font-bold text-[#2563eb] dark:text-blue-400 w-20 flex-shrink-0">{d.code}</span>
-                  <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{d.description}</span>
-                  <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">{d.system}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${d.type === 'primary' ? 'bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400' : d.type === 'rule_out' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{d.type.replace('_', ' ')}</span>
-                  <button onClick={() => handleRemoveDiagnosis(i)} className="text-gray-300 hover:text-red-500 transition ml-1"><XIcon size={14} /></button>
-                </div>
-              ))}
+            <div className="rounded-2xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              {diagnoses.map((d, i) => {
+                const typeStyle: React.CSSProperties = d.type === 'primary'
+                  ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
+                  : d.type === 'rule_out'
+                  ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }
+                  : { background: 'var(--color-bg)', color: 'var(--color-text-muted)' };
+                return (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3"
+                    style={{ borderBottom: i < diagnoses.length - 1 ? '1px solid var(--color-border)' : undefined }}>
+                    <span className="font-mono text-sm font-bold w-20 flex-shrink-0" style={{ color: 'var(--color-primary)' }}>{d.code}</span>
+                    <span className="text-sm flex-1" style={{ color: 'var(--color-text-primary)' }}>{d.description}</span>
+                    <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>{d.system}</span>
+                    <span className="text-xs px-2 py-0.5 rounded font-medium" style={typeStyle}>{d.type.replace('_', ' ')}</span>
+                    <button onClick={() => handleRemoveDiagnosis(i)} className="ml-1 transition"
+                      style={{ color: 'var(--color-text-muted)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}><XIcon size={14} /></button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -2253,16 +2361,17 @@ export default function CaseDetailPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Shield size={16} className="text-red-500" />
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              <Shield size={16} style={{ color: 'var(--color-danger)' }} />
+              <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 {safetyPlanExists ? 'Safety Plan' : 'Create Safety Plan'}
               </h2>
               {safetyPlanExists && !editingSafetyPlan && (
-                <span className="text-xs bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400 px-2 py-0.5 rounded">On file</span>
+                <span className="text-xs px-2 py-0.5 rounded"
+                  style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>On file</span>
               )}
             </div>
             {safetyPlanExists && !editingSafetyPlan && (
-              <button onClick={() => setEditingSafetyPlan(true)} className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline">Edit</button>
+              <button onClick={() => setEditingSafetyPlan(true)} className="text-xs hover:underline" style={{ color: 'var(--color-primary)' }}>Edit</button>
             )}
           </div>
 
@@ -2270,20 +2379,20 @@ export default function CaseDetailPage() {
             /* ── Read-only view ── */
             <div className="space-y-4">
               {[
-                { label: 'Warning Signs', items: safetyPlan.warning_signs, color: 'orange' },
-                { label: 'Internal Coping Strategies', items: safetyPlan.internal_coping, color: 'blue' },
-                { label: 'Social Distractions', items: safetyPlan.social_distractions, color: 'purple' },
-                { label: 'Reasons for Living', items: safetyPlan.reasons_to_live, color: 'green' },
+                { label: 'Warning Signs', items: safetyPlan.warning_signs },
+                { label: 'Internal Coping Strategies', items: safetyPlan.internal_coping },
+                { label: 'Social Distractions', items: safetyPlan.social_distractions },
+                { label: 'Reasons for Living', items: safetyPlan.reasons_to_live },
               ].map(sec => (
-                <div key={sec.label} className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{sec.label}</p>
+                <div key={sec.label} className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>{sec.label}</p>
                   {sec.items.length === 0 ? (
-                    <p className="text-xs text-gray-400 italic">None recorded</p>
+                    <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>None recorded</p>
                   ) : (
                     <ul className="space-y-1">
                       {sec.items.map((item, i) => (
-                        <li key={i} className="text-sm text-gray-800 dark:text-gray-200 flex items-start gap-2">
-                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                        <li key={i} className="text-sm flex items-start gap-2" style={{ color: 'var(--color-text-primary)' }}>
+                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--color-text-muted)' }} />
                           {item as string}
                         </li>
                       ))}
@@ -2293,16 +2402,16 @@ export default function CaseDetailPage() {
               ))}
 
               {/* Social contacts */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Social Contacts (People to Call)</p>
+              <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Social Contacts (People to Call)</p>
                 {safetyPlan.social_contacts.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">None recorded</p>
+                  <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>None recorded</p>
                 ) : (
                   <div className="space-y-1">
                     {safetyPlan.social_contacts.map((c, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm text-gray-800 dark:text-gray-200">
-                        <span className="font-medium">{c.name}</span>
-                        <span className="text-gray-400">{c.phone}</span>
+                      <div key={i} className="flex items-center gap-3 text-sm">
+                        <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.name}</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>{c.phone}</span>
                       </div>
                     ))}
                   </div>
@@ -2310,17 +2419,17 @@ export default function CaseDetailPage() {
               </div>
 
               {/* Professional contacts */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Professional / Crisis Contacts</p>
+              <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Professional / Crisis Contacts</p>
                 {safetyPlan.professional_contacts.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">None recorded</p>
+                  <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>None recorded</p>
                 ) : (
                   <div className="space-y-1">
                     {safetyPlan.professional_contacts.map((c, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm text-gray-800 dark:text-gray-200">
-                        <span className="font-medium">{c.name}</span>
-                        <span className="text-gray-400 text-xs">{c.role}</span>
-                        <span className="text-gray-400">{c.phone}</span>
+                      <div key={i} className="flex items-center gap-3 text-sm">
+                        <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.name}</span>
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{c.role}</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>{c.phone}</span>
                       </div>
                     ))}
                   </div>
@@ -2329,19 +2438,19 @@ export default function CaseDetailPage() {
 
               {/* Means restriction + follow-up */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Means Restriction</p>
-                  <p className="text-sm text-gray-800 dark:text-gray-200">{safetyPlan.means_restriction || <span className="italic text-gray-400">Not recorded</span>}</p>
+                <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Means Restriction</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{safetyPlan.means_restriction || <span className="italic" style={{ color: 'var(--color-text-muted)' }}>Not recorded</span>}</p>
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Follow-Up Date</p>
-                  <p className="text-sm text-gray-800 dark:text-gray-200">{safetyPlan.follow_up_date || <span className="italic text-gray-400">Not set</span>}</p>
+                <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Follow-Up Date</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{safetyPlan.follow_up_date || <span className="italic" style={{ color: 'var(--color-text-muted)' }}>Not set</span>}</p>
                 </div>
               </div>
 
               {safetyPlan.counselor_signature && (
-                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-xs text-gray-500 dark:text-gray-400">
-                  Counselor: <span className="font-medium text-gray-700 dark:text-gray-300">{safetyPlan.counselor_signature}</span>
+                <div className="rounded-lg p-3 text-xs" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                  Counselor: <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>{safetyPlan.counselor_signature}</span>
                 </div>
               )}
             </div>
@@ -2383,38 +2492,38 @@ export default function CaseDetailPage() {
               />
 
               {/* Means restriction */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">
+              <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                   Means Restriction
                 </label>
-                <p className="text-xs text-gray-400 mb-2">Describe agreed actions to limit access to lethal means.</p>
+                <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>Describe agreed actions to limit access to lethal means.</p>
                 <textarea
                   value={safetyPlan.means_restriction}
                   onChange={e => setSafetyPlan(p => ({ ...p, means_restriction: e.target.value }))}
                   rows={2}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={IC + ' resize-none'} style={ICS}
                   placeholder="e.g. Client agreed to have family remove firearms from home."
                 />
               </div>
 
               {/* Follow-up + Signature */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Follow-Up Date</label>
+                <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Follow-Up Date</label>
                   <input
                     type="date"
                     value={safetyPlan.follow_up_date}
                     onChange={e => setSafetyPlan(p => ({ ...p, follow_up_date: e.target.value }))}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={IC} style={ICS}
                   />
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4">
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Counselor Name</label>
+                <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Counselor Name</label>
                   <input
                     type="text"
                     value={safetyPlan.counselor_signature}
                     onChange={e => setSafetyPlan(p => ({ ...p, counselor_signature: e.target.value }))}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={IC} style={ICS}
                     placeholder="Counselor full name"
                   />
                 </div>
@@ -2425,12 +2534,17 @@ export default function CaseDetailPage() {
                 <button
                   onClick={saveSafetyPlan}
                   disabled={savingSafetyPlan}
-                  className={`px-5 py-2 rounded text-sm font-semibold transition ${savingSafetyPlan ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                  className="px-5 py-2 rounded text-sm font-semibold transition disabled:opacity-50"
+                  style={{ background: savingSafetyPlan ? 'var(--color-border)' : 'var(--color-danger)', color: savingSafetyPlan ? 'var(--color-text-muted)' : '#fff' }}
                 >
                   {savingSafetyPlan ? 'Saving…' : 'Save Safety Plan'}
                 </button>
                 {safetyPlanExists && (
-                  <button onClick={() => setEditingSafetyPlan(false)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                  <button onClick={() => setEditingSafetyPlan(false)}
+                    className="px-4 py-2 rounded text-sm transition"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Cancel
                   </button>
                 )}
@@ -2446,54 +2560,59 @@ export default function CaseDetailPage() {
 
           {/* ── Assessment result banner ── */}
           {assessmentResult && (
-            <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-xl p-4 flex items-start gap-3">
-              <Activity size={16} className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+            <div className="rounded-xl p-4 flex items-start gap-3"
+              style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+              <Activity size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-success)' }} />
               <div>
-                <p className="text-sm font-semibold text-green-800 dark:text-green-300">Assessment recorded</p>
-                <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-success)' }}>Assessment recorded</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-success)' }}>
                   Score: <span className="font-bold">{assessmentResult.score}/{assessmentResult.max}</span>
                   <span className="mx-1.5">·</span>
                   Severity: <span className="font-bold">{assessmentResult.severity}</span>
                 </p>
               </div>
-              <button onClick={() => setAssessmentResult(null)} className="ml-auto text-green-400 hover:text-green-600"><XIcon size={14} /></button>
+              <button onClick={() => setAssessmentResult(null)} className="ml-auto" style={{ color: 'var(--color-success)' }}><XIcon size={14} /></button>
             </div>
           )}
 
           {/* ── Record assessment form ── */}
           {recordingType && assessmentTemplate ? (
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 space-y-4">
+            <div className="rounded-xl p-5 space-y-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{assessmentTemplate.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{assessmentTemplate.instruction}</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{assessmentTemplate.name}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>{assessmentTemplate.instruction}</p>
                 </div>
                 <button onClick={() => { setRecordingType(null); setAssessmentTemplate(null); }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"><XIcon size={16} /></button>
+                  className="transition" style={{ color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-primary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}><XIcon size={16} /></button>
               </div>
 
               <div className="space-y-4">
                 {assessmentTemplate.questions.map((q, i) => (
-                  <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                    <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
-                      <span className="font-medium text-gray-500 dark:text-gray-400 mr-1.5">{i + 1}.</span>
+                  <div key={i} className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
+                    <p className="text-sm mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                      <span className="font-medium mr-1.5" style={{ color: 'var(--color-text-muted)' }}>{i + 1}.</span>
                       {q}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {assessmentTemplate.scale.map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => setAssessmentResponses(r => ({ ...r, [String(i)]: opt.value }))}
-                          className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
-                            assessmentResponses[String(i)] === opt.value
-                              ? 'bg-green-600 border-blue-600 text-white font-medium'
-                              : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-green-400'
-                          }`}
-                        >
-                          {opt.value} — {opt.label}
-                        </button>
-                      ))}
+                      {assessmentTemplate.scale.map(opt => {
+                        const selected = assessmentResponses[String(i)] === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setAssessmentResponses(r => ({ ...r, [String(i)]: opt.value }))}
+                            className="px-3 py-1.5 text-xs rounded-lg transition-all"
+                            style={selected
+                              ? { background: 'var(--color-primary)', border: '1px solid var(--color-primary)', color: '#fff', fontWeight: 500 }
+                              : { border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'transparent' }}
+                          >
+                            {opt.value} — {opt.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -2503,31 +2622,35 @@ export default function CaseDetailPage() {
                 <button
                   onClick={handleSubmitAssessment}
                   disabled={savingAssessment || Object.keys(assessmentResponses).length < assessmentTemplate.questions.length}
-                  className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition"
+                  className="px-5 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition hover:opacity-90"
+                  style={{ background: 'var(--color-primary)' }}
                 >
                   {savingAssessment ? 'Saving…' : 'Save Assessment'}
                 </button>
-                <p className="text-xs text-gray-400">{Object.keys(assessmentResponses).length}/{assessmentTemplate.questions.length} answered</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{Object.keys(assessmentResponses).length}/{assessmentTemplate.questions.length} answered</p>
               </div>
             </div>
           ) : (
             /* ── Pick assessment to record ── */
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Record Assessment</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Administer and record a standardized assessment for this client. Results are for clinical use only — not shared with the student.</p>
+            <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Record Assessment</p>
+              <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>Administer and record a standardized assessment for this client. Results are for clinical use only — not shared with the student.</p>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { type: 'PHQ9', label: 'PHQ-9', desc: 'Depression (27 pts)', color: 'blue' },
-                  { type: 'GAD7', label: 'GAD-7', desc: 'Anxiety (21 pts)', color: 'purple' },
-                  { type: 'PSS',  label: 'PSS-10', desc: 'Stress (40 pts)',  color: 'orange' },
+                  { type: 'PHQ9', label: 'PHQ-9', desc: 'Depression (27 pts)' },
+                  { type: 'GAD7', label: 'GAD-7', desc: 'Anxiety (21 pts)' },
+                  { type: 'PSS',  label: 'PSS-10', desc: 'Stress (40 pts)' },
                 ].map(t => (
                   <button
                     key={t.type}
                     onClick={() => startRecording(t.type)}
-                    className="flex flex-col items-start px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-blue-600 transition text-left"
+                    className="flex flex-col items-start px-4 py-3 rounded-xl transition text-left"
+                    style={{ border: '2px solid var(--color-border)', background: 'transparent' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-primary-surface)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'transparent'; }}
                   >
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">{t.label}</span>
-                    <span className="text-xs text-gray-400 mt-0.5">{t.desc}</span>
+                    <span className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>{t.label}</span>
+                    <span className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{t.desc}</span>
                   </button>
                 ))}
               </div>
@@ -2536,42 +2659,44 @@ export default function CaseDetailPage() {
 
           {/* ── Assessment history ── */}
           <div>
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">Assessment History</p>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-secondary)' }}>Assessment History</p>
             {!historyLoaded ? (
-              <p className="text-sm text-gray-400 italic">Loading…</p>
+              <p className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>Loading…</p>
             ) : assessmentHistory.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">No assessments recorded yet.</p>
+              <p className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>No assessments recorded yet.</p>
             ) : (
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
+              <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                      <th className="text-left px-4 py-2">Date</th>
-                      <th className="text-left px-4 py-2">Tool</th>
-                      <th className="text-left px-4 py-2">Score</th>
-                      <th className="text-left px-4 py-2">Severity</th>
+                    <tr className="text-xs uppercase tracking-wide" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                      <th className="text-left px-4 py-2" style={{ color: 'var(--color-text-muted)' }}>Date</th>
+                      <th className="text-left px-4 py-2" style={{ color: 'var(--color-text-muted)' }}>Tool</th>
+                      <th className="text-left px-4 py-2" style={{ color: 'var(--color-text-muted)' }}>Score</th>
+                      <th className="text-left px-4 py-2" style={{ color: 'var(--color-text-muted)' }}>Severity</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody>
                     {assessmentHistory.map(a => {
-                      const severityColor =
-                        a.severity === 'Severe' || a.severity === 'High stress' ? 'text-red-600 dark:text-red-400' :
-                        a.severity === 'Moderately Severe' ? 'text-orange-600 dark:text-orange-400' :
-                        a.severity === 'Moderate' || a.severity === 'Moderate stress' ? 'text-yellow-600 dark:text-yellow-400' :
-                        a.severity === 'Mild' ? 'text-blue-600 dark:text-blue-400' :
-                        'text-green-600 dark:text-green-400';
+                      const sevColor =
+                        a.severity === 'Severe' || a.severity === 'High stress' ? 'var(--color-danger)' :
+                        a.severity === 'Moderately Severe' ? '#ea580c' :
+                        a.severity === 'Moderate' || a.severity === 'Moderate stress' ? 'var(--color-warning)' :
+                        a.severity === 'Mild' ? 'var(--color-primary)' :
+                        'var(--color-success)';
                       return (
-                        <tr key={a._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                          <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                        <tr key={a._id} className="transition" style={{ borderBottom: '1px solid var(--color-border)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                             {new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </td>
                           <td className="px-4 py-2.5">
-                            <span className="font-medium text-gray-900 dark:text-white">{a.assessment_type === 'PSS' ? 'PSS-10' : a.assessment_type.replace('9', '-9').replace('7', '-7')}</span>
+                            <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{a.assessment_type === 'PSS' ? 'PSS-10' : a.assessment_type.replace('9', '-9').replace('7', '-7')}</span>
                           </td>
-                          <td className="px-4 py-2.5 font-mono text-gray-900 dark:text-white">
-                            {a.raw_score}<span className="text-gray-400 text-xs">/{a.max_score ?? '?'}</span>
+                          <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--color-text-primary)' }}>
+                            {a.raw_score}<span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>/{a.max_score ?? '?'}</span>
                           </td>
-                          <td className={`px-4 py-2.5 font-medium ${severityColor}`}>{a.severity ?? '—'}</td>
+                          <td className="px-4 py-2.5 font-medium" style={{ color: sevColor }}>{a.severity ?? '—'}</td>
                         </tr>
                       );
                     })}
@@ -2583,35 +2708,36 @@ export default function CaseDetailPage() {
 
           {/* ── Repeating Schedules ── */}
           <div>
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Repeating Schedules</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Auto-queue assessments at regular intervals.</p>
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Repeating Schedules</p>
+            <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>Auto-queue assessments at regular intervals.</p>
+            <div className="rounded-lg p-4 space-y-3" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <div className="flex flex-wrap gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">Assessment</label>
+                  <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Assessment</label>
                   <select value={scheduleForm.assessment_type}
                     onChange={e => setScheduleForm(f => ({ ...f, assessment_type: e.target.value }))}
-                    className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                    className="px-3 py-1.5 text-sm rounded outline-none transition" style={ICS}>
                     <option value="PHQ9">PHQ-9 (Depression)</option>
                     <option value="GAD7">GAD-7 (Anxiety)</option>
                     <option value="PSS">PSS-10 (Stress)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">Every (days)</label>
+                  <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Every (days)</label>
                   <input type="number" min={1} max={90} value={scheduleForm.interval_days}
                     onChange={e => setScheduleForm(f => ({ ...f, interval_days: parseInt(e.target.value) || 14 }))}
-                    className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500" />
+                    className="w-24 px-3 py-1.5 text-sm rounded outline-none transition" style={ICS} />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">First due date</label>
+                  <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>First due date</label>
                   <input type="date" value={scheduleForm.start_date}
                     onChange={e => setScheduleForm(f => ({ ...f, start_date: e.target.value }))}
-                    className="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500" />
+                    className="px-3 py-1.5 text-sm rounded outline-none transition" style={ICS} />
                 </div>
                 <div className="self-end">
                   <button onClick={handleAddSchedule} disabled={savingSchedule}
-                    className={`px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 ${savingSchedule ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed' : 'bg-[#2563eb] hover:bg-blue-700 text-white'}`}>
+                    className="px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 disabled:opacity-50"
+                    style={{ background: savingSchedule ? 'var(--color-border)' : 'var(--color-primary)', color: savingSchedule ? 'var(--color-text-muted)' : '#fff' }}>
                     <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
                   </button>
                 </div>
@@ -2619,22 +2745,26 @@ export default function CaseDetailPage() {
             </div>
 
             {assessmentSchedules.filter(s => s.active).length === 0 ? (
-              <p className="text-sm text-gray-400 italic mt-3">No active schedules.</p>
+              <p className="text-sm italic mt-3" style={{ color: 'var(--color-text-muted)' }}>No active schedules.</p>
             ) : (
               <div className="space-y-2 mt-3">
                 {assessmentSchedules.filter(s => s.active).map(s => (
-                  <div key={s.schedule_id} className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-lg px-4 py-3">
+                  <div key={s.schedule_id} className="flex items-center justify-between rounded-lg px-4 py-3"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                     <div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{s.assessment_type}</span>
-                      <span className="text-xs text-gray-500 ml-2">every {s.interval_days} days</span>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Next due: <span className="font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{s.assessment_type}</span>
+                      <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>every {s.interval_days} days</span>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                        Next due: <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                           {new Date(s.next_due).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </p>
                     </div>
                     <button onClick={() => handleDeleteSchedule(s.schedule_id)}
-                      className="text-xs text-red-500 hover:text-red-700 transition px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20">
+                      className="text-xs px-2 py-1 rounded transition"
+                      style={{ color: 'var(--color-danger)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                       Remove
                     </button>
                   </div>
@@ -2651,7 +2781,7 @@ export default function CaseDetailPage() {
           <CheckInForm caseId={caseId} onSubmit={handleCreateCheckIn} isLoading={checkInLoading} />
           {checkInHistory.length > 0 && (
             <div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-4">Check-In History</h3>
+              <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Check-In History</h3>
               <CheckInHistory checkIns={checkInHistory} isLoading={checkInLoading} />
             </div>
           )}
@@ -2662,22 +2792,25 @@ export default function CaseDetailPage() {
       {activeTab === 'wellbeing' && (
         <div className="space-y-5 max-w-2xl">
           {/* Link / Unlink MHBot account */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-              <Activity size={14} className="text-[#2563eb]" /> MHBot Account
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <p className="text-sm font-semibold mb-1 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+              <Activity size={14} style={{ color: 'var(--color-primary)' }} /> MHBot Account
             </p>
             {caseData?.student?.mhbot_username ? (
               <div className="flex items-center justify-between mt-3">
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Linked username</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white font-mono mt-0.5">
+                  <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Linked username</p>
+                  <p className="text-sm font-medium font-mono mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
                     {caseData.student.mhbot_username}
                   </p>
                 </div>
                 <button
                   onClick={unlinkMhbot}
                   disabled={linkingMhbot}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg disabled:opacity-50 transition"
+                  style={{ color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   {linkingMhbot ? <Loader2 size={11} className="animate-spin" /> : <Unlink size={11} />}
                   Unlink
@@ -2685,7 +2818,7 @@ export default function CaseDetailPage() {
               </div>
             ) : (
               <div className="mt-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                <p className="text-xs mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                   Enter the student's MHBot username to pull PERMA history.
                 </p>
                 <div className="flex gap-2">
@@ -2694,19 +2827,20 @@ export default function CaseDetailPage() {
                     value={mhbotUsername}
                     onChange={e => setMhbotUsername(e.target.value)}
                     placeholder="e.g. ema_lVk"
-                    className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 text-sm rounded-lg outline-none transition" style={ICS}
                   />
                   <button
                     onClick={linkMhbot}
                     disabled={linkingMhbot || !mhbotUsername.trim()}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition hover:opacity-90"
+                    style={{ background: 'var(--color-primary)' }}
                   >
                     {linkingMhbot ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
                     Link
                   </button>
                 </div>
                 {mhbotError && (
-                  <p className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <p className="mt-2 text-xs flex items-center gap-1" style={{ color: 'var(--color-danger)' }}>
                     <AlertCircle size={11} /> {mhbotError}
                   </p>
                 )}
@@ -2742,8 +2876,9 @@ export default function CaseDetailPage() {
               if (!active || !payload?.length) return null;
               const d = payload[0].payload;
               return (
-                <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg rounded-lg px-3 py-2 text-xs">
-                  <p className="text-gray-500 dark:text-gray-400 mb-0.5">
+                <div className="shadow-lg rounded-lg px-3 py-2 text-xs"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="mb-0.5" style={{ color: 'var(--color-text-muted)' }}>
                     {new Date(d.dateRaw).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </p>
                   <p className="font-semibold" style={{ color: SCORE_COLOR[d.score] }}>{d.label}</p>
@@ -2752,9 +2887,9 @@ export default function CaseDetailPage() {
             };
 
             return (
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5">
+              <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">PERMA History</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>PERMA History</p>
                   {latestScore && (
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: latestColor + '18', color: latestColor }}>
                       Latest: {SCORE_TO_LABEL[latestScore]}
@@ -2762,11 +2897,11 @@ export default function CaseDetailPage() {
                   )}
                 </div>
                 {permaLoading ? (
-                  <div className="flex justify-center py-12 text-gray-400">
+                  <div className="flex justify-center py-12" style={{ color: 'var(--color-text-muted)' }}>
                     <Loader2 size={18} className="animate-spin mr-2" /> Loading…
                   </div>
                 ) : chartData.length === 0 ? (
-                  <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No PERMA records found</p>
+                  <p className="text-sm text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No PERMA records found</p>
                 ) : (
                   <>
                     <ResponsiveContainer width="100%" height={220}>
@@ -2796,23 +2931,23 @@ export default function CaseDetailPage() {
                       </AreaChart>
                     </ResponsiveContainer>
                     {/* Recent entries table */}
-                    <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1.5">
+                    <div className="mt-4 pt-3 space-y-1.5" style={{ borderTop: '1px solid var(--color-border)' }}>
                       {[...permaHistory].slice(0, 6).map((h, i) => (
                         <div key={i} className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                             {new Date(h.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
                           </span>
                           <PermaBadge label={h.perma_label} />
                         </div>
                       ))}
                       {permaHistory.length > 6 && (
-                        <p className="text-xs text-gray-400 text-center pt-1">+{permaHistory.length - 6} earlier entries</p>
+                        <p className="text-xs text-center pt-1" style={{ color: 'var(--color-text-muted)' }}>+{permaHistory.length - 6} earlier entries</p>
                       )}
                     </div>
                   </>
                 )}
                 {mhbotError && (
-                  <p className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <p className="mt-2 text-xs flex items-center gap-1" style={{ color: 'var(--color-danger)' }}>
                     <AlertCircle size={11} /> {mhbotError}
                   </p>
                 )}

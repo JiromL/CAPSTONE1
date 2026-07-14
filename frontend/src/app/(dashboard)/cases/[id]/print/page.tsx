@@ -47,10 +47,10 @@ export default function CasePrintPage() {
   }, [caseId]);
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center text-red-600 text-sm">{error}</div>
+    <div className="min-h-screen flex items-center justify-center text-sm" style={{ color: '#DC2626' }}>{error}</div>
   );
   if (!data) return (
-    <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">Loading…</div>
+    <div className="min-h-screen flex items-center justify-center text-sm" style={{ color: '#9CA3AF' }}>Loading…</div>
   );
 
   const phq2 = data.phq4 ? (data.phq4[0] ?? 0) + (data.phq4[1] ?? 0) : null;
@@ -70,11 +70,17 @@ export default function CasePrintPage() {
       {/* Print button */}
       <div className="no-print fixed top-4 right-4 flex gap-2 z-50">
         <button onClick={() => window.print()}
-          className="px-4 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-800 transition">
+          className="px-4 py-2 text-white text-sm font-semibold rounded-lg shadow transition"
+          style={{ background: '#2563eb' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#1A3DB0')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#2563eb')}>
           Print / Save as PDF
         </button>
         <button onClick={() => window.close()}
-          className="px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition">
+          className="px-4 py-2 text-sm rounded-lg transition"
+          style={{ border: '1px solid #D1D5DB', color: '#4B5563', background: 'transparent' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#F9FAFB')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
           Close
         </button>
       </div>

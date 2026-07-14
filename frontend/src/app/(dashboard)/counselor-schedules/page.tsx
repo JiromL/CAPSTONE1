@@ -33,17 +33,15 @@ function formatDt(dt: string | undefined) {
     ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    CONFIRMED: 'bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400',
-    REQUESTED: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    PENDING_APPROVAL: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    MATCHED: 'bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400',
-    COMPLETED: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
-    CANCELLED: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-  };
-  const cls = map[status] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
-  return <span className={`text-xs px-2 py-0.5 rounded font-medium ${cls}`}>{status.replace('_', ' ')}</span>;
+function aptStatusStyle(status: string): React.CSSProperties {
+  switch (status) {
+    case 'CONFIRMED': return { background: 'var(--color-success-surface)', color: 'var(--color-success)' };
+    case 'REQUESTED':
+    case 'PENDING_APPROVAL': return { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' };
+    case 'MATCHED':  return { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' };
+    case 'CANCELLED': return { background: 'var(--color-danger-surface)', color: 'var(--color-danger)' };
+    default:         return { background: 'var(--color-bg)', color: 'var(--color-text-muted)' };
+  }
 }
 
 export default function CounselorSchedulesPage() {
@@ -63,51 +61,31 @@ export default function CounselorSchedulesPage() {
         const appointments: any[] = data.appointments || [];
         const now = new Date();
         const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
         const map = new Map<string, CounselorRow>();
 
         appointments.forEach(apt => {
           if (!apt.counselor_id || !apt.counselor_name || apt.counselor_name === 'Not Assigned') return;
           const id = apt.counselor_id;
-          if (!map.has(id)) {
-            map.set(id, { counselor_id: id, name: apt.counselor_name, confirmed: 0, pending: 0, thisWeek: 0, total: 0, upcomingAppts: [] });
-          }
+          if (!map.has(id)) map.set(id, { counselor_id: id, name: apt.counselor_name, confirmed: 0, pending: 0, thisWeek: 0, total: 0, upcomingAppts: [] });
           const row = map.get(id)!;
           row.total++;
           const s = (apt.status || '').toUpperCase();
           if (s === 'CONFIRMED') row.confirmed++;
           if (s === 'REQUESTED' || s === 'PENDING_APPROVAL' || s === 'MATCHED') row.pending++;
-
           const dt = apt.scheduled_start || apt.preferred_date;
           if (dt) {
             const d = new Date(dt);
             if (d >= now && d <= weekEnd) row.thisWeek++;
-            if (d >= now) {
-              row.upcomingAppts.push({
-                appointment_id: apt.appointment_id,
-                student_name: apt.student_name,
-                scheduled_start: apt.scheduled_start,
-                requested_start: apt.preferred_date,
-                status: apt.status,
-                purpose: apt.purpose,
-                preferred_method: apt.method,
-              });
-            }
+            if (d >= now) row.upcomingAppts.push({ appointment_id: apt.appointment_id, student_name: apt.student_name, scheduled_start: apt.scheduled_start, requested_start: apt.preferred_date, status: apt.status, purpose: apt.purpose, preferred_method: apt.method });
           }
         });
 
-        // Sort upcoming per counselor by date
-        map.forEach(row => row.upcomingAppts.sort((a, b) => {
-          const da = new Date(a.scheduled_start || a.requested_start || 0).getTime();
-          const db2 = new Date(b.scheduled_start || b.requested_start || 0).getTime();
-          return da - db2;
-        }));
+        map.forEach(row => row.upcomingAppts.sort((a, b) => new Date(a.scheduled_start || a.requested_start || 0).getTime() - new Date(b.scheduled_start || b.requested_start || 0).getTime()));
 
         let sorted = Array.from(map.values());
         if (sortBy === 'load') sorted.sort((a, b) => b.total - a.total);
         else if (sortBy === 'thisWeek') sorted.sort((a, b) => b.thisWeek - a.thisWeek);
         else sorted.sort((a, b) => a.name.localeCompare(b.name));
-
         setRows(sorted);
       })
       .catch(e => setError(typeof e === 'string' ? e : 'Failed to load'))
@@ -115,14 +93,12 @@ export default function CounselorSchedulesPage() {
   }, [sortBy]);
 
   const toggleExpand = (id: string) => setExpanded(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
   });
 
   const totalCounselors = rows.length;
-  const totalThisWeek = rows.reduce((s, r) => s + r.thisWeek, 0);
-  const avgLoad = totalCounselors > 0 ? Math.round(rows.reduce((s, r) => s + r.total, 0) / totalCounselors) : 0;
+  const totalThisWeek   = rows.reduce((s, r) => s + r.thisWeek, 0);
+  const avgLoad         = totalCounselors > 0 ? Math.round(rows.reduce((s, r) => s + r.total, 0) / totalCounselors) : 0;
   const lightestCounselor = rows.length > 0 ? [...rows].sort((a, b) => a.thisWeek - b.thisWeek)[0] : null;
 
   return (
@@ -130,28 +106,27 @@ export default function CounselorSchedulesPage() {
       <div className="space-y-5">
 
         {error && (
-          <div className="flex gap-2 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
+          <div className="flex gap-2 p-4 rounded-xl border text-sm"
+            style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
             <AlertCircle size={16} className="flex-shrink-0 mt-0.5" /> {error}
           </div>
         )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Counselors</p>
-            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{totalCounselors}</p>
-          </div>
-          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Sessions This Week</p>
-            <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{totalThisWeek}</p>
-          </div>
-          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Load</p>
-            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{avgLoad}</p>
-          </div>
-          <div className="border border-gray-100 shadow-sm rounded-2xl p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Most Available</p>
-            <p className="text-sm font-semibold text-green-600 dark:text-green-400 truncate">{lightestCounselor?.name ?? '—'}</p>
+          {[
+            { label: 'Counselors',        value: totalCounselors,  color: 'var(--color-text-primary)' },
+            { label: 'Sessions This Week', value: totalThisWeek,   color: 'var(--color-primary)' },
+            { label: 'Avg Load',           value: avgLoad,          color: 'var(--color-text-primary)' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="border rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+              <p className="text-2xl font-semibold" style={{ color }}>{value}</p>
+            </div>
+          ))}
+          <div className="border rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Most Available</p>
+            <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-success)' }}>{lightestCounselor?.name ?? '—'}</p>
           </div>
         </div>
 
@@ -159,21 +134,25 @@ export default function CounselorSchedulesPage() {
         <div className="flex gap-2">
           {(['thisWeek', 'load', 'name'] as const).map(s => (
             <button key={s} onClick={() => setSortBy(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${sortBy === s ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition"
+              style={sortBy === s
+                ? { background: 'var(--color-primary)', color: 'white' }
+                : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}
+              onMouseEnter={e => { if (sortBy !== s) e.currentTarget.style.background = 'var(--color-border)'; }}
+              onMouseLeave={e => { if (sortBy !== s) e.currentTarget.style.background = 'var(--color-bg)'; }}>
               {s === 'thisWeek' ? 'This Week' : s === 'load' ? 'Total Load' : 'Name'}
             </button>
           ))}
         </div>
 
-        {/* Counselor rows */}
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-gray-400">
-            <Loader2 size={24} className="animate-spin mr-2" /> Loading…
+          <div className="flex items-center justify-center py-16 gap-2" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
           </div>
         ) : rows.length === 0 ? (
           <div className="text-center py-16">
-            <Users size={32} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">No assigned counselors found</p>
+            <Users size={32} className="mx-auto mb-3" style={{ color: 'var(--color-border)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No assigned counselors found</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -182,54 +161,62 @@ export default function CounselorSchedulesPage() {
               const isHeavy = row.thisWeek > avgLoad + 2;
               const isLight = row.thisWeek <= 1;
               return (
-                <div key={row.counselor_id} className="border border-gray-100 shadow-sm rounded-2xl overflow-hidden">
-                  {/* Header row */}
-                  <div className="px-5 py-4 flex items-center gap-4 bg-white dark:bg-gray-900">
-                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-[#2563eb] font-semibold text-sm flex-shrink-0">
+                <div key={row.counselor_id} className="border rounded-2xl shadow-card overflow-hidden"
+                  style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                  <div className="px-5 py-4 flex items-center gap-4">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
+                      style={{ background: 'var(--color-primary)' }}>
                       {row.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{row.name}</p>
-                        {isHeavy && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-medium">Heavy load</span>}
-                        {isLight && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400 font-medium">Light load</span>}
+                        <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{row.name}</p>
+                        {isHeavy && <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>Heavy load</span>}
+                        {isLight && <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>Light load</span>}
                       </div>
-                      <div className="flex gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex gap-4 mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                         <span className="flex items-center gap-1"><Calendar size={11} /> {row.thisWeek} this week</span>
                         <span className="flex items-center gap-1"><CheckCircle size={11} /> {row.confirmed} confirmed</span>
                         <span className="flex items-center gap-1"><Clock size={11} /> {row.pending} pending</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => toggleExpand(row.counselor_id)}
-                      className="text-xs flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition flex-shrink-0"
-                    >
+                    <button onClick={() => toggleExpand(row.counselor_id)}
+                      className="text-xs flex items-center gap-1 transition flex-shrink-0"
+                      style={{ color: 'var(--color-text-muted)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
                       {isExpanded ? <><ChevronUp size={14} /> Hide</> : <><ChevronDown size={14} /> {row.upcomingAppts.length} upcoming</>}
                     </button>
                   </div>
 
-                  {/* Upcoming appointments */}
                   {isExpanded && (
-                    <div className="border-t border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+                    <div style={{ borderTop: '1px solid var(--color-border)' }}>
                       {row.upcomingAppts.length === 0 ? (
-                        <p className="px-5 py-4 text-sm text-gray-400 dark:text-gray-500 italic">No upcoming appointments</p>
+                        <p className="px-5 py-4 text-sm italic" style={{ color: 'var(--color-text-muted)' }}>No upcoming appointments</p>
                       ) : (
-                        row.upcomingAppts.slice(0, 10).map(apt => (
-                          <div key={apt.appointment_id} className="px-5 py-3 flex items-center gap-4 bg-gray-50/50 dark:bg-gray-800/30">
+                        row.upcomingAppts.slice(0, 10).map((apt, i) => (
+                          <div key={apt.appointment_id} className="px-5 py-3 flex items-center gap-4"
+                            style={{ borderBottom: i < Math.min(row.upcomingAppts.length, 10) - 1 ? '1px solid var(--color-border)' : 'none', background: 'var(--color-bg)' }}>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{apt.student_name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                                 {formatDt(apt.scheduled_start || apt.requested_start)}
                                 {apt.purpose ? ` · ${apt.purpose.replace(/_/g, ' ')}` : ''}
                                 {apt.preferred_method ? ` · ${apt.preferred_method.replace('_', ' ')}` : ''}
                               </p>
                             </div>
-                            {statusBadge(apt.status)}
+                            <span className="text-xs px-2 py-0.5 rounded font-medium" style={aptStatusStyle(apt.status)}>
+                              {apt.status.replace('_', ' ')}
+                            </span>
                           </div>
                         ))
                       )}
                       {row.upcomingAppts.length > 10 && (
-                        <p className="px-5 py-2 text-xs text-gray-400 dark:text-gray-500">+{row.upcomingAppts.length - 10} more upcoming</p>
+                        <p className="px-5 py-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                          +{row.upcomingAppts.length - 10} more upcoming
+                        </p>
                       )}
                     </div>
                   )}

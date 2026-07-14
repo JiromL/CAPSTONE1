@@ -8,35 +8,47 @@ import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 
 const DLSU_COLLEGES: { abbr: string; name: string; sampleCourses: string[] }[] = [
-  { abbr: 'CCS', name: 'College of Computer Studies',       sampleCourses: ['BS Computer Science', 'BS Information Technology', 'BS Information Systems'] },
-  { abbr: 'COB', name: 'College of Business',               sampleCourses: ['BS Accountancy', 'BS Business Administration', 'BS Entrepreneurship', 'BS Management of Financial Institutions'] },
-  { abbr: 'COE', name: 'College of Engineering',            sampleCourses: ['BS Chemical Engineering', 'BS Civil Engineering', 'BS Electronics Engineering', 'BS Industrial Engineering', 'BS Mechanical Engineering'] },
-  { abbr: 'CLA', name: 'College of Liberal Arts',           sampleCourses: ['BA Communication Arts', 'BA Political Science', 'BA Psychology', 'BA Filipino', 'BA Literature'] },
-  { abbr: 'COS', name: 'College of Science',                sampleCourses: ['BS Biology', 'BS Chemistry', 'BS Mathematics', 'BS Physics'] },
-  { abbr: 'SOE', name: 'School of Economics',               sampleCourses: ['BS Economics', 'BS Applied Economics'] },
-  { abbr: 'BAGCED', name: 'College of Education',           sampleCourses: ['BS Education (major in English)', 'BS Education (major in Mathematics)', 'BS Education (major in Filipino)'] },
-  { abbr: 'SOM', name: 'School of Medicine',                sampleCourses: ['Doctor of Medicine'] },
-  { abbr: 'GCOE', name: 'Graduate School',                  sampleCourses: ['Masters / Doctoral program'] },
+  { abbr: 'CCS',    name: 'College of Computer Studies',       sampleCourses: ['BS Computer Science', 'BS Information Technology', 'BS Information Systems'] },
+  { abbr: 'COB',    name: 'College of Business',               sampleCourses: ['BS Accountancy', 'BS Business Administration', 'BS Entrepreneurship', 'BS Management of Financial Institutions'] },
+  { abbr: 'COE',    name: 'College of Engineering',            sampleCourses: ['BS Chemical Engineering', 'BS Civil Engineering', 'BS Electronics Engineering', 'BS Industrial Engineering', 'BS Mechanical Engineering'] },
+  { abbr: 'CLA',    name: 'College of Liberal Arts',           sampleCourses: ['BA Communication Arts', 'BA Political Science', 'BA Psychology', 'BA Filipino', 'BA Literature'] },
+  { abbr: 'COS',    name: 'College of Science',                sampleCourses: ['BS Biology', 'BS Chemistry', 'BS Mathematics', 'BS Physics'] },
+  { abbr: 'SOE',    name: 'School of Economics',               sampleCourses: ['BS Economics', 'BS Applied Economics'] },
+  { abbr: 'BAGCED', name: 'College of Education',              sampleCourses: ['BS Education (major in English)', 'BS Education (major in Mathematics)', 'BS Education (major in Filipino)'] },
+  { abbr: 'SOM',    name: 'School of Medicine',                sampleCourses: ['Doctor of Medicine'] },
+  { abbr: 'GCOE',   name: 'Graduate School',                   sampleCourses: ['Masters / Doctoral program'] },
 ];
 
-export default function ProfilePage() {
-  const [editMode, setEditMode] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const ICS: React.CSSProperties = {
+  background: 'var(--color-bg)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text-primary)',
+};
 
-  // PERMA / MHBot state (students only)
+function InfoRow({ icon, label, value, indent }: { icon?: React.ReactNode; label: string; value: string; indent?: boolean }) {
+  return (
+    <div className={`flex items-center gap-3 text-sm ${indent ? 'ml-4' : ''}`}>
+      {icon && <div className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>{icon}</div>}
+      <div className="flex-1">
+        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+        <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function ProfilePage() {
+  const [editMode, setEditMode]     = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage]     = useState<string | null>(null);
+
+  // PERMA / MHBot state
   const [permaData, setPermaData]         = useState<any>(null);
   const [loadingPerma, setLoadingPerma]   = useState(false);
-  const [showMhbotForm, setShowMhbotForm] = useState(false);
-  const [mhbotUser, setMhbotUser]         = useState('');
-  const [mhbotPass, setMhbotPass]         = useState('');
-  const [mhbotShowPw, setMhbotShowPw]     = useState(false);
   const [mhbotLogging, setMhbotLogging]   = useState(false);
   const [mhbotError, setMhbotError]       = useState('');
-  const [mhbotStep, setMhbotStep]         = useState<1 | 2>(1);
-  const [emaIdentifier, setEmaIdentifier] = useState('');
-  const [savingId, setSavingId]           = useState(false);
   const [emaConsentGiven, setEmaConsentGiven] = useState(false);
   const [showEmaConsent, setShowEmaConsent]   = useState(false);
   const [emaConsentChecked, setEmaConsentChecked] = useState(false);
@@ -48,45 +60,16 @@ export default function ProfilePage() {
   async function fetchMyPerma() {
     setLoadingPerma(true);
     try {
-      // Always load from saved snapshots (works with or without EMA connected)
-      const r = await fetch(api('/api/mhbot/my-snapshots'), {
-        headers: { Authorization: `Bearer ${cpsToken()}` },
-      });
+      const r = await fetch(api('/api/mhbot/my-snapshots'), { headers: { Authorization: `Bearer ${cpsToken()}` } });
       const d = await r.json();
       setPermaData((prev: any) => ({
         connected: prev?.connected ?? false,
         mhbot_username: prev?.mhbot_username || '',
         latest_label: d.latest_label,
         latest_date: d.latest_date,
-        history: (d.snapshots || []).map((s: any) => ({
-          perma_label: s.perma_label,
-          date: s.raw_date || s.entry_date,
-        })),
+        history: (d.snapshots || []).map((s: any) => ({ perma_label: s.perma_label, date: s.raw_date || s.entry_date })),
       }));
-    } catch {}
-    finally { setLoadingPerma(false); }
-  }
-
-  async function handleMhbotLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setMhbotLogging(true); setMhbotError('');
-    try {
-      const r = await fetch(api('/api/mhbot/auth/login'), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: mhbotUser, password: mhbotPass }),
-      });
-      const d = await r.json();
-      if (r.ok) {
-        setShowMhbotForm(false);
-        setMhbotUser(''); setMhbotPass('');
-        setPermaData({ connected: true, mhbot_username: d.mhbot_username, latest_label: d.latest_label });
-        fetchMyPerma();
-      } else {
-        setMhbotError(d.error || 'Login failed');
-      }
-    } catch { setMhbotError('Network error'); }
-    finally { setMhbotLogging(false); }
+    } catch {} finally { setLoadingPerma(false); }
   }
 
   async function handleEmaConsent() {
@@ -97,29 +80,21 @@ export default function ProfilePage() {
         headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ consent_types: ['ema_data_linking'] }),
       });
-      if (r.ok) {
-        setEmaConsentGiven(true);
-        setShowEmaConsent(false);
-        setShowMhbotForm(true);
-      } else {
-        setEmaConsentError('Failed to record consent. Please try again.');
-      }
+      if (r.ok) { setEmaConsentGiven(true); setShowEmaConsent(false); }
+      else setEmaConsentError('Failed to record consent. Please try again.');
     } catch { setEmaConsentError('Network error.'); }
     finally { setEmaConsentSaving(false); }
   }
 
   async function handleMhbotLogout() {
-    await fetch(api('/api/mhbot/auth/logout'), {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${cpsToken()}` },
-    });
+    await fetch(api('/api/mhbot/auth/logout'), { method: 'POST', headers: { Authorization: `Bearer ${cpsToken()}` } });
     setPermaData(null);
   }
 
-  // Change password modal state
+  // Change password
   const [showPwModal, setShowPwModal] = useState(false);
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
-  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwError, setPwError]   = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
@@ -128,8 +103,7 @@ export default function ProfilePage() {
 
   const openPwModal = () => {
     setPwForm({ current: '', newPw: '', confirm: '' });
-    setPwError(null); setPwSuccess(false);
-    setShowPwModal(true);
+    setPwError(null); setPwSuccess(false); setShowPwModal(true);
   };
 
   const handleChangePassword = async () => {
@@ -150,222 +124,150 @@ export default function ProfilePage() {
       if (!r.ok) { setPwError(d.error || 'Failed to change password'); return; }
       setPwSuccess(true);
       setTimeout(() => setShowPwModal(false), 1800);
-    } catch {
-      setPwError('Something went wrong. Please try again.');
-    } finally {
-      setPwSaving(false);
-    }
+    } catch { setPwError('Something went wrong. Please try again.'); }
+    finally { setPwSaving(false); }
   };
+
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    studentId: '',
-    college: '',
-    course: '',
-    major: '',
-    year: '',
-    emergencyContact: '',
-    emergencyPhone: '',
+    firstName: '', lastName: '', email: '', phone: '',
+    studentId: '', college: '', course: '', major: '', year: '',
+    emergencyContact: '', emergencyPhone: '',
   });
-
   const [formData, setFormData] = useState(profile);
 
-  // Load user data from API on mount, fall back to localStorage
   useEffect(() => {
     const token = localStorage.getItem('token');
     const cached = localStorage.getItem('user');
     const cachedUser = cached ? JSON.parse(cached) : {};
-
-    // Pre-fill immediately from cache so the page isn't blank
     const fromCache = {
-      firstName: cachedUser.first_name || '',
-      lastName: cachedUser.last_name || '',
-      email: cachedUser.email || '',
-      phone: cachedUser.phone || '',
-      studentId: cachedUser.id_number || '',
-      college: cachedUser.college || '',
-      course: cachedUser.course || '',
-      major: cachedUser.major || '',
-      year: cachedUser.year || '',
-      emergencyContact: cachedUser.emergency_contact || '',
+      firstName: cachedUser.first_name || '', lastName: cachedUser.last_name || '',
+      email: cachedUser.email || '', phone: cachedUser.phone || '',
+      studentId: cachedUser.id_number || '', college: cachedUser.college || '',
+      course: cachedUser.course || '', major: cachedUser.major || '',
+      year: cachedUser.year || '', emergencyContact: cachedUser.emergency_contact || '',
       emergencyPhone: cachedUser.emergency_phone || '',
     };
-    setProfile(fromCache);
-    setFormData(fromCache);
-    setUserRole(cachedUser.role || null);
-
+    setProfile(fromCache); setFormData(fromCache); setUserRole(cachedUser.role || null);
     if (!token) return;
 
-    // Fetch fresh data from the API
-    fetch(api('/api/users/profile'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(api('/api/users/profile'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => {
         if (r.status === 401 || r.status === 404) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-          return Promise.reject('session_expired');
+          localStorage.removeItem('token'); localStorage.removeItem('user');
+          window.location.href = '/login'; return Promise.reject('session_expired');
         }
         return r.ok ? r.json() : Promise.reject(r.status);
       })
       .then(user => {
         const fresh = {
-          firstName: user.first_name || '',
-          lastName: user.last_name || '',
-          email: user.email || '',
-          phone: user.phone || '',
-          studentId: user.id_number || '',
-          college: user.college || '',
-          course: user.course || '',
-          major: user.major || '',
-          year: user.year || '',
-          emergencyContact: user.emergency_contact || '',
+          firstName: user.first_name || '', lastName: user.last_name || '',
+          email: user.email || '', phone: user.phone || '',
+          studentId: user.id_number || '', college: user.college || '',
+          course: user.course || '', major: user.major || '',
+          year: user.year || '', emergencyContact: user.emergency_contact || '',
           emergencyPhone: user.emergency_phone || '',
         };
-        setProfile(fresh);
-        setFormData(fresh);
-        setUserRole(user.role || null);
+        setProfile(fresh); setFormData(fresh); setUserRole(user.role || null);
         setEmaConsentGiven(user.ema_consent_given || false);
         localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...user }));
         if (user.role === 'STUDENT') fetchMyPerma();
       })
-      .catch(err => { if (err !== 'session_expired') console.error('Failed to fetch profile from API:', err); });
+      .catch(err => { if (err !== 'session_expired') console.error('Failed to fetch profile:', err); });
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    // Reset course when college changes
-    if (name === 'college') {
-      setFormData({ ...formData, college: value, course: '' });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    if (name === 'college') setFormData({ ...formData, college: value, course: '' });
+    else setFormData({ ...formData, [name]: value });
   };
 
   const handleSave = async () => {
-    // Validate email and name
-    if (!formData.firstName.trim()) {
-      setErrorMessage('First name is required');
-      return;
-    }
-    if (!formData.lastName.trim()) {
-      setErrorMessage('Last name is required');
-      return;
-    }
-    if (!formData.email.trim() || !formData.email.includes('@')) {
-      setErrorMessage('Valid email is required');
-      return;
-    }
-
-    setSaving(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
+    if (!formData.firstName.trim()) { setErrorMessage('First name is required'); return; }
+    if (!formData.lastName.trim())  { setErrorMessage('Last name is required'); return; }
+    if (!formData.email.trim() || !formData.email.includes('@')) { setErrorMessage('Valid email is required'); return; }
+    setSaving(true); setErrorMessage(null); setSuccessMessage(null);
     try {
       const token = localStorage.getItem('token');
       const userData = localStorage.getItem('user');
       const user = userData ? JSON.parse(userData) : {};
-
-      const response = await fetch(api('/api/users/profile'), {
+      const r = await fetch(api('/api/users/profile'), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          id_number: formData.studentId,
-          college: formData.college,
-          course: formData.course,
-          major: formData.major,
-          year: formData.year,
-          emergency_contact: formData.emergencyContact,
+          first_name: formData.firstName, last_name: formData.lastName,
+          email: formData.email, phone: formData.phone, id_number: formData.studentId,
+          college: formData.college, course: formData.course, major: formData.major,
+          year: formData.year, emergency_contact: formData.emergencyContact,
           emergency_phone: formData.emergencyPhone,
         }),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update profile');
-      }
-
-      const { user: savedUser } = await response.json();
-
-      // Sync localStorage with all returned fields
-      localStorage.setItem('user', JSON.stringify({
-        ...user,
-        first_name: savedUser.first_name,
-        last_name: savedUser.last_name,
-        email: savedUser.email,
-        phone: savedUser.phone,
-        id_number: savedUser.id_number,
-        college: savedUser.college,
-        course: savedUser.course,
-        major: savedUser.major,
-        year: savedUser.year,
-        emergency_contact: savedUser.emergency_contact,
-        emergency_phone: savedUser.emergency_phone,
-      }));
-
-      setProfile(formData);
-      setEditMode(false);
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Failed to update profile'); }
+      const { user: saved } = await r.json();
+      localStorage.setItem('user', JSON.stringify({ ...user, ...saved }));
+      setProfile(formData); setEditMode(false);
       setSuccessMessage('Profile updated successfully!');
-      
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update profile';
-      setErrorMessage(message);
-      console.error('Profile update error:', error);
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) {
+      setErrorMessage(e instanceof Error ? e.message : 'Failed to update profile');
+    } finally { setSaving(false); }
   };
+
+  const initials = `${profile.firstName?.charAt(0).toUpperCase() ?? ''}${profile.lastName?.charAt(0).toUpperCase() ?? ''}`;
+
+  // PERMA chart constants (semantic wellness colors — keep fixed)
+  const LABEL_SCORE: Record<string, number> = {
+    'In Crisis': 1, 'Struggling': 2, 'Surviving': 3, 'Thriving': 4, 'Excelling': 5,
+  };
+  const LABEL_COLOR: Record<string, string> = {
+    'In Crisis': '#ef4444', 'Struggling': '#f97316', 'Surviving': '#eab308',
+    'Thriving': '#22c55e', 'Excelling': '#16a34a',
+  };
+  const ZONE_BG = [
+    { y: 0,  h: 20, color: '#fef2f2', label: 'In Crisis' },
+    { y: 20, h: 20, color: '#fff7ed', label: 'Struggling' },
+    { y: 40, h: 20, color: '#fefce8', label: 'Surviving' },
+    { y: 60, h: 20, color: '#f0fdf4', label: 'Thriving' },
+    { y: 80, h: 20, color: '#dcfce7', label: 'Excelling' },
+  ];
 
   return (
     <>
     <DashboardPageWrapper title="My Profile">
-      <div className="max-w-3xl mx-auto">
-        {/* Success Message */}
+      <div className="max-w-3xl mx-auto space-y-5">
+
         {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded">
-            <p className="text-sm text-green-700 dark:text-green-300">{successMessage}</p>
+          <div className="p-4 rounded-xl" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+            <p className="text-sm" style={{ color: 'var(--color-success)' }}>{successMessage}</p>
           </div>
         )}
-
-        {/* Error Message */}
         {errorMessage && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded flex gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={18} />
-            <p className="text-sm text-red-700 dark:text-red-300">{errorMessage}</p>
+          <div className="p-4 rounded-xl flex gap-3" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle className="flex-shrink-0" size={18} style={{ color: 'var(--color-danger)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{errorMessage}</p>
           </div>
         )}
 
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
+        {/* Main profile card */}
+        <div className="rounded-xl p-6 shadow-card" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl font-semibold">{profile.firstName[0]}{profile.lastName[0]}</div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-semibold flex-shrink-0"
+                style={{ background: 'var(--color-primary)' }}>
+                {initials}
+              </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{profile.firstName} {profile.lastName}</h2>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                  {profile.firstName} {profile.lastName}
+                </h2>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   {[profile.college, profile.course].filter(Boolean).join(' · ') || 'No course set'}
                 </p>
               </div>
             </div>
-            <button 
-              onClick={() => {
-                setEditMode(!editMode);
-                setErrorMessage(null);
-              }} 
-              className="flex items-center gap-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white px-3 py-2 rounded text-sm transition"
-            >
+            <button onClick={() => { setEditMode(!editMode); setErrorMessage(null); }}
+              className="flex items-center gap-2 px-3 py-2 text-white text-sm rounded-lg transition hover:opacity-90"
+              style={{ background: 'var(--color-primary)' }}>
               <Edit2 size={14} /> {editMode ? 'Cancel' : 'Edit'}
             </button>
           </div>
@@ -374,387 +276,299 @@ export default function ProfilePage() {
             {editMode ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: 'First Name', name: 'firstName', type: 'text',  value: formData.firstName,  span: false },
+                    { label: 'Last Name',  name: 'lastName',  type: 'text',  value: formData.lastName,   span: false },
+                    { label: 'Email',      name: 'email',     type: 'email', value: formData.email,      span: true  },
+                    { label: 'Phone',      name: 'phone',     type: 'tel',   value: formData.phone,      span: true  },
+                    { label: 'Student ID', name: 'studentId', type: 'text',  value: formData.studentId,  span: false },
+                  ].map(({ label, name, type, value, span }) => (
+                    <div key={name} className={span ? 'md:col-span-2' : ''}>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
+                      <input type={type} name={name} value={value} onChange={handleChange} className={IC} style={ICS} />
+                    </div>
+                  ))}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
-                    <input 
-                      type="text" 
-                      name="firstName" 
-                      value={formData.firstName} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
-                    <input 
-                      type="text" 
-                      name="lastName" 
-                      value={formData.lastName} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                    <input 
-                      type="email" 
-                      name="email" 
-                      value={formData.email} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-                    <input 
-                      type="tel" 
-                      name="phone" 
-                      value={formData.phone} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student ID</label>
-                    <input 
-                      type="text" 
-                      name="studentId" 
-                      value={formData.studentId} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">College</label>
-                    <select
-                      name="college"
-                      value={formData.college}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    >
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>College</label>
+                    <select name="college" value={formData.college} onChange={handleChange} className={IC} style={ICS}>
                       <option value="">— Select college —</option>
-                      {DLSU_COLLEGES.map(c => (
-                        <option key={c.abbr} value={c.abbr}>{c.abbr} · {c.name}</option>
-                      ))}
+                      {DLSU_COLLEGES.map(c => <option key={c.abbr} value={c.abbr}>{c.abbr} · {c.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course / Program</label>
-                    <input
-                      type="text"
-                      name="course"
-                      value={formData.course}
-                      onChange={handleChange}
-                      placeholder={
-                        formData.college
-                          ? `e.g. ${DLSU_COLLEGES.find(c => c.abbr === formData.college)?.sampleCourses[0] ?? 'your program'}`
-                          : 'Select a college first'
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-                    />
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Course / Program</label>
+                    <input type="text" name="course" value={formData.course} onChange={handleChange} className={IC} style={ICS}
+                      placeholder={formData.college
+                        ? `e.g. ${DLSU_COLLEGES.find(c => c.abbr === formData.college)?.sampleCourses[0] ?? 'your program'}`
+                        : 'Select a college first'} />
                     {formData.college && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {DLSU_COLLEGES.find(c => c.abbr === formData.college)?.sampleCourses.map(sc => (
-                          <button
-                            key={sc}
-                            type="button"
-                            onClick={() => setFormData(f => ({ ...f, course: sc }))}
-                            className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-blue-900/40 hover:text-green-700 dark:hover:text-green-300 transition-colors"
-                          >
+                          <button key={sc} type="button" onClick={() => setFormData(f => ({ ...f, course: sc }))}
+                            className="text-xs px-2 py-0.5 rounded-full transition"
+                            style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-surface)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}>
                             {sc}
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <div className="md:col-span-2 border-t border-gray-300 dark:border-gray-600 pt-4 mt-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Emergency Contact</h3>
+                  <div className="md:col-span-2 pt-4 mt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-secondary)' }}>Emergency Contact</h3>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                    <input 
-                      type="text" 
-                      name="emergencyContact" 
-                      value={formData.emergencyContact} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-                    <input 
-                      type="tel" 
-                      name="emergencyPhone" 
-                      value={formData.emergencyPhone} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-400"
-                    />
-                  </div>
+                  {[
+                    { label: 'Name',  name: 'emergencyContact', type: 'text', value: formData.emergencyContact },
+                    { label: 'Phone', name: 'emergencyPhone',   type: 'tel',  value: formData.emergencyPhone },
+                  ].map(({ label, name, type, value }) => (
+                    <div key={name}>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
+                      <input type={type} name={name} value={value} onChange={handleChange} className={IC} style={ICS} />
+                    </div>
+                  ))}
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button 
-                    onClick={handleSave} 
-                    disabled={saving}
-                    className="flex items-center gap-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white px-6 py-2 rounded-lg text-sm transition disabled:opacity-50"
-                  >
-                    <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+                  <button onClick={handleSave} disabled={saving}
+                    className="flex items-center gap-2 px-6 py-2 text-white text-sm rounded-lg transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: 'var(--color-primary)' }}>
+                    <Save size={16} /> {saving ? 'Saving…' : 'Save Changes'}
                   </button>
-                  <button 
-                    onClick={() => {
-                      setFormData(profile);
-                      setEditMode(false);
-                      setErrorMessage(null);
-                    }}
-                    disabled={saving}
-                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50"
-                  >
+                  <button onClick={() => { setFormData(profile); setEditMode(false); setErrorMessage(null); }} disabled={saving}
+                    className="px-6 py-2 text-sm rounded-lg border transition disabled:opacity-50"
+                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Cancel
                   </button>
                 </div>
               </>
             ) : (
               <div className="space-y-3">
-                <InfoRow icon={<Mail size={16} />} label="Email" value={profile.email} />
-                <InfoRow icon={<Phone size={16} />} label="Phone" value={profile.phone} />
-                <InfoRow icon={<User size={16} />} label="Student ID" value={profile.studentId} />
+                <InfoRow icon={<Mail size={16} />} label="Email"      value={profile.email} />
+                <InfoRow icon={<Phone size={16} />} label="Phone"     value={profile.phone} />
+                <InfoRow icon={<User size={16} />}  label="Student ID" value={profile.studentId} />
                 <InfoRow label="College" value={profile.college ? `${profile.college} · ${DLSU_COLLEGES.find(c => c.abbr === profile.college)?.name ?? ''}` : ''} />
-                <InfoRow label="Course" value={profile.course} />
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Emergency Contact</h3>
-                  <InfoRow label="Name" value={profile.emergencyContact} indent={true} />
-                  <InfoRow label="Phone" value={profile.emergencyPhone} indent={true} />
+                <InfoRow label="Course"  value={profile.course} />
+                <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>Emergency Contact</h3>
+                  <InfoRow label="Name"  value={profile.emergencyContact} indent />
+                  <InfoRow label="Phone" value={profile.emergencyPhone}   indent />
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* ── PERMA / MHBot (students only) ── */}
+        {/* PERMA / MHBot (students only) */}
         {userRole === 'STUDENT' && (
-          <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
+          <div className="rounded-xl p-6 shadow-card" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Activity size={15} className="text-green-500" />
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">My Wellbeing (PERMA)</h3>
+                <Activity size={15} style={{ color: 'var(--color-success)' }} />
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>My Wellbeing (PERMA)</h3>
               </div>
               {permaData?.connected && (
                 <button onClick={handleMhbotLogout}
-                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition">
+                  className="flex items-center gap-1.5 text-xs transition"
+                  style={{ color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
                   <LogOut size={12} /> Disconnect
                 </button>
               )}
             </div>
 
             {loadingPerma ? (
-              <div className="flex items-center gap-2 text-gray-400 text-sm py-2">
-                <Loader2 size={14} className="animate-spin" /> Loading…
+              <div className="flex items-center gap-2 text-sm py-2" style={{ color: 'var(--color-text-muted)' }}>
+                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
               </div>
             ) : !permaData?.connected ? (
               <div className="flex flex-col items-start gap-1.5 py-2">
-                <p className="text-sm text-gray-500">Not connected to EMA yet.</p>
-                <p className="text-xs text-gray-400">
-                  Open the <span className="text-[#2563eb] font-medium">EMA chatbot</span> using the button at the bottom-right of the screen and sign in — your wellbeing history will appear here automatically.
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Not connected to EMA yet.</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  Open the <span className="font-medium" style={{ color: 'var(--color-primary)' }}>EMA chatbot</span> using the button at the bottom-right of the screen and sign in — your wellbeing history will appear here automatically.
                 </p>
               </div>
-            ) : (
-              /* Connected — PERMA line graph */
-              (() => {
-                const LABEL_SCORE: Record<string, number> = {
-                  'In Crisis': 1, 'Struggling': 2, 'Surviving': 3, 'Thriving': 4, 'Excelling': 5,
-                };
-                const LABEL_COLOR: Record<string, string> = {
-                  'In Crisis': '#ef4444', 'Struggling': '#f97316', 'Surviving': '#eab308',
-                  'Thriving': '#22c55e', 'Excelling': '#16a34a',
-                };
-                const ZONE_BG: { y: number; h: number; color: string; label: string }[] = [
-                  { y: 0,   h: 20, color: '#fef2f2', label: 'In Crisis' },
-                  { y: 20,  h: 20, color: '#fff7ed', label: 'Struggling' },
-                  { y: 40,  h: 20, color: '#fefce8', label: 'Surviving' },
-                  { y: 60,  h: 20, color: '#f0fdf4', label: 'Thriving' },
-                  { y: 80,  h: 20, color: '#dcfce7', label: 'Excelling' },
-                ];
-                const history = [...(permaData.history || [])].reverse(); // oldest first
-                const points = history
-                  .map((e: any) => ({ label: e.perma_label, date: e.date, score: LABEL_SCORE[e.perma_label] }))
-                  .filter((p: any) => p.score !== undefined);
+            ) : (() => {
+              const history = [...(permaData.history || [])].reverse();
+              const points = history
+                .map((e: any) => ({ label: e.perma_label, date: e.date, score: LABEL_SCORE[e.perma_label] }))
+                .filter((p: any) => p.score !== undefined);
 
-                const W = 540, H = 160, PAD_L = 72, PAD_R = 16, PAD_T = 12, PAD_B = 28;
-                const chartW = W - PAD_L - PAD_R;
-                const chartH = H - PAD_T - PAD_B;
-                const xOf = (i: number) => PAD_L + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2);
-                const yOf = (score: number) => PAD_T + chartH - ((score - 1) / 4) * chartH;
+              const W = 540, H = 160, PAD_L = 72, PAD_R = 16, PAD_T = 12, PAD_B = 28;
+              const chartW = W - PAD_L - PAD_R;
+              const chartH = H - PAD_T - PAD_B;
+              const xOf = (i: number) => PAD_L + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2);
+              const yOf = (score: number) => PAD_T + chartH - ((score - 1) / 4) * chartH;
+              const pathD = points.length > 1
+                ? points.reduce((d: string, p: any, i: number) => {
+                    const x = xOf(i); const y = yOf(p.score);
+                    if (i === 0) return `M${x},${y}`;
+                    const px = xOf(i - 1); const py = yOf(points[i - 1].score);
+                    const cpx = (px + x) / 2;
+                    return `${d} C${cpx},${py} ${cpx},${y} ${x},${y}`;
+                  }, '')
+                : '';
 
-                const pathD = points.length > 1
-                  ? points.reduce((d: string, p: any, i: number) => {
-                      const x = xOf(i); const y = yOf(p.score);
-                      if (i === 0) return `M${x},${y}`;
-                      const px = xOf(i - 1); const py = yOf(points[i - 1].score);
-                      const cpx = (px + x) / 2;
-                      return `${d} C${cpx},${py} ${cpx},${y} ${x},${y}`;
-                    }, '')
-                  : '';
+              const latest = permaData.latest_label;
+              const prev   = points.length >= 2 ? points[points.length - 2]?.label : null;
+              const latestScore = LABEL_SCORE[latest] ?? 0;
+              const prevScore   = LABEL_SCORE[prev] ?? 0;
+              const trend = !prev ? null : latestScore > prevScore ? 'up' : latestScore < prevScore ? 'down' : 'same';
+              const latestColor = LABEL_COLOR[latest] ?? '#6b7280';
 
-                const latest = permaData.latest_label;
-                const prev = points.length >= 2 ? points[points.length - 2]?.label : null;
-                const latestScore = LABEL_SCORE[latest] ?? 0;
-                const prevScore = LABEL_SCORE[prev] ?? 0;
-                const trend = !prev ? null : latestScore > prevScore ? 'up' : latestScore < prevScore ? 'down' : 'same';
-                const latestColor = LABEL_COLOR[latest] ?? '#6b7280';
-
-                return (
-                  <div className="space-y-4">
-                    {/* Current label + trend */}
-                    <div className="flex items-center gap-3">
-                      <PermaBadge label={latest} />
-                      {trend === 'up' && <span className="text-xs text-green-600 font-semibold flex items-center gap-0.5">↑ Improving</span>}
-                      {trend === 'down' && <span className="text-xs text-red-500 font-semibold flex items-center gap-0.5">↓ Declining</span>}
-                      {trend === 'same' && <span className="text-xs text-gray-400 font-medium">→ Stable</span>}
-                      {permaData.latest_date && (
-                        <span className="text-xs text-gray-400 ml-auto">
-                          Last assessed {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* SVG line chart */}
-                    {points.length === 0 ? (
-                      <div className="py-6 flex flex-col items-center gap-2 text-center border border-dashed border-gray-200 rounded-2xl">
-                        <Activity size={22} className="text-gray-300" />
-                        <p className="text-sm text-gray-500 font-medium">No assessments recorded yet</p>
-                        <p className="text-xs text-gray-400 max-w-xs">
-                          Complete a conversation in the EMA chatbot to generate your first PERMA wellness label.
-                        </p>
-                        <p className="text-xs text-[#2563eb] font-medium mt-1">
-                          → Use the chat button at the bottom-right
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm">
-                        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 180 }}>
-                          {/* Zone backgrounds */}
-                          {ZONE_BG.map(z => (
-                            <rect key={z.label} x={PAD_L} y={PAD_T + chartH - (z.y / 100) * chartH - (z.h / 100) * chartH}
-                              width={chartW} height={(z.h / 100) * chartH} fill={z.color} />
-                          ))}
-                          {/* Y-axis labels */}
-                          {[1,2,3,4,5].map(score => (
-                            <text key={score} x={PAD_L - 8} y={yOf(score) + 4}
-                              textAnchor="end" fontSize={8.5} fill={LABEL_COLOR[['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]] ?? '#9ca3af'} fontWeight="500">
-                              {['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]}
-                            </text>
-                          ))}
-                          {/* Grid lines */}
-                          {[1,2,3,4,5].map(score => (
-                            <line key={score} x1={PAD_L} x2={PAD_L + chartW} y1={yOf(score)} y2={yOf(score)}
-                              stroke="#e5e7eb" strokeWidth={0.75} strokeDasharray="4,3" />
-                          ))}
-                          {/* Gradient fill under line */}
-                          {pathD && points.length > 1 && (
-                            <>
-                              <defs>
-                                <linearGradient id="permaGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor={latestColor} stopOpacity="0.18" />
-                                  <stop offset="100%" stopColor={latestColor} stopOpacity="0.01" />
-                                </linearGradient>
-                              </defs>
-                              <path
-                                d={`${pathD} L${xOf(points.length - 1)},${PAD_T + chartH} L${xOf(0)},${PAD_T + chartH} Z`}
-                                fill="url(#permaGrad)"
-                              />
-                            </>
-                          )}
-                          {/* Line */}
-                          {pathD && (
-                            <path d={pathD} fill="none"
-                              stroke={latestColor} strokeWidth={2.5}
-                              strokeLinecap="round" strokeLinejoin="round" />
-                          )}
-                          {/* Dots + date labels */}
-                          {points.map((p: any, i: number) => {
-                            const isLast = i === points.length - 1;
-                            const showDate = i === 0 || isLast || points.length <= 7;
-                            return (
-                              <g key={i}>
-                                {isLast && (
-                                  <circle cx={xOf(i)} cy={yOf(p.score)} r={9}
-                                    fill={LABEL_COLOR[p.label] ?? '#6b7280'} fillOpacity={0.15} />
-                                )}
-                                <circle cx={xOf(i)} cy={yOf(p.score)} r={isLast ? 5 : 4}
-                                  fill={LABEL_COLOR[p.label] ?? '#6b7280'} stroke="white" strokeWidth={2} />
-                                {showDate && (
-                                  <text x={xOf(i)} y={H - 6} textAnchor="middle" fontSize={7.5} fill="#9ca3af">
-                                    {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                  </text>
-                                )}
-                              </g>
-                            );
-                          })}
-                        </svg>
-                      </div>
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <PermaBadge label={latest} />
+                    {trend === 'up'   && <span className="text-xs font-semibold" style={{ color: 'var(--color-success)' }}>↑ Improving</span>}
+                    {trend === 'down' && <span className="text-xs font-semibold" style={{ color: 'var(--color-danger)' }}>↓ Declining</span>}
+                    {trend === 'same' && <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>→ Stable</span>}
+                    {permaData.latest_date && (
+                      <span className="text-xs ml-auto" style={{ color: 'var(--color-text-muted)' }}>
+                        Last assessed {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
                     )}
-
-                    <p className="text-xs text-gray-400">
-                      Connected as <span className="font-medium text-gray-600">{permaData.mhbot_username || '—'}</span>
-                      <span className="mx-1.5 text-gray-200">·</span>
-                      {points.length} assessment{points.length !== 1 ? 's' : ''} recorded
-                    </p>
                   </div>
-                );
-              })()
-            )}
+
+                  {points.length === 0 ? (
+                    <div className="py-6 flex flex-col items-center gap-2 text-center rounded-2xl"
+                      style={{ border: '1px dashed var(--color-border)' }}>
+                      <Activity size={22} style={{ color: 'var(--color-border)' }} />
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No assessments recorded yet</p>
+                      <p className="text-xs max-w-xs" style={{ color: 'var(--color-text-muted)' }}>
+                        Complete a conversation in the EMA chatbot to generate your first PERMA wellness label.
+                      </p>
+                      <p className="text-xs font-medium mt-1" style={{ color: 'var(--color-primary)' }}>→ Use the chat button at the bottom-right</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl overflow-hidden shadow-card" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 180 }}>
+                        {ZONE_BG.map(z => (
+                          <rect key={z.label} x={PAD_L} y={PAD_T + chartH - (z.y / 100) * chartH - (z.h / 100) * chartH}
+                            width={chartW} height={(z.h / 100) * chartH} fill={z.color} />
+                        ))}
+                        {[1,2,3,4,5].map(score => (
+                          <text key={score} x={PAD_L - 8} y={yOf(score) + 4}
+                            textAnchor="end" fontSize={8.5}
+                            fill={LABEL_COLOR[['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]] ?? '#9ca3af'}
+                            fontWeight="500">
+                            {['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]}
+                          </text>
+                        ))}
+                        {[1,2,3,4,5].map(score => (
+                          <line key={score} x1={PAD_L} x2={PAD_L + chartW} y1={yOf(score)} y2={yOf(score)}
+                            stroke="#e5e7eb" strokeWidth={0.75} strokeDasharray="4,3" />
+                        ))}
+                        {pathD && points.length > 1 && (
+                          <>
+                            <defs>
+                              <linearGradient id="permaGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={latestColor} stopOpacity="0.18" />
+                                <stop offset="100%" stopColor={latestColor} stopOpacity="0.01" />
+                              </linearGradient>
+                            </defs>
+                            <path d={`${pathD} L${xOf(points.length - 1)},${PAD_T + chartH} L${xOf(0)},${PAD_T + chartH} Z`}
+                              fill="url(#permaGrad)" />
+                          </>
+                        )}
+                        {pathD && (
+                          <path d={pathD} fill="none" stroke={latestColor} strokeWidth={2.5}
+                            strokeLinecap="round" strokeLinejoin="round" />
+                        )}
+                        {points.map((p: any, i: number) => {
+                          const isLast  = i === points.length - 1;
+                          const showDate = i === 0 || isLast || points.length <= 7;
+                          return (
+                            <g key={i}>
+                              {isLast && <circle cx={xOf(i)} cy={yOf(p.score)} r={9}
+                                fill={LABEL_COLOR[p.label] ?? '#6b7280'} fillOpacity={0.15} />}
+                              <circle cx={xOf(i)} cy={yOf(p.score)} r={isLast ? 5 : 4}
+                                fill={LABEL_COLOR[p.label] ?? '#6b7280'} stroke="white" strokeWidth={2} />
+                              {showDate && (
+                                <text x={xOf(i)} y={H - 6} textAnchor="middle" fontSize={7.5} fill="#9ca3af">
+                                  {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+                  )}
+
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    Connected as <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>{permaData.mhbot_username || '—'}</span>
+                    <span className="mx-1.5">·</span>
+                    {points.length} assessment{points.length !== 1 ? 's' : ''} recorded
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         )}
 
-        <div className="mt-5 bg-white border border-gray-100 shadow-sm rounded-2xl p-5 flex flex-col gap-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Account</p>
+        {/* Account section */}
+        <div className="rounded-2xl shadow-card p-5 flex flex-col gap-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--color-text-muted)' }}>Account</p>
+
           <button onClick={openPwModal}
-            className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gray-50 transition text-left group">
+            className="flex items-center justify-between px-4 py-3 rounded-xl transition text-left group"
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-[#2563eb]/10 transition">
-                <Lock size={14} className="text-gray-500 group-hover:text-[#2563eb] transition" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center transition"
+                style={{ background: 'var(--color-bg)' }}>
+                <Lock size={14} style={{ color: 'var(--color-text-muted)' }} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-800">Change Password</p>
-                <p className="text-xs text-gray-400">Update your account password</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Change Password</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Update your account password</p>
               </div>
             </div>
-            <span className="text-gray-300 group-hover:text-[#2563eb] transition text-lg leading-none">›</span>
+            <span className="text-lg leading-none" style={{ color: 'var(--color-text-muted)' }}>›</span>
           </button>
+
           {userRole && ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(userRole) && (
             <Link href="/staff-settings"
-              className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gray-50 transition group">
+              className="flex items-center justify-between px-4 py-3 rounded-xl transition"
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-[#2563eb]/10 transition">
-                  <User size={14} className="text-gray-500 group-hover:text-[#2563eb] transition" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+                  <User size={14} style={{ color: 'var(--color-text-muted)' }} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-800">Work Preferences & Availability</p>
-                  <p className="text-xs text-gray-400">Set your schedule and session preferences</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Work Preferences & Availability</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Set your schedule and session preferences</p>
                 </div>
               </div>
-              <span className="text-gray-300 group-hover:text-[#2563eb] transition text-lg leading-none">›</span>
+              <span className="text-lg leading-none" style={{ color: 'var(--color-text-muted)' }}>›</span>
             </Link>
           )}
         </div>
       </div>
 
-      {/* ── EMA Data Linking Consent Modal ── */}
+      {/* EMA Consent Modal */}
       {showEmaConsent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="rounded-2xl shadow-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                <Activity size={16} className="text-green-600 dark:text-green-400" />
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--color-success-surface)' }}>
+                <Activity size={16} style={{ color: 'var(--color-success)' }} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">Link EMA Account</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">One-time consent required before connecting</p>
+                <h3 className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>Link EMA Account</h3>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>One-time consent required before connecting</p>
               </div>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-4 text-xs text-green-800 dark:text-green-300 leading-relaxed">
-              <p className="font-semibold mb-1">What this consent allows:</p>
-              <ul className="list-disc list-inside space-y-1 text-green-700 dark:text-green-400">
+            <div className="rounded-xl p-4 mb-4 text-xs leading-relaxed"
+              style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
+              <p className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>What this consent allows:</p>
+              <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--color-primary)' }}>
                 <li>CPS will access your EMA wellbeing labels (e.g. Thriving, Surviving)</li>
                 <li>Your counselor may use this to suggest relevant pre-session assessments</li>
                 <li>Only your assigned counselor or psychologist can view this data</li>
@@ -762,23 +576,29 @@ export default function ProfilePage() {
               </ul>
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition mb-4">
+            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl transition mb-4"
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
               <input type="checkbox" checked={emaConsentChecked} onChange={e => setEmaConsentChecked(e.target.checked)}
-                className="w-4 h-4 mt-0.5 accent-[#2563eb] flex-shrink-0" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+                className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ accentColor: 'var(--color-primary)' }} />
+              <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
                 I consent to CPS accessing my EMA wellness data to support my counseling sessions, in accordance with the Data Privacy Act of 2012 (RA 10173).
               </span>
             </label>
 
-            {emaConsentError && <p className="text-xs text-red-500 mb-3">{emaConsentError}</p>}
+            {emaConsentError && <p className="text-xs mb-3" style={{ color: 'var(--color-danger)' }}>{emaConsentError}</p>}
 
             <div className="flex gap-3">
               <button onClick={() => setShowEmaConsent(false)}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                className="flex-1 py-2.5 text-sm font-medium rounded-lg border transition"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 Cancel
               </button>
               <button onClick={handleEmaConsent} disabled={!emaConsentChecked || emaConsentSaving}
-                className="flex-1 py-2.5 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 text-white text-sm font-semibold rounded-lg transition hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
+                style={{ background: 'var(--color-primary)' }}>
                 {emaConsentSaving && <Loader2 size={13} className="animate-spin" />}
                 I Agree &amp; Continue
               </button>
@@ -787,51 +607,52 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Change Password Modal ── */}
+      {/* Change Password Modal */}
       {showPwModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="rounded-2xl shadow-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                <Lock size={16} className="text-green-600 dark:text-green-400" />
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--color-success-surface)' }}>
+                <Lock size={16} style={{ color: 'var(--color-success)' }} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">Change Password</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Choose a strong password of at least 8 characters</p>
+                <h3 className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>Change Password</h3>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Choose a strong password of at least 8 characters</p>
               </div>
             </div>
 
             {pwSuccess ? (
               <div className="flex flex-col items-center py-6 gap-3">
-                <CheckCircle size={40} className="text-green-500" />
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Password changed successfully</p>
+                <CheckCircle size={40} style={{ color: 'var(--color-success)' }} />
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Password changed successfully</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {pwError && (
-                  <div className="flex gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3">
-                    <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-700 dark:text-red-300">{pwError}</p>
+                  <div className="flex gap-2 rounded-lg p-3" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+                    <AlertCircle size={14} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
+                    <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{pwError}</p>
                   </div>
                 )}
 
                 {[
-                  { label: 'Current Password', key: 'current' as const, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
-                  { label: 'New Password',     key: 'newPw'   as const, show: showNew,     toggle: () => setShowNew(v => !v) },
-                  { label: 'Confirm New Password', key: 'confirm' as const, show: showConfirm, toggle: () => setShowConfirm(v => !v) },
+                  { label: 'Current Password',     key: 'current' as const, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
+                  { label: 'New Password',          key: 'newPw'   as const, show: showNew,     toggle: () => setShowNew(v => !v) },
+                  { label: 'Confirm New Password',  key: 'confirm' as const, show: showConfirm, toggle: () => setShowConfirm(v => !v) },
                 ].map(({ label, key, show, toggle }) => (
                   <div key={key}>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">{label}</label>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
                     <div className="relative">
-                      <input
-                        type={show ? 'text' : 'password'}
-                        value={pwForm[key]}
+                      <input type={show ? 'text' : 'password'} value={pwForm[key]}
                         onChange={e => setPwForm(f => ({ ...f, [key]: e.target.value }))}
                         onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
-                        className="w-full px-3.5 py-2.5 pr-10 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-900"
-                        placeholder={key === 'current' ? 'Enter current password' : key === 'newPw' ? 'At least 8 characters' : 'Re-enter new password'}
-                      />
-                      <button type="button" onClick={toggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        className="w-full px-3.5 py-2.5 pr-10 text-sm rounded-lg outline-none"
+                        style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                        placeholder={key === 'current' ? 'Enter current password' : key === 'newPw' ? 'At least 8 characters' : 'Re-enter new password'} />
+                      <button type="button" onClick={toggle}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 transition"
+                        style={{ color: 'var(--color-text-muted)' }}>
                         {show ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
                     </div>
@@ -841,12 +662,15 @@ export default function ProfilePage() {
                 {pwForm.newPw.length > 0 && (
                   <div className="flex gap-1.5 flex-wrap">
                     {[
-                      { ok: pwForm.newPw.length >= 8,                       label: '8+ chars' },
-                      { ok: /[A-Z]/.test(pwForm.newPw),                     label: 'Uppercase' },
-                      { ok: /[0-9]/.test(pwForm.newPw),                     label: 'Number' },
-                      { ok: pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0, label: 'Match' },
+                      { ok: pwForm.newPw.length >= 8,                                        label: '8+ chars' },
+                      { ok: /[A-Z]/.test(pwForm.newPw),                                      label: 'Uppercase' },
+                      { ok: /[0-9]/.test(pwForm.newPw),                                      label: 'Number' },
+                      { ok: pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0,     label: 'Match' },
                     ].map(({ ok, label }) => (
-                      <span key={label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ok ? 'bg-green-100 text-green-700 dark:bg-blue-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
+                      <span key={label} className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={ok
+                          ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
+                          : { background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
                         {ok ? '✓' : '○'} {label}
                       </span>
                     ))}
@@ -854,17 +678,16 @@ export default function ProfilePage() {
                 )}
 
                 <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setShowPwModal(false)}
-                    className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                  >
+                  <button onClick={() => setShowPwModal(false)}
+                    className="flex-1 py-2.5 text-sm font-medium rounded-lg border transition"
+                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Cancel
                   </button>
-                  <button
-                    onClick={handleChangePassword}
-                    disabled={pwSaving}
-                    className="flex-1 py-2.5 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition"
-                  >
+                  <button onClick={handleChangePassword} disabled={pwSaving}
+                    className="flex-1 py-2.5 text-white text-sm font-semibold rounded-lg transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: 'var(--color-primary)' }}>
                     {pwSaving ? 'Saving…' : 'Update Password'}
                   </button>
                 </div>
@@ -875,29 +698,5 @@ export default function ProfilePage() {
       )}
     </DashboardPageWrapper>
     </>
-  );
-}
-
-function InfoRow({ icon, label, value, indent }: any) {
-  return (
-    <div className={`flex items-center gap-3 text-sm ${indent ? 'ml-4' : ''}`}>
-      {icon && <div className="text-gray-400 dark:text-gray-500 flex-shrink-0">{icon}</div>}
-      <div className="flex-1">
-        <p className="text-xs text-gray-600 dark:text-gray-400">{label}</p>
-        <p className="text-sm text-gray-900 dark:text-gray-100">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function AccountOption({ label, description, isEnabled }: any) {
-  return (
-    <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
-      <div>
-        <p className="text-sm text-gray-900 dark:text-gray-100">{label}</p>
-        <p className="text-xs text-gray-600 dark:text-gray-400">{description}</p>
-      </div>
-      {isEnabled && <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs">Enabled</span>}
-    </div>
   );
 }

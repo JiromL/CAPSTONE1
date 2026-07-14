@@ -23,35 +23,39 @@ const EVENT_TYPES = [
   { value: 'info',    label: 'Info / General' },
 ];
 
-const TYPE_STYLES: Record<string, { bg: string; text: string }> = {
-  webinar: { bg: 'bg-blue-50',   text: 'text-blue-600' },
-  event:   { bg: 'bg-green-50',  text: 'text-green-700' },
-  notice:  { bg: 'bg-orange-50', text: 'text-orange-600' },
-  info:    { bg: 'bg-gray-100',  text: 'text-gray-600' },
-};
+function typeStyle(t: string): React.CSSProperties {
+  switch (t) {
+    case 'webinar': return { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' };
+    case 'event':   return { background: 'var(--color-success-surface)', color: 'var(--color-success)' };
+    case 'notice':  return { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' };
+    default:        return { background: 'var(--color-bg)', color: 'var(--color-text-muted)' };
+  }
+}
 
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
+  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 function fmtEventDate(s: string) {
-  return new Date(s).toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
-  });
+  return new Date(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-const POSTER_ROLES = new Set(['PSYCHOLOGIST','ADMIN','DPO']);
+const POSTER_ROLES = new Set(['PSYCHOLOGIST', 'ADMIN', 'DPO']);
+
+const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
+const ICS: React.CSSProperties = {
+  background: 'var(--color-bg)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text-primary)',
+};
 
 export default function AnnouncementsPage() {
-  const [items, setItems]       = useState<Announcement[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [canPost, setCanPost]   = useState(false);
+  const [items, setItems]         = useState<Announcement[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [canPost, setCanPost]     = useState(false);
   const [composing, setComposing] = useState(false);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState('');
 
-  // Form state
   const [title, setTitle]         = useState('');
   const [body, setBody]           = useState('');
   const [eventType, setEventType] = useState('info');
@@ -73,43 +77,26 @@ export default function AnnouncementsPage() {
   };
 
   useEffect(() => {
-    // Derive can-post from stored user role (avoids extra round-trip)
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
       setCanPost(POSTER_ROLES.has((u.role || '').toUpperCase()));
-    } catch { /* ignore */ }
+    } catch {}
     load();
   }, []);
 
-  const resetForm = () => {
-    setTitle(''); setBody(''); setEventType('info');
-    setEventDate(''); setLink(''); setPinned(false); setError('');
-  };
-
-  const openCompose = () => { resetForm(); setComposing(true); };
+  const resetForm = () => { setTitle(''); setBody(''); setEventType('info'); setEventDate(''); setLink(''); setPinned(false); setError(''); };
+  const openCompose  = () => { resetForm(); setComposing(true); };
   const closeCompose = () => { setComposing(false); resetForm(); };
 
   const handleSave = async () => {
     if (!title.trim()) { setError('Title is required.'); return; }
     setSaving(true); setError('');
     try {
-      const body_data: any = {
-        title: title.trim(),
-        body: body.trim(),
-        event_type: eventType,
-        link: link.trim(),
-        pinned,
-      };
-      if (eventDate) body_data.event_date = eventDate;
-
-      const r = await fetch(api('/api/announcements'), {
-        method: 'POST',
-        headers: h(),
-        body: JSON.stringify(body_data),
-      });
+      const payload: any = { title: title.trim(), body: body.trim(), event_type: eventType, link: link.trim(), pinned };
+      if (eventDate) payload.event_date = eventDate;
+      const r = await fetch(api('/api/announcements'), { method: 'POST', headers: h(), body: JSON.stringify(payload) });
       if (!r.ok) throw new Error('Failed');
-      await load();
-      closeCompose();
+      await load(); closeCompose();
     } catch { setError('Failed to post announcement.'); }
     finally { setSaving(false); }
   };
@@ -123,15 +110,13 @@ export default function AnnouncementsPage() {
   return (
     <DashboardPageWrapper title="Announcements" subtitle="Post events, webinars, and notices for students">
 
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-gray-500">{items.length} active announcement{items.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{items.length} active announcement{items.length !== 1 ? 's' : ''}</p>
         {canPost && (
-          <button
-            onClick={openCompose}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition"
-            style={{ backgroundColor: '#2563eb' }}
-          >
+          <button onClick={openCompose}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition hover:opacity-90"
+            style={{ background: 'var(--color-primary)' }}>
             <Plus size={15} /> New Announcement
           </button>
         )}
@@ -139,103 +124,101 @@ export default function AnnouncementsPage() {
 
       {/* Compose panel */}
       {composing && (
-        <div className="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="h-1" style={{ backgroundColor: '#2563eb' }} />
+        <div className="mb-6 rounded-xl overflow-hidden shadow-card"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="h-1" style={{ background: 'var(--color-primary)' }} />
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
-              <p className="text-base font-semibold text-gray-900">New Announcement</p>
-              <button onClick={closeCompose} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={16} className="text-gray-400" />
+              <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>New Announcement</p>
+              <button onClick={closeCompose} className="p-1.5 rounded-lg transition"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={16} style={{ color: 'var(--color-text-muted)' }} />
               </button>
             </div>
 
             <div className="space-y-4">
               {/* Type */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Type</label>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Type</label>
                 <div className="flex gap-2 flex-wrap">
-                  {EVENT_TYPES.map(t => (
-                    <button key={t.value} onClick={() => setEventType(t.value)}
-                      className={`px-3 py-1.5 text-sm rounded-lg border transition ${
-                        eventType === t.value
-                          ? 'border-gray-400 bg-gray-100 font-medium text-gray-800'
-                          : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                      }`}>
-                      {t.label}
-                    </button>
-                  ))}
+                  {EVENT_TYPES.map(t => {
+                    const sel = eventType === t.value;
+                    return (
+                      <button key={t.value} onClick={() => setEventType(t.value)}
+                        className="px-3 py-1.5 text-sm rounded-lg border transition"
+                        style={sel
+                          ? { borderColor: 'var(--color-primary)', background: 'var(--color-primary-surface)', color: 'var(--color-primary)', fontWeight: 600 }
+                          : { borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}>
+                        {t.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Title <span className="text-red-400">*</span></label>
-                <input
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  Title <span style={{ color: 'var(--color-danger)' }}>*</span>
+                </label>
+                <input value={title} onChange={e => setTitle(e.target.value)}
                   placeholder="e.g. Stress Management Webinar — June 20"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
-                />
+                  className={IC} style={ICS} />
               </div>
 
               {/* Body */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Description <span className="text-gray-400">(optional)</span></label>
-                <textarea
-                  value={body}
-                  onChange={e => setBody(e.target.value)}
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  Description <span style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+                </label>
+                <textarea value={body} onChange={e => setBody(e.target.value)}
                   placeholder="Short description students will see on the dashboard…"
-                  rows={3}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 resize-none transition"
-                />
+                  rows={3} className="w-full px-3 py-2.5 text-sm rounded-lg outline-none transition resize-none"
+                  style={ICS} />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Event date */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Event Date <span className="text-gray-400">(optional)</span></label>
-                  <input
-                    type="date"
-                    value={eventDate}
-                    onChange={e => setEventDate(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
-                  />
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    Event Date <span style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+                  </label>
+                  <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className={IC} style={ICS} />
                 </div>
-
-                {/* Link */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Link <span className="text-gray-400">(optional)</span></label>
-                  <input
-                    value={link}
-                    onChange={e => setLink(e.target.value)}
-                    placeholder="https://meet.google.com/…"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
-                  />
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    Link <span style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+                  </label>
+                  <input value={link} onChange={e => setLink(e.target.value)} placeholder="https://meet.google.com/…"
+                    className={IC} style={ICS} />
                 </div>
               </div>
 
               {/* Pinned toggle */}
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <div
-                  onClick={() => setPinned(p => !p)}
-                  className={`w-9 h-5 rounded-full transition-colors relative ${pinned ? 'bg-[#2563eb]' : 'bg-gray-300'}`}>
+                <div onClick={() => setPinned(p => !p)}
+                  className="relative w-9 h-5 rounded-full transition-colors"
+                  style={{ background: pinned ? 'var(--color-primary)' : 'var(--color-border)' }}>
                   <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${pinned ? 'left-4' : 'left-0.5'}`} />
                 </div>
-                <span className="text-sm text-gray-700">Pin to top</span>
-                <Pin size={13} className={pinned ? 'text-[#2563eb]' : 'text-gray-300'} />
+                <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>Pin to top</span>
+                <Pin size={13} style={{ color: pinned ? 'var(--color-primary)' : 'var(--color-border)' }} />
               </label>
             </div>
 
-            {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
+            {error && <p className="text-xs mt-3" style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
             <div className="flex gap-2 justify-end mt-5">
               <button onClick={closeCompose}
-                className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition">
+                className="px-4 py-2 text-sm rounded-lg border transition"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 Cancel
               </button>
               <button onClick={handleSave} disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 text-sm text-white font-medium rounded-lg disabled:opacity-50 transition"
-                style={{ backgroundColor: '#2563eb' }}>
+                className="flex items-center gap-2 px-5 py-2 text-sm text-white font-medium rounded-lg disabled:opacity-50 transition hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}>
                 {saving && <Loader2 size={13} className="animate-spin" />}
                 Post Announcement
               </button>
@@ -246,56 +229,57 @@ export default function AnnouncementsPage() {
 
       {/* List */}
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
-          <Loader2 size={18} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-52 bg-white border border-gray-200 rounded-xl text-center">
+        <div className="flex flex-col items-center justify-center h-52 rounded-xl text-center shadow-card"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <p className="text-2xl mb-3">📢</p>
-          <p className="font-medium text-gray-700">No announcements yet</p>
-          <p className="text-sm text-gray-400 mt-1">
-            {canPost
-              ? 'Click "New Announcement" to post something for students.'
-              : 'No active announcements from CPS at this time.'}
+          <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>No announcements yet</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
+            {canPost ? 'Click "New Announcement" to post something for students.' : 'No active announcements from CPS at this time.'}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
           {items.map(item => {
-            const style = TYPE_STYLES[item.event_type] || TYPE_STYLES.info;
             const typeLabel = EVENT_TYPES.find(t => t.value === item.event_type)?.label || 'Info';
             return (
-              <div key={item.id} className="bg-white border border-gray-100 rounded-xl p-5 hover:border-gray-200 transition-colors">
+              <div key={item.id} className="rounded-xl p-5 transition shadow-card"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={typeStyle(item.event_type)}>
                         {typeLabel}
                       </span>
                       {item.pinned && (
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                           <Pin size={11} /> Pinned
                         </span>
                       )}
-                      <span className="text-xs text-gray-300">Posted {fmtDate(item.created_at)}</span>
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Posted {fmtDate(item.created_at)}</span>
                     </div>
-                    <p className="text-sm font-semibold text-gray-800">{item.title}</p>
-                    {item.body && (
-                      <p className="text-sm text-gray-500 mt-1 leading-relaxed">{item.body}</p>
-                    )}
-                    {item.event_date && (
-                      <p className="text-xs text-gray-400 mt-2">📅 {fmtEventDate(item.event_date)}</p>
-                    )}
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{item.title}</p>
+                    {item.body && <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{item.body}</p>}
+                    {item.event_date && <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>📅 {fmtEventDate(item.event_date)}</p>}
                     {item.link && (
                       <a href={item.link} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-[#2563eb] hover:underline mt-1.5">
+                        className="inline-flex items-center gap-1 text-xs mt-1.5 hover:underline"
+                        style={{ color: 'var(--color-primary)' }}>
                         <ExternalLink size={11} /> {item.link}
                       </a>
                     )}
                   </div>
                   {canPost && (
                     <button onClick={() => handleDelete(item.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400 transition flex-shrink-0">
+                      className="p-1.5 rounded-lg transition flex-shrink-0"
+                      style={{ color: 'var(--color-text-muted)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-danger-surface)'; e.currentTarget.style.color = 'var(--color-danger)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                       <Trash2 size={15} />
                     </button>
                   )}

@@ -72,53 +72,58 @@ function CheckInContent() {
       });
   }, [token, appt]);
 
+  const errBg = result?.error?.includes('expired') ? '#F59E0B' : result?.error?.includes('already') ? '#3B82F6' : '#EF4444';
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
       <div className="w-full max-w-sm">
 
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-xl bg-green-600 flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+            style={{ background: 'var(--color-success)' }}>
             <span className="text-white text-sm font-bold">CPS</span>
           </div>
-          <p className="text-xs text-gray-500">DLSU Counseling & Psychological Services</p>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>DLSU Counseling &amp; Psychological Services</p>
         </div>
 
-        {/* Card */}
+        {/* Loading */}
         {state === 'loading' && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
-            <Loader2 size={32} className="animate-spin text-green-500 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-700">Verifying QR code…</p>
-            <p className="text-xs text-gray-400 mt-1">Please wait</p>
+          <div className="rounded-2xl p-8 text-center"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+            <Loader2 size={32} className="animate-spin mx-auto mb-3" style={{ color: 'var(--color-success)' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Verifying QR code…</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Please wait</p>
           </div>
         )}
 
+        {/* Success */}
         {state === 'success' && result && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* Success banner */}
-            <div className="bg-green-500 px-6 py-5 text-center">
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+            <div className="px-6 py-5 text-center" style={{ background: '#22C55E' }}>
               <CheckCircle size={36} className="text-white mx-auto mb-2" />
               <p className="text-white font-bold text-lg">Checked In</p>
-              <p className="text-green-100 text-xs mt-0.5">
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.8)' }}>
                 {new Date(result.checked_in_at || '').toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
               </p>
             </div>
 
-            {/* Student info */}
             <div className="px-6 py-5 space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <User size={18} className="text-green-600" />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--color-success-surface)' }}>
+                  <User size={18} style={{ color: 'var(--color-success)' }} />
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900 text-base">{result.student_name}</p>
+                  <p className="font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>{result.student_name}</p>
                   {result.student_id_number && (
-                    <p className="text-xs text-gray-500">{result.student_id_number}</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{result.student_id_number}</p>
                   )}
                 </div>
               </div>
 
-              <div className="border-t border-gray-100 pt-4 space-y-3">
+              <div className="pt-4 space-y-3" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <Row label="Appointment" value={result.appointment_type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
                 <Row label="Purpose" value={result.purpose?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
                 <Row label="Counselor" value={result.counselor_name} />
@@ -129,16 +134,19 @@ function CheckInContent() {
             </div>
 
             <div className="px-6 pb-5">
-              <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-center">
-                <p className="text-xs text-green-700 font-medium">Student has been marked as arrived</p>
+              <div className="rounded-xl px-4 py-3 text-center"
+                style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+                <p className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>Student has been marked as arrived</p>
               </div>
             </div>
           </div>
         )}
 
+        {/* Error */}
         {state === 'error' && result && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className={`px-6 py-5 text-center ${result.error?.includes('expired') ? 'bg-amber-500' : result.error?.includes('already') ? 'bg-blue-500' : 'bg-red-500'}`}>
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+            <div className="px-6 py-5 text-center" style={{ background: errBg }}>
               {result.error?.includes('expired') ? (
                 <Clock size={36} className="text-white mx-auto mb-2" />
               ) : result.error?.includes('already') ? (
@@ -151,18 +159,18 @@ function CheckInContent() {
               </p>
             </div>
             <div className="px-6 py-5 text-center">
-              <p className="text-sm text-gray-700">{result.error}</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{result.error}</p>
               {result.error?.includes('expired') && (
-                <p className="text-xs text-gray-500 mt-3">Ask the student to open their My Appointments page and generate a new QR code.</p>
+                <p className="text-xs mt-3" style={{ color: 'var(--color-text-muted)' }}>Ask the student to open their My Appointments page and generate a new QR code.</p>
               )}
               {result.error?.includes('already') && (
-                <p className="text-xs text-gray-500 mt-3">This student has already checked in. Check the attendance log if needed.</p>
+                <p className="text-xs mt-3" style={{ color: 'var(--color-text-muted)' }}>This student has already checked in. Check the attendance log if needed.</p>
               )}
             </div>
           </div>
         )}
 
-        <p className="text-center text-xs text-gray-400 mt-4">CPS Check-In System · DLSU</p>
+        <p className="text-center text-xs mt-4" style={{ color: 'var(--color-text-muted)' }}>CPS Check-In System · DLSU</p>
       </div>
     </div>
   );
@@ -172,8 +180,8 @@ function Row({ label, value, mono }: { label: string; value?: string; mono?: boo
   if (!value) return null;
   return (
     <div className="flex justify-between gap-3">
-      <span className="text-xs text-gray-400 flex-shrink-0">{label}</span>
-      <span className={`text-xs text-gray-800 text-right font-medium ${mono ? 'font-mono' : ''}`}>{value}</span>
+      <span className="text-xs flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+      <span className={`text-xs text-right font-medium ${mono ? 'font-mono' : ''}`} style={{ color: 'var(--color-text-primary)' }}>{value}</span>
     </div>
   );
 }
@@ -181,8 +189,8 @@ function Row({ label, value, mono }: { label: string; value?: string; mono?: boo
 export default function CheckInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-green-500" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <Loader2 size={28} className="animate-spin" style={{ color: 'var(--color-success)' }} />
       </div>
     }>
       <CheckInContent />

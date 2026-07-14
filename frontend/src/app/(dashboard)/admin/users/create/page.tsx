@@ -30,6 +30,10 @@ const INITIAL: FormState = {
   confirm_password: '',
 };
 
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+const ICS_ERR: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-text-primary)' };
+const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none';
+
 export default function AddUserPage() {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Partial<FormState>>({});
@@ -97,16 +101,13 @@ export default function AddUserPage() {
     }
   };
 
-  const inp = "w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:border-transparent";
-  const inpErr = "w-full px-3 py-2 text-sm border border-red-400 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-red-300";
-
   if (createdUserId) {
     return (
       <DashboardPageWrapper title="Add User" subtitle="Create a new CPS system account">
         <div className="max-w-lg mx-auto px-4 py-16 text-center space-y-6">
-          <CheckCircle size={56} className="mx-auto" style={{ color: '#2563eb' }} />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">User Created Successfully</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <CheckCircle size={56} className="mx-auto" style={{ color: 'var(--color-primary)' }} />
+          <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>User Created Successfully</h2>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             The account for <strong>{form.first_name} {form.last_name}</strong> ({form.email}) has been created.
             A verification email will be sent to them.
           </p>
@@ -114,13 +115,16 @@ export default function AddUserPage() {
             <Link
               href="/admin/users"
               className="px-5 py-2 text-sm font-medium text-white rounded-lg transition"
-              style={{ backgroundColor: '#2563eb' }}
+              style={{ background: 'var(--color-primary)' }}
             >
               Back to User List
             </Link>
             <button
               onClick={() => { setForm(INITIAL); setCreatedUserId(null); setErrors({}); }}
-              className="px-5 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-700 dark:text-gray-300"
+              className="px-5 py-2 text-sm font-medium rounded-lg transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Create Another
             </button>
@@ -133,143 +137,167 @@ export default function AddUserPage() {
   return (
     <DashboardPageWrapper title="Add User" subtitle="Create a new CPS system account">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/admin/users" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6 transition">
+        <Link
+          href="/admin/users"
+          className="inline-flex items-center gap-1.5 text-sm mb-6 transition"
+          style={{ color: 'var(--color-text-secondary)' }}
+          onMouseOver={e => (e.currentTarget.style.color = 'var(--color-text-primary)')}
+          onMouseOut={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+        >
           <ArrowLeft size={14} /> Back to Users
         </Link>
 
         {serverError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="mb-6 p-4 rounded-lg text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}>
             {serverError}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Info */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 border-b border-gray-100 dark:border-gray-700 pb-2">
+          <div className="rounded-2xl p-6 space-y-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <h3 className="text-sm font-semibold pb-2" style={{ color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border)' }}>
               Personal Information
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">First Name <span className="text-red-500">*</span></label>
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                  First Name <span style={{ color: 'var(--color-danger)' }}>*</span>
+                </label>
                 <input
                   value={form.first_name}
                   onChange={(e) => set('first_name', e.target.value)}
                   placeholder="e.g. Juan"
-                  className={errors.first_name ? inpErr : inp}
-                  style={!errors.first_name ? { '--tw-ring-color': '#2563eb' } as React.CSSProperties : undefined}
+                  className={IC}
+                  style={errors.first_name ? ICS_ERR : ICS}
                 />
-                {errors.first_name && <p className="text-xs text-red-600">{errors.first_name}</p>}
+                {errors.first_name && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.first_name}</p>}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Last Name <span className="text-red-500">*</span></label>
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                  Last Name <span style={{ color: 'var(--color-danger)' }}>*</span>
+                </label>
                 <input
                   value={form.last_name}
                   onChange={(e) => set('last_name', e.target.value)}
                   placeholder="e.g. dela Cruz"
-                  className={errors.last_name ? inpErr : inp}
+                  className={IC}
+                  style={errors.last_name ? ICS_ERR : ICS}
                 />
-                {errors.last_name && <p className="text-xs text-red-600">{errors.last_name}</p>}
+                {errors.last_name && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.last_name}</p>}
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Email Address <span className="text-red-500">*</span></label>
+              <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                Email Address <span style={{ color: 'var(--color-danger)' }}>*</span>
+              </label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => set('email', e.target.value)}
                 placeholder="user@dlsu.edu.ph"
-                className={errors.email ? inpErr : inp}
+                className={IC}
+                style={errors.email ? ICS_ERR : ICS}
               />
-              {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
+              {errors.email && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.email}</p>}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">ID / Employee Number</label>
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>ID / Employee Number</label>
                 <input
                   value={form.id_number}
                   onChange={(e) => set('id_number', e.target.value)}
                   placeholder="e.g. 12345678"
-                  className={inp}
+                  className={IC}
+                  style={ICS}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Department / College</label>
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Department / College</label>
                 <input
                   value={form.department}
                   onChange={(e) => set('department', e.target.value)}
                   placeholder="e.g. College of Computer Studies"
-                  className={inp}
+                  className={IC}
+                  style={ICS}
                 />
               </div>
             </div>
           </div>
 
-          {/* Role */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 border-b border-gray-100 dark:border-gray-700 pb-2">
+          <div className="rounded-2xl p-6 space-y-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <h3 className="text-sm font-semibold pb-2" style={{ color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border)' }}>
               Role &amp; Access
             </h3>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Role <span className="text-red-500">*</span></label>
+              <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                Role <span style={{ color: 'var(--color-danger)' }}>*</span>
+              </label>
               <select
                 value={form.role}
                 onChange={(e) => set('role', e.target.value)}
-                className={errors.role ? inpErr : inp}
+                className={IC}
+                style={errors.role ? ICS_ERR : ICS}
               >
                 <option value="">Select a role…</option>
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
-              {errors.role && <p className="text-xs text-red-600">{errors.role}</p>}
+              {errors.role && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.role}</p>}
             </div>
           </div>
 
-          {/* Password */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 border-b border-gray-100 dark:border-gray-700 pb-2">
+          <div className="rounded-2xl p-6 space-y-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <h3 className="text-sm font-semibold pb-2" style={{ color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border)' }}>
               Password
             </h3>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Password <span className="text-red-500">*</span></label>
+              <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                Password <span style={{ color: 'var(--color-danger)' }}>*</span>
+              </label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={form.password}
                   onChange={(e) => set('password', e.target.value)}
                   placeholder="Min. 8 characters"
-                  className={`${errors.password ? inpErr : inp} pr-10`}
+                  className={`${IC} pr-10`}
+                  style={errors.password ? ICS_ERR : ICS}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--color-text-muted)' }}
                 >
                   {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
+              {errors.password && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.password}</p>}
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Confirm Password <span className="text-red-500">*</span></label>
+              <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                Confirm Password <span style={{ color: 'var(--color-danger)' }}>*</span>
+              </label>
               <div className="relative">
                 <input
                   type={showCPw ? 'text' : 'password'}
                   value={form.confirm_password}
                   onChange={(e) => set('confirm_password', e.target.value)}
                   placeholder="Repeat password"
-                  className={`${errors.confirm_password ? inpErr : inp} pr-10`}
+                  className={`${IC} pr-10`}
+                  style={errors.confirm_password ? ICS_ERR : ICS}
                 />
                 <button
                   type="button"
                   onClick={() => setShowCPw((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--color-text-muted)' }}
                 >
                   {showCPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
-              {errors.confirm_password && <p className="text-xs text-red-600">{errors.confirm_password}</p>}
+              {errors.confirm_password && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.confirm_password}</p>}
             </div>
           </div>
 
@@ -278,14 +306,19 @@ export default function AddUserPage() {
               type="submit"
               disabled={submitting}
               className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white rounded-lg transition disabled:opacity-60"
-              style={{ backgroundColor: '#2563eb' }}
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => { if (!submitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}
             >
               <UserPlus size={15} />
               {submitting ? 'Creating User…' : 'Create User'}
             </button>
             <Link
               href="/admin/users"
-              className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              className="px-6 py-2.5 text-sm font-medium rounded-lg transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'transparent' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
             >
               Cancel
             </Link>

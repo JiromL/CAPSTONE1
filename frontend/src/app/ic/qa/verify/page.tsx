@@ -23,9 +23,7 @@ export default function VerifyPage() {
           const data = await res.json();
           setIntakes(Array.isArray(data) ? data : data.intakes || []);
         }
-      } catch {
-        setIntakes([]);
-      }
+      } catch { setIntakes([]); }
       setLoading(false);
     };
     fetchIntakes();
@@ -44,7 +42,7 @@ export default function VerifyPage() {
           i._id === id ? { ...i, verification_status: action === 'approve' ? 'approved' : 'rejected' } : i
         ));
       }
-    } catch { /* silent — action just won't update locally */ }
+    } catch { }
     finally { setActioningId(null); }
   };
 
@@ -59,38 +57,39 @@ export default function VerifyPage() {
       <div className="space-y-6">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {statuses.map(s => (
-            <button
-              key={s.value}
-              onClick={() => setFilter(s.value)}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition text-sm font-medium ${
-                filter === s.value
-                  ? 'bg-[#2563eb] text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
+            <button key={s.value} onClick={() => setFilter(s.value)}
+              className="px-4 py-2 rounded-lg whitespace-nowrap transition text-sm font-medium"
+              style={filter === s.value
+                ? { background: 'var(--color-primary)', color: '#fff' }
+                : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}
+              onMouseEnter={e => { if (filter !== s.value) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-border)'; }}
+              onMouseLeave={e => { if (filter !== s.value) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}>
               {s.label} <span className="ml-1.5 font-semibold">{s.count}</span>
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12 gap-2 text-gray-400 text-sm">
+          <div className="flex items-center justify-center py-12 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             <Loader2 size={16} className="animate-spin" /> Loading intakes…
           </div>
         ) : intakes.filter(i => i.verification_status === filter).length === 0 ? (
-          <div className="text-center py-12 text-gray-600">
-            <Clock className="mx-auto mb-4 text-gray-400" size={32} />
-            <p>No intakes in this category</p>
+          <div className="text-center py-12">
+            <Clock className="mx-auto mb-4" size={32} style={{ color: 'var(--color-text-muted)' }} />
+            <p style={{ color: 'var(--color-text-secondary)' }}>No intakes in this category</p>
           </div>
         ) : (
           <div className="space-y-3">
             {intakes.filter(i => i.verification_status === filter).map(intake => (
-              <div key={intake._id} className="border border-gray-200 rounded-xl p-4 hover:shadow-sm transition bg-white">
+              <div key={intake._id} className="rounded-xl p-4 transition"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{intake.student_name}</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">ID: {intake._id.slice(-8)}</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{intake.student_name}</h3>
+                    <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>ID: {intake._id.slice(-8)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                       Completed: {intake.completed_date ? new Date(intake.completed_date).toLocaleDateString() : '—'}
                     </p>
                   </div>
@@ -99,16 +98,20 @@ export default function VerifyPage() {
                       <button
                         onClick={() => handleAction(intake._id, 'approve')}
                         disabled={actioningId === intake._id}
-                        className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 disabled:opacity-50 flex items-center gap-1.5 transition"
-                      >
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition disabled:opacity-50"
+                        style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}
+                        onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
                         {actioningId === intake._id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                         Approve
                       </button>
                       <button
                         onClick={() => handleAction(intake._id, 'reject')}
                         disabled={actioningId === intake._id}
-                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 disabled:opacity-50 flex items-center gap-1.5 transition"
-                      >
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition disabled:opacity-50"
+                        style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}
+                        onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
                         <XCircle size={12} /> Reject
                       </button>
                     </div>

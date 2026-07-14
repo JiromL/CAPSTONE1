@@ -9,21 +9,20 @@ import {
   Loader2, Clock, Send, CheckCircle, XCircle,
 } from 'lucide-react';
 
-const RISK_CONFIG: Record<string, { label: string; badge: string }> = {
-  red:      { label: 'High Risk',  badge: 'bg-red-50 text-red-700 ring-1 ring-red-200' },
-  critical: { label: 'Critical',   badge: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold' },
-  yellow:   { label: 'Moderate',   badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  green:    { label: 'Low Risk',   badge: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-};
-
-function getRisk(level: string) {
-  return RISK_CONFIG[level?.toLowerCase()] ?? { label: level?.toUpperCase() || 'Unknown', badge: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' };
+function getRiskStyle(level: string): { label: string; bg: string; text: string; border: string } {
+  switch ((level || '').toLowerCase()) {
+    case 'critical': return { label: 'Critical',  bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',  border: 'var(--color-danger)' };
+    case 'red':      return { label: 'High Risk', bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',  border: 'var(--color-danger)' };
+    case 'yellow':   return { label: 'Moderate',  bg: 'var(--color-warning-surface)', text: 'var(--color-warning)', border: 'var(--color-warning)' };
+    case 'green':    return { label: 'Low Risk',  bg: 'var(--color-success-surface)', text: 'var(--color-success)', border: 'var(--color-success)' };
+    default:         return { label: level?.toUpperCase() || 'Unknown', bg: 'var(--color-bg)', text: 'var(--color-text-muted)', border: 'var(--color-border)' };
+  }
 }
 
 export default function HighRiskPage() {
-  const [cases, setCases]       = useState<any[]>([]);
-  const [tab, setTab]           = useState<'cases' | 'manual'>('cases');
-  const [loading, setLoading]   = useState(true);
+  const [cases, setCases]           = useState<any[]>([]);
+  const [tab, setTab]               = useState<'cases' | 'manual'>('cases');
+  const [loading, setLoading]       = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
@@ -32,109 +31,107 @@ export default function HighRiskPage() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         setCases((Array.isArray(data) ? data : []).map((u: any, i: number) => ({
-          id: i,
-          name: u.name || u.username,
-          studentId: u.username,
-          email: u.email || '',
-          riskLevel: (u.risk || 'unknown').toLowerCase(),
+          id: i, name: u.name || u.username, studentId: u.username,
+          email: u.email || '', riskLevel: (u.risk || 'unknown').toLowerCase(),
         })));
       })
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
 
-  const redCount = cases.filter(c => ['red', 'critical'].includes(c.riskLevel)).length;
-  const yellowCount = cases.filter(c => c.riskLevel === 'yellow').length;
+  const redCount    = cases.filter(c => ['red', 'critical'].includes(c.riskLevel)).length;
+
+  const TABS = [
+    { key: 'cases' as const,  label: 'Active Cases',  count: cases.length },
+    { key: 'manual' as const, label: 'Manual Notify', count: 0 },
+  ];
 
   return (
     <DashboardPageWrapper title="High-Risk Monitoring" subtitle="Students flagged for elevated mental health risk">
 
       {/* Summary strip */}
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-          <ShieldAlert size={18} className="text-gray-500" />
-          <div>
-            <p className="text-xs text-gray-400">Total Flagged</p>
-            <p className="text-xl font-semibold text-gray-800">{cases.length}</p>
+        {[
+          { icon: ShieldAlert, label: 'Total Flagged', value: cases.length, highlight: false },
+          { icon: AlertTriangle, label: 'High Risk / Critical', value: redCount, highlight: redCount > 0 },
+        ].map(({ icon: Icon, label, value, highlight }) => (
+          <div key={label} className="rounded-2xl border shadow-card px-4 py-3 flex items-center gap-3"
+            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <Icon size={18} style={{ color: highlight ? 'var(--color-danger)' : 'var(--color-text-muted)' }} />
+            <div>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+              <p className="text-xl font-semibold" style={{ color: highlight ? 'var(--color-danger)' : 'var(--color-text-primary)' }}>{value}</p>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-          <AlertTriangle size={18} className={redCount > 0 ? 'text-red-500' : 'text-gray-300'} />
-          <div>
-            <p className="text-xs text-gray-400">High Risk / Critical</p>
-            <p className={`text-xl font-semibold ${redCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>{redCount}</p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Tab + content card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Main card */}
+      <div className="rounded-2xl border shadow-card overflow-hidden animate-fade-up" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
 
         {/* Tab bar */}
-        <div className="flex items-end border-b border-gray-200 px-2 pt-2 gap-0.5">
-          {([
-            { key: 'cases' as const,  label: 'Active Cases',  count: cases.length },
-            { key: 'manual' as const, label: 'Manual Notify', count: 0 },
-          ]).map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap ${
-                tab === t.key
-                  ? 'bg-[#2563eb]/5 text-[#2563eb] border-b-2 border-[#2563eb]'
-                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-              }`}>
-              {t.label}
-              {t.count > 0 && (
-                <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 leading-none ${
-                  tab === t.key ? 'bg-[#2563eb] text-white' : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {t.count}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="flex items-end px-2 pt-2 gap-0.5" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          {TABS.map(t => {
+            const isActive = tab === t.key;
+            return (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap"
+                style={isActive
+                  ? { color: 'var(--color-primary)', borderBottom: '2px solid var(--color-primary)', background: 'var(--color-primary-surface)' }
+                  : { color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                {t.label}
+                {t.count > 0 && (
+                  <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 leading-none"
+                    style={isActive
+                      ? { background: 'var(--color-primary)', color: 'white' }
+                      : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {tab === 'cases' ? (
           loading ? (
-            <div className="flex items-center justify-center h-44 gap-2 text-gray-400 text-sm">
-              <Loader2 size={16} className="animate-spin" /> Loading…
+            <div className="flex items-center justify-center h-44 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
             </div>
           ) : fetchError ? (
             <div className="flex flex-col items-center justify-center h-44 text-center px-6">
-              <AlertTriangle size={22} className="text-amber-400 mb-3" />
-              <p className="text-sm font-medium text-gray-700">Could not load monitoring data</p>
-              <p className="text-xs text-gray-400 mt-1">Check your connection and refresh the page.</p>
+              <AlertTriangle size={22} className="mb-3" style={{ color: 'var(--color-warning)' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Could not load monitoring data</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Check your connection and refresh the page.</p>
             </div>
           ) : cases.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-44 text-center">
-              <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mb-3">
-                <CheckCircle size={18} className="text-green-500" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-success-surface)' }}>
+                <CheckCircle size={18} style={{ color: 'var(--color-success)' }} />
               </div>
-              <p className="text-sm font-medium text-gray-600">No high-risk cases flagged</p>
-              <p className="text-xs text-gray-400 mt-1">Cases are flagged automatically based on assessment scores.</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No high-risk cases flagged</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Cases are flagged automatically based on assessment scores.</p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Student</th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Risk Level</th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">History</th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
+                    <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      {['#', 'Student', 'Risk Level', 'History', 'Action'].map(h => (
+                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {cases.map((c, i) => (
-                      <HighRiskRow key={c.id} caseItem={c} index={i} />
-                    ))}
+                    {cases.map((c, i) => <HighRiskRow key={c.id} caseItem={c} index={i} />)}
                   </tbody>
                 </table>
               </div>
-              <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
-                <p className="text-xs text-gray-400">{cases.length} flagged student{cases.length !== 1 ? 's' : ''}</p>
+              <div className="px-5 py-3" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{cases.length} flagged student{cases.length !== 1 ? 's' : ''}</p>
               </div>
             </>
           )
@@ -146,11 +143,12 @@ export default function HighRiskPage() {
       </div>
 
       {/* Crisis Resources */}
-      <div className="mt-4 bg-red-50 rounded-2xl border border-red-100 px-5 py-4 flex items-start gap-3">
-        <Phone size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+      <div className="mt-4 rounded-2xl border px-5 py-4 flex items-start gap-3"
+        style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)' }}>
+        <Phone size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
         <div>
-          <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1">Philippine Mental Health Crisis Lines</p>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-red-800">
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-danger)' }}>Philippine Mental Health Crisis Lines</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm" style={{ color: 'var(--color-danger)' }}>
             <a href="tel:+6328044673" className="font-medium hover:underline">Hopeline PH: (02) 8804-4673</a>
             <a href="tel:+639178998727" className="font-medium hover:underline">Crisis Line: 0917-899-8727</a>
           </div>
@@ -158,9 +156,9 @@ export default function HighRiskPage() {
       </div>
 
       {/* Guidelines */}
-      <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Monitoring Guidelines</p>
-        <ul className="space-y-1.5 text-sm text-gray-600">
+      <div className="mt-4 rounded-2xl border shadow-card px-5 py-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Monitoring Guidelines</p>
+        <ul className="space-y-1.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           {[
             ['Daily Check-ins', 'Contact high-risk clients daily or per treatment plan'],
             ['Safety Plans', 'Ensure current safety plans are in place and reviewed'],
@@ -169,7 +167,7 @@ export default function HighRiskPage() {
             ['Escalation', 'Escalate to crisis services immediately if needed'],
           ].map(([title, desc]) => (
             <li key={title} className="flex gap-2">
-              <span className="font-medium text-gray-800 whitespace-nowrap">{title}:</span>
+              <span className="font-medium whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>{title}:</span>
               <span>{desc}</span>
             </li>
           ))}
@@ -186,7 +184,7 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
   const [loadingHist, setLoadingHist] = useState(false);
   const [notifyState, setNotifyState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
 
-  const risk = getRisk(caseItem.riskLevel);
+  const risk = getRiskStyle(caseItem.riskLevel);
   const isHighRisk = ['red', 'critical'].includes(caseItem.riskLevel);
 
   const toggleHistory = async () => {
@@ -210,8 +208,7 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
     try {
       const token = localStorage.getItem('token');
       const r = await fetch(api(`/api/high-risk/user/${encodeURIComponent(caseItem.studentId)}/notify`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       setNotifyState(r.ok ? 'sent' : 'error');
     } catch { setNotifyState('error'); }
@@ -219,38 +216,44 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
 
   return (
     <>
-      <tr className={`border-b border-gray-50 transition-colors ${isHighRisk ? 'bg-red-50/30 hover:bg-red-50/60' : 'hover:bg-gray-50/60'}`}>
-        <td className="px-5 py-4 text-gray-400 text-xs">{index + 1}.</td>
+      <tr className="transition-colors"
+        style={{ borderBottom: '1px solid var(--color-border)', background: isHighRisk ? 'rgba(239,68,68,0.04)' : 'transparent' }}
+        onMouseEnter={e => (e.currentTarget.style.background = isHighRisk ? 'rgba(239,68,68,0.08)' : 'var(--color-bg)')}
+        onMouseLeave={e => (e.currentTarget.style.background = isHighRisk ? 'rgba(239,68,68,0.04)' : 'transparent')}>
+        <td className="px-5 py-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>{index + 1}.</td>
         <td className="px-5 py-4">
-          <p className="font-medium text-gray-900 text-sm">{caseItem.name}</p>
-          {caseItem.email && <p className="text-xs text-gray-400">{caseItem.email}</p>}
-          {!caseItem.email && <p className="text-xs text-gray-400 font-mono">{caseItem.studentId}</p>}
+          <p className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>{caseItem.name}</p>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{caseItem.email || caseItem.studentId}</p>
         </td>
         <td className="px-5 py-4">
-          <span className={`inline-flex text-xs px-2 py-0.5 rounded-full font-medium ${risk.badge}`}>
+          <span className="inline-flex text-xs px-2 py-0.5 rounded-full font-medium border"
+            style={{ background: risk.bg, color: risk.text, borderColor: risk.border }}>
             {risk.label}
           </span>
         </td>
         <td className="px-5 py-4">
           <button onClick={toggleHistory}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium transition">
+            className="flex items-center gap-1 text-xs font-medium transition"
+            style={{ color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}>
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             {expanded ? 'Hide' : 'View'} history
           </button>
         </td>
         <td className="px-5 py-4">
           {notifyState === 'sent' ? (
-            <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--color-success)' }}>
               <CheckCircle size={14} /> Notified
             </span>
           ) : notifyState === 'error' ? (
-            <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--color-danger)' }}>
               <XCircle size={14} /> Failed
             </span>
           ) : (
             <button onClick={handleNotify} disabled={notifyState === 'loading'}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50"
-              style={{ backgroundColor: '#2563eb' }}>
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition disabled:opacity-50 hover:opacity-90"
+              style={{ background: 'var(--color-primary)' }}>
               {notifyState === 'loading' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
               Alert Counselor
             </button>
@@ -258,20 +261,20 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
         </td>
       </tr>
       {expanded && (
-        <tr className={`border-b border-gray-50 ${isHighRisk ? 'bg-red-50/20' : 'bg-gray-50/40'}`}>
+        <tr style={{ borderBottom: '1px solid var(--color-border)', background: isHighRisk ? 'rgba(239,68,68,0.03)' : 'var(--color-bg)' }}>
           <td colSpan={5} className="px-10 py-3">
             {loadingHist ? (
-              <span className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 <Loader2 size={15} className="animate-spin" /> Loading history…
               </span>
             ) : history.length === 0 ? (
-              <span className="text-xs text-gray-400">No PERMA history available.</span>
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No PERMA history available.</span>
             ) : (
               <ul className="space-y-1">
                 {history.map((h, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-xs text-gray-600">
-                    <span className="flex items-center gap-1 text-gray-400 whitespace-nowrap">
-                      <Clock size={15} /> {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  <li key={idx} className="flex items-start gap-3 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="flex items-center gap-1 whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
+                      <Clock size={12} /> {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                     <span>{h.perma_label}</span>
                   </li>

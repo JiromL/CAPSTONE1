@@ -21,9 +21,7 @@ export default function MissingDataPage() {
           const data = await res.json();
           setIntakes(Array.isArray(data) ? data : data.intakes || []);
         }
-      } catch {
-        setIntakes([]);
-      }
+      } catch { setIntakes([]); }
       setLoading(false);
     };
     fetchIntakes();
@@ -42,48 +40,55 @@ export default function MissingDataPage() {
   return (
     <PageShell title="Missing Data QA" subtitle="Track and resolve incomplete intake information">
       <div className="space-y-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="rounded-xl p-4 flex items-start gap-3"
+          style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+          <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-warning-text)' }} />
           <div>
-            <p className="font-semibold text-amber-900">Incomplete Intakes</p>
-            <p className="text-sm text-amber-700 mt-0.5">
+            <p className="font-semibold" style={{ color: 'var(--color-warning-text)' }}>Incomplete Intakes</p>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--color-warning-text)' }}>
               {loading ? 'Loading…' : `${intakes.length} intake${intakes.length !== 1 ? 's' : ''} have missing required information`}
             </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12 gap-2 text-gray-400 text-sm">
+          <div className="flex items-center justify-center py-12 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             <Loader2 size={16} className="animate-spin" /> Loading…
           </div>
         ) : intakes.length === 0 ? (
-          <div className="text-center py-12 text-gray-600">
-            <CheckCircle2 className="mx-auto mb-4 text-green-400" size={32} />
-            <p>All intakes have complete data</p>
+          <div className="text-center py-12">
+            <CheckCircle2 className="mx-auto mb-4" size={32} style={{ color: 'var(--color-success)' }} />
+            <p style={{ color: 'var(--color-text-secondary)' }}>All intakes have complete data</p>
           </div>
         ) : (
           <div className="space-y-3">
             {intakes.map(intake => {
               const missing = getMissingFields(intake);
               return (
-                <div key={intake._id} className="border border-gray-200 rounded-xl p-4 hover:shadow-sm transition bg-white">
+                <div key={intake._id} className="rounded-xl p-4 transition"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}
+                  onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}
+                  onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{intake.student_name}</h3>
+                      <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{intake.student_name}</h3>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {missing.length > 0 ? missing.map(field => (
-                          <span key={field} className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                          <span key={field} className="px-2 py-0.5 text-xs rounded-full font-medium"
+                            style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
                             Missing: {field}
                           </span>
                         )) : (
-                          <span className="text-xs text-gray-400">No missing fields detected</span>
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No missing fields detected</span>
                         )}
                       </div>
                     </div>
                     <a
                       href={`/ic/intake/conduct/${intake._id}`}
-                      className="px-3 py-1.5 bg-[#2563eb] text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex-shrink-0"
-                    >
+                      className="px-3 py-1.5 text-white rounded-lg text-sm font-medium transition flex-shrink-0"
+                      style={{ background: 'var(--color-primary)' }}
+                      onMouseOver={e => (e.currentTarget.style.background = 'var(--color-primary-hover)')}
+                      onMouseOut={e => (e.currentTarget.style.background = 'var(--color-primary)')}>
                       Review
                     </a>
                   </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { exportToExcel } from '@/utils/export';
 import { api } from '@/utils/api';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 
 interface NonCounselingClient {
   _id: string;
@@ -29,10 +29,14 @@ interface CounselingCheckIn {
   next_check_in_date: string | null;
 }
 
+const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' };
+const onFIn  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
+const onFOut = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; };
+
 export default function CheckInTrackingPage() {
   const [activeTab, setActiveTab] = useState<'counseling' | 'non-counseling'>('counseling');
 
-  // Non-counseling state
   const [ncClients, setNcClients] = useState<NonCounselingClient[]>([]);
   const [ncTotal, setNcTotal] = useState(0);
   const [ncPage, setNcPage] = useState(1);
@@ -42,7 +46,6 @@ export default function CheckInTrackingPage() {
   const [ncMonth, setNcMonth] = useState('');
   const [ncLoading, setNcLoading] = useState(false);
 
-  // Counseling check-ins state
   const [ccClients, setCcClients] = useState<CounselingCheckIn[]>([]);
   const [ccOverdue, setCcOverdue] = useState(0);
   const [ccLoading, setCcLoading] = useState(false);
@@ -61,27 +64,20 @@ export default function CheckInTrackingPage() {
       if (ncMonth) params.append('month', ncMonth);
       if (ncConcern) params.append('concern', ncConcern);
       if (ncStatus) params.append('status', ncStatus);
-      const res = await fetch(api(`/api/client-tracking/check-ins?${params}`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(api(`/api/client-tracking/check-ins?${params}`), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      setNcClients(data.data || []);
-      setNcTotal(data.total || 0);
-    } catch { /* silent */ }
+      setNcClients(data.data || []); setNcTotal(data.total || 0);
+    } catch {}
     finally { setNcLoading(false); }
   };
 
   const fetchCounselingCheckIns = async () => {
-    setCcLoading(true);
-    setCcError('');
+    setCcLoading(true); setCcError('');
     try {
-      const res = await fetch(api('/api/check-ins/list'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(api('/api/check-ins/list'), { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) { setCcError('Failed to load counseling check-ins.'); return; }
       const data = await res.json();
-      setCcClients(data.check_ins || []);
-      setCcOverdue(data.overdue_count || 0);
+      setCcClients(data.check_ins || []); setCcOverdue(data.overdue_count || 0);
     } catch { setCcError('Network error loading counseling check-ins.'); }
     finally { setCcLoading(false); }
   };
@@ -93,52 +89,55 @@ export default function CheckInTrackingPage() {
       if (ncMonth) params.append('month', ncMonth);
       if (ncConcern) params.append('concern', ncConcern);
       if (ncStatus) params.append('status', ncStatus);
-      const res = await fetch(api(`/api/client-tracking/export/check-ins?${params}`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(api(`/api/client-tracking/export/check-ins?${params}`), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       const rows = (data.data || []).map((c: NonCounselingClient) => [
         c.case_number, c.client_name, c.client_id_number, c.concern, c.status,
         new Date(c.created_date).toLocaleDateString(),
       ]);
-      exportToExcel({
-        headers: ['Case Number', 'Client Name', 'ID Number', 'Concern', 'Status', 'Date Created'],
-        rows,
-        filename: 'non-counseling-check-ins',
-      });
-    } catch { /* silent */ }
+      exportToExcel({ headers: ['Case Number', 'Client Name', 'ID Number', 'Concern', 'Status', 'Date Created'], rows, filename: 'non-counseling-check-ins' });
+    } catch {}
   };
 
   const tabs = [
-    { id: 'counseling' as const, label: 'Counseling (Check-In Status)', count: ccClients.length, overdue: ccOverdue },
-    { id: 'non-counseling' as const, label: 'Non-Counseling Clients', count: ncTotal },
+    { id: 'counseling' as const,    label: 'Counseling (Check-In Status)', count: ccClients.length, overdue: ccOverdue },
+    { id: 'non-counseling' as const, label: 'Non-Counseling Clients',       count: ncTotal },
   ];
+
+  const TH = ({ children }: { children: React.ReactNode }) => (
+    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{children}</th>
+  );
 
   return (
     <DashboardPageWrapper title="Check-In Tracking" subtitle="All clients requiring periodic check-ins">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+      <div className="space-y-4">
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 dark:border-gray-700">
+        <div style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex gap-1">
-            {tabs.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition ${
-                  activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}>
-                {tab.label}
-                <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                  {tab.count}
-                </span>
-                {'overdue' in tab && (tab.overdue ?? 0) > 0 && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
-                    <AlertTriangle size={10} /> {tab.overdue} overdue
+            {tabs.map((tab) => {
+              const active = activeTab === tab.id;
+              return (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition"
+                  style={active
+                    ? { borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }
+                    : { borderColor: 'transparent', color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                  {tab.label}
+                  <span className="px-2 py-0.5 text-xs rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                    {tab.count}
                   </span>
-                )}
-              </button>
-            ))}
+                  {'overdue' in tab && (tab.overdue ?? 0) > 0 && (
+                    <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border"
+                      style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>
+                      <AlertTriangle size={10} /> {tab.overdue} overdue
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -146,61 +145,71 @@ export default function CheckInTrackingPage() {
         {activeTab === 'counseling' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                 Counseling cases with <span className="font-medium">Check-In Only</span> or <span className="font-medium">With MH Check-In</span> status.
               </p>
               <button onClick={fetchCounselingCheckIns} disabled={ccLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition">
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 transition"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <RefreshCw size={13} className={ccLoading ? 'animate-spin' : ''} /> Refresh
               </button>
             </div>
 
-            {ccError && <p className="text-sm text-red-600 dark:text-red-400">{ccError}</p>}
+            {ccError && <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{ccError}</p>}
 
             {ccLoading ? (
-              <div className="py-12 text-center text-sm text-gray-500">Loading…</div>
+              <div className="py-12 text-center text-sm flex items-center justify-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
+                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+              </div>
             ) : ccClients.length === 0 ? (
-              <div className="py-12 text-center text-sm text-gray-500">No counseling check-in cases found.</div>
+              <div className="py-12 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>No counseling check-in cases found.</div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Student</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Concern</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Last Check-In</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Next Due</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Days Since</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {ccClients.map((c) => (
-                      <tr key={c.case_id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${c.is_overdue ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-50">{c.student_name}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                            {c.client_status?.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.primary_concern || '—'}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                          {c.last_check_in_date ? new Date(c.last_check_in_date).toLocaleDateString() : <span className="text-gray-400">Never</span>}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                          {c.next_check_in_date ? new Date(c.next_check_in_date).toLocaleDateString() : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`flex items-center gap-1 text-xs font-medium ${c.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                            {c.is_overdue && <AlertTriangle size={12} />}
-                            {c.days_since_last_check_in != null ? `${c.days_since_last_check_in}d` : '—'}
-                            {c.is_overdue && ' overdue'}
-                          </span>
-                        </td>
+              <div className="border rounded-2xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                      <tr>
+                        <TH>Student</TH><TH>Status</TH><TH>Concern</TH><TH>Last Check-In</TH><TH>Next Due</TH><TH>Days Since</TH>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {ccClients.map((c, i) => (
+                        <tr key={c.case_id}
+                          style={{
+                            background: c.is_overdue ? 'rgba(239,68,68,0.04)' : 'transparent',
+                            borderBottom: i < ccClients.length - 1 ? '1px solid var(--color-border)' : 'none',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = c.is_overdue ? 'rgba(239,68,68,0.08)' : 'var(--color-bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = c.is_overdue ? 'rgba(239,68,68,0.04)' : 'transparent')}>
+                          <td className="px-4 py-3 font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.student_name}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium border"
+                              style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>
+                              {c.client_status?.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{c.primary_concern || '—'}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
+                            {c.last_check_in_date ? new Date(c.last_check_in_date).toLocaleDateString() : <span style={{ color: 'var(--color-text-muted)' }}>Never</span>}
+                          </td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
+                            {c.next_check_in_date ? new Date(c.next_check_in_date).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="flex items-center gap-1 text-xs font-medium"
+                              style={{ color: c.is_overdue ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                              {c.is_overdue && <AlertTriangle size={12} />}
+                              {c.days_since_last_check_in != null ? `${c.days_since_last_check_in}d` : '—'}
+                              {c.is_overdue && ' overdue'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
@@ -210,34 +219,36 @@ export default function CheckInTrackingPage() {
         {activeTab === 'non-counseling' && (
           <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4">
+            <div className="border rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <input type="text" placeholder="Search name or ID…" value={ncSearch}
-                  onChange={(e) => { setNcSearch(e.target.value); setNcPage(1); }}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50" />
-                <select value={ncConcern} onChange={(e) => { setNcConcern(e.target.value); setNcPage(1); }}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50">
+                  onChange={e => { setNcSearch(e.target.value); setNcPage(1); }}
+                  className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
+                <select value={ncConcern} onChange={e => { setNcConcern(e.target.value); setNcPage(1); }}
+                  className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut}>
                   <option value="">All Concerns</option>
                   <option value="under accommodation">Under Accommodation</option>
                   <option value="with SDFO case">With SDFO Case</option>
                   <option value="Under LCIDWELL Collab">Under LCIDWELL Collab</option>
                   <option value="with MH but needs check-in only">With MH Check-In Only</option>
                 </select>
-                <select value={ncStatus} onChange={(e) => { setNcStatus(e.target.value); setNcPage(1); }}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50">
+                <select value={ncStatus} onChange={e => { setNcStatus(e.target.value); setNcPage(1); }}
+                  className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut}>
                   <option value="">All Status</option>
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
-                <input type="month" value={ncMonth} onChange={(e) => { setNcMonth(e.target.value); setNcPage(1); }}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50" />
+                <input type="month" value={ncMonth} onChange={e => { setNcMonth(e.target.value); setNcPage(1); }}
+                  className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
                 <div className="flex gap-2">
                   <button onClick={fetchNonCounseling} disabled={ncLoading}
-                    className="flex-1 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 transition">
+                    className="flex-1 px-3 py-2 text-sm text-white rounded-lg font-medium disabled:opacity-50 transition hover:opacity-90"
+                    style={{ background: 'var(--color-primary)' }}>
                     Refresh
                   </button>
                   <button onClick={handleExportNc}
-                    className="flex-1 px-3 py-2 text-sm bg-[#2563eb] hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                    className="flex-1 px-3 py-2 text-sm text-white rounded-lg font-medium transition hover:opacity-90"
+                    style={{ background: 'var(--color-text-secondary)' }}>
                     Export
                   </button>
                 </div>
@@ -245,53 +256,61 @@ export default function CheckInTrackingPage() {
             </div>
 
             {ncLoading ? (
-              <div className="py-12 text-center text-sm text-gray-500">Loading…</div>
+              <div className="py-12 text-center text-sm flex items-center justify-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
+                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+              </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Case #</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Client Name</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">ID Number</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Concern</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Date Created</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {ncClients.length === 0 ? (
-                      <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No records found</td></tr>
-                    ) : ncClients.map((c) => (
-                      <tr key={c._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                        <td className="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">{c.case_number}</td>
-                        <td className="px-4 py-3 text-gray-900 dark:text-gray-50">{c.client_name}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.client_id_number}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.concern}</td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            c.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-blue-900 dark:text-green-200'
-                              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
-                            {c.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                          {new Date(c.created_date).toLocaleDateString()}
-                        </td>
+              <div className="border rounded-2xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                      <tr>
+                        <TH>Case #</TH><TH>Client Name</TH><TH>ID Number</TH><TH>Concern</TH><TH>Status</TH><TH>Date Created</TH>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {/* Pagination */}
-                <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                  <p className="text-xs text-gray-500">
+                    </thead>
+                    <tbody>
+                      {ncClients.length === 0 ? (
+                        <tr><td colSpan={6} className="px-4 py-8 text-center" style={{ color: 'var(--color-text-muted)' }}>No records found</td></tr>
+                      ) : ncClients.map((c, i) => (
+                        <tr key={c._id}
+                          style={{ borderBottom: i < ncClients.length - 1 ? '1px solid var(--color-border)' : 'none' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <td className="px-4 py-3 font-medium" style={{ color: 'var(--color-primary)' }}>{c.case_number}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-primary)' }}>{c.client_name}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{c.client_id_number}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{c.concern}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium border"
+                              style={c.status === 'Active'
+                                ? { background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }
+                                : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                              {c.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
+                            {new Date(c.created_date).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--color-border)' }}>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                     {ncClients.length > 0 ? (ncPage - 1) * 10 + 1 : 0}–{Math.min(ncPage * 10, ncTotal)} of {ncTotal}
                   </p>
                   <div className="flex gap-2">
                     <button onClick={() => setNcPage(Math.max(1, ncPage - 1))} disabled={ncPage === 1}
-                      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Previous</button>
+                      className="px-3 py-1.5 text-xs border rounded-lg disabled:opacity-50 transition"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>Previous</button>
                     <button onClick={() => setNcPage(ncPage + 1)} disabled={ncPage * 10 >= ncTotal}
-                      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Next</button>
+                      className="px-3 py-1.5 text-xs border rounded-lg disabled:opacity-50 transition"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>Next</button>
                   </div>
                 </div>
               </div>

@@ -56,10 +56,18 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-bg)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'var(--color-primary)' }}>
+              <span className="text-[11px] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            </div>
+            <svg className="absolute -inset-2 w-16 h-16 animate-spin" style={{ animationDuration: '1.4s' }} viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="28" stroke="var(--color-primary)" strokeOpacity="0.15" strokeWidth="3" />
+              <path d="M32 4 A28 28 0 0 1 60 32" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+          </div>
+          <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Loading dashboard…</p>
         </div>
       </div>
     );

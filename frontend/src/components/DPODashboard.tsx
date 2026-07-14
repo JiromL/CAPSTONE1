@@ -22,9 +22,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
     if (!token) { setLoading(false); return; }
     (async () => {
       try {
-        const r = await fetch(api('/api/analytics/summary'), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const r = await fetch(api('/api/analytics/summary'), { headers: { Authorization: `Bearer ${token}` } });
         if (r.ok) setSummary(await r.json());
       } finally { setLoading(false); }
     })();
@@ -42,46 +40,46 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
   return (
     <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
 
-      <div className="mb-6 pb-5 border-b border-gray-200">
-        <p className="text-xs text-gray-400 mb-0.5">{dateLabel}</p>
-        <h2 className="text-xl font-semibold text-gray-900">Good day, {firstName}.</h2>
+      <div className="mb-6 pb-5 animate-fade-up" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
-          <Loader2 size={18} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-5 animate-fade-up" style={{ animationDelay: '60ms' }}>
 
           {highRisk > 0 && (
-            <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
-              <AlertCircle size={15} className="text-red-500 flex-shrink-0" />
-              <span className="text-red-800">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+              <AlertCircle size={15} className="flex-shrink-0" style={{ color: 'var(--color-danger)' }} />
+              <span style={{ color: 'var(--color-danger)' }}>
                 <strong>{highRisk}</strong> high-risk case{highRisk !== 1 ? 's' : ''} active.
               </span>
-              <Link href="/high-risk" className="ml-auto text-xs font-semibold text-red-700 underline underline-offset-2">Review</Link>
+              <Link href="/high-risk" className="ml-auto text-xs font-semibold underline underline-offset-2" style={{ color: 'var(--color-danger)' }}>Review</Link>
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* System snapshot */}
-            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">System Snapshot</p>
-              <div className="space-y-1">
+            <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: 'var(--color-text-muted)' }}>System Snapshot</p>
+              <div className="space-y-0.5">
                 {[
-                  { label: 'Active cases',           value: summary?.active_cases ?? '—',        color: 'text-gray-900' },
-                  { label: 'High-risk (RED/CRITICAL)',value: highRisk,                            color: highRisk > 0 ? 'text-red-600' : 'text-gray-900' },
-                  { label: 'Appointments this week',  value: summary?.week_appointments ?? '—',   color: 'text-gray-900' },
-                  { label: 'Total counselors',        value: summary?.total_counselors ?? '—',    color: 'text-gray-900' },
-                  { label: 'Total psychologists',     value: summary?.total_psychologists ?? '—', color: 'text-gray-900' },
-                  { label: 'Clinical staff total',    value: clinicalStaff || '—',                color: 'text-gray-900' },
-                  { label: 'Students served',         value: summary?.total_students ?? '—',      color: 'text-gray-900' },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <span className="text-sm text-gray-500">{label}</span>
-                    <span className={`text-sm font-semibold ${color}`}>{value}</span>
+                  { label: 'Active cases',            value: summary?.active_cases ?? '—',        danger: false },
+                  { label: 'High-risk (RED/CRITICAL)', value: highRisk,                            danger: highRisk > 0 },
+                  { label: 'Appointments this week',   value: summary?.week_appointments ?? '—',   danger: false },
+                  { label: 'Total counselors',         value: summary?.total_counselors ?? '—',    danger: false },
+                  { label: 'Total psychologists',      value: summary?.total_psychologists ?? '—', danger: false },
+                  { label: 'Clinical staff total',     value: clinicalStaff || '—',                danger: false },
+                  { label: 'Students served',          value: summary?.total_students ?? '—',      danger: false },
+                ].map(({ label, value, danger }) => (
+                  <div key={label} className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
+                    <span className="text-sm font-semibold" style={{ color: danger ? 'var(--color-danger)' : 'var(--color-text-primary)' }}>{value}</span>
                   </div>
                 ))}
               </div>
@@ -89,39 +87,45 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
 
             <div className="space-y-5">
               {/* Data governance */}
-              <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Data Governance</p>
-                <div className="divide-y divide-gray-100">
+              <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted)' }}>Data Governance</p>
+                <div>
                   {[
-                    { href: '/admin/audit-log',      label: 'Audit Logs' },
-                    { href: '/admin/users',           label: 'User Management' },
-                    { href: '/admin/reports/export',  label: 'Data Export' },
-                    { href: '/documentation',         label: 'Documentation' },
-                    { href: '/announcements',         label: 'Announcements' },
-                  ].map(({ href, label }) => (
+                    { href: '/admin/audit-log',     label: 'Audit Logs' },
+                    { href: '/admin/users',          label: 'User Management' },
+                    { href: '/admin/reports/export', label: 'Data Export' },
+                    { href: '/documentation',        label: 'Documentation' },
+                    { href: '/announcements',        label: 'Announcements' },
+                  ].map(({ href, label }, i) => (
                     <Link key={href} href={href}
-                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
+                      className="flex items-center justify-between py-2.5 text-sm transition-colors group"
+                      style={{ borderTop: i > 0 ? '1px solid var(--color-border)' : 'none', color: 'var(--color-text-secondary)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}>
                       <span>{label}</span>
-                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
+                      <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
                     </Link>
                   ))}
                 </div>
               </div>
 
               {/* Clinical oversight */}
-              <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Clinical Oversight</p>
-                <div className="divide-y divide-gray-100">
+              <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted)' }}>Clinical Oversight</p>
+                <div>
                   {[
                     { href: '/high-risk',            label: 'High-Risk Cases' },
                     { href: '/cases',                label: 'All Cases' },
                     { href: '/admin/analytics',      label: 'Analytics Dashboard' },
                     { href: '/appointment-requests', label: 'Appointments' },
-                  ].map(({ href, label }) => (
+                  ].map(({ href, label }, i) => (
                     <Link key={href} href={href}
-                      className="flex items-center justify-between py-2 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
+                      className="flex items-center justify-between py-2.5 text-sm transition-colors group"
+                      style={{ borderTop: i > 0 ? '1px solid var(--color-border)' : 'none', color: 'var(--color-text-secondary)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}>
                       <span>{label}</span>
-                      <ArrowRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
+                      <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
                     </Link>
                   ))}
                 </div>

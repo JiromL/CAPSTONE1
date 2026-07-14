@@ -41,9 +41,6 @@ const TABS = [
 
 type TabKey = typeof TABS[number]['key'];
 
-const TAB_ACTIVE_CLS = 'text-[#2563eb] border-b-2 border-[#2563eb] bg-blue-50/50';
-const TAB_ICON_CLS = 'text-[#2563eb]';
-
 const TAB_STATUSES: Record<TabKey, string[]> = {
   upcoming:   ['REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
   evaluation: ['EVALUATION'],
@@ -51,22 +48,24 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
   cancelled:  ['CANCELLED', 'DENIED', 'NO_SHOW'],
 };
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  REQUESTED:                { label: 'Pending review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  PENDING_APPROVAL:         { label: 'Pending review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  MATCHED:                  { label: 'Pending review',      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  CONFIRMED:                { label: 'Confirmed',           cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  APPROVED:                 { label: 'Confirmed',           cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  CHECKED_IN:               { label: 'Confirmed',           cls: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
-  RESCHEDULE_REQUESTED:     { label: 'Reschedule pending',  cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  PENDING_STUDENT_APPROVAL: { label: 'Action required',     cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  EVALUATION:               { label: 'Rate your session',   cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  FOLLOW_UP:                { label: 'Completed',           cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
-  REFERRAL:                 { label: 'Completed',           cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
-  COMPLETED:                { label: 'Completed',           cls: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
-  CANCELLED:                { label: 'Cancelled',           cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
-  DENIED:                   { label: 'Cancelled',           cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
-  NO_SHOW:                  { label: 'Missed',              cls: 'bg-red-50 text-red-600 ring-1 ring-red-200' },
+type StatusConfig = { label: string; bg: string; text: string; ring: string };
+
+const STATUS_CFG: Record<string, StatusConfig> = {
+  REQUESTED:                { label: 'Pending review',     bg: 'var(--color-warning-surface)', text: 'var(--color-warning)',  ring: 'var(--color-warning)' },
+  PENDING_APPROVAL:         { label: 'Pending review',     bg: 'var(--color-warning-surface)', text: 'var(--color-warning)',  ring: 'var(--color-warning)' },
+  MATCHED:                  { label: 'Pending review',     bg: 'var(--color-warning-surface)', text: 'var(--color-warning)',  ring: 'var(--color-warning)' },
+  CONFIRMED:                { label: 'Confirmed',          bg: 'var(--color-success-surface)', text: 'var(--color-success)',  ring: 'var(--color-success)' },
+  APPROVED:                 { label: 'Confirmed',          bg: 'var(--color-success-surface)', text: 'var(--color-success)',  ring: 'var(--color-success)' },
+  CHECKED_IN:               { label: 'Confirmed',          bg: 'var(--color-success-surface)', text: 'var(--color-success)',  ring: 'var(--color-success)' },
+  RESCHEDULE_REQUESTED:     { label: 'Reschedule pending', bg: 'var(--color-primary-surface)', text: 'var(--color-primary)',  ring: 'var(--color-primary)' },
+  PENDING_STUDENT_APPROVAL: { label: 'Action required',    bg: 'var(--color-primary-surface)', text: 'var(--color-primary)',  ring: 'var(--color-primary)' },
+  EVALUATION:               { label: 'Rate your session',  bg: 'var(--color-warning-surface)', text: 'var(--color-warning)',  ring: 'var(--color-warning)' },
+  FOLLOW_UP:                { label: 'Completed',          bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
+  REFERRAL:                 { label: 'Completed',          bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
+  COMPLETED:                { label: 'Completed',          bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
+  CANCELLED:                { label: 'Cancelled',          bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',   ring: 'var(--color-danger)' },
+  DENIED:                   { label: 'Cancelled',          bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',   ring: 'var(--color-danger)' },
+  NO_SHOW:                  { label: 'Missed',             bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',   ring: 'var(--color-danger)' },
 };
 
 const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
@@ -107,24 +106,16 @@ function fmtPlatform(m?: string, platform?: string) {
   if (effective === 'online') return 'Online';
   return effective.charAt(0).toUpperCase() + effective.slice(1);
 }
-function isUpcoming(dt?: string) {
-  return dt ? new Date(dt) > new Date() : false;
-}
+function isUpcoming(dt?: string) { return dt ? new Date(dt) > new Date() : false; }
 function isSameDay(dt?: string) {
   if (!dt) return false;
   const d = new Date(dt);
   const now = new Date();
-  return d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
-}
-function padId(id: string) {
-  return id.replace(/\D/g, '').slice(-10).padStart(10, '0');
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
 }
 function fmtTime(t: string) {
   const [h, m] = t.split(':').map(Number);
-  const ap = h >= 12 ? 'PM' : 'AM';
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ap}`;
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -132,7 +123,10 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} type="button" onClick={() => onChange(n)}
-          className={`text-xl transition-colors ${n <= value ? 'text-amber-400' : 'text-gray-200 hover:text-amber-200'}`}>
+          className="text-xl transition-colors"
+          style={{ color: n <= value ? '#F59E0B' : 'var(--color-border)' }}
+          onMouseEnter={e => { if (n > value) e.currentTarget.style.color = '#FCD34D'; }}
+          onMouseLeave={e => { if (n > value) e.currentTarget.style.color = 'var(--color-border)'; }}>
           ★
         </button>
       ))}
@@ -167,23 +161,22 @@ export default function MyAppointmentsPage() {
   const [rescheduling, setRescheduling]   = useState(false);
   const [reschedError, setReschedError]   = useState('');
   const [respondingId, setRespondingId]   = useState<string | null>(null);
-  const [rescheduleSlots, setRescheduleSlots]           = useState<{ time: string; counselor_id: string; counselor_name: string }[]>([]);
+  const [rescheduleSlots, setRescheduleSlots]               = useState<{ time: string; counselor_id: string; counselor_name: string }[]>([]);
   const [rescheduleLoadingSlots, setRescheduleLoadingSlots] = useState(false);
-  const [rescheduleNextDate, setRescheduleNextDate]     = useState<string | null>(null);
+  const [rescheduleNextDate, setRescheduleNextDate]         = useState<string | null>(null);
 
-  const [detailAppt, setDetailAppt]         = useState<Appointment | null>(null);
-  const [formsStatus, setFormsStatus]       = useState<Record<string, boolean>>({});
+  const [detailAppt, setDetailAppt]           = useState<Appointment | null>(null);
+  const [formsStatus, setFormsStatus]         = useState<Record<string, boolean>>({});
   const [viewFormsPacket, setViewFormsPacket] = useState<any>(null);
   const [viewFormsLoading, setViewFormsLoading] = useState(false);
 
-  // Evaluation modal
-  const [evalTarget, setEvalTarget] = useState<Appointment | null>(null);
-  const [evalRatings, setEvalRatings] = useState<Record<string, number>>({});
-  const [evalLiked, setEvalLiked]   = useState('');
-  const [evalImprove, setEvalImprove] = useState('');
+  const [evalTarget, setEvalTarget]       = useState<Appointment | null>(null);
+  const [evalRatings, setEvalRatings]     = useState<Record<string, number>>({});
+  const [evalLiked, setEvalLiked]         = useState('');
+  const [evalImprove, setEvalImprove]     = useState('');
   const [submittingEval, setSubmittingEval] = useState(false);
-  const [evalError, setEvalError]   = useState('');
-  const [evalSuccess, setEvalSuccess] = useState(false);
+  const [evalError, setEvalError]         = useState('');
+  const [evalSuccess, setEvalSuccess]     = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -197,7 +190,6 @@ export default function MyAppointmentsPage() {
         const d = await r.json();
         const apts: Appointment[] = d.appointments || [];
         setAppointments(apts);
-        // Check intake packet status for intake_interview appointments
         const intakeApts = apts.filter(a => a.purpose === 'intake_interview' && ['REQUESTED','PENDING_APPROVAL','CONFIRMED','APPROVED','MATCHED'].includes(a.status));
         if (intakeApts.length > 0) {
           const statuses: Record<string, boolean> = {};
@@ -220,25 +212,16 @@ export default function MyAppointmentsPage() {
 
   useEffect(() => {
     if (!reschedDate) { setRescheduleSlots([]); setRescheduleNextDate(null); return; }
-    setRescheduleLoadingSlots(true);
-    setReschedTime('');
-    setRescheduleSlots([]);
-    setRescheduleNextDate(null);
+    setRescheduleLoadingSlots(true); setReschedTime(''); setRescheduleSlots([]); setRescheduleNextDate(null);
     const token = localStorage.getItem('token');
-    fetch(api(`/api/availability/open-slots?date=${reschedDate}`), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(api(`/api/availability/open-slots?date=${reschedDate}`), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        setRescheduleSlots(d.slots || []);
-        setRescheduleNextDate(d.next_available_date || null);
-      })
-      .catch(() => { setRescheduleSlots([]); })
+      .then(d => { setRescheduleSlots(d.slots || []); setRescheduleNextDate(d.next_available_date || null); })
+      .catch(() => setRescheduleSlots([]))
       .finally(() => setRescheduleLoadingSlots(false));
   }, [reschedDate]);
 
-  const needsEvaluation = (a: Appointment) =>
-    a.status === 'EVALUATION' || (a.status === 'COMPLETED' && !a.evaluation);
+  const needsEvaluation = (a: Appointment) => a.status === 'EVALUATION' || (a.status === 'COMPLETED' && !a.evaluation);
 
   const filtered = activeTab === 'evaluation'
     ? appointments.filter(needsEvaluation)
@@ -275,9 +258,7 @@ export default function MyAppointmentsPage() {
       if (r.ok) {
         setAppointments(prev => prev.map(a => a._id === cancelTarget._id ? { ...a, status: 'CANCELLED' } : a));
         setCancelTarget(null); setCancelReason('');
-      } else {
-        const d = await r.json(); setCancelError(d.error || 'Failed to cancel.');
-      }
+      } else { const d = await r.json(); setCancelError(d.error || 'Failed to cancel.'); }
     } catch { setCancelError('Network error.'); }
     finally { setCancelling(false); }
   };
@@ -295,9 +276,7 @@ export default function MyAppointmentsPage() {
       if (r.ok) {
         setAppointments(prev => prev.map(a => a._id === reschedTarget._id ? { ...a, status: 'RESCHEDULE_REQUESTED' } : a));
         setReschedTarget(null); setReschedDate(''); setReschedTime(''); setReschedReason('');
-      } else {
-        const d = await r.json(); setReschedError(d.error || 'Failed to request reschedule.');
-      }
+      } else { const d = await r.json(); setReschedError(d.error || 'Failed to request reschedule.'); }
     } catch { setReschedError('Network error.'); }
     finally { setRescheduling(false); }
   };
@@ -307,27 +286,20 @@ export default function MyAppointmentsPage() {
     try {
       const token = localStorage.getItem('token');
       const r = await fetch(api(`/api/appointments/reschedule-requests/${appt._id}/${action}`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
         if (action === 'approve') {
-          // Confirmed with the new proposed time applied
-          setAppointments(prev => prev.map(a =>
-            a._id === appt._id
-              ? { ...a, status: 'CONFIRMED', scheduled_start: a.reschedule_requested_start, reschedule_requested_start: undefined, reschedule_requested_by_role: undefined, reschedule_reason: undefined }
-              : a
-          ));
+          setAppointments(prev => prev.map(a => a._id === appt._id
+            ? { ...a, status: 'CONFIRMED', scheduled_start: a.reschedule_requested_start, reschedule_requested_start: undefined, reschedule_requested_by_role: undefined, reschedule_reason: undefined }
+            : a));
         } else {
-          // Denied — revert to CONFIRMED with original schedule, clear reschedule fields
-          setAppointments(prev => prev.map(a =>
-            a._id === appt._id
-              ? { ...a, status: 'CONFIRMED', reschedule_requested_start: undefined, reschedule_requested_by_role: undefined, reschedule_reason: undefined }
-              : a
-          ));
+          setAppointments(prev => prev.map(a => a._id === appt._id
+            ? { ...a, status: 'CONFIRMED', reschedule_requested_start: undefined, reschedule_requested_by_role: undefined, reschedule_reason: undefined }
+            : a));
         }
       }
-    } catch { /* silent */ }
+    } catch { }
     finally { setRespondingId(null); }
   };
 
@@ -336,13 +308,10 @@ export default function MyAppointmentsPage() {
     try {
       const token = localStorage.getItem('token');
       const r = await fetch(api(`/api/appointments/${appt._id}/confirm-schedule`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
-      if (r.ok) {
-        setAppointments(prev => prev.map(a => a._id === appt._id ? { ...a, status: 'CONFIRMED' } : a));
-      }
-    } catch { /* silent */ }
+      if (r.ok) setAppointments(prev => prev.map(a => a._id === appt._id ? { ...a, status: 'CONFIRMED' } : a));
+    } catch { }
     finally { setRespondingId(null); }
   };
 
@@ -356,19 +325,13 @@ export default function MyAppointmentsPage() {
       const r = await fetch(api(`/api/appointments/${evalTarget._id}/submit-evaluation`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ratings: evalRatings,
-          liked_most: evalLiked,
-          to_improve: evalImprove,
-        }),
+        body: JSON.stringify({ ratings: evalRatings, liked_most: evalLiked, to_improve: evalImprove }),
       });
       if (r.ok) {
         setEvalSuccess(true);
         setAppointments(prev => prev.map(a => a._id === evalTarget._id ? { ...a, status: 'COMPLETED', evaluation: { submitted: true } } : a));
         setTimeout(() => { setEvalTarget(null); setEvalSuccess(false); setEvalRatings({}); setEvalLiked(''); setEvalImprove(''); }, 1500);
-      } else {
-        const d = await r.json(); setEvalError(d.error || 'Failed to submit evaluation.');
-      }
+      } else { const d = await r.json(); setEvalError(d.error || 'Failed to submit evaluation.'); }
     } catch { setEvalError('Network error.'); }
     finally { setSubmittingEval(false); }
   };
@@ -379,7 +342,8 @@ export default function MyAppointmentsPage() {
       {/* Page header */}
       <div className="flex items-center justify-end mb-5">
         <Link href="/book-appointment">
-          <button className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 text-white text-sm font-medium rounded-lg transition shadow-sm">
+          <button className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-all hover:opacity-90 shadow-sm"
+            style={{ background: 'var(--color-primary)' }}>
             <Plus size={14} /> New Request
           </button>
         </Link>
@@ -389,13 +353,13 @@ export default function MyAppointmentsPage() {
       {(() => {
         const pendingEval = appointments.filter(needsEvaluation).length;
         return pendingEval > 0 ? (
-          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
-            <Star size={16} className="text-amber-500 flex-shrink-0" />
-            <span className="text-amber-800 font-medium">
+          <div className="flex items-center gap-3 rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+            <Star size={16} className="flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
+            <span className="font-medium" style={{ color: 'var(--color-warning)' }}>
               You have {pendingEval} session{pendingEval > 1 ? 's' : ''} ready to rate. Share your feedback!
             </span>
             <button onClick={() => setActiveTab('evaluation')}
-              className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+              className="ml-auto text-xs font-semibold underline underline-offset-2" style={{ color: 'var(--color-warning)' }}>
               Rate now
             </button>
           </div>
@@ -404,11 +368,11 @@ export default function MyAppointmentsPage() {
 
       {/* Pending intake forms banner */}
       {Object.values(formsStatus).some(v => !v) && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm">
-          <FileText size={16} className="text-amber-500 flex-shrink-0" />
-          <span className="text-amber-800 font-medium">Your Initial Consultation has incomplete required forms — please fill them out before your session.</span>
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+          <FileText size={16} className="flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
+          <span className="font-medium" style={{ color: 'var(--color-warning)' }}>Your Initial Consultation has incomplete required forms — please fill them out before your session.</span>
           <button onClick={() => setActiveTab('upcoming')}
-            className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+            className="ml-auto text-xs font-semibold underline underline-offset-2" style={{ color: 'var(--color-warning)' }}>
             View appointment
           </button>
         </div>
@@ -416,25 +380,24 @@ export default function MyAppointmentsPage() {
 
       {/* No-show policy notice */}
       {appointments.filter(a => a.status === 'NO_SHOW').length >= 1 && (
-        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm">
-          <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
           <div>
-            <p className="text-red-800 font-medium">
+            <p className="font-medium" style={{ color: 'var(--color-danger)' }}>
               You have {appointments.filter(a => a.status === 'NO_SHOW').length} missed session{appointments.filter(a => a.status === 'NO_SHOW').length > 1 ? 's' : ''} on record.
             </p>
-            <p className="text-red-700 text-xs mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-danger)' }}>
               Per clinic policy, 3 consecutive missed sessions may result in automatic case closure.
-              Please contact the counseling office if you need to reschedule or have any concerns.
             </p>
           </div>
         </div>
       )}
 
-      {/* Tab bar + table card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Tab bar + card */}
+      <div className="rounded-2xl border shadow-card overflow-hidden animate-fade-up" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
 
         {/* Tabs */}
-        <div className="flex items-end overflow-x-auto border-b border-gray-200 px-2 pt-2 gap-0.5 scrollbar-hide">
+        <div className="flex items-end overflow-x-auto px-2 pt-2 gap-0.5 scrollbar-hide" style={{ borderBottom: '1px solid var(--color-border)' }}>
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
             const cnt = counts[tab.key];
@@ -448,13 +411,17 @@ export default function MyAppointmentsPage() {
                   return next;
                 });
               }}
-                className={`flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
-                  isActive ? TAB_ACTIVE_CLS : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}>
-                <Icon size={18} className={isActive ? TAB_ICON_CLS : 'text-gray-400'} />
+                className="flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium rounded-t-xl transition-all whitespace-nowrap relative flex-shrink-0"
+                style={isActive
+                  ? { color: 'var(--color-primary)', borderBottom: `2px solid var(--color-primary)`, background: 'var(--color-primary-surface)' }
+                  : { color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                <Icon size={18} style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                 <span>{tab.label}</span>
                 {cnt > 0 && !seenTabs.has(tab.key) && (
-                  <span className="absolute -top-1 -right-0.5 text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none bg-gray-700 text-white">
+                  <span className="absolute -top-1 -right-0.5 text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none"
+                    style={{ background: 'var(--color-text-primary)', color: 'white' }}>
                     {cnt}
                   </span>
                 )}
@@ -464,34 +431,33 @@ export default function MyAppointmentsPage() {
         </div>
 
         {/* Section label */}
-        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/40 flex items-center justify-between">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>
             {TABS.find(t => t.key === activeTab)?.label ?? 'Sessions'}
           </p>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-44 gap-2 text-gray-400 text-base">
-            <Loader2 size={18} className="animate-spin" /> Loading appointments…
+          <div className="flex items-center justify-center h-44 gap-2 text-base" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading appointments…
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center h-44 text-red-500 text-sm">{error}</div>
+          <div className="flex items-center justify-center h-44 text-sm" style={{ color: 'var(--color-danger)' }}>{error}</div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-52 text-center px-4">
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              <Clock size={22} className="text-gray-400" />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
+              <Clock size={22} style={{ color: 'var(--color-text-muted)' }} />
             </div>
-            <p className="text-base font-medium text-gray-600">No records found</p>
-            <p className="text-sm text-gray-400 mt-1">
-              {activeTab === 'upcoming'
-                ? 'You have no upcoming sessions.'
-                : activeTab === 'evaluation'
-                ? 'No sessions waiting for your rating.'
-                : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
+            <p className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>No records found</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
+              {activeTab === 'upcoming' ? 'You have no upcoming sessions.'
+              : activeTab === 'evaluation' ? 'No sessions waiting for your rating.'
+              : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
             </p>
             {activeTab === 'upcoming' && (
               <Link href="/book-appointment"
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 text-white text-sm font-semibold rounded-lg transition">
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}>
                 <Plus size={14} /> Book an Appointment
               </Link>
             )}
@@ -503,9 +469,9 @@ export default function MyAppointmentsPage() {
                 const dt  = appt.scheduled_start || appt.requested_start;
                 const isTodayAppt = isSameDay(dt);
                 const isSlotReserved = appt.status === 'REQUESTED' && !!appt.preferred_time;
-                const rawCfg = STATUS_BADGE[appt.status] ?? { label: appt.status, cls: 'bg-gray-100 text-gray-600' };
+                const rawCfg = STATUS_CFG[appt.status] ?? { label: appt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', ring: 'var(--color-border)' };
                 const cfg = isSlotReserved
-                  ? { label: 'Slot Reserved', cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' }
+                  ? { label: 'Slot Reserved', bg: 'var(--color-primary-surface)', text: 'var(--color-primary)', ring: 'var(--color-primary)' }
                   : rawCfg;
                 const active = !INACTIVE.has(appt.status);
                 const upcoming = isUpcoming(dt);
@@ -516,29 +482,31 @@ export default function MyAppointmentsPage() {
                 const awaitingConfirmation = appt.status === 'PENDING_STUDENT_APPROVAL';
 
                 return (
-                  <div key={appt._id} className={`rounded-2xl border p-4 transition-all hover:shadow-sm ${
-                    needsEval           ? 'bg-amber-50 border-amber-200'
-                    : awaitingConfirmation ? 'bg-sky-50 border-sky-200'
-                    : 'bg-white border-gray-100 hover:border-gray-200'
-                  }`}>
+                  <div key={appt._id}
+                    className="rounded-2xl border p-4 transition-all"
+                    style={{
+                      background: needsEval ? 'var(--color-warning-surface)' : awaitingConfirmation ? 'var(--color-primary-surface)' : 'var(--color-surface)',
+                      borderColor: needsEval ? 'var(--color-warning)' : awaitingConfirmation ? 'var(--color-primary)' : 'var(--color-border)',
+                    }}>
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${cfg.cls}`}>
+                          <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold border"
+                            style={{ background: cfg.bg, color: cfg.text, borderColor: cfg.ring }}>
                             {cfg.label}
                           </span>
                           {isSlotReserved && (
-                            <span className="text-xs text-sky-600 font-medium">Awaiting IC confirmation</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>Awaiting IC confirmation</span>
                           )}
                           {counselorProposedResched && (
-                            <span className="text-xs text-orange-600 font-medium">Your counselor proposed a new time</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--color-warning)' }}>Your counselor proposed a new time</span>
                           )}
                           {awaitingConfirmation && (
-                            <span className="text-xs text-sky-700 font-semibold">Action required</span>
+                            <span className="text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>Action required</span>
                           )}
                         </div>
-                        <p className="font-semibold text-gray-900 text-sm">{purposeLabel}</p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                        <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{purposeLabel}</p>
+                        <div className="flex items-center gap-3 mt-1 text-xs flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
                           {dt && (
                             <span className="flex items-center gap-1">
                               <CalendarDays size={11} />{fmtDateTime(dt)}
@@ -547,61 +515,71 @@ export default function MyAppointmentsPage() {
                           <span>{fmtPlatform(appt.preferred_method, appt.preferred_platform)}</span>
                         </div>
                         {appt.counselor_name ? (
-                          <p className="mt-1 text-xs text-gray-600">With <span className="font-medium text-gray-800">{appt.counselor_name}</span></p>
+                          <p className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                            With <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{appt.counselor_name}</span>
+                          </p>
                         ) : (
-                          <p className="mt-1 text-xs text-gray-400 italic">Counselor not yet assigned — we'll notify you soon</p>
+                          <p className="mt-1 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Counselor not yet assigned — we'll notify you soon</p>
                         )}
                         {appt.office && (
-                          <p className="mt-0.5 text-xs text-gray-500 flex items-center gap-1"><MapPin size={10} /> {appt.office}</p>
+                          <p className="mt-0.5 text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
+                            <MapPin size={10} /> {appt.office}
+                          </p>
                         )}
                         {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_start && (
-                          <p className="mt-1 text-xs text-sky-600">Proposed new time: {fmtDateTime(appt.reschedule_requested_start)}</p>
+                          <p className="mt-1 text-xs" style={{ color: 'var(--color-primary)' }}>Proposed new time: {fmtDateTime(appt.reschedule_requested_start)}</p>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                         {canJoin && (
                           <a href={appt.meeting_link} target="_blank" rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-blue-800 text-white text-xs font-semibold rounded-lg transition">
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-xl transition hover:opacity-90"
+                            style={{ background: 'var(--color-primary)' }}>
                             <Video size={12} /> Join Session
                           </a>
                         )}
                         {needsEval && (
                           <button
                             onClick={() => { setEvalTarget(appt); setEvalRatings({}); setEvalLiked(''); setEvalImprove(''); setEvalError(''); setEvalSuccess(false); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition">
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-semibold transition hover:opacity-90"
+                            style={{ background: '#F59E0B' }}>
                             <Star size={12} /> Rate Session
                           </button>
                         )}
                         {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === false && (
                           <Link href={`/book-appointment?resumeId=${appt.appointment_id || appt._id}`}>
-                            <button className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-lg transition">
+                            <button className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl transition border hover:opacity-90"
+                              style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}>
                               <FileText size={11} /> Complete Forms
                             </button>
                           </Link>
                         )}
                         {appt.purpose === 'intake_interview' && formsStatus[appt.appointment_id || appt._id] === true && (
                           <button onClick={() => openViewForms(appt)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition">
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl transition border hover:opacity-90"
+                            style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>
                             <Eye size={11} /> View Forms
                           </button>
                         )}
                         {awaitingConfirmation && (
                           <div className="flex flex-col gap-1.5 mt-1">
-                            <p className="text-xs text-sky-700 font-medium">
-                              Your counselor has proposed a schedule. Please confirm or request a different time.
+                            <p className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
+                              Your counselor has proposed a schedule.
                             </p>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleConfirmSchedule(appt)}
                                 disabled={respondingId === appt._id + 'confirm'}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                className="flex items-center gap-1 px-3 py-1.5 text-white text-xs font-semibold rounded-xl transition disabled:opacity-50 hover:opacity-90"
+                                style={{ background: 'var(--color-primary)' }}>
                                 {respondingId === appt._id + 'confirm' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
                                 Accept Schedule
                               </button>
                               <button
                                 onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-sky-300 text-sky-700 hover:bg-sky-50 text-xs font-semibold rounded-lg transition">
-                                <RotateCcw size={11} /> Request Different Time
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl transition border"
+                                style={{ background: 'var(--color-surface)', borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
+                                <RotateCcw size={11} /> Different Time
                               </button>
                             </div>
                           </div>
@@ -612,49 +590,60 @@ export default function MyAppointmentsPage() {
                             <button
                               onClick={() => handleRespondReschedule(appt, 'approve')}
                               disabled={!!respondingId}
-                              className="flex items-center gap-1 px-2 py-1 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition">
+                              className="flex items-center gap-1 px-2 py-1 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 hover:opacity-90"
+                              style={{ background: 'var(--color-success)' }}>
                               {respondingId === appt._id + 'approve' ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
                               Accept
                             </button>
                             <button
                               onClick={() => handleRespondReschedule(appt, 'deny')}
                               disabled={!!respondingId}
-                              className="flex items-center gap-1 px-2 py-1 bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 text-xs font-semibold rounded-md transition">
+                              className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg transition disabled:opacity-50 border"
+                              style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>
                               {respondingId === appt._id + 'deny' ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
                               Decline
                             </button>
                           </div>
                         )}
+
                         <div className="flex items-center gap-1">
                           <button onClick={() => setDetailAppt(appt)} title="Details"
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
+                            className="p-1.5 rounded-lg transition-colors"
+                            style={{ color: 'var(--color-text-muted)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                             <Eye size={14} />
                           </button>
                           {active && !needsEval && !awaitingConfirmation && appt.status !== 'RESCHEDULE_REQUESTED' && (
                             <button
                               onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
                               title="Request reschedule"
-                              className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-green-600 transition">
+                              className="p-1.5 rounded-lg transition-colors"
+                              style={{ color: 'var(--color-text-muted)' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-surface)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                               <RotateCcw size={14} />
                             </button>
                           )}
                           {active && !needsEval && !awaitingConfirmation && (
                             isTodayAppt ? (
                               <div className="relative group">
-                                <button disabled
-                                  className="p-1.5 rounded-lg text-gray-200 cursor-not-allowed">
+                                <button disabled className="p-1.5 rounded-lg cursor-not-allowed" style={{ color: 'var(--color-border)' }}>
                                   <X size={14} />
                                 </button>
-                                <div className="absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-10 w-52 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-2 shadow-lg pointer-events-none">
+                                <div className="absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-10 w-52 text-white text-xs rounded-xl px-2.5 py-2 shadow-lg pointer-events-none"
+                                  style={{ background: 'var(--color-text-primary)' }}>
                                   Same-day cancellations must be done in person or by calling CPS directly.
-                                  <div className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
                                 </div>
                               </div>
                             ) : (
                               <button
                                 onClick={() => { setCancelTarget(appt); setCancelReason(''); setCancelError(''); }}
                                 title="Cancel appointment"
-                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                                className="p-1.5 rounded-lg transition-colors"
+                                style={{ color: 'var(--color-text-muted)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-danger-surface)'; e.currentTarget.style.color = 'var(--color-danger)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                                 <X size={14} />
                               </button>
                             )
@@ -666,8 +655,8 @@ export default function MyAppointmentsPage() {
                 );
               })}
             </div>
-            <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
-              <p className="text-sm text-gray-400">
+            <div className="px-5 py-3" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 Showing {filtered.length} {filtered.length === 1 ? 'record' : 'records'}
               </p>
             </div>
@@ -675,19 +664,21 @@ export default function MyAppointmentsPage() {
         )}
       </div>
 
-      {/* ── Detail Modal ─────────────────────────────────────────────── */}
+      {/* Detail Modal */}
       {detailAppt && (() => {
-        const cfg = STATUS_BADGE[detailAppt.status] ?? { label: detailAppt.status, cls: 'bg-gray-100 text-gray-600' };
+        const cfg = STATUS_CFG[detailAppt.status] ?? { label: detailAppt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', ring: 'var(--color-border)' };
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+            <div className="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-900">Session Details</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Ref: {detailAppt.counseling_id || detailAppt._id.slice(-6).toUpperCase()}</p>
+                  <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Session Details</h3>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Ref: {detailAppt.counseling_id || detailAppt._id.slice(-6).toUpperCase()}</p>
                 </div>
-                <button onClick={() => setDetailAppt(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                  <X size={14} className="text-gray-400" />
+                <button onClick={() => setDetailAppt(null)} className="p-1.5 rounded-lg transition-colors"
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <X size={14} style={{ color: 'var(--color-text-muted)' }} />
                 </button>
               </div>
               <div className="p-6 space-y-3">
@@ -696,49 +687,55 @@ export default function MyAppointmentsPage() {
                     ['Session Type', PURPOSE_LABEL[detailAppt.purpose || ''] || fmtPurpose(detailAppt.purpose)],
                     ['Mode', fmtPlatform(detailAppt.preferred_method, detailAppt.preferred_platform)],
                   ].map(([k, v]) => (
-                    <div key={k} className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{k}</p>
-                      <p className="text-sm text-gray-800 font-medium">{v}</p>
+                    <div key={k} className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
+                      <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>{k}</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{v}</p>
                     </div>
                   ))}
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Date &amp; Time</p>
-                  <p className="text-sm text-gray-800 font-medium">{fmtDateTime(detailAppt.scheduled_start || detailAppt.requested_start)}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
-                  <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Assigned Counselor</p>
-                  <p className="text-sm text-gray-800 font-medium">{detailAppt.counselor_name || 'Not yet assigned'}</p>
+                {[
+                  ['Date & Time', fmtDateTime(detailAppt.scheduled_start || detailAppt.requested_start)],
+                  ['Assigned Counselor', detailAppt.counselor_name || 'Not yet assigned'],
+                ].map(([k, v]) => (
+                  <div key={k} className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
+                    <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>{k}</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{v}</p>
+                  </div>
+                ))}
+                <div className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
+                  <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Status</p>
+                  <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-semibold border"
+                    style={{ background: cfg.bg, color: cfg.text, borderColor: cfg.ring }}>{cfg.label}</span>
                 </div>
                 {detailAppt.concern && (
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Concern</p>
-                    <p className="text-sm text-gray-700">{detailAppt.concern}</p>
+                  <div className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
+                    <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{detailAppt.concern}</p>
                   </div>
                 )}
                 {detailAppt.office && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                    <MapPin size={14} className="text-amber-600 mt-0.5 shrink-0" />
+                  <div className="rounded-xl border p-3 flex items-start gap-2" style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
+                    <MapPin size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
                     <div>
-                      <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Office / Room</p>
-                      <p className="text-sm text-amber-900 font-medium">{detailAppt.office}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-warning)' }}>Office / Room</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{detailAppt.office}</p>
                     </div>
                   </div>
                 )}
                 {detailAppt.meeting_link && (
                   <a href={detailAppt.meeting_link} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 hover:bg-green-100 transition font-medium">
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border hover:opacity-90"
+                    style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)', color: 'var(--color-success)' }}>
                     <Video size={14} /> Join Session
                   </a>
                 )}
               </div>
-              <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <div className="px-6 py-4 flex justify-end" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <button onClick={() => setDetailAppt(null)}
-                  className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                  className="px-4 py-2 text-sm rounded-xl transition-colors border"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   Close
                 </button>
               </div>
@@ -747,78 +744,86 @@ export default function MyAppointmentsPage() {
         );
       })()}
 
-      {/* ── Evaluation Modal ─────────────────────────────────────────── */}
+      {/* Evaluation Modal */}
       {evalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
               <div>
-                <h3 className="font-semibold text-sm text-gray-900">Evaluation Survey</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Please rate your counseling session experience</p>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Evaluation Survey</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Please rate your counseling session experience</p>
               </div>
-              <button onClick={() => setEvalTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={14} className="text-gray-400" />
+              <button onClick={() => setEvalTarget(null)} className="p-1.5 rounded-lg transition-colors"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={14} style={{ color: 'var(--color-text-muted)' }} />
               </button>
             </div>
 
             {evalSuccess ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mb-4">
-                  <CheckCircle size={28} className="text-[#2563eb]" />
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--color-success-surface)' }}>
+                  <CheckCircle size={28} style={{ color: 'var(--color-success)' }} />
                 </div>
-                <p className="font-semibold text-gray-900 mb-1">Thank you for your feedback!</p>
-                <p className="text-sm text-gray-500">Your evaluation has been submitted.</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Thank you for your feedback!</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Your evaluation has been submitted.</p>
               </div>
             ) : (
               <div className="p-6 space-y-5">
-                {/* Rating scale header */}
-                <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+                <div className="flex items-center justify-between text-xs px-1" style={{ color: 'var(--color-text-muted)' }}>
                   <span>1 – Not satisfied at all</span>
                   <span>5 – Extremely Satisfied</span>
                 </div>
 
-                {/* Rating questions */}
-                {EVAL_QUESTIONS.map(q => (
-                  <div key={q.key} className="flex items-center justify-between gap-4 py-2 border-b border-gray-50">
-                    <p className="text-sm text-gray-700 flex-1">{q.label}</p>
-                    <StarRating
-                      value={evalRatings[q.key] || 0}
-                      onChange={v => setEvalRatings(prev => ({ ...prev, [q.key]: v }))}
-                    />
+                {EVAL_QUESTIONS.map((q, i) => (
+                  <div key={q.key} className="flex items-center justify-between gap-4 py-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <p className="text-sm flex-1" style={{ color: 'var(--color-text-secondary)' }}>{q.label}</p>
+                    <StarRating value={evalRatings[q.key] || 0} onChange={v => setEvalRatings(prev => ({ ...prev, [q.key]: v }))} />
                   </div>
                 ))}
 
-                {/* Text questions */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold tracking-wide uppercase mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
                     What did you like most about your experience?
                   </label>
                   <textarea value={evalLiked} onChange={e => setEvalLiked(e.target.value)}
                     rows={2} placeholder="Your answer..."
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-amber-300 focus:border-amber-300 focus:outline-none resize-none" />
+                    className="w-full px-3 py-2 text-sm rounded-xl outline-none transition-all resize-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                    onFocus={e => { e.target.style.borderColor = '#F59E0B'; e.target.style.boxShadow = '0 0 0 3px #FEF3C7'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold tracking-wide uppercase mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
                     What do you want to improve in the counseling sessions?
                   </label>
                   <textarea value={evalImprove} onChange={e => setEvalImprove(e.target.value)}
                     rows={2} placeholder="Your answer..."
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-amber-300 focus:border-amber-300 focus:outline-none resize-none" />
+                    className="w-full px-3 py-2 text-sm rounded-xl outline-none transition-all resize-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                    onFocus={e => { e.target.style.borderColor = '#F59E0B'; e.target.style.boxShadow = '0 0 0 3px #FEF3C7'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+                  />
                 </div>
 
                 {evalError && (
-                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-xs text-red-600">
+                  <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}>
                     <AlertCircle size={13} /> {evalError}
                   </div>
                 )}
 
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setEvalTarget(null)}
-                    className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                    className="flex-1 px-4 py-2 text-sm rounded-xl transition-colors border"
+                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Cancel
                   </button>
                   <button onClick={handleEvalSubmit} disabled={submittingEval}
-                    className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                    className="flex-1 px-4 py-2 text-white text-sm font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90"
+                    style={{ background: '#F59E0B' }}>
                     {submittingEval && <Loader2 size={13} className="animate-spin" />}
                     Submit Evaluation
                   </button>
@@ -829,33 +834,43 @@ export default function MyAppointmentsPage() {
         </div>
       )}
 
-      {/* ── Cancel Modal ─────────────────────────────────────────────── */}
+      {/* Cancel Modal */}
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-sm text-gray-900">Cancel Appointment</h3>
-              <button onClick={() => setCancelTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={14} className="text-gray-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Cancel Appointment</h3>
+              <button onClick={() => setCancelTarget(null)} className="p-1.5 rounded-lg transition-colors"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={14} style={{ color: 'var(--color-text-muted)' }} />
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-500">Are you sure you want to cancel this appointment? This cannot be undone.</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Are you sure you want to cancel this appointment? This cannot be undone.</p>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Cancellation Remarks</label>
+                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Cancellation Remarks</label>
                 <textarea value={cancelReason} onChange={e => setCancelReason(e.target.value)}
                   placeholder="Optional — let us know why you're cancelling"
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-red-300 focus:border-red-300 focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm rounded-xl outline-none transition-all resize-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-danger)'; e.target.style.boxShadow = '0 0 0 3px var(--color-danger-surface)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+                />
               </div>
-              {cancelError && <p className="text-xs text-red-500">{cancelError}</p>}
+              {cancelError && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{cancelError}</p>}
               <div className="flex gap-2">
                 <button onClick={() => setCancelTarget(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  className="flex-1 px-4 py-2 text-sm rounded-xl transition-colors border"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   Keep
                 </button>
                 <button onClick={handleCancel} disabled={cancelling}
-                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2 text-white text-sm font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90"
+                  style={{ background: 'var(--color-danger)' }}>
                   {cancelling && <Loader2 size={13} className="animate-spin" />}
                   Cancel Appointment
                 </button>
@@ -865,72 +880,91 @@ export default function MyAppointmentsPage() {
         </div>
       )}
 
-      {/* ── Reschedule Modal ─────────────────────────────────────────── */}
+      {/* Reschedule Modal */}
       {reschedTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-sm text-gray-900">Request Reschedule</h3>
-              <button onClick={() => setReschedTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={14} className="text-gray-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Request Reschedule</h3>
+              <button onClick={() => setReschedTarget(null)} className="p-1.5 rounded-lg transition-colors"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={14} style={{ color: 'var(--color-text-muted)' }} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Date</label>
+                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm rounded-xl outline-none transition-all"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+                />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Time</label>
+                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Time</label>
                 {!reschedDate ? (
-                  <p className="text-xs text-gray-400 italic">Select a date to see available slots.</p>
+                  <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Select a date to see available slots.</p>
                 ) : rescheduleLoadingSlots ? (
-                  <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                  <div className="flex items-center gap-2 text-xs py-2" style={{ color: 'var(--color-text-muted)' }}>
                     <Loader2 size={13} className="animate-spin" /> Checking availability…
                   </div>
                 ) : rescheduleSlots.length === 0 ? (
-                  <div className="text-xs text-gray-500 py-1">
-                    No slots available on this date. Try a different date.
+                  <div className="text-xs py-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    No slots available on this date.
                     {rescheduleNextDate && (
-                      <span className="ml-1 text-[#2563eb] font-medium">
+                      <span className="ml-1 font-medium" style={{ color: 'var(--color-primary)' }}>
                         Next available: <button type="button" onClick={() => setReschedDate(rescheduleNextDate)} className="underline underline-offset-2">{rescheduleNextDate}</button>
                       </span>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {rescheduleSlots.map((s, i) => (
-                      <button key={i} type="button"
-                        onClick={() => setReschedTime(s.time)}
-                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
-                          reschedTime === s.time
-                            ? 'border-[#2563eb] bg-[#2563eb]/5 text-[#2563eb]'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}>
-                        <Clock size={13} className={reschedTime === s.time ? 'text-[#2563eb]' : 'text-gray-400'} />
-                        <span className="font-bold tabular-nums">{fmtTime(s.time)}</span>
-                        {reschedTime === s.time && <span className="ml-auto text-[10px] font-bold">✓</span>}
-                      </button>
-                    ))}
+                    {rescheduleSlots.map((s, i) => {
+                      const selected = reschedTime === s.time;
+                      return (
+                        <button key={i} type="button" onClick={() => setReschedTime(s.time)}
+                          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-all"
+                          style={{
+                            border: `2px solid ${selected ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                            background: selected ? 'var(--color-primary-surface)' : 'var(--color-surface)',
+                            color: selected ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                          }}>
+                          <Clock size={13} style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
+                          <span className="font-bold tabular-nums">{fmtTime(s.time)}</span>
+                          {selected && <span className="ml-auto text-[10px] font-bold">✓</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Reason <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  Reason <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+                </label>
                 <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
                   placeholder="Why do you need to reschedule?"
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm rounded-xl outline-none transition-all resize-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+                />
               </div>
-              {reschedError && <p className="text-xs text-red-500">{reschedError}</p>}
+              {reschedError && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{reschedError}</p>}
               <div className="flex gap-2">
                 <button onClick={() => setReschedTarget(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  className="flex-1 px-4 py-2 text-sm rounded-xl transition-colors border"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   Cancel
                 </button>
                 <button onClick={handleReschedule} disabled={rescheduling}
-                  className="flex-1 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2 text-white text-sm font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90"
+                  style={{ background: 'var(--color-primary)' }}>
                   {rescheduling && <Loader2 size={13} className="animate-spin" />}
                   Submit Request
                 </button>
@@ -940,37 +974,34 @@ export default function MyAppointmentsPage() {
         </div>
       )}
 
-      {/* View Forms modal — read-only intake packet */}
+      {/* View Forms modal */}
       {(viewFormsPacket || viewFormsLoading) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="px-6 pt-6 pb-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
-                <h2 className="text-base font-bold text-gray-900">Submitted Intake Forms</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Read-only — submitted before your session</p>
+                <h2 className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>Submitted Intake Forms</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Read-only — submitted before your session</p>
               </div>
-              <button onClick={() => setViewFormsPacket(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+              <button onClick={() => setViewFormsPacket(null)} className="text-xl leading-none transition-colors" style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>×</button>
             </div>
 
             {viewFormsLoading ? (
-              <div className="flex items-center justify-center py-16 text-gray-400 gap-2 text-sm">
-                <Loader2 size={16} className="animate-spin" /> Loading…
+              <div className="flex items-center justify-center py-16 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
               </div>
             ) : (
               <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6 text-sm">
-
-                {/* ICF */}
                 {viewFormsPacket?.icf && (
                   <div>
-                    <p className="font-bold text-xs text-[#2563eb] uppercase tracking-wide mb-3">Intake Consultation Form (ICF)</p>
+                    <p className="font-bold text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--color-primary)' }}>Intake Consultation Form (ICF)</p>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                       {[
-                        ['First Name', viewFormsPacket.icf.first_name],
-                        ['Last Name', viewFormsPacket.icf.last_name],
-                        ['Email', viewFormsPacket.icf.email],
-                        ['Student ID', viewFormsPacket.icf.student_id],
-                        ['Phone', viewFormsPacket.icf.phone],
-                        ['College', viewFormsPacket.icf.college],
+                        ['First Name', viewFormsPacket.icf.first_name], ['Last Name', viewFormsPacket.icf.last_name],
+                        ['Email', viewFormsPacket.icf.email], ['Student ID', viewFormsPacket.icf.student_id],
+                        ['Phone', viewFormsPacket.icf.phone], ['College', viewFormsPacket.icf.college],
                         ['Program', viewFormsPacket.icf.program],
                         ['Referral', viewFormsPacket.icf.referral_source === 'referred' ? `Referred by ${viewFormsPacket.icf.referred_by}` : 'Self-referred'],
                         ['Emergency Contact', viewFormsPacket.icf.emergency_contact_name],
@@ -978,64 +1009,44 @@ export default function MyAppointmentsPage() {
                         ['EC Phone', viewFormsPacket.icf.emergency_contact_phone],
                       ].filter(([, v]) => v).map(([label, val]) => (
                         <div key={label as string}>
-                          <p className="text-xs text-gray-400">{label as string}</p>
-                          <p className="text-sm text-gray-800">{val as string}</p>
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label as string}</p>
+                          <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{val as string}</p>
                         </div>
                       ))}
                     </div>
                     {viewFormsPacket.icf.presenting_concern && (
                       <div className="mt-3">
-                        <p className="text-xs text-gray-400 mb-1">Presenting Concern</p>
-                        <p className="text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">{viewFormsPacket.icf.presenting_concern}</p>
+                        <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Presenting Concern</p>
+                        <p className="text-sm rounded-xl px-3 py-2 border" style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>{viewFormsPacket.icf.presenting_concern}</p>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* SPIF */}
                 {viewFormsPacket?.spif && (
                   <div>
-                    <p className="font-bold text-xs text-blue-700 uppercase tracking-wide mb-3">Student Profile & Information Form (SPIF)</p>
+                    <p className="font-bold text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--color-primary)' }}>Student Profile & Information Form (SPIF)</p>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                       {[
-                        ['Birthdate', viewFormsPacket.spif.birthdate],
-                        ['Gender', viewFormsPacket.spif.gender],
-                        ['Civil Status', viewFormsPacket.spif.civil_status],
-                        ['Religion', viewFormsPacket.spif.religion],
-                        ['Nationality', viewFormsPacket.spif.nationality],
-                        ['Address', viewFormsPacket.spif.address],
-                        ['Living With', viewFormsPacket.spif.living_with],
-                        ['Birth Order', viewFormsPacket.spif.birth_order],
-                        ['No. of Siblings', viewFormsPacket.spif.number_of_siblings],
-                        ['Sleep (hrs/night)', viewFormsPacket.spif.sleep_hours],
-                        ['Exercise', viewFormsPacket.spif.exercise_frequency],
-                        ['Substance Use', viewFormsPacket.spif.substance_use],
+                        ['Birthdate', viewFormsPacket.spif.birthdate], ['Gender', viewFormsPacket.spif.gender],
+                        ['Civil Status', viewFormsPacket.spif.civil_status], ['Religion', viewFormsPacket.spif.religion],
+                        ['Nationality', viewFormsPacket.spif.nationality], ['Address', viewFormsPacket.spif.address],
+                        ['Living With', viewFormsPacket.spif.living_with], ['Birth Order', viewFormsPacket.spif.birth_order],
+                        ['No. of Siblings', viewFormsPacket.spif.number_of_siblings], ['Sleep (hrs/night)', viewFormsPacket.spif.sleep_hours],
+                        ['Exercise', viewFormsPacket.spif.exercise_frequency], ['Substance Use', viewFormsPacket.spif.substance_use],
                       ].filter(([, v]) => v !== undefined && v !== '' && v !== null).map(([label, val]) => (
                         <div key={label as string}>
-                          <p className="text-xs text-gray-400">{label as string}</p>
-                          <p className="text-sm text-gray-800">{String(val)}</p>
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label as string}</p>
+                          <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{String(val)}</p>
                         </div>
                       ))}
                     </div>
-                    {[
-                      ['Medical Conditions', viewFormsPacket.spif.existing_medical_conditions],
-                      ['Current Medications', viewFormsPacket.spif.current_medications],
-                      ['Previous Counseling', viewFormsPacket.spif.previous_counseling_details],
-                      ['Previous Psychiatric', viewFormsPacket.spif.previous_psychiatric_details],
-                      ['Family Mental Health History', viewFormsPacket.spif.family_mental_health_history],
-                    ].filter(([, v]) => v).map(([label, val]) => (
-                      <div key={label as string} className="mt-2">
-                        <p className="text-xs text-gray-400 mb-0.5">{label as string}</p>
-                        <p className="text-sm text-gray-800 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">{val as string}</p>
-                      </div>
-                    ))}
                   </div>
                 )}
 
-                {/* PHQ-4 — show answers only, no scores */}
                 {viewFormsPacket?.phq4_responses?.length === 4 && (
                   <div>
-                    <p className="font-bold text-xs text-purple-700 uppercase tracking-wide mb-3">Wellness Pre-Screen (PHQ-4)</p>
+                    <p className="font-bold text-xs uppercase tracking-wide mb-3" style={{ color: '#8B5CF6' }}>Wellness Pre-Screen (PHQ-4)</p>
                     <div className="space-y-2">
                       {[
                         'Little interest or pleasure in doing things',
@@ -1046,22 +1057,24 @@ export default function MyAppointmentsPage() {
                         const labels = ['Not at all', 'Several days', 'More than half the days', 'Nearly every day'];
                         const val = viewFormsPacket.phq4_responses[i];
                         return (
-                          <div key={i} className="flex items-start justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
-                            <p className="text-xs text-gray-600 flex-1">{question}</p>
-                            <span className="text-xs font-medium text-gray-800 flex-shrink-0">{labels[val] ?? '—'}</span>
+                          <div key={i} className="flex items-start justify-between gap-4 py-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                            <p className="text-xs flex-1" style={{ color: 'var(--color-text-secondary)' }}>{question}</p>
+                            <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>{labels[val] ?? '—'}</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
                 )}
-
               </div>
             )}
 
-            <div className="px-6 pb-5 pt-3 border-t border-gray-100 flex-shrink-0">
+            <div className="px-6 pb-5 pt-3 flex-shrink-0" style={{ borderTop: '1px solid var(--color-border)' }}>
               <button onClick={() => setViewFormsPacket(null)}
-                className="w-full py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                className="w-full py-2.5 text-sm rounded-xl transition-colors border"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 Close
               </button>
             </div>

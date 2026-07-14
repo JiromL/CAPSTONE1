@@ -9,11 +9,11 @@ import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, Shield, MoreHorizontal, Calendar } from 'lucide-react';
 
 const PERMA_BARS: { label: string; color: string }[] = [
-  { label: 'Excelling',  color: 'bg-green-500'  },
-  { label: 'Thriving',   color: 'bg-teal-500'   },
-  { label: 'Surviving',  color: 'bg-yellow-500' },
-  { label: 'Struggling', color: 'bg-orange-500' },
-  { label: 'In Crisis',  color: 'bg-red-500'    },
+  { label: 'Excelling',  color: '#10B981' },
+  { label: 'Thriving',   color: '#14B8A6' },
+  { label: 'Surviving',  color: '#F59E0B' },
+  { label: 'Struggling', color: '#F97316' },
+  { label: 'In Crisis',  color: '#EF4444' },
 ];
 
 function PermaDistributionWidget() {
@@ -22,9 +22,7 @@ function PermaDistributionWidget() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch(api('/api/mhbot/stats/perma-distribution'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(api('/api/mhbot/stats/perma-distribution'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => {
         if (r.status === 401) { setNotConnected(true); return null; }
         return r.ok ? r.json() : null;
@@ -38,13 +36,13 @@ function PermaDistributionWidget() {
   const maxCount = Math.max(1, ...Object.values(dist));
 
   return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+    <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student Wellbeing Overview</p>
-        {total > 0 && <span className="text-xs text-gray-400">{total} tracked</span>}
+        <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Student Wellbeing Overview</p>
+        {total > 0 && <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{total} tracked</span>}
       </div>
       {notConnected || (!data && !notConnected) ? (
-        <p className="text-xs text-gray-400 text-center py-8">
+        <p className="text-xs text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
           {notConnected ? 'Connect MHBot to see wellbeing data.' : 'Loading…'}
         </p>
       ) : (
@@ -54,14 +52,11 @@ function PermaDistributionWidget() {
             if (count === 0 && dist['No Data'] === total) return null;
             return (
               <div key={label} className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-20 flex-shrink-0">{label}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full ${color} transition-all`}
-                    style={{ width: `${(count / maxCount) * 100}%` }}
-                  />
+                <span className="text-xs w-20 flex-shrink-0" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
+                <div className="flex-1 rounded-full h-2 overflow-hidden" style={{ background: 'var(--color-bg)' }}>
+                  <div className="h-2 rounded-full transition-all" style={{ width: `${(count / maxCount) * 100}%`, background: color }} />
                 </div>
-                <span className="text-xs font-medium text-gray-600 w-4 text-right">{count}</span>
+                <span className="text-xs font-medium w-4 text-right" style={{ color: 'var(--color-text-secondary)' }}>{count}</span>
               </div>
             );
           })}
@@ -71,36 +66,32 @@ function PermaDistributionWidget() {
   );
 }
 
-const PERMA_TREND_COLORS: Record<string, { bg: string; text: string }> = {
-  'Excelling':  { bg: 'bg-green-500',  text: 'text-green-700'  },
-  'Thriving':   { bg: 'bg-teal-500',   text: 'text-teal-700'   },
-  'Surviving':  { bg: 'bg-yellow-500', text: 'text-yellow-700' },
-  'Struggling': { bg: 'bg-orange-500', text: 'text-orange-700' },
-  'In Crisis':  { bg: 'bg-red-500',    text: 'text-red-700'    },
-  'No Data':    { bg: 'bg-gray-300',   text: 'text-gray-500'   },
-};
 const TREND_LABELS = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'];
+const TREND_COLORS: Record<string, string> = {
+  'Excelling':  '#10B981',
+  'Thriving':   '#14B8A6',
+  'Surviving':  '#F59E0B',
+  'Struggling': '#F97316',
+  'In Crisis':  '#EF4444',
+};
 
 function PermaTrendsWidget() {
   const [data, setData] = useState<{ months: string[]; monthly: Record<string, Record<string, number>> } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch(api('/api/mhbot/stats/perma-trends'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(api('/api/mhbot/stats/perma-trends'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setData(d); })
       .catch(() => {});
   }, []);
 
   if (!data) return null;
-
   const months = data.months ?? [];
 
   return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Wellbeing Trends — Last 6 Months</p>
+    <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: 'var(--color-text-muted)' }}>Wellbeing Trends — Last 6 Months</p>
       <div className="space-y-3">
         {months.map(month => {
           const counts = data.monthly[month] ?? {};
@@ -108,21 +99,21 @@ function PermaTrendsWidget() {
           const label = new Date(month + '-15').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
           return (
             <div key={month} className="flex items-start gap-3">
-              <span className="text-xs text-gray-400 w-12 flex-shrink-0 pt-0.5">{label}</span>
+              <span className="text-xs w-12 flex-shrink-0 pt-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
               <div className="flex-1 space-y-1">
                 {total === 0 ? (
-                  <span className="text-xs text-gray-300 italic">No data</span>
+                  <span className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No data</span>
                 ) : (
                   TREND_LABELS.filter(l => counts[l] > 0).map(l => {
                     const c = counts[l] ?? 0;
                     const pct = total > 0 ? (c / total) * 100 : 0;
-                    const col = PERMA_TREND_COLORS[l] ?? PERMA_TREND_COLORS['No Data'];
+                    const color = TREND_COLORS[l] ?? '#9CA3AF';
                     return (
                       <div key={l} className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden flex-shrink-0">
-                          <div className={`h-1.5 rounded-full ${col.bg}`} style={{ width: `${pct}%` }} />
+                        <div className="w-24 rounded-full h-1.5 overflow-hidden flex-shrink-0" style={{ background: 'var(--color-bg)' }}>
+                          <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: color }} />
                         </div>
-                        <span className={`text-[10px] font-medium ${col.text}`}>{l}: {c}</span>
+                        <span className="text-[10px] font-medium" style={{ color }}>{l}: {c}</span>
                       </div>
                     );
                   })
@@ -151,76 +142,74 @@ function getSessionType(a: any): string {
   return 'Individual';
 }
 
-function SessionTypeBadge({ type }: { type: string }) {
-  const cfg: Record<string, string> = {
-    'Individual': 'text-blue-600 dark:text-blue-400',
-    'Follow-up':  'text-purple-600 dark:text-purple-400',
-    'Intake':     'text-teal-600 dark:text-teal-400',
-    'Crisis':     'text-red-600 dark:text-red-400',
-    'Walk-in':    'text-orange-600 dark:text-orange-400',
-    'Referral':   'text-indigo-600 dark:text-indigo-400',
-  };
-  return <span className={`text-sm ${cfg[type] || 'text-gray-600 dark:text-gray-300'}`}>{type}</span>;
-}
+const SESSION_TYPE_COLORS: Record<string, string> = {
+  'Individual': '#3B82F6', 'Follow-up': '#8B5CF6', 'Intake': '#14B8A6',
+  'Crisis': '#EF4444', 'Walk-in': '#F97316', 'Referral': '#6366F1',
+};
 
 function SessionStatusBadge({ status }: { status: string }) {
   const s = (status || '').toUpperCase();
   if (s === 'COMPLETED') return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">Completed</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>Completed</span>
   );
   if (s === 'CHECKED_IN') return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800">In Session</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}>In Session</span>
   );
   if (s === 'CANCELLED' || s === 'NO_SHOW') return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">Cancelled</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>Cancelled</span>
   );
   return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[#2563eb] dark:text-blue-400 border border-blue-100 dark:border-blue-800">Upcoming</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Upcoming</span>
   );
 }
 
 function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: string) => string }) {
-  const sorted = [...appts].sort((a, b) => {
-    const da = new Date(a.preferred_date || a.scheduled_start || 0).getTime();
-    const db2 = new Date(b.preferred_date || b.scheduled_start || 0).getTime();
-    return da - db2;
-  });
+  const sorted = [...appts].sort((a, b) =>
+    new Date(a.preferred_date || a.scheduled_start || 0).getTime() - new Date(b.preferred_date || b.scheduled_start || 0).getTime()
+  );
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden">
+    <div className="rounded-2xl border shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="flex items-center gap-2">
-          <Calendar size={15} className="text-[#2563eb]" />
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">Today's Schedule</p>
+          <Calendar size={15} style={{ color: 'var(--color-primary)' }} />
+          <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Today's Schedule</p>
         </div>
-        <Link href="/appointments" className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline font-medium">View all</Link>
+        <Link href="/appointments" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
       </div>
 
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-36 text-center px-5 pb-5">
-          <Calendar size={22} className="text-gray-300 dark:text-gray-600 mb-2" />
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No sessions today</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Confirmed appointments will appear here.</p>
+          <Calendar size={22} className="mb-2" style={{ color: 'var(--color-text-muted)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No sessions today</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Confirmed appointments will appear here.</p>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-[90px_1fr_110px_130px_36px] px-5 pb-2 gap-3">
             {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
-              <p key={i} className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{h}</p>
+              <p key={i} className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
             ))}
           </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          <div>
             {sorted.map((a: any, i: number) => {
               const time = fmtTime(a.preferred_date || a.scheduled_start || '');
               const type = getSessionType(a);
               return (
-                <div key={i} className="grid grid-cols-[90px_1fr_110px_130px_36px] items-center px-5 py-3.5 gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 tabular-nums">{time}</span>
-                  <span className="text-sm text-gray-700 dark:text-gray-200 truncate font-medium">{a.student_name || 'Student'}</span>
-                  <SessionTypeBadge type={type} />
+                <div key={i}
+                  className="grid grid-cols-[90px_1fr_110px_130px_36px] items-center px-5 py-3.5 gap-3 transition-colors"
+                  style={{ borderTop: '1px solid var(--color-border)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{time}</span>
+                  <span className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{a.student_name || 'Student'}</span>
+                  <span className="text-sm font-medium" style={{ color: SESSION_TYPE_COLORS[type] || 'var(--color-text-secondary)' }}>{type}</span>
                   <SessionStatusBadge status={a.status} />
                   <Link href={a.case_id ? `/cases/${a.case_id}` : '/appointments'}
-                    className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                     <MoreHorizontal size={15} />
                   </Link>
                 </div>
@@ -233,17 +222,14 @@ function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: str
   );
 }
 
-const RISK_DOT: Record<string, string> = {
-  CRITICAL: 'bg-red-500',
-  RED:      'bg-orange-400',
-  YELLOW:   'bg-yellow-400',
-  GREEN:    'bg-green-500',
+const RISK_LABEL_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  CRITICAL: { bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',  border: 'var(--color-danger)' },
+  RED:      { bg: 'var(--color-warning-surface)', text: 'var(--color-warning)', border: 'var(--color-warning)' },
+  YELLOW:   { bg: '#FEFCE8', text: '#CA8A04',  border: '#FDE047' },
+  GREEN:    { bg: 'var(--color-success-surface)', text: 'var(--color-success)', border: 'var(--color-success)' },
 };
-const RISK_LABEL_CLS: Record<string, string> = {
-  CRITICAL: 'bg-red-50 text-red-700 border-red-200',
-  RED:      'bg-orange-50 text-orange-700 border-orange-200',
-  YELLOW:   'bg-yellow-50 text-yellow-700 border-yellow-200',
-  GREEN:    'bg-green-50 text-green-700 border-green-200',
+const RISK_DOT: Record<string, string> = {
+  CRITICAL: '#EF4444', RED: '#F97316', YELLOW: '#EAB308', GREEN: '#10B981',
 };
 
 export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
@@ -297,97 +283,96 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   return (
     <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
 
-      <div className="mb-6 pb-5 border-b border-gray-200">
-        <p className="text-xs text-gray-400 mb-0.5">{dateLabel}</p>
-        <h2 className="text-xl font-semibold text-gray-900">Good day, {firstName}.</h2>
+      <div className="mb-6 pb-5 animate-fade-up" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
-          <Loader2 size={18} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-up" style={{ animationDelay: '60ms' }}>
 
-          {/* PERMA wellbeing overview */}
           <PermaDistributionWidget />
-
-          {/* PERMA trends over time */}
           <PermaTrendsWidget />
-
-          {/* Today's Schedule */}
           <TodayScheduleTable appts={todayAppts} fmtTime={fmtTime} />
 
-          {/* Alerts */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          {/* High-Risk Alerts */}
+          <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+              <p className="text-xs font-bold tracking-widest uppercase flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
                 High-Risk Alerts
                 {alerts.length > 0 && (
-                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium normal-case tracking-normal">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold normal-case tracking-normal" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
                     {alerts.length}
                   </span>
                 )}
               </p>
               {alerts.length > 0 && (
-                <Link href="/high-risk" className="text-xs text-[#2563eb] hover:underline">View all</Link>
+                <Link href="/high-risk" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
               )}
             </div>
             {alerts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-36 text-center">
-                <Shield size={22} className="text-green-400 mb-2" />
-                <p className="text-sm text-gray-600 font-medium">No active alerts</p>
-                <p className="text-xs text-gray-400 mt-1">All cases within normal range.</p>
+                <Shield size={22} className="mb-2" style={{ color: 'var(--color-success)' }} />
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No active alerts</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>All cases within normal range.</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
-                {alerts.slice(0, 6).map((a: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {a.student_name || `ID: ${a.counseling_id || 'N/A'}`}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{a.counselor_name || 'Unassigned'}</p>
+              <div>
+                {alerts.slice(0, 6).map((a: any, i: number) => {
+                  const riskStyle = RISK_LABEL_STYLES[(a.risk_level || '').toUpperCase()] || RISK_LABEL_STYLES.GREEN;
+                  return (
+                    <div key={i} className="py-2.5 flex items-center justify-between" style={{ borderTop: i > 0 ? '1px solid var(--color-border)' : 'none' }}>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                          {a.student_name || `ID: ${a.counseling_id || 'N/A'}`}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{a.counselor_name || 'Unassigned'}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-0.5 rounded-full border font-medium"
+                          style={{ background: riskStyle.bg, color: riskStyle.text, borderColor: riskStyle.border }}>
+                          {a.risk_level || 'GREEN'}
+                        </span>
+                        <Link href={`/cases/${a.case_id}`}>
+                          <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-opacity hover:opacity-90"
+                            style={{ background: 'var(--color-primary)' }}>Review</button>
+                        </Link>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${RISK_LABEL_CLS[a.risk_level] || RISK_LABEL_CLS.GREEN}`}>
-                        {a.risk_level || 'GREEN'}
-                      </span>
-                      <Link href={`/cases/${a.case_id}`}>
-                        <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-colors"
-                          style={{ backgroundColor: '#2563eb' }}>Review</button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
           {/* Recent cases */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Recent Cases</p>
-              <Link href="/cases" className="text-xs text-[#2563eb] hover:underline">View all</Link>
+              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Recent Cases</p>
+              <Link href="/cases" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
             </div>
             {cases.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-36 text-center">
-                <p className="text-sm text-gray-600 font-medium">No recent cases</p>
-                <p className="text-xs text-gray-400 mt-1">Cases assigned to you will appear here.</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No recent cases</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Cases assigned to you will appear here.</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div>
                 {cases.slice(0, 6).map((c: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
+                  <div key={i} className="py-2.5 flex items-center justify-between" style={{ borderTop: i > 0 ? '1px solid var(--color-border)' : 'none' }}>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
                         {c.student_name || `ID: ${c.counseling_id || 'N/A'}`}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{c.status || 'Active'}</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{c.status || 'Active'}</p>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${RISK_DOT[c.risk_level] || 'bg-gray-300'}`} />
-                      <span className="text-xs text-gray-400">{c.risk_level || 'GREEN'}</span>
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: RISK_DOT[(c.risk_level || '').toUpperCase()] || '#9CA3AF' }} />
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{c.risk_level || 'GREEN'}</span>
                     </div>
                   </div>
                 ))}

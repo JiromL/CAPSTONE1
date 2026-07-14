@@ -37,45 +37,37 @@ interface IntakeRecord {
   case_id?: string;
 }
 
-const STAGES = [
+type StageKey = 'awaiting' | 'scheduled' | 'write' | 'done';
+
+const STAGES: {
+  key: StageKey;
+  label: string;
+  sublabel: string;
+  icon: React.ElementType;
+  accent: string;
+  emptyMsg: string;
+}[] = [
   {
-    key: 'awaiting',
-    label: 'Awaiting Confirmation',
-    sublabel: 'Confirm the student\'s slot',
-    icon: Clock,
-    ring: 'ring-amber-400', bg: 'bg-amber-50', txt: 'text-amber-700',
-    cardBorder: 'border-amber-100', cardBg: 'bg-amber-50/30',
+    key: 'awaiting', label: 'Awaiting Confirmation', sublabel: "Confirm the student's slot",
+    icon: Clock, accent: 'var(--color-warning)',
     emptyMsg: 'No pending confirmations — all intake slots are confirmed.',
   },
   {
-    key: 'scheduled',
-    label: 'Session Scheduled',
-    sublabel: 'Conduct the intake interview',
-    icon: CalendarDays,
-    ring: 'ring-blue-400', bg: 'bg-blue-50', txt: 'text-[#2563eb]',
-    cardBorder: 'border-blue-100', cardBg: 'bg-blue-50/20',
+    key: 'scheduled', label: 'Session Scheduled', sublabel: 'Conduct the intake interview',
+    icon: CalendarDays, accent: 'var(--color-primary)',
     emptyMsg: 'No sessions scheduled yet. Confirmed intakes will appear here.',
   },
   {
-    key: 'write',
-    label: 'Complete IC Report',
-    sublabel: 'Write clinical notes & endorsement',
-    icon: PenLine,
-    ring: 'ring-purple-400', bg: 'bg-purple-50', txt: 'text-purple-700',
-    cardBorder: 'border-purple-100', cardBg: 'bg-purple-50/20',
+    key: 'write', label: 'Complete IC Report', sublabel: 'Write clinical notes & endorsement',
+    icon: PenLine, accent: '#7C3AED',
     emptyMsg: 'No reports pending. Conducted intakes waiting for clinical documentation will appear here.',
   },
   {
-    key: 'done',
-    label: 'Completed',
-    sublabel: 'View completed intake records',
-    icon: CheckCircle2,
-    ring: 'ring-green-400', bg: 'bg-green-50', txt: 'text-green-700',
-    cardBorder: 'border-green-100', cardBg: 'bg-green-50/20',
+    key: 'done', label: 'Completed', sublabel: 'View completed intake records',
+    icon: CheckCircle2, accent: 'var(--color-success)',
     emptyMsg: 'No completed intakes yet.',
   },
-] as const;
-type StageKey = typeof STAGES[number]['key'];
+];
 
 const SERVICE_LABELS: Record<string, string> = {
   personal_counseling:   'Personal Counseling',
@@ -104,14 +96,7 @@ function fmtService(v?: string) {
   return SERVICE_LABELS[v] ?? v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ── Stage cards ───────────────────────────────────────────────────────────────
-
-function AwaitingCard({
-  apt,
-  onConfirm,
-  confirming,
-  msg,
-}: {
+function AwaitingCard({ apt, onConfirm, confirming, msg }: {
   apt: IntakeAppointment;
   onConfirm: () => void;
   confirming: boolean;
@@ -119,34 +104,33 @@ function AwaitingCard({
 }) {
   const canConfirm = !!(apt.counselor_id && apt.preferred_time);
   return (
-    <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-4 flex items-start justify-between gap-4">
+    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+      style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
       <div className="min-w-0">
-        <p className="font-semibold text-gray-900 text-sm truncate">{apt.student_name}</p>
-        <p className="text-xs text-gray-400">{apt.student_email}</p>
+        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
         {apt.preferred_date && (
-          <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+          <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
             <CalendarDays size={11} />
             Requested: {fmtDate(apt.preferred_date)}{fmtTime(apt.preferred_time)}
           </p>
         )}
         {msg && (
-          <p className={`text-xs mt-1.5 font-medium ${msg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
+          <p className="text-xs mt-1.5 font-medium" style={{ color: msg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>
             {msg.text}
           </p>
         )}
       </div>
       <div className="flex-shrink-0">
         {canConfirm ? (
-          <button
-            onClick={onConfirm}
-            disabled={confirming || !!msg}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-blue-700 disabled:opacity-50 transition whitespace-nowrap"
-          >
+          <button onClick={onConfirm} disabled={confirming || !!msg}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg disabled:opacity-50 transition hover:opacity-90 whitespace-nowrap"
+            style={{ background: 'var(--color-primary)' }}>
             {confirming ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
             Confirm Slot
           </button>
         ) : (
-          <span className="text-xs text-amber-600 font-medium whitespace-nowrap">No slot selected</span>
+          <span className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--color-warning)' }}>No slot selected</span>
         )}
       </div>
     </div>
@@ -155,19 +139,21 @@ function AwaitingCard({
 
 function ScheduledCard({ apt }: { apt: IntakeAppointment }) {
   return (
-    <div className="rounded-xl border border-blue-100 bg-blue-50/20 p-4 flex items-start justify-between gap-4">
+    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+      style={{ background: 'var(--color-primary-surface)', borderColor: 'var(--color-primary)' }}>
       <div className="min-w-0">
-        <p className="font-semibold text-gray-900 text-sm truncate">{apt.student_name}</p>
-        <p className="text-xs text-gray-400">{apt.student_email}</p>
+        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
         {apt.preferred_date && (
-          <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+          <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
             <CalendarDays size={11} />
             {fmtDate(apt.preferred_date)}{fmtTime(apt.preferred_time)}
           </p>
         )}
       </div>
       <Link href={`/ic/intake/conduct/${apt.appointment_id}`} className="flex-shrink-0">
-        <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-blue-700 transition whitespace-nowrap">
+        <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition hover:opacity-90 whitespace-nowrap"
+          style={{ background: 'var(--color-primary)' }}>
           <ClipboardList size={11} /> Start Intake
         </button>
       </Link>
@@ -175,48 +161,43 @@ function ScheduledCard({ apt }: { apt: IntakeAppointment }) {
   );
 }
 
-function WriteCard({
-  intake,
-  onExport,
-}: {
-  intake: IntakeRecord;
-  onExport: () => void;
-}) {
+function WriteCard({ intake, onExport }: { intake: IntakeRecord; onExport: () => void }) {
   return (
-    <div className="rounded-xl border border-purple-100 bg-purple-50/20 p-4 flex items-start justify-between gap-4">
+    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+      style={{ background: '#FAF5FF', borderColor: '#DDD6FE' }}>
       <div className="min-w-0">
-        <p className="font-semibold text-gray-900 text-sm truncate">{intake.client_name}</p>
+        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          {intake.client_id_number && (
-            <span className="text-xs text-gray-400 font-mono">{intake.client_id_number}</span>
-          )}
-          {intake.college_unit && (
-            <span className="text-xs text-gray-400 truncate max-w-[140px]">{intake.college_unit}</span>
-          )}
+          {intake.client_id_number && <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>{intake.client_id_number}</span>}
+          {intake.college_unit && <span className="text-xs truncate max-w-[140px]" style={{ color: 'var(--color-text-muted)' }}>{intake.college_unit}</span>}
         </div>
-        <p className="text-xs text-gray-500 mt-1">{fmtService(intake.service_requested)}</p>
-        <p className="text-xs text-gray-400 mt-0.5">Intake date: {fmtDate(intake.created_date)}</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>{fmtService(intake.service_requested)}</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Intake date: {fmtDate(intake.created_date)}</p>
         {intake.intake_packet_submitted ? (
-          <span className="inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700 ring-1 ring-green-200">
+          <span className="inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium border"
+            style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>
             <FileCheck size={10} /> Student packet ready
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium bg-orange-50 text-orange-600 ring-1 ring-orange-200">
+          <span className="inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium border"
+            style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}>
             Packet pending
           </span>
         )}
       </div>
       <div className="flex flex-col items-end gap-2 flex-shrink-0">
         <Link href={`/cases/${intake.case_id}?tab=intake-summary`}>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition whitespace-nowrap">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition hover:opacity-90 whitespace-nowrap"
+            style={{ background: '#7C3AED' }}>
             <PenLine size={11} /> Complete Report
           </button>
         </Link>
         {intake.intake_packet_submitted && (
-          <button
-            onClick={onExport}
-            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600 transition whitespace-nowrap"
-          >
+          <button onClick={onExport}
+            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition whitespace-nowrap"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.color = '#7C3AED'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
             <FileText size={11} /> Export
           </button>
         )}
@@ -225,38 +206,31 @@ function WriteCard({
   );
 }
 
-function DoneCard({
-  intake,
-  onExport,
-}: {
-  intake: IntakeRecord;
-  onExport: () => void;
-}) {
+function DoneCard({ intake, onExport }: { intake: IntakeRecord; onExport: () => void }) {
   return (
-    <div className="rounded-xl border border-green-100 bg-green-50/20 p-4 flex items-start justify-between gap-4">
+    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+      style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
       <div className="min-w-0">
-        <p className="font-semibold text-gray-900 text-sm truncate">{intake.client_name}</p>
+        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          {intake.client_id_number && (
-            <span className="text-xs text-gray-400 font-mono">{intake.client_id_number}</span>
-          )}
-          {intake.college_unit && (
-            <span className="text-xs text-gray-400 truncate max-w-[140px]">{intake.college_unit}</span>
-          )}
+          {intake.client_id_number && <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>{intake.client_id_number}</span>}
+          {intake.college_unit && <span className="text-xs truncate max-w-[140px]" style={{ color: 'var(--color-text-muted)' }}>{intake.college_unit}</span>}
         </div>
-        <p className="text-xs text-gray-500 mt-1">{fmtService(intake.service_requested)}</p>
-        <p className="text-xs text-gray-400 mt-0.5">Completed: {fmtDate(intake.created_date)}</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>{fmtService(intake.service_requested)}</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Completed: {fmtDate(intake.created_date)}</p>
       </div>
       <div className="flex flex-col items-end gap-2 flex-shrink-0">
         <Link href={`/cases/${intake.case_id}?tab=intake-summary`}>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-green-200 text-green-700 bg-white rounded-lg hover:bg-green-50 transition whitespace-nowrap">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition border hover:opacity-90 whitespace-nowrap"
+            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-success)', color: 'var(--color-success)' }}>
             <FileCheck size={11} /> View Summary
           </button>
         </Link>
-        <button
-          onClick={onExport}
-          className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-green-300 hover:text-green-600 transition whitespace-nowrap"
-        >
+        <button onClick={onExport}
+          className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition whitespace-nowrap"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-success)'; e.currentTarget.style.color = 'var(--color-success)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
           <FileText size={11} /> Export
         </button>
       </div>
@@ -264,7 +238,17 @@ function DoneCard({
   );
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
+function EmptyState({ msg, icon: Icon }: { msg: string; icon: React.ElementType }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
+        <Icon size={18} style={{ color: 'var(--color-text-muted)' }} />
+      </div>
+      <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>All clear</p>
+      <p className="text-xs mt-1 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>{msg}</p>
+    </div>
+  );
+}
 
 export default function IntakeManagementPage() {
   const [appointments, setAppointments] = useState<IntakeAppointment[]>([]);
@@ -296,10 +280,7 @@ export default function IntakeManagementPage() {
       if (!aptRes.ok) throw new Error('Failed to load appointments');
       const aptData = await aptRes.json();
       const intakeData = intakeRes.ok ? await intakeRes.json() : { data: [] };
-
-      const intakeApts = (aptData.appointments || []).filter(
-        (a: IntakeAppointment) => a.purpose === 'intake_interview'
-      );
+      const intakeApts = (aptData.appointments || []).filter((a: IntakeAppointment) => a.purpose === 'intake_interview');
       setAppointments(intakeApts);
       setIntakes(intakeData.data || []);
     } catch (e) {
@@ -312,8 +293,7 @@ export default function IntakeManagementPage() {
     const token = localStorage.getItem('token');
     try {
       const r = await fetch(api(`/api/appointments/${aptId}/confirm-intake`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (r.ok) {
         setActionMsg({ id: aptId, type: 'ok', text: 'Confirmed — student notified.' });
@@ -326,35 +306,23 @@ export default function IntakeManagementPage() {
     } finally { setConfirmingId(null); }
   }
 
-  // ── Stage buckets ─────────────────────────────────────────────────────────
   const awaiting  = appointments.filter(a => ['REQUESTED', 'PENDING_APPROVAL'].includes(a.status));
   const scheduled = appointments.filter(a => ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status));
   const write     = intakes.filter(i => i.case_id && i.status !== 'COMPLETED');
   const done      = intakes.filter(i => i.status === 'COMPLETED');
 
   const stageCounts: Record<StageKey, number> = {
-    awaiting: awaiting.length,
-    scheduled: scheduled.length,
-    write: write.length,
-    done: done.length,
+    awaiting: awaiting.length, scheduled: scheduled.length, write: write.length, done: done.length,
   };
 
-  // ── Search ────────────────────────────────────────────────────────────────
   const q = search.toLowerCase();
   function filterApts(list: IntakeAppointment[]) {
     if (!q) return list;
-    return list.filter(a =>
-      a.student_name?.toLowerCase().includes(q) ||
-      a.student_email?.toLowerCase().includes(q)
-    );
+    return list.filter(a => a.student_name?.toLowerCase().includes(q) || a.student_email?.toLowerCase().includes(q));
   }
   function filterIntakes(list: IntakeRecord[]) {
     if (!q) return list;
-    return list.filter(i =>
-      i.client_name?.toLowerCase().includes(q) ||
-      i.client_id_number?.toLowerCase().includes(q) ||
-      i.college_unit?.toLowerCase().includes(q)
-    );
+    return list.filter(i => i.client_name?.toLowerCase().includes(q) || i.client_id_number?.toLowerCase().includes(q) || i.college_unit?.toLowerCase().includes(q));
   }
 
   const visible = {
@@ -366,12 +334,11 @@ export default function IntakeManagementPage() {
 
   const currentStage = STAGES.find(s => s.key === activeStage)!;
 
-  // ── Loading / Error ───────────────────────────────────────────────────────
   if (loading) {
     return (
       <DashboardPageWrapper title="Intake Management" subtitle="Track your intake interviews from booking to completion">
-        <div className="flex items-center justify-center h-48 gap-2 text-gray-400 text-sm">
-          <Loader2 size={16} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
       </DashboardPageWrapper>
     );
@@ -380,7 +347,7 @@ export default function IntakeManagementPage() {
   if (error) {
     return (
       <DashboardPageWrapper title="Intake Management" subtitle="Track your intake interviews from booking to completion">
-        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}>
           <AlertCircle size={14} /> {error}
         </div>
       </DashboardPageWrapper>
@@ -395,32 +362,25 @@ export default function IntakeManagementPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {STAGES.map((s, idx) => {
             const isActive = activeStage === s.key;
-            const count    = stageCounts[s.key];
+            const count = stageCounts[s.key];
             const hasItems = count > 0;
             return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => setActiveStage(s.key)}
-                className={`relative flex flex-col rounded-xl border px-4 py-3 text-left transition w-full ${
-                  isActive
-                    ? `ring-2 ${s.ring} border-transparent ${s.bg}`
-                    : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {/* Step indicator */}
-                <span className="text-[10px] font-bold tracking-widest text-gray-300 uppercase mb-1">Step {idx + 1}</span>
+              <button key={s.key} type="button" onClick={() => setActiveStage(s.key)}
+                className="relative flex flex-col rounded-xl border px-4 py-3 text-left transition w-full"
+                style={isActive
+                  ? { background: `${s.accent}15`, borderColor: s.accent, outline: `2px solid ${s.accent}`, outlineOffset: '-1px' }
+                  : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-bg)'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-surface)'; }}>
+                <span className="text-[10px] font-bold tracking-widest uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Step {idx + 1}</span>
                 <div className="flex items-center gap-2">
-                  <s.icon size={14} className={isActive ? s.txt : hasItems ? s.txt : 'text-gray-300'} />
-                  <span className={`text-xl font-bold ${isActive ? s.txt : hasItems ? s.txt : 'text-gray-300'}`}>
-                    {count}
-                  </span>
+                  <s.icon size={14} style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }} />
+                  <span className="text-xl font-bold" style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }}>{count}</span>
                 </div>
-                <p className={`text-xs mt-1 font-medium leading-tight ${isActive ? s.txt : 'text-gray-500'}`}>
-                  {s.label}
-                </p>
+                <p className="text-xs mt-1 font-medium leading-tight"
+                  style={{ color: isActive ? s.accent : 'var(--color-text-secondary)' }}>{s.label}</p>
                 {isActive && (
-                  <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-current opacity-60" />
+                  <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full" style={{ background: s.accent, opacity: 0.6 }} />
                 )}
               </button>
             );
@@ -428,29 +388,32 @@ export default function IntakeManagementPage() {
         </div>
 
         {/* List card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="rounded-2xl border shadow-card overflow-hidden animate-fade-up" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
 
           {/* Card header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
             <div>
-              <h2 className="text-sm font-bold text-gray-900">{currentStage.label}</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{currentStage.sublabel}</p>
+              <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>{currentStage.label}</h2>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{currentStage.sublabel}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search student…"
-                  className="pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none w-40"
+                  className="pl-7 pr-3 py-1.5 text-xs rounded-lg outline-none transition w-40"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
-              <button
-                onClick={fetchAll}
-                className="p-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition"
-                title="Refresh"
-              >
+              <button onClick={fetchAll} title="Refresh"
+                className="p-1.5 rounded-lg transition border"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                 <RefreshCw size={13} />
               </button>
             </div>
@@ -458,103 +421,80 @@ export default function IntakeManagementPage() {
 
           {/* Stage content */}
           <div className="p-4 space-y-3">
-            {/* Awaiting Confirmation */}
             {activeStage === 'awaiting' && (
-              visible.awaiting.length === 0 ? (
-                <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
-              ) : (
-                visible.awaiting.map(apt => (
-                  <AwaitingCard
-                    key={apt.appointment_id}
-                    apt={apt}
-                    onConfirm={() => confirmSlot(apt.appointment_id)}
-                    confirming={confirmingId === apt.appointment_id}
-                    msg={actionMsg?.id === apt.appointment_id ? { type: actionMsg.type, text: actionMsg.text } : null}
-                  />
-                ))
-              )
+              visible.awaiting.length === 0
+                ? <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                : visible.awaiting.map(apt => (
+                    <AwaitingCard key={apt.appointment_id} apt={apt}
+                      onConfirm={() => confirmSlot(apt.appointment_id)}
+                      confirming={confirmingId === apt.appointment_id}
+                      msg={actionMsg?.id === apt.appointment_id ? { type: actionMsg.type, text: actionMsg.text } : null} />
+                  ))
             )}
-
-            {/* Session Scheduled */}
             {activeStage === 'scheduled' && (
-              visible.scheduled.length === 0 ? (
-                <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
-              ) : (
-                visible.scheduled.map(apt => (
-                  <ScheduledCard key={apt.appointment_id} apt={apt} />
-                ))
-              )
+              visible.scheduled.length === 0
+                ? <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                : visible.scheduled.map(apt => <ScheduledCard key={apt.appointment_id} apt={apt} />)
             )}
-
-            {/* Write Assessment */}
             {activeStage === 'write' && (
-              visible.write.length === 0 ? (
-                <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
-              ) : (
-                visible.write.map(intake => (
-                  <WriteCard
-                    key={intake._id}
-                    intake={intake}
-                    onExport={() => setExportTarget({ intakeId: intake._id, appointmentId: intake.appointment_id ?? null })}
-                  />
-                ))
-              )
+              visible.write.length === 0
+                ? <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                : visible.write.map(intake => (
+                    <WriteCard key={intake._id} intake={intake}
+                      onExport={() => setExportTarget({ intakeId: intake._id, appointmentId: intake.appointment_id ?? null })} />
+                  ))
             )}
-
-            {/* Completed */}
             {activeStage === 'done' && (
-              visible.done.length === 0 ? (
-                <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
-              ) : (
-                visible.done.map(intake => (
-                  <DoneCard
-                    key={intake._id}
-                    intake={intake}
-                    onExport={() => setExportTarget({ intakeId: intake._id, appointmentId: intake.appointment_id ?? null })}
-                  />
-                ))
-              )
+              visible.done.length === 0
+                ? <EmptyState msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                : visible.done.map(intake => (
+                    <DoneCard key={intake._id} intake={intake}
+                      onExport={() => setExportTarget({ intakeId: intake._id, appointmentId: intake.appointment_id ?? null })} />
+                  ))
             )}
           </div>
 
           {/* Footer count */}
           {visible[activeStage].length > 0 && (
-            <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50">
-              <p className="text-xs text-gray-400">
-                Showing <strong className="text-gray-600">{visible[activeStage].length}</strong> record{visible[activeStage].length !== 1 ? 's' : ''}
-                {search && <span> matching <span className="font-medium">"{search}"</span></span>}
+            <div className="px-5 py-3" style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Showing <strong style={{ color: 'var(--color-text-secondary)' }}>{visible[activeStage].length}</strong> record{visible[activeStage].length !== 1 ? 's' : ''}
+                {search && <span> matching <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>"{search}"</span></span>}
               </p>
             </div>
           )}
         </div>
 
         {/* Pipeline guide */}
-        <div className="mt-4 rounded-xl border border-gray-100 bg-white px-5 py-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Intake Pipeline</p>
-          <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
-            {STAGES.map((s, i) => (
-              <span key={s.key} className="flex items-center gap-2">
-                <button
-                  onClick={() => setActiveStage(s.key)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition ${
-                    activeStage === s.key
-                      ? `${s.bg} ${s.txt} ring-1 ${s.ring}`
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <s.icon size={11} />
-                  {s.label}
-                  {stageCounts[s.key] > 0 && (
-                    <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 ${
-                      activeStage === s.key ? 'bg-white/60' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {stageCounts[s.key]}
-                    </span>
-                  )}
-                </button>
-                {i < STAGES.length - 1 && <ChevronRight size={12} className="text-gray-300 flex-shrink-0" />}
-              </span>
-            ))}
+        <div className="mt-4 rounded-xl border px-5 py-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Intake Pipeline</p>
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            {STAGES.map((s, i) => {
+              const isActive = activeStage === s.key;
+              return (
+                <span key={s.key} className="flex items-center gap-2">
+                  <button onClick={() => setActiveStage(s.key)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition"
+                    style={isActive
+                      ? { background: `${s.accent}15`, color: s.accent, outline: `1px solid ${s.accent}` }
+                      : { color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-bg)'; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
+                    <s.icon size={11} />
+                    {s.label}
+                    {stageCounts[s.key] > 0 && (
+                      <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1"
+                        style={isActive
+                          ? { background: 'rgba(255,255,255,0.4)', color: s.accent }
+                          : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
+                        {stageCounts[s.key]}
+                      </span>
+                    )}
+                  </button>
+                  {i < STAGES.length - 1 && <ChevronRight size={12} style={{ color: 'var(--color-border)' }} className="flex-shrink-0" />}
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -568,17 +508,5 @@ export default function IntakeManagementPage() {
         />
       )}
     </>
-  );
-}
-
-function EmptyState({ msg, icon: Icon }: { msg: string; icon: React.ElementType }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-        <Icon size={18} className="text-gray-400" />
-      </div>
-      <p className="text-sm font-medium text-gray-600">All clear</p>
-      <p className="text-xs text-gray-400 mt-1 max-w-xs">{msg}</p>
-    </div>
   );
 }

@@ -18,14 +18,13 @@ interface Appointment {
 }
 
 export default function ScheduleCalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 17)); // March 17, 2026
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 17));
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCounselor, setSelectedCounselor] = useState('all');
   const [counselors, setCounselors] = useState<any[]>([]);
 
-  // Fetch appointments
   useEffect(() => {
     const loadAppointments = async () => {
       try {
@@ -45,7 +44,6 @@ export default function ScheduleCalendarPage() {
         const appts = Array.isArray(data) ? data : data.appointments || [];
         setAppointments(appts);
 
-        // Extract unique counselors
         const uniqueCounselors = Array.from(
           new Map(
             appts
@@ -87,7 +85,10 @@ export default function ScheduleCalendarPage() {
     return (
       <DashboardPageWrapper title="Schedule Calendar" subtitle="View all counselor appointments">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12" style={{
+            borderWidth: 2, borderStyle: 'solid',
+            borderColor: 'transparent', borderBottomColor: 'var(--color-primary)'
+          }} />
         </div>
       </DashboardPageWrapper>
     );
@@ -97,23 +98,25 @@ export default function ScheduleCalendarPage() {
     <DashboardPageWrapper title="Schedule Calendar" subtitle="View all counselor appointments">
       <div className="space-y-6">
         {error && (
-          <div className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 flex gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="rounded-lg p-4 flex gap-3"
+            style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle className="flex-shrink-0" size={20} style={{ color: 'var(--color-danger)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
           </div>
         )}
 
         {/* Counselor Filter */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-4">Filter by Counselor</h3>
+        <div className="rounded-lg p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+          <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Filter by Counselor</h3>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedCounselor('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedCounselor === 'all'
-                  ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-50 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+              className="px-4 py-2 rounded-lg font-medium transition"
+              style={selectedCounselor === 'all'
+                ? { background: 'var(--color-primary)', color: '#fff' }
+                : { background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+              onMouseEnter={e => { if (selectedCounselor !== 'all') (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-border)'; }}
+              onMouseLeave={e => { if (selectedCounselor !== 'all') (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
             >
               All Counselors
             </button>
@@ -121,11 +124,12 @@ export default function ScheduleCalendarPage() {
               <button
                 key={c.name}
                 onClick={() => setSelectedCounselor(c.name)}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  selectedCounselor === c.name
-                    ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-50 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
+                className="px-4 py-2 rounded-lg font-medium transition"
+                style={selectedCounselor === c.name
+                  ? { background: 'var(--color-primary)', color: '#fff' }
+                  : { background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                onMouseEnter={e => { if (selectedCounselor !== c.name) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-border)'; }}
+                onMouseLeave={e => { if (selectedCounselor !== c.name) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
               >
                 {c.name}
               </button>
@@ -134,23 +138,27 @@ export default function ScheduleCalendarPage() {
         </div>
 
         {/* Calendar */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+        <div className="rounded-lg p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">
+            <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
               {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+                className="p-2 rounded-lg transition"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <ChevronLeft size={20} className="text-gray-600 dark:text-gray-400" />
+                <ChevronLeft size={20} style={{ color: 'var(--color-text-secondary)' }} />
               </button>
               <button
                 onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+                className="p-2 rounded-lg transition"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
+                <ChevronRight size={20} style={{ color: 'var(--color-text-secondary)' }} />
               </button>
             </div>
           </div>
@@ -158,7 +166,7 @@ export default function ScheduleCalendarPage() {
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center font-bold text-gray-700 dark:text-gray-300 py-2">
+              <div key={day} className="text-center font-bold py-2" style={{ color: 'var(--color-text-secondary)' }}>
                 {day}
               </div>
             ))}
@@ -166,12 +174,10 @@ export default function ScheduleCalendarPage() {
 
           {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1">
-            {/* Empty cells for days before month starts */}
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="bg-gray-50 dark:bg-gray-800 rounded-lg min-h-[120px]"></div>
+              <div key={`empty-${i}`} className="rounded-lg min-h-[120px]" style={{ background: 'var(--color-bg)' }} />
             ))}
 
-            {/* Days of month */}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const appts = dayAppointments(day);
@@ -183,18 +189,20 @@ export default function ScheduleCalendarPage() {
               return (
                 <div
                   key={day}
-                  className={`rounded-lg min-h-[120px] p-2 overflow-y-auto ${
-                    isToday
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500'
-                      : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-                  }`}
+                  className="rounded-lg min-h-[120px] p-2 overflow-y-auto"
+                  style={isToday
+                    ? { background: 'var(--color-primary-surface)', border: '2px solid var(--color-primary)' }
+                    : { background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
                 >
-                  <div className="font-bold text-gray-900 dark:text-gray-50 mb-1">{day}</div>
+                  <div className="font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>{day}</div>
                   <div className="space-y-1">
                     {appts.map((apt) => (
                       <div
                         key={apt._id}
-                        className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-900 dark:text-blue-100 p-1 rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/70 transition"
+                        className="text-xs p-1 rounded cursor-pointer transition"
+                        style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary-text)' }}
+                        onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
                         title={`${apt.counselor_name || 'Unassigned'}: ${apt.student_name || 'No student'}`}
                       >
                         <div className="font-medium truncate">{apt.counselor_name || 'Unassigned'}</div>
@@ -215,30 +223,30 @@ export default function ScheduleCalendarPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
+          <div className="rounded-lg p-6" style={{ background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
             <div className="flex items-center gap-3">
-              <Calendar className="text-blue-600 dark:text-blue-400" size={24} />
+              <Calendar size={24} style={{ color: 'var(--color-info)' }} />
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Appointments</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{appointments.length}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Total Appointments</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{appointments.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg p-6 border border-green-200 dark:border-blue-700">
+          <div className="rounded-lg p-6" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
             <div className="flex items-center gap-3">
-              <Clock className="text-green-600 dark:text-green-400" size={24} />
+              <Clock size={24} style={{ color: 'var(--color-success)' }} />
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">This Month</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{appointmentsForMonth.length}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>This Month</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{appointmentsForMonth.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-700">
+          <div className="rounded-lg p-6" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
             <div className="flex items-center gap-3">
-              <Users className="text-purple-600 dark:text-purple-400" size={24} />
+              <Users size={24} style={{ color: 'var(--color-primary)' }} />
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Counselors</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{counselors.length}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Counselors</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{counselors.length}</p>
               </div>
             </div>
           </div>

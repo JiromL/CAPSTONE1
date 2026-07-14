@@ -31,55 +31,28 @@ export default function CounselorProfilePage() {
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    const token    = localStorage.getItem('token');
+    if (!userData || !token) { router.push('/login'); return; }
+    setUser(JSON.parse(userData));
 
-    if (!userData || !token) {
-      router.push('/login');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-
-    // Fetch counselor profile
-    const fetchProfile = async () => {
+    (async () => {
       try {
-        setLoading(true);
-        const response = await fetch(getApiUrl('/api/users/profile'), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+        const r = await fetch(getApiUrl('/api/users/profile'), {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          setProfile(data);
-          setError('');
-        } else if (response.status === 404) {
-          setError('Profile information not found');
-        } else {
-          setError('Failed to load profile');
-        }
-      } catch (err) {
-        console.error('Error fetching counselor profile:', err);
-        setError('Error loading profile. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
+        if (r.ok) { setProfile(await r.json()); }
+        else setError(r.status === 404 ? 'Profile information not found' : 'Failed to load profile');
+      } catch { setError('Error loading profile. Please try again.'); }
+      finally { setLoading(false); }
+    })();
   }, [router]);
 
   if (loading) {
     return (
       <DashboardPageWrapper title="Counselor Profile" subtitle="Your profile information">
-        <div className="flex items-center justify-center h-96">
-          <div className="flex flex-col items-center gap-3">
-            <Loader className="animate-spin text-[#2563eb]" size={32} />
-            <p className="text-gray-600">Loading profile...</p>
-          </div>
+        <div className="flex items-center justify-center h-96 flex-col gap-3">
+          <Loader className="animate-spin" size={32} style={{ color: 'var(--color-primary)' }} />
+          <p style={{ color: 'var(--color-text-secondary)' }}>Loading profile…</p>
         </div>
       </DashboardPageWrapper>
     );
@@ -88,12 +61,13 @@ export default function CounselorProfilePage() {
   if (error && !profile) {
     return (
       <DashboardPageWrapper title="Counselor Profile" subtitle="Your profile information">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+        <div className="rounded-xl border p-6"
+          style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)' }}>
           <div className="flex items-start gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
+            <AlertCircle size={20} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
             <div>
-              <h3 className="font-semibold text-red-900 dark:text-red-200">Unable to Load Profile</h3>
-              <p className="text-red-800 dark:text-red-300 text-sm mt-1">{error}</p>
+              <h3 className="font-semibold" style={{ color: 'var(--color-danger)' }}>Unable to Load Profile</h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-danger)' }}>{error}</p>
             </div>
           </div>
         </div>
@@ -101,134 +75,103 @@ export default function CounselorProfilePage() {
     );
   }
 
-  // Use user data as fallback if profile fetch failed
-  const displayProfile: CounselorProfile = profile || ({
-    _id: user?._id || '',
-    first_name: user?.first_name || 'N/A',
-    last_name: user?.last_name || 'N/A',
-    email: user?.email || 'N/A',
-  } as CounselorProfile);
+  const dp: CounselorProfile = profile || {
+    _id: user?._id || '', first_name: user?.first_name || 'N/A',
+    last_name: user?.last_name || 'N/A', email: user?.email || 'N/A',
+  } as CounselorProfile;
+  const fullName = `${dp.first_name} ${dp.last_name}`;
+  const initials = `${dp.first_name?.charAt(0).toUpperCase() ?? ''}${dp.last_name?.charAt(0).toUpperCase() ?? ''}`;
 
-  const fullName = `${displayProfile.first_name} ${displayProfile.last_name}`;
+  const InfoRow = ({ icon: Icon, label, value }: { icon: any; label: string; value: string }) => (
+    <div className="flex items-center gap-4">
+      <Icon size={24} style={{ color: 'var(--color-primary)' }} />
+      <div>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+        <p className="font-medium break-all" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+      </div>
+    </div>
+  );
 
   return (
     <DashboardPageWrapper title="Counselor Profile" subtitle="Your professional profile">
       <div className="max-w-4xl space-y-6">
-        {/* Main Profile Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 shadow-md p-8">
+
+        {/* Main Card */}
+        <div className="rounded-2xl border shadow-card p-8" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+
           {/* Header */}
-          <div className="flex items-start justify-between mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-[#2563eb] rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                {displayProfile.first_name?.charAt(0).toUpperCase()}{displayProfile.last_name?.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{fullName}</h1>
-                <p className="text-gray-600 dark:text-gray-400">Licensed Counselor</p>
-                {displayProfile.specialization && (
-                  <p className="text-sm text-[#2563eb] dark:text-blue-400 mt-2">{displayProfile.specialization}</p>
-                )}
-              </div>
+          <div className="flex items-start gap-6 pb-6 mb-6" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <div className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold flex-shrink-0"
+              style={{ background: 'var(--color-primary)' }}>
+              {initials}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{fullName}</h1>
+              <p style={{ color: 'var(--color-text-secondary)' }}>Licensed Counselor</p>
+              {dp.specialization && (
+                <p className="text-sm mt-2" style={{ color: 'var(--color-primary)' }}>{dp.specialization}</p>
+              )}
             </div>
           </div>
 
-          {/* Contact Information */}
+          {/* Contact */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="flex items-center gap-4">
-              <Mail className="text-[#2563eb] dark:text-blue-400" size={24} />
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Email</p>
-                <p className="text-gray-900 dark:text-white font-medium break-all">{displayProfile.email}</p>
-              </div>
-            </div>
-
-            {displayProfile.phone && (
-              <div className="flex items-center gap-4">
-                <Phone className="text-[#2563eb] dark:text-blue-400" size={24} />
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">Phone</p>
-                  <p className="text-gray-900 dark:text-white font-medium">{displayProfile.phone}</p>
-                </div>
-              </div>
-            )}
-
-            {displayProfile.office_location && (
-              <div className="flex items-center gap-4">
-                <MapPin className="text-[#2563eb] dark:text-blue-400" size={24} />
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">Office Location</p>
-                  <p className="text-gray-900 dark:text-white font-medium">{displayProfile.office_location}</p>
-                </div>
-              </div>
-            )}
-
-            {displayProfile.availability && (
-              <div className="flex items-center gap-4">
-                <Clock className="text-[#2563eb] dark:text-blue-400" size={24} />
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">Availability</p>
-                  <p className="text-gray-900 dark:text-white font-medium">{displayProfile.availability}</p>
-                </div>
-              </div>
-            )}
+            <InfoRow icon={Mail} label="Email" value={dp.email} />
+            {dp.phone && <InfoRow icon={Phone} label="Phone" value={dp.phone} />}
+            {dp.office_location && <InfoRow icon={MapPin} label="Office Location" value={dp.office_location} />}
+            {dp.availability && <InfoRow icon={Clock} label="Availability" value={dp.availability} />}
           </div>
 
-          {/* Bio Section */}
-          {displayProfile.bio && (
-            <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">About</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{displayProfile.bio}</p>
+          {/* Bio */}
+          {dp.bio && (
+            <div className="mb-8 p-4 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+              <h3 className="font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>About</h3>
+              <p className="leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{dp.bio}</p>
             </div>
           )}
 
-          {/* Professional Information Grid */}
+          {/* Professional info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {displayProfile.years_experience !== undefined && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            {dp.years_experience !== undefined && (
+              <div className="rounded-lg border p-4" style={{ background: 'var(--color-primary-surface)', borderColor: 'var(--color-primary)' }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <Award className="text-[#2563eb] dark:text-blue-400" size={20} />
-                  <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Experience</p>
+                  <Award size={20} style={{ color: 'var(--color-primary)' }} />
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Experience</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {displayProfile.years_experience}+ years
-                </p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{dp.years_experience}+ years</p>
               </div>
             )}
-
-            {displayProfile.languages && displayProfile.languages.length > 0 && (
-              <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg p-4">
+            {dp.languages && dp.languages.length > 0 && (
+              <div className="rounded-lg border p-4" style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <FileText className="text-[#2563eb] dark:text-blue-400" size={20} />
-                  <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Languages</p>
+                  <FileText size={20} style={{ color: 'var(--color-success)' }} />
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Languages</p>
                 </div>
-                <p className="text-gray-900 dark:text-white font-medium">{displayProfile.languages.join(', ')}</p>
+                <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{dp.languages.join(', ')}</p>
               </div>
             )}
-
-            {displayProfile.session_rate !== undefined && (
-              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+            {dp.session_rate !== undefined && (
+              <div className="rounded-lg border p-4" style={{ background: '#F5F3FF', borderColor: '#7C3AED' }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <FileText className="text-purple-600 dark:text-purple-400" size={20} />
-                  <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Session Rate</p>
+                  <FileText size={20} style={{ color: '#7C3AED' }} />
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Session Rate</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ${displayProfile.session_rate}
-                </p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>${dp.session_rate}</p>
               </div>
             )}
           </div>
 
           {/* Qualifications */}
-          {displayProfile.qualifications && displayProfile.qualifications.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Award size={20} className="text-[#2563eb]" />
+          {dp.qualifications && dp.qualifications.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.5rem' }}>
+              <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+                <Award size={20} style={{ color: 'var(--color-primary)' }} />
                 Qualifications & Certifications
               </h3>
               <ul className="space-y-2">
-                {displayProfile.qualifications.map((qual, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-gray-700 dark:text-gray-300">
-                    <span className="text-[#2563eb] dark:text-blue-400 mt-1">✓</span>
+                {dp.qualifications.map((qual, idx) => (
+                  <li key={idx} className="flex items-start gap-3" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="mt-1" style={{ color: 'var(--color-primary)' }}>✓</span>
                     {qual}
                   </li>
                 ))}
@@ -237,9 +180,9 @@ export default function CounselorProfilePage() {
           )}
         </div>
 
-        {/* Info Box */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <p className="text-blue-900 dark:text-blue-200 text-sm">
+        {/* Info tip */}
+        <div className="rounded-xl border p-4" style={{ background: 'var(--color-primary-surface)', borderColor: 'var(--color-primary)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
             <strong>Note:</strong> To update your profile information, please contact your administrator or use the form settings page.
           </p>
         </div>

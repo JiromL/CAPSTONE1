@@ -75,19 +75,22 @@ export default function AppointmentSlipPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-gray-400" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} />
       </div>
     );
   }
 
   if (error || !slip) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-sm w-full text-center">
-          <AlertCircle size={28} className="text-red-400 mx-auto mb-3" />
-          <p className="text-sm text-gray-600">{error || 'Appointment not found'}</p>
-          <button onClick={() => router.back()} className="mt-4 text-xs text-gray-500 hover:text-gray-700 underline">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
+        <div className="rounded-xl p-8 max-w-sm w-full text-center"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+          <AlertCircle size={28} className="mx-auto mb-3" style={{ color: 'var(--color-danger)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{error || 'Appointment not found'}</p>
+          <button onClick={() => router.back()}
+            className="mt-4 text-xs underline"
+            style={{ color: 'var(--color-text-muted)' }}>
             ← Go back
           </button>
         </div>
@@ -101,17 +104,24 @@ export default function AppointmentSlipPage() {
     <div className="min-h-screen bg-gray-100 print:bg-white">
 
       {/* Action bar */}
-      <div className="print:hidden sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+      <div className="print:hidden sticky top-0 z-10 px-4 py-3 flex items-center gap-3"
+        style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+          className="flex items-center gap-1.5 text-sm transition"
+          style={{ color: 'var(--color-text-secondary)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-primary)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
         >
           <ArrowLeft size={15} /> Back
         </button>
         <div className="flex-1" />
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition"
+          style={{ background: 'var(--color-text-primary)' }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
         >
           <Printer size={14} /> Print / Save PDF
         </button>

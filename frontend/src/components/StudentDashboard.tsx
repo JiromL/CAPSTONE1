@@ -20,11 +20,11 @@ interface Announcement {
   created_at: string;
 }
 
-const TYPE_STYLES: Record<string, { label: string; bg: string; text: string }> = {
-  webinar: { label: 'Webinar',    bg: 'bg-blue-50',   text: 'text-blue-600' },
-  event:   { label: 'Event',      bg: 'bg-green-50',  text: 'text-green-700' },
-  notice:  { label: 'Notice',     bg: 'bg-orange-50', text: 'text-orange-600' },
-  info:    { label: 'Info',       bg: 'bg-gray-100',  text: 'text-gray-600' },
+const TYPE_META: Record<string, { label: string; accent: string }> = {
+  webinar: { label: 'Webinar', accent: '#3B82F6' },
+  event:   { label: 'Event',   accent: '#10B981' },
+  notice:  { label: 'Notice',  accent: '#F59E0B' },
+  info:    { label: 'Info',    accent: '#6B7280' },
 };
 
 function fmtEventDate(s: string) {
@@ -57,9 +57,8 @@ function getMethodLabel(appt: any): string {
 }
 
 function fmtApptDate(s: string): string {
-  try {
-    return new Date(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  } catch { return ''; }
+  try { return new Date(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+  catch { return ''; }
 }
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
@@ -71,14 +70,12 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [resourceCount, setResourceCount]       = useState(0);
   const [mounted, setMounted]                   = useState(false);
 
-  // Consent modal state
   const [showConsent, setShowConsent]           = useState(false);
   const [consentChecks, setConsentChecks]       = useState({ counseling: false, privacy: false });
   const [savingConsent, setSavingConsent]       = useState(false);
   const [consentError, setConsentError]         = useState<string | null>(null);
   const [consentSuccess, setConsentSuccess]     = useState(false);
 
-  // Reschedule modal state
   const [reschedTarget, setReschedTarget]             = useState<any | null>(null);
   const [reschedDate, setReschedDate]                 = useState('');
   const [reschedTime, setReschedTime]                 = useState('');
@@ -133,7 +130,6 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     if (!mounted) return;
     const token = localStorage.getItem('token');
     if (!token) { setLoading(false); return; }
-
     (async () => {
       try {
         const [apptRes, caseRes, resRes, annoRes, consentRes] = await Promise.all([
@@ -152,13 +148,10 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     })();
   }, [mounted]);
 
-  // Only show appointments with a confirmed date/time slot that haven't passed
   const now = Date.now();
   const upcoming = appointments
     .filter(a => ['scheduled','confirmed','matched'].includes((a.status||'').toLowerCase()) && a.requested_start && new Date(a.requested_start).getTime() > now)
     .sort((a, b) => new Date(a.requested_start||0).getTime() - new Date(b.requested_start||0).getTime());
-
-  // Unconfirmed requests (no slot yet) shown separately
   const pendingRequests = appointments
     .filter(a => ['pending','requested'].includes((a.status||'').toLowerCase()));
 
@@ -168,66 +161,70 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const fmtTime = (s: string) => { try { return new Date(s).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}); } catch { return ''; } };
   const apptDay = (s: string) => { try { return new Date(s).toLocaleDateString('en-US',{weekday:'short'}); } catch { return ''; } };
   const apptNum = (s: string) => { try { return new Date(s).getDate(); } catch { return ''; } };
-  const apptMon = (s: string) => { try { return new Date(s).toLocaleDateString('en-US',{month:'short',year:'numeric'}); } catch { return ''; } };
 
   const menuItems = getMenuItemsByRole(user.role).map(item =>
     item.id === 'resources' ? { ...item, badge: resourceCount } : item
   );
-
   const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard">
 
       {loading ? (
-        <div className="flex items-center justify-center h-48 text-gray-400 gap-2 text-sm">
-          <Loader2 size={18} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+          Loading…
         </div>
       ) : (
-        <div className="flex flex-col xl:flex-row gap-6">
+        <div className="flex flex-col xl:flex-row gap-6 animate-fade-up">
 
-          {/* ── Left column ─────────────────────────────────────────── */}
-          <div className="flex-1 space-y-4 min-w-0">
+          {/* Left column */}
+          <div className="flex-1 space-y-5 min-w-0">
 
             {/* Hero banner */}
             {nextAppt ? (() => {
-              const title      = getSessionTitle(nextAppt);
-              const method     = getMethodLabel(nextAppt);
-              const dateStr    = fmtApptDate(nextAppt.requested_start);
-              const timeStr    = fmtTime(nextAppt.requested_start);
-              const counselor  = nextAppt.counselor_name || 'CPS Counselor';
-              const isOnline   = ['online','video'].includes((nextAppt.preferred_method || '').toLowerCase());
+              const title       = getSessionTitle(nextAppt);
+              const method      = getMethodLabel(nextAppt);
+              const dateStr     = fmtApptDate(nextAppt.requested_start);
+              const timeStr     = fmtTime(nextAppt.requested_start);
+              const counselor   = nextAppt.counselor_name || 'CPS Counselor';
+              const isOnline    = ['online','video'].includes((nextAppt.preferred_method || '').toLowerCase());
               const meetingLink = nextAppt.meeting_link;
               return (
-                <div className="relative overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
+                <div
+                  className="relative overflow-hidden rounded-2xl p-7 text-white shadow-card-lg"
+                  style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, #1A3DB0 100%)' }}
+                >
+                  <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
+                  <div className="pointer-events-none absolute bottom-0 left-1/2 w-64 h-24 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide">
+                      <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.6)' }}>
                         Upcoming Appointment
                       </p>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white text-[11px] font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
                         Confirmed
                       </span>
                     </div>
                     <h3 className="text-xl font-bold mb-2 leading-snug">{title}</h3>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100 mb-6">
-                      <span className="font-medium text-white">with {counselor}</span>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm mb-6" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                      <span className="font-semibold text-white">with {counselor}</span>
                       {dateStr && (
                         <span className="flex items-center gap-1.5">
-                          <CalendarDays size={13} className="text-blue-300" />{dateStr}
+                          <CalendarDays size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />{dateStr}
                         </span>
                       )}
                       {timeStr && (
                         <span className="flex items-center gap-1.5">
-                          <Clock size={13} className="text-blue-300" />{timeStr}
+                          <Clock size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />{timeStr}
                         </span>
                       )}
                       {method && (
                         <span className="flex items-center gap-1.5">
                           {isOnline
-                            ? <Video size={13} className="text-blue-300" />
-                            : <MapPin size={13} className="text-blue-300" />}
+                            ? <Video size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
+                            : <MapPin size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />}
                           {method} session
                         </span>
                       )}
@@ -235,19 +232,24 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                     <div className="flex gap-3">
                       {isOnline && meetingLink ? (
                         <a href={meetingLink} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
+                          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
+                          style={{ background: 'white', color: 'var(--color-primary)' }}>
                           <Video size={15} />Join Session
                         </a>
                       ) : (
                         <Link href="/my-appointments">
-                          <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
-                            <Video size={15} />Join Session
+                          <button className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
+                            style={{ background: 'white', color: 'var(--color-primary)' }}>
+                            <Video size={15} />View Details
                           </button>
                         </Link>
                       )}
                       <button
                         onClick={() => { setReschedTarget(nextAppt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); setReschedSuccess(false); }}
-                        className="px-5 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold rounded-xl transition-colors">
+                        className="px-5 py-2.5 text-sm font-semibold rounded-xl transition-colors"
+                        style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}>
                         Reschedule
                       </button>
                     </div>
@@ -255,38 +257,48 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 </div>
               );
             })() : upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
-              <div className="overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
-                <div>
-                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-3">Welcome to CPS</p>
+              <div
+                className="relative overflow-hidden rounded-2xl p-7 text-white shadow-card-lg"
+                style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, #1A3DB0 100%)' }}
+              >
+                <div className="pointer-events-none absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
+                <div className="relative z-10">
+                  <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Welcome to CPS</p>
                   <h3 className="text-xl font-bold mb-2 leading-snug">
                     No need to wait, {firstName}.<br />Book your session online.
                   </h3>
-                  <p className="text-sm text-blue-100 mb-6 leading-relaxed max-w-sm">
+                  <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
                     Confidential, free counseling for all DLSU students. Book an appointment, attend your intake, and get matched with a counselor.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {['In-person', 'Online', 'Confidential'].map(t => (
-                      <span key={t} className="text-xs bg-white/20 text-white px-3 py-1 rounded-full font-medium">{t}</span>
+                      <span key={t} className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.18)', color: 'white' }}>{t}</span>
                     ))}
                   </div>
                   <Link href="/book-appointment">
-                    <button className="px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
+                    <button className="px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
+                      style={{ background: 'white', color: 'var(--color-primary)' }}>
                       Book an Appointment →
                     </button>
                   </Link>
                 </div>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl bg-[#2563eb] p-7 text-white shadow-lg">
-                <div>
-                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-3">Your counseling journey</p>
+              <div
+                className="relative overflow-hidden rounded-2xl p-7 text-white shadow-card-lg"
+                style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, #1A3DB0 100%)' }}
+              >
+                <div className="pointer-events-none absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
+                <div className="relative z-10">
+                  <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Your counseling journey</p>
                   <h3 className="text-xl font-bold mb-2">Keep going, {firstName}.</h3>
-                  <p className="text-sm text-blue-100 mb-6 leading-relaxed max-w-sm">
+                  <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
                     {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review.`}
                   </p>
                   {!isCheckInOnly && (
                     <Link href="/book-appointment">
-                      <button className="px-5 py-2.5 bg-white text-[#2563eb] text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm">
+                      <button className="px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
+                        style={{ background: 'white', color: 'var(--color-primary)' }}>
                         Book Another Appointment →
                       </button>
                     </Link>
@@ -295,43 +307,44 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               </div>
             )}
 
-{/* CPS Announcements */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            {/* Announcements */}
+            <div className="rounded-2xl border p-5 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold text-gray-900">CPS Updates &amp; Events</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>CPS Updates &amp; Events</p>
                 {announcements.length > 3 && (
-                  <a href="/announcements" className="text-xs text-[#2563eb] hover:underline font-medium">
+                  <a href="/announcements" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>
                     View All →
                   </a>
                 )}
               </div>
-
               {announcements.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-6">No announcements at this time.</p>
+                <p className="text-sm text-center py-6" style={{ color: 'var(--color-text-muted)' }}>No announcements at this time.</p>
               ) : (
                 <div className="space-y-1">
-                  {announcements.slice(0, 3).map(a => {
-                    const style = TYPE_STYLES[a.event_type] || TYPE_STYLES.info;
+                  {announcements.slice(0, 3).map((a, i) => {
+                    const meta = TYPE_META[a.event_type] || TYPE_META.info;
                     return (
                       <button
                         key={a.id}
                         onClick={() => setOpenAnnouncement(a)}
-                        className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group border border-transparent hover:border-gray-100"
+                        className="w-full text-left px-3 py-3 rounded-xl transition-colors group"
+                        style={{ animationDelay: `${i * 50}ms` }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         <div className="flex items-center gap-3">
+                          <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: meta.accent }} />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide ${style.bg} ${style.text}`}>
-                                {style.label}
-                              </span>
-                              {a.pinned && <span className="text-[10px] text-gray-400 font-medium">· Pinned</span>}
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-[10px] font-bold tracking-wide uppercase" style={{ color: meta.accent }}>{meta.label}</span>
+                              {a.pinned && <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
                             </div>
-                            <p className="text-sm font-semibold text-gray-800 leading-snug truncate">{a.title}</p>
+                            <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--color-text-primary)' }}>{a.title}</p>
                             {a.event_date && (
-                              <p className="text-[11px] text-gray-400 mt-0.5">{fmtEventDate(a.event_date)}</p>
+                              <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{fmtEventDate(a.event_date)}</p>
                             )}
                           </div>
-                          <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 flex-shrink-0 transition-colors" />
+                          <ChevronRight size={14} className="flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
                         </div>
                       </button>
                     );
@@ -341,26 +354,26 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             </div>
           </div>
 
-          {/* ── Right column — Upcoming appointments ────────────────── */}
+          {/* Right column — Upcoming Sessions */}
           <div className="w-full xl:w-72 flex-shrink-0 space-y-5">
-
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="rounded-2xl border p-5 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold text-gray-900">Upcoming Sessions</p>
-                <div className="flex items-center gap-1 text-xs text-gray-400">
+                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Upcoming Sessions</p>
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   <CalendarDays size={13} />
                   <span>{monthYear}</span>
                 </div>
               </div>
 
-              {/* Confirmed upcoming sessions */}
               {upcoming.length === 0 && pendingRequests.length === 0 ? (
                 <div className="text-center py-8">
-                  <CalendarDays size={32} className="mx-auto text-gray-200 mb-3" />
-                  <p className="text-sm text-gray-400">No upcoming sessions.</p>
+                  <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+                    <CalendarDays size={22} style={{ color: 'var(--color-text-muted)' }} />
+                  </div>
+                  <p className="text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>No upcoming sessions.</p>
                   {!isCheckInOnly && (
                     <Link href="/book-appointment">
-                      <button className="mt-3 text-xs text-[#2563eb] hover:underline font-medium">
+                      <button className="mt-2 text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>
                         Book one now →
                       </button>
                     </Link>
@@ -370,51 +383,60 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <div className="space-y-2">
                   {upcoming.slice(0, 5).map((appt, i) => (
                     <Link key={appt.id || appt._id || i} href="/my-appointments">
-                      <div className={`flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer ${
-                        i === 0 ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'
-                      }`}>
-                        <div className={`flex-shrink-0 w-10 text-center rounded-xl py-1.5 ${
-                          i === 0 ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
+                      <div
+                        className="flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer"
+                        style={i === 0 ? { background: 'var(--color-primary-surface)' } : {}}
+                        onMouseEnter={e => { if (i !== 0) e.currentTarget.style.background = 'var(--color-bg)'; }}
+                        onMouseLeave={e => { if (i !== 0) e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <div
+                          className="flex-shrink-0 w-10 text-center rounded-xl py-1.5"
+                          style={i === 0
+                            ? { background: 'var(--color-primary)', color: 'white' }
+                            : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}
+                        >
                           <p className="text-[10px] font-medium leading-none mb-0.5">{apptDay(appt.requested_start)}</p>
                           <p className="text-base font-bold leading-none">{apptNum(appt.requested_start)}</p>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-800 truncate">
+                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
                             {appt.counselor_name || 'CPS Counselor'}
                           </p>
-                          <p className="text-[10px] text-gray-400 truncate">
+                          <p className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>
                             {fmtTime(appt.requested_start)}
                             {appt.requested_end ? ` – ${fmtTime(appt.requested_end)}` : ''}
                           </p>
                         </div>
-                        <ChevronRight size={13} className={i === 0 ? 'text-blue-300' : 'text-gray-300'} />
+                        <ChevronRight size={13} style={{ color: i === 0 ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                       </div>
                     </Link>
                   ))}
 
-                  {/* Pending requests — shown below confirmed sessions */}
                   {pendingRequests.length > 0 && (
                     <>
-                      {upcoming.length > 0 && <div className="h-px bg-gray-100 my-1" />}
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 pt-1">
+                      {upcoming.length > 0 && <div className="h-px my-1" style={{ background: 'var(--color-border)' }} />}
+                      <p className="text-[10px] font-bold tracking-widest uppercase px-1 pt-1" style={{ color: 'var(--color-text-muted)' }}>
                         Pending Requests
                       </p>
                       {pendingRequests.slice(0, 3).map((appt, i) => (
                         <Link key={appt.id || appt._id || i} href="/my-appointments">
-                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
-                              <CalendarDays size={14} className="text-amber-500" />
+                          <div
+                            className="flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer"
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <div className="flex-shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center" style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
+                              <CalendarDays size={14} style={{ color: 'var(--color-warning)' }} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-gray-700 truncate">
+                              <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
                                 {appt.purpose === 'intake_interview' ? 'Intake Interview' :
                                  appt.purpose === 'counseling' ? 'Counseling' :
                                  appt.purpose === 'follow_up_counselling' ? 'Follow-up' : 'Session Request'}
                               </p>
-                              <p className="text-[10px] text-amber-600 font-medium">Pending review</p>
+                              <p className="text-[10px] font-medium" style={{ color: 'var(--color-warning)' }}>Pending review</p>
                             </div>
-                            <ChevronRight size={13} className="text-gray-300" />
+                            <ChevronRight size={13} style={{ color: 'var(--color-text-muted)' }} />
                           </div>
                         </Link>
                       ))}
@@ -424,16 +446,15 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               )}
 
               {upcoming.length > 5 && (
-                <div className="mt-3 pt-3 border-t border-gray-100 text-center">
+                <div className="mt-3 pt-3 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
                   <Link href="/my-appointments">
-                    <span className="text-xs text-[#2563eb] hover:underline font-medium">
+                    <span className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>
                       View all {upcoming.length} sessions →
                     </span>
                   </Link>
                 </div>
               )}
             </div>
-
           </div>
 
         </div>
@@ -441,48 +462,49 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
       {/* Announcement modal */}
       {openAnnouncement && (() => {
-        const a     = openAnnouncement;
-        const style = TYPE_STYLES[a.event_type] || TYPE_STYLES.info;
+        const a    = openAnnouncement;
+        const meta = TYPE_META[a.event_type] || TYPE_META.info;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setOpenAnnouncement(null)} />
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-              <div className="h-1.5 w-full" style={{ backgroundColor:
-                a.event_type === 'webinar' ? '#3b82f6' :
-                a.event_type === 'event'   ? '#2563eb' :
-                a.event_type === 'notice'  ? '#f97316' : '#9ca3af'
-              }} />
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpenAnnouncement(null)} />
+            <div className="relative rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+              <div className="h-1 w-full" style={{ background: meta.accent }} />
               <div className="p-7">
                 <div className="flex items-start justify-between gap-3 mb-5">
                   <div>
                     <div className="flex items-center gap-2 mb-3">
-                      <span className={`text-sm font-semibold px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                        {style.label}
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full tracking-wide uppercase" style={{ background: `${meta.accent}18`, color: meta.accent }}>
+                        {meta.label}
                       </span>
-                      {a.pinned && <span className="text-sm text-gray-400 font-medium">Pinned</span>}
+                      {a.pinned && <span className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Pinned</span>}
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 leading-snug">{a.title}</h3>
+                    <h3 className="text-lg font-bold leading-snug" style={{ color: 'var(--color-text-primary)' }}>{a.title}</h3>
                   </div>
                   <button onClick={() => setOpenAnnouncement(null)}
-                    className="p-2 hover:bg-gray-100 rounded-xl transition flex-shrink-0">
-                    <X size={18} className="text-gray-400" />
+                    className="p-2 rounded-xl transition-colors flex-shrink-0"
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <X size={16} style={{ color: 'var(--color-text-muted)' }} />
                   </button>
                 </div>
-                {a.body && <p className="text-base text-gray-600 leading-relaxed mb-5">{a.body}</p>}
+                {a.body && <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--color-text-secondary)' }}>{a.body}</p>}
                 {a.event_date && (
-                  <div className="text-sm text-gray-500 mb-5 bg-gray-50 rounded-xl px-4 py-3 font-medium">
+                  <div className="text-sm mb-5 rounded-xl px-4 py-3 font-medium" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
                     {fmtEventDate(a.event_date)}
                   </div>
                 )}
                 {a.link ? (
                   <a href={a.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-white rounded-xl transition"
-                    style={{ backgroundColor: '#2563eb' }}>
+                    className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-white rounded-xl transition-all hover:opacity-90"
+                    style={{ background: 'var(--color-primary)' }}>
                     <ExternalLink size={15} /> Open Link
                   </a>
                 ) : (
                   <button onClick={() => setOpenAnnouncement(null)}
-                    className="w-full py-3 text-sm font-medium border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                    className="w-full py-3 text-sm font-medium rounded-xl transition-colors"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Close
                   </button>
                 )}
@@ -492,45 +514,52 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         );
       })()}
 
-      {/* ── Reschedule Modal ─────────────────────────────────────────── */}
+      {/* Reschedule Modal */}
       {reschedTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-sm text-gray-900">Request Reschedule</h3>
-              <button onClick={() => setReschedTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={14} className="text-gray-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Request Reschedule</h3>
+              <button onClick={() => setReschedTarget(null)}
+                className="p-1.5 rounded-lg transition-colors"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={14} style={{ color: 'var(--color-text-muted)' }} />
               </button>
             </div>
 
             {reschedSuccess ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mb-3">
-                  <CalendarDays size={22} className="text-green-600" />
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-success-surface)' }}>
+                  <CalendarDays size={22} style={{ color: 'var(--color-success)' }} />
                 </div>
-                <p className="font-semibold text-gray-900 mb-1">Request submitted!</p>
-                <p className="text-sm text-gray-400">Your counselor will confirm the new time.</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Request submitted!</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Your counselor will confirm the new time.</p>
               </div>
             ) : (
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Date</label>
+                  <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Date</label>
                   <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm rounded-lg outline-none transition-all"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                    onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+                  />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Preferred Time</label>
+                  <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Time</label>
                   {!reschedDate ? (
-                    <p className="text-xs text-gray-400 italic">Select a date to see available slots.</p>
+                    <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Select a date to see available slots.</p>
                   ) : rescheduleLoadingSlots ? (
-                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                    <div className="flex items-center gap-2 text-xs py-2" style={{ color: 'var(--color-text-muted)' }}>
                       <Loader2 size={13} className="animate-spin" /> Checking availability…
                     </div>
                   ) : rescheduleSlots.length === 0 ? (
-                    <div className="text-xs text-gray-500 py-1">
+                    <div className="text-xs py-1" style={{ color: 'var(--color-text-secondary)' }}>
                       No slots available on this date.
                       {rescheduleNextDate && (
-                        <span className="ml-1 text-[#2563eb] font-medium">
+                        <span className="ml-1 font-medium" style={{ color: 'var(--color-primary)' }}>
                           Next available: <button type="button" onClick={() => setReschedDate(rescheduleNextDate)} className="underline underline-offset-2">{rescheduleNextDate}</button>
                         </span>
                       )}
@@ -540,16 +569,18 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                       {rescheduleSlots.map((s, i) => {
                         const [h, m] = s.time.split(':').map(Number);
                         const label = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                        const selected = reschedTime === s.time;
                         return (
                           <button key={i} type="button" onClick={() => setReschedTime(s.time)}
-                            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 text-sm transition ${
-                              reschedTime === s.time
-                                ? 'border-[#2563eb] bg-[#2563eb]/5 text-[#2563eb]'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                            }`}>
-                            <Clock size={13} className={reschedTime === s.time ? 'text-[#2563eb]' : 'text-gray-400'} />
+                            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-all"
+                            style={{
+                              border: `2px solid ${selected ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                              background: selected ? 'var(--color-primary-surface)' : 'var(--color-surface)',
+                              color: selected ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            }}>
+                            <Clock size={13} style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                             <span className="font-bold tabular-nums">{label}</span>
-                            {reschedTime === s.time && <span className="ml-auto text-[10px] font-bold">✓</span>}
+                            {selected && <span className="ml-auto text-[10px] font-bold">✓</span>}
                           </button>
                         );
                       })}
@@ -557,22 +588,32 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Reason <span className="font-normal normal-case text-gray-400">(optional)</span>
+                  <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    Reason <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                   </label>
                   <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
                     placeholder="Why do you need to reschedule?"
                     rows={2}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none resize-none" />
+                    className="w-full px-3 py-2 text-sm rounded-lg outline-none transition-all resize-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                    onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+                  />
                 </div>
-                {reschedError && <p className="text-xs text-red-500">{reschedError}</p>}
+                {reschedError && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{reschedError}</p>}
                 <div className="flex gap-2">
                   <button onClick={() => setReschedTarget(null)}
-                    className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                    className="flex-1 px-4 py-2 text-sm rounded-lg transition-colors"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Cancel
                   </button>
                   <button onClick={handleReschedule} disabled={rescheduling}
-                    className="flex-1 px-4 py-2 bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                    className="flex-1 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{ background: 'var(--color-primary)' }}
+                    onMouseEnter={e => { if (!rescheduling) e.currentTarget.style.background = 'var(--color-primary-hover)'; }}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}>
                     {rescheduling && <Loader2 size={13} className="animate-spin" />}
                     Submit Request
                   </button>
@@ -582,22 +623,23 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           </div>
         </div>
       )}
-      {/* ── Consent Modal (shown on first login, before any booking) ── */}
+
+      {/* Consent Modal */}
       {showConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="bg-[#2563eb] px-6 py-5 text-white">
-              <h2 className="text-base font-bold">Before You Begin</h2>
-              <p className="text-xs text-blue-200 mt-1">Please review and accept the following before using CPS services.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="px-6 py-5" style={{ background: 'var(--color-primary)' }}>
+              <h2 className="text-base font-bold text-white">Before You Begin</h2>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>Please review and accept the following before using CPS services.</p>
             </div>
-            <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto text-sm text-gray-700">
+            <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto text-sm" style={{ color: 'var(--color-text-secondary)' }}>
               <div>
-                <p className="font-semibold text-gray-800 mb-1">Confidentiality & Exceptions</p>
-                <p className="text-xs text-gray-600 leading-relaxed">All information shared during counseling sessions is strictly confidential and will not be disclosed without your written consent, <span className="font-semibold">except</span> in situations involving risk to your safety or others, court orders, or mandatory reporting obligations.</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Confidentiality &amp; Exceptions</p>
+                <p className="text-xs leading-relaxed">All information shared during counseling sessions is strictly confidential and will not be disclosed without your written consent, <span className="font-semibold">except</span> in situations involving risk to your safety or others, court orders, or mandatory reporting obligations.</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-800 mb-1">Data Privacy</p>
-                <p className="text-xs text-gray-600 leading-relaxed">Your mental health records are classified as sensitive personal information under RA 10173 and require your explicit consent to process.</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Data Privacy</p>
+                <p className="text-xs leading-relaxed">Your mental health records are classified as sensitive personal information under RA 10173 and require your explicit consent to process.</p>
               </div>
               <div className="space-y-3 pt-2">
                 {([
@@ -607,16 +649,17 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   <label key={item.k} className="flex gap-3 cursor-pointer">
                     <input type="checkbox" checked={consentChecks[item.k]}
                       onChange={e => setConsentChecks(c => ({ ...c, [item.k]: e.target.checked }))}
-                      className="w-4 h-4 mt-0.5 accent-[#2563eb] flex-shrink-0" />
-                    <span className="text-xs text-gray-700 leading-relaxed">{item.t}</span>
+                      className="w-4 h-4 mt-0.5 flex-shrink-0"
+                      style={{ accentColor: 'var(--color-primary)' }} />
+                    <span className="text-xs leading-relaxed">{item.t}</span>
                   </label>
                 ))}
               </div>
-              {consentError && <p className="text-xs text-red-500">{consentError}</p>}
+              {consentError && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{consentError}</p>}
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 space-y-2">
+            <div className="px-6 py-4 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
               {consentSuccess ? (
-                <div className="flex items-center justify-center gap-2 py-2 text-green-600 text-sm">
+                <div className="flex items-center justify-center gap-2 py-2 text-sm" style={{ color: 'var(--color-success)' }}>
                   <CheckCircle size={16} /> Consent recorded. Thank you.
                 </div>
               ) : (
@@ -632,22 +675,24 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                           body: JSON.stringify({ consent_types: ['counseling_services', 'data_privacy'] }),
                         });
-                        if (r.ok) {
-                          setConsentSuccess(true);
-                          setTimeout(() => setShowConsent(false), 2000);
-                        } else {
-                          setConsentError('Failed to record consent. Please try again.');
-                        }
+                        if (r.ok) { setConsentSuccess(true); setTimeout(() => setShowConsent(false), 2000); }
+                        else { setConsentError('Failed to record consent. Please try again.'); }
                       } catch { setConsentError('Network error. Please try again.'); }
                       finally { setSavingConsent(false); }
                     }}
-                    className="w-full py-2.5 rounded-xl bg-[#2563eb] text-white text-sm font-semibold disabled:opacity-50 transition flex items-center justify-center gap-2">
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{ background: 'var(--color-primary)' }}
+                    onMouseEnter={e => { const btn = e.currentTarget; if (!btn.disabled) btn.style.background = 'var(--color-primary-hover)'; }}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}>
                     {savingConsent && <Loader2 size={14} className="animate-spin" />}
                     I Understand and Consent
                   </button>
                   <button
                     onClick={() => setShowConsent(false)}
-                    className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition">
+                    className="w-full py-2 text-xs transition-colors"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
                     Remind me later
                   </button>
                 </>

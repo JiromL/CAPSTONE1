@@ -7,33 +7,28 @@ import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import { Search, Loader2, AlertCircle, ChevronRight, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
 
-const RISK_BADGE: Record<string, string> = {
-  GREEN:    'bg-green-50 text-green-700 ring-1 ring-green-200',
-  YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
-  CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
+/* ── Badge maps ─────────────────────────────────────────── */
+
+const RISK_BADGE: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+  GREEN:    { bg: 'var(--color-success-surface)',  text: 'var(--color-success-text)',  border: 'rgba(5,150,105,0.2)',  dot: '#059669' },
+  YELLOW:   { bg: 'var(--color-warning-surface)',  text: 'var(--color-warning-text)',  border: 'rgba(217,119,6,0.2)',  dot: '#D97706' },
+  RED:      { bg: 'var(--color-danger-surface)',   text: 'var(--color-danger-text)',   border: 'rgba(220,38,38,0.2)',  dot: '#DC2626' },
+  CRITICAL: { bg: 'var(--color-danger-surface)',   text: 'var(--color-danger-text)',   border: 'rgba(220,38,38,0.3)',  dot: '#991B1B' },
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  ACTIVE:               'bg-green-50 text-green-700 ring-1 ring-green-200',
-  NEW:                  'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
-  INTAKE_SCHEDULED:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  PENDING_TERMINATION:  'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
-  CLOSED:               'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
-  CANCELLED:            'bg-red-50 text-red-600 ring-1 ring-red-200',
-  open:                 'bg-green-50 text-green-700 ring-1 ring-green-200',
-  closed:               'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
-  intake_scheduled:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
+  ACTIVE:              { bg: 'var(--color-success-surface)',  text: 'var(--color-success-text)' },
+  NEW:                 { bg: 'var(--color-primary-surface)',  text: 'var(--color-primary-text)' },
+  INTAKE_SCHEDULED:    { bg: 'var(--color-warning-surface)',  text: 'var(--color-warning-text)' },
+  PENDING_TERMINATION: { bg: 'rgba(249,115,22,0.1)',          text: '#C2410C' },
+  CLOSED:              { bg: 'var(--color-border)',            text: 'var(--color-text-muted)' },
+  CANCELLED:           { bg: 'var(--color-danger-surface)',   text: 'var(--color-danger-text)' },
+  open:                { bg: 'var(--color-success-surface)',  text: 'var(--color-success-text)' },
+  closed:              { bg: 'var(--color-border)',            text: 'var(--color-text-muted)' },
+  intake_scheduled:    { bg: 'var(--color-warning-surface)',  text: 'var(--color-warning-text)' },
 };
 
-const CLIENT_STATUS_BADGE: Record<string, string> = {
-  ACTIVE:                 'bg-green-50 text-green-700 ring-1 ring-green-200',
-  CHECK_IN_ONLY:          'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
-  WITH_MH_CHECK_IN:       'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
-  UNDER_ACCOMMODATION:    'bg-purple-50 text-purple-700 ring-1 ring-purple-200',
-  TERMINATION_PENDING:    'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
-  INACTIVE:               'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
-};
+const DEFAULT_BADGE = { bg: 'var(--color-border)', text: 'var(--color-text-muted)' };
 
 function fmt(d?: string) {
   if (!d) return '—';
@@ -44,12 +39,54 @@ function fmtLabel(s?: string) {
   return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+/* ── Stat card ──────────────────────────────────────────── */
+function StatCard({
+  label, value, icon: Icon, active, onClick, accent, dimmed,
+}: {
+  label: string; value: number; icon: any; active: boolean;
+  onClick: () => void; accent?: string; dimmed?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left rounded-2xl px-4 py-4 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+      style={{
+        background: 'var(--color-surface)',
+        border: active
+          ? `1.5px solid var(--color-primary)`
+          : '1px solid var(--color-border)',
+        boxShadow: active
+          ? 'var(--shadow-primary), var(--shadow-card)'
+          : 'var(--shadow-card)',
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: accent ? `${accent}15` : 'var(--color-border)' }}
+        >
+          <Icon size={16} style={{ color: dimmed ? 'var(--color-text-muted)' : (accent || 'var(--color-primary)') }} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+            {label}
+          </p>
+          <p className="text-xl font-bold tabular-nums leading-tight" style={{ color: dimmed ? 'var(--color-text-muted)' : 'var(--color-text-primary)' }}>
+            {value}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/* ── Main ───────────────────────────────────────────────── */
 export default function CasesPage() {
   const [user, setUser]         = useState<any>(null);
   const [cases, setCases]       = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
-  const [search, setSearch]       = useState('');
+  const [search, setSearch]     = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>('all');
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
 
@@ -86,7 +123,7 @@ export default function CasesPage() {
         localStorage.setItem('cases_cache', JSON.stringify(items));
         setError(null);
         fetchPermaLabels(items);
-      } catch (e) {
+      } catch {
         setError('Failed to load cases.');
         const cached = localStorage.getItem('cases_cache');
         if (cached) try { setCases(JSON.parse(cached)); } catch {}
@@ -95,21 +132,21 @@ export default function CasesPage() {
     load();
   }, [user]);
 
-  const title = (() => {
+  const pageTitle = (() => {
     switch (user?.role?.toUpperCase()) {
-      case 'COUNSELOR':     return 'My Client Cases';
-      case 'PSYCHOLOGIST':  return 'Clinical Cases';
-      case 'ADMIN':         return 'All Cases';
-      case 'DPO':           return 'Case Oversight';
-      case 'IC':            return 'Intake Cases';
-      default:              return 'Cases';
+      case 'COUNSELOR':    return 'My Client Cases';
+      case 'PSYCHOLOGIST': return 'Clinical Cases';
+      case 'ADMIN':        return 'All Cases';
+      case 'DPO':          return 'Case Oversight';
+      case 'IC':           return 'Intake Cases';
+      default:             return 'Cases';
     }
   })();
 
   const filtered = cases.filter(c => {
-    const status  = (c.status || c.case_status || '').toUpperCase();
-    const risk    = (c.risk_level || '').toUpperCase();
-    const t       = search.toLowerCase();
+    const status = (c.status || c.case_status || '').toUpperCase();
+    const risk   = (c.risk_level || '').toUpperCase();
+    const t      = search.toLowerCase();
 
     const matchTab = (() => {
       switch (activeTab) {
@@ -121,71 +158,78 @@ export default function CasesPage() {
       }
     })();
 
-    const matchSearch = !t || [c.student_name, c.student_email, c.chief_complaint, c.presenting_issue, c.case_number, c._id]
+    const matchSearch = !t || [c.student_name, c.student_email, c.chief_complaint, c.presenting_issue, c.case_number]
       .some(v => v?.toLowerCase().includes(t));
 
     return matchTab && matchSearch;
   });
 
-  const highRisk = cases.filter(c => ['RED', 'CRITICAL'].includes(c.risk_level?.toUpperCase())).length;
-  const openCount = cases.filter(c => ['open', 'ACTIVE', 'NEW', 'INTAKE_SCHEDULED'].includes(c.status)).length;
+  const openCount   = cases.filter(c => ['open', 'ACTIVE', 'NEW', 'INTAKE_SCHEDULED'].includes(c.status)).length;
+  const highRisk    = cases.filter(c => ['RED', 'CRITICAL'].includes(c.risk_level?.toUpperCase())).length;
   const closedCount = cases.filter(c => ['closed', 'CLOSED'].includes(c.status)).length;
 
-  return (
-    <DashboardPageWrapper title={title} subtitle="Manage and track student cases">
+  const TABS = [
+    { id: 'all'       as const, label: 'All',           count: cases.length },
+    { id: 'active'    as const, label: 'Active',         count: cases.filter(c => ['ACTIVE','NEW','INTAKE_SCHEDULED'].includes((c.status||'').toUpperCase())).length },
+    { id: 'attention' as const, label: 'Needs Attention',count: cases.filter(c => (c.status||'').toUpperCase()==='PENDING_TERMINATION').length },
+    { id: 'high-risk' as const, label: 'High Risk',      count: cases.filter(c => ['RED','CRITICAL'].includes((c.risk_level||'').toUpperCase())).length },
+    { id: 'closed'    as const, label: 'Closed',         count: cases.filter(c => ['CLOSED','CANCELLED'].includes((c.status||'').toUpperCase())).length },
+  ];
 
-      {/* Summary strip — click to filter */}
+  const showWellbeing = !['STAFF'].includes(user?.role?.toUpperCase());
+
+  return (
+    <DashboardPageWrapper title={pageTitle} subtitle="Manage and track student cases">
+
+      {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        {([
-          { label: 'Total Cases', value: cases.length, icon: Users,       cls: 'text-gray-800',                                  tab: 'all'       as const },
-          { label: 'Open',        value: openCount,    icon: FolderOpen,  cls: 'text-[#2563eb]',                                 tab: 'active'    as const },
-          { label: 'High Risk',   value: highRisk,     icon: ShieldAlert, cls: highRisk > 0 ? 'text-red-600' : 'text-gray-400', tab: 'high-risk' as const },
-          { label: 'Closed',      value: closedCount,  icon: FolderX,     cls: 'text-gray-400',                                  tab: 'closed'    as const },
-        ]).map(s => (
-          <button key={s.label} onClick={() => setActiveTab(s.tab)}
-            className={`bg-white rounded-2xl border shadow-sm px-4 py-3 flex items-center gap-3 text-left w-full transition-all hover:shadow-md ${
-              activeTab === s.tab ? 'border-[#2563eb]/40 ring-1 ring-[#2563eb]/20' : 'border-gray-100 hover:border-gray-200'
-            }`}>
-            <s.icon size={18} className={s.cls} />
-            <div>
-              <p className="text-xs text-gray-400">{s.label}</p>
-              <p className={`text-xl font-semibold ${s.cls}`}>{s.value}</p>
-            </div>
-          </button>
-        ))}
+        <StatCard label="Total Cases" value={cases.length}  icon={Users}       active={activeTab === 'all'}       onClick={() => setActiveTab('all')}       accent="var(--color-primary)" />
+        <StatCard label="Open"        value={openCount}      icon={FolderOpen}  active={activeTab === 'active'}    onClick={() => setActiveTab('active')}    accent="var(--color-primary)" />
+        <StatCard label="High Risk"   value={highRisk}       icon={ShieldAlert} active={activeTab === 'high-risk'} onClick={() => setActiveTab('high-risk')} accent="var(--color-danger)" dimmed={highRisk === 0} />
+        <StatCard label="Closed"      value={closedCount}    icon={FolderX}     active={activeTab === 'closed'}    onClick={() => setActiveTab('closed')}    dimmed />
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600 mb-4">
+        <div
+          className="flex items-center gap-2 text-sm mb-4 px-4 py-3 rounded-xl animate-fade-in"
+          style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', border: '1px solid rgba(220,38,38,0.2)' }}
+        >
           <AlertCircle size={14} /> {error}
         </div>
       )}
 
       {/* Table card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
 
-        {/* Tab bar + search */}
-        <div className="border-b border-gray-100">
-          {/* Tabs */}
-          <div className="flex items-center gap-1 px-4 pt-3 overflow-x-auto">
-            {([
-              { id: 'all',       label: 'All',              count: cases.length },
-              { id: 'active',    label: 'Active',            count: cases.filter(c => ['ACTIVE','NEW','INTAKE_SCHEDULED'].includes((c.status||c.case_status||'').toUpperCase())).length },
-              { id: 'attention', label: 'Needs Attention',   count: cases.filter(c => (c.status||c.case_status||'').toUpperCase()==='PENDING_TERMINATION').length },
-              { id: 'high-risk', label: 'High Risk',         count: cases.filter(c => ['RED','CRITICAL'].includes((c.risk_level||'').toUpperCase())).length },
-              { id: 'closed',    label: 'Closed',            count: cases.filter(c => ['CLOSED','CANCELLED'].includes((c.status||c.case_status||'').toUpperCase())).length },
-            ] as const).map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg whitespace-nowrap border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-[#2563eb] text-[#2563eb]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}>
+        {/* Tab bar */}
+        <div style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-0.5 px-4 pt-3 overflow-x-auto">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t whitespace-nowrap border-b-2 transition-all duration-150"
+                style={{
+                  borderColor:   activeTab === tab.id ? 'var(--color-primary)' : 'transparent',
+                  color:         activeTab === tab.id ? 'var(--color-primary-text)' : 'var(--color-text-muted)',
+                  marginBottom:  '-1px',
+                }}
+                onMouseEnter={e => activeTab !== tab.id && ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)')}
+                onMouseLeave={e => activeTab !== tab.id && ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)')}
+              >
                 {tab.label}
                 {tab.count > 0 && (
-                  <span className={`min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold ${
-                    activeTab === tab.id ? 'bg-[#2563eb] text-white' : 'bg-gray-100 text-gray-500'
-                  }`}>{tab.count}</span>
+                  <span
+                    className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold"
+                    style={
+                      activeTab === tab.id
+                        ? { background: 'var(--color-primary)', color: '#fff' }
+                        : { background: 'var(--color-border)', color: 'var(--color-text-secondary)' }
+                    }
+                  >
+                    {tab.count}
+                  </span>
                 )}
               </button>
             ))}
@@ -194,96 +238,176 @@ export default function CasesPage() {
           {/* Search */}
           <div className="px-4 pb-3 pt-2">
             <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search name, issue, case #…"
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none"
+                className="w-full pl-8 pr-3 py-2 text-sm rounded-xl outline-none transition-all duration-150"
+                style={{
+                  background:   'var(--color-bg)',
+                  border:       '1px solid var(--color-border)',
+                  color:        'var(--color-text-primary)',
+                }}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'var(--color-primary)';
+                  e.currentTarget.style.boxShadow   = 'var(--shadow-primary)';
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = 'var(--color-border)';
+                  e.currentTarget.style.boxShadow   = 'none';
+                }}
               />
             </div>
           </div>
         </div>
 
+        {/* Body */}
         {loading ? (
-          <div className="flex items-center justify-center h-44 gap-2 text-gray-400 text-sm">
-            <Loader2 size={16} className="animate-spin" /> Loading cases…
+          <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={15} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+            Loading cases…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-44 text-center">
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              <FolderOpen size={18} className="text-gray-400" />
+          <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-border)' }}>
+              <FolderOpen size={18} style={{ color: 'var(--color-text-muted)' }} />
             </div>
-            <p className="text-sm font-medium text-gray-600">No cases found</p>
-            <p className="text-xs text-gray-400 mt-1">
-              {search
-                ? 'No cases match your search.'
-                : activeTab === 'active'    ? 'No active cases.'
-                : activeTab === 'attention' ? 'No cases need attention.'
-                : activeTab === 'high-risk' ? 'No high-risk cases at this time.'
-                : activeTab === 'closed'    ? 'No closed cases.'
-                : 'No cases found.'}
-            </p>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>No cases found</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                {search ? 'No cases match your search.' : 'No cases in this category.'}
+              </p>
+            </div>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Student</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Case #</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Chief Complaint</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Risk</th>
-                    {!['STAFF'].includes(user?.role?.toUpperCase()) && (
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Wellbeing</th>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-8" style={{ color: 'var(--color-text-muted)' }}>#</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Student</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Case #</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Chief Complaint</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Status</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Risk</th>
+                    {showWellbeing && (
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Wellbeing</th>
                     )}
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Created</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-10"></th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Created</th>
+                    <th className="px-5 py-3 w-10" />
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((c, i) => {
-                    const risk = c.risk_level?.toUpperCase() || 'GREEN';
+                    const risk      = c.risk_level?.toUpperCase() || 'GREEN';
                     const statusKey = c.status || c.case_status || '';
-                    const riskCls = RISK_BADGE[risk] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
-                    const statusCls = STATUS_BADGE[statusKey] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
+                    const riskCfg   = RISK_BADGE[risk] ?? RISK_BADGE['GREEN'];
+                    const statusCfg = STATUS_BADGE[statusKey] ?? DEFAULT_BADGE;
                     const isHighRisk = ['RED', 'CRITICAL'].includes(risk);
+
                     return (
-                      <tr key={c._id}
-                        className={`border-b border-gray-50 transition-colors ${isHighRisk ? 'bg-red-50/30 hover:bg-red-50/60' : 'hover:bg-gray-50/80'}`}>
-                        <td className="px-5 py-4 text-gray-400 text-xs">{i + 1}.</td>
+                      <tr
+                        key={c._id}
+                        className={`transition-colors duration-100 animate-fade-up`}
+                        style={{
+                          borderBottom: '1px solid var(--color-border)',
+                          background: isHighRisk ? 'rgba(220,38,38,0.03)' : 'transparent',
+                          animationDelay: `${Math.min(i * 30, 300)}ms`,
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = isHighRisk ? 'rgba(220,38,38,0.06)' : 'var(--color-bg)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = isHighRisk ? 'rgba(220,38,38,0.03)' : 'transparent')}
+                      >
+                        {/* # */}
+                        <td className="px-5 py-4 text-xs tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+                          {i + 1}
+                        </td>
+
+                        {/* Student */}
                         <td className="px-5 py-4">
-                          <p className="font-medium text-gray-900 text-sm">{c.student_name || 'Unknown'}</p>
-                          {c.student_email && <p className="text-xs text-gray-400">{c.student_email}</p>}
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                              style={{ background: 'var(--color-primary)' }}
+                            >
+                              {(c.student_name || 'U')[0].toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
+                                {c.student_name || 'Unknown'}
+                              </p>
+                              {c.student_email && (
+                                <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
+                                  {c.student_email}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-5 py-4 font-mono text-xs text-gray-500">
-                          {c.case_number || c.counseling_id || c._id?.slice(-8).toUpperCase()}
-                        </td>
-                        <td className="px-5 py-4 text-sm text-gray-600 max-w-[200px]">
-                          <p className="truncate">{c.chief_complaint || c.presenting_issue || '—'}</p>
-                        </td>
+
+                        {/* Case # */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${statusCls}`}>
+                          <span className="font-mono text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                            {c.case_number || c.counseling_id || c._id?.slice(-8).toUpperCase()}
+                          </span>
+                        </td>
+
+                        {/* Chief complaint */}
+                        <td className="px-5 py-4 max-w-[200px]">
+                          <p className="truncate text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                            {c.chief_complaint || c.presenting_issue || '—'}
+                          </p>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-4">
+                          <span
+                            className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium"
+                            style={{ background: statusCfg.bg, color: statusCfg.text }}
+                          >
                             {fmtLabel(statusKey)}
                           </span>
                         </td>
+
+                        {/* Risk */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${riskCls}`}>
+                          <span
+                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium"
+                            style={{ background: riskCfg.bg, color: riskCfg.text, border: `1px solid ${riskCfg.border}` }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: riskCfg.dot }} />
                             {risk}
                           </span>
                         </td>
-                        {!['STAFF'].includes(user?.role?.toUpperCase()) && (
+
+                        {/* Wellbeing */}
+                        {showWellbeing && (
                           <td className="px-5 py-4">
                             <PermaBadge label={c.mhbot_username ? (permaLabels[c.mhbot_username] ?? null) : null} />
                           </td>
                         )}
-                        <td className="px-5 py-4 text-sm text-gray-400 whitespace-nowrap">{fmt(c.created_at)}</td>
+
+                        {/* Created */}
+                        <td className="px-5 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                          {fmt(c.created_at)}
+                        </td>
+
+                        {/* Link */}
                         <td className="px-5 py-4">
                           <Link href={`/cases/${c._id}`}>
-                            <button className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                            <button
+                              className="p-1.5 rounded-lg transition-all duration-150"
+                              style={{ color: 'var(--color-text-muted)' }}
+                              onMouseEnter={e => {
+                                (e.currentTarget as HTMLElement).style.background = 'var(--color-primary-surface)';
+                                (e.currentTarget as HTMLElement).style.color = 'var(--color-primary-text)';
+                              }}
+                              onMouseLeave={e => {
+                                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                                (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)';
+                              }}
+                            >
                               <ChevronRight size={14} />
                             </button>
                           </Link>
@@ -294,8 +418,16 @@ export default function CasesPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100">
-              <p className="text-xs text-gray-400">Showing {filtered.length} of {cases.length} cases</p>
+
+            {/* Footer */}
+            <div
+              className="px-5 py-3"
+              style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+            >
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Showing <strong style={{ color: 'var(--color-text-secondary)' }}>{filtered.length}</strong> of {cases.length} cases
+                {search && <> matching <em>"{search}"</em></>}
+              </p>
             </div>
           </>
         )}

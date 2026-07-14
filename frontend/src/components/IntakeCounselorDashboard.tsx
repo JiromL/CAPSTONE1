@@ -10,9 +10,9 @@ import { Loader2, CheckCircle, AlertCircle, ClipboardList, CalendarClock, Chevro
 interface DashboardProps { user: any; onLogout: () => void; }
 
 export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
-  const [appts, setAppts]           = useState<any[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [mounted, setMounted]       = useState(false);
+  const [appts, setAppts]     = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -25,10 +25,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
         const r = await fetch(api('/api/appointments/dashboard/role-view'), {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (r.ok) {
-          const d = await r.json();
-          setAppts(d.appointments || []);
-        }
+        if (r.ok) { const d = await r.json(); setAppts(d.appointments || []); }
       } finally { setLoading(false); }
     })();
   }, [mounted]);
@@ -61,85 +58,90 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
   return (
     <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
 
-      <div className="mb-5 pb-4 border-b border-gray-200">
-        <p className="text-xs text-gray-400 mb-0.5">{dateLabel}</p>
-        <h2 className="text-xl font-semibold text-gray-900">Good day, {firstName}.</h2>
+      <div className="mb-5 pb-4 animate-fade-up" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
       </div>
 
       {/* Quick action strip */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="grid grid-cols-2 gap-3 mb-5 animate-fade-up" style={{ animationDelay: '40ms' }}>
         {[
           { label: 'Intake Management', href: '/intake-management', icon: ClipboardList,
-            count: needsAction.length, countColor: 'bg-orange-100 text-orange-600',
+            count: needsAction.length,
             sublabel: needsAction.length > 0 ? `${needsAction.length} awaiting confirmation` : 'Manage your intake pipeline' },
-          { label: 'My Availability',   href: '/availability',      icon: CalendarClock,
-            count: null, countColor: '',
+          { label: 'My Availability', href: '/availability', icon: CalendarClock,
+            count: null,
             sublabel: 'Manage your open slots' },
-        ].map(({ label, href, icon: Icon, count, countColor, sublabel }) => (
+        ].map(({ label, href, icon: Icon, count, sublabel }) => (
           <Link key={href} href={href}
-            className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 hover:border-[#2563eb]/40 hover:bg-blue-50/40 transition group">
-            <div className="w-8 h-8 rounded-lg bg-[#2563eb]/8 flex items-center justify-center flex-shrink-0">
-              <Icon size={15} className="text-[#2563eb]" />
+            className="flex items-center gap-3 rounded-2xl px-4 py-3 border transition-all group"
+            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-primary-surface)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-surface)'; }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-primary-surface)' }}>
+              <Icon size={15} style={{ color: 'var(--color-primary)' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-700 leading-tight truncate">{label}</p>
+              <p className="text-xs font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>{label}</p>
               {count != null && count > 0 ? (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${countColor}`}>{count} pending</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>{count} pending</span>
               ) : (
-                <p className="text-[10px] text-gray-400 mt-0.5 truncate">{sublabel}</p>
+                <p className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>{sublabel}</p>
               )}
             </div>
-            <ChevronRight size={13} className="text-gray-300 group-hover:text-[#2563eb] transition flex-shrink-0" />
+            <ChevronRight size={13} className="flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
           </Link>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
-          <Loader2 size={18} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-up" style={{ animationDelay: '80ms' }}>
 
           {/* Pending confirmation */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Pending Confirmation</p>
+                <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Pending Confirmation</p>
                 {needsAction.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-bold">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
                     {needsAction.length}
                   </span>
                 )}
               </div>
-              <Link href="/intake-management" className="text-xs text-[#2563eb] hover:underline font-medium">View all</Link>
+              <Link href="/intake-management" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
             </div>
             {needsAction.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-center">
-                <CheckCircle size={20} className="text-green-400 mb-2" />
-                <p className="text-sm text-gray-600 font-medium">All slots confirmed</p>
-                <p className="text-xs text-gray-400 mt-0.5">No pending confirmations right now.</p>
+                <CheckCircle size={20} className="mb-2" style={{ color: 'var(--color-success)' }} />
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>All slots confirmed</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>No pending confirmations right now.</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div>
                 {needsAction.slice(0, 5).map((a: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0 text-xs font-bold text-orange-600">
+                  <div key={i} className="py-2.5 flex items-center gap-3" style={{ borderTop: i > 0 ? '1px solid var(--color-border)' : 'none' }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                      style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
                       {(a.student_name || 'S').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium text-gray-800 truncate">{a.student_name || 'Student'}</p>
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{a.student_name || 'Student'}</p>
                         {a.risk_level && ['RED', 'CRITICAL'].includes(a.risk_level.toUpperCase()) && (
-                          <AlertCircle size={11} className="text-red-500 flex-shrink-0" />
+                          <AlertCircle size={11} className="flex-shrink-0" style={{ color: 'var(--color-danger)' }} />
                         )}
                       </div>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                         {fmtDate(a.preferred_date || a.created_at)} · {(a.method || 'in-person').replace(/-/g, ' ')}
                       </p>
                     </div>
                     <Link href="/intake-management">
-                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition flex-shrink-0">
+                      <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-opacity hover:opacity-90 flex-shrink-0"
+                        style={{ background: 'var(--color-primary)' }}>
                         Review →
                       </button>
                     </Link>
@@ -150,29 +152,31 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* Today's intakes */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Today's Intakes</p>
-              <Link href="/intake-management" className="text-xs text-[#2563eb] hover:underline font-medium">View all</Link>
+              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Today's Intakes</p>
+              <Link href="/intake-management" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
             </div>
             {todayConfirmed.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-center">
-                <p className="text-sm text-gray-600 font-medium">No intakes scheduled today</p>
-                <p className="text-xs text-gray-400 mt-0.5">Confirmed appointments appear here.</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No intakes scheduled today</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Confirmed appointments appear here.</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div>
                 {todayConfirmed.slice(0, 5).map((a: any, i: number) => (
-                  <div key={i} className="py-2.5 flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#2563eb]">
+                  <div key={i} className="py-2.5 flex items-center gap-3" style={{ borderTop: i > 0 ? '1px solid var(--color-border)' : 'none' }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                      style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
                       {(a.student_name || 'S').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{a.student_name || 'Student'}</p>
-                      <p className="text-xs text-gray-400">{fmtTime(a.preferred_date || a.scheduled_start)}</p>
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{a.student_name || 'Student'}</p>
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{fmtTime(a.preferred_date || a.scheduled_start)}</p>
                     </div>
                     <Link href={`/ic/intake/conduct/${a.appointment_id}`}>
-                      <button className="text-xs px-2.5 py-1 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition flex-shrink-0">
+                      <button className="text-xs px-2.5 py-1 text-white rounded-lg transition-opacity hover:opacity-90 flex-shrink-0"
+                        style={{ background: 'var(--color-primary)' }}>
                         Start →
                       </button>
                     </Link>
@@ -181,7 +185,6 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
               </div>
             )}
           </div>
-
 
         </div>
       )}

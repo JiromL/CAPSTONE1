@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { exportToExcel } from '@/utils/export';
 import { api } from '@/utils/api';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import { Search, Download, RefreshCw, Loader2, FolderOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CounselingCase {
   _id: string;
@@ -18,42 +19,46 @@ interface CounselingCase {
   created_date: string;
 }
 
+function caseStatusStyle(status: string): React.CSSProperties {
+  switch (status) {
+    case 'Active':           return { background: 'var(--color-success-surface)', color: 'var(--color-success)', border: '1px solid var(--color-success)' };
+    case 'for Termination':  return { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  border: '1px solid var(--color-danger)' };
+    default:                 return { background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' };
+  }
+}
+
+const IC = 'w-full px-4 py-2 text-sm rounded-lg outline-none transition';
+const IC_S = (f: boolean): React.CSSProperties => ({
+  background: 'var(--color-bg)',
+  border: `1px solid ${f ? 'var(--color-primary)' : 'var(--color-border)'}`,
+  color: 'var(--color-text-primary)',
+});
+
 export default function CounselingCasesPage() {
   const router = useRouter();
-  const [cases, setCases] = useState<CounselingCase[]>([]);
+  const [cases, setCases]   = useState<CounselingCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [month, setMonth] = useState('');
+  const [month, setMonth]   = useState('');
   const [status, setStatus] = useState('');
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [page, setPage]     = useState(1);
+  const [total, setTotal]   = useState(0);
+  const [fSearch, setFSearch] = useState(false);
 
-  useEffect(() => {
-    fetchCounselingCases();
-  }, [search, month, status, page]);
+  useEffect(() => { fetchCounselingCases(); }, [search, month, status, page]);
 
   const fetchCounselingCases = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-      });
+      const params = new URLSearchParams({ page: page.toString(), limit: '10' });
       if (search) params.append('search', search);
-      if (month) params.append('month', month);
+      if (month)  params.append('month', month);
       if (status) params.append('status', status);
-
-      const res = await fetch(api(`/api/client-tracking/counseling-cases?${params}`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setCases(data.data || []);
-      setTotal(data.total || 0);
-    } catch (error) {
-      console.error('Failed to fetch counseling cases:', error);
-    } finally {
-      setLoading(false);
-    }
+      const r = await fetch(api(`/api/client-tracking/counseling-cases?${params}`), { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      setCases(d.data || []); setTotal(d.total || 0);
+    } catch {} finally { setLoading(false); }
   };
 
   const handleExport = async () => {
@@ -61,76 +66,48 @@ export default function CounselingCasesPage() {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (search) params.append('search', search);
-      if (month) params.append('month', month);
+      if (month)  params.append('month', month);
       if (status) params.append('status', status);
-
-      const res = await fetch(api(`/api/client-tracking/export/counseling-cases?${params}`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      const rows = (data.data || []).map((counselingCase: CounselingCase) => [
-        counselingCase.case_number,
-        counselingCase.client_name,
-        counselingCase.client_id_number,
-        counselingCase.target_sessions,
-        counselingCase.current_sessions,
-        counselingCase.status,
-        new Date(counselingCase.created_date).toLocaleDateString(),
-      ]);
-
+      const r = await fetch(api(`/api/client-tracking/export/counseling-cases?${params}`), { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
       exportToExcel({
-        headers: [
-          'Case Number',
-          'Client Name',
-          'ID Number',
-          'Target Sessions',
-          'Current Sessions',
-          'Status',
-          'Date Created',
-        ],
-        rows,
+        headers: ['Case Number','Client Name','ID Number','Target Sessions','Current Sessions','Status','Date Created'],
+        rows: (d.data || []).map((c: CounselingCase) => [c.case_number, c.client_name, c.client_id_number, c.target_sessions, c.current_sessions, c.status, new Date(c.created_date).toLocaleDateString()]),
         filename: 'counseling-cases',
       });
-    } catch (error) {
-      console.error('Failed to export:', error);
-    }
+    } catch {}
   };
 
-  const getProgressPercentage = (current: number, target: number) => {
-    if (target === 0) return 0;
-    return Math.round((current / target) * 100);
-  };
+  const TH = ({ children }: { children: React.ReactNode }) => (
+    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{children}</th>
+  );
+
+  const totalPages = Math.max(1, Math.ceil(total / 10));
+  const start = total === 0 ? 0 : (page - 1) * 10 + 1;
+  const end   = Math.min(page * 10, total);
 
   return (
     <DashboardPageWrapper title="Counseling Cases" subtitle="Track existing clients for ongoing counseling with session metrics">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-5">
+
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
+        <div className="border rounded-xl shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
-              <input
-                type="text"
-                placeholder="Name, ID, or Case #..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Search</label>
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
+                <input type="text" placeholder="Name, ID, or Case #…" value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                  className="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-bg)', border: `1px solid ${fSearch ? 'var(--color-primary)' : 'var(--color-border)'}`, color: 'var(--color-text-primary)' }}
+                  onFocus={() => setFSearch(true)} onBlur={() => setFSearch(false)} />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
-              <select
-                value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
+              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Status</label>
+              <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
+                className={IC} style={IC_S(false)}>
                 <option value="">All Status</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -138,29 +115,20 @@ export default function CounselingCasesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Month</label>
-              <input
-                type="month"
-                value={month}
-                onChange={(e) => {
-                  setMonth(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Month</label>
+              <input type="month" value={month} onChange={e => { setMonth(e.target.value); setPage(1); }}
+                className={IC} style={IC_S(false)} />
             </div>
             <div className="flex items-end gap-2">
-              <button
-                onClick={fetchCounselingCases}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              >
-                Refresh
+              <button onClick={fetchCounselingCases}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-white rounded-lg transition hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}>
+                <RefreshCw size={13} /> Refresh
               </button>
-              <button
-                onClick={handleExport}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              >
-                Export
+              <button onClick={handleExport}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-white rounded-lg transition hover:opacity-90"
+                style={{ background: 'var(--color-success)' }}>
+                <Download size={13} /> Export
               </button>
             </div>
           </div>
@@ -168,103 +136,76 @@ export default function CounselingCasesPage() {
 
         {/* Table */}
         {loading ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <p className="text-slate-600">Loading...</p>
+          <div className="flex items-center justify-center h-44 gap-2" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          <div className="border rounded-xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Case Number</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Client Name</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">ID Number</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Sessions</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Progress</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date Created</th>
+              <table className="w-full text-sm">
+                <thead style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                  <tr>
+                    <TH>Case Number</TH><TH>Client Name</TH><TH>ID Number</TH>
+                    <TH>Sessions</TH><TH>Progress</TH><TH>Status</TH><TH>Date Created</TH>
                   </tr>
                 </thead>
                 <tbody>
                   {cases.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-4 text-center text-slate-600">
-                        No records found
+                      <td colSpan={7} className="px-6 py-12 text-center">
+                        <FolderOpen size={28} className="mx-auto mb-3" style={{ color: 'var(--color-border)' }} />
+                        <p style={{ color: 'var(--color-text-muted)' }}>No records found</p>
                       </td>
                     </tr>
-                  ) : (
-                    cases.map((counselingCase) => {
-                      const progress = getProgressPercentage(
-                        counselingCase.current_sessions,
-                        counselingCase.target_sessions
-                      );
-                      return (
-                        <tr
-                          key={counselingCase._id}
-                          className="border-b border-slate-200 hover:bg-slate-50 cursor-pointer"
-                          onClick={() => router.push(`/cases/${counselingCase._id}`)}
-                        >
-                          <td className="px-6 py-3 text-sm font-medium text-green-700 hover:underline">{counselingCase.case_number}</td>
-                          <td className="px-6 py-3 text-sm text-slate-900">{counselingCase.client_name}</td>
-                          <td className="px-6 py-3 text-sm text-slate-600">{counselingCase.client_id_number}</td>
-                          <td className="px-6 py-3 text-sm text-slate-600">
-                            {counselingCase.current_sessions} / {counselingCase.target_sessions}
-                          </td>
-                          <td className="px-6 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 bg-slate-200 rounded-full h-2">
-                                <div
-                                  className="bg-blue-600 h-2 rounded-full"
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                              <span className="text-xs font-medium text-slate-600 w-8">{progress}%</span>
+                  ) : cases.map(c => {
+                    const pct = c.target_sessions > 0 ? Math.round((c.current_sessions / c.target_sessions) * 100) : 0;
+                    return (
+                      <tr key={c._id} className="cursor-pointer transition"
+                        style={{ borderBottom: '1px solid var(--color-border)' }}
+                        onClick={() => router.push(`/cases/${c._id}`)}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <td className="px-6 py-3 font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>{c.case_number}</td>
+                        <td className="px-6 py-3" style={{ color: 'var(--color-text-primary)' }}>{c.client_name}</td>
+                        <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{c.client_id_number}</td>
+                        <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{c.current_sessions} / {c.target_sessions}</td>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+                              <div className="h-2 rounded-full" style={{ width: `${pct}%`, background: 'var(--color-primary)' }} />
                             </div>
-                          </td>
-                          <td className="px-6 py-3 text-sm">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                counselingCase.status === 'Active'
-                                  ? 'bg-green-100 text-green-800'
-                                  : counselingCase.status === 'for Termination'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-slate-100 text-slate-800'
-                              }`}
-                            >
-                              {counselingCase.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-3 text-sm text-slate-600">
-                            {new Date(counselingCase.created_date).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
+                            <span className="text-xs font-medium w-8" style={{ color: 'var(--color-text-muted)' }}>{pct}%</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium" style={caseStatusStyle(c.status)}>{c.status}</span>
+                        </td>
+                        <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{new Date(c.created_date).toLocaleDateString()}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-              <p className="text-sm text-slate-600">
-                Showing {cases.length > 0 ? (page - 1) * 10 + 1 : 0} to {Math.min(page * 10, total)} of {total}
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                {total === 0 ? 'No records' : `Showing ${start}–${end} of ${total}`}
               </p>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Previous
+                <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition disabled:opacity-50"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => { if (page > 1) e.currentTarget.style.background = 'var(--color-bg)'; }}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <ChevronLeft size={14} /> Previous
                 </button>
-                <button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page * 10 >= total}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Next
+                <button onClick={() => setPage(page + 1)} disabled={page * 10 >= total}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition disabled:opacity-50"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => { if (page * 10 < total) e.currentTarget.style.background = 'var(--color-bg)'; }}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  Next <ChevronRight size={14} />
                 </button>
               </div>
             </div>

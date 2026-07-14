@@ -34,23 +34,35 @@ export default function InProgressIntakesPage() {
     loadIntakes();
   }, []);
 
-  if (loading) return <PageShell title="Intakes In Progress"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></PageShell>;
+  if (loading) return (
+    <PageShell title="Intakes In Progress">
+      <div className="animate-spin rounded-full h-8 w-8"
+        style={{ borderWidth: 2, borderStyle: 'solid', borderColor: 'transparent', borderBottomColor: 'var(--color-primary)' }} />
+    </PageShell>
+  );
 
   return (
     <PageShell title="Intakes In Progress" subtitle={`${intakes.length} in progress`}>
       <div className="space-y-4">
         {intakes.length === 0 ? (
-          <div className="text-center py-8"><Clock className="mx-auto mb-2 text-gray-400" size={32} /><p>No intakes in progress</p></div>
+          <div className="text-center py-8">
+            <Clock className="mx-auto mb-2" size={32} style={{ color: 'var(--color-text-muted)' }} />
+            <p style={{ color: 'var(--color-text-secondary)' }}>No intakes in progress</p>
+          </div>
         ) : (
           intakes.map(intake => (
-            <div key={intake._id} className="border rounded p-4 border-blue-200 bg-blue-50">
+            <div key={intake._id} className="rounded p-4"
+              style={{ border: '1px solid var(--color-primary-surface)', background: 'var(--color-primary-surface)' }}>
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold">{intake.student_name}</h3>
-                  <p className="text-sm text-gray-600">Started: {new Date(intake.created_at).toLocaleDateString()}</p>
-                  <p className="text-xs text-gray-500 mt-2">Updated: {new Date(intake.last_updated).toLocaleDateString()}</p>
+                  <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{intake.student_name}</h3>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Started: {new Date(intake.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>Updated: {new Date(intake.last_updated).toLocaleDateString()}</p>
                 </div>
-                <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded">IN PROGRESS</span>
+                <span className="text-xs px-3 py-1 rounded font-semibold"
+                  style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary)' }}>
+                  IN PROGRESS
+                </span>
               </div>
             </div>
           ))

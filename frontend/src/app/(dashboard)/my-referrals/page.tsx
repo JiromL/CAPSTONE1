@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, CheckCircle, Clock, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { Users, CheckCircle, Clock, AlertCircle, ExternalLink, RefreshCw, Loader2 } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -18,159 +18,138 @@ interface PoolReferral {
   created_at: string | null;
 }
 
+function UrgencyBadge({ urgency }: { urgency: string }) {
+  const u = (urgency || 'routine').toLowerCase();
+  if (u === 'urgent') return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+      style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
+      <AlertCircle size={10} /> Urgent
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+      style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
+      <Clock size={10} /> Routine
+    </span>
+  );
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch { return iso; }
+}
+
 export default function MyReferralsPage() {
   const router = useRouter();
   const [referrals, setReferrals] = useState<PoolReferral[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
   const [accepting, setAccepting] = useState<string | null>(null);
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set());
 
   const loadReferrals = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) { router.push('/login'); return; }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      const res = await fetch(api('/api/referrals/pool'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(api('/api/referrals/pool'), { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        setError(d.error || 'Failed to load referrals');
-        return;
+        setError(d.error || 'Failed to load referrals'); return;
       }
-      const data = await res.json();
-      setReferrals(data.referrals || []);
-    } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setReferrals((await res.json()).referrals || []);
+    } catch { setError('Network error. Please try again.'); }
+    finally { setLoading(false); }
   }, [router]);
 
   useEffect(() => { loadReferrals(); }, [loadReferrals]);
 
-  const handleAccept = async (referral: PoolReferral) => {
+  const handleAccept = async (ref: PoolReferral) => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    setAccepting(referral.referral_id);
+    setAccepting(ref.referral_id);
     try {
-      const res = await fetch(api(`/api/referrals/${referral.referral_id}/accept`), {
+      const res = await fetch(api(`/api/referrals/${ref.referral_id}/accept`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (res.ok) {
-        setAcceptedIds(prev => new Set([...prev, referral.referral_id]));
-        // Remove from list after short delay
+        setAcceptedIds(prev => new Set([...prev, ref.referral_id]));
         setTimeout(() => {
-          setReferrals(prev => prev.filter(r => r.referral_id !== referral.referral_id));
-          setAcceptedIds(prev => { const n = new Set(prev); n.delete(referral.referral_id); return n; });
+          setReferrals(prev => prev.filter(r => r.referral_id !== ref.referral_id));
+          setAcceptedIds(prev => { const n = new Set(prev); n.delete(ref.referral_id); return n; });
         }, 1500);
       } else {
         const d = await res.json().catch(() => ({}));
         alert(d.error || 'Failed to accept referral');
       }
-    } catch {
-      alert('Network error. Please try again.');
-    } finally {
-      setAccepting(null);
-    }
-  };
-
-  const urgencyBadge = (urgency: string) => {
-    const u = (urgency || 'routine').toLowerCase();
-    if (u === 'urgent') return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-        <AlertCircle size={10} /> Urgent
-      </span>
-    );
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-        <Clock size={10} /> Routine
-      </span>
-    );
-  };
-
-  const formatDate = (iso: string | null) => {
-    if (!iso) return '—';
-    try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-    catch { return iso; }
+    } catch { alert('Network error. Please try again.'); }
+    finally { setAccepting(null); }
   };
 
   return (
-    <DashboardPageWrapper
-      title="My Referrals"
-      subtitle="Pool referrals assigned to your role"
-      requiredRoles={['COUNSELOR', 'PSYCHOLOGIST']}
-    >
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <DashboardPageWrapper title="My Referrals" subtitle="Pool referrals assigned to your role"
+      requiredRoles={['COUNSELOR', 'PSYCHOLOGIST']}>
+      <div className="max-w-4xl mx-auto space-y-5">
+
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">My Referrals</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>My Referrals</h1>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
               Cases referred to your role pool — accept to take ownership
             </p>
           </div>
-          <button
-            onClick={loadReferrals}
-            disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh
+          <button onClick={loadReferrals} disabled={loading}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border transition disabled:opacity-50"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">
-            <AlertCircle size={16} />
-            {error}
+          <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
+            style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}>
+            <AlertCircle size={16} /> {error}
           </div>
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563eb]" />
+          <div className="flex items-center justify-center h-48 gap-2" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
           </div>
         ) : referrals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400 dark:text-gray-600">
+          <div className="flex flex-col items-center justify-center h-48 gap-3" style={{ color: 'var(--color-text-muted)' }}>
             <Users size={40} strokeWidth={1.5} />
             <p className="text-sm">No pending pool referrals for your role</p>
           </div>
         ) : (
           <div className="space-y-3">
             {referrals.map(ref => {
-              const isAccepted = acceptedIds.has(ref.referral_id);
+              const isAccepted  = acceptedIds.has(ref.referral_id);
               const isAccepting = accepting === ref.referral_id;
               return (
-                <div
-                  key={ref.referral_id}
-                  className="rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900 p-5"
-                >
+                <div key={ref.referral_id} className="rounded-2xl p-5 shadow-card"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-semibold text-gray-900 dark:text-gray-50">
+                        <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>
                           {ref.student_name || 'Unknown Student'}
                         </span>
                         {ref.student_id && (
-                          <span className="text-xs text-gray-400 dark:text-gray-500">
-                            ID: {ref.student_id}
-                          </span>
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>ID: {ref.student_id}</span>
                         )}
-                        {urgencyBadge(ref.urgency)}
+                        <UrgencyBadge urgency={ref.urgency} />
                       </div>
-
                       {ref.reason && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                          {ref.reason}
-                        </p>
+                        <p className="text-sm mb-2 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{ref.reason}</p>
                       )}
-
-                      <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
+                      <div className="flex items-center gap-4 text-xs flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
                         {ref.referred_by && (
-                          <span>Referred by: <span className="text-gray-600 dark:text-gray-400">{ref.referred_by}</span></span>
+                          <span>Referred by: <span style={{ color: 'var(--color-text-secondary)' }}>{ref.referred_by}</span></span>
                         )}
                         <span>Received: {formatDate(ref.created_at)}</span>
                         <span className="capitalize">Role: {ref.assigned_to_role?.toLowerCase()}</span>
@@ -179,30 +158,27 @@ export default function MyReferralsPage() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       {ref.case_id && (
-                        <button
-                          onClick={() => router.push(`/cases/${ref.case_id}`)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                          <ExternalLink size={12} />
-                          View Case
+                        <button onClick={() => router.push(`/cases/${ref.case_id}`)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition"
+                          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <ExternalLink size={12} /> View Case
                         </button>
                       )}
+
                       {isAccepted ? (
-                        <span className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                          <CheckCircle size={12} />
-                          Accepted
+                        <span className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg"
+                          style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)', color: 'var(--color-success)' }}>
+                          <CheckCircle size={12} /> Accepted
                         </span>
                       ) : (
-                        <button
-                          onClick={() => handleAccept(ref)}
-                          disabled={!!accepting}
-                          className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-white bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50 rounded-lg transition-colors"
-                        >
-                          {isAccepting ? (
-                            <span className="animate-spin rounded-full h-3 w-3 border-b border-white" />
-                          ) : (
-                            <CheckCircle size={12} />
-                          )}
+                        <button onClick={() => handleAccept(ref)} disabled={!!accepting}
+                          className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-white rounded-lg transition hover:opacity-90 disabled:opacity-50"
+                          style={{ background: 'var(--color-primary)' }}>
+                          {isAccepting
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <CheckCircle size={12} />}
                           Accept
                         </button>
                       )}

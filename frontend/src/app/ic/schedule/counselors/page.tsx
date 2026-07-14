@@ -38,7 +38,6 @@ export default function CounselorsAvailabilityPage() {
         const data = await response.json();
         const appointments = Array.isArray(data) ? data : data.appointments || [];
 
-        // Group by counselor and calculate stats
         const statsMap = new Map<string, CounselorStats>();
         const now = new Date();
         const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -70,7 +69,6 @@ export default function CounselorsAvailabilityPage() {
 
         const stats = Array.from(statsMap.values());
 
-        // Sort
         if (sortBy === 'load') {
           stats.sort((a, b) => b.totalAppointments - a.totalAppointments);
         } else if (sortBy === 'pending') {
@@ -98,7 +96,10 @@ export default function CounselorsAvailabilityPage() {
     return (
       <DashboardPageWrapper title="Counselor Availability" subtitle="View all counselor workload and availability">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12" style={{
+            borderWidth: 2, borderStyle: 'solid',
+            borderColor: 'transparent', borderBottomColor: 'var(--color-primary)'
+          }} />
         </div>
       </DashboardPageWrapper>
     );
@@ -108,84 +109,70 @@ export default function CounselorsAvailabilityPage() {
     <DashboardPageWrapper title="Counselor Availability" subtitle="View all counselor workload and availability">
       <div className="space-y-6">
         {error && (
-          <div className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 flex gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="rounded-lg p-4 flex gap-3"
+            style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle className="flex-shrink-0" size={20} style={{ color: 'var(--color-danger)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
           </div>
         )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
+          <div className="rounded-lg p-6" style={{ background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Counselors</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{counselorStats.length}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Active Counselors</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{counselorStats.length}</p>
               </div>
-              <Users className="text-green-600 dark:text-green-400" size={32} />
+              <Users size={32} style={{ color: 'var(--color-success)' }} />
             </div>
           </div>
-          <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg p-6 border border-green-200 dark:border-blue-700">
+          <div className="rounded-lg p-6" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Appointments</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{totalAppointments}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Total Appointments</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{totalAppointments}</p>
               </div>
-              <Briefcase className="text-green-600 dark:text-green-400" size={32} />
+              <Briefcase size={32} style={{ color: 'var(--color-success)' }} />
             </div>
           </div>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-6 border border-yellow-200 dark:border-yellow-700">
+          <div className="rounded-lg p-6" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{totalPending}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Pending</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{totalPending}</p>
               </div>
-              <Clock className="text-yellow-600 dark:text-yellow-400" size={32} />
+              <Clock size={32} style={{ color: 'var(--color-warning)' }} />
             </div>
           </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-700">
+          <div className="rounded-lg p-6" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Avg Load</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">{avgLoad}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Avg Load</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{avgLoad}</p>
               </div>
-              <TrendingUp className="text-purple-600 dark:text-purple-400" size={32} />
+              <TrendingUp size={32} style={{ color: 'var(--color-primary)' }} />
             </div>
           </div>
         </div>
 
         {/* Sort Options */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700 flex gap-2">
-          <button
-            onClick={() => setSortBy('name')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              sortBy === 'name'
-                ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-50 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            Sort by Name
-          </button>
-          <button
-            onClick={() => setSortBy('load')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              sortBy === 'load'
-                ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-50 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            Sort by Load
-          </button>
-          <button
-            onClick={() => setSortBy('pending')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              sortBy === 'pending'
-                ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-50 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            Sort by Pending
-          </button>
+        <div className="rounded-lg p-4 flex gap-2"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+          {(['name', 'load', 'pending'] as const).map(opt => (
+            <button
+              key={opt}
+              onClick={() => setSortBy(opt)}
+              className="px-4 py-2 rounded-lg font-medium transition"
+              style={sortBy === opt
+                ? { background: 'var(--color-primary)', color: '#fff' }
+                : { background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+              onMouseEnter={e => { if (sortBy !== opt) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-border)'; }}
+              onMouseLeave={e => { if (sortBy !== opt) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+            >
+              {opt === 'name' ? 'Sort by Name' : opt === 'load' ? 'Sort by Load' : 'Sort by Pending'}
+            </button>
+          ))}
         </div>
 
         {/* Counselor List */}
@@ -195,24 +182,30 @@ export default function CounselorsAvailabilityPage() {
               const loadPercent = Math.round((counselor.totalAppointments / totalAppointments) * 100) || 0;
               const isOverloaded = counselor.totalAppointments > avgLoad + 3;
               const isUnderloaded = counselor.totalAppointments < avgLoad - 2 && counselor.totalAppointments > 0;
+              const barColor = isOverloaded ? 'var(--color-danger)' : isUnderloaded ? 'var(--color-success)' : 'var(--color-primary)';
 
               return (
                 <div
                   key={counselor.name}
-                  className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition"
+                  className="rounded-lg p-6 transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+                  onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card-lg)')}
+                  onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}
                 >
                   <div className="space-y-4">
                     {/* Header */}
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50">{counselor.name}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{counselor.name}</h3>
                       <div className="flex gap-2">
                         {isOverloaded && (
-                          <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 rounded-full text-sm font-medium"
+                            style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
                             ⚠️ Overloaded
                           </span>
                         )}
                         {isUnderloaded && (
-                          <span className="px-3 py-1 bg-green-100 dark:bg-blue-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 rounded-full text-sm font-medium"
+                            style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
                             ✓ Available
                           </span>
                         )}
@@ -222,49 +215,53 @@ export default function CounselorsAvailabilityPage() {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">{counselor.totalAppointments}</p>
+                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Total</p>
+                        <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{counselor.totalAppointments}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Confirmed</p>
-                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{counselor.confirmedAppointments}</p>
+                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Confirmed</p>
+                        <p className="text-2xl font-bold" style={{ color: 'var(--color-success)' }}>{counselor.confirmedAppointments}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
-                        <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{counselor.pendingAppointments}</p>
+                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Pending</p>
+                        <p className="text-2xl font-bold" style={{ color: 'var(--color-warning)' }}>{counselor.pendingAppointments}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Next 7 Days</p>
-                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{counselor.upcomingWeek}</p>
+                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Next 7 Days</p>
+                        <p className="text-2xl font-bold" style={{ color: 'var(--color-success)' }}>{counselor.upcomingWeek}</p>
                       </div>
                     </div>
 
                     {/* Progress Bar */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Workload Distribution</p>
-                        <p className="text-xs font-bold text-gray-900 dark:text-gray-50">{loadPercent}%</p>
+                        <p className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Workload Distribution</p>
+                        <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{loadPercent}%</p>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                      <div className="w-full rounded-full h-2 overflow-hidden" style={{ background: 'var(--color-border)' }}>
                         <div
-                          className={`h-full rounded-full transition-all ${
-                            isOverloaded
-                              ? 'bg-red-500'
-                              : isUnderloaded
-                                ? 'bg-green-500'
-                                : 'bg-blue-500'
-                          }`}
-                          style={{ width: `${loadPercent}%` }}
-                        ></div>
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${loadPercent}%`, background: barColor }}
+                        />
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <button className="flex-1 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg font-medium text-sm transition">
+                    <div className="flex gap-2 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                      <button
+                        className="flex-1 px-3 py-2 rounded-lg font-medium text-sm transition"
+                        style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}
+                        onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                      >
                         View Schedule
                       </button>
-                      <button className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-sm transition">
+                      <button
+                        className="flex-1 px-3 py-2 rounded-lg font-medium text-sm transition"
+                        style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-border)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                      >
                         Assign Case
                       </button>
                     </div>
@@ -273,9 +270,9 @@ export default function CounselorsAvailabilityPage() {
               );
             })
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-12 text-center border border-gray-200 dark:border-gray-700">
-              <Users className="mx-auto mb-3 text-gray-400" size={32} />
-              <p className="text-gray-600 dark:text-gray-400">No counselor data available</p>
+            <div className="rounded-lg p-12 text-center" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+              <Users className="mx-auto mb-3" size={32} style={{ color: 'var(--color-text-muted)' }} />
+              <p style={{ color: 'var(--color-text-secondary)' }}>No counselor data available</p>
             </div>
           )}
         </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
-import { AlertCircle, Plus, Trash2, Check, Clock, Calendar } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Check, Clock, Calendar, Loader2 } from 'lucide-react';
 
 interface Reminder {
   reminder_id: string;
@@ -19,333 +19,211 @@ interface RemindersData {
   reminders: Reminder[];
 }
 
+type ReminderType = 'appointment' | 'medication' | 'homework' | 'general';
+
+function reminderTypeStyle(type: string): React.CSSProperties {
+  switch (type as ReminderType) {
+    case 'appointment': return { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' };
+    case 'medication':  return { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  border: '1px solid var(--color-danger)' };
+    case 'homework':    return { background: '#F5F3FF', color: '#7C3AED', border: '1px solid #7C3AED' };
+    default:            return { background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' };
+  }
+}
+
 const REMINDER_TYPES = [
-  { value: 'appointment', label: 'Appointment', color: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' },
-  { value: 'medication', label: 'Medication', color: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' },
-  { value: 'homework', label: 'Homework', color: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200' },
-  { value: 'general', label: 'General', color: 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200' }
+  { value: 'appointment', label: 'Appointment' },
+  { value: 'medication',  label: 'Medication'  },
+  { value: 'homework',    label: 'Homework'    },
+  { value: 'general',     label: 'General'     },
 ];
 
 const RECURRENCE_OPTIONS = [
-  { value: '', label: 'One-time' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' }
+  { value: '',        label: 'One-time' },
+  { value: 'daily',   label: 'Daily'    },
+  { value: 'weekly',  label: 'Weekly'   },
+  { value: 'monthly', label: 'Monthly'  },
 ];
+
+const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const ICS: React.CSSProperties = {
+  background: 'var(--color-bg)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text-primary)',
+};
 
 export default function RemindersPage() {
   const [remindersData, setRemindersData] = useState<RemindersData>({ reminders: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
   const [filterType, setFilterType] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [showNewReminder, setShowNewReminder] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
+  const [newTitle, setNewTitle]   = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [newTime, setNewTime] = useState('');
+  const [newTime, setNewTime]     = useState('');
   const [newReminderType, setNewReminderType] = useState('appointment');
-  const [newRecurrence, setNewRecurrence] = useState('');
+  const [newRecurrence, setNewRecurrence]     = useState('');
 
-  // Fetch reminders
-  useEffect(() => {
-    const fetchReminders = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('Not authenticated');
-          setLoading(false);
-          return;
-        }
+  const fetchReminders = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) { setError('Not authenticated'); return; }
+      const typeParam = filterType !== 'all' ? `?type=${filterType}` : '';
+      const r = await fetch(api(`/api/engagement/reminders${typeParam}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error('Failed to fetch reminders');
+      setRemindersData(await r.json());
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load reminders');
+    } finally { setLoading(false); }
+  };
 
-        const typeParam = filterType !== 'all' ? `?type=${filterType}` : '';
-        const response = await fetch(`${api(`/api/engagement/reminders${typeParam}`)}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+  useEffect(() => { fetchReminders(); }, [filterType]);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch reminders');
-        }
-
-        const data = await response.json();
-        setRemindersData(data);
-        setError('');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load reminders');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReminders();
-  }, [filterType]);
-
-  // Create new reminder
   const handleCreateReminder = async () => {
-    if (!newTitle.trim() || !newTime) {
-      setError('Please fill in title and time');
-      return;
-    }
-
+    if (!newTitle.trim() || !newTime) { setError('Please fill in title and time'); return; }
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${api('/api/engagement/reminders')}`, {
+      const r = await fetch(api('/api/engagement/reminders'), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: newTitle,
-          description: newDescription,
-          reminder_time: newTime,
-          reminder_type: newReminderType,
-          is_recurring: !!newRecurrence,
-          recurrence_pattern: newRecurrence || null
-        })
+          title: newTitle, description: newDescription,
+          reminder_time: newTime, reminder_type: newReminderType,
+          is_recurring: !!newRecurrence, recurrence_pattern: newRecurrence || null,
+        }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create reminder');
-      }
-
-      // Refresh list
-      const listResponse = await fetch(`${api(`/api/engagement/reminders?type=${filterType}`)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await listResponse.json();
-      setRemindersData(data);
+      if (!r.ok) throw new Error('Failed to create reminder');
+      await fetchReminders();
       setShowNewReminder(false);
-      setNewTitle('');
-      setNewDescription('');
-      setNewTime('');
-      setNewReminderType('appointment');
-      setNewRecurrence('');
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create reminder');
-    }
+      setNewTitle(''); setNewDescription(''); setNewTime('');
+      setNewReminderType('appointment'); setNewRecurrence(''); setError('');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to create reminder'); }
   };
 
-  // Acknowledge reminder
-  const handleAcknowledge = async (reminderId: string) => {
+  const handleAcknowledge = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${api(`/api/engagement/reminders/${reminderId}/acknowledge`)}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const r = await fetch(api(`/api/engagement/reminders/${id}/acknowledge`), {
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to acknowledge reminder');
-      }
-
-      // Refresh list
-      const listResponse = await fetch(`${api(`/api/engagement/reminders?type=${filterType}`)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await listResponse.json();
-      setRemindersData(data);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to acknowledge reminder');
-    }
+      if (!r.ok) throw new Error('Failed to acknowledge reminder');
+      await fetchReminders(); setError('');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to acknowledge reminder'); }
   };
 
-  // Delete reminder
-  const handleDeleteReminder = async (reminderId: string) => {
+  const handleDeleteReminder = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this reminder?')) return;
-
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${api(`/api/engagement/reminders/${reminderId}`)}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const r = await fetch(api(`/api/engagement/reminders/${id}`), {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete reminder');
-      }
-
-      setRemindersData({
-        reminders: remindersData.reminders.filter(r => r.reminder_id !== reminderId)
-      });
+      if (!r.ok) throw new Error('Failed to delete reminder');
+      setRemindersData({ reminders: remindersData.reminders.filter(r => r.reminder_id !== id) });
       setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete reminder');
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to delete reminder'); }
   };
 
-  const getReminderTypeColor = (type: string) => {
-    return REMINDER_TYPES.find(t => t.value === type)?.color || REMINDER_TYPES[3].color;
-  };
-
-  const getReminderTypeLabel = (type: string) => {
-    return REMINDER_TYPES.find(t => t.value === type)?.label || 'General';
-  };
-
-  const isUpcoming = (reminderTime: string) => {
-    return new Date(reminderTime) > new Date();
-  };
-
-  if (loading) {
-    return (
-      <DashboardPageWrapper title="Reminders" subtitle="Manage your appointments and tasks">
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </DashboardPageWrapper>
-    );
-  }
-
+  const isUpcoming = (t: string) => new Date(t) > new Date();
   const upcomingCount = remindersData.reminders.filter(r => isUpcoming(r.reminder_time)).length;
-  const pastCount = remindersData.reminders.filter(r => !isUpcoming(r.reminder_time)).length;
+  const pastCount     = remindersData.reminders.filter(r => !isUpcoming(r.reminder_time)).length;
+
+  const Card = ({ children, opacity }: { children: React.ReactNode; opacity?: boolean }) => (
+    <div className={`rounded-2xl shadow-card p-4 transition ${opacity ? 'opacity-60' : ''}`}
+      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+      {children}
+    </div>
+  );
 
   return (
     <DashboardPageWrapper title="Reminders" subtitle="Manage your appointments and tasks">
-      <div className="space-y-6">
+      <div className="space-y-5">
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div />
-          <button
-            onClick={() => setShowNewReminder(!showNewReminder)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-          >
-            <Plus size={20} />
-            New Reminder
+          <button onClick={() => setShowNewReminder(!showNewReminder)}
+            className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition hover:opacity-90"
+            style={{ background: 'var(--color-primary)' }}>
+            <Plus size={16} /> New Reminder
           </button>
         </div>
 
-        {/* Error Alert */}
+        {/* Error */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
-            <p className="text-red-700 dark:text-red-300">{error}</p>
+          <div className="flex gap-2.5 rounded-xl p-4"
+            style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{error}</p>
           </div>
         )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Upcoming</p>
-            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{upcomingCount}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Reminders</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{remindersData.reminders.length}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Past</p>
-            <p className="text-3xl font-bold text-gray-600 dark:text-gray-400">{pastCount}</p>
-          </div>
+          {[
+            { label: 'Upcoming',        value: upcomingCount,                  color: 'var(--color-primary)' },
+            { label: 'Total Reminders', value: remindersData.reminders.length, color: 'var(--color-text-primary)' },
+            { label: 'Past',            value: pastCount,                      color: 'var(--color-text-muted)' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="rounded-xl p-4 shadow-card"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <p className="text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+              <p className="text-3xl font-bold" style={{ color }}>{value}</p>
+            </div>
+          ))}
         </div>
 
         {/* New Reminder Form */}
         {showNewReminder && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Reminder</h2>
-
+          <div className="rounded-2xl shadow-card p-6 space-y-4"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>Create New Reminder</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g., Therapy appointment"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Title</label>
+                <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)}
+                  placeholder="e.g., Therapy appointment" className={IC} style={ICS} />
               </div>
-
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Type
-                </label>
-                <select
-                  value={newReminderType}
-                  onChange={(e) => setNewReminderType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {REMINDER_TYPES.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
+                <label className="block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Type</label>
+                <select value={newReminderType} onChange={e => setNewReminderType(e.target.value)}
+                  className={IC} style={ICS}>
+                  {REMINDER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
-
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Date & Time
-                </label>
-                <input
-                  type="datetime-local"
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Date & Time</label>
+                <input type="datetime-local" value={newTime} onChange={e => setNewTime(e.target.value)}
+                  className={IC} style={ICS} />
               </div>
-
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Recurrence
-                </label>
-                <select
-                  value={newRecurrence}
-                  onChange={(e) => setNewRecurrence(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {RECURRENCE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
+                <label className="block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Recurrence</label>
+                <select value={newRecurrence} onChange={e => setNewRecurrence(e.target.value)}
+                  className={IC} style={ICS}>
+                  {RECURRENCE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
             </div>
-
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Description (optional)
-              </label>
-              <textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Add notes or details..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Description (optional)</label>
+              <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)}
+                placeholder="Add notes or details…" rows={3}
+                style={{ ...ICS, width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', outline: 'none', resize: 'none', fontSize: '0.875rem' }} />
             </div>
-
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowNewReminder(false)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-              >
+              <button onClick={() => setShowNewReminder(false)}
+                className="px-4 py-2 text-sm rounded-lg border transition"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 Cancel
               </button>
-              <button
-                onClick={handleCreateReminder}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
-              >
+              <button onClick={handleCreateReminder}
+                className="px-4 py-2 text-sm text-white rounded-lg transition hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}>
                 Create Reminder
               </button>
             </div>
@@ -353,107 +231,93 @@ export default function RemindersPage() {
         )}
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
           {(['upcoming', 'past', 'all'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setFilterType(tab)}
-              className={`px-4 py-2 font-medium capitalize transition ${
-                filterType === tab
-                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
-              }`}
-            >
+            <button key={tab} onClick={() => setFilterType(tab)}
+              className="px-4 py-2 font-medium capitalize transition text-sm"
+              style={filterType === tab
+                ? { color: 'var(--color-primary)', borderBottom: '2px solid var(--color-primary)' }
+                : { color: 'var(--color-text-secondary)' }}>
               {tab}
             </button>
           ))}
         </div>
 
-        {/* Reminders List */}
-        <div className="space-y-4">
-          {remindersData.reminders.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-8 text-center">
-              <Clock className="mx-auto text-gray-400 dark:text-gray-600 mb-4" size={48} />
-              <p className="text-gray-700 dark:text-gray-300 font-medium">No reminders</p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Create a new reminder to get started</p>
-            </div>
-          ) : (
-            remindersData.reminders.map((reminder) => {
+        {/* List */}
+        {loading ? (
+          <div className="flex items-center justify-center h-40 gap-2" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {remindersData.reminders.length === 0 ? (
+              <div className="rounded-2xl shadow-card p-10 text-center"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <Clock size={40} className="mx-auto mb-4" style={{ color: 'var(--color-border)' }} />
+                <p className="font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>No reminders</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Create a new reminder to get started</p>
+              </div>
+            ) : remindersData.reminders.map(reminder => {
               const isPast = !isUpcoming(reminder.reminder_time);
               return (
-                <div
-                  key={reminder.reminder_id}
-                  className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4 transition ${
-                    reminder.acknowledged ? 'opacity-60' : ''
-                  }`}
-                >
+                <Card key={reminder.reminder_id} opacity={reminder.acknowledged}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        {isPast ? (
-                          <Calendar className="text-gray-400" size={20} />
-                        ) : (
-                          <Clock className="text-blue-600 dark:text-blue-400" size={20} />
-                        )}
+                        {isPast
+                          ? <Calendar size={18} style={{ color: 'var(--color-text-muted)' }} />
+                          : <Clock size={18} style={{ color: 'var(--color-primary)' }} />}
                         <div>
-                          <h3 className={`font-semibold ${
-                            isPast
-                              ? 'text-gray-600 dark:text-gray-400 line-through'
-                              : 'text-gray-900 dark:text-white'
-                          }`}>
+                          <h3 className="font-semibold text-sm"
+                            style={{ color: isPast ? 'var(--color-text-muted)' : 'var(--color-text-primary)', textDecoration: isPast ? 'line-through' : 'none' }}>
                             {reminder.title}
                           </h3>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                             {new Date(reminder.reminder_time).toLocaleString()}
                           </p>
                         </div>
                       </div>
-                      
                       {reminder.description && (
-                        <p className="text-gray-700 dark:text-gray-300 mb-2">{reminder.description}</p>
+                        <p className="text-sm mb-2" style={{ color: 'var(--color-text-secondary)' }}>{reminder.description}</p>
                       )}
-
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getReminderTypeColor(reminder.reminder_type)}`}>
-                          {getReminderTypeLabel(reminder.reminder_type)}
+                        <span className="px-2 py-0.5 rounded text-xs font-medium" style={reminderTypeStyle(reminder.reminder_type)}>
+                          {REMINDER_TYPES.find(t => t.value === reminder.reminder_type)?.label ?? 'General'}
                         </span>
                         {reminder.sent && (
-                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-blue-900 text-green-800 dark:text-blue-200">
-                            Sent
-                          </span>
+                          <span className="px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>Sent</span>
                         )}
                         {reminder.acknowledged && (
-                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                            Acknowledged
-                          </span>
+                          <span className="px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>Acknowledged</span>
                         )}
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 ml-4">
                       {!reminder.acknowledged && !isPast && (
-                        <button
-                          onClick={() => handleAcknowledge(reminder.reminder_id)}
-                          className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                          title="Acknowledge"
-                        >
-                          <Check size={20} />
+                        <button onClick={() => handleAcknowledge(reminder.reminder_id)}
+                          className="p-2 rounded-lg transition" title="Acknowledge"
+                          style={{ color: 'var(--color-success)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-success-surface)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <Check size={18} />
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDeleteReminder(reminder.reminder_id)}
-                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                        title="Delete"
-                      >
-                        <Trash2 size={20} />
+                      <button onClick={() => handleDeleteReminder(reminder.reminder_id)}
+                        className="p-2 rounded-lg transition" title="Delete"
+                        style={{ color: 'var(--color-danger)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
-                </div>
+                </Card>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </DashboardPageWrapper>
   );

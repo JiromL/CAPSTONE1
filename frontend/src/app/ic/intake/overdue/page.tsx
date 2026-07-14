@@ -33,23 +33,35 @@ export default function OverdueIntakesPage() {
     loadIntakes();
   }, []);
 
-  if (loading) return <PageShell title="Overdue Intakes"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></PageShell>;
+  if (loading) return (
+    <PageShell title="Overdue Intakes">
+      <div className="animate-spin rounded-full h-8 w-8"
+        style={{ borderWidth: 2, borderStyle: 'solid', borderColor: 'transparent', borderBottomColor: 'var(--color-primary)' }} />
+    </PageShell>
+  );
 
   return (
     <PageShell title="Overdue Intakes" subtitle={`${intakes.length} overdue - PRIORITY`}>
       <div className="space-y-4">
         {intakes.length === 0 ? (
-          <div className="text-center py-8"><AlertCircle className="mx-auto mb-2 text-gray-400" size={32} /><p>No overdue intakes!</p></div>
+          <div className="text-center py-8">
+            <AlertCircle className="mx-auto mb-2" size={32} style={{ color: 'var(--color-text-muted)' }} />
+            <p style={{ color: 'var(--color-text-secondary)' }}>No overdue intakes!</p>
+          </div>
         ) : (
           intakes.map(intake => (
-            <div key={intake._id} className="border rounded p-4 border-red-200 bg-red-50">
+            <div key={intake._id} className="rounded p-4"
+              style={{ border: '1px solid var(--color-danger)', background: 'var(--color-danger-surface)' }}>
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold text-red-900">{intake.student_name}</h3>
-                  <p className="text-sm text-red-700">Due: {new Date(intake.deadline).toLocaleDateString()}</p>
-                  <p className="text-sm font-bold text-red-900 mt-1">⚠️ {intake.days_overdue} days overdue</p>
+                  <h3 className="font-semibold" style={{ color: 'var(--color-danger-text)' }}>{intake.student_name}</h3>
+                  <p className="text-sm" style={{ color: 'var(--color-danger)' }}>Due: {new Date(intake.deadline).toLocaleDateString()}</p>
+                  <p className="text-sm font-bold mt-1" style={{ color: 'var(--color-danger-text)' }}>⚠️ {intake.days_overdue} days overdue</p>
                 </div>
-                <span className="text-xs bg-red-200 text-red-800 px-3 py-1 rounded font-bold">OVERDUE</span>
+                <span className="text-xs px-3 py-1 rounded font-bold"
+                  style={{ background: 'var(--color-danger)', color: '#fff' }}>
+                  OVERDUE
+                </span>
               </div>
             </div>
           ))

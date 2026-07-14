@@ -9,11 +9,15 @@ import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, Shield, MoreHorizontal, Calendar, AlertTriangle } from 'lucide-react';
 
 interface AttentionCase {
-  _id: string;
-  student_name: string;
-  case_status: string;
-  risk_level: string;
-  reason: string;
+  _id: string; student_name: string; case_status: string; risk_level: string; reason: string;
+}
+
+function getRiskColor(c: AttentionCase): string {
+  if (c.case_status?.toUpperCase() === 'PENDING_TERMINATION') return 'var(--color-danger)';
+  const r = (c.risk_level || '').toUpperCase();
+  if (r === 'CRITICAL') return 'var(--color-danger)';
+  if (r === 'RED') return 'var(--color-warning)';
+  return 'var(--color-text-muted)';
 }
 
 function CasesNeedingAttention() {
@@ -39,55 +43,47 @@ function CasesNeedingAttention() {
         }
         setCases(attention.slice(0, 6));
       })
-      .catch(() => { setFetchError(true); })
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
 
-  const reasonColor = (c: AttentionCase) => {
-    if (c.case_status?.toUpperCase() === 'PENDING_TERMINATION') return 'text-red-600 dark:text-red-400';
-    const r = (c.risk_level || '').toUpperCase();
-    if (r === 'CRITICAL') return 'text-red-600 dark:text-red-400';
-    if (r === 'RED') return 'text-orange-600 dark:text-orange-400';
-    return 'text-gray-400';
-  };
-
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl p-5">
+    <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <AlertTriangle size={14} className="text-amber-500" />
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cases Needing Attention</p>
+          <AlertTriangle size={14} style={{ color: 'var(--color-warning)' }} />
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Cases Needing Attention</p>
         </div>
-        <Link href="/cases" className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline font-medium">View all</Link>
+        <Link href="/cases" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-32 text-gray-400 gap-2 text-xs">
-          <Loader2 size={14} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-32 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={14} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
       ) : fetchError ? (
         <div className="flex flex-col items-center justify-center h-32 text-center">
-          <AlertTriangle size={18} className="text-amber-400 mb-2" />
-          <p className="text-sm text-gray-500">Could not load cases</p>
-          <p className="text-xs text-gray-400 mt-0.5">Check your connection and refresh the page.</p>
+          <AlertTriangle size={18} className="mb-2" style={{ color: 'var(--color-warning)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Could not load cases</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Check your connection and refresh.</p>
         </div>
       ) : cases.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-32 text-center">
-          <Shield size={22} className="text-green-400 mb-2" />
-          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">All cases on track</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">No cases require immediate attention.</p>
+          <Shield size={22} className="mb-2" style={{ color: 'var(--color-success)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>All cases on track</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>No cases require immediate attention.</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
           {cases.map(c => (
             <div key={c._id} className="py-2.5 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{c.student_name}</p>
-                <p className={`text-xs mt-0.5 font-medium ${reasonColor(c)}`}>{c.reason}</p>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{c.student_name}</p>
+                <p className="text-xs mt-0.5 font-medium" style={{ color: getRiskColor(c) }}>{c.reason}</p>
               </div>
               <Link href={`/cases/${c._id}`}
-                className="flex-shrink-0 text-xs px-2.5 py-1 text-white rounded-lg transition-colors"
-                style={{ backgroundColor: '#2563eb' }}>
+                className="flex-shrink-0 text-xs px-2.5 py-1 text-white rounded-lg transition-opacity hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}>
                 View
               </Link>
             </div>
@@ -113,77 +109,78 @@ function getSessionType(a: any): string {
   return 'Individual';
 }
 
-function SessionTypeBadge({ type }: { type: string }) {
-  const cfg: Record<string, string> = {
-    'Individual': 'text-blue-600 dark:text-blue-400',
-    'Follow-up':  'text-purple-600 dark:text-purple-400',
-    'Intake':     'text-teal-600 dark:text-teal-400',
-    'Crisis':     'text-red-600 dark:text-red-400',
-    'Walk-in':    'text-orange-600 dark:text-orange-400',
-    'Referral':   'text-indigo-600 dark:text-indigo-400',
-  };
-  return <span className={`text-sm ${cfg[type] || 'text-gray-600 dark:text-gray-300'}`}>{type}</span>;
-}
+const SESSION_TYPE_COLORS: Record<string, string> = {
+  'Individual': '#3B82F6',
+  'Follow-up':  '#8B5CF6',
+  'Intake':     '#14B8A6',
+  'Crisis':     '#EF4444',
+  'Walk-in':    '#F97316',
+  'Referral':   '#6366F1',
+};
 
 function SessionStatusBadge({ status }: { status: string }) {
   const s = (status || '').toUpperCase();
   if (s === 'COMPLETED') return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">Completed</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>Completed</span>
   );
   if (s === 'CHECKED_IN') return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800">In Session</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}>In Session</span>
   );
   if (s === 'CANCELLED' || s === 'NO_SHOW') return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">Cancelled</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>Cancelled</span>
   );
   return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[#2563eb] dark:text-blue-400 border border-blue-100 dark:border-blue-800">Upcoming</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Upcoming</span>
   );
 }
 
 function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: string) => string }) {
-  const sorted = [...appts].sort((a, b) => {
-    const da = new Date(a.preferred_date || a.scheduled_start || 0).getTime();
-    const db2 = new Date(b.preferred_date || b.scheduled_start || 0).getTime();
-    return da - db2;
-  });
+  const sorted = [...appts].sort((a, b) =>
+    new Date(a.preferred_date || a.scheduled_start || 0).getTime() - new Date(b.preferred_date || b.scheduled_start || 0).getTime()
+  );
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden">
+    <div className="rounded-2xl border shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="flex items-center gap-2">
-          <Calendar size={15} className="text-[#2563eb]" />
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">Today's Schedule</p>
+          <Calendar size={15} style={{ color: 'var(--color-primary)' }} />
+          <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Today's Schedule</p>
         </div>
-        <Link href="/appointments" className="text-xs text-[#2563eb] dark:text-blue-400 hover:underline font-medium">View all</Link>
+        <Link href="/appointments" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
       </div>
 
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-36 text-center px-5 pb-5">
-          <Calendar size={22} className="text-gray-300 dark:text-gray-600 mb-2" />
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No sessions today</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Your confirmed appointments will appear here.</p>
+          <Calendar size={22} className="mb-2" style={{ color: 'var(--color-text-muted)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No sessions today</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Confirmed appointments will appear here.</p>
         </div>
       ) : (
         <>
-          {/* Column headers */}
           <div className="grid grid-cols-[90px_1fr_110px_130px_36px] px-5 pb-2 gap-3">
             {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
-              <p key={i} className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{h}</p>
+              <p key={i} className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
             ))}
           </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          <div>
             {sorted.map((a: any, i: number) => {
               const time = fmtTime(a.preferred_date || a.scheduled_start || '');
               const type = getSessionType(a);
               return (
-                <div key={i} className="grid grid-cols-[90px_1fr_110px_130px_36px] items-center px-5 py-3.5 gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 tabular-nums">{time}</span>
-                  <span className="text-sm text-gray-700 dark:text-gray-200 truncate font-medium">{a.student_name || 'Student'}</span>
-                  <SessionTypeBadge type={type} />
+                <div key={i}
+                  className="grid grid-cols-[90px_1fr_110px_130px_36px] items-center px-5 py-3.5 gap-3 transition-colors"
+                  style={{ borderTop: '1px solid var(--color-border)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{time}</span>
+                  <span className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{a.student_name || 'Student'}</span>
+                  <span className="text-sm font-medium" style={{ color: SESSION_TYPE_COLORS[type] || 'var(--color-text-secondary)' }}>{type}</span>
                   <SessionStatusBadge status={a.status} />
                   <Link href={a.case_id ? `/cases/${a.case_id}` : '/appointments'}
-                    className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                     <MoreHorizontal size={15} />
                   </Link>
                 </div>
@@ -195,7 +192,6 @@ function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: str
     </div>
   );
 }
-
 
 export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -209,7 +205,6 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
     if (!mounted) return;
     const token = localStorage.getItem('token');
     if (!token) { setLoading(false); return; }
-
     (async () => {
       try {
         const [dash, apptRes] = await Promise.all([
@@ -233,7 +228,7 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
     })();
   }, [mounted]);
 
-  const menuItems   = getMenuItemsByRole(user.role);
+  const menuItems = getMenuItemsByRole(user.role);
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Counselor';
 
   const fmtTime = (s: string) => {
@@ -247,24 +242,19 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   return (
     <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
 
-      <div className="mb-6 pb-5 border-b border-gray-200">
-        <p className="text-xs text-gray-400 mb-0.5">{dateLabel}</p>
-        <h2 className="text-xl font-semibold text-gray-900">Good day, {firstName}.</h2>
+      <div className="mb-6 pb-5 animate-fade-up" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
-          <Loader2 size={18} className="animate-spin" /> Loading…
+        <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-          {/* Today's Schedule */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-up" style={{ animationDelay: '60ms' }}>
           <TodayScheduleTable appts={todayAppts} fmtTime={fmtTime} />
-
-          {/* Cases needing immediate attention */}
           <CasesNeedingAttention />
-
         </div>
       )}
     </DashboardLayout>

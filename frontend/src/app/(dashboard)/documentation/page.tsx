@@ -1,9 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { File, Upload, Search, AlertCircle, X } from 'lucide-react';
+import { File, Upload, Search, AlertCircle, X, Loader2 } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+
+const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' };
+const onFIn  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
+const onFOut = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; };
+
+const documentTypes = ['Intake', 'Progress Notes', 'Treatment Plan', 'Assessment', 'Referral', 'Other'];
 
 export default function DocumentationPage() {
   const [documents, setDocuments] = useState<any[]>([]);
@@ -19,74 +26,30 @@ export default function DocumentationPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
 
-  const documentTypes = ['Intake', 'Progress Notes', 'Treatment Plan', 'Assessment', 'Referral', 'Other'];
-
-  useEffect(() => {
-    loadDocuments();
-  }, []);
+  useEffect(() => { loadDocuments(); }, []);
 
   const loadDocuments = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No authentication token found');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(api('/api/documentation'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setDocuments(data.documents || []);
-        setError(null);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to load documents');
-        setDocuments([]);
-      }
-    } catch (err) {
-      console.error('Error loading documents:', err);
-      setError('Failed to load documents');
-      setDocuments([]);
-    } finally {
-      setLoading(false);
-    }
+      if (!token) { setError('No authentication token found'); setLoading(false); return; }
+      const r = await fetch(api('/api/documentation'), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setDocuments(d.documents || []); setError(null); }
+      else { const e = await r.json(); setError(e.error || 'Failed to load documents'); setDocuments([]); }
+    } catch { setError('Failed to load documents'); setDocuments([]); }
+    finally { setLoading(false); }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setUploadFile(e.target.files[0]);
-    }
+    if (e.target.files?.[0]) setUploadFile(e.target.files[0]);
   };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!uploadFile) {
-      setError('Please select a file');
-      return;
-    }
-
-    if (!uploadTitle) {
-      setError('Please enter a document title');
-      return;
-    }
-
-    // Get case_id from localStorage or URL params (implement based on your routing)
+    if (!uploadFile) { setError('Please select a file'); return; }
+    if (!uploadTitle) { setError('Please enter a document title'); return; }
     const caseId = localStorage.getItem('current_case_id');
-    if (!caseId) {
-      setError('No case selected. Please select a case before uploading.');
-      return;
-    }
-
-    setUploading(true);
-    setError(null);
-    setUploadError(null);
-    setSuccess(null);
-
+    if (!caseId) { setError('No case selected. Please select a case before uploading.'); return; }
+    setUploading(true); setError(null); setUploadError(null); setSuccess(null);
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
@@ -94,74 +57,38 @@ export default function DocumentationPage() {
       formData.append('title', uploadTitle);
       formData.append('document_type', uploadType);
       formData.append('case_id', caseId);
-
-      const response = await fetch(api('/api/documentation/upload'), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+      const r = await fetch(api('/api/documentation/upload'), {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
       });
-
-      if (response.ok) {
-        const data = await response.json();
+      if (r.ok) {
         setSuccess('Document uploaded successfully!');
-        setUploadFile(null);
-        setUploadTitle('');
-        setUploadType('Other');
-        setShowUploadForm(false);
-
-        // Reload documents
-        setTimeout(() => {
-          loadDocuments();
-          setSuccess(null);
-        }, 2000);
-      } else {
-        const errorData = await response.json();
-        setUploadError(errorData.error || 'Failed to upload document');
-      }
-    } catch (err) {
-      console.error('Error uploading document:', err);
-      setUploadError('Failed to upload document. Please try again.');
-    } finally {
-      setUploading(false);
-    }
+        setUploadFile(null); setUploadTitle(''); setUploadType('Other'); setShowUploadForm(false);
+        setTimeout(() => { loadDocuments(); setSuccess(null); }, 2000);
+      } else { const e = await r.json(); setUploadError(e.error || 'Failed to upload document'); }
+    } catch { setUploadError('Failed to upload document. Please try again.'); }
+    finally { setUploading(false); }
   };
 
   const handleDelete = async (docId: string) => {
     if (!confirm('Are you sure you want to delete this document?')) return;
-
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(api(`/api/documentation/${docId}/delete`), {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        setSuccess('Document deleted successfully');
-        loadDocuments();
-        setTimeout(() => setSuccess(null), 2000);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to delete document');
-      }
-    } catch (err) {
-      console.error('Error deleting document:', err);
-      setError('Failed to delete document');
-    }
+      const r = await fetch(api(`/api/documentation/${docId}/delete`), { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { setSuccess('Document deleted successfully'); loadDocuments(); setTimeout(() => setSuccess(null), 2000); }
+      else { const e = await r.json(); setError(e.error || 'Failed to delete document'); }
+    } catch { setError('Failed to delete document'); }
   };
 
-  const filteredDocs = documents.filter(
-    (d) =>
-      (filterType === 'all' || d.document_type === filterType) &&
-      (d.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       d.content?.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredDocs = documents.filter(d =>
+    (filterType === 'all' || d.document_type === filterType) &&
+    (d.title?.toLowerCase().includes(searchTerm.toLowerCase()) || d.content?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
     return (
       <DashboardPageWrapper title="Documentation Hub" subtitle="Manage clinical and administrative documents">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400"></div>
+        <div className="flex items-center justify-center py-12 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
         </div>
       </DashboardPageWrapper>
     );
@@ -169,188 +96,150 @@ export default function DocumentationPage() {
 
   return (
     <DashboardPageWrapper title="Documentation Hub" subtitle="Manage clinical and administrative documents">
-      <div className="space-y-6">
+      <div className="space-y-5">
         {error && (
-          <div className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-lg p-4 flex gap-3">
-            <AlertCircle className="text-gray-600 dark:text-gray-400 flex-shrink-0" size={20} />
-            <p className="text-sm text-gray-700 dark:text-gray-300">{error}</p>
+          <div className="border rounded-lg p-4 flex gap-3 items-start" style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)' }}>
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto" style={{ color: 'var(--color-danger)' }}>×</button>
           </div>
         )}
-
         {success && (
-          <div className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-lg p-4 flex gap-3">
-            <div className="text-green-600 dark:text-green-400 flex-shrink-0">✓</div>
-            <p className="text-sm text-gray-700 dark:text-gray-300">{success}</p>
+          <div className="border rounded-lg p-4 flex gap-3 items-start" style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
+            <span style={{ color: 'var(--color-success)' }}>✓</span>
+            <p className="text-sm" style={{ color: 'var(--color-success)' }}>{success}</p>
           </div>
         )}
 
-        {/* Upload Form Section */}
+        {/* Upload section */}
         {showUploadForm ? (
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Upload Document</h3>
-              <button
-                onClick={() => setShowUploadForm(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-              >
-                <X size={20} />
+          <div className="border rounded-2xl p-6 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Upload Document</h3>
+              <button onClick={() => setShowUploadForm(false)} className="transition"
+                style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
+                <X size={18} />
               </button>
             </div>
-
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Document Title
-                </label>
-                <input
-                  type="text"
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="Enter document title"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                  required
-                />
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Document Title</label>
+                <input type="text" value={uploadTitle} onChange={e => setUploadTitle(e.target.value)}
+                  placeholder="Enter document title" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Document Type
-                </label>
-                <select
-                  value={uploadType}
-                  onChange={(e) => setUploadType(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  {documentTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Document Type</label>
+                <select value={uploadType} onChange={e => setUploadType(e.target.value)} className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut}>
+                  {documentTypes.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Select File
-                </label>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                  onChange={handleFileSelect}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-900 dark:file:bg-gray-700 file:text-white"
-                  required
-                />
-                <p className="text-xs text-gray-400 mt-1">Accepted: PDF, DOC, DOCX, PNG, JPG · Max size: 10 MB</p>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Select File</label>
+                <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={handleFileSelect} required
+                  className={`${IC} file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:text-white`}
+                  style={{ ...IC_S, '--file-bg': 'var(--color-primary)' } as React.CSSProperties} />
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Accepted: PDF, DOC, DOCX, PNG, JPG · Max size: 10 MB</p>
                 {uploadFile && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}>
                     Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
                 )}
               </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white rounded-lg font-medium text-sm transition disabled:opacity-50"
-                >
-                  {uploading ? 'Uploading...' : 'Upload Document'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowUploadForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  Cancel
-                </button>
-              </div>
               {uploadError && (
-                <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <p className="text-xs flex items-center gap-1" style={{ color: 'var(--color-danger)' }}>
                   <AlertCircle size={12} /> {uploadError}
                 </p>
               )}
+              <div className="flex gap-3">
+                <button type="submit" disabled={uploading}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition disabled:opacity-50 hover:opacity-90"
+                  style={{ background: 'var(--color-primary)' }}>
+                  {uploading && <Loader2 size={13} className="animate-spin" />}
+                  {uploading ? 'Uploading…' : 'Upload Document'}
+                </button>
+                <button type="button" onClick={() => setShowUploadForm(false)}
+                  className="flex-1 px-4 py-2 border rounded-xl text-sm font-medium transition"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  Cancel
+                </button>
+              </div>
             </form>
           </div>
         ) : (
-          <button
-            onClick={() => setShowUploadForm(true)}
-            className="w-full bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer text-center"
-          >
-            <Upload className="mx-auto text-gray-400 mb-3" size={32} />
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload New Document</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Click to select a file to upload</p>
+          <button onClick={() => setShowUploadForm(true)}
+            className="w-full border-2 border-dashed rounded-2xl p-8 text-center transition cursor-pointer"
+            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-primary-surface)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-surface)'; }}>
+            <Upload className="mx-auto mb-3" size={28} style={{ color: 'var(--color-text-muted)' }} />
+            <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Upload New Document</h2>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Click to select a file to upload</p>
           </button>
         )}
 
-        {/* Search and Filter */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Search and filter */}
+        <div className="border rounded-xl p-4 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2 relative">
-              <Search className="absolute left-3 top-3 text-gray-400 dark:text-gray-500" size={18} />
-              <input
-                type="text"
-                placeholder="Search documents..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
-              />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
+              <input type="text" placeholder="Search documents…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                className={`${IC} pl-9`} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
             </div>
             <div>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-              >
+              <select value={filterType} onChange={e => setFilterType(e.target.value)} className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut}>
                 <option value="all">All Types</option>
-                {documentTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
+                {documentTypes.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
         </div>
 
-        {/* Documents List */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 overflow-hidden">
+        {/* Document list */}
+        <div className="border rounded-2xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           {filteredDocs.length > 0 ? (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredDocs.map((doc) => (
-                <div key={doc._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+            <div>
+              {filteredDocs.map((doc, i) => (
+                <div key={doc._id} className="p-4 transition"
+                  style={{ borderBottom: i < filteredDocs.length - 1 ? '1px solid var(--color-border)' : 'none' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <File size={18} className="text-gray-400" />
-                        <h3 className="font-medium text-gray-900 dark:text-white">{doc.title}</h3>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1.5">
+                        <File size={16} style={{ color: 'var(--color-text-muted)' }} />
+                        <h3 className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>{doc.title}</h3>
                         {doc.is_locked && (
-                          <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                          <span className="px-2 py-0.5 text-xs font-medium rounded" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
                             Locked
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                        Type: {doc.document_type} • Created: {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'N/A'}
+                      <p className="text-xs mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                        Type: {doc.document_type} · Created: {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'N/A'}
                       </p>
                       {doc.content && (
-                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{doc.content}</p>
+                        <p className="text-sm line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{doc.content}</p>
                       )}
                     </div>
-                    <div className="ml-4 flex gap-2">
+                    <div className="ml-4 flex gap-2 flex-shrink-0">
                       {doc.gdrive_file_link && (
-                        <a
-                          href={doc.gdrive_file_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                        >
+                        <a href={doc.gdrive_file_link} target="_blank" rel="noopener noreferrer"
+                          className="px-3 py-1.5 text-xs font-medium border rounded-lg transition"
+                          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                           View
                         </a>
                       )}
-                      <button
-                        onClick={() => handleDelete(doc._id)}
-                        className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                      >
+                      <button onClick={() => handleDelete(doc._id)}
+                        className="px-3 py-1.5 text-xs font-medium border rounded-lg transition"
+                        style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-danger-surface)'; e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.borderColor = 'var(--color-danger)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}>
                         Delete
                       </button>
                     </div>
@@ -360,8 +249,8 @@ export default function DocumentationPage() {
             </div>
           ) : (
             <div className="p-12 text-center">
-              <File className="mx-auto mb-3 text-gray-400" size={32} />
-              <p className="text-gray-600 dark:text-gray-400">No documents found</p>
+              <File size={28} className="mx-auto mb-3" style={{ color: 'var(--color-border)' }} />
+              <p style={{ color: 'var(--color-text-muted)' }}>No documents found</p>
             </div>
           )}
         </div>

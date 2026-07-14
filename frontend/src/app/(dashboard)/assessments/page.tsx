@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { BarChart3, FileText, Info, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { BarChart3, FileText, Info, AlertTriangle, ShieldAlert, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
 
 type EmaLabel = 'Excelling' | 'Thriving' | 'Surviving' | 'Struggling' | 'In Crisis' | null;
@@ -17,9 +17,7 @@ export default function AssessmentsPage() {
 
   useEffect(() => {
     const raw = localStorage.getItem('user');
-    if (raw) {
-      try { setUserRole(JSON.parse(raw).role || 'STUDENT'); } catch {}
-    }
+    if (raw) { try { setUserRole(JSON.parse(raw).role || 'STUDENT'); } catch {} }
     loadAssessments();
   }, []);
 
@@ -28,7 +26,6 @@ export default function AssessmentsPage() {
       const token = localStorage.getItem('access_token') || localStorage.getItem('token');
       if (!token) { setLoading(false); return; }
       const headers = { Authorization: `Bearer ${token}` };
-
       const role = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || ''; } catch { return ''; } })();
 
       const [assessRes, permaRes] = await Promise.all([
@@ -36,17 +33,10 @@ export default function AssessmentsPage() {
         role === 'STUDENT' ? fetch(api('/api/mhbot/my-perma'), { headers }) : Promise.resolve(null),
       ]);
 
-      if (assessRes.ok) {
-        const data = await assessRes.json();
-        setAssessments(data.recent_cases || []);
-      }
-
+      if (assessRes.ok) { const d = await assessRes.json(); setAssessments(d.recent_cases || []); }
       if (permaRes && permaRes.ok) {
         const d = await permaRes.json();
-        if (d.mhbot_username) {
-          setEmaLinked(true);
-          setEmaLabel(d.latest_label ?? null);
-        }
+        if (d.mhbot_username) { setEmaLinked(true); setEmaLabel(d.latest_label ?? null); }
       }
     } catch {}
     setLoading(false);
@@ -58,30 +48,28 @@ export default function AssessmentsPage() {
   if (loading) {
     return (
       <DashboardPageWrapper title="Assessments" subtitle="">
-        <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-center py-16 gap-2" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
         </div>
       </DashboardPageWrapper>
     );
   }
 
-  /* ── Student view: no clinical scores ─────────────────────────────────── */
+  /* ── Student view ── */
   if (!isClinical) {
-    // EMA-based gating
-    const isLocked    = emaLinked && (emaLabel === 'Struggling' || emaLabel === 'In Crisis');
-    const isAssisted  = emaLinked && emaLabel === 'Surviving';
+    const isLocked   = emaLinked && (emaLabel === 'Struggling' || emaLabel === 'In Crisis');
+    const isAssisted = emaLinked && emaLabel === 'Surviving';
 
     return (
       <DashboardPageWrapper title="Assessments" subtitle="Your counseling history">
         <div className="max-w-lg mx-auto space-y-4">
 
-          {/* Locked: Struggling / In Crisis */}
           {isLocked && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
-              <ShieldAlert size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="rounded-xl p-4 flex gap-3 border" style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)' }}>
+              <ShieldAlert size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
               <div>
-                <p className="text-sm font-semibold text-red-800">Assessments are currently unavailable</p>
-                <p className="text-sm text-red-700 mt-1">
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-danger)' }}>Assessments are currently unavailable</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--color-danger)' }}>
                   Based on your recent EMA check-in ({emaLabel}), your case has been referred to a Case Manager.
                   Please visit the CPS office or wait for a Case Manager to reach out before proceeding with any assessments.
                 </p>
@@ -89,13 +77,12 @@ export default function AssessmentsPage() {
             </div>
           )}
 
-          {/* Assisted: Surviving */}
           {isAssisted && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
-              <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="rounded-xl p-4 flex gap-3 border" style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
+              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
               <div>
-                <p className="text-sm font-semibold text-amber-800">Assisted assessment mode</p>
-                <p className="text-sm text-amber-700 mt-1">
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-warning)' }}>Assisted assessment mode</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--color-warning)' }}>
                   Based on your recent EMA check-in (Surviving), PHQ-9 and GAD-7 assessments must be
                   completed with your IC or counselor present. Please attend your scheduled session.
                 </p>
@@ -103,40 +90,36 @@ export default function AssessmentsPage() {
             </div>
           )}
 
-          {/* Standard explainer (no EMA / Excelling / Thriving) */}
           {!isLocked && !isAssisted && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 flex gap-3">
-              <Info size={16} className="text-[#2563eb] dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-blue-800 dark:text-blue-200">
+            <div className="rounded-xl p-4 flex gap-3 border" style={{ background: 'var(--color-primary-surface)', borderColor: 'var(--color-primary)' }}>
+              <Info size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+              <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
                 Assessments (PHQ-9, GAD-7, PSS) are administered by your counselor during sessions.
                 Your counselor interprets the results with you. If you have questions, speak with your assigned counselor.
               </p>
             </div>
           )}
 
-
-          {/* Summary count (no scores) */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <BarChart3 size={22} className="text-[#2563eb] dark:text-blue-400" />
+          <div className="border rounded-xl shadow-card p-5 flex items-center gap-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary-surface)' }}>
+              <BarChart3 size={22} style={{ color: 'var(--color-primary)' }} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{assessments.length}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Assessment session{assessments.length !== 1 ? 's' : ''} on file</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{assessments.length}</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Assessment session{assessments.length !== 1 ? 's' : ''} on file</p>
             </div>
           </div>
 
-          {/* Session list — date only, no scores */}
           {assessments.length > 0 && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
-              <p className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800">
+            <div className="border rounded-xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <p className="px-5 py-3 text-xs font-semibold uppercase tracking-wide" style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
                 Sessions
               </p>
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              <div>
                 {assessments.map((a: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3 px-5 py-3">
-                    <FileText size={14} className="text-gray-400 flex-shrink-0" />
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <div key={i} className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: i < assessments.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                    <FileText size={14} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                       {a.submitted_at
                         ? new Date(a.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
                         : 'Date unknown'}
@@ -151,58 +134,62 @@ export default function AssessmentsPage() {
     );
   }
 
-  /* ── Clinical view: full data ──────────────────────────────────────────── */
+  /* ── Clinical view ── */
   return (
     <DashboardPageWrapper title="Assessment Overview" subtitle="Intake assessment data">
       <div className="space-y-5">
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 text-sm text-red-700 dark:text-red-300">
+          <div className="rounded-lg p-3 text-sm border" style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
             {error}
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-5 flex items-center gap-4">
-            <BarChart3 size={24} className="text-[#2563eb]" />
+          <div className="border rounded-xl shadow-card p-5 flex items-center gap-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <BarChart3 size={24} style={{ color: 'var(--color-primary)' }} />
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{assessments.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Total intakes</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{assessments.length}</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Total intakes</p>
             </div>
           </div>
         </div>
 
-        {assessments.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl overflow-hidden">
-            <p className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800">
+        {assessments.length > 0 ? (
+          <div className="border rounded-xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <p className="px-5 py-3 text-xs font-semibold uppercase tracking-wide" style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
               Recent Intakes
             </p>
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            <div>
               {assessments.slice(0, 20).map((a: any, i: number) => (
-                <div key={i} className="flex items-center gap-4 px-5 py-3">
-                  <FileText size={14} className="text-gray-400 flex-shrink-0" />
+                <div key={i} className="flex items-center gap-4 px-5 py-3 transition"
+                  style={{ borderBottom: i < Math.min(assessments.length, 20) - 1 ? '1px solid var(--color-border)' : 'none' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <FileText size={14} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
                       {a.counseling_id || `Case ${i + 1}`}
                     </p>
                     {a.submitted_at && (
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                         {new Date(a.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
                     )}
                   </div>
                   {a.is_emergency && (
-                    <span className="text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full">Emergency</span>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full border"
+                      style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>
+                      Emergency
+                    </span>
                   )}
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {assessments.length === 0 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 shadow-sm dark:border-gray-700 rounded-xl p-12 text-center">
-            <FileText size={28} className="mx-auto mb-3 text-gray-400" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">No intake assessments on file</p>
+        ) : (
+          <div className="border rounded-xl shadow-card p-12 text-center" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <FileText size={28} className="mx-auto mb-3" style={{ color: 'var(--color-border)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No intake assessments on file</p>
           </div>
         )}
       </div>

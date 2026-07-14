@@ -122,7 +122,7 @@ export default function IntakeForm({
         {/* Client Status */}
         <div>
           <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
-            Client Status <span className="text-red-500">*</span>
+            Client Status <span style={{ color: 'var(--color-danger)' }}>*</span>
           </label>
           <select
             name="client_status"
@@ -145,7 +145,7 @@ export default function IntakeForm({
         {/* Transaction Type */}
         <div>
           <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
-            Transaction Type <span className="text-red-500">*</span>
+            Transaction Type <span style={{ color: 'var(--color-danger)' }}>*</span>
           </label>
           <select
             name="transaction_type"
@@ -169,7 +169,7 @@ export default function IntakeForm({
       {/* Presenting Issue */}
       <div>
         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
-          Presenting Issue <span className="text-red-500">*</span>
+          Presenting Issue <span style={{ color: 'var(--color-danger)' }}>*</span>
         </label>
         <textarea
           name="presenting_issue"

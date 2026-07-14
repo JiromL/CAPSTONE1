@@ -203,7 +203,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                         Upcoming Appointment
                       </p>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+                        <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'var(--color-success)', animation: 'pulse-dot 2s ease-in-out infinite' }} />
                         Confirmed
                       </span>
                     </div>

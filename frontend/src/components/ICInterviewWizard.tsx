@@ -24,9 +24,9 @@ function RadioField({ label, name, options, value, onChange, required, hasError 
   return (
     <div>
       <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
-        {label} {required && <span className="text-red-500">*</span>}
+        {label} {required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
-      <div className={`space-y-2 p-3 rounded-lg ${hasError ? 'border border-red-400 bg-red-50/30' : ''}`}>
+      <div className="space-y-2 p-3 rounded-lg" style={hasError ? { border: '1px solid var(--color-danger)', background: 'rgba(220,38,38,0.04)' } : {}}>
         {options.map(opt => (
           <label key={opt} className="flex items-center gap-2 cursor-pointer">
             <input type="radio" name={name} value={opt}
@@ -48,9 +48,9 @@ function CheckboxFieldWithOther({ label, name, options, value, otherValue, onCha
   return (
     <div>
       <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
-        {label} {required && <span className="text-red-500">*</span>}
+        {label} {required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
-      <div className={`grid grid-cols-1 gap-2 p-3 rounded-lg ${hasError ? 'border border-red-400 bg-red-50/30' : ''}`}>
+      <div className="grid grid-cols-1 gap-2 p-3 rounded-lg" style={hasError ? { border: '1px solid var(--color-danger)', background: 'rgba(220,38,38,0.04)' } : {}}>
         {allOpts.map(opt => {
           const isOther = opt === 'Other:';
           return (
@@ -90,7 +90,7 @@ function TextareaField({ label, value, onChange, placeholder, helperText, requir
   return (
     <div>
       <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
-        {label} {required && <span className="text-red-500">*</span>}
+        {label} {required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
       {helperText && <p className="text-xs mb-2 italic" style={{ color: 'var(--color-text-muted)' }}>{helperText}</p>}
       <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
@@ -361,7 +361,7 @@ function getStepStatus(step: number, draft: any): StepStatus {
 function StepStatusIcon({ status }: { status: StepStatus }) {
   if (status === 'complete') return <span className="font-bold text-sm" style={{ color: 'var(--color-primary)' }}>✓</span>;
   if (status === 'partial')  return <span className="font-bold text-sm" style={{ color: '#F97316' }}>●</span>;
-  if (status === 'error')    return <span className="text-red-500 font-bold text-sm">!</span>;
+  if (status === 'error')    return <span className="font-bold text-sm" style={{ color: 'var(--color-danger)' }}>!</span>;
   return null;
 }
 
@@ -674,7 +674,7 @@ export function ICInterviewWizard({
                 options={['Initial Interview', 'Triage Interview', 'Intake Interview', 'Counseling/Psychotherapy Session', 'Testing', 'Termination']}
                 value={d.type_of_service || ''} onChange={v => upd('type_of_service', v)}
                 hasError={!!(stepErrors[0]?.some(e => e.includes('Type of Service')))} />
-              {stepErrors[0]?.some(e => e.includes('Type of Service')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[0]?.some(e => e.includes('Type of Service')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <CheckboxFieldWithOther label="Referral Source" name="referral_source" required
                 options={['Self – client initiated the counseling request independently', 'Faculty / Staff – referred by teaching or non-teaching personnel', 'Parent / Guardian – referral made by family member or guardian', 'Peer / Friend – encouraged by classmate or colleague', 'Supervisor / Manager – referral from workplace or internship site', 'Academic Department / Program Chair – referral through college office or adviser', 'DLSU Office / Support Unit (e.g., SDFO, OUR, OAS, HSO)']}
                 value={d.referral_source || []} otherValue={d.referral_source_other || ''}
@@ -724,24 +724,24 @@ export function ICInterviewWizard({
                 value={d.general_appearance || []} otherValue={d.general_appearance_other || ''}
                 onChange={v => upd('general_appearance', v)} onOtherChange={v => upd('general_appearance_other', v)}
                 hasError={!!(stepErrors[3]?.some(e => e.includes('General Appearance')))} />
-              {stepErrors[3]?.some(e => e.includes('General Appearance')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[3]?.some(e => e.includes('General Appearance')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <CheckboxFieldWithOther label="Communication Style" name="communication_style" required
                 options={['Clear and coherent – expresses ideas logically and understandably', 'Soft-spoken / hesitant – quiet voice, pauses often, or unsure when speaking', 'Rapid / pressured – talks quickly, difficult to interrupt, possibly anxious', 'Logical and goal-directed – stays on topic, communicates purposefully', 'Circumstantial / tangential – gives excessive details or goes off topic', 'Disorganized / incoherent – speech is confusing or hard to follow']}
                 value={d.communication_style || []} otherValue={d.communication_style_other || ''}
                 onChange={v => upd('communication_style', v)} onOtherChange={v => upd('communication_style_other', v)}
                 hasError={!!(stepErrors[3]?.some(e => e.includes('Communication Style')))} />
-              {stepErrors[3]?.some(e => e.includes('Communication Style')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[3]?.some(e => e.includes('Communication Style')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <CheckboxFieldWithOther label="General Disposition / Demeanor" name="general_disposition" required
                 options={['Calm and cooperative – open, responsive, and comfortable engaging', 'Anxious or tense – restless, nervous, or visibly uneasy', 'Sad or withdrawn – quiet, minimal expression, or emotionally distant', 'Angry or irritable – defensive tone or easily frustrated', 'Motivated and engaged – participative, eager to reflect and improve', 'Guarded or defensive – cautious, reluctant to share', 'Distracted or preoccupied – unfocused, thinking of something else']}
                 value={d.general_disposition || []} otherValue={d.general_disposition_other || ''}
                 onChange={v => upd('general_disposition', v)} onOtherChange={v => upd('general_disposition_other', v)}
                 hasError={!!(stepErrors[3]?.some(e => e.includes('General Disposition')))} />
-              {stepErrors[3]?.some(e => e.includes('General Disposition')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[3]?.some(e => e.includes('General Disposition')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <TextareaField label="Remarks" required
                 value={d.brief_description_remarks || ''} onChange={v => upd('brief_description_remarks', v)}
                 helperText="Add other noteworthy observations. Write 'None' if no additional remarks."
                 hasError={!!(stepErrors[3]?.some(e => e.includes('Remarks')))} />
-              {stepErrors[3]?.some(e => e.includes('Remarks')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[3]?.some(e => e.includes('Remarks')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
             </SectionBox>
           )}
 
@@ -754,12 +754,12 @@ export function ICInterviewWizard({
                 value={d.presenting_problem || []} otherValue={d.presenting_problem_other || ''}
                 onChange={v => upd('presenting_problem', v)} onOtherChange={v => upd('presenting_problem_other', v)}
                 hasError={!!(stepErrors[4]?.some(e => e.includes('Presenting Problem')))} />
-              {stepErrors[4]?.some(e => e.includes('Presenting Problem')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[4]?.some(e => e.includes('Presenting Problem')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <TextareaField label="Remarks" required
                 value={d.presenting_problem_remarks || ''} onChange={v => upd('presenting_problem_remarks', v)}
                 helperText="Add other details about the main concern. Write 'None' if no additional remarks."
                 hasError={!!(stepErrors[4]?.some(e => e.includes('Remarks')))} />
-              {stepErrors[4]?.some(e => e.includes('Remarks')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[4]?.some(e => e.includes('Remarks')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
             </SectionBox>
           )}
 
@@ -772,12 +772,12 @@ export function ICInterviewWizard({
                 value={d.psychosocial_history || []} otherValue={d.psychosocial_other || ''}
                 onChange={v => upd('psychosocial_history', v)} onOtherChange={v => upd('psychosocial_other', v)}
                 hasError={!!(stepErrors[5]?.some(e => e.includes('Psychosocial History')))} />
-              {stepErrors[5]?.some(e => e.includes('Psychosocial History')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[5]?.some(e => e.includes('Psychosocial History')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <TextareaField label="Remarks" required
                 value={d.psychosocial_remarks || ''} onChange={v => upd('psychosocial_remarks', v)}
                 helperText="Add any significant details about the client's background. Write 'None' if the checklist already captures it."
                 hasError={!!(stepErrors[5]?.some(e => e.includes('Remarks')))} />
-              {stepErrors[5]?.some(e => e.includes('Remarks')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[5]?.some(e => e.includes('Remarks')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
             </SectionBox>
           )}
 
@@ -790,18 +790,18 @@ export function ICInterviewWizard({
                 value={d.interaction_relationship || []} otherValue={d.interaction_relationship_other || ''}
                 onChange={v => upd('interaction_relationship', v)} onOtherChange={v => upd('interaction_relationship_other', v)}
                 hasError={!!(stepErrors[6]?.some(e => e.includes('Interaction and Relationship')))} />
-              {stepErrors[6]?.some(e => e.includes('Interaction and Relationship')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[6]?.some(e => e.includes('Interaction and Relationship')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <CheckboxFieldWithOther label="Affect / Emotional Expression" name="affect_expression" required
                 options={['Appropriate to content – emotion matches the topic being discussed', 'Anxious / tense – fidgety, restless, or visibly nervous', 'Depressed / sad – flat affect, tearful, or downcast tone', 'Irritable / frustrated – easily annoyed or impatient', 'Labile / fluctuating – sudden shifts in mood or expression', 'Flat / restricted – limited range of emotion or monotone tone', 'Euthymic / stable – balanced, calm, and consistent emotional tone']}
                 value={d.affect_expression || []} otherValue={d.affect_expression_other || ''}
                 onChange={v => upd('affect_expression', v)} onOtherChange={v => upd('affect_expression_other', v)}
                 hasError={!!(stepErrors[6]?.some(e => e.includes('Affect')))} />
-              {stepErrors[6]?.some(e => e.includes('Affect')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[6]?.some(e => e.includes('Affect')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               <TextareaField label="Remarks" required
                 value={d.interaction_remarks || ''} onChange={v => upd('interaction_remarks', v)}
                 helperText="Add any significant observations about interaction or affect. Write 'None' if the checklist already captures it."
                 hasError={!!(stepErrors[6]?.some(e => e.includes('Remarks')))} />
-              {stepErrors[6]?.some(e => e.includes('Remarks')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[6]?.some(e => e.includes('Remarks')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
             </SectionBox>
           )}
 
@@ -814,7 +814,7 @@ export function ICInterviewWizard({
                 value={d.maladaptive_patterns || []} otherValue={d.maladaptive_patterns_other || ''}
                 onChange={v => upd('maladaptive_patterns', v)} onOtherChange={v => upd('maladaptive_patterns_other', v)}
                 hasError={!!(stepErrors[7]?.some(e => e.includes('Maladaptive')))} />
-              {stepErrors[7]?.some(e => e.includes('Maladaptive')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[7]?.some(e => e.includes('Maladaptive')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
             </SectionBox>
           )}
 
@@ -826,7 +826,7 @@ export function ICInterviewWizard({
                 helperText="State the overall goal using the SMART framework (Specific, Measurable, Attainable, Realistic, Time-bound)."
                 placeholder="e.g., Client will reduce the frequency and intensity of anxiety episodes by consistently using at least two adaptive coping strategies within 8 weeks."
                 hasError={!!(stepErrors[8]?.some(e => e.includes('Counseling Goal')))} />
-              {stepErrors[8]?.some(e => e.includes('Counseling Goal')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+              {stepErrors[8]?.some(e => e.includes('Counseling Goal')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
             </SectionBox>
           )}
 
@@ -856,7 +856,7 @@ export function ICInterviewWizard({
                   value={d.recommendation || []} otherValue={d.recommendation_other || ''}
                   onChange={v => upd('recommendation', v)} onOtherChange={v => upd('recommendation_other', v)}
                   hasError={!!(stepErrors[9]?.some(e => e.includes('Recommendation')))} />
-                {stepErrors[9]?.some(e => e.includes('Recommendation')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+                {stepErrors[9]?.some(e => e.includes('Recommendation')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               </div>
             </SectionBox>
           )}
@@ -866,19 +866,19 @@ export function ICInterviewWizard({
             <SectionBox title="Step 11: Signature / Attestation">
               <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>By completing this form, the IC affirms that the information recorded is accurate and was gathered during the intake session.</p>
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>IC Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>IC Name <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                 <input type="text" value={d.ic_name || ''} onChange={e => upd('ic_name', e.target.value)}
                   placeholder="Full name of Intake Counselor"
                   className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
                   style={{ border: stepErrors[10]?.some(e => e.includes('IC Name')) ? '1px solid var(--color-danger)' : '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                {stepErrors[10]?.some(e => e.includes('IC Name')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+                {stepErrors[10]?.some(e => e.includes('IC Name')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>Signature Date <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>Signature Date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                 <input type="date" value={d.ic_signature_date || ''} onChange={e => upd('ic_signature_date', e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
                   style={{ border: stepErrors[10]?.some(e => e.includes('Signature Date')) ? '1px solid var(--color-danger)' : '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                {stepErrors[10]?.some(e => e.includes('Signature Date')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
+                {stepErrors[10]?.some(e => e.includes('Signature Date')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
               </div>
             </SectionBox>
           )}

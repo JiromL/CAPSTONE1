@@ -146,7 +146,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
         {/* Check-In Type */}
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
-            Check-In Type <span className="text-red-500">*</span>
+            Check-In Type <span style={{ color: 'var(--color-danger)' }}>*</span>
           </label>
           <select
             name="check_in_type"
@@ -166,7 +166,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
         {/* Contact Method */}
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
-            Contact Method <span className="text-red-500">*</span>
+            Contact Method <span style={{ color: 'var(--color-danger)' }}>*</span>
           </label>
           <select
             name="contact_method"
@@ -205,7 +205,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
         {/* Outcome */}
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
-            Outcome <span className="text-red-500">*</span>
+            Outcome <span style={{ color: 'var(--color-danger)' }}>*</span>
           </label>
           <select
             name="outcome"
@@ -226,7 +226,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
       {/* Notes */}
       <div>
         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
-          Check-In Notes <span className="text-red-500">*</span>
+          Check-In Notes <span style={{ color: 'var(--color-danger)' }}>*</span>
         </label>
         <textarea
           name="notes"

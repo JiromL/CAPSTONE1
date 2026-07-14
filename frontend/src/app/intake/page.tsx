@@ -1143,7 +1143,7 @@ export default function IntakePage() {
                 <span className="font-medium block mb-1" style={{ color: 'var(--color-text-primary)' }}>I have read and understood the instructions and information on this page</span>
                 I agree to the Terms and Conditions on the use of this online appointment and scheduling system.
                 <span className="block mt-2 text-xs italic">Nabasa at naunawaan ko ang mga instruksyon at impormasyon sa pahinang ito, at sumasang-ayon ako sa mga Tuntunin at Kundisyon sa paggamit ng online appointment at scheduling system na ito.</span>
-                <span className="text-red-500 font-semibold"> *</span>
+                <span className="font-semibold" style={{ color: 'var(--color-danger)' }}> *</span>
               </span>
             </label>
           </div>
@@ -2116,9 +2116,9 @@ export default function IntakePage() {
             <div className="text-white p-6 mb-6" style={{ background: '#B91C1C' }}>
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-4xl">🔴</span>
-                <h1 className="text-2xl font-bold">Priority Alert: Immediate Attention</h1>
+                <h1 className="text-2xl font-bold" style={{ color: 'white' }}>Priority Alert: Immediate Attention</h1>
               </div>
-              <p className="text-red-50">Your assessment indicates a higher risk level requiring immediate support</p>
+              <p style={{ color: '#FEF2F2' }}>Your assessment indicates a higher risk level requiring immediate support</p>
             </div>
 
             <div className="px-8 py-6 space-y-6">
@@ -2562,7 +2562,7 @@ export default function IntakePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderBottomColor: 'var(--color-border-strong)' }}></div>
       </div>
     );
   }

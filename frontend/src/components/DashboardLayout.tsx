@@ -266,8 +266,10 @@ export function DashboardLayout({
         {/* Sign out */}
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 mt-0.5 px-3 py-2.5 mx-2 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
-          style={{ width: 'calc(100% - 16px)' }}
+          className="flex items-center gap-3 mt-0.5 px-3 py-2.5 mx-2 rounded-xl transition-all duration-150"
+          style={{ width: 'calc(100% - 16px)', color: 'rgba(255,255,255,0.3)' }}
+          onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.color = '#F87171'; b.style.background = 'rgba(239,68,68,0.1)'; }}
+          onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.color = 'rgba(255,255,255,0.3)'; b.style.background = 'transparent'; }}
         >
           <span className="flex-shrink-0 w-[18px] h-[18px] flex items-center justify-center">
             <Power size={14} />

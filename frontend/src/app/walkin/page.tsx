@@ -358,26 +358,26 @@ export default function WalkInSelfCheckinPage() {
               <div className="text-xs leading-relaxed space-y-3 max-h-56 overflow-y-auto pr-1" style={{ color: 'var(--color-text-secondary)' }}>
                 <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>De La Salle University — Counseling &amp; Psychology Services (CPS)</p>
 
-                <div className="border border-green-200 rounded-lg p-2.5 bg-green-50/50">
+                <div className="rounded-lg p-2.5" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
                   <p className="font-bold text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--color-primary)' }}>I. Informed Consent for Counseling Services</p>
                   <p>CPS provides mental health support, counseling, and psychological services to enrolled students on a voluntary basis. You may discontinue at any time without penalty. Under RA 11036 (Mental Health Act of 2018), you have the right to access services and to be treated with dignity.</p>
                 </div>
 
-                <div className="border border-amber-200 rounded-lg p-2.5 bg-amber-50/50">
-                  <p className="font-bold text-amber-800 text-xs uppercase tracking-wide mb-1">II. Limits of Confidentiality Statement</p>
+                <div className="rounded-lg p-2.5" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+                  <p className="font-bold text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--color-warning-text)' }}>II. Limits of Confidentiality Statement</p>
                   <p>All session information is strictly confidential <span className="font-semibold">except</span> when: (a) there is imminent risk of harm to you or others; (b) child abuse is suspected; (c) disclosure is court-ordered; or (d) required by university policy for safety purposes. Only the minimum necessary information will be disclosed.</p>
                 </div>
 
-                <div className="border border-blue-200 rounded-lg p-2.5 bg-blue-50/50">
-                  <p className="font-bold text-green-800 text-xs uppercase tracking-wide mb-1">III. Privacy Notice</p>
+                <div className="rounded-lg p-2.5" style={{ background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
+                  <p className="font-bold text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--color-info-text)' }}>III. Privacy Notice</p>
                   <p className="mb-1"><span className="font-medium">Data collected:</span> Personal information, mental health history, assessment results (PHQ-9, GAD-7, C-SSRS), session notes, emergency contact, and wellness monitoring data.</p>
                   <p><span className="font-medium">Who may access:</span> Only authorized CPS personnel directly involved in your care. Records are retained for a minimum of ten (10) years from your last session.</p>
                 </div>
 
-                <div className="border border-purple-200 rounded-lg p-2.5 bg-purple-50/50">
-                  <p className="font-bold text-purple-800 text-xs uppercase tracking-wide mb-1">IV. Consent for Data Processing (RA 10173 — Data Privacy Act of 2012)</p>
+                <div className="rounded-lg p-2.5" style={{ background: '#FAF5FF', border: '1px solid #7C3AED' }}>
+                  <p className="font-bold text-xs uppercase tracking-wide mb-1" style={{ color: '#5B21B6' }}>IV. Consent for Data Processing (RA 10173 — Data Privacy Act of 2012)</p>
                   <p className="mb-1">Your mental health records are <span className="font-medium">sensitive personal information</span> under RA 10173 and require your explicit consent to process.</p>
-                  <p className="text-gray-500">DLSU DPO: dpo@dlsu.edu.ph · 2401 Taft Avenue, Malate, Manila 1004</p>
+                  <p style={{ color: 'var(--color-text-muted)' }}>DLSU DPO: dpo@dlsu.edu.ph · 2401 Taft Avenue, Malate, Manila 1004</p>
                 </div>
               </div>
               <label className="flex items-start gap-2 cursor-pointer mt-2">

@@ -733,7 +733,7 @@ export default function AppointmentsDashboard() {
 
   if (error || !dashboard) {
     return (
-      <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
+      <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger-text)' }}>
         <AlertCircle size={14} /> {error || 'No data available.'}
       </div>
     );
@@ -754,13 +754,14 @@ export default function AppointmentsDashboard() {
 
       {/* ── Action banners ────────────────────────────────────────────────── */}
       {isIC && slotsPendingConfirm.length > 0 && (
-        <div className="flex items-center gap-3 bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-sm">
-          <CheckCircle size={14} className="text-sky-500 flex-shrink-0" />
-          <span className="text-sky-800">
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
+          <CheckCircle size={14} className="flex-shrink-0" style={{ color: 'var(--color-info)' }} />
+          <span style={{ color: 'var(--color-info-text)' }}>
             <strong>{slotsPendingConfirm.length}</strong> slot booking{slotsPendingConfirm.length !== 1 ? 's' : ''} need your confirmation — students are waiting.
           </span>
           <button onClick={() => setActiveTab('new')}
-            className="ml-auto text-xs font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-900">
+            className="ml-auto text-xs font-semibold underline underline-offset-2"
+            style={{ color: 'var(--color-info-text)' }}>
             Confirm Now
           </button>
         </div>
@@ -772,43 +773,51 @@ export default function AppointmentsDashboard() {
             <strong>{intakeReady.length}</strong> intake interview{intakeReady.length !== 1 ? 's' : ''} confirmed — conduct the intake assessment to assign to a counselor.
           </span>
           <button onClick={() => setActiveTab('confirmed')}
-            className="ml-auto text-xs font-semibold text-[#2563eb] underline underline-offset-2 hover:text-blue-900">
+            className="ml-auto text-xs font-semibold underline underline-offset-2"
+            style={{ color: 'var(--color-primary)' }}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-primary-hover)'}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-primary)'}>
             Go to Confirmed
           </button>
         </div>
       )}
       {canAssign && newCount > 0 && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm">
-          <AlertCircle size={14} className="text-amber-500 flex-shrink-0" />
-          <span className="text-amber-800">
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+          <AlertCircle size={14} className="flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
+          <span style={{ color: 'var(--color-warning-text)' }}>
             <strong>{newCount}</strong> new appointment{newCount !== 1 ? 's' : ''} need a counselor assigned.
           </span>
           <button onClick={() => setActiveTab('new')}
-            className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+            className="ml-auto text-xs font-semibold underline underline-offset-2"
+            style={{ color: 'var(--color-warning-text)' }}>
             Review
           </button>
         </div>
       )}
       {evalCount > 0 && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm">
-          <Star size={14} className="text-amber-500 flex-shrink-0" />
-          <span className="text-amber-800">
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+          <Star size={14} className="flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
+          <span style={{ color: 'var(--color-warning-text)' }}>
             <strong>{evalCount}</strong> session{evalCount !== 1 ? 's' : ''} completed — decide next step: follow-up, referral, or close.
           </span>
           <button onClick={() => setActiveTab('evaluation')}
-            className="ml-auto text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+            className="ml-auto text-xs font-semibold underline underline-offset-2"
+            style={{ color: 'var(--color-warning-text)' }}>
             Review
           </button>
         </div>
       )}
       {pendingReschedules > 0 && (
         <a href="/reschedule-requests"
-          className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm hover:bg-orange-100 transition">
-          <RefreshCw size={14} className="text-orange-500 flex-shrink-0" />
-          <span className="text-orange-800">
+          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition"
+          style={{ background: '#FFF7ED', border: '1px solid #FDBA74' }}
+          onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = '#FFEDD5'}
+          onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = '#FFF7ED'}>
+          <RefreshCw size={14} className="flex-shrink-0" style={{ color: '#F97316' }} />
+          <span style={{ color: '#9A3412' }}>
             <strong>{pendingReschedules}</strong> student{pendingReschedules !== 1 ? 's' : ''} requested to reschedule.
           </span>
-          <span className="ml-auto text-xs font-semibold text-orange-700 underline underline-offset-2">Review →</span>
+          <span className="ml-auto text-xs font-semibold underline underline-offset-2" style={{ color: '#C2410C' }}>Review →</span>
         </a>
       )}
 
@@ -888,16 +897,19 @@ export default function AppointmentsDashboard() {
                 const isHighRisk  = apt.risk_level && ['RED', 'CRITICAL'].includes(apt.risk_level.toUpperCase());
                 const permaLabel  = apt.mhbot_username ? (permaLabels[apt.mhbot_username] ?? null) : null;
                 const isInCrisis  = permaLabel === 'In Crisis';
-                const cardCls     = isInCrisis  ? 'border-red-300 bg-red-50/40'
-                                  : isHighRisk  ? 'border-red-200 bg-red-50/20'
-                                  : isNew       ? 'border-amber-200/70 bg-amber-50/20'
-                                  : isEval      ? 'border-amber-100 bg-amber-50/10'
-                                  : '';
+                const cardStyle: React.CSSProperties = isInCrisis
+                  ? { borderColor: '#FCA5A5', background: 'rgba(254,242,242,0.4)' }
+                  : isHighRisk
+                    ? { borderColor: '#FECACA', background: 'rgba(254,242,242,0.2)' }
+                    : isNew
+                      ? { borderColor: 'rgba(253,230,138,0.7)', background: 'rgba(255,251,235,0.2)' }
+                      : isEval
+                        ? { borderColor: '#FEF3C7', background: 'rgba(255,251,235,0.1)' }
+                        : { borderColor: 'var(--color-border)', background: 'var(--color-surface)' };
 
                 return (
                   <React.Fragment key={apt.appointment_id}>
-                    <div className={`rounded-2xl border p-4 transition-all hover:shadow-sm ${cardCls}`}
-                      style={!isInCrisis && !isHighRisk && !isNew && !isEval ? { borderColor: 'var(--color-border)', background: 'var(--color-surface)' } : {}}
+                    <div className="rounded-2xl border p-4 transition-all hover:shadow-sm" style={cardStyle}
                       onMouseEnter={e => { if (!isInCrisis && !isHighRisk && !isNew && !isEval) (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border-strong)'; }}
                       onMouseLeave={e => { if (!isInCrisis && !isHighRisk && !isNew && !isEval) (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; }}>
                       <div className="flex items-start gap-4">
@@ -914,7 +926,7 @@ export default function AppointmentsDashboard() {
                               </span>
                             )}
                             {apt.status === 'RESCHEDULE_REQUESTED' && apt.reschedule_requested_by_role !== 'STUDENT' && (
-                              <span className="text-[10px] font-semibold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ color: 'var(--color-info-text)', background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
                                 <Clock size={9} /> Awaiting student
                               </span>
                             )}
@@ -925,13 +937,13 @@ export default function AppointmentsDashboard() {
                             <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
                             {apt.mhbot_username && permaLabels[apt.mhbot_username] !== undefined && (
                               isInCrisis ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 ring-1 ring-red-300">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#FEE2E2', color: '#B91C1C', boxShadow: '0 0 0 1px #FCA5A5' }}>
+                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#EF4444' }} />
                                   In Crisis
                                 </span>
                               ) : permaLabel === 'Struggling' ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FFEDD5', color: '#9A3412' }}>
+                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#F97316' }} />
                                   Struggling
                                 </span>
                               ) : (
@@ -1061,19 +1073,28 @@ export default function AppointmentsDashboard() {
                                   <>
                                     <button onClick={() => doSessionAction(apt.appointment_id, 'set-evaluation')}
                                       disabled={actioningId === apt.appointment_id}
-                                      className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                      className="flex items-center gap-1 px-2.5 py-1 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
+                                      style={{ background: 'var(--color-warning)' }}
+                                      onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-warning-hover, #b45309)'}
+                                      onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-warning)'}>
                                       {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
                                       Session Done
                                     </button>
                                     <button onClick={() => { setReschedTarget(apt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedMsg(null); }}
-                                      className="flex items-center gap-1 px-2.5 py-1 border border-sky-200 text-sky-600 hover:bg-sky-50 text-xs font-semibold rounded-lg transition">
+                                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                      style={{ border: '1px solid var(--color-info)', color: 'var(--color-info)' }}
+                                      onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-info-surface)'}
+                                      onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
                                       <RotateCcw size={11} /> Reschedule
                                     </button>
                                   </>
                                 )}
                                 {isConfirmed && isOA && (
                                   <button onClick={() => { setCancelTarget(apt); setCancelReason(''); setCancelMsg(null); }}
-                                    className="flex items-center gap-1 px-2.5 py-1 border border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold rounded-lg transition">
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                    style={{ border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}
+                                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-surface)'}
+                                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
                                     <XCircle size={11} /> Cancel
                                   </button>
                                 )}
@@ -1091,7 +1112,10 @@ export default function AppointmentsDashboard() {
                                       </div>
                                       <button onClick={() => doSessionAction(apt.appointment_id, 'set-referral', { notes: pendingAction.notes })}
                                         disabled={actioningId === apt.appointment_id}
-                                        className="px-2.5 py-1 bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition">
+                                        className="px-2.5 py-1 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
+                                        style={{ background: 'var(--color-primary)' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
+                                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}>
                                         {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
                                       </button>
                                       <button onClick={() => setPendingAction(null)}
@@ -1105,11 +1129,17 @@ export default function AppointmentsDashboard() {
                                   ) : (
                                     <>
                                       <button onClick={() => { setFollowUpTarget(apt); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(apt.office || ''); setFollowUpNotes(''); setFollowUpMsg(null); }}
-                                        className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg transition">
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                        style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary-muted)' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-muted)'}
+                                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-surface)'}>
                                         <RefreshCw size={11} /> Follow-Up
                                       </button>
                                       <button onClick={() => setPendingAction({ aptId: apt.appointment_id, action: 'referral', notes: '' })}
-                                        className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-lg transition">
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                        style={{ background: '#FAF5FF', color: '#7C3AED', border: '1px solid #C4B5FD' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = '#F3E8FF'}
+                                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = '#FAF5FF'}>
                                         <ExternalLink size={11} /> Referral
                                       </button>
                                       <button onClick={() => { setTerminationTarget(apt); setTerminationType('MUTUAL'); setTerminationNotes(''); }}
@@ -1124,7 +1154,7 @@ export default function AppointmentsDashboard() {
                                 )}
 
                                 {actionMsg?.id === apt.appointment_id && !pendingAction && (
-                                  <p className={`text-xs ${actionMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
+                                  <p className="text-xs" style={{ color: actionMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>
                                     {actionMsg.text}
                                   </p>
                                 )}
@@ -1328,9 +1358,9 @@ export default function AppointmentsDashboard() {
                                   )}
                                   {!loadingOpenSlots && openSlots.length === 0 && (
                                     <div className="py-4 text-center space-y-2">
-                                      <p className="text-xs text-amber-700">No slots on this date.</p>
+                                      <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}>No slots on this date.</p>
                                       <button type="button" onClick={() => setAssignMode('manual')}
-                                        className="text-[11px] font-bold text-amber-700 underline">Manual entry</button>
+                                        className="text-[11px] font-bold underline" style={{ color: 'var(--color-warning-text)' }}>Manual entry</button>
                                     </div>
                                   )}
                                   {!loadingOpenSlots && openSlots.map((s: any, i: number) => {
@@ -1428,7 +1458,7 @@ export default function AppointmentsDashboard() {
                             className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                             style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                           {assignForm.counselorId && assignForm.date && !loadingSlots && (
-                            <p className="text-[10px] text-amber-500">No availability set — entering manually</p>
+                            <p className="text-[10px]" style={{ color: 'var(--color-warning)' }}>No availability set — entering manually</p>
                           )}
                         </div>
                       )}
@@ -1450,7 +1480,7 @@ export default function AppointmentsDashboard() {
               )}
 
               {assignMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${assignMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className="text-xs px-3 py-2 rounded-lg" style={assignMsg.type === 'ok' ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' } : { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
                   {assignMsg.text}
                 </p>
               )}
@@ -1595,7 +1625,7 @@ export default function AppointmentsDashboard() {
               </div>
 
               {scheduleMsg && (
-                <p className={`text-xs px-3 py-2 rounded-xl ${scheduleMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className="text-xs px-3 py-2 rounded-xl" style={scheduleMsg.type === 'ok' ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' } : { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
                   {scheduleMsg.text}
                 </p>
               )}
@@ -1643,7 +1673,7 @@ export default function AppointmentsDashboard() {
               style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
             />
             {cancelMsg && (
-              <p className={`text-xs px-3 py-2 rounded-lg mb-3 ${cancelMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+              <p className="text-xs px-3 py-2 rounded-lg mb-3" style={cancelMsg.type === 'ok' ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' } : { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
                 {cancelMsg.text}
               </p>
             )}
@@ -1656,7 +1686,10 @@ export default function AppointmentsDashboard() {
                 Keep
               </button>
               <button onClick={doCancel} disabled={!!cancellingId}
-                className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition disabled:opacity-50">
+                className="flex-1 px-4 py-2 text-sm font-semibold text-white rounded-lg transition disabled:opacity-50"
+                style={{ background: 'var(--color-danger)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-hover)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger)'}
                 {cancellingId ? 'Cancelling…' : 'Cancel Appointment'}
               </button>
             </div>
@@ -1697,7 +1730,7 @@ export default function AppointmentsDashboard() {
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
               {reschedMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${reschedMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className="text-xs px-3 py-2 rounded-lg" style={reschedMsg.type === 'ok' ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' } : { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
                   {reschedMsg.text}
                 </p>
               )}
@@ -1710,7 +1743,10 @@ export default function AppointmentsDashboard() {
                   Cancel
                 </button>
                 <button onClick={doReschedule} disabled={submittingResched}
-                  className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2"
+                  style={{ background: 'var(--color-info)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(0.9)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.filter = 'none'}>
                   {submittingResched && <Loader2 size={13} className="animate-spin" />}
                   Send to Student
                 </button>
@@ -1725,7 +1761,7 @@ export default function AppointmentsDashboard() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
-              <RefreshCw size={18} className="text-indigo-500" />
+              <RefreshCw size={18} style={{ color: 'var(--color-primary)' }} />
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Schedule Follow-Up Session</h3>
             </div>
             <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
@@ -1767,7 +1803,7 @@ export default function AppointmentsDashboard() {
               </div>
             </div>
             {followUpMsg && (
-              <p className={`text-xs mt-3 ${followUpMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{followUpMsg.text}</p>
+              <p className="text-xs mt-3" style={{ color: followUpMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>{followUpMsg.text}</p>
             )}
             <div className="flex gap-2 justify-end mt-4">
               <button onClick={() => setFollowUpTarget(null)}
@@ -1778,7 +1814,10 @@ export default function AppointmentsDashboard() {
                 Cancel
               </button>
               <button onClick={doFollowUp} disabled={submittingFollowUp}
-                className="px-4 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
+                className="px-4 py-1.5 text-xs disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5"
+                style={{ background: 'var(--color-primary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}>
                 {submittingFollowUp ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                 Schedule Follow-Up
               </button>
@@ -1792,7 +1831,7 @@ export default function AppointmentsDashboard() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
-              <XCircle size={18} className="text-red-500" />
+              <XCircle size={18} style={{ color: 'var(--color-danger)' }} />
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Close at Intake</h3>
             </div>
             <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Student: <strong>{closeIntakeTarget.student_name}</strong></p>
@@ -1809,7 +1848,7 @@ export default function AppointmentsDashboard() {
               style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
             />
             {closeIntakeMsg && (
-              <p className={`text-xs mb-3 ${closeIntakeMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
+              <p className="text-xs mb-3" style={{ color: closeIntakeMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>
                 {closeIntakeMsg.text}
               </p>
             )}
@@ -1822,7 +1861,10 @@ export default function AppointmentsDashboard() {
                 Cancel
               </button>
               <button onClick={doCloseAtIntake} disabled={closingIntake}
-                className="px-4 py-1.5 text-xs bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
+                className="px-4 py-1.5 text-xs disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5"
+                style={{ background: 'var(--color-danger)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-hover)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger)'}>
                 {closingIntake ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
                 Confirm Close at Intake
               </button>
@@ -1874,7 +1916,10 @@ export default function AppointmentsDashboard() {
                 Cancel
               </button>
               <button onClick={doCompleteWithTermination} disabled={submittingTermination}
-                className="px-4 py-1.5 text-xs bg-[#2563eb] hover:bg-blue-800 disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5">
+                className="px-4 py-1.5 text-xs disabled:opacity-50 text-white font-semibold rounded-lg transition flex items-center gap-1.5"
+                style={{ background: 'var(--color-primary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}>
                 {submittingTermination ? <Loader2 size={12} className="animate-spin" /> : <ThumbsUp size={12} />}
                 Complete & Close Case
               </button>
@@ -1940,7 +1985,7 @@ export default function AppointmentsDashboard() {
               </div>
 
               {editMsg && (
-                <p className={`text-xs px-3 py-2 rounded-lg ${editMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                <p className="text-xs px-3 py-2 rounded-lg" style={editMsg.type === 'ok' ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' } : { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
                   {editMsg.text}
                 </p>
               )}
@@ -2059,10 +2104,10 @@ export default function AppointmentsDashboard() {
                             { l: 'GAD-2 (Anxiety)',    s: formsPacket.phq4_summary.gad2_score, max: 6, risk: formsPacket.phq4_summary.gad2_at_risk },
                             { l: 'PHQ-4 Total',         s: formsPacket.phq4_summary.total_score, max: 12, risk: formsPacket.phq4_summary.total_score >= 6 },
                           ].map(x => (
-                            <div key={x.l} className={`rounded-xl p-3 text-center ${x.risk ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'}`}>
+                            <div key={x.l} className="rounded-xl p-3 text-center" style={x.risk ? { background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' } : { background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
                               <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.l}</p>
-                              <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-blue-700'}`}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
-                              <p className={`text-[10px] font-semibold ${x.risk ? 'text-red-500' : 'text-green-600'}`}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                              <p className="text-xl font-bold" style={{ color: x.risk ? 'var(--color-danger-text)' : 'var(--color-primary)' }}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
+                              <p className="text-[10px] font-semibold" style={{ color: x.risk ? 'var(--color-danger)' : 'var(--color-success)' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                             </div>
                           ))}
                         </div>
@@ -2194,7 +2239,10 @@ export default function AppointmentsDashboard() {
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'}>Cancel</button>
                   <button onClick={saveForms} disabled={formsSaving}
-                    className="flex items-center gap-2 px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 transition">
+                    className="flex items-center gap-2 px-5 py-2 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition"
+                    style={{ background: 'var(--color-primary)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}
                     {formsSaving ? <Loader2 size={13} className="animate-spin" /> : null}
                     {formsSaving ? 'Saving…' : 'Save Forms'}
                   </button>
@@ -2203,7 +2251,10 @@ export default function AppointmentsDashboard() {
                 <>
                   <span />
                   <button onClick={() => setFormsEditing(true)}
-                    className="flex items-center gap-2 px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition">
+                    className="flex items-center gap-2 px-5 py-2 text-white text-sm font-semibold rounded-xl transition"
+                    style={{ background: 'var(--color-primary)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}>
                     Fill In Forms
                   </button>
                 </>
@@ -2234,8 +2285,10 @@ function SummaryCard({ icon: Icon, label, value, color, highlight }: {
 }) {
   return (
     <div
-      className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${highlight ? 'border-amber-200 bg-amber-50/30' : ''}`}
-      style={highlight ? {} : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      className="rounded-xl border px-4 py-3 flex items-center gap-3"
+      style={highlight
+        ? { borderColor: 'var(--color-warning)', background: 'rgba(255,251,235,0.3)' }
+        : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <Icon size={18} style={{ color }} />
       <div>
         <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>

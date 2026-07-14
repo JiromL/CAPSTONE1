@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <PageShell title="Welcome" subtitle="Starting up...">
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderBottomColor: 'var(--color-primary)' }} />
       </div>
     </PageShell>
   );

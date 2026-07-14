@@ -101,21 +101,21 @@ export default function ManualNotifyForm() {
             type="button"
             onClick={loadHistory}
             disabled={loadingHistory || !username}
-            className="text-blue-600 hover:underline"
+            className="hover:underline" style={{ color: 'var(--color-primary)' }}
           >
             {loadingHistory ? 'Loading…' : 'Load'}
           </button>
           <button
             type="submit"
             disabled={loadingNotify || !username}
-            className="text-yellow-600 hover:underline"
+            className="hover:underline" style={{ color: 'var(--color-warning)' }}
           >
             {loadingNotify ? 'Sending…' : 'Notify'}
           </button>
         </div>
       </form>
 
-      {historyError && <p className="text-red-600 text-xs mt-1">{historyError}</p>}
+      {historyError && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{historyError}</p>}
       {risk && <p className="text-xs mt-1">Risk: {risk}</p>}
       {history.length > 0 && (
         <ul className="text-xs mt-2 list-disc ml-4">

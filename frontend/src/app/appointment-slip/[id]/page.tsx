@@ -101,7 +101,7 @@ export default function AppointmentSlipPage() {
   const isConfirmed = ['CONFIRMED', 'confirmed', 'APPROVED', 'approved'].includes(slip.status);
 
   return (
-    <div className="min-h-screen bg-gray-100 print:bg-white">
+    <div className="min-h-screen print:bg-white" style={{ background: 'var(--color-bg)' }}>
 
       {/* Action bar */}
       <div className="print:hidden sticky top-0 z-10 px-4 py-3 flex items-center gap-3"
@@ -129,23 +129,23 @@ export default function AppointmentSlipPage() {
 
       {/* Slip */}
       <div className="max-w-[720px] mx-auto p-5 print:p-0 print:max-w-none">
-        <div className="bg-white rounded-xl print:rounded-none border border-gray-200 print:border-0 shadow-sm overflow-hidden">
+        <div className="rounded-xl print:rounded-none print:border-0 shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
 
           {/* Header */}
-          <div className="border-b-2 border-gray-900 px-8 py-6 print:px-6 print:py-5">
+          <div className="px-8 py-6 print:px-6 print:py-5" style={{ borderBottom: '2px solid var(--color-text-primary)' }}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                   De La Salle University
                 </p>
-                <h1 className="text-xl font-bold text-gray-900 mt-0.5 leading-tight">
+                <h1 className="text-xl font-bold mt-0.5 leading-tight" style={{ color: 'var(--color-text-primary)' }}>
                   Counseling &amp; Psychological Services
                 </h1>
-                <p className="text-xs text-gray-400 mt-1">Appointment Confirmation Slip</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Appointment Confirmation Slip</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-xs text-gray-400">Date Printed</p>
-                <p className="text-sm font-medium text-gray-700 mt-0.5">
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Date Printed</p>
+                <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                   {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               </div>
@@ -154,29 +154,31 @@ export default function AppointmentSlipPage() {
 
           {/* Pending notice */}
           {!isConfirmed && (
-            <div className="px-8 py-3 print:px-6 bg-amber-50 border-b border-amber-200 flex items-start gap-2">
-              <AlertCircle size={15} className="text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700">
+            <div className="px-8 py-3 print:px-6 flex items-start gap-2" style={{ background: 'var(--color-warning-surface)', borderBottom: '1px solid var(--color-warning)' }}>
+              <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+              <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}>
                 <span className="font-semibold">This appointment is not yet confirmed.</span> The schedule shown below reflects your preferred date and time. CPS staff will review your request and confirm a final schedule.
               </p>
             </div>
           )}
 
           {/* Reference banner */}
-          <div className="flex items-center justify-between px-8 py-3 print:px-6 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center justify-between px-8 py-3 print:px-6" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
             <div className="flex items-center gap-4">
               <div>
-                <p className="text-xs text-gray-400">Reference No.</p>
-                <p className="text-base font-bold text-gray-900 font-mono tracking-wider mt-0.5">
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Reference No.</p>
+                <p className="text-base font-bold font-mono tracking-wider mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
                   {slip.reference_id}
                 </p>
               </div>
             </div>
-            <span className={`text-xs px-3 py-1 rounded-full font-semibold border ${
-              isConfirmed
-                ? 'bg-white text-gray-700 border-gray-300'
-                : 'bg-white text-gray-500 border-gray-200'
-            }`}>
+            <span
+              className="text-xs px-3 py-1 rounded-full font-semibold"
+              style={isConfirmed
+                ? { background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-strong)' }
+                : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+              }
+            >
               {slip.status}
             </span>
           </div>
@@ -194,7 +196,7 @@ export default function AppointmentSlipPage() {
                   <SlipRow label="Email" value={slip.student_email} />
                 </SlipSection>
 
-                <div className="border-t border-gray-100" />
+                <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
                 <SlipSection title="Appointment Details">
                   <SlipRow label="Type" value={formatType(slip.appointment_type)} />
@@ -219,8 +221,8 @@ export default function AppointmentSlipPage() {
 
               {/* Right: QR */}
               <div className="flex flex-col items-center gap-4 w-48 flex-shrink-0">
-                <div className="border border-gray-200 rounded-lg p-3 w-full text-center">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                <div className="rounded-lg p-3 w-full text-center" style={{ border: '1px solid var(--color-border)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>
                     Check-In QR
                   </p>
                   {slip.qr_image ? (
@@ -230,11 +232,11 @@ export default function AppointmentSlipPage() {
                         alt="Check-in QR Code"
                         className="w-36 h-36 mx-auto"
                       />
-                      <p className="text-xs text-gray-400 mt-3 leading-snug">
+                      <p className="text-xs mt-3 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
                         Present to the CPS receptionist upon arrival
                       </p>
                       {slip.qr_expires_at && (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                           Valid until{' '}
                           {new Date(slip.qr_expires_at).toLocaleTimeString('en-US', {
                             hour: 'numeric', minute: '2-digit', hour12: true,
@@ -243,9 +245,9 @@ export default function AppointmentSlipPage() {
                       )}
                     </>
                   ) : (
-                    <div className="w-36 h-36 mx-auto bg-gray-50 border border-dashed border-gray-200 rounded flex flex-col items-center justify-center gap-2">
-                      <AlertCircle size={16} className="text-gray-300" />
-                      <p className="text-xs text-gray-300 text-center leading-snug px-2">
+                    <div className="w-36 h-36 mx-auto rounded flex flex-col items-center justify-center gap-2" style={{ background: 'var(--color-bg)', border: '1px dashed var(--color-border)' }}>
+                      <AlertCircle size={16} style={{ color: 'var(--color-border-strong)' }} />
+                      <p className="text-xs text-center leading-snug px-2" style={{ color: 'var(--color-border-strong)' }}>
                         Available for confirmed appointments
                       </p>
                     </div>
@@ -253,8 +255,8 @@ export default function AppointmentSlipPage() {
                 </div>
 
                 {/* Reminders */}
-                <div className="border border-gray-200 rounded-lg p-3 w-full text-xs text-gray-500 space-y-2">
-                  <p className="font-semibold text-gray-600">Reminders</p>
+                <div className="rounded-lg p-3 w-full text-xs space-y-2" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                  <p className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Reminders</p>
                   <p>· Bring a valid school ID</p>
                   <p>· Arrive 10 minutes early</p>
                   <p>· QR expires 30 min after generation</p>
@@ -266,8 +268,8 @@ export default function AppointmentSlipPage() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 px-8 py-3 print:px-6 text-center">
-            <p className="text-xs text-gray-400">
+          <div className="px-8 py-3 print:px-6 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
               CPS Office · Henry Sy Sr. Hall · counseling@dlsu.edu.ph
             </p>
           </div>
@@ -281,7 +283,7 @@ export default function AppointmentSlipPage() {
 function SlipSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">{title}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--color-text-muted)' }}>{title}</p>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -291,8 +293,8 @@ function SlipRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
     <div className="flex gap-3">
-      <span className="text-xs text-gray-400 w-20 flex-shrink-0 pt-0.5">{label}</span>
-      <span className="text-xs text-gray-800 font-medium flex-1 leading-snug">{value}</span>
+      <span className="text-xs w-20 flex-shrink-0 pt-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+      <span className="text-xs font-medium flex-1 leading-snug" style={{ color: 'var(--color-text-primary)' }}>{value}</span>
     </div>
   );
 }

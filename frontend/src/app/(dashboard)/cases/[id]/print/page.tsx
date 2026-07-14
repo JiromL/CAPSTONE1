@@ -91,12 +91,12 @@ export default function CasePrintPage() {
         <div className="flex items-start justify-between border-b-2 border-[#2563eb] pb-4 mb-6">
           <div>
             <p className="text-xl font-bold text-[#2563eb]">De La Salle University</p>
-            <p className="text-sm text-gray-600">Counseling & Psychology Services</p>
-            <p className="text-xs text-gray-400 mt-0.5">Case Summary Record — CONFIDENTIAL</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Counseling & Psychology Services</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Case Summary Record — CONFIDENTIAL</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-gray-500">Generated: {data.generated_at}</p>
-            <p className="text-xs font-mono text-gray-700 mt-1">Case No: {data.case.case_number || '—'}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Generated: {data.generated_at}</p>
+            <p className="text-xs font-mono mt-1" style={{ color: 'var(--color-text-secondary)' }}>Case No: {data.case.case_number || '—'}</p>
           </div>
         </div>
 
@@ -106,10 +106,10 @@ export default function CasePrintPage() {
             style={{ backgroundColor: RISK_COLOR[data.case.risk_level] ?? '#6b7280' }}>
             {data.case.risk_level || 'N/A'} RISK
           </span>
-          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+          <span className="px-3 py-1 text-xs font-semibold rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
             {data.case.status}
           </span>
-          <span className="px-3 py-1 text-xs rounded-full bg-gray-50 text-gray-500">
+          <span className="px-3 py-1 text-xs rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
             Opened {data.case.opening_date}
           </span>
         </div>
@@ -143,8 +143,8 @@ export default function CasePrintPage() {
             b={['', '']}
           />
           <RowFull label="Presenting Concern" value={data.icf.presenting_concern} />
-          <div className="mt-2 pt-2 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 mb-1">Emergency Contact</p>
+          <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>Emergency Contact</p>
             <Row2
               a={['Name', data.icf.emergency_contact_name]}
               b={['Relationship', data.icf.emergency_contact_relationship]}
@@ -167,24 +167,24 @@ export default function CasePrintPage() {
             <div className="space-y-1.5 mb-3">
               {PHQ4_LABELS.map((q, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="text-xs text-gray-500 w-5 shrink-0">{i + 1}.</span>
-                  <span className="flex-1 text-xs text-gray-700">{q}</span>
-                  <span className="text-xs font-semibold text-gray-900 shrink-0 w-40 text-right">
+                  <span className="text-xs w-5 shrink-0" style={{ color: 'var(--color-text-muted)' }}>{i + 1}.</span>
+                  <span className="flex-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>{q}</span>
+                  <span className="text-xs font-semibold shrink-0 w-40 text-right" style={{ color: 'var(--color-text-primary)' }}>
                     {data.phq4![i] !== null ? `${data.phq4![i]} — ${FREQ[data.phq4![i]!]}` : '—'}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="flex gap-6 mt-2 pt-2 border-t border-gray-100">
+            <div className="flex gap-6 mt-2 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
               <div>
-                <p className="text-xs text-gray-500">PHQ-2 Score (Depression)</p>
-                <p className="text-base font-bold text-gray-900">{phq2} / 6</p>
-                <p className="text-[10px] text-gray-400">{phq2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>PHQ-2 Score (Depression)</p>
+                <p className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>{phq2} / 6</p>
+                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{phq2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">GAD-2 Score (Anxiety)</p>
-                <p className="text-base font-bold text-gray-900">{gad2} / 6</p>
-                <p className="text-[10px] text-gray-400">{gad2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>GAD-2 Score (Anxiety)</p>
+                <p className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>{gad2} / 6</p>
+                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{gad2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
               </div>
             </div>
           </Section>
@@ -193,7 +193,7 @@ export default function CasePrintPage() {
         {/* Treatment plan */}
         {data.case.treatment_plan && (
           <Section title="Treatment Plan">
-            <p className="text-xs text-gray-700 whitespace-pre-line leading-relaxed">{data.case.treatment_plan}</p>
+            <p className="text-xs whitespace-pre-line leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{data.case.treatment_plan}</p>
           </Section>
         )}
 
@@ -202,12 +202,12 @@ export default function CasePrintPage() {
           <Section title={`Session Notes (${data.notes.length})`}>
             <div className="space-y-3">
               {data.notes.map((n, i) => (
-                <div key={i} className="border border-gray-100 rounded-lg p-3">
+                <div key={i} className="rounded-lg p-3" style={{ border: '1px solid var(--color-border)' }}>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-semibold text-gray-700">{n.date}</p>
-                    {n.author && <p className="text-[10px] text-gray-400">{n.author}</p>}
+                    <p className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{n.date}</p>
+                    {n.author && <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{n.author}</p>}
                   </div>
-                  <p className="text-xs text-gray-700 whitespace-pre-line leading-relaxed">{n.content}</p>
+                  <p className="text-xs whitespace-pre-line leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{n.content}</p>
                 </div>
               ))}
             </div>
@@ -215,8 +215,8 @@ export default function CasePrintPage() {
         )}
 
         {/* Footer */}
-        <div className="mt-10 pt-4 border-t border-gray-200 text-center">
-          <p className="text-[10px] text-gray-400">
+        <div className="mt-10 pt-4 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
             This document is confidential and protected under RA 10173 (Data Privacy Act of 2012) and RA 11036 (Mental Health Act of 2018).
             Unauthorized disclosure is prohibited. For internal CPS use only.
           </p>
@@ -239,13 +239,13 @@ function Row2({ a, b }: { a: [string, string]; b: [string, string] }) {
   return (
     <div className="grid grid-cols-2 gap-x-6 mb-1.5">
       <div>
-        <span className="text-[10px] text-gray-400 uppercase tracking-wide">{a[0]}</span>
-        <p className="text-xs text-gray-800">{a[1] || '—'}</p>
+        <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{a[0]}</span>
+        <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>{a[1] || '—'}</p>
       </div>
       {b[0] && (
         <div>
-          <span className="text-[10px] text-gray-400 uppercase tracking-wide">{b[0]}</span>
-          <p className="text-xs text-gray-800">{b[1] || '—'}</p>
+          <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{b[0]}</span>
+          <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>{b[1] || '—'}</p>
         </div>
       )}
     </div>
@@ -255,8 +255,8 @@ function Row2({ a, b }: { a: [string, string]; b: [string, string] }) {
 function RowFull({ label, value }: { label: string; value: string }) {
   return (
     <div className="mb-1.5">
-      <span className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</span>
-      <p className="text-xs text-gray-800 whitespace-pre-line">{value || '—'}</p>
+      <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+      <p className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-primary)' }}>{value || '—'}</p>
     </div>
   );
 }

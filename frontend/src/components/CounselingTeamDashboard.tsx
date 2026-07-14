@@ -163,7 +163,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                     Session Done — Decide Next Step
-                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 font-medium normal-case tracking-normal">
+                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
                       {pendingEval.length}
                     </span>
                   </p>
@@ -172,7 +172,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                 {pendingEval.slice(0, 3).map((a: any, i: number) => (
                   <div key={i} className="py-1.5 flex items-center justify-between">
                     <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{a.student_name || 'Student'}</p>
-                    <span className="text-xs text-amber-600">Follow-up / close needed</span>
+                    <span className="text-xs" style={{ color: 'var(--color-warning)' }}>Follow-up / close needed</span>
                   </div>
                 ))}
               </div>

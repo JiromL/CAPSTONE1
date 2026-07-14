@@ -91,7 +91,7 @@ function FieldLabel({ label, hint, required }: { label: string; hint?: string; r
   return (
     <div className="mb-2">
       <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+        {label}{required && <span className="ml-0.5" style={{ color: 'var(--color-danger)' }}>*</span>}
       </p>
       {hint && <p className="text-xs mt-0.5 italic" style={{ color: 'var(--color-text-muted)' }}>{hint}</p>}
     </div>
@@ -202,7 +202,7 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
               {['Onsite (Face-to-Face)', 'Online (Zoom, Google Meet, etc.)'].map(opt => (
                 <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
                   <input type="radio" checked={value.mode_of_session === opt} onChange={() => set({ mode_of_session: opt })}
-                    className="border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
+                    className="border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" />
                   <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
                 </label>
               ))}
@@ -214,7 +214,7 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
               {['1', '2', '3', '4', '5', 'Other'].map(n => (
                 <label key={n} className="flex items-center gap-1 cursor-pointer">
                   <input type="radio" checked={value.session_number === n} onChange={() => set({ session_number: n })}
-                    className="border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
+                    className="border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" />
                   <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{n}</span>
                 </label>
               ))}

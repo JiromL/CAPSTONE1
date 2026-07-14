@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Loader2, Check, CheckCircle2 } from 'lucide-react';
 
 // ── Field helper components ──────────────────────────────────────────────────
 
 function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-      <div className="px-5 py-3 bg-[#2563eb] text-white">
+    <div className="rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+      <div className="px-5 py-3 text-white" style={{ background: 'var(--color-primary)' }}>
         <h3 className="text-sm font-semibold">{title}</h3>
       </div>
       <div className="p-5 space-y-4">{children}</div>
@@ -22,7 +23,7 @@ function RadioField({ label, name, options, value, onChange, required, hasError 
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className={`space-y-2 p-3 rounded-lg ${hasError ? 'border border-red-400 bg-red-50/30' : ''}`}>
@@ -30,8 +31,8 @@ function RadioField({ label, name, options, value, onChange, required, hasError 
           <label key={opt} className="flex items-center gap-2 cursor-pointer">
             <input type="radio" name={name} value={opt}
               checked={value === opt} onChange={() => onChange(opt)}
-              className="w-4 h-4 text-[#2563eb] border-gray-300" />
-            <span className="text-sm text-gray-700">{opt}</span>
+              className="w-4 h-4 text-[var(--color-primary)] border-[var(--color-border-strong)]" />
+            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{opt}</span>
           </label>
         ))}
       </div>
@@ -46,7 +47,7 @@ function CheckboxFieldWithOther({ label, name, options, value, otherValue, onCha
   const allOpts = [...options, 'Other:'];
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className={`grid grid-cols-1 gap-2 p-3 rounded-lg ${hasError ? 'border border-red-400 bg-red-50/30' : ''}`}>
@@ -60,19 +61,19 @@ function CheckboxFieldWithOther({ label, name, options, value, otherValue, onCha
                   const arr = value || [];
                   onChange(e.target.checked ? [...arr, opt] : arr.filter((x: string) => x !== opt));
                 }}
-                className="w-4 h-4 mt-0.5 text-[#2563eb] border-gray-300 rounded" />
+                className="w-4 h-4 mt-0.5 text-[var(--color-primary)] border-[var(--color-border-strong)] rounded" />
               {isOther ? (
-                <span className="text-sm text-gray-700 flex items-center gap-2 flex-1">
+                <span className="text-sm flex items-center gap-2 flex-1" style={{ color: 'var(--color-text-primary)' }}>
                   Other:
                   {(value || []).includes('Other:') && (
                     <input type="text" value={otherValue}
                       onChange={e => onOtherChange(e.target.value)}
-                      className="flex-1 text-sm border-b border-gray-300 focus:border-[#2563eb] outline-none px-1"
+                      className="flex-1 text-sm outline-none px-1" style={{ borderBottom: '1px solid var(--color-border-strong)', color: 'var(--color-text-primary)', background: 'transparent' }}
                       placeholder="Please specify..." />
                   )}
                 </span>
               ) : (
-                <span className="text-sm text-gray-700">{opt}</span>
+                <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{opt}</span>
               )}
             </label>
           );
@@ -88,20 +89,21 @@ function TextareaField({ label, value, onChange, placeholder, helperText, requir
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      {helperText && <p className="text-xs text-gray-400 mb-2 italic">{helperText}</p>}
+      {helperText && <p className="text-xs mb-2 italic" style={{ color: 'var(--color-text-muted)' }}>{helperText}</p>}
       <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
         placeholder={placeholder}
-        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none resize-none ${hasError ? 'border-red-400' : 'border-gray-200'}`} />
+        className="w-full px-3 py-2 text-sm rounded-lg outline-none resize-none transition"
+        style={{ border: hasError ? '1px solid var(--color-danger)' : '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
     </div>
   );
 }
 
 export function ReadBadge({ value }: { value: string }) {
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#2563eb]/10 text-[#2563eb] mr-1.5 mb-1.5">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-1.5 mb-1.5" style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary-text)' }}>
       {value}
     </span>
   );
@@ -109,8 +111,8 @@ export function ReadBadge({ value }: { value: string }) {
 
 export function ReadSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-      <div className="px-5 py-3 bg-[#2563eb] text-white">
+    <div className="rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+      <div className="px-5 py-3 text-white" style={{ background: 'var(--color-primary)' }}>
         <h3 className="text-sm font-semibold">{title}</h3>
       </div>
       <div className="p-5 space-y-3">{children}</div>
@@ -121,8 +123,8 @@ export function ReadSection({ title, children }: { title: string; children: Reac
 export function ReadRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-      <div className="text-sm text-gray-800">{children}</div>
+      <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+      <div className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{children}</div>
     </div>
   );
 }
@@ -173,14 +175,14 @@ function getGAD7Severity(score: number): string {
   return 'Severe';
 }
 
-function getSeverityClass(severity: string): string {
+function getSeverityStyle(severity: string): CSSProperties {
   switch (severity) {
-    case 'Minimal': return 'bg-green-100 text-green-800';
-    case 'Mild': return 'bg-yellow-100 text-yellow-800';
-    case 'Moderate': return 'bg-orange-100 text-orange-800';
-    case 'Moderately Severe': return 'bg-red-100 text-red-800';
-    case 'Severe': return 'bg-red-200 text-red-900';
-    default: return 'bg-gray-100 text-gray-700';
+    case 'Minimal':           return { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' };
+    case 'Mild':              return { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' };
+    case 'Moderate':          return { background: '#FFF7ED', color: '#9A3412' };
+    case 'Moderately Severe': return { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' };
+    case 'Severe':            return { background: '#FEF2F2', color: '#7F1D1D' };
+    default:                  return { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' };
   }
 }
 
@@ -210,30 +212,36 @@ function PsychometricQuestionList({ questions, responses, maxScore, getSeverity,
   return (
     <div>
       <div className="flex items-center gap-3 mb-3 px-1">
-        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-[#2563eb] rounded-full transition-all"
-            style={{ width: `${(answered / total) * 100}%` }} />
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${(answered / total) * 100}%`, background: 'var(--color-primary)' }} />
         </div>
-        <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">{answered}/{total}</span>
+        <span className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>{answered}/{total}</span>
         {score !== null && (
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${getSeverityClass(getSeverity(score))}`}>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={getSeverityStyle(getSeverity(score))}>
             {score}/{maxScore} · {getSeverity(score)}
           </span>
         )}
       </div>
       <div className="space-y-2">
         {questions.map((q, i) => (
-          <div key={i} className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-700 mb-2"><span className="font-semibold text-gray-400 mr-1">{i + 1}.</span>{q}</p>
+          <div key={i} className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
+            <p className="text-xs mb-2" style={{ color: 'var(--color-text-primary)' }}><span className="font-semibold mr-1" style={{ color: 'var(--color-text-muted)' }}>{i + 1}.</span>{q}</p>
             <div className="grid grid-cols-4 gap-1.5">
               {RESPONSE_OPTS.map(o => {
                 const selected = responses[i] === o.val;
                 return (
                   <button key={o.val} disabled={readOnly}
                     onClick={() => setResponse(i, o.val)}
-                    className={`px-1.5 py-2 rounded-lg text-[10px] font-semibold border transition text-center leading-tight ${
-                      selected ? 'bg-[#2563eb] text-white border-[#2563eb]' : readOnly ? 'bg-white text-gray-300 border-gray-100' : 'bg-white text-gray-500 border-gray-200 hover:border-[#2563eb] hover:text-[#2563eb]'
-                    }`}>
+                    className="px-1.5 py-2 rounded-lg text-[10px] font-semibold border transition text-center leading-tight"
+                    style={
+                      selected
+                        ? { background: 'var(--color-primary)', color: 'white', borderColor: 'var(--color-primary)' }
+                        : readOnly
+                          ? { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }
+                          : { background: 'var(--color-surface)', color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)' }
+                    }
+                    onMouseEnter={e => { if (!selected && !readOnly) { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-primary)'; } }}
+                    onMouseLeave={e => { if (!selected && !readOnly) { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)'; } }}>
                     {o.label}
                   </button>
                 );
@@ -253,7 +261,7 @@ function PHQ9Section({ responses, onChange, readOnly }: {
 }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-gray-700 mb-3">PHQ-9 — Depression Screen <span className="text-xs font-normal text-gray-400">(0–27)</span></p>
+      <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>PHQ-9 — Depression Screen <span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>(0–27)</span></p>
       <PsychometricQuestionList
         questions={PHQ9_QUESTIONS}
         responses={responses.length === 9 ? responses : new Array(9).fill(null)}
@@ -271,7 +279,7 @@ function GAD7Section({ responses, onChange, readOnly }: {
 }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-gray-700 mb-3">GAD-7 — Anxiety Screen <span className="text-xs font-normal text-gray-400">(0–21)</span></p>
+      <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>GAD-7 — Anxiety Screen <span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>(0–21)</span></p>
       <PsychometricQuestionList
         questions={GAD7_QUESTIONS}
         responses={responses.length === 7 ? responses : new Array(7).fill(null)}
@@ -351,8 +359,8 @@ function getStepStatus(step: number, draft: any): StepStatus {
 }
 
 function StepStatusIcon({ status }: { status: StepStatus }) {
-  if (status === 'complete') return <span className="text-[#2563eb] font-bold text-sm">✓</span>;
-  if (status === 'partial')  return <span className="text-orange-500 font-bold text-sm">●</span>;
+  if (status === 'complete') return <span className="font-bold text-sm" style={{ color: 'var(--color-primary)' }}>✓</span>;
+  if (status === 'partial')  return <span className="font-bold text-sm" style={{ color: '#F97316' }}>●</span>;
   if (status === 'error')    return <span className="text-red-500 font-bold text-sm">!</span>;
   return null;
 }
@@ -404,11 +412,11 @@ export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
   return (
     <div>
       {updatedAt && (
-        <p className="text-xs text-gray-400 mb-4">Last updated: {new Date(updatedAt).toLocaleString()}</p>
+        <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>Last updated: {new Date(updatedAt).toLocaleString()}</p>
       )}
       <ReadSection title="Section 1: Session Information">
         {sessionInfo && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-lg mb-2" style={{ background: 'var(--color-bg)' }}>
             {[
               { label: 'Date', value: sessionInfo.date },
               { label: 'Time', value: sessionInfo.time },
@@ -417,8 +425,8 @@ export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
               { label: 'College', value: sessionInfo.college },
             ].map(item => (
               <div key={item.label}>
-                <p className="text-xs text-gray-400 mb-0.5">{item.label}</p>
-                <p className="text-sm font-medium text-gray-700">{item.value || '—'}</p>
+                <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{item.label}</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.value || '—'}</p>
               </div>
             ))}
           </div>
@@ -438,22 +446,22 @@ export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
 
       <ReadSection title="Section 2A: Psychometric Screening">
         <div>
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">PHQ-9 — Depression Screen</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-secondary)' }}>PHQ-9 — Depression Screen</p>
           {form.phq9_score != null ? (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <span className="text-2xl font-bold text-gray-900">{form.phq9_score}<span className="text-xs text-gray-400 font-normal ml-1">/ 27</span></span>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${getSeverityClass(getPHQ9Severity(form.phq9_score))}`}>{form.phq9_severity || getPHQ9Severity(form.phq9_score)}</span>
+            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+              <span className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{form.phq9_score}<span className="text-xs font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>/ 27</span></span>
+              <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={getSeverityStyle(getPHQ9Severity(form.phq9_score))}>{form.phq9_severity || getPHQ9Severity(form.phq9_score)}</span>
             </div>
-          ) : <p className="text-sm text-gray-400 italic">Not completed</p>}
+          ) : <p className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>Not completed</p>}
         </div>
         <div>
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">GAD-7 — Anxiety Screen</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-secondary)' }}>GAD-7 — Anxiety Screen</p>
           {form.gad7_score != null ? (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <span className="text-2xl font-bold text-gray-900">{form.gad7_score}<span className="text-xs text-gray-400 font-normal ml-1">/ 21</span></span>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${getSeverityClass(getGAD7Severity(form.gad7_score))}`}>{form.gad7_severity || getGAD7Severity(form.gad7_score)}</span>
+            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+              <span className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{form.gad7_score}<span className="text-xs font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>/ 21</span></span>
+              <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={getSeverityStyle(getGAD7Severity(form.gad7_score))}>{form.gad7_severity || getGAD7Severity(form.gad7_score)}</span>
             </div>
-          ) : <p className="text-sm text-gray-400 italic">Not completed</p>}
+          ) : <p className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>Not completed</p>}
         </div>
       </ReadSection>
 
@@ -587,9 +595,9 @@ export function ICInterviewWizard({
     return (
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-800">IC Interview Documentation</h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>IC Interview Documentation</h2>
           <button onClick={() => { setDraft({ ...existingForm }); setEditing(true); setCurrentStep(0); setStepErrors({}); setShowSaveSummary(false); }}
-            className="text-sm text-[#2563eb] font-medium hover:underline">Edit</button>
+            className="text-sm font-medium hover:underline" style={{ color: 'var(--color-primary-text)' }}>Edit</button>
         </div>
         <ICInterviewReadView form={existingForm} sessionInfo={sessionInfo} updatedAt={updatedAt} />
       </div>
@@ -600,21 +608,20 @@ export function ICInterviewWizard({
     <div>
       {existingForm && (
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-800">IC Interview Documentation</h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>IC Interview Documentation</h2>
           <button onClick={() => { setDraft({ ...existingForm }); setEditing(false); setCurrentStep(0); setStepErrors({}); setShowSaveSummary(false); }}
-            className="text-sm text-gray-500 hover:underline">Cancel</button>
+            className="text-sm hover:underline" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
         </div>
       )}
 
       {/* Mobile progress bar */}
       <div className="sm:hidden mb-4">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-medium text-gray-600">Step {currentStep + 1} of {WIZARD_STEPS.length}</span>
-          <span className="text-xs text-gray-500">{WIZARD_STEPS[currentStep].label}</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Step {currentStep + 1} of {WIZARD_STEPS.length}</span>
+          <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{WIZARD_STEPS[currentStep].label}</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="bg-[#2563eb] h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentStep + 1) / WIZARD_STEPS.length) * 100}%` }} />
+        <div className="w-full rounded-full h-2" style={{ background: 'var(--color-border)' }}>
+          <div className="h-2 rounded-full transition-all duration-300" style={{ width: `${((currentStep + 1) / WIZARD_STEPS.length) * 100}%`, background: 'var(--color-primary)' }} />
         </div>
       </div>
 
@@ -627,8 +634,12 @@ export function ICInterviewWizard({
               const isActive = idx === currentStep;
               return (
                 <button key={idx} onClick={() => setCurrentStep(idx)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors ${isActive ? 'bg-[#2563eb] text-white' : 'hover:bg-gray-100 text-gray-700'}`}>
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${isActive ? 'bg-white text-[#2563eb]' : 'bg-gray-200 text-gray-600'}`}>{idx + 1}</span>
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors"
+                  style={isActive ? { background: 'var(--color-primary)', color: 'white' } : { color: 'var(--color-text-primary)' }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                    style={isActive ? { background: 'white', color: 'var(--color-primary)' } : { background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>{idx + 1}</span>
                   <span className="text-xs font-medium leading-tight flex-1 min-w-0 truncate">{step.short}</span>
                   {!isActive && <StepStatusIcon status={status} />}
                 </button>
@@ -644,7 +655,7 @@ export function ICInterviewWizard({
           {currentStep === 0 && (
             <SectionBox title="Step 1: Session Information">
               {sessionInfo && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-lg mb-2" style={{ background: 'var(--color-bg)' }}>
                   {[
                     { label: 'Date', value: sessionInfo.date },
                     { label: 'Time', value: sessionInfo.time },
@@ -653,8 +664,8 @@ export function ICInterviewWizard({
                     { label: 'College', value: sessionInfo.college },
                   ].map(item => (
                     <div key={item.label}>
-                      <p className="text-xs text-gray-400 mb-0.5">{item.label}</p>
-                      <p className="text-sm font-medium text-gray-700">{item.value || '—'}</p>
+                      <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{item.label}</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.value || '—'}</p>
                     </div>
                   ))}
                 </div>
@@ -683,7 +694,7 @@ export function ICInterviewWizard({
           {/* Step 2: Psychometric Screening */}
           {currentStep === 2 && (
             <SectionBox title="Step 3: Psychometric Screening">
-              <p className="text-xs text-gray-500 italic">
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>
                 {triageScores ? 'PHQ-9 and GAD-7 scores were recorded during triage and are pre-filled below.' : 'Administer the PHQ-9 and GAD-7 screening tools.'}
               </p>
               <PHQ9Section
@@ -693,7 +704,7 @@ export function ICInterviewWizard({
                   setDraft((prev: any) => ({ ...prev, phq9_responses: responses, phq9_score: score, phq9_severity: severity }));
                 }}
               />
-              <div className="border-t border-gray-100 my-2" />
+              <div className="my-2" style={{ borderTop: '1px solid var(--color-border)' }} />
               <GAD7Section
                 responses={d.gad7_responses || new Array(7).fill(null)}
                 readOnly={!!triageScores}
@@ -707,7 +718,7 @@ export function ICInterviewWizard({
           {/* Step 3: Brief Description */}
           {currentStep === 3 && (
             <SectionBox title="Step 4: Brief Description of the Client">
-              <p className="text-xs text-gray-500 italic">Quick overview of how the client appeared, communicated, and interacted during the intake session.</p>
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>Quick overview of how the client appeared, communicated, and interacted during the intake session.</p>
               <CheckboxFieldWithOther label="General Appearance and Presentation" name="general_appearance" required
                 options={['Appropriate and well-groomed – neat, tidy, and consistent with the setting', 'Neat / Casual – relaxed but presentable', 'Fatigued or tired-looking – appears low in energy or sleep-deprived', 'Disheveled / unkempt – clothing or hygiene suggests stress or neglect', 'Tearful / emotional – shows visible sadness or crying during the session']}
                 value={d.general_appearance || []} otherValue={d.general_appearance_other || ''}
@@ -737,7 +748,7 @@ export function ICInterviewWizard({
           {/* Step 4: Presenting Problem */}
           {currentStep === 4 && (
             <SectionBox title="Step 5: Presenting Problem">
-              <p className="text-xs text-gray-500 italic">Main concerns or reasons the client sought counseling.</p>
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>Main concerns or reasons the client sought counseling.</p>
               <CheckboxFieldWithOther label="Presenting Problem" name="presenting_problem" required
                 options={['Anxiety or fear – excessive worry, tension, or panic episodes', 'Depression or sadness – low mood, hopelessness, or loss of interest', 'Stress or burnout – feeling overwhelmed by academics or work', 'Relationship or family conflict – difficulties in communication or boundaries', 'Adjustment or transition issue – struggling to cope with life or school changes', 'Grief or loss – emotional pain following death, separation, or significant loss', 'Trauma-related distress – distress linked to a past adverse event', 'Identity or self-concept concern – confusion about personal values, gender, or direction', 'Motivation or focus difficulty – trouble concentrating or completing tasks', 'Health-related stress – emotional impact of physical conditions or fatigue']}
                 value={d.presenting_problem || []} otherValue={d.presenting_problem_other || ''}
@@ -755,7 +766,7 @@ export function ICInterviewWizard({
           {/* Step 5: Psychosocial History */}
           {currentStep === 5 && (
             <SectionBox title="Step 6: Brief Psychosocial History">
-              <p className="text-xs text-gray-500 italic">Background information relevant to the client's current concern.</p>
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>Background information relevant to the client's current concern.</p>
               <CheckboxFieldWithOther label="Psychosocial History" name="psychosocial_history" required
                 options={['Significant past experiences – history of trauma, loss, illness, or major life transitions', 'Family background – quality of family relationships, support, or sources of conflict', 'Coping styles and strategies – ways the client typically manages stress', 'Academic or work functioning – level of motivation, performance, or adjustment', 'Peer and social relationships – quality of friendships or social supports', 'Health and lifestyle – physical well-being, sleep, exercise, nutrition, or medical conditions', 'Previous counseling or therapy – prior experience with mental health services', 'Substance use history – use of alcohol, nicotine, caffeine, or other substances', 'Faith or spirituality – beliefs or practices that influence coping and meaning-making']}
                 value={d.psychosocial_history || []} otherValue={d.psychosocial_other || ''}
@@ -773,7 +784,7 @@ export function ICInterviewWizard({
           {/* Step 6: Interaction & Affect */}
           {currentStep === 6 && (
             <SectionBox title="Step 7: Interaction, Relationship, and Affect">
-              <p className="text-xs text-gray-500 italic">How the client related to the counselor and expressed emotions during the intake.</p>
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>How the client related to the counselor and expressed emotions during the intake.</p>
               <CheckboxFieldWithOther label="Interaction and Relationship with Counselor" name="interaction_relationship" required
                 options={['Engaged and cooperative – open, responsive, and actively participated', 'Warm and receptive – friendly and comfortable engaging in dialogue', 'Guarded or hesitant – cautious, reserved, or limited in responses', 'Calm and composed – steady demeanor and appropriate behavior', 'Withdrawn or avoidant – quiet, minimal eye contact, or reluctant to engage', 'Irritable or defensive – easily frustrated or resistant to feedback', 'Motivated and hopeful – shows readiness and willingness to improve']}
                 value={d.interaction_relationship || []} otherValue={d.interaction_relationship_other || ''}
@@ -797,7 +808,7 @@ export function ICInterviewWizard({
           {/* Step 7: Maladaptive Patterns */}
           {currentStep === 7 && (
             <SectionBox title="Step 8: Maladaptive Patterns Observed or Reported">
-              <p className="text-xs text-gray-500 italic">Recurring thoughts, emotions, behaviors, or coping styles contributing to current concerns.</p>
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>Recurring thoughts, emotions, behaviors, or coping styles contributing to current concerns.</p>
               <CheckboxFieldWithOther label="Maladaptive Patterns" name="maladaptive_patterns" required
                 options={['Avoidance behaviors – Tendency to avoid situations, tasks, or conversations that cause discomfort', 'Negative self-talk or self-criticism – Persistent self-blame, harsh internal dialogue, or low self-worth', 'Emotional suppression – Difficulty expressing or acknowledging emotions', 'Excessive worry or rumination – Repetitive overthinking, difficulty letting go', 'Perfectionism or fear of failure – Unrealistic standards, strong fear of making mistakes', 'Dependence on others for reassurance – Difficulty making decisions or coping independently', 'Impulsivity or difficulty with emotional regulation – Acting quickly when distressed', 'Maladaptive coping strategies – Coping styles that provide short-term relief but increase distress', 'Interpersonal difficulties – Recurrent conflicts, withdrawal, or difficulty setting boundaries', 'Trauma-related responses – Hypervigilance, emotional numbing, or heightened reactivity', 'Academic/work-related maladaptive patterns – Procrastination, disengagement, or chronic burnout', 'No maladaptive patterns identified at intake']}
                 value={d.maladaptive_patterns || []} otherValue={d.maladaptive_patterns_other || ''}
@@ -822,7 +833,7 @@ export function ICInterviewWizard({
           {/* Step 9: Recommendation */}
           {currentStep === 9 && (
             <SectionBox title="Step 10: Recommendation / Decision">
-              <p className="text-xs text-gray-500 italic">Summarize your clinical understanding using the 4 P's Model, then state your recommendation.</p>
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>Summarize your clinical understanding using the 4 P's Model, then state your recommendation.</p>
               <CheckboxFieldWithOther label="Predisposing Factors" name="predisposing_factors" required
                 options={['Family history of mental health or relational problems', 'Early childhood adversity or trauma', 'Personality traits (e.g., perfectionism, dependency, impulsivity)', 'Chronic medical condition or neurobiological vulnerability', 'Limited early emotional support or attachment disruption', 'Cultural, gender, or identity-related stress exposure']}
                 value={d.predisposing_factors || []} otherValue={d.predisposing_other || ''}
@@ -839,7 +850,7 @@ export function ICInterviewWizard({
                 options={['Supportive relationships or social network', 'Faith or spirituality', 'Academic or work engagement', 'Motivation to improve / willingness to seek help', 'Effective coping or problem-solving skills', 'Stable housing or financial situation', 'Access to mental health and community resources']}
                 value={d.protective_factors || []} otherValue={d.protective_other || ''}
                 onChange={v => upd('protective_factors', v)} onOtherChange={v => upd('protective_other', v)} />
-              <div className="border-t border-gray-100 pt-4">
+              <div className="pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <CheckboxFieldWithOther label="Recommendation for Treatment or Disposition" name="recommendation" required
                   options={['Continue Counseling / Psychotherapy – client to engage in ongoing sessions with same counselor/psychologist or team', 'Referral to CPS Psychologist (Testing / Assessment) – for further diagnostic or psychological evaluation', 'Referral to CPS Psychologist for Psychotherapy – referred for specialized, in-depth therapy within CPS', 'Referral to Psychiatrist / Physician – for medication evaluation or medical management', 'Crisis Intervention / Safety Plan Initiated – immediate response to safety or suicide risk concerns', 'Collaboration with Faculty / Staff (with consent) – coordinate support for academic or behavioral concerns', 'Referral to External Support / Agency – e.g., community mental health center, support group, or hotline', 'Follow-up Session Scheduled – next session date or frequency confirmed']}
                   value={d.recommendation || []} otherValue={d.recommendation_other || ''}
@@ -853,18 +864,20 @@ export function ICInterviewWizard({
           {/* Step 10: Signature */}
           {currentStep === 10 && (
             <SectionBox title="Step 11: Signature / Attestation">
-              <p className="text-xs text-gray-500 italic">By completing this form, the IC affirms that the information recorded is accurate and was gathered during the intake session.</p>
+              <p className="text-xs italic" style={{ color: 'var(--color-text-secondary)' }}>By completing this form, the IC affirms that the information recorded is accurate and was gathered during the intake session.</p>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">IC Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>IC Name <span className="text-red-500">*</span></label>
                 <input type="text" value={d.ic_name || ''} onChange={e => upd('ic_name', e.target.value)}
                   placeholder="Full name of Intake Counselor"
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none ${stepErrors[10]?.some(e => e.includes('IC Name')) ? 'border-red-400' : 'border-gray-200'}`} />
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ border: stepErrors[10]?.some(e => e.includes('IC Name')) ? '1px solid var(--color-danger)' : '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                 {stepErrors[10]?.some(e => e.includes('IC Name')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Signature Date <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>Signature Date <span className="text-red-500">*</span></label>
                 <input type="date" value={d.ic_signature_date || ''} onChange={e => upd('ic_signature_date', e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-transparent outline-none ${stepErrors[10]?.some(e => e.includes('Signature Date')) ? 'border-red-400' : 'border-gray-200'}`} />
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ border: stepErrors[10]?.some(e => e.includes('Signature Date')) ? '1px solid var(--color-danger)' : '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                 {stepErrors[10]?.some(e => e.includes('Signature Date')) && <p className="text-xs text-red-500 mt-1">This field is required</p>}
               </div>
             </SectionBox>
@@ -872,13 +885,13 @@ export function ICInterviewWizard({
 
           {/* Validation summary */}
           {showSaveSummary && missingFields.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-              <p className="text-sm font-bold text-red-700 mb-2">Please complete the following before saving:</p>
+            <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+              <p className="text-sm font-bold mb-2" style={{ color: 'var(--color-danger-text)' }}>Please complete the following before saving:</p>
               <ul className="space-y-1">
                 {missingFields.map((f, i) => (
                   <li key={i}>
                     <button onClick={() => setCurrentStep(f.stepIndex)}
-                      className="text-sm text-red-600 underline hover:text-red-800">
+                      className="text-sm underline" style={{ color: 'var(--color-danger)' }}>
                       Step {f.stepIndex + 1}: {f.label}
                     </button>
                   </li>
@@ -887,28 +900,40 @@ export function ICInterviewWizard({
             </div>
           )}
 
-          {saveSuccess && <p className="text-sm text-blue-700 font-medium mb-3 flex items-center gap-1"><CheckCircle2 size={14} /> Saved successfully.</p>}
-          {saveError && <p className="text-sm text-red-600 mb-3">{saveError}</p>}
+          {saveSuccess && <p className="text-sm font-medium mb-3 flex items-center gap-1" style={{ color: 'var(--color-info-text)' }}><CheckCircle2 size={14} /> Saved successfully.</p>}
+          {saveError && <p className="text-sm mb-3" style={{ color: 'var(--color-danger)' }}>{saveError}</p>}
 
           {/* Navigation */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
             <button onClick={handlePrev} disabled={currentStep === 0}
-              className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
+              className="px-4 py-2 text-sm font-medium rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
               ← Previous
             </button>
             <div className="flex items-center gap-2">
               <button onClick={handleSaveDraft} disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition flex items-center gap-1.5">
+                className="px-4 py-2 text-sm font-medium rounded-lg disabled:opacity-50 transition flex items-center gap-1.5"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
                 {saving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save Draft'}
               </button>
               {currentStep < WIZARD_STEPS.length - 1 ? (
                 <button onClick={handleNext}
-                  className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                  className="px-5 py-2 text-white text-sm font-semibold rounded-lg transition"
+                  style={{ background: 'var(--color-primary)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}>
                   Next →
                 </button>
               ) : (
                 <button onClick={handleSaveForm} disabled={saving}
-                  className="px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-2">
+                  className="px-5 py-2 text-white text-sm font-semibold rounded-lg disabled:opacity-50 transition flex items-center gap-2"
+                  style={{ background: 'var(--color-primary)' }}
+                  onMouseEnter={e => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+                  onMouseLeave={e => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}>
                   {saving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save Form'}
                 </button>
               )}

@@ -34,22 +34,62 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-bg)' }}>
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-[45%] flex-col justify-between p-10" style={{ background: 'var(--color-primary)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
-            <span className="text-white text-sm font-bold">CPS</span>
-          </div>
-          <span className="text-white font-semibold text-lg">CPS System</span>
+      <div className="hidden lg:flex lg:w-[45%] relative flex-col justify-between overflow-hidden" style={{ background: 'var(--color-sidebar)' }}>
+        {/* Background geometry */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Large circle — top right */}
+          <div
+            className="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full"
+            style={{ background: 'rgba(35,82,204,0.08)', border: '1px solid rgba(35,82,204,0.12)' }}
+          />
+          {/* Medium circle — bottom left */}
+          <div
+            className="absolute -bottom-24 -left-24 w-[360px] h-[360px] rounded-full"
+            style={{ background: 'rgba(35,82,204,0.06)' }}
+          />
+          {/* Dot grid */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="dots-fp" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1.5" fill="white" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#dots-fp)" />
+          </svg>
+          {/* Diagonal accent line */}
+          <div
+            className="absolute top-0 right-0 w-px h-full opacity-10"
+            style={{ background: 'linear-gradient(to bottom, transparent, white 30%, white 70%, transparent)' }}
+          />
         </div>
-        <div>
-          <h2 className="text-white text-3xl font-bold leading-snug mb-4">Reset your password</h2>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
-            Enter your DLSU email and we'll send you a link to reset your password.
+
+        {/* Content */}
+        <div className="relative flex flex-col justify-between h-full p-10">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ background: 'var(--color-primary)' }}
+            >
+              <span className="text-[10px] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            </div>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              DLSU CPS
+            </span>
+          </div>
+
+          {/* Main copy */}
+          <div>
+            <h2 className="text-3xl font-extrabold text-white leading-snug mb-4">Reset your<br />password</h2>
+            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
+              Enter your DLSU email and we'll send you a link to reset your password.
+            </p>
+          </div>
+
+          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            © {new Date().getFullYear()} De La Salle University Manila
           </p>
         </div>
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          © {new Date().getFullYear()} DLSU Counseling & Psychological Services
-        </p>
       </div>
 
       {/* Right panel */}

@@ -72,14 +72,14 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
   return (
     <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
 
-      <div className="mb-6 pb-5 border-b border-gray-200">
-        <p className="text-xs text-gray-400 mb-0.5">{dateLabel}</p>
-        <h2 className="text-xl font-semibold text-gray-900">Good day, {firstName}.</h2>
-        <p className="text-sm text-gray-400 mt-0.5">{roleLabel} — Client case support and coordination</p>
+      <div className="mb-6 pb-5" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{roleLabel} — Client case support and coordination</p>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
+        <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
           <Loader2 size={18} className="animate-spin" /> Loading…
         </div>
       ) : (
@@ -94,26 +94,29 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                   New Cases Assigned to You ({newCases.length})
                 </p>
               </div>
-              <Link href="/cases" className="text-xs text-[#2563eb] underline underline-offset-2 hover:text-blue-900">
+              <Link href="/cases" className="text-xs text-[#2563eb] underline underline-offset-2">
                 View all cases
               </Link>
             </div>
             <div className="flex flex-wrap gap-2">
               {newCases.map((c: any, i: number) => (
                 <Link key={i} href="/cases"
-                  className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-[#2563eb]/10 hover:border-[#2563eb]/30 transition-colors">
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 border border-[#2563eb]/10 hover:border-[#2563eb]/30 transition-colors"
+                  style={{ background: 'var(--color-surface)' }}>
                   {c.risk_level && c.risk_level !== 'GREEN' && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                      c.risk_level === 'CRITICAL' ? 'bg-red-100 text-red-900' :
-                      c.risk_level === 'RED'      ? 'bg-red-50 text-red-700'  :
-                                                    'bg-amber-50 text-amber-700'
-                    }`}>
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                      style={
+                        c.risk_level === 'CRITICAL' ? { background: '#fee2e2', color: '#7f1d1d' } :
+                        c.risk_level === 'RED'      ? { background: '#fef2f2', color: '#b91c1c' } :
+                                                      { background: '#fffbeb', color: '#b45309' }
+                      }>
                       {c.risk_level}
                     </span>
                   )}
                   <div>
-                    <p className="text-xs font-medium text-gray-900">{c.student_name || 'Student'}</p>
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.student_name || 'Student'}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                       {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                     </p>
                   </div>
@@ -126,27 +129,28 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* Today's sessions + pending evaluations */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
+          <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Today's Sessions</p>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Today's Sessions</p>
               <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
             </div>
             {todayAppts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-28 text-center">
-                <p className="text-sm text-gray-600 font-medium">No sessions today</p>
-                <p className="text-xs text-gray-400 mt-1">Confirmed appointments will appear here.</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No sessions today</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Confirmed appointments will appear here.</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {todayAppts.slice(0, 5).map((a: any, i: number) => (
                   <div key={i} className="py-2.5 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{a.student_name || 'Student'}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{a.student_name || 'Student'}</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                         {fmtTime(a.preferred_date || a.scheduled_start)} · {a.counselor_name || 'Counselor TBD'}
                       </p>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)', border: '1px solid var(--color-success)' }}>
                       Confirmed
                     </span>
                   </div>
@@ -155,9 +159,9 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
             )}
 
             {pendingEval.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                     Session Done — Decide Next Step
                     <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 font-medium normal-case tracking-normal">
                       {pendingEval.length}
@@ -167,7 +171,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                 </div>
                 {pendingEval.slice(0, 3).map((a: any, i: number) => (
                   <div key={i} className="py-1.5 flex items-center justify-between">
-                    <p className="text-sm text-gray-700">{a.student_name || 'Student'}</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{a.student_name || 'Student'}</p>
                     <span className="text-xs text-amber-600">Follow-up / close needed</span>
                   </div>
                 ))}
@@ -176,14 +180,17 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           {/* Quick navigation */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Quick Access</p>
+          <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--color-text-muted)' }}>Quick Access</p>
             <div className="divide-y divide-gray-100">
               {LINKS.map(({ href, label }) => (
                 <Link key={href} href={href}
-                  className="flex items-center justify-between py-2.5 text-sm text-gray-700 hover:text-[#2563eb] transition-colors group">
+                  className="flex items-center justify-between py-2.5 text-sm transition-colors"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-primary-text)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-secondary)'; }}>
                   <span>{label}</span>
-                  <ArrowRight size={14} className="text-gray-300 group-hover:text-[#2563eb] transition-colors" />
+                  <ArrowRight size={14} />
                 </Link>
               ))}
             </div>

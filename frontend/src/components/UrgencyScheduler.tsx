@@ -121,42 +121,30 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
     }
   };
 
-  const getRiskColor = () => {
+  const getRiskStyle = (): React.CSSProperties => {
     switch (riskLevel) {
-      case 'RED':
-        return 'bg-red-50 border-red-300';
-      case 'YELLOW':
-        return 'bg-yellow-50 border-yellow-300';
-      case 'GREEN':
-        return 'bg-green-50 border-green-300';
-      default:
-        return 'bg-gray-50 border-gray-300';
+      case 'RED':    return { background: '#FEF2F2', border: '2px solid #FCA5A5' };
+      case 'YELLOW': return { background: '#FFFBEB', border: '2px solid #FCD34D' };
+      case 'GREEN':  return { background: 'var(--color-success-surface)', border: '2px solid var(--color-success)' };
+      default:       return { background: 'var(--color-bg)', border: '2px solid var(--color-border-strong)' };
     }
   };
 
-  const getRiskTextColor = () => {
+  const getRiskTextColor = (): string => {
     switch (riskLevel) {
-      case 'RED':
-        return 'text-red-900';
-      case 'YELLOW':
-        return 'text-yellow-900';
-      case 'GREEN':
-        return 'text-green-900';
-      default:
-        return 'text-gray-900';
+      case 'RED':    return '#7F1D1D';
+      case 'YELLOW': return '#78350F';
+      case 'GREEN':  return 'var(--color-success-text)';
+      default:       return 'var(--color-text-primary)';
     }
   };
 
   const getRiskIcon = () => {
     switch (riskLevel) {
-      case 'RED':
-        return <AlertCircle className="w-5 h-5 text-red-600" />;
-      case 'YELLOW':
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
-      case 'GREEN':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      default:
-        return <Clock className="w-5 h-5 text-gray-600" />;
+      case 'RED':    return <AlertCircle className="w-5 h-5" style={{ color: '#DC2626' }} />;
+      case 'YELLOW': return <AlertTriangle className="w-5 h-5" style={{ color: '#D97706' }} />;
+      case 'GREEN':  return <CheckCircle className="w-5 h-5" style={{ color: 'var(--color-success)' }} />;
+      default:       return <Clock className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />;
     }
   };
 
@@ -175,8 +163,8 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
 
   if (loading) {
     return (
-      <div className="p-6 bg-blue-50 border border-blue-300 rounded-lg">
-        <p className="text-blue-700 flex items-center gap-2">
+      <div className="p-6 rounded-lg" style={{ background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
+        <p className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-info-text)' }}>
           <Clock className="w-4 h-4 animate-spin" />
           Loading available appointment times...
         </p>
@@ -187,96 +175,99 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
   return (
     <div className="space-y-4">
       {/* Risk Level Badge */}
-      <div className={`p-4 border-2 rounded-lg ${getRiskColor()}`}>
+      <div className="p-4 rounded-lg" style={getRiskStyle()}>
         <div className="flex items-center gap-2 mb-2">
           {getRiskIcon()}
-          <h3 className={`font-bold text-lg ${getRiskTextColor()}`}>{getRiskLabel()}</h3>
+          <h3 className="font-bold text-lg" style={{ color: getRiskTextColor() }}>{getRiskLabel()}</h3>
         </div>
-        <p className={`text-sm ${getRiskTextColor()}`}>{choiceMessage}</p>
+        <p className="text-sm" style={{ color: getRiskTextColor() }}>{choiceMessage}</p>
       </div>
 
       {/* Queue Statistics */}
       {queueStats && (
-        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="grid grid-cols-3 gap-4 p-4 rounded-2xl" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
           <div className="text-center">
-            <p className="text-2xl font-bold text-red-600">{queueStats.urgent_red || 0}</p>
-            <p className="text-xs text-gray-600">Urgent Cases</p>
+            <p className="text-2xl font-bold" style={{ color: '#DC2626' }}>{queueStats.urgent_red || 0}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Urgent Cases</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-yellow-600">{queueStats.high_priority_yellow || 0}</p>
-            <p className="text-xs text-gray-600">High Priority</p>
+            <p className="text-2xl font-bold" style={{ color: '#D97706' }}>{queueStats.high_priority_yellow || 0}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>High Priority</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{queueStats.standard_green || 0}</p>
-            <p className="text-xs text-gray-600">Standard Cases</p>
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-success)' }}>{queueStats.standard_green || 0}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Standard Cases</p>
           </div>
         </div>
       )}
 
       {/* Counselor Availability */}
       {counselorsAvailable > 0 && (
-        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-800">
+        <div className="p-3 rounded-lg" style={{ background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-info-text)' }}>
             ✓ <strong>{counselorsAvailable} intake counselor{counselorsAvailable !== 1 ? 's' : ''}</strong> available for appointment
           </p>
         </div>
       )}
 
-      {/* Available Time Slots - For RED: auto-assignment display, For YELLOW/GREEN: selectable */}
+      {/* Available Time Slots */}
       {availableSlots.length > 0 && (
         <div className="space-y-2">
           {riskLevel === 'RED' ? (
-            <div className="p-4 bg-red-50 border border-red-300 rounded-lg">
-              <p className="text-red-800 mb-2 font-semibold">✓ Your appointment is assigned:</p>
-              <div className="bg-white p-3 rounded border border-red-200">
-                <p className="text-lg font-bold text-red-700">
-                  {availableSlots[0]?.time}
-                </p>
-                <p className="text-sm text-red-600">{availableSlots[0]?.date}</p>
+            <div className="p-4 rounded-lg" style={{ background: '#FEF2F2', border: '1px solid #FCA5A5' }}>
+              <p className="mb-2 font-semibold" style={{ color: '#991B1B' }}>✓ Your appointment is assigned:</p>
+              <div className="p-3 rounded" style={{ background: 'var(--color-surface)', border: '1px solid #FCA5A5' }}>
+                <p className="text-lg font-bold" style={{ color: '#B91C1C' }}>{availableSlots[0]?.time}</p>
+                <p className="text-sm" style={{ color: '#DC2626' }}>{availableSlots[0]?.date}</p>
               </div>
-              <p className="text-sm text-red-700 mt-3">
+              <p className="text-sm mt-3" style={{ color: '#991B1B' }}>
                 A counselor will be assigned immediately. You will receive a confirmation email shortly.
               </p>
             </div>
           ) : (
             <>
-              <h4 className="font-semibold text-gray-800">Select Your Appointment Time:</h4>
+              <h4 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Select Your Appointment Time:</h4>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {availableSlots.map((slot, index) => (
                   <button
                     key={index}
                     onClick={() => handleSlotSelect(slot)}
                     disabled={submitting}
-                    className={`w-full p-3 text-left rounded border-2 transition ${
+                    className="w-full p-3 text-left rounded transition disabled:opacity-50"
+                    style={
                       selectedSlot === slot
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50'
-                    } disabled:opacity-50`}
+                        ? { border: '2px solid var(--color-primary)', background: 'var(--color-primary-surface)' }
+                        : { border: '2px solid var(--color-border)', background: 'var(--color-surface)' }
+                    }
+                    onMouseEnter={e => { if (selectedSlot !== slot) { e.currentTarget.style.borderColor = 'var(--color-border-strong)'; e.currentTarget.style.background = 'var(--color-bg)'; } }}
+                    onMouseLeave={e => { if (selectedSlot !== slot) { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-surface)'; } }}
                   >
                     <div className="flex justify-between items-center">
                       <div>
-                        <p className="font-semibold text-gray-800">{slot.time}</p>
-                        <p className="text-sm text-gray-600">{slot.date}</p>
+                        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{slot.time}</p>
+                        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{slot.date}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {index === 0 && (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
+                          <span className="px-2 py-1 text-xs font-semibold rounded" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
                             RECOMMENDED
                           </span>
                         )}
-                        {selectedSlot === slot && <ChevronRight className="w-5 h-5 text-green-500" />}
+                        {selectedSlot === slot && <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />}
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
 
-              {/* Submit Selection Button */}
               {isUserChoice && (
                 <button
                   onClick={handleSubmitSelection}
                   disabled={!selectedSlot || submitting}
-                  className="w-full mt-4 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+                  className="w-full mt-4 px-4 py-2 text-white font-semibold rounded-lg transition disabled:opacity-50"
+                  style={{ background: selectedSlot && !submitting ? 'var(--color-primary)' : 'var(--color-border-strong)' }}
+                  onMouseEnter={e => { if (selectedSlot && !submitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+                  onMouseLeave={e => { if (selectedSlot && !submitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
                 >
                   {submitting ? 'Confirming...' : 'Confirm Appointment'}
                 </button>
@@ -286,10 +277,9 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
         </div>
       )}
 
-      {/* No slots available */}
       {availableSlots.length === 0 && (
-        <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
-          <p className="text-yellow-800">
+        <div className="p-4 rounded-lg" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-warning-text)' }}>
             ⚠️ No appointments currently available. Please try again in a few minutes.
           </p>
         </div>

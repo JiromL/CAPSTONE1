@@ -120,7 +120,7 @@ function CheckGroup({
               type="checkbox"
               checked={selected.includes(opt)}
               onChange={() => onToggle(opt)}
-              className="mt-0.5 rounded border-gray-300 text-[#2563eb] focus:ring-[#2563eb]"
+              className="mt-0.5 rounded border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
             />
             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
           </label>
@@ -162,7 +162,7 @@ function RadioGroup({
               type="radio"
               checked={selected === opt}
               onChange={() => onSelect(opt)}
-              className="mt-0.5 border-gray-300 text-[#2563eb] focus:ring-[#2563eb]"
+              className="mt-0.5 border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
             />
             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
           </label>

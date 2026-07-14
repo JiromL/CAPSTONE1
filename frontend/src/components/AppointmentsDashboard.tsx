@@ -81,27 +81,27 @@ const STATUS_LABEL: Record<string, string> = {
   RESCHEDULED:          'Rescheduled',
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  REQUESTED:            'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  PENDING_APPROVAL:     'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  RESCHEDULE_REQUESTED: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
-  CONFIRMED:            'bg-green-50 text-green-700 ring-1 ring-green-200',
-  APPROVED:             'bg-green-50 text-green-700 ring-1 ring-green-200',
-  MATCHED:              'bg-green-50 text-green-700 ring-1 ring-green-200',
-  CHECKED_IN:           'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
-  EVALUATION:           'bg-amber-50 text-amber-700 ring-1 ring-amber-300',
-  FOLLOW_UP:            'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
-  REFERRAL:             'bg-purple-50 text-purple-700 ring-1 ring-purple-200',
-  COMPLETED:            'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
-  CANCELLED:            'bg-red-50 text-red-600 ring-1 ring-red-200',
-  DENIED:               'bg-red-50 text-red-600 ring-1 ring-red-200',
-  NO_SHOW:              'bg-red-50 text-red-600 ring-1 ring-red-200',
+const STATUS_BADGE_STYLE: Record<string, React.CSSProperties> = {
+  REQUESTED:            { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fde68a' },
+  PENDING_APPROVAL:     { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fde68a' },
+  RESCHEDULE_REQUESTED: { background: '#fff7ed', color: '#c2410c', boxShadow: '0 0 0 1px #fed7aa' },
+  CONFIRMED:            { background: 'var(--color-success-surface)', color: 'var(--color-success-text)', boxShadow: '0 0 0 1px #bbf7d0' },
+  APPROVED:             { background: 'var(--color-success-surface)', color: 'var(--color-success-text)', boxShadow: '0 0 0 1px #bbf7d0' },
+  MATCHED:              { background: 'var(--color-success-surface)', color: 'var(--color-success-text)', boxShadow: '0 0 0 1px #bbf7d0' },
+  CHECKED_IN:           { background: 'var(--color-info-surface)', color: 'var(--color-info-text)', boxShadow: '0 0 0 1px #bfdbfe' },
+  EVALUATION:           { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fcd34d' },
+  FOLLOW_UP:            { background: '#eef2ff', color: '#4338ca', boxShadow: '0 0 0 1px #c7d2fe' },
+  REFERRAL:             { background: '#faf5ff', color: '#7e22ce', boxShadow: '0 0 0 1px #e9d5ff' },
+  COMPLETED:            { background: 'var(--color-bg)', color: 'var(--color-text-muted)', boxShadow: '0 0 0 1px var(--color-border)' },
+  CANCELLED:            { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
+  DENIED:               { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
+  NO_SHOW:              { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
 };
 
-const RISK_BADGE: Record<string, string> = {
-  YELLOW:   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  RED:      'bg-red-50 text-red-700 ring-1 ring-red-200',
-  CRITICAL: 'bg-red-100 text-red-900 ring-1 ring-red-300 font-semibold',
+const RISK_BADGE_STYLE: Record<string, React.CSSProperties> = {
+  YELLOW:   { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fde68a' },
+  RED:      { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
+  CRITICAL: { background: '#fee2e2', color: '#7f1d1d', fontWeight: 600, boxShadow: '0 0 0 1px #fca5a5' },
 };
 
 function fmtDate(d?: string) {
@@ -725,7 +725,7 @@ export default function AppointmentsDashboard() {
   // ── Loading / Error ───────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 gap-2 text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
         <Loader2 size={16} className="animate-spin" /> Loading appointments…
       </div>
     );
@@ -744,12 +744,12 @@ export default function AppointmentsDashboard() {
 
       {/* ── Summary strip ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard icon={CalendarDays} label="Total" value={dashboard.summary?.total_appointments ?? apts.length} cls="text-gray-800" />
+        <SummaryCard icon={CalendarDays} label="Total" value={dashboard.summary?.total_appointments ?? apts.length} color="var(--color-text-primary)" />
         <SummaryCard icon={AlertCircle}  label="New Requests" value={newCount}
-          cls={newCount > 0 ? 'text-amber-600' : 'text-gray-400'} highlight={newCount > 0} />
-        <SummaryCard icon={CheckCircle}  label="Confirmed" value={confirmedCount} cls="text-[#2563eb]" />
+          color={newCount > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)'} highlight={newCount > 0} />
+        <SummaryCard icon={CheckCircle}  label="Confirmed" value={confirmedCount} color="var(--color-primary)" />
         <SummaryCard icon={Star}         label="Post-Session" value={evalCount}
-          cls={evalCount > 0 ? 'text-amber-600' : 'text-gray-400'} highlight={evalCount > 0} />
+          color={evalCount > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)'} highlight={evalCount > 0} />
       </div>
 
       {/* ── Action banners ────────────────────────────────────────────────── */}
@@ -813,19 +813,22 @@ export default function AppointmentsDashboard() {
       )}
 
       {/* ── Table card ────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
 
         {/* Card header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-bold text-gray-900">Appointments</h2>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Appointments</h2>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search…"
-                className="pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none w-44"
+                className="pl-7 pr-3 py-1.5 text-xs rounded-lg focus:outline-none w-44"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-muted)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
             <button
@@ -839,22 +842,24 @@ export default function AppointmentsDashboard() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex items-end overflow-x-auto border-b border-gray-100 px-2 pt-1.5 gap-0.5 scrollbar-hide">
+        <div className="flex items-end overflow-x-auto px-2 pt-1.5 gap-0.5 scrollbar-hide" style={{ borderBottom: '1px solid var(--color-border)' }}>
           {visibleTabs.map(tab => {
             const isActive = activeTab === tab.key;
             const cnt = counts[tab.key];
             return (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0 ${
-                  isActive
-                    ? 'bg-[#2563eb]/5 text-[#2563eb] border-b-2 border-[#2563eb]'
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-                }`}>
+                className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap relative flex-shrink-0"
+                style={isActive
+                  ? { background: 'var(--color-primary-muted)', color: 'var(--color-primary)', borderBottom: '2px solid var(--color-primary)' }
+                  : { color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; } }}
+                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; (e.currentTarget as HTMLElement).style.background = ''; } }}>
                 {tab.label}
                 {cnt > 0 && (
-                  <span className={`text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 ${
-                    isActive ? 'bg-[#2563eb] text-white' : 'bg-gray-200 text-gray-600'
-                  }`}>
+                  <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1"
+                    style={isActive
+                      ? { background: 'var(--color-primary)', color: '#fff' }
+                      : { background: 'var(--color-border-strong)', color: 'var(--color-text-secondary)' }}>
                     {cnt}
                   </span>
                 )}
@@ -866,17 +871,17 @@ export default function AppointmentsDashboard() {
         {/* Cards */}
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center">
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              <CalendarDays size={18} className="text-gray-400" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
+              <CalendarDays size={18} style={{ color: 'var(--color-text-muted)' }} />
             </div>
-            <p className="text-sm font-medium text-gray-600">No appointments found</p>
-            <p className="text-xs text-gray-400 mt-1">Try a different tab or search term.</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No appointments found</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Try a different tab or search term.</p>
           </div>
         ) : (
           <>
             <div className="p-4 space-y-3">
               {filtered.map((apt) => {
-                const badgeCls    = STATUS_BADGE[apt.status] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200';
+                const badgeStyle: React.CSSProperties = STATUS_BADGE_STYLE[apt.status] ?? { background: 'var(--color-bg)', color: 'var(--color-text-muted)', boxShadow: '0 0 0 1px var(--color-border)' };
                 const isNew       = apt.status === 'REQUESTED' || apt.status === 'PENDING_APPROVAL';
                 const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'].includes(apt.status);
                 const isEval      = apt.status === 'EVALUATION';
@@ -887,21 +892,24 @@ export default function AppointmentsDashboard() {
                                   : isHighRisk  ? 'border-red-200 bg-red-50/20'
                                   : isNew       ? 'border-amber-200/70 bg-amber-50/20'
                                   : isEval      ? 'border-amber-100 bg-amber-50/10'
-                                  : 'border-gray-200 bg-white hover:border-gray-300';
+                                  : '';
 
                 return (
                   <React.Fragment key={apt.appointment_id}>
-                    <div className={`rounded-2xl border p-4 transition-all hover:shadow-sm ${cardCls}`}>
+                    <div className={`rounded-2xl border p-4 transition-all hover:shadow-sm ${cardCls}`}
+                      style={!isInCrisis && !isHighRisk && !isNew && !isEval ? { borderColor: 'var(--color-border)', background: 'var(--color-surface)' } : {}}
+                      onMouseEnter={e => { if (!isInCrisis && !isHighRisk && !isNew && !isEval) (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border-strong)'; }}
+                      onMouseLeave={e => { if (!isInCrisis && !isHighRisk && !isNew && !isEval) (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; }}>
                       <div className="flex items-start gap-4">
                         <div className="flex-1 min-w-0">
 
                           {/* Badges row */}
                           <div className="flex items-center gap-2 flex-wrap mb-2">
-                            <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium ${badgeCls}`}>
+                            <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium" style={badgeStyle}>
                               {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
                             </span>
                             {apt.risk_level && apt.risk_level !== 'GREEN' && (
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${RISK_BADGE[apt.risk_level.toUpperCase()] ?? ''}`}>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={RISK_BADGE_STYLE[apt.risk_level.toUpperCase()] ?? {}}>
                                 ⚠ {apt.risk_level}
                               </span>
                             )}
@@ -914,7 +922,7 @@ export default function AppointmentsDashboard() {
 
                           {/* Student name headline */}
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-gray-900 text-sm">{apt.student_name}</p>
+                            <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
                             {apt.mhbot_username && permaLabels[apt.mhbot_username] !== undefined && (
                               isInCrisis ? (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 ring-1 ring-red-300">
@@ -933,14 +941,14 @@ export default function AppointmentsDashboard() {
                           </div>
 
                           {/* Purpose + concern (hidden from OA per privacy policy) */}
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                             {fmtPurpose(apt.purpose)}
-                            {apt.concern && !isOA && <span className="text-gray-400"> · &ldquo;{apt.concern}&rdquo;</span>}
+                            {apt.concern && !isOA && <span style={{ color: 'var(--color-text-muted)' }}> · &ldquo;{apt.concern}&rdquo;</span>}
                           </p>
 
                           {/* Date + method */}
                           {apt.preferred_date && (
-                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                            <div className="flex items-center gap-3 mt-1 text-xs flex-wrap" style={{ color: 'var(--color-text-secondary)' }}>
                               <span className="flex items-center gap-1">
                                 <CalendarDays size={11} />
                                 {fmtDate(apt.preferred_date)}{apt.preferred_time ? ` ${fmtTime(apt.preferred_date, apt.preferred_time)}` : ''}
@@ -951,23 +959,26 @@ export default function AppointmentsDashboard() {
 
                           {/* Assigned counselor */}
                           {apt.counselor_name && apt.counselor_name !== 'Not Assigned' ? (
-                            <p className="mt-1 text-xs text-gray-600">Assigned to <span className="font-medium text-gray-800">{fmtStaffName(apt.counselor_name)}</span></p>
+                            <p className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>Assigned to <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{fmtStaffName(apt.counselor_name)}</span></p>
                           ) : (
-                            <p className="mt-1 text-xs text-gray-400 italic">No counselor assigned yet</p>
+                            <p className="mt-1 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No counselor assigned yet</p>
                           )}
 
                           {/* Student email */}
-                          <p className="text-xs text-gray-400 mt-0.5">{apt.student_email}</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
 
                           {/* Office */}
                           {apt.office && (
-                            <p className="mt-0.5 text-xs text-gray-500 flex items-center gap-1"><MapPin size={10} /> {apt.office}</p>
+                            <p className="mt-0.5 text-xs flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}><MapPin size={10} /> {apt.office}</p>
                           )}
 
                           {/* Actions */}
                           <div className="flex items-center gap-2 mt-3 flex-wrap">
                             <button onClick={() => toggleCheckins(apt.appointment_id)}
-                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 px-2 py-1 rounded-lg transition border border-gray-200">
+                              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition"
+                              style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-border)'; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}>
                               <MessageSquare size={11} />
                               {checkinData[apt.appointment_id] != null ? checkinData[apt.appointment_id].length : '—'}
                               {checkinRow === apt.appointment_id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
@@ -984,7 +995,10 @@ export default function AppointmentsDashboard() {
                                     setEditOffice(apt.office || '');
                                     setEditMsg(null);
                                   }}
-                                    className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition">
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg transition"
+                                    style={{ color: 'var(--color-text-secondary)', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-border)'}
+                                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}>
                                     <Pencil size={11} /> Edit
                                   </button>
                                 )}
@@ -1027,12 +1041,18 @@ export default function AppointmentsDashboard() {
                                 {(dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR') && (
                                   apt.case_id
                                     ? <Link href={`/cases/${apt.case_id}?tab=intake-summary`}>
-                                        <button className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 rounded-lg transition">
+                                        <button className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                          style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}
+                                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'}>
                                           <FileText size={11} /> Forms
                                         </button>
                                       </Link>
                                     : <button onClick={() => openForms(apt)}
-                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 rounded-lg transition">
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                        style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'}>
                                         <FileText size={11} /> Forms
                                       </button>
                                 )}
@@ -1062,11 +1082,12 @@ export default function AppointmentsDashboard() {
                                   pendingAction?.aptId === apt.appointment_id ? (
                                     <div className="flex items-end gap-2">
                                       <div>
-                                        <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Referral Notes</p>
+                                        <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Referral Notes</p>
                                         <textarea rows={1} value={pendingAction.notes}
                                           onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
                                           placeholder="Optional notes…"
-                                          className="w-40 border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:ring-1 focus:ring-blue-500 resize-none" />
+                                          className="w-40 rounded-lg px-2 py-1 text-xs resize-none focus:outline-none"
+                                          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                                       </div>
                                       <button onClick={() => doSessionAction(apt.appointment_id, 'set-referral', { notes: pendingAction.notes })}
                                         disabled={actioningId === apt.appointment_id}
@@ -1074,7 +1095,10 @@ export default function AppointmentsDashboard() {
                                         {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : 'Confirm'}
                                       </button>
                                       <button onClick={() => setPendingAction(null)}
-                                        className="px-2.5 py-1 border border-gray-200 text-xs text-gray-500 rounded-lg hover:bg-gray-50 transition">
+                                        className="px-2.5 py-1 text-xs rounded-lg transition"
+                                        style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                                         Cancel
                                       </button>
                                     </div>
@@ -1089,7 +1113,10 @@ export default function AppointmentsDashboard() {
                                         <ExternalLink size={11} /> Referral
                                       </button>
                                       <button onClick={() => { setTerminationTarget(apt); setTerminationType('MUTUAL'); setTerminationNotes(''); }}
-                                        className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold rounded-lg transition">
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                        style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-border)'}
+                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}>
                                         <Archive size={11} /> Complete & Close
                                       </button>
                                     </>
@@ -1110,25 +1137,25 @@ export default function AppointmentsDashboard() {
 
                     {/* Check-ins expansion */}
                     {checkinRow === apt.appointment_id && (
-                      <div className="mt-1 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                      <div className="mt-1 rounded-xl px-4 py-3" style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
                         {!checkinData[apt.appointment_id] ? (
-                          <span className="text-xs text-gray-400">Loading…</span>
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Loading…</span>
                         ) : checkinData[apt.appointment_id].length === 0 ? (
-                          <span className="text-xs text-gray-400 italic">No check-ins submitted yet.</span>
+                          <span className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No check-ins submitted yet.</span>
                         ) : (
                           <div className="space-y-1.5">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Check-ins</p>
+                            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Student Check-ins</p>
                             {checkinData[apt.appointment_id].map((c: any) => {
                               const emoji: Record<string, string> = { DOING_WELL: '😊', MANAGING: '😐', STRUGGLING: '😔', IN_CRISIS: '😰' };
                               return (
-                                <div key={c._id} className="flex items-start gap-3 text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
+                                <div key={c._id} className="flex items-start gap-3 text-xs rounded-lg px-3 py-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                                   <span>{emoji[c.status] ?? '📝'}</span>
                                   <div className="flex-1">
-                                    <span className="font-medium text-gray-800">{c.status?.replace(/_/g, ' ')}</span>
-                                    {c.wellness_rating && <span className="text-gray-400 ml-2">· {c.wellness_rating}/10</span>}
-                                    {c.notes && <p className="text-gray-500 mt-0.5">{c.notes}</p>}
+                                    <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.status?.replace(/_/g, ' ')}</span>
+                                    {c.wellness_rating && <span className="ml-2" style={{ color: 'var(--color-text-muted)' }}>· {c.wellness_rating}/10</span>}
+                                    {c.notes && <p className="mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>{c.notes}</p>}
                                   </div>
-                                  <span className="text-gray-400 whitespace-nowrap">
+                                  <span className="whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
                                     {c.submitted_at ? new Date(c.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
                                   </span>
                                 </div>
@@ -1142,8 +1169,8 @@ export default function AppointmentsDashboard() {
                 );
               })}
             </div>
-            <div className="px-5 py-3.5 bg-gray-50/60 border-t border-gray-100">
-              <p className="text-xs text-gray-400">Showing <strong className="text-gray-600">{filtered.length}</strong> appointment{filtered.length !== 1 ? 's' : ''}</p>
+            <div className="px-5 py-3.5" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Showing <strong style={{ color: 'var(--color-text-secondary)' }}>{filtered.length}</strong> appointment{filtered.length !== 1 ? 's' : ''}</p>
             </div>
           </>
         )}
@@ -1152,48 +1179,54 @@ export default function AppointmentsDashboard() {
       {/* ── Assign Counselor Modal ────────────────────────────────────────── */}
       {assignTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="rounded-2xl w-full max-w-md overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
-                <h3 className="font-semibold text-sm text-gray-900">Assign Counselor</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{assignTarget.student_name}</p>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Assign Counselor</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{assignTarget.student_name}</p>
               </div>
-              <button onClick={() => { setAssignTarget(null); setFreeSlots([]); }} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={14} className="text-gray-400" />
+              <button onClick={() => { setAssignTarget(null); setFreeSlots([]); }} className="p-1.5 rounded-lg transition"
+                style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                <X size={14} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               {/* Student info */}
-              <div className="bg-gray-50 rounded-xl p-3 text-xs space-y-1">
+              <div className="rounded-xl p-3 text-xs space-y-1" style={{ background: 'var(--color-bg)' }}>
                 <div className="flex gap-2">
-                  <span className="text-gray-400 w-16">Purpose</span>
-                  <span className="text-gray-700 font-medium">{fmtPurpose(assignTarget.purpose)}</span>
+                  <span className="w-16" style={{ color: 'var(--color-text-muted)' }}>Purpose</span>
+                  <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{fmtPurpose(assignTarget.purpose)}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="text-gray-400 w-16">Preferred</span>
-                  <span className="text-gray-700">{fmtDate(assignTarget.preferred_date)} {fmtTime(assignTarget.preferred_date, assignTarget.preferred_time)}</span>
+                  <span className="w-16" style={{ color: 'var(--color-text-muted)' }}>Preferred</span>
+                  <span style={{ color: 'var(--color-text-primary)' }}>{fmtDate(assignTarget.preferred_date)} {fmtTime(assignTarget.preferred_date, assignTarget.preferred_time)}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="text-gray-400 w-16">Mode</span>
-                  <span className="text-gray-700">{fmtMethod(assignTarget.method)}</span>
+                  <span className="w-16" style={{ color: 'var(--color-text-muted)' }}>Mode</span>
+                  <span style={{ color: 'var(--color-text-primary)' }}>{fmtMethod(assignTarget.method)}</span>
                 </div>
                 {assignTarget.concern && !isOA && (
                   <div className="flex gap-2">
-                    <span className="text-gray-400 w-16">Concern</span>
-                    <span className="text-gray-600 italic">"{assignTarget.concern}"</span>
+                    <span className="w-16" style={{ color: 'var(--color-text-muted)' }}>Concern</span>
+                    <span className="italic" style={{ color: 'var(--color-text-secondary)' }}>"{assignTarget.concern}"</span>
                   </div>
                 )}
               </div>
 
               {/* Mode toggle */}
-              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+              <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--color-bg)' }}>
                 {(['slots', 'manual'] as const).map(m => (
                   <button key={m} type="button"
                     onClick={() => { setAssignMode(m); setSelectedSlot(null); setAssignMsg(null); }}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition ${
-                      assignMode === m ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                    }`}>
+                    className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition"
+                    style={assignMode === m
+                      ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                      : { color: 'var(--color-text-muted)' }}
+                    onMouseEnter={e => { if (assignMode !== m) (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'; }}
+                    onMouseLeave={e => { if (assignMode !== m) (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}>
                     {m === 'slots'
                       ? <span className="flex items-center justify-center gap-1.5"><CalendarDays size={13} /> Available Slots</span>
                       : <span className="flex items-center justify-center gap-1.5"><Pencil size={12} /> Manual Entry</span>}
@@ -1219,23 +1252,27 @@ export default function AppointmentsDashboard() {
                     const selectedDayLabel = assignForm.date ? new Date(assignForm.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : null;
 
                     return (
-                      <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
-                        <div className="flex divide-x divide-gray-200">
+                      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                        <div className="flex" style={{ borderRight: '0' }}>
 
                           {/* Mini calendar */}
-                          <div className="flex-1 p-3 min-w-0">
+                          <div className="flex-1 p-3 min-w-0" style={{ borderRight: '1px solid var(--color-border)' }}>
                             <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs font-bold text-gray-800">{monthLabel}</p>
+                              <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{monthLabel}</p>
                               <div className="flex gap-0.5">
                                 <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month-1); return { year: d.getFullYear(), month: d.getMonth() }; })}
-                                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"><ChevronLeft size={13} /></button>
+                                  className="p-1 rounded transition" style={{ color: 'var(--color-text-muted)' }}
+                                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'; }}
+                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}><ChevronLeft size={13} /></button>
                                 <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month+1); return { year: d.getFullYear(), month: d.getMonth() }; })}
-                                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"><ChevronRight size={13} /></button>
+                                  className="p-1 rounded transition" style={{ color: 'var(--color-text-muted)' }}
+                                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'; }}
+                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}><ChevronRight size={13} /></button>
                               </div>
                             </div>
                             <div className="grid grid-cols-7 mb-1">
                               {['M','T','W','T','F','S','S'].map((d, i) => (
-                                <div key={i} className="text-center text-[9px] font-semibold text-gray-400 py-0.5">{d}</div>
+                                <div key={i} className="text-center text-[9px] font-semibold py-0.5" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
                               ))}
                             </div>
                             <div className="grid grid-cols-7 gap-y-0.5">
@@ -1249,11 +1286,16 @@ export default function AppointmentsDashboard() {
                                 return (
                                   <button key={i} type="button" disabled={!selectable}
                                     onClick={() => { setAssignForm(f => ({ ...f, date: ds })); setSelectedSlot(null); fetchOpenSlots(ds); setAssignCalMonth({ year, month }); }}
-                                    className={`mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-medium transition
-                                      ${isSelected ? 'bg-[#2563eb] text-white font-bold' :
-                                        isToday && selectable ? 'ring-2 ring-[#2563eb] text-[#2563eb] font-bold' :
-                                        selectable ? 'hover:bg-gray-100 text-gray-700' :
-                                        'text-gray-300 cursor-not-allowed'}`}>
+                                    className="mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-medium transition"
+                                    style={isSelected
+                                      ? { background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }
+                                      : isToday && selectable
+                                      ? { boxShadow: '0 0 0 2px var(--color-primary)', color: 'var(--color-primary)', fontWeight: 700 }
+                                      : selectable
+                                      ? { color: 'var(--color-text-primary)' }
+                                      : { color: 'var(--color-border-strong)', cursor: 'not-allowed' }}
+                                    onMouseEnter={e => { if (selectable && !isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
+                                    onMouseLeave={e => { if (selectable && !isSelected) (e.currentTarget as HTMLElement).style.background = ''; }}>
                                     {day}
                                   </button>
                                 );
@@ -1265,22 +1307,22 @@ export default function AppointmentsDashboard() {
                           <div className="flex-1 flex flex-col min-w-0">
                             {!assignForm.date ? (
                               <div className="flex-1 flex items-center justify-center p-4">
-                                <p className="text-xs text-gray-400 text-center">Select a date to see available slots</p>
+                                <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>Select a date to see available slots</p>
                               </div>
                             ) : (
                               <>
-                                <div className="px-3 pt-3 pb-2 border-b border-gray-100">
-                                  <p className="text-xs font-semibold text-gray-700 leading-tight">{selectedDayLabel}</p>
+                                <div className="px-3 pt-3 pb-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                  <p className="text-xs font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{selectedDayLabel}</p>
                                   {selectedSlot && (
                                     <div className="mt-1.5 flex items-center gap-1.5">
-                                      <span className="px-2 py-0.5 rounded-lg bg-[#2563eb] text-white text-[11px] font-bold">{fmtSlotTime(selectedSlot.time)}</span>
-                                      <span className="text-[10px] text-gray-500 truncate">{selectedSlot.counselor_name?.split(' ')[0]}</span>
+                                      <span className="px-2 py-0.5 rounded-lg text-white text-[11px] font-bold" style={{ background: 'var(--color-primary)' }}>{fmtSlotTime(selectedSlot.time)}</span>
+                                      <span className="text-[10px] truncate" style={{ color: 'var(--color-text-secondary)' }}>{selectedSlot.counselor_name?.split(' ')[0]}</span>
                                     </div>
                                   )}
                                 </div>
                                 <div className="flex-1 overflow-y-auto max-h-48 p-2 space-y-1.5">
                                   {loadingOpenSlots && (
-                                    <div className="flex items-center justify-center py-5 gap-2 text-xs text-gray-400">
+                                    <div className="flex items-center justify-center py-5 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                                       <Loader2 size={12} className="animate-spin" /> Loading…
                                     </div>
                                   )}
@@ -1296,16 +1338,18 @@ export default function AppointmentsDashboard() {
                                     const isSel = selectedSlot?.counselor_id === s.counselor_id && selectedSlot?.time === s.time;
                                     return (
                                       <button key={i} type="button" onClick={() => setSelectedSlot(s)}
-                                        className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition ${
-                                          isSel ? 'border-[#2563eb] bg-[#2563eb]/5' : 'border-gray-200 bg-white hover:border-[#2563eb]/40 hover:bg-gray-50'
-                                        }`}>
+                                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition"
+                                        style={isSel
+                                          ? { borderColor: 'var(--color-primary)', background: 'var(--color-primary-surface)' }
+                                          : { borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+                                        onMouseEnter={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; } }}
+                                        onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'; } }}>
                                         <div className="flex-1 min-w-0">
-                                          <p className={`text-xs font-bold ${isSel ? 'text-[#2563eb]' : 'text-gray-800'}`}>{fmtSlotTime(s.time)}</p>
-                                          <p className="text-[10px] text-gray-400 truncate">{s.counselor_name}</p>
+                                          <p className="text-xs font-bold" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{fmtSlotTime(s.time)}</p>
+                                          <p className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>{s.counselor_name}</p>
                                         </div>
-                                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                          isOnline ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'
-                                        }`}>{isOnline ? 'Online' : 'F2F'}</span>
+                                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                          style={isOnline ? { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' } : { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>{isOnline ? 'Online' : 'F2F'}</span>
                                         {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
                                       </button>
                                     );
@@ -1323,10 +1367,11 @@ export default function AppointmentsDashboard() {
                   {/* Office — only for F2F */}
                   {selectedSlot && selectedSlot.method?.toLowerCase() !== 'online' && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Office / Room</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
                       <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
                         placeholder="e.g. Room 203, CPS Office"
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                        style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                     </div>
                   )}
                 </>
@@ -1334,12 +1379,13 @@ export default function AppointmentsDashboard() {
                 <>
                   {/* Manual: counselor dropdown */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                      Counselor <span className="text-red-400 normal-case font-normal">*</span>
+                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                      Counselor <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span>
                     </label>
                     <select value={assignForm.counselorId}
                       onChange={e => { const cid = e.target.value; setAssignForm(f => ({ ...f, counselorId: cid })); fetchFreeSlots(cid, assignForm.date); }}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
+                      className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                      style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
                       <option value="">Select…</option>
                       {counselors
                         .filter(c => {
@@ -1358,26 +1404,29 @@ export default function AppointmentsDashboard() {
                   {/* Manual: date + time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date <span className="text-red-400 normal-case font-normal">*</span></label>
+                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Date <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span></label>
                       <input type="date" value={assignForm.date}
                         onChange={e => { const d = e.target.value; setAssignForm(f => ({ ...f, date: d })); fetchFreeSlots(assignForm.counselorId, d); }}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                        style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                        Time <span className="text-red-400 normal-case font-normal">*</span>
-                        {loadingSlots && <span className="ml-1 text-gray-300 font-normal normal-case">loading…</span>}
+                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                        Time <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span>
+                        {loadingSlots && <span className="ml-1 font-normal normal-case" style={{ color: 'var(--color-border-strong)' }}>loading…</span>}
                       </label>
                       {freeSlots.length > 0 ? (
                         <select value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
+                          className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
                           <option value="">Pick a free slot…</option>
                           {freeSlots.map(t => { const [h, m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12=h%12||12; return <option key={t} value={t}>{h12}:{String(m).padStart(2,'0')} {ap}</option>; })}
                         </select>
                       ) : (
                         <div className="space-y-1">
                           <input type="time" step="1800" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                            className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                           {assignForm.counselorId && assignForm.date && !loadingSlots && (
                             <p className="text-[10px] text-amber-500">No availability set — entering manually</p>
                           )}
@@ -1389,11 +1438,12 @@ export default function AppointmentsDashboard() {
                   {/* Manual: office */}
                   {(assignTarget?.method === 'in-person' || assignTarget?.method === 'in_person') && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Office / Room</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
                       <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
                         placeholder="e.g. Room 203, CPS Office, Bldg. A"
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
-                      <p className="text-xs text-gray-400 mt-1">Let the student know where to go.</p>
+                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                        style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Let the student know where to go.</p>
                     </div>
                   )}
                 </>
@@ -1407,7 +1457,10 @@ export default function AppointmentsDashboard() {
 
               <div className="flex gap-2 pt-1">
                 <button onClick={() => { setAssignTarget(null); setFreeSlots([]); }}
-                  className="flex-1 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl transition"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                   Cancel
                 </button>
                 <button onClick={handleAssign}
@@ -1427,50 +1480,58 @@ export default function AppointmentsDashboard() {
       {/* ── Schedule for Student Modal ────────────────────────────────────── */}
       {showScheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-sm text-gray-900">Schedule for Student</h3>
+          <div className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Schedule for Student</h3>
               <button onClick={() => { setShowScheduleModal(false); resetScheduleForm(); }}
-                className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={14} className="text-gray-400" />
+                className="p-1.5 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                <X size={14} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               {/* Student search */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Student</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Student</label>
                 {selectedStudent ? (
-                  <div className="flex items-center justify-between px-3 py-2.5 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'var(--color-success-surface)', border: '1px solid #bbf7d0' }}>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{selectedStudent.first_name} {selectedStudent.last_name}</p>
-                      <p className="text-xs text-gray-400">{selectedStudent.email}</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{selectedStudent.first_name} {selectedStudent.last_name}</p>
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{selectedStudent.email}</p>
                     </div>
                     <button onClick={() => { setSelectedStudent(null); setStudentQuery(''); setStudentResults([]); }}
-                      className="text-xs text-gray-400 hover:text-red-500 transition">Change</button>
+                      className="text-xs transition" style={{ color: 'var(--color-text-muted)' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-danger)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'}>Change</button>
                   </div>
                 ) : (
                   <div className="relative">
-                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:ring-2 focus-within:ring-[#2563eb]/30 focus-within:border-[#2563eb]">
-                      <Search size={15} className="text-gray-400 flex-shrink-0" />
+                    <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      <Search size={15} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
                       <input value={studentQuery} onChange={e => searchStudents(e.target.value)}
                         placeholder="Search by name or email…"
-                        className="flex-1 text-sm bg-transparent outline-none text-gray-800 placeholder-gray-400" />
-                      {searchingStudents && <Loader2 size={15} className="animate-spin text-gray-400" />}
+                        className="flex-1 text-sm bg-transparent outline-none"
+                        style={{ color: 'var(--color-text-primary)' }} />
+                      {searchingStudents && <Loader2 size={15} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} />}
                     </div>
                     {studentResults.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                      <div className="absolute top-full left-0 right-0 mt-1 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                         {studentResults.map(s => (
                           <button key={s._id} onClick={() => { setSelectedStudent(s); setStudentResults([]); setStudentQuery(''); }}
-                            className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition border-b border-gray-50 last:border-0">
-                            <p className="text-sm font-medium text-gray-900">{s.first_name} {s.last_name}</p>
-                            <p className="text-xs text-gray-400">{s.email}</p>
+                            className="w-full text-left px-3 py-2.5 transition"
+                            style={{ borderBottom: '1px solid var(--color-bg)' }}
+                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{s.first_name} {s.last_name}</p>
+                            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{s.email}</p>
                           </button>
                         ))}
                       </div>
                     )}
                     {studentQuery.length >= 2 && !searchingStudents && studentResults.length === 0 && (
-                      <p className="text-xs text-gray-400 mt-1 px-1">No students found.</p>
+                      <p className="text-xs mt-1 px-1" style={{ color: 'var(--color-text-muted)' }}>No students found.</p>
                     )}
                   </div>
                 )}
@@ -1478,9 +1539,10 @@ export default function AppointmentsDashboard() {
 
               {/* Purpose */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Purpose</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Purpose</label>
                 <select value={schedPurpose} onChange={e => setSchedPurpose(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm rounded-xl focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
                   <option value="counseling">Counseling</option>
                   <option value="follow_up_counselling">Follow-up Counseling</option>
                   <option value="intake_interview">Intake Interview</option>
@@ -1490,17 +1552,19 @@ export default function AppointmentsDashboard() {
 
               {/* Concern */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Concern / Notes</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Concern / Notes</label>
                 <textarea value={schedConcern} onChange={e => setSchedConcern(e.target.value)}
                   placeholder="Brief description…" rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-300 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm rounded-xl focus:outline-none resize-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
 
               {/* Mode */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mode</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Mode</label>
                 <select value={schedMethod} onChange={e => setSchedMethod(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm rounded-xl focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
                   <option value="in-person">Face to Face</option>
                   <option value="google-meet">Google Meet</option>
                   <option value="zoom">Zoom</option>
@@ -1508,10 +1572,11 @@ export default function AppointmentsDashboard() {
               </div>
 
               {/* Optional fields */}
-              <div className="border-t border-gray-100 pt-4 space-y-3">
-                <p className="text-xs text-gray-400">Optional — assign a counselor and time now, or leave blank to assign later.</p>
+              <div className="pt-4 space-y-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Optional — assign a counselor and time now, or leave blank to assign later.</p>
                 <select value={schedCounselor} onChange={e => setSchedCounselor(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm rounded-xl focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
                   <option value="">Assign counselor later…</option>
                   {counselors.map(c => (
                     <option key={c._id} value={c._id}>
@@ -1521,9 +1586,11 @@ export default function AppointmentsDashboard() {
                 </select>
                 <div className="grid grid-cols-2 gap-2">
                   <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
-                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                    className="px-3 py-2 text-sm rounded-xl focus:outline-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                   <input type="time" step="1800" value={schedTime} onChange={e => setSchedTime(e.target.value)}
-                    className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                    className="px-3 py-2 text-sm rounded-xl focus:outline-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                 </div>
               </div>
 
@@ -1535,7 +1602,10 @@ export default function AppointmentsDashboard() {
 
               <div className="flex gap-2 pt-1">
                 <button onClick={() => { setShowScheduleModal(false); resetScheduleForm(); }}
-                  className="flex-1 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl transition"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                   Cancel
                 </button>
                 <button onClick={handleScheduleSubmit} disabled={submittingSchedule || !selectedStudent}
@@ -1553,21 +1623,24 @@ export default function AppointmentsDashboard() {
       {/* ── Counselor Reschedule Modal ───────────────────────────────────── */}
       {cancelTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+          <div className="rounded-xl w-full max-w-sm p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-semibold text-gray-900 text-sm">Cancel Appointment</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Student: <strong>{cancelTarget.student_name}</strong></p>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Cancel Appointment</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Student: <strong>{cancelTarget.student_name}</strong></p>
               </div>
-              <button onClick={() => setCancelTarget(null)} className="text-gray-400 hover:text-gray-600"><XCircle size={16} /></button>
+              <button onClick={() => setCancelTarget(null)} style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'}><XCircle size={16} /></button>
             </div>
-            <p className="text-xs text-gray-500 mb-3">Reason for cancellation (e.g. walk-in, double booking, student request):</p>
+            <p className="text-xs mb-3" style={{ color: 'var(--color-text-secondary)' }}>Reason for cancellation (e.g. walk-in, double booking, student request):</p>
             <textarea
               value={cancelReason}
               onChange={e => setCancelReason(e.target.value)}
               rows={3}
               placeholder="Walk-in appointment completed / Double booking / Student did not show…"
-              className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg mb-3 resize-none"
+              className="w-full px-3 py-2 text-xs rounded-lg mb-3 resize-none focus:outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
             />
             {cancelMsg && (
               <p className={`text-xs px-3 py-2 rounded-lg mb-3 ${cancelMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
@@ -1576,7 +1649,10 @@ export default function AppointmentsDashboard() {
             )}
             <div className="flex gap-2">
               <button onClick={() => setCancelTarget(null)}
-                className="flex-1 px-4 py-2 text-sm border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                className="flex-1 px-4 py-2 text-sm rounded-lg transition"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                 Keep
               </button>
               <button onClick={doCancel} disabled={!!cancellingId}
@@ -1590,30 +1666,35 @@ export default function AppointmentsDashboard() {
 
       {reschedTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+          <div className="rounded-xl w-full max-w-sm p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-semibold text-gray-900 text-sm">Propose New Schedule</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Student: <strong>{reschedTarget.student_name}</strong></p>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Propose New Schedule</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Student: <strong>{reschedTarget.student_name}</strong></p>
               </div>
-              <button onClick={() => setReschedTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X size={14} /></button>
+              <button onClick={() => setReschedTarget(null)} className="p-1.5 rounded-lg" style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}><X size={14} /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New Date</label>
+                <label className="text-xs font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--color-text-secondary)' }}>New Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New Time</label>
+                <label className="text-xs font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--color-text-secondary)' }}>New Time</label>
                 <input type="time" step="1800" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reason <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <label className="text-xs font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--color-text-secondary)' }}>Reason <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
                 <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
                   rows={2} placeholder="Why is this session being rescheduled?"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none resize-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
               {reschedMsg && (
                 <p className={`text-xs px-3 py-2 rounded-lg ${reschedMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
@@ -1622,7 +1703,10 @@ export default function AppointmentsDashboard() {
               )}
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setReschedTarget(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  className="flex-1 px-4 py-2 text-sm rounded-lg transition"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                   Cancel
                 </button>
                 <button onClick={doReschedule} disabled={submittingResched}
@@ -1639,12 +1723,12 @@ export default function AppointmentsDashboard() {
       {/* ── Follow-Up Scheduling Modal ────────────────────────────────────── */}
       {followUpTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
               <RefreshCw size={18} className="text-indigo-500" />
-              <h3 className="font-semibold text-sm text-gray-900">Schedule Follow-Up Session</h3>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Schedule Follow-Up Session</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
               Student: <strong>{followUpTarget.student_name}</strong>
               {followUpTarget.counselor_name && followUpTarget.counselor_name !== 'Not Assigned' && (
                 <> · Counselor: <strong>{followUpTarget.counselor_name}</strong></>
@@ -1653,29 +1737,33 @@ export default function AppointmentsDashboard() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Date *</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Date *</label>
                   <input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Time *</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Time *</label>
                   <input type="time" step="1800" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                 </div>
               </div>
               {(followUpTarget.method === 'in-person' || followUpTarget.method === 'in_person') && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Office / Room</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
                   <input type="text" value={followUpOffice} onChange={e => setFollowUpOffice(e.target.value)}
                     placeholder="e.g. Room 203, CPS Office"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                 </div>
               )}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Session Notes (optional)</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Session Notes (optional)</label>
                 <textarea rows={2} value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)}
                   placeholder="Continuation goals, topics to cover…"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 focus:outline-none resize-none" />
+                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none resize-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
             </div>
             {followUpMsg && (
@@ -1683,7 +1771,10 @@ export default function AppointmentsDashboard() {
             )}
             <div className="flex gap-2 justify-end mt-4">
               <button onClick={() => setFollowUpTarget(null)}
-                className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                className="px-4 py-1.5 text-xs rounded-lg transition"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                 Cancel
               </button>
               <button onClick={doFollowUp} disabled={submittingFollowUp}
@@ -1699,22 +1790,23 @@ export default function AppointmentsDashboard() {
       {/* ── Close at Intake Modal ──────────────────────────────────────────── */}
       {closeIntakeTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
               <XCircle size={18} className="text-red-500" />
-              <h3 className="font-semibold text-sm text-gray-900">Close at Intake</h3>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Close at Intake</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-1">Student: <strong>{closeIntakeTarget.student_name}</strong></p>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Student: <strong>{closeIntakeTarget.student_name}</strong></p>
+            <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
               This means the student does not need continuing sessions. The case will be closed and documented.
             </p>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Reason / notes</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>Reason / notes</label>
             <textarea
               rows={3}
               value={closeIntakeReason}
               onChange={e => setCloseIntakeReason(e.target.value)}
               placeholder="e.g. Student concern resolved at intake, no further sessions required."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-red-400 resize-none mb-3"
+              className="w-full rounded-lg px-3 py-2 text-xs resize-none mb-3 focus:outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
             />
             {closeIntakeMsg && (
               <p className={`text-xs mb-3 ${closeIntakeMsg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>
@@ -1723,7 +1815,10 @@ export default function AppointmentsDashboard() {
             )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setCloseIntakeTarget(null)}
-                className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                className="px-4 py-1.5 text-xs rounded-lg transition"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                 Cancel
               </button>
               <button onClick={doCloseAtIntake} disabled={closingIntake}
@@ -1739,19 +1834,20 @@ export default function AppointmentsDashboard() {
       {/* ── Complete & Termination Type Modal ─────────────────────────────── */}
       {terminationTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
-              <Archive size={18} className="text-gray-600" />
-              <h3 className="font-semibold text-sm text-gray-900">Complete & Close Case</h3>
+              <Archive size={18} style={{ color: 'var(--color-text-secondary)' }} />
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Complete & Close Case</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
               Student: <strong>{terminationTarget.student_name}</strong>
             </p>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Termination Type</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>Termination Type</label>
             <select
               value={terminationType}
               onChange={e => setTerminationType(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 mb-3"
+              className="w-full rounded-lg px-3 py-2 text-xs mb-3 focus:outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
             >
               <option value="MUTUAL">Mutual — goals met, both agree</option>
               <option value="CLIENT_INITIATED_PLANNED">Client-Initiated (Planned) — client ready to stop</option>
@@ -1760,17 +1856,21 @@ export default function AppointmentsDashboard() {
               <option value="ADMINISTRATIVE">Administrative — 3 no-shows / forced</option>
               <option value="CLINICAL_REFERRAL">Clinical Referral — warm handoff to external/higher care</option>
             </select>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Summary notes (optional)</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>Summary notes (optional)</label>
             <textarea
               rows={3}
               value={terminationNotes}
               onChange={e => setTerminationNotes(e.target.value)}
               placeholder="Document therapeutic gains, transition plan, or reason for closure…"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 resize-none mb-4"
+              className="w-full rounded-lg px-3 py-2 text-xs resize-none mb-4 focus:outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setTerminationTarget(null)}
-                className="px-4 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                className="px-4 py-1.5 text-xs rounded-lg transition"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                 Cancel
               </button>
               <button onClick={doCompleteWithTermination} disabled={submittingTermination}
@@ -1786,24 +1886,27 @@ export default function AppointmentsDashboard() {
       {/* ── Edit Appointment Modal ──────────────────────────────────────── */}
       {editTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="rounded-2xl w-full max-w-sm overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
-                <h3 className="font-semibold text-sm text-gray-900">Edit Appointment</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{editTarget.student_name}</p>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Edit Appointment</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{editTarget.student_name}</p>
               </div>
-              <button onClick={() => setEditTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <X size={14} className="text-gray-400" />
+              <button onClick={() => setEditTarget(null)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                <X size={14} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               {/* Reassign counselor */}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                  Reassign Counselor <span className="font-normal normal-case text-gray-400">(leave blank to keep current)</span>
+                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                  Reassign Counselor <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(leave blank to keep current)</span>
                 </label>
                 <select value={editCounselor} onChange={e => setEditCounselor(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none">
+                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
                   <option value="">— Keep: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'} —</option>
                   {counselors.map((c: any) => (
                     <option key={c._id} value={c._id}>{c.first_name} {c.last_name || ''} — {ROLE_LABEL[c.role] ?? c.role}</option>
@@ -1814,23 +1917,26 @@ export default function AppointmentsDashboard() {
               {/* Date + time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Date</label>
                   <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Time</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Time</label>
                   <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
                 </div>
               </div>
 
               {/* Office */}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Office / Room</label>
+                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
                 <input type="text" value={editOffice} onChange={e => setEditOffice(e.target.value)}
                   placeholder="e.g. Room 203, CPS Office"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb] focus:outline-none" />
+                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
               </div>
 
               {editMsg && (
@@ -1841,7 +1947,10 @@ export default function AppointmentsDashboard() {
 
               <div className="flex gap-2">
                 <button onClick={() => setEditTarget(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition">
+                  className="flex-1 px-4 py-2 text-sm rounded-lg transition"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                   Cancel
                 </button>
                 <button onClick={doEdit} disabled={submittingEdit}
@@ -1862,7 +1971,7 @@ export default function AppointmentsDashboard() {
           <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div className="flex items-center gap-3">
-                <FileText size={16} className="text-gray-500" />
+                <FileText size={16} style={{ color: 'var(--color-text-secondary)' }} />
                 <div>
                   <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Intake Forms — {formsTarget.student_name}</h3>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
@@ -1884,7 +1993,7 @@ export default function AppointmentsDashboard() {
                   className="p-2 rounded-lg transition"
                   onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
                   onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
-                  <X size={14} className="text-gray-400" />
+                  <X size={14} style={{ color: 'var(--color-text-muted)' }} />
                 </button>
               </div>
             </div>
@@ -1892,7 +2001,7 @@ export default function AppointmentsDashboard() {
             <div className="flex-1 overflow-y-auto">
               {formsLoading ? (
                 <div className="flex items-center justify-center h-40">
-                  <Loader2 size={20} className="animate-spin text-gray-400" />
+                  <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} />
                 </div>
               ) : (
 
@@ -1901,7 +2010,7 @@ export default function AppointmentsDashboard() {
                   <div className="p-6 space-y-5 text-sm">
                     {formsPacket.icf && (
                       <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Initial Contact Form (ICF)</p>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Initial Contact Form (ICF)</p>
                         <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                           {[
                             ['Student', [formsPacket.icf.first_name, formsPacket.icf.middle_name, formsPacket.icf.last_name].filter(Boolean).join(' ')],
@@ -1915,7 +2024,7 @@ export default function AppointmentsDashboard() {
                             <div key={k as string}><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{k}:</span> <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{v}</span></div>
                           ))}
                           <div className="col-span-2 p-3 rounded-xl mt-1" style={{ background: 'var(--color-bg)' }}>
-<p className="text-xs text-gray-400 mb-1">Presenting Concern</p>
+<p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Presenting Concern</p>
                             <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{formsPacket.icf.presenting_concern || '—'}</p>
                           </div>
                         </div>
@@ -1923,7 +2032,7 @@ export default function AppointmentsDashboard() {
                     )}
                     {formsPacket.spif && (
                       <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Personal Background (SPIF-IF)</p>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Personal Background (SPIF-IF)</p>
                         <div className="grid grid-cols-3 gap-x-6 gap-y-2">
                           {[
                             ['Birthdate', formsPacket.spif.birthdate || '—'],
@@ -1943,7 +2052,7 @@ export default function AppointmentsDashboard() {
                     )}
                     {formsPacket.phq4_summary && (
                       <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">PHQ-4 Pre-Screen</p>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>PHQ-4 Pre-Screen</p>
                         <div className="grid grid-cols-3 gap-3">
                           {[
                             { l: 'PHQ-2 (Depression)', s: formsPacket.phq4_summary.phq2_score, max: 6, risk: formsPacket.phq4_summary.phq2_at_risk },
@@ -1951,8 +2060,8 @@ export default function AppointmentsDashboard() {
                             { l: 'PHQ-4 Total',         s: formsPacket.phq4_summary.total_score, max: 12, risk: formsPacket.phq4_summary.total_score >= 6 },
                           ].map(x => (
                             <div key={x.l} className={`rounded-xl p-3 text-center ${x.risk ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'}`}>
-                              <p className="text-xs text-gray-500 mb-0.5">{x.l}</p>
-                              <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-blue-700'}`}>{x.s}<span className="text-xs font-normal text-gray-400">/{x.max}</span></p>
+                              <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.l}</p>
+                              <p className={`text-xl font-bold ${x.risk ? 'text-red-700' : 'text-blue-700'}`}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
                               <p className={`text-[10px] font-semibold ${x.risk ? 'text-red-500' : 'text-green-600'}`}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                             </div>
                           ))}
@@ -1976,7 +2085,7 @@ export default function AppointmentsDashboard() {
                       </div>
                     )}
                     {!formsPacket.icf && !formsPacket.spif && (
-                      <p className="text-sm text-gray-400 text-center py-8">No intake forms submitted for this appointment.</p>
+                      <p className="text-sm text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No intake forms submitted for this appointment.</p>
                     )}
                   </div>
                 ) : (formsEditing || !formsPacket) ? (
@@ -1985,18 +2094,18 @@ export default function AppointmentsDashboard() {
                   <div className="p-6 space-y-6 text-sm">
                     {/* ICF */}
                     <div>
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Initial Contact Form (ICF)</p>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Initial Contact Form (ICF)</p>
                       <div className="grid grid-cols-2 gap-3">
                         {(['first_name','last_name','middle_name','email','student_id','college','program','year_level'] as string[]).map(k => (
                           <div key={k}>
-                            <label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
+                            <label className="block text-xs mb-1 capitalize" style={{ color: 'var(--color-text-secondary)' }}>{k.replace(/_/g,' ')}</label>
                             <input value={formsDraftIcf[k] || ''} onChange={e => setFormsDraftIcf(p => ({...p,[k]:e.target.value}))}
                               className="w-full px-3 py-2 text-sm rounded-lg outline-none"
                               style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                           </div>
                         ))}
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Service Requested</label>
+                          <label className="block text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Service Requested</label>
                           <select value={formsDraftIcf.service_requested || ''} onChange={e => setFormsDraftIcf(p => ({...p,service_requested:e.target.value}))}
                             className="w-full px-3 py-2 text-sm rounded-lg outline-none"
                             style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
@@ -2005,7 +2114,7 @@ export default function AppointmentsDashboard() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Referral Source</label>
+                          <label className="block text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Referral Source</label>
                           <select value={formsDraftIcf.referral_source || ''} onChange={e => setFormsDraftIcf(p => ({...p,referral_source:e.target.value}))}
                             className="w-full px-3 py-2 text-sm rounded-lg outline-none"
                             style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
@@ -2014,7 +2123,7 @@ export default function AppointmentsDashboard() {
                           </select>
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-xs text-gray-500 mb-1">Presenting Concern</label>
+                          <label className="block text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Presenting Concern</label>
                           <textarea rows={3} value={formsDraftIcf.presenting_concern || ''} onChange={e => setFormsDraftIcf(p => ({...p,presenting_concern:e.target.value}))}
                             className="w-full px-3 py-2 text-sm rounded-lg outline-none resize-none"
                             style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
@@ -2023,16 +2132,16 @@ export default function AppointmentsDashboard() {
                     </div>
                     {/* SPIF */}
                     <div>
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Personal Background (SPIF-IF)</p>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Personal Background (SPIF-IF)</p>
                       <div className="grid grid-cols-3 gap-3">
                         <div><label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Birthdate</label><input type="date" value={formsDraftSpif.birthdate||''} onChange={e=>setFormsDraftSpif(p=>({...p,birthdate:e.target.value}))} className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/></div>
                         {(['gender','civil_status','family_composition'] as string[]).map(k => (
-                          <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
+                          <div key={k}><label className="block text-xs mb-1 capitalize" style={{ color: 'var(--color-text-secondary)' }}>{k.replace(/_/g,' ')}</label>
                             <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/>
                           </div>
                         ))}
                         {(['living_with','existing_medical_conditions','current_medications'] as string[]).map(k => (
-                          <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
+                          <div key={k}><label className="block text-xs mb-1 capitalize" style={{ color: 'var(--color-text-secondary)' }}>{k.replace(/_/g,' ')}</label>
                             <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} placeholder="None" className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/>
                           </div>
                         ))}
@@ -2048,7 +2157,7 @@ export default function AppointmentsDashboard() {
                     </div>
                     {/* PHQ-4 */}
                     <div>
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">PHQ-4 Pre-Screen</p>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>PHQ-4 Pre-Screen</p>
                       <div className="space-y-2">
                         {['Little interest or pleasure in doing things','Feeling down, depressed, or hopeless','Feeling nervous, anxious, or on edge','Not being able to stop or control worrying'].map((q,i)=>(
                           <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--color-bg)' }}>
@@ -2072,7 +2181,7 @@ export default function AppointmentsDashboard() {
                     {formsMsg && <p className="text-xs font-medium" style={{ color: formsMsg.includes('saved') ? 'var(--color-primary-text)' : 'var(--color-danger)' }}>{formsMsg}</p>}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-40 text-sm text-gray-400">No forms submitted yet.</div>
+                  <div className="flex items-center justify-center h-40 text-sm" style={{ color: 'var(--color-text-muted)' }}>No forms submitted yet.</div>
                 )
               )}
             </div>
@@ -2080,7 +2189,10 @@ export default function AppointmentsDashboard() {
             <div className="px-6 py-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--color-border)' }}>
               {formsEditing ? (
                 <>
-                  <button onClick={() => setFormsEditing(false)} className="text-xs text-gray-500 hover:text-gray-700 transition">Cancel</button>
+                  <button onClick={() => setFormsEditing(false)} className="text-xs transition"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'}>Cancel</button>
                   <button onClick={saveForms} disabled={formsSaving}
                     className="flex items-center gap-2 px-5 py-2 bg-[#2563eb] text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 transition">
                     {formsSaving ? <Loader2 size={13} className="animate-spin" /> : null}
@@ -2117,15 +2229,17 @@ export default function AppointmentsDashboard() {
 }
 
 // ── Summary card ──────────────────────────────────────────────────────────────
-function SummaryCard({ icon: Icon, label, value, cls, highlight }: {
-  icon: any; label: string; value: number; cls: string; highlight?: boolean;
+function SummaryCard({ icon: Icon, label, value, color, highlight }: {
+  icon: any; label: string; value: number; color: string; highlight?: boolean;
 }) {
   return (
-    <div className={`bg-white rounded-xl border px-4 py-3 flex items-center gap-3 ${highlight ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'}`}>
-      <Icon size={18} className={cls} />
+    <div
+      className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${highlight ? 'border-amber-200 bg-amber-50/30' : ''}`}
+      style={highlight ? {} : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      <Icon size={18} style={{ color }} />
       <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className={`text-xl font-semibold ${cls}`}>{value}</p>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+        <p className="text-xl font-semibold" style={{ color }}>{value}</p>
       </div>
     </div>
   );

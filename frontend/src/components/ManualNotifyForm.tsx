@@ -91,7 +91,8 @@ export default function ManualNotifyForm() {
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full border-b border-gray-300 pb-1 text-black"
+          className="w-full pb-1 outline-none transition"
+          style={{ borderBottom: '1px solid var(--color-border-strong)', color: 'var(--color-text-primary)', background: 'transparent' }}
           placeholder="Student username (e.g. jsmith)"
           required
         />

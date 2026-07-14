@@ -88,11 +88,11 @@ export function SignaturePad({ onChange, value }: SignaturePadProps) {
 
   return (
     <div className="space-y-2">
-      <div className="relative border-2 border-dashed border-gray-200 rounded-xl overflow-hidden bg-gray-50 hover:border-[#2563eb]/40 transition-colors"
-        style={{ touchAction: 'none' }}>
+      <div className="relative border-2 border-dashed rounded-xl overflow-hidden transition-colors"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg)', touchAction: 'none' }}>
         {isEmpty && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-            <p className="text-sm text-gray-300 font-medium">Sign here</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Sign here</p>
           </div>
         )}
         <canvas
@@ -111,9 +111,12 @@ export function SignaturePad({ onChange, value }: SignaturePadProps) {
         />
       </div>
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400">Draw your signature above using mouse or finger</p>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Draw your signature above using mouse or finger</p>
         <button type="button" onClick={clear}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition px-2 py-1 rounded-lg hover:bg-red-50">
+          className="flex items-center gap-1.5 text-xs transition px-2 py-1 rounded-lg"
+          style={{ color: 'var(--color-text-muted)' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}>
           <Trash2 size={12} /> Clear
         </button>
       </div>

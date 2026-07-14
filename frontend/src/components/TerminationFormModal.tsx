@@ -49,7 +49,8 @@ interface Props {
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 pb-1 border-b border-gray-100">
+    <p className="text-xs font-bold uppercase tracking-widest mb-3 pb-1"
+      style={{ color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border)' }}>
       {label}
     </p>
   );
@@ -58,8 +59,8 @@ function SectionLabel({ label }: { label: string }) {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="mb-4">
-      <label className="block text-xs font-semibold text-gray-700 mb-1">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+        {label}{required && <span className="ml-0.5" style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
       {children}
     </div>
@@ -76,14 +77,16 @@ function CheckList({ options, selected, onToggle, otherValue, onOtherChange }: {
       {options.map(opt => (
         <label key={opt} className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={selected.includes(opt)} onChange={() => onToggle(opt)}
-            className="rounded border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
-          <span className="text-xs text-gray-700">{opt}</span>
+            className="rounded text-[#2563eb] focus:ring-[#2563eb]"
+            style={{ borderColor: 'var(--color-border-strong)' }} />
+          <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
         </label>
       ))}
       {selected.includes('Other') && onOtherChange && (
         <input type="text" placeholder="Please specify…" value={otherValue}
           onChange={e => onOtherChange(e.target.value)}
-          className="mt-1 w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg" />
+          className="mt-1 w-full px-3 py-1.5 text-xs rounded-lg"
+          style={{ border: '1px solid var(--color-border-strong)' }} />
       )}
     </div>
   );
@@ -97,8 +100,9 @@ function RadioList({ options, selected, onSelect }: {
       {options.map(opt => (
         <label key={opt} className="flex items-center gap-2 cursor-pointer">
           <input type="radio" checked={selected === opt} onChange={() => onSelect(opt)}
-            className="border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
-          <span className="text-xs text-gray-700">{opt}</span>
+            className="text-[#2563eb] focus:ring-[#2563eb]"
+            style={{ borderColor: 'var(--color-border-strong)' }} />
+          <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
         </label>
       ))}
     </div>
@@ -111,7 +115,8 @@ function Textarea({ value, onChange, placeholder, rows = 2 }: {
   return (
     <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows}
       placeholder={placeholder}
-      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-1 focus:ring-[#2563eb] outline-none resize-none" />
+      className="w-full px-3 py-2 text-xs rounded-lg focus:ring-1 focus:ring-[#2563eb] outline-none resize-none"
+      style={{ border: '1px solid var(--color-border-strong)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
   );
 }
 
@@ -143,17 +148,22 @@ export function TerminationFormModal({ studentName, onClose, onSubmit }: Props) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+        style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex items-center gap-2">
-            <AlertTriangle size={16} className="text-red-500" />
+            <AlertTriangle size={16} style={{ color: 'var(--color-danger)' }} />
             <div>
-              <p className="text-sm font-bold text-gray-900">Terminate Case</p>
-              <p className="text-xs text-gray-400">{studentName}</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Terminate Case</p>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{studentName}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+          <button onClick={onClose} className="transition"
+            style={{ color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}>
             <X size={18} />
           </button>
         </div>
@@ -176,7 +186,8 @@ export function TerminationFormModal({ studentName, onClose, onSubmit }: Props) 
                 <input type="number" min="1" value={form.session_count}
                   onChange={e => set({ session_count: e.target.value })}
                   placeholder="e.g. 8"
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg" />
+                  className="w-full px-3 py-2 text-xs rounded-lg"
+                  style={{ border: '1px solid var(--color-border-strong)' }} />
               </Field>
             </div>
           </div>
@@ -343,22 +354,30 @@ export function TerminationFormModal({ studentName, onClose, onSubmit }: Props) 
           </div>
 
           {error && (
-            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+            <div className="px-4 py-3 rounded-xl text-xs"
+              style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger-text)' }}>
               {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-gray-50 rounded-b-2xl">
-          <p className="text-xs text-gray-400">This action will mark the case as <strong>Closed</strong>.</p>
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0 rounded-b-2xl"
+          style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>This action will mark the case as <strong>Closed</strong>.</p>
           <div className="flex gap-3">
             <button onClick={onClose}
-              className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition">
+              className="px-4 py-2 text-sm rounded-lg transition"
+              style={{ border: '1px solid var(--color-border-strong)', color: 'var(--color-text-secondary)', background: 'transparent' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
               Cancel
             </button>
             <button onClick={handleSubmit} disabled={saving}
-              className="px-5 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition disabled:opacity-50">
+              className="px-5 py-2 text-sm font-medium text-white rounded-lg transition disabled:opacity-50"
+              style={{ background: 'var(--color-danger)' }}
+              onMouseEnter={e => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-text)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger)'; }}>
               {saving ? 'Submitting…' : 'Terminate Case'}
             </button>
           </div>

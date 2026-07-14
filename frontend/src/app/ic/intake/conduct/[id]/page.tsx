@@ -440,7 +440,15 @@ export default function ConductIntakePage() {
     const sessionInfo = {
       date: sessionDate ? new Date(sessionDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
       time: sessionDate ? new Date(sessionDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : undefined,
-      mode: intake?.method || intake?.session_type,
+      mode: (() => {
+        const raw = intake?.method || intake?.preferred_method || intake?.session_type || '';
+        const map: Record<string, string> = {
+          'in-person': 'In-Person', 'in_person': 'In-Person',
+          'zoom': 'Zoom (Online)', 'google_meet': 'Google Meet (Online)', 'google-meet': 'Google Meet (Online)',
+          'online': 'Online', 'teams': 'MS Teams (Online)',
+        };
+        return map[raw.toLowerCase()] || raw || undefined;
+      })(),
       studentId: intake?.student_id || intake?.student?.school_id,
       college: intake?.student?.college,
     };

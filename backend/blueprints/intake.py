@@ -707,6 +707,7 @@ def get_intake(intake_id):
                     'purpose': appt.get('purpose', ''),
                     'risk_level': appt.get('risk_level', 'GREEN'),
                     'is_emergency': appt.get('is_emergency', False),
+                    'method': appt.get('preferred_method', ''),
                     'responses': {'concern': appt.get('concern', '')},
                     'created_at': datetime.utcnow(),
                     'updated_at': datetime.utcnow(),
@@ -732,6 +733,15 @@ def get_intake(intake_id):
             serialized[k] = v.isoformat()
         else:
             serialized[k] = v
+
+    # Enrich with appointment's preferred_method if not already stored on intake
+    if not serialized.get('method') and serialized.get('appointment_id'):
+        try:
+            appt = db.db.appointments.find_one({'_id': ObjectId(serialized['appointment_id'])})
+            if appt and appt.get('preferred_method'):
+                serialized['method'] = appt['preferred_method']
+        except Exception:
+            pass
 
     return jsonify(serialized), 200
 

@@ -980,6 +980,8 @@ export default function CaseDetailPage() {
     );
   }
 
+  const isIC = currentUser?.role === 'IC';
+
   const tabs = [
     { id: 'overview' as const,        label: 'Overview' },
     { id: 'intake' as const,          label: 'Intake' },
@@ -2575,8 +2577,8 @@ export default function CaseDetailPage() {
             </div>
           )}
 
-          {/* ── Record assessment form ── */}
-          {recordingType && assessmentTemplate ? (
+          {/* ── Record assessment form / picker (not shown to IC) ── */}
+          {!isIC && (recordingType && assessmentTemplate ? (
             <div className="rounded-xl p-5 space-y-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <div className="flex items-center justify-between">
                 <div>
@@ -2655,7 +2657,7 @@ export default function CaseDetailPage() {
                 ))}
               </div>
             </div>
-          )}
+          ))}
 
           {/* ── Assessment history ── */}
           <div>
@@ -2709,40 +2711,44 @@ export default function CaseDetailPage() {
           {/* ── Repeating Schedules ── */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Repeating Schedules</p>
-            <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>Auto-queue assessments at regular intervals.</p>
-            <div className="rounded-lg p-4 space-y-3" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <div className="flex flex-wrap gap-3">
-                <div>
-                  <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Assessment</label>
-                  <select value={scheduleForm.assessment_type}
-                    onChange={e => setScheduleForm(f => ({ ...f, assessment_type: e.target.value }))}
-                    className="px-3 py-1.5 text-sm rounded outline-none transition" style={ICS}>
-                    <option value="PHQ9">PHQ-9 (Depression)</option>
-                    <option value="GAD7">GAD-7 (Anxiety)</option>
-                    <option value="PSS">PSS-10 (Stress)</option>
-                  </select>
+            {!isIC && (
+              <>
+                <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>Auto-queue assessments at regular intervals.</p>
+                <div className="rounded-lg p-4 space-y-3" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <div className="flex flex-wrap gap-3">
+                    <div>
+                      <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Assessment</label>
+                      <select value={scheduleForm.assessment_type}
+                        onChange={e => setScheduleForm(f => ({ ...f, assessment_type: e.target.value }))}
+                        className="px-3 py-1.5 text-sm rounded outline-none transition" style={ICS}>
+                        <option value="PHQ9">PHQ-9 (Depression)</option>
+                        <option value="GAD7">GAD-7 (Anxiety)</option>
+                        <option value="PSS">PSS-10 (Stress)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Every (days)</label>
+                      <input type="number" min={1} max={90} value={scheduleForm.interval_days}
+                        onChange={e => setScheduleForm(f => ({ ...f, interval_days: parseInt(e.target.value) || 14 }))}
+                        className="w-24 px-3 py-1.5 text-sm rounded outline-none transition" style={ICS} />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>First due date</label>
+                      <input type="date" value={scheduleForm.start_date}
+                        onChange={e => setScheduleForm(f => ({ ...f, start_date: e.target.value }))}
+                        className="px-3 py-1.5 text-sm rounded outline-none transition" style={ICS} />
+                    </div>
+                    <div className="self-end">
+                      <button onClick={handleAddSchedule} disabled={savingSchedule}
+                        className="px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 disabled:opacity-50"
+                        style={{ background: savingSchedule ? 'var(--color-border)' : 'var(--color-primary)', color: savingSchedule ? 'var(--color-text-muted)' : '#fff' }}>
+                        <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Every (days)</label>
-                  <input type="number" min={1} max={90} value={scheduleForm.interval_days}
-                    onChange={e => setScheduleForm(f => ({ ...f, interval_days: parseInt(e.target.value) || 14 }))}
-                    className="w-24 px-3 py-1.5 text-sm rounded outline-none transition" style={ICS} />
-                </div>
-                <div>
-                  <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>First due date</label>
-                  <input type="date" value={scheduleForm.start_date}
-                    onChange={e => setScheduleForm(f => ({ ...f, start_date: e.target.value }))}
-                    className="px-3 py-1.5 text-sm rounded outline-none transition" style={ICS} />
-                </div>
-                <div className="self-end">
-                  <button onClick={handleAddSchedule} disabled={savingSchedule}
-                    className="px-4 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5 disabled:opacity-50"
-                    style={{ background: savingSchedule ? 'var(--color-border)' : 'var(--color-primary)', color: savingSchedule ? 'var(--color-text-muted)' : '#fff' }}>
-                    <Plus size={14} /> {savingSchedule ? 'Adding…' : 'Add'}
-                  </button>
-                </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {assessmentSchedules.filter(s => s.active).length === 0 ? (
               <p className="text-sm italic mt-3" style={{ color: 'var(--color-text-muted)' }}>No active schedules.</p>
@@ -2760,13 +2766,15 @@ export default function CaseDetailPage() {
                         </span>
                       </p>
                     </div>
-                    <button onClick={() => handleDeleteSchedule(s.schedule_id)}
-                      className="text-xs px-2 py-1 rounded transition"
-                      style={{ color: 'var(--color-danger)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                      Remove
-                    </button>
+                    {!isIC && (
+                      <button onClick={() => handleDeleteSchedule(s.schedule_id)}
+                        className="text-xs px-2 py-1 rounded transition"
+                        style={{ color: 'var(--color-danger)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        Remove
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -2778,13 +2786,15 @@ export default function CaseDetailPage() {
       {/* ── History Tab ────────────────────────────────────────── */}
       {activeTab === 'history' && (
         <div className="space-y-6">
-          <CheckInForm caseId={caseId} onSubmit={handleCreateCheckIn} isLoading={checkInLoading} />
-          {checkInHistory.length > 0 && (
+          {!isIC && <CheckInForm caseId={caseId} onSubmit={handleCreateCheckIn} isLoading={checkInLoading} />}
+          {checkInHistory.length > 0 ? (
             <div>
               <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Check-In History</h3>
               <CheckInHistory checkIns={checkInHistory} isLoading={checkInLoading} />
             </div>
-          )}
+          ) : isIC ? (
+            <p className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>No check-in history on file.</p>
+          ) : null}
         </div>
       )}
 
@@ -2804,18 +2814,22 @@ export default function CaseDetailPage() {
                     {caseData.student.mhbot_username}
                   </p>
                 </div>
-                <button
-                  onClick={unlinkMhbot}
-                  disabled={linkingMhbot}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg disabled:opacity-50 transition"
-                  style={{ color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  {linkingMhbot ? <Loader2 size={11} className="animate-spin" /> : <Unlink size={11} />}
-                  Unlink
-                </button>
+                {!isIC && (
+                  <button
+                    onClick={unlinkMhbot}
+                    disabled={linkingMhbot}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg disabled:opacity-50 transition"
+                    style={{ color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {linkingMhbot ? <Loader2 size={11} className="animate-spin" /> : <Unlink size={11} />}
+                    Unlink
+                  </button>
+                )}
               </div>
+            ) : isIC ? (
+              <p className="mt-3 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No MHBot account linked.</p>
             ) : (
               <div className="mt-3">
                 <p className="text-xs mb-2" style={{ color: 'var(--color-text-secondary)' }}>

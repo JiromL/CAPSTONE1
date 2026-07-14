@@ -19,33 +19,31 @@ interface FoundStudent {
   student_number?: string;
 }
 
-const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-300 focus:ring-2 focus:ring-[#2563eb]/25 focus:border-[#2563eb] focus:outline-none';
-const LABEL = 'block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5';
+const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+const LABEL_CLS = 'block text-xs font-semibold uppercase tracking-wide mb-1.5';
+const LABEL_S: React.CSSProperties = { color: 'var(--color-text-secondary)' };
 
 export default function WalkInIntakePage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('search');
 
-  // Student search
   const [query, setQuery]           = useState('');
   const [results, setResults]       = useState<FoundStudent[]>([]);
   const [searching, setSearching]   = useState(false);
   const [searchDone, setSearchDone] = useState(false);
   const [selected, setSelected]     = useState<FoundStudent | null>(null);
 
-  // Guest form fields (only used in guest mode)
   const [firstName, setFirstName]   = useState('');
   const [lastName, setLastName]     = useState('');
   const [email, setEmail]           = useState('');
   const [studentNum, setStudentNum] = useState('');
   const [phone, setPhone]           = useState('');
 
-  // Shared fields
   const [concern, setConcern]   = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [notes, setNotes]       = useState('');
 
-  // Submit state
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [success, setSuccess]   = useState('');
@@ -112,7 +110,7 @@ export default function WalkInIntakePage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const body: any = {
+      const body: Record<string, unknown> = {
         first_name: fn,
         last_name: ln,
         email: em,
@@ -146,181 +144,191 @@ export default function WalkInIntakePage() {
     }
   };
 
+  const CARD: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)' };
+
   return (
     <DashboardPageWrapper title="Walk-In Intake" subtitle="Register a student visiting the CPS office">
       <div className="max-w-xl mx-auto py-6">
 
-        {/* ── Step 1: Search ─────────────────────────────────────── */}
         {mode === 'search' && (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
+          <div className="rounded-xl p-6 space-y-5" style={CARD}>
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Step 1 of 2</p>
-              <h2 className="text-base font-semibold text-gray-900">Look up the student</h2>
-              <p className="text-sm text-gray-500 mt-1">Search by name or email. If they don't have an account, register them as a guest.</p>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-text-muted)' }}>Step 1 of 2</p>
+              <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Look up the student</h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>Search by name or email. If they don't have an account, register them as a guest.</p>
             </div>
 
             <div className="relative">
-              <div className={`flex items-center gap-2 border rounded-xl px-3 py-2.5 bg-gray-50 transition ${query.length >= 2 ? 'border-[#2563eb] ring-2 ring-[#2563eb]/20' : 'border-gray-200'} focus-within:border-[#2563eb] focus-within:ring-2 focus-within:ring-[#2563eb]/20`}>
-                <Search size={16} className="text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 transition"
+                style={{ background: 'var(--color-bg)', border: `1px solid ${query.length >= 2 ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
+                <Search size={16} style={{ color: 'var(--color-text-muted)' }} className="flex-shrink-0" />
                 <input
                   value={query}
                   onChange={e => searchStudents(e.target.value)}
                   placeholder="Search by name or email address…"
-                  className="flex-1 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400"
+                  className="flex-1 text-sm bg-transparent outline-none"
+                  style={{ color: 'var(--color-text-primary)' }}
                   autoFocus
                 />
-                {searching && <Loader2 size={15} className="animate-spin text-gray-400 flex-shrink-0" />}
+                {searching && <Loader2 size={15} className="animate-spin flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />}
                 {query && !searching && (
                   <button onClick={() => { setQuery(''); setResults([]); setSearchDone(false); }}>
-                    <X size={15} className="text-gray-400 hover:text-gray-600" />
+                    <X size={15} style={{ color: 'var(--color-text-muted)' }} />
                   </button>
                 )}
               </div>
 
-              {/* Results dropdown */}
               {results.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-1.5 rounded-xl z-20 overflow-hidden"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
                   {results.slice(0, 6).map(s => (
                     <button
                       key={s._id}
                       onClick={() => selectStudent(s)}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-50 transition border-b border-gray-50 last:border-0 flex items-center gap-3"
+                      className="w-full text-left px-4 py-3 transition flex items-center gap-3"
+                      style={{ borderBottom: '1px solid var(--color-border)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <div className="w-8 h-8 rounded-full bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
-                        <User size={15} style={{ color: '#2563eb' }} />
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'var(--color-primary-surface)' }}>
+                        <User size={15} style={{ color: 'var(--color-primary)' }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">{s.first_name} {s.last_name}</p>
-                        <p className="text-xs text-gray-400 truncate">{s.email}</p>
+                        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{s.first_name} {s.last_name}</p>
+                        <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>{s.email}</p>
                       </div>
-                      <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
+                      <ChevronRight size={14} className="flex-shrink-0" style={{ color: 'var(--color-border-strong)' }} />
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* No results state */}
             {searchDone && results.length === 0 && query.trim().length >= 2 && (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-center">
-                <p className="text-sm text-gray-600 font-medium mb-1">No account found for "{query}"</p>
-                <p className="text-xs text-gray-400">This student can still be registered as a guest walk-in.</p>
+              <div className="rounded-xl px-4 py-4 text-center" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No account found for &quot;{query}&quot;</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>This student can still be registered as a guest walk-in.</p>
               </div>
             )}
 
-            {/* Divider */}
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-100" />
-              <span className="text-xs text-gray-400">or</span>
-              <div className="flex-1 h-px bg-gray-100" />
+              <div className="flex-1 h-px" style={{ background: 'var(--color-border)' }} />
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>or</span>
+              <div className="flex-1 h-px" style={{ background: 'var(--color-border)' }} />
             </div>
 
-            {/* Guest button */}
             <button
               onClick={goGuest}
-              className="w-full flex items-center gap-3 px-4 py-3.5 border-2 border-dashed border-gray-200 rounded-xl hover:border-[#2563eb]/40 hover:bg-[#2563eb]/5 transition group"
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition"
+              style={{ border: '2px dashed var(--color-border)' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--color-primary-muted)';
+                e.currentTarget.style.background = 'var(--color-primary-surface)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--color-border)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
-              <div className="w-9 h-9 rounded-full bg-gray-100 group-hover:bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0 transition">
-                <UserPlus size={16} className="text-gray-500 group-hover:text-[#2563eb] transition" />
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition"
+                style={{ background: 'var(--color-bg)' }}>
+                <UserPlus size={16} style={{ color: 'var(--color-text-secondary)' }} />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-gray-700 group-hover:text-[#2563eb] transition">Student doesn't have an account</p>
-                <p className="text-xs text-gray-400">Register manually as a guest walk-in</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Student doesn&apos;t have an account</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Register manually as a guest walk-in</p>
               </div>
-              <ChevronRight size={14} className="text-gray-300 ml-auto group-hover:text-[#2563eb] transition" />
+              <ChevronRight size={14} className="ml-auto" style={{ color: 'var(--color-border-strong)' }} />
             </button>
           </div>
         )}
 
-        {/* ── Step 2a: Existing student ──────────────────────────── */}
         {mode === 'existing' && selected && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Student card */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="rounded-xl p-5" style={CARD}>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Student</p>
-                <button type="button" onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2">Change</button>
+                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Student</p>
+                <button type="button" onClick={reset} className="text-xs underline underline-offset-2"
+                  style={{ color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>Change</button>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#2563eb' }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--color-primary)' }}>
                   <span className="text-white text-sm font-semibold">{selected.first_name[0]}{selected.last_name[0]}</span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{selected.first_name} {selected.last_name}</p>
-                  <p className="text-xs text-gray-400">{selected.email}</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{selected.first_name} {selected.last_name}</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{selected.email}</p>
                 </div>
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-medium">Has account</span>
+                <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)', border: '1px solid var(--color-success)' }}>
+                  Has account
+                </span>
               </div>
             </div>
 
-            {/* Visit details */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Visit Details</p>
-              <VisitFields
-                concern={concern} setConcern={setConcern}
-                isUrgent={isUrgent} setIsUrgent={setIsUrgent}
-                notes={notes} setNotes={setNotes}
-              />
+            <div className="rounded-xl p-5 space-y-4" style={CARD}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Visit Details</p>
+              <VisitFields concern={concern} setConcern={setConcern} isUrgent={isUrgent} setIsUrgent={setIsUrgent} notes={notes} setNotes={setNotes} />
             </div>
 
             <FormFooter error={error} success={success} loading={loading} onCancel={reset} />
           </form>
         )}
 
-        {/* ── Step 2b: Guest / no account ───────────────────────── */}
         {mode === 'guest' && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Guest header */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="rounded-xl p-5" style={CARD}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Guest Walk-In</p>
-                  <p className="text-sm text-gray-500">No account — fill in the student's details manually.</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Guest Walk-In</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No account — fill in the student&apos;s details manually.</p>
                 </div>
-                <button type="button" onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 flex-shrink-0 ml-4">← Back</button>
+                <button type="button" onClick={reset} className="text-xs underline underline-offset-2 flex-shrink-0 ml-4"
+                  style={{ color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>← Back</button>
               </div>
 
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={LABEL}>First Name <span className="text-red-400 normal-case font-normal">*</span></label>
+                    <label className={LABEL_CLS} style={LABEL_S}>First Name <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span></label>
                     <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
-                      placeholder="Juan" required className={INPUT} />
+                      placeholder="Juan" required className={IC} style={ICS} />
                   </div>
                   <div>
-                    <label className={LABEL}>Last Name <span className="text-red-400 normal-case font-normal">*</span></label>
+                    <label className={LABEL_CLS} style={LABEL_S}>Last Name <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span></label>
                     <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
-                      placeholder="Dela Cruz" required className={INPUT} />
+                      placeholder="Dela Cruz" required className={IC} style={ICS} />
                   </div>
                 </div>
                 <div>
-                  <label className={LABEL}>Email <span className="text-red-400 normal-case font-normal">*</span></label>
+                  <label className={LABEL_CLS} style={LABEL_S}>Email <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span></label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                    placeholder="student@dlsu.edu.ph" required className={INPUT} />
+                    placeholder="student@dlsu.edu.ph" required className={IC} style={ICS} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={LABEL}>Student Number</label>
+                    <label className={LABEL_CLS} style={LABEL_S}>Student Number</label>
                     <input type="text" value={studentNum} onChange={e => setStudentNum(e.target.value)}
-                      placeholder="00-1234" className={INPUT} />
+                      placeholder="00-1234" className={IC} style={ICS} />
                   </div>
                   <div>
-                    <label className={LABEL}>Phone</label>
+                    <label className={LABEL_CLS} style={LABEL_S}>Phone</label>
                     <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                      placeholder="+63 9XX XXX XXXX" className={INPUT} />
+                      placeholder="+63 9XX XXX XXXX" className={IC} style={ICS} />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Visit details */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Visit Details</p>
-              <VisitFields
-                concern={concern} setConcern={setConcern}
-                isUrgent={isUrgent} setIsUrgent={setIsUrgent}
-                notes={notes} setNotes={setNotes}
-              />
+            <div className="rounded-xl p-5 space-y-4" style={CARD}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Visit Details</p>
+              <VisitFields concern={concern} setConcern={setConcern} isUrgent={isUrgent} setIsUrgent={setIsUrgent} notes={notes} setNotes={setNotes} />
             </div>
 
             <FormFooter error={error} success={success} loading={loading} onCancel={reset} />
@@ -331,17 +339,21 @@ export default function WalkInIntakePage() {
   );
 }
 
-// ── Shared visit fields ───────────────────────────────────────────────────────
 function VisitFields({ concern, setConcern, isUrgent, setIsUrgent, notes, setNotes }: {
   concern: string; setConcern: (v: string) => void;
   isUrgent: boolean; setIsUrgent: (v: boolean) => void;
   notes: string; setNotes: (v: string) => void;
 }) {
+  const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
+  const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+  const LABEL_CLS = 'block text-xs font-semibold uppercase tracking-wide mb-1.5';
+  const LABEL_S: React.CSSProperties = { color: 'var(--color-text-secondary)' };
+
   return (
     <>
       <div>
-        <label className={LABEL}>Primary Concern</label>
-        <select value={concern} onChange={e => setConcern(e.target.value)} className={INPUT}>
+        <label className={LABEL_CLS} style={LABEL_S}>Primary Concern</label>
+        <select value={concern} onChange={e => setConcern(e.target.value)} className={IC} style={ICS}>
           <option value="">— Select a concern —</option>
           <option value="academic">Academic Concerns</option>
           <option value="mental_health">Mental Health</option>
@@ -353,58 +365,67 @@ function VisitFields({ concern, setConcern, isUrgent, setIsUrgent, notes, setNot
         </select>
       </div>
 
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition ${isUrgent ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200 hover:border-amber-200'}`}
+      {/* Urgent toggle: KEPT fixed red — safety-critical */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition"
+        style={isUrgent ? { background: '#FEF2F2', borderColor: '#FECACA' } : { background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
         onClick={() => setIsUrgent(!isUrgent)}>
         <input type="checkbox" checked={isUrgent} onChange={e => setIsUrgent(e.target.checked)}
           className="w-4 h-4 rounded accent-red-600" />
         <div>
-          <p className={`text-sm font-semibold ${isUrgent ? 'text-red-700' : 'text-gray-700'}`}>Mark as Urgent</p>
-          <p className="text-xs text-gray-400">Needs immediate attention — will be flagged as high priority</p>
+          <p className="text-sm font-semibold" style={{ color: isUrgent ? '#B91C1C' : 'var(--color-text-primary)' }}>Mark as Urgent</p>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Needs immediate attention — will be flagged as high priority</p>
         </div>
       </div>
 
       <div>
-        <label className={LABEL}>Staff Notes</label>
+        <label className={LABEL_CLS} style={LABEL_S}>Staff Notes</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Brief notes about the student's visit…" rows={3}
-          className={`${INPUT} resize-none`} />
+          className={IC} style={{ ...ICS, resize: 'none' }} />
       </div>
     </>
   );
 }
 
-// ── Form footer ───────────────────────────────────────────────────────────────
 function FormFooter({ error, success, loading, onCancel }: {
   error: string; success: string; loading: boolean; onCancel: () => void;
 }) {
   return (
     <div className="space-y-3">
       {error && (
-        <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
-          <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="flex items-start gap-2 px-4 py-3 rounded-xl"
+          style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+          <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
         </div>
       )}
       {success && (
-        <div className="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
-          <CheckCircle2 size={15} className="text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-green-700">{success}</p>
+        <div className="flex items-start gap-2 px-4 py-3 rounded-xl"
+          style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+          <CheckCircle2 size={15} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-success)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-success-text)' }}>{success}</p>
         </div>
       )}
       <div className="flex gap-3">
         <button type="button" onClick={onCancel}
-          className="flex-1 px-4 py-2.5 text-sm border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+          className="flex-1 px-4 py-2.5 text-sm rounded-xl transition"
+          style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
           Cancel
         </button>
         <button type="submit" disabled={loading}
           className="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-40 flex items-center justify-center gap-2"
-          style={{ backgroundColor: '#2563eb' }}>
+          style={{ background: 'var(--color-primary)' }}
+          onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+          onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}>
           {loading
             ? <><Loader2 size={14} className="animate-spin" /> Registering…</>
             : 'Register Walk-In'}
         </button>
       </div>
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
         Walk-in will be added to the intake queue and assigned a counselor.
       </p>
     </div>

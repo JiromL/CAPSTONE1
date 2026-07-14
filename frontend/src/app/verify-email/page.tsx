@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import PageShell from '@/components/PageShell'
 import { api } from '@/utils/api';
 
+const IC = 'w-full p-3 rounded outline-none text-center text-2xl tracking-widest';
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+
 function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const [email, setEmail] = useState('')
-  const [userId, setUserId] = useState('')
   const [code, setCode] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -21,24 +23,15 @@ function VerifyEmailContent() {
 
   useEffect(() => {
     const emailParam = searchParams.get('email')
-    const userIdParam = searchParams.get('user_id')
     const tokenParam = searchParams.get('token')
-
     if (emailParam) setEmail(emailParam)
-    if (userIdParam) setUserId(userIdParam)
-
-    // Auto-verify when arriving from the email button link
     if (tokenParam) {
       setAutoVerifying(true)
       fetch(api(`/api/auth/verify-email-link?token=${tokenParam}`))
         .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
         .then(({ ok, data }) => {
-          if (ok) {
-            setMsg('Email verified! Redirecting to login…')
-            setTimeout(() => router.push('/login'), 2000)
-          } else {
-            setError(data.error || 'Verification failed')
-          }
+          if (ok) { setMsg('Email verified! Redirecting to login…'); setTimeout(() => router.push('/login'), 2000); }
+          else { setError(data.error || 'Verification failed'); }
         })
         .catch(() => setError('Network error'))
         .finally(() => setAutoVerifying(false))
@@ -53,11 +46,7 @@ function VerifyEmailContent() {
   }, [resendCooldown])
 
   async function handleVerify(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setMsg('')
-    setLoading(true)
-
+    e.preventDefault(); setError(''); setMsg(''); setLoading(true)
     try {
       const res = await fetch(api('/api/auth/verify-email'), {
         method: 'POST',
@@ -65,28 +54,14 @@ function VerifyEmailContent() {
         body: JSON.stringify({ email, code }),
       })
       const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Verification failed')
-        setLoading(false)
-        return
-      }
-
+      if (!res.ok) { setError(data.error || 'Verification failed'); setLoading(false); return; }
       setMsg('Email verified successfully! Redirecting to login...')
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
-    } catch (err) {
-      setError('Network error')
-      setLoading(false)
-    }
+      setTimeout(() => { router.push('/login') }, 2000)
+    } catch { setError('Network error'); setLoading(false); }
   }
 
   async function handleResend() {
-    setError('')
-    setMsg('')
-    setResending(true)
-
+    setError(''); setMsg(''); setResending(true)
     try {
       const res = await fetch(api('/api/auth/resend-code'), {
         method: 'POST',
@@ -94,29 +69,19 @@ function VerifyEmailContent() {
         body: JSON.stringify({ email }),
       })
       const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to resend code')
-        setResending(false)
-        return
-      }
-
+      if (!res.ok) { setError(data.error || 'Failed to resend code'); setResending(false); return; }
       setMsg('Verification code sent to your email!')
-      setCode('')
-      setResendCooldown(60)
-      setResending(false)
-    } catch (err) {
-      setError('Network error')
-      setResending(false)
-    }
+      setCode(''); setResendCooldown(60); setResending(false)
+    } catch { setError('Network error'); setResending(false); }
   }
 
   if (autoVerifying) {
     return (
       <PageShell title="Verify Email" subtitle="Confirm your DLSU email address" hideNav>
-        <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-800 p-10 text-center">
-          <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Verifying your email…</p>
+        <div className="max-w-md mx-auto rounded-lg p-10 text-center" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-card)' }}>
+          <div className="w-12 h-12 rounded-full animate-spin mx-auto mb-4"
+            style={{ border: '4px solid var(--color-success-surface)', borderTopColor: 'var(--color-success)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Verifying your email…</p>
         </div>
       </PageShell>
     )
@@ -124,81 +89,64 @@ function VerifyEmailContent() {
 
   return (
     <PageShell title="Verify Email" subtitle="Confirm your DLSU email address" hideNav>
-      <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-800 p-6">
-        <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-50">Verify Your Email</h1>
+      <div className="max-w-md mx-auto rounded-lg p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-card)' }}>
+        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Verify Your Email</h1>
 
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded">
-          <p className="text-sm text-green-800 dark:text-green-200">
+        <div className="mb-4 p-3 rounded" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             We sent a verification code to <strong>{email || 'your email'}</strong>. Click the button in the email or enter the code below.
           </p>
         </div>
 
         <form onSubmit={handleVerify} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
               Enter Verification Code
             </label>
-            <input
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400 text-center text-2xl tracking-widest"
+            <input className={IC} style={ICS}
               placeholder="000000"
               value={code}
               onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              maxLength={6}
-              required
-              disabled={loading}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">6-digit code</p>
+              maxLength={6} required disabled={loading} />
+            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>6-digit code</p>
           </div>
 
-          <button
-            className="w-full px-4 py-2 bg-green-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
-            type="submit"
-            disabled={loading || code.length !== 6}
-          >
+          <button className="w-full px-4 py-2 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: 'var(--color-primary)' }}
+            type="submit" disabled={loading || code.length !== 6}
+            onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+            onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}>
             {loading ? 'Verifying...' : 'Verify Email'}
           </button>
         </form>
 
         <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Didn't receive the code?
-          </p>
-          <button
-            className="text-sm text-green-600 dark:text-green-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleResend}
-            disabled={resending || resendCooldown > 0}
-          >
-            {resendCooldown > 0
-              ? `Resend code in ${resendCooldown}s`
-              : resending
-              ? 'Sending...'
-              : 'Resend Code'}
+          <p className="text-sm mb-3" style={{ color: 'var(--color-text-secondary)' }}>Didn't receive the code?</p>
+          <button className="text-sm hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: 'var(--color-primary)' }}
+            onClick={handleResend} disabled={resending || resendCooldown > 0}>
+            {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : resending ? 'Sending...' : 'Resend Code'}
           </button>
         </div>
 
         {msg && (
-          <p className="mt-4 text-sm text-green-700 dark:text-green-400 p-3 bg-green-50 dark:bg-blue-900 border border-green-200 dark:border-blue-700 rounded">
-            {msg}
-          </p>
+          <p className="mt-4 text-sm p-3 rounded" style={{ color: 'var(--color-success-text)', background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>{msg}</p>
         )}
         {error && (
-          <p className="mt-4 text-sm text-red-600 dark:text-red-400 p-3 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded">
-            {error}
-          </p>
+          <p className="mt-4 text-sm p-3 rounded" style={{ color: 'var(--color-danger-text)', background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>{error}</p>
         )}
 
-        <hr className="my-6" />
+        <hr className="my-6" style={{ borderColor: 'var(--color-border)' }} />
 
-        <p className="text-center text-xs text-gray-600 dark:text-gray-400">
+        <p className="text-center text-xs" style={{ color: 'var(--color-text-secondary)' }}>
           Already verified?{' '}
-          <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
-            Go to login
-          </a>
+          <a href="/login" className="hover:underline" style={{ color: 'var(--color-primary)' }}>Go to login</a>
         </p>
       </div>
     </PageShell>
   )
 }
+
 export default function VerifyEmailPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>

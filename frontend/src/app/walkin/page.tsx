@@ -16,11 +16,12 @@ const PHQ4_QUESTIONS = [
   { id: 'q4', text: 'Not being able to stop or control worrying',    sub: 'GAD-2 (Anxiety)'    },
 ];
 
+// Clinical severity colors — kept fixed (not theme-sensitive)
 const FREQ = [
-  { v: 0, s: 'Not at all',              sel: 'bg-gray-600 text-white border-gray-600' },
-  { v: 1, s: 'Several days',            sel: 'bg-blue-500 text-white border-blue-500' },
-  { v: 2, s: 'More than half the days', sel: 'bg-amber-500 text-white border-amber-500' },
-  { v: 3, s: 'Nearly every day',        sel: 'bg-red-500 text-white border-red-500' },
+  { v: 0, s: 'Not at all',              selStyle: { background: '#4B5563', color: '#fff', borderColor: '#4B5563' } },
+  { v: 1, s: 'Several days',            selStyle: { background: '#3B82F6', color: '#fff', borderColor: '#3B82F6' } },
+  { v: 2, s: 'More than half the days', selStyle: { background: '#F59E0B', color: '#fff', borderColor: '#F59E0B' } },
+  { v: 3, s: 'Nearly every day',        selStyle: { background: '#EF4444', color: '#fff', borderColor: '#EF4444' } },
 ];
 
 const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 'Graduate', 'Law', 'Other'];
@@ -41,48 +42,47 @@ const COLLEGES = [
 ];
 const CIVIL_STATUSES = ['Single', 'Married', 'Separated', 'Widowed', 'Other'];
 const REFERRAL_SOURCES = [
-  'Self-referred',
-  'Faculty / Professor',
-  'Dean / Department Chair',
-  'Guidance Counselor',
-  'Friend / Classmate',
-  'Parent / Family',
-  'University Health Service',
-  'Other',
+  'Self-referred', 'Faculty / Professor', 'Dean / Department Chair',
+  'Guidance Counselor', 'Friend / Classmate', 'Parent / Family',
+  'University Health Service', 'Other',
 ];
 const SERVICES = [
-  'Individual Counseling',
-  'Psychological Assessment',
-  'Group Counseling',
-  'Crisis Intervention',
-  'Consultation',
-  'Other',
+  'Individual Counseling', 'Psychological Assessment', 'Group Counseling',
+  'Crisis Intervention', 'Consultation', 'Other',
 ];
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-const INPUT = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-[#2563eb]/25 focus:border-[#2563eb] focus:outline-none transition';
-const SELECT = INPUT;
+const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+
+// Card header styles
+const skyHeader: React.CSSProperties  = { background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)' };
+const violetHeader: React.CSSProperties = { background: '#EDE9FE', color: '#5B21B6' };
+const successHeader: React.CSSProperties = { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' };
+const orangeHeader: React.CSSProperties = { background: '#FFF7ED', color: '#C2410C' };
+// Health background: kept fixed red (clinical)
+const redHeader: React.CSSProperties   = { background: '#FEF2F2', color: '#B91C1C' };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function F({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-500 mb-1">
-        {label}{req && <span className="text-red-400 ml-1">*</span>}
+      <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+        {label}{req && <span className="ml-1" style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
       {children}
     </div>
   );
 }
 
-function Card({ icon: Icon, title, accent, children }: {
-  icon: any; title: string; accent: string; children: React.ReactNode;
+function Card({ icon: Icon, title, headerStyle, children }: {
+  icon: React.ElementType; title: string; headerStyle?: React.CSSProperties; children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
-      <div className={`px-4 py-2.5 flex items-center gap-2 border-b border-gray-100 ${accent}`}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+      <div className="px-4 py-2.5 flex items-center gap-2" style={{ ...(headerStyle ?? skyHeader), borderBottom: '1px solid var(--color-border)' }}>
         <Icon size={13} /><span className="text-xs font-bold uppercase tracking-wide">{title}</span>
       </div>
       <div className="p-4 space-y-3">{children}</div>
@@ -120,8 +120,6 @@ export default function WalkInSelfCheckinPage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ counseling_id: string; appointment_id: string } | null>(null);
 
-  // ── Validation ───────────────────────────────────────────────────────────────
-
   function validateICF() {
     const e: string[] = [];
     if (!icf.first_name.trim()) e.push('First name is required');
@@ -143,8 +141,6 @@ export default function WalkInSelfCheckinPage() {
     return phq4.some(v => v < 0) ? ['Please answer all 4 questions'] : [];
   }
 
-  // ── Navigation ───────────────────────────────────────────────────────────────
-
   function next() {
     let e: string[] = [];
     if (step === 'icf')  e = validateICF();
@@ -161,8 +157,6 @@ export default function WalkInSelfCheckinPage() {
     const map: Record<Step, Step> = { icf: 'icf', spif: 'icf', phq4: 'spif', confirm: 'phq4' };
     setStep(map[step]);
   }
-
-  // ── Submit ───────────────────────────────────────────────────────────────────
 
   async function submit() {
     setSubmitting(true);
@@ -195,27 +189,27 @@ export default function WalkInSelfCheckinPage() {
 
   if (result) {
     return (
-      <div className="min-h-screen bg-[#f0f7f2] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-[#2563eb] px-6 py-8 text-center">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
+        <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-card-lg)' }}>
+          <div className="px-6 py-8 text-center" style={{ background: 'var(--color-primary)' }}>
             <CheckCircle2 size={48} className="text-white mx-auto mb-3" />
             <h1 className="text-xl font-bold text-white">Check-In Complete</h1>
-            <p className="text-green-200 text-sm mt-1">Please show this to the CPS staff</p>
+            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.75)' }}>Please show this to the CPS staff</p>
           </div>
           <div className="p-6 text-center space-y-4">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">Reference Number</p>
-              <p className="text-3xl font-mono font-bold text-[#2563eb] tracking-wider">{result.counseling_id}</p>
+              <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>Reference Number</p>
+              <p className="text-3xl font-mono font-bold tracking-wider" style={{ color: 'var(--color-primary)' }}>{result.counseling_id}</p>
             </div>
-            <div className="bg-green-50 rounded-xl p-4 text-sm text-gray-600 space-y-1">
+            <div className="rounded-xl p-4 text-sm space-y-1" style={{ background: 'var(--color-success-surface)', color: 'var(--color-text-secondary)' }}>
               <p>Your forms have been submitted.</p>
               <p>Please present this reference number at the front desk.</p>
-              <p className="font-medium text-[#2563eb] mt-2">A staff member will assist you shortly.</p>
+              <p className="font-medium mt-2" style={{ color: 'var(--color-primary)' }}>A staff member will assist you shortly.</p>
             </div>
             <button
               onClick={() => { setResult(null); setStep('icf'); setIcf({ ...INIT_ICF }); setSpif({ ...INIT_SPIF }); setPhq4([-1,-1,-1,-1]); }}
-              className="text-xs text-gray-400 underline mt-2"
-            >
+              className="text-xs underline mt-2"
+              style={{ color: 'var(--color-text-muted)' }}>
               Start a new check-in
             </button>
           </div>
@@ -224,42 +218,44 @@ export default function WalkInSelfCheckinPage() {
     );
   }
 
-  // ── Step indicators ───────────────────────────────────────────────────────────
-
-  const STEPS: { id: Step; label: string; icon: any }[] = [
-    { id: 'icf',     label: 'Contact Form',   icon: ClipboardList },
-    { id: 'spif',    label: 'Background',      icon: GraduationCap },
-    { id: 'phq4',    label: 'Mental Health',   icon: Brain },
-    { id: 'confirm', label: 'Review',          icon: CheckCircle2 },
+  const STEPS: { id: Step; label: string; icon: React.ElementType }[] = [
+    { id: 'icf',     label: 'Contact Form',  icon: ClipboardList },
+    { id: 'spif',    label: 'Background',    icon: GraduationCap },
+    { id: 'phq4',    label: 'Mental Health', icon: Brain         },
+    { id: 'confirm', label: 'Review',        icon: CheckCircle2  },
   ];
   const stepIdx = STEPS.findIndex(s => s.id === step);
 
   return (
-    <div className="min-h-screen bg-[#f0f7f2] pb-8">
+    <div className="min-h-screen pb-8" style={{ background: 'var(--color-bg)' }}>
       {/* Header */}
-      <div className="bg-[#2563eb] px-4 pt-8 pb-6 text-center">
+      <div className="px-4 pt-8 pb-6 text-center" style={{ background: 'var(--color-primary)' }}>
         <div className="flex items-center justify-center gap-2 mb-1">
-          <Heart size={18} className="text-green-300" />
-          <span className="text-green-200 text-xs font-semibold tracking-widest uppercase">DLSU — CPS</span>
+          <Heart size={18} style={{ color: 'rgba(255,255,255,0.6)' }} />
+          <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.7)' }}>DLSU — CPS</span>
         </div>
         <h1 className="text-white text-xl font-bold">Walk-In Self Check-In</h1>
-        <p className="text-green-200 text-xs mt-1">Center for Psychological Services</p>
+        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>Center for Psychological Services</p>
       </div>
 
       {/* Step bar */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3">
+      <div className="px-4 py-3" style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
         <div className="flex items-center justify-between max-w-sm mx-auto">
           {STEPS.map((s, i) => {
             const done = i < stepIdx;
             const active = i === stepIdx;
             return (
               <div key={s.id} className="flex flex-col items-center gap-1 flex-1">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                  done ? 'bg-[#2563eb] text-white' : active ? 'bg-[#2563eb] text-white ring-2 ring-[#2563eb]/30' : 'bg-gray-100 text-gray-400'
-                }`}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                  style={
+                    done || active
+                      ? { background: 'var(--color-primary)', color: '#fff', boxShadow: active ? '0 0 0 3px var(--color-primary-muted)' : undefined }
+                      : { background: 'var(--color-bg)', color: 'var(--color-text-muted)' }
+                  }>
                   {done ? <CheckCircle2 size={14} /> : i + 1}
                 </div>
-                <span className={`text-[10px] font-medium text-center leading-tight ${active ? 'text-[#2563eb]' : 'text-gray-400'}`}>{s.label}</span>
+                <span className="text-[10px] font-medium text-center leading-tight"
+                  style={{ color: active ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>{s.label}</span>
               </div>
             );
           })}
@@ -269,9 +265,10 @@ export default function WalkInSelfCheckinPage() {
       {/* Errors */}
       {errors.length > 0 && (
         <div className="max-w-sm mx-auto mt-4 px-4">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-2">
-            <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
-            <ul className="text-xs text-red-700 space-y-0.5">
+          <div className="rounded-xl p-3 flex gap-2"
+            style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-danger)' }} />
+            <ul className="text-xs space-y-0.5" style={{ color: 'var(--color-danger-text)' }}>
               {errors.map((e, i) => <li key={i}>{e}</li>)}
             </ul>
           </div>
@@ -284,57 +281,57 @@ export default function WalkInSelfCheckinPage() {
         {/* ── Step 1: ICF ─────────────────────────────────────────────────────── */}
         {step === 'icf' && (
           <>
-            <Card icon={User} title="Personal Information (ICF)" accent="bg-sky-50 text-sky-700">
+            <Card icon={User} title="Personal Information (ICF)" headerStyle={skyHeader}>
               <div className="grid grid-cols-2 gap-3">
                 <F label="First Name" req>
-                  <input className={INPUT} value={icf.first_name} onChange={e => setIcf(p => ({ ...p, first_name: e.target.value }))} placeholder="Juan" />
+                  <input className={IC} style={ICS} value={icf.first_name} onChange={e => setIcf(p => ({ ...p, first_name: e.target.value }))} placeholder="Juan" />
                 </F>
                 <F label="Last Name" req>
-                  <input className={INPUT} value={icf.last_name} onChange={e => setIcf(p => ({ ...p, last_name: e.target.value }))} placeholder="dela Cruz" />
+                  <input className={IC} style={ICS} value={icf.last_name} onChange={e => setIcf(p => ({ ...p, last_name: e.target.value }))} placeholder="dela Cruz" />
                 </F>
               </div>
               <F label="DLSU Email" req>
-                <input className={INPUT} type="email" value={icf.email} onChange={e => setIcf(p => ({ ...p, email: e.target.value }))} placeholder="jdelacruz@dlsu.edu.ph" inputMode="email" />
-              <p className="text-[10px] text-gray-400 mt-0.5">Must be a DLSU email (@dlsu.edu.ph)</p>
+                <input className={IC} style={ICS} type="email" value={icf.email} onChange={e => setIcf(p => ({ ...p, email: e.target.value }))} placeholder="jdelacruz@dlsu.edu.ph" inputMode="email" />
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Must be a DLSU email (@dlsu.edu.ph)</p>
               </F>
               <F label="Phone Number">
-                <input className={INPUT} type="tel" value={icf.phone} onChange={e => setIcf(p => ({ ...p, phone: e.target.value }))} placeholder="09XX XXX XXXX" />
+                <input className={IC} style={ICS} type="tel" value={icf.phone} onChange={e => setIcf(p => ({ ...p, phone: e.target.value }))} placeholder="09XX XXX XXXX" />
               </F>
             </Card>
 
-            <Card icon={GraduationCap} title="Academic Information" accent="bg-violet-50 text-violet-700">
+            <Card icon={GraduationCap} title="Academic Information" headerStyle={violetHeader}>
               <F label="Year Level" req>
-                <select className={SELECT} value={icf.year_level} onChange={e => setIcf(p => ({ ...p, year_level: e.target.value }))}>
+                <select className={IC} style={ICS} value={icf.year_level} onChange={e => setIcf(p => ({ ...p, year_level: e.target.value }))}>
                   <option value="">Select year level</option>
                   {YEAR_LEVELS.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </F>
               <F label="College" req>
-                <select className={SELECT} value={icf.college} onChange={e => setIcf(p => ({ ...p, college: e.target.value }))}>
+                <select className={IC} style={ICS} value={icf.college} onChange={e => setIcf(p => ({ ...p, college: e.target.value }))}>
                   <option value="">Select college</option>
                   {COLLEGES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </F>
               <F label="Degree Program">
-                <input className={INPUT} value={icf.degree} onChange={e => setIcf(p => ({ ...p, degree: e.target.value }))} placeholder="e.g. BS Computer Science" />
+                <input className={IC} style={ICS} value={icf.degree} onChange={e => setIcf(p => ({ ...p, degree: e.target.value }))} placeholder="e.g. BS Computer Science" />
               </F>
               <F label="Civil Status">
-                <select className={SELECT} value={icf.civil_status} onChange={e => setIcf(p => ({ ...p, civil_status: e.target.value }))}>
+                <select className={IC} style={ICS} value={icf.civil_status} onChange={e => setIcf(p => ({ ...p, civil_status: e.target.value }))}>
                   <option value="">Select status</option>
                   {CIVIL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </F>
             </Card>
 
-            <Card icon={ClipboardList} title="Service Information" accent="bg-green-50 text-green-700">
+            <Card icon={ClipboardList} title="Service Information" headerStyle={successHeader}>
               <F label="Referred by" req>
-                <select className={SELECT} value={icf.referral_source} onChange={e => setIcf(p => ({ ...p, referral_source: e.target.value }))}>
+                <select className={IC} style={ICS} value={icf.referral_source} onChange={e => setIcf(p => ({ ...p, referral_source: e.target.value }))}>
                   <option value="">Select referral source</option>
                   {REFERRAL_SOURCES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </F>
               <F label="Service Requested" req>
-                <select className={SELECT} value={icf.service_requested} onChange={e => setIcf(p => ({ ...p, service_requested: e.target.value }))}>
+                <select className={IC} style={ICS} value={icf.service_requested} onChange={e => setIcf(p => ({ ...p, service_requested: e.target.value }))}>
                   <option value="">Select service</option>
                   {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -342,8 +339,8 @@ export default function WalkInSelfCheckinPage() {
               <F label="Prior Consultation at CPS?">
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
-                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="prior" checked={icf.prior_consultation === (v === 'Yes')} onChange={() => setIcf(p => ({ ...p, prior_consultation: v === 'Yes' }))} className="accent-[#2563eb]" />
+                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: 'var(--color-text-primary)' }}>
+                      <input type="radio" name="prior" checked={icf.prior_consultation === (v === 'Yes')} onChange={() => setIcf(p => ({ ...p, prior_consultation: v === 'Yes' }))} style={{ accentColor: 'var(--color-primary)' }} />
                       {v}
                     </label>
                   ))}
@@ -351,18 +348,18 @@ export default function WalkInSelfCheckinPage() {
               </F>
               {icf.prior_consultation && (
                 <F label="Details of prior consultation">
-                  <input className={INPUT} value={icf.prior_consultation_details} onChange={e => setIcf(p => ({ ...p, prior_consultation_details: e.target.value }))} placeholder="When, with whom, etc." />
+                  <input className={IC} style={ICS} value={icf.prior_consultation_details} onChange={e => setIcf(p => ({ ...p, prior_consultation_details: e.target.value }))} placeholder="When, with whom, etc." />
                 </F>
               )}
             </Card>
 
-            {/* Consent */}
-            <Card icon={Heart} title="Informed Consent" accent="bg-orange-50 text-orange-700">
-              <div className="text-xs text-gray-600 leading-relaxed space-y-3 max-h-56 overflow-y-auto pr-1">
-                <p className="font-semibold text-gray-800">De La Salle University — Counseling &amp; Psychology Services (CPS)</p>
+            {/* Consent — kept fixed colored sections (legal document) */}
+            <Card icon={Heart} title="Informed Consent" headerStyle={orangeHeader}>
+              <div className="text-xs leading-relaxed space-y-3 max-h-56 overflow-y-auto pr-1" style={{ color: 'var(--color-text-secondary)' }}>
+                <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>De La Salle University — Counseling &amp; Psychology Services (CPS)</p>
 
                 <div className="border border-green-200 rounded-lg p-2.5 bg-green-50/50">
-                  <p className="font-bold text-[#2563eb] text-xs uppercase tracking-wide mb-1">I. Informed Consent for Counseling Services</p>
+                  <p className="font-bold text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--color-primary)' }}>I. Informed Consent for Counseling Services</p>
                   <p>CPS provides mental health support, counseling, and psychological services to enrolled students on a voluntary basis. You may discontinue at any time without penalty. Under RA 11036 (Mental Health Act of 2018), you have the right to access services and to be treated with dignity.</p>
                 </div>
 
@@ -374,22 +371,22 @@ export default function WalkInSelfCheckinPage() {
                 <div className="border border-blue-200 rounded-lg p-2.5 bg-blue-50/50">
                   <p className="font-bold text-green-800 text-xs uppercase tracking-wide mb-1">III. Privacy Notice</p>
                   <p className="mb-1"><span className="font-medium">Data collected:</span> Personal information, mental health history, assessment results (PHQ-9, GAD-7, C-SSRS), session notes, emergency contact, and wellness monitoring data.</p>
-                  <p><span className="font-medium">Who may access:</span> Only authorized CPS personnel directly involved in your care (Intake Counselors, Counselors, Psychologists, Case Managers, Administrative Staff, and DPO). Your data will not be shared with other departments or third parties without your consent, except under Section II. Records are retained for a minimum of ten (10) years from your last session.</p>
+                  <p><span className="font-medium">Who may access:</span> Only authorized CPS personnel directly involved in your care. Records are retained for a minimum of ten (10) years from your last session.</p>
                 </div>
 
                 <div className="border border-purple-200 rounded-lg p-2.5 bg-purple-50/50">
                   <p className="font-bold text-purple-800 text-xs uppercase tracking-wide mb-1">IV. Consent for Data Processing (RA 10173 — Data Privacy Act of 2012)</p>
-                  <p className="mb-1">Your mental health records are <span className="font-medium">sensitive personal information</span> under RA 10173 and require your explicit consent to process. You have the right to be informed, to access, correct, object to, and request erasure of your personal data.</p>
+                  <p className="mb-1">Your mental health records are <span className="font-medium">sensitive personal information</span> under RA 10173 and require your explicit consent to process.</p>
                   <p className="text-gray-500">DLSU DPO: dpo@dlsu.edu.ph · 2401 Taft Avenue, Malate, Manila 1004</p>
                 </div>
               </div>
               <label className="flex items-start gap-2 cursor-pointer mt-2">
-                <input type="checkbox" className="mt-0.5 accent-[#2563eb]" checked={icf.consent_to_service} onChange={e => setIcf(p => ({ ...p, consent_to_service: e.target.checked }))} />
-                <span className="text-xs text-gray-700">I have read and understood Sections I and II. I voluntarily consent to receive counseling and psychological services from DLSU CPS and acknowledge the limits of confidentiality.</span>
+                <input type="checkbox" className="mt-0.5" style={{ accentColor: 'var(--color-primary)' }} checked={icf.consent_to_service} onChange={e => setIcf(p => ({ ...p, consent_to_service: e.target.checked }))} />
+                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>I have read and understood Sections I and II. I voluntarily consent to receive counseling and psychological services from DLSU CPS and acknowledge the limits of confidentiality.</span>
               </label>
               <label className="flex items-start gap-2 cursor-pointer">
-                <input type="checkbox" className="mt-0.5 accent-[#2563eb]" checked={icf.consent_to_data} onChange={e => setIcf(p => ({ ...p, consent_to_data: e.target.checked }))} />
-                <span className="text-xs text-gray-700">I have read and understood Sections III and IV. I consent to the collection, processing, and storage of my personal and sensitive personal information in accordance with RA 10173 (Data Privacy Act of 2012).</span>
+                <input type="checkbox" className="mt-0.5" style={{ accentColor: 'var(--color-primary)' }} checked={icf.consent_to_data} onChange={e => setIcf(p => ({ ...p, consent_to_data: e.target.checked }))} />
+                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>I have read and understood Sections III and IV. I consent to the collection, processing, and storage of my personal and sensitive personal information in accordance with RA 10173 (Data Privacy Act of 2012).</span>
               </label>
             </Card>
           </>
@@ -398,30 +395,31 @@ export default function WalkInSelfCheckinPage() {
         {/* ── Step 2: SPIF-IF ─────────────────────────────────────────────────── */}
         {step === 'spif' && (
           <>
-            <Card icon={BookOpen} title="Background Information (SPIF-IF)" accent="bg-violet-50 text-violet-700">
+            <Card icon={BookOpen} title="Background Information (SPIF-IF)" headerStyle={violetHeader}>
               <F label="Home Address">
-                <input className={INPUT} value={spif.address} onChange={e => setSpif(p => ({ ...p, address: e.target.value }))} placeholder="City, Province" />
+                <input className={IC} style={ICS} value={spif.address} onChange={e => setSpif(p => ({ ...p, address: e.target.value }))} placeholder="City, Province" />
               </F>
             </Card>
 
-            <Card icon={User} title="Emergency Contact" accent="bg-sky-50 text-sky-700">
+            <Card icon={User} title="Emergency Contact" headerStyle={skyHeader}>
               <F label="Contact Name">
-                <input className={INPUT} value={spif.emergency_contact_name} onChange={e => setSpif(p => ({ ...p, emergency_contact_name: e.target.value }))} placeholder="Full name" />
+                <input className={IC} style={ICS} value={spif.emergency_contact_name} onChange={e => setSpif(p => ({ ...p, emergency_contact_name: e.target.value }))} placeholder="Full name" />
               </F>
               <F label="Relationship">
-                <input className={INPUT} value={spif.emergency_contact_relation} onChange={e => setSpif(p => ({ ...p, emergency_contact_relation: e.target.value }))} placeholder="e.g. Parent, Sibling" />
+                <input className={IC} style={ICS} value={spif.emergency_contact_relation} onChange={e => setSpif(p => ({ ...p, emergency_contact_relation: e.target.value }))} placeholder="e.g. Parent, Sibling" />
               </F>
               <F label="Contact Number">
-                <input className={INPUT} type="tel" value={spif.emergency_contact_number} onChange={e => setSpif(p => ({ ...p, emergency_contact_number: e.target.value }))} placeholder="09XX XXX XXXX" />
+                <input className={IC} style={ICS} type="tel" value={spif.emergency_contact_number} onChange={e => setSpif(p => ({ ...p, emergency_contact_number: e.target.value }))} placeholder="09XX XXX XXXX" />
               </F>
             </Card>
 
-            <Card icon={Heart} title="Health Background" accent="bg-red-50 text-red-700">
+            {/* Health background: kept fixed red (clinical) */}
+            <Card icon={Heart} title="Health Background" headerStyle={redHeader}>
               <F label="Currently taking medication?">
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
-                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="med" checked={spif.medication === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, medication: v === 'Yes' }))} className="accent-[#2563eb]" />
+                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: 'var(--color-text-primary)' }}>
+                      <input type="radio" name="med" checked={spif.medication === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, medication: v === 'Yes' }))} style={{ accentColor: 'var(--color-primary)' }} />
                       {v}
                     </label>
                   ))}
@@ -429,14 +427,14 @@ export default function WalkInSelfCheckinPage() {
               </F>
               {spif.medication && (
                 <F label="Medication details">
-                  <input className={INPUT} value={spif.medication_details} onChange={e => setSpif(p => ({ ...p, medication_details: e.target.value }))} placeholder="Name, dosage, doctor" />
+                  <input className={IC} style={ICS} value={spif.medication_details} onChange={e => setSpif(p => ({ ...p, medication_details: e.target.value }))} placeholder="Name, dosage, doctor" />
                 </F>
               )}
               <F label="Family history of mental health concerns?">
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
-                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="fam" checked={spif.family_history === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, family_history: v === 'Yes' }))} className="accent-[#2563eb]" />
+                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: 'var(--color-text-primary)' }}>
+                      <input type="radio" name="fam" checked={spif.family_history === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, family_history: v === 'Yes' }))} style={{ accentColor: 'var(--color-primary)' }} />
                       {v}
                     </label>
                   ))}
@@ -444,14 +442,14 @@ export default function WalkInSelfCheckinPage() {
               </F>
               {spif.family_history && (
                 <F label="Family history details">
-                  <input className={INPUT} value={spif.family_history_details} onChange={e => setSpif(p => ({ ...p, family_history_details: e.target.value }))} placeholder="Describe briefly" />
+                  <input className={IC} style={ICS} value={spif.family_history_details} onChange={e => setSpif(p => ({ ...p, family_history_details: e.target.value }))} placeholder="Describe briefly" />
                 </F>
               )}
               <F label="Previously diagnosed with a psychological condition?">
                 <div className="flex gap-3 mt-0.5">
                   {['Yes', 'No'].map(v => (
-                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input type="radio" name="diag" checked={spif.previous_diagnosis === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, previous_diagnosis: v === 'Yes' }))} className="accent-[#2563eb]" />
+                    <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: 'var(--color-text-primary)' }}>
+                      <input type="radio" name="diag" checked={spif.previous_diagnosis === (v === 'Yes')} onChange={() => setSpif(p => ({ ...p, previous_diagnosis: v === 'Yes' }))} style={{ accentColor: 'var(--color-primary)' }} />
                       {v}
                     </label>
                   ))}
@@ -459,35 +457,42 @@ export default function WalkInSelfCheckinPage() {
               </F>
               {spif.previous_diagnosis && (
                 <F label="Diagnosis details">
-                  <input className={INPUT} value={spif.previous_diagnosis_details} onChange={e => setSpif(p => ({ ...p, previous_diagnosis_details: e.target.value }))} placeholder="Condition, when diagnosed" />
+                  <input className={IC} style={ICS} value={spif.previous_diagnosis_details} onChange={e => setSpif(p => ({ ...p, previous_diagnosis_details: e.target.value }))} placeholder="Condition, when diagnosed" />
                 </F>
               )}
             </Card>
           </>
         )}
 
-        {/* ── Step 3: PHQ-4 ───────────────────────────────────────────────────── */}
+        {/* ── Step 3: PHQ-4 — clinical colors kept fixed ──────────────────────── */}
         {step === 'phq4' && (
-          <Card icon={Brain} title="Mental Health Screening (PHQ-4)" accent="bg-orange-50 text-orange-700">
-            <p className="text-xs text-gray-500">Over the last 2 weeks, how often have you been bothered by any of the following?</p>
+          <Card icon={Brain} title="Mental Health Screening (PHQ-4)" headerStyle={orangeHeader}>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Over the last 2 weeks, how often have you been bothered by any of the following?</p>
             <div className="space-y-5 pt-1">
               {PHQ4_QUESTIONS.map((q, i) => (
                 <div key={q.id}>
-                  <p className="text-xs font-semibold text-gray-600 mb-0.5">{q.sub}</p>
-                  <p className="text-sm text-gray-800 mb-2">{q.text}</p>
+                  <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{q.sub}</p>
+                  <p className="text-sm mb-2" style={{ color: 'var(--color-text-primary)' }}>{q.text}</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {FREQ.map(f => (
-                      <button
-                        key={f.v}
-                        type="button"
-                        onClick={() => setPhq4(prev => prev.map((v, idx) => idx === i ? f.v : v))}
-                        className={`text-xs py-2 px-2 rounded-lg border font-medium transition ${
-                          phq4[i] === f.v ? f.sel : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        {f.s}
-                      </button>
-                    ))}
+                    {FREQ.map(f => {
+                      const isSelected = phq4[i] === f.v;
+                      return (
+                        <button
+                          key={f.v}
+                          type="button"
+                          onClick={() => setPhq4(prev => prev.map((v, idx) => idx === i ? f.v : v))}
+                          className="text-xs py-2 px-2 rounded-lg font-medium transition"
+                          style={isSelected
+                            ? { ...f.selStyle, border: `1px solid ${f.selStyle.borderColor}` }
+                            : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }
+                          }
+                          onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-border)'; }}
+                          onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+                        >
+                          {f.s}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -495,37 +500,42 @@ export default function WalkInSelfCheckinPage() {
           </Card>
         )}
 
-        {/* ── Step 4: Review ───────────────────────────────────────────────────── */}
+        {/* ── Step 4: Review — clinical review badges kept fixed ──────────────── */}
         {step === 'confirm' && (
           <>
-            <Card icon={User} title="Your Information" accent="bg-sky-50 text-sky-700">
-              <div className="text-sm space-y-1.5 text-gray-700">
-                <div className="flex justify-between"><span className="text-gray-400 text-xs">Name</span><span className="font-medium">{icf.first_name} {icf.last_name}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400 text-xs">Email</span><span className="font-medium text-xs">{icf.email}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400 text-xs">Year / College</span><span className="font-medium text-xs text-right max-w-[60%]">{icf.year_level} — {icf.college}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400 text-xs">Service</span><span className="font-medium text-xs">{icf.service_requested}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400 text-xs">Referred by</span><span className="font-medium text-xs">{icf.referral_source}</span></div>
+            <Card icon={User} title="Your Information" headerStyle={skyHeader}>
+              <div className="text-sm space-y-1.5" style={{ color: 'var(--color-text-primary)' }}>
+                <div className="flex justify-between"><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Name</span><span className="font-medium">{icf.first_name} {icf.last_name}</span></div>
+                <div className="flex justify-between"><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Email</span><span className="font-medium text-xs">{icf.email}</span></div>
+                <div className="flex justify-between"><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Year / College</span><span className="font-medium text-xs text-right max-w-[60%]">{icf.year_level} — {icf.college}</span></div>
+                <div className="flex justify-between"><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Service</span><span className="font-medium text-xs">{icf.service_requested}</span></div>
+                <div className="flex justify-between"><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Referred by</span><span className="font-medium text-xs">{icf.referral_source}</span></div>
               </div>
             </Card>
 
-            <Card icon={Brain} title="PHQ-4 Responses" accent="bg-orange-50 text-orange-700">
+            <Card icon={Brain} title="PHQ-4 Responses" headerStyle={orangeHeader}>
               <div className="space-y-2">
                 {PHQ4_QUESTIONS.map((q, i) => (
                   <div key={q.id} className="flex justify-between items-start gap-2">
-                    <span className="text-xs text-gray-500 flex-1">{q.text}</span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      phq4[i] === 0 ? 'bg-gray-100 text-gray-600' :
-                      phq4[i] === 1 ? 'bg-blue-50 text-blue-700' :
-                      phq4[i] === 2 ? 'bg-amber-50 text-amber-700' :
-                      'bg-red-50 text-red-700'
-                    }`}>{FREQ.find(f => f.v === phq4[i])?.s ?? '—'}</span>
+                    <span className="text-xs flex-1" style={{ color: 'var(--color-text-secondary)' }}>{q.text}</span>
+                    {/* Review severity badges: kept fixed clinical colors */}
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={
+                        phq4[i] === 0 ? { background: '#F3F4F6', color: '#4B5563' } :
+                        phq4[i] === 1 ? { background: '#EFF6FF', color: '#1D4ED8' } :
+                        phq4[i] === 2 ? { background: '#FFFBEB', color: '#B45309' } :
+                                        { background: '#FEF2F2', color: '#B91C1C' }
+                      }>
+                      {FREQ.find(f => f.v === phq4[i])?.s ?? '—'}
+                    </span>
                   </div>
                 ))}
               </div>
             </Card>
 
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-xs text-gray-600 space-y-1">
-              <p className="font-semibold text-green-800">Before you submit:</p>
+            <div className="rounded-xl p-4 text-xs space-y-1"
+              style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)', color: 'var(--color-text-secondary)' }}>
+              <p className="font-semibold" style={{ color: 'var(--color-success-text)' }}>Before you submit:</p>
               <p>• Please ensure your information is accurate.</p>
               <p>• A staff member will review your forms and call your name shortly.</p>
               <p>• Your data is kept confidential under DLSU&apos;s Privacy Policy.</p>
@@ -533,25 +543,37 @@ export default function WalkInSelfCheckinPage() {
           </>
         )}
 
-        {/* ── Navigation ───────────────────────────────────────────────────────── */}
+        {/* ── Navigation ─────────────────────────────────────────────────────── */}
         <div className="flex gap-3 pt-1">
           {step !== 'icf' && (
-            <button onClick={back} className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition">
+            <button onClick={back}
+              className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl text-sm font-medium transition"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-surface)')}>
               <ChevronLeft size={16} /> Back
             </button>
           )}
           {step !== 'confirm' ? (
-            <button onClick={next} className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl bg-[#2563eb] text-white text-sm font-semibold hover:bg-[#163d1e] transition">
+            <button onClick={next}
+              className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl text-white text-sm font-semibold transition"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-primary-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}>
               Continue <ChevronRight size={16} />
             </button>
           ) : (
-            <button onClick={submit} disabled={submitting} className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl bg-[#2563eb] text-white text-sm font-semibold hover:bg-[#163d1e] transition disabled:opacity-60">
+            <button onClick={submit} disabled={submitting}
+              className="flex-1 flex items-center justify-center gap-1 py-3 rounded-xl text-white text-sm font-semibold transition disabled:opacity-60"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => { if (!submitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+              onMouseLeave={e => { if (!submitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}>
               {submitting ? 'Submitting…' : 'Submit Check-In'}
             </button>
           )}
         </div>
 
-        <p className="text-center text-[11px] text-gray-400 pb-2">
+        <p className="text-center pb-2" style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
           DLSU Center for Psychological Services · All data is encrypted and kept confidential.
         </p>
       </div>

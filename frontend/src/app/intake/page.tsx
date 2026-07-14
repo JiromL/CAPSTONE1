@@ -955,26 +955,32 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl mx-auto py-8">
-          <div className="p-6 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg">
+          <div className="p-6 rounded-lg" style={{ background: 'var(--color-danger-surface)', border: '2px solid var(--color-danger)' }}>
             <div className="flex gap-4">
-              <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
               <div className="flex-1">
-                <h2 className="text-lg font-bold text-red-900 dark:text-red-200 mb-2">
+                <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-danger-text)' }}>
                   Cannot Book Another Appointment
                 </h2>
-                <p className="text-red-800 dark:text-red-300 mb-4 leading-relaxed">
+                <p className="mb-4 leading-relaxed" style={{ color: 'var(--color-danger-text)' }}>
                   {activeAppointmentError.message}
                 </p>
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => router.push('/dashboard')}
-                    className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white font-medium rounded hover:bg-red-700 dark:hover:bg-red-800 transition-colors"
+                    className="px-6 py-2 text-white font-medium rounded transition"
+                    style={{ background: 'var(--color-danger)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-hover)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger)'}
                   >
                     Return to Dashboard
                   </button>
                   <button
                     onClick={() => router.push('/my-appointments')}
-                    className="px-6 py-2 border border-red-600 dark:border-red-500 text-red-600 dark:text-red-400 font-medium rounded hover:bg-red-50 dark:hover:bg-red-900/40 transition-colors"
+                    className="px-6 py-2 font-medium rounded transition"
+                    style={{ border: '1px solid var(--color-danger)', color: 'var(--color-danger)', background: 'transparent' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-surface)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                   >
                     View My Appointment
                   </button>
@@ -1001,10 +1007,10 @@ export default function IntakePage() {
       >
         <div className="max-w-2xl mx-auto">
           {/* Header Section */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 4 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">What brings you in today?</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Select your primary concern</p>
+          <div className="mb-8 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Step 4 of 8</span>
+            <h1 className="text-xl font-semibold mt-2 mb-1" style={{ color: 'var(--color-text-primary)' }}>What brings you in today?</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Select your primary concern</p>
           </div>
 
           {/* Concern Cards */}
@@ -1013,21 +1019,21 @@ export default function IntakePage() {
               <button
                 key={key}
                 onClick={() => setSelectedConcern(key)}
-                className={`w-full p-4 rounded border text-left transition-colors ${
-                  selectedConcern === key
-                    ? 'bg-gray-100 border-gray-400 dark:bg-gray-700 dark:border-gray-500'
-                    : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
-                }`}
+                className="w-full p-4 rounded border text-left transition"
+                style={selectedConcern === key
+                  ? { background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }
+                  : { background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                onMouseEnter={e => { if (selectedConcern !== key) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+                onMouseLeave={e => { if (selectedConcern !== key) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface)'; }}
               >
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                  <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
                     {concern.label}
                   </p>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    selectedConcern === key
-                      ? 'border-gray-400 bg-gray-400 dark:border-gray-500 dark:bg-gray-500'
-                      : 'border-gray-300 dark:border-gray-600'
-                  }`}>
+                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                    style={selectedConcern === key
+                      ? { borderColor: 'var(--color-primary)', background: 'var(--color-primary)' }
+                      : { borderColor: 'var(--color-border-strong)' }}>
                     {selectedConcern === key && <span className="text-white text-xs">✓</span>}
                   </div>
                 </div>
@@ -1039,14 +1045,20 @@ export default function IntakePage() {
           <div className="flex gap-3">
             <button
               onClick={() => setStep('terms')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+              className="flex-1 px-4 py-2 font-medium rounded transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Back
             </button>
             <button
               disabled={!selectedConcern}
               onClick={handleConcernSelection}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="flex-1 px-4 py-2 text-white font-medium rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+              onMouseLeave={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
             >
               Continue
             </button>
@@ -1070,18 +1082,18 @@ export default function IntakePage() {
       >
         <div className="max-w-3xl mx-auto">
           {/* Header */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 1 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Terms and Conditions</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Please read and accept to proceed</p>
+          <div className="mb-8 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Step 1 of 8</span>
+            <h1 className="text-xl font-semibold mt-2 mb-1" style={{ color: 'var(--color-text-primary)' }}>Terms and Conditions</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Please read and accept to proceed</p>
           </div>
 
           {/* Terms Content */}
-          <div className="space-y-6 mb-8 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 p-6 rounded border border-gray-200 dark:border-gray-700">
+          <div className="space-y-6 mb-8 max-h-96 overflow-y-auto p-6 rounded" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             {/* English Section */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Terms and Conditions</h2>
-              <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Terms and Conditions</h2>
+              <div className="space-y-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                 <div>
                   <p className="font-medium mb-2">Urgency-Based & First Come, First Served Basis</p>
                   <p>This appointment and scheduling system allocates slots based on urgency level (determined by assessment responses) and then on a first come, first served basis within each priority level. Appointments with higher urgency will be prioritized. There is no guarantee that a slot will always be available for a user's first choice for an appointment schedule.</p>
@@ -1098,10 +1110,10 @@ export default function IntakePage() {
             </div>
 
             {/* Tagalog Section */}
-            <hr className="border-gray-300 dark:border-gray-600" />
+            <hr style={{ borderColor: 'var(--color-border)' }} />
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Mga Tuntunin at Kundisyon</h2>
-              <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Mga Tuntunin at Kundisyon</h2>
+              <div className="space-y-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                 <div>
                   <p className="font-medium mb-2">Basis ng Urgency at First Come, First Served</p>
                   <p>Ang sistema ng appointment at pag-iskedyul na ito ay nagbibigay ng mga slot batay sa antas ng urgency (na tinutukoy ng responses sa assessment) at pagkatapos ay "first come, first served" na paraan sa loob ng bawat priority level. Ang mga appointment na may mas mataas na urgency ay magiging priority. Hindi garantisado na laging may available na slot para sa unang pinili ng user na oras ng appointment.</p>
@@ -1119,16 +1131,16 @@ export default function IntakePage() {
           </div>
 
           {/* Acceptance Section */}
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-8">
+          <div className="p-4 rounded-lg mb-8" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="w-5 h-5 mt-1 rounded border-gray-300 dark:border-gray-600"
+                className="w-5 h-5 mt-1 rounded"
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                <span className="font-medium block mb-1">I have read and understood the instructions and information on this page</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <span className="font-medium block mb-1" style={{ color: 'var(--color-text-primary)' }}>I have read and understood the instructions and information on this page</span>
                 I agree to the Terms and Conditions on the use of this online appointment and scheduling system.
                 <span className="block mt-2 text-xs italic">Nabasa at naunawaan ko ang mga instruksyon at impormasyon sa pahinang ito, at sumasang-ayon ako sa mga Tuntunin at Kundisyon sa paggamit ng online appointment at scheduling system na ito.</span>
                 <span className="text-red-500 font-semibold"> *</span>
@@ -1140,14 +1152,20 @@ export default function IntakePage() {
           <div className="flex gap-3">
             <button
               onClick={() => router.back()}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+              className="flex-1 px-4 py-2 font-medium rounded transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Back
             </button>
             <button
               disabled={!termsAccepted}
               onClick={() => setStep('personal_info')}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="flex-1 px-4 py-2 text-white font-medium rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+              onMouseLeave={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
             >
               I Accept & Continue
             </button>
@@ -1171,10 +1189,10 @@ export default function IntakePage() {
       >
         <div className="max-w-3xl mx-auto">
           {/* Header */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 6 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">How urgent is your situation?</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">This helps us prioritize your support</p>
+          <div className="mb-8 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Step 6 of 8</span>
+            <h1 className="text-xl font-semibold mt-2 mb-1" style={{ color: 'var(--color-text-primary)' }}>How urgent is your situation?</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>This helps us prioritize your support</p>
           </div>
 
           {/* Urgency Options */}
@@ -1182,48 +1200,43 @@ export default function IntakePage() {
             {/* Not Urgent */}
             <button
               onClick={() => setIsUrgent(false)}
-              className={`w-full p-4 rounded border text-left transition-colors ${
-                isUrgent === false
-                  ? 'bg-gray-100 border-gray-400 dark:bg-gray-700 dark:border-gray-500'
-                  : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
-              }`}
+              className="w-full p-4 rounded border text-left transition"
+              style={isUrgent === false
+                ? { background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }
+                : { background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              onMouseEnter={e => { if (isUrgent !== false) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+              onMouseLeave={e => { if (isUrgent !== false) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface)'; }}
             >
-              <p className="font-medium text-gray-900 dark:text-gray-100">
-                I can wait
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                Schedule an appointment within a week
-              </p>
+              <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>I can wait</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>Schedule an appointment within a week</p>
             </button>
 
             {/* Urgent */}
             <button
               onClick={() => setIsUrgent(true)}
-              className={`w-full p-4 rounded border text-left transition-colors ${
-                isUrgent === true
-                  ? 'bg-gray-100 border-gray-400 dark:bg-gray-700 dark:border-gray-500'
-                  : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
-              }`}
+              className="w-full p-4 rounded border text-left transition"
+              style={isUrgent === true
+                ? { background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }
+                : { background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              onMouseEnter={e => { if (isUrgent !== true) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+              onMouseLeave={e => { if (isUrgent !== true) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface)'; }}
             >
-              <p className="font-medium text-gray-900 dark:text-gray-100">
-                I need help soon
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                I'd like support as soon as possible
-              </p>
+              <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>I need help soon</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>I'd like support as soon as possible</p>
             </button>
           </div>
 
           {/* Optional Notes for Urgent Cases */}
           {isUrgent && (
-            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded dark:bg-gray-800 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+            <div className="mb-6 p-4 rounded" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+              <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-text-primary)' }}>
                 Additional details (optional)
               </label>
               <textarea
                 value={urgencyNotes}
                 onChange={(e) => setUrgencyNotes(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+                className="w-full px-3 py-2 rounded text-sm outline-none transition"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', resize: 'none' }}
                 rows={3}
                 placeholder="Share additional details..."
               />
@@ -1234,14 +1247,20 @@ export default function IntakePage() {
           <div className="flex gap-3">
             <button
               onClick={() => setStep('concern')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+              className="flex-1 px-4 py-2 font-medium rounded transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Back
             </button>
             <button
               disabled={isUrgent === null}
               onClick={() => handleUrgencyResponse(isUrgent === true)}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="flex-1 px-4 py-2 text-white font-medium rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+              onMouseLeave={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
             >
               Continue
             </button>
@@ -1267,35 +1286,41 @@ export default function IntakePage() {
       >
         <div className="max-w-3xl mx-auto">
           {/* Header */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 6 of 7</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Resources Available</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Multiple ways to get help</p>
+          <div className="mb-8 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Step 6 of 7</span>
+            <h1 className="text-xl font-semibold mt-2 mb-1" style={{ color: 'var(--color-text-primary)' }}>Resources Available</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Multiple ways to get help</p>
           </div>
 
           {/* Quick Access Resources */}
           <div className="space-y-3 mb-6">
             {/* 24/7 Crisis Line */}
-            <div className="p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">24/7 Helpline</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white mb-1">988 Suicide & Crisis Lifeline</p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">Available anytime for support</p>
+            <div className="p-4 rounded" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+              <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>24/7 Helpline</p>
+              <p className="text-lg font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>988 Suicide & Crisis Lifeline</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--color-text-secondary)' }}>Available anytime for support</p>
               <a
                 href="tel:988"
-                className="block w-full px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded text-center transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 text-sm"
+                className="block w-full px-3 py-2 text-white font-medium rounded text-center text-sm transition"
+                style={{ background: 'var(--color-primary)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-primary-hover)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-primary)')}
               >
                 Call 988
               </a>
             </div>
 
             {/* Campus Security */}
-            <div className="p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Campus Emergency</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Call 911</p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">For immediate emergencies</p>
+            <div className="p-4 rounded" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+              <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>Campus Emergency</p>
+              <p className="text-lg font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Call 911</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--color-text-secondary)' }}>For immediate emergencies</p>
               <a
                 href="tel:911"
-                className="block w-full px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded text-center transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 text-sm"
+                className="block w-full px-3 py-2 text-white font-medium rounded text-center text-sm transition"
+                style={{ background: 'var(--color-primary)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-primary-hover)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-primary)')}
               >
                 Call Emergency
               </a>
@@ -1303,12 +1328,15 @@ export default function IntakePage() {
 
             {/* CPS Direct Line (if Business Hours) */}
             {isBusinessHours && (
-              <div className="p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Campus Counseling (Business Hours)</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">Monday - Friday, 9 AM - 5 PM</p>
+              <div className="p-4 rounded" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>Campus Counseling (Business Hours)</p>
+                <p className="text-sm mb-3" style={{ color: 'var(--color-text-secondary)' }}>Monday - Friday, 9 AM - 5 PM</p>
                 <button
                   onClick={() => setStep('appointment')}
-                  className="w-full px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 text-sm"
+                  className="w-full px-3 py-2 text-white font-medium rounded text-sm transition"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)')}
                 >
                   Schedule Appointment
                 </button>
@@ -1320,11 +1348,14 @@ export default function IntakePage() {
               href="https://suicidepreventionlifeline.org/chat"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-4 border border-gray-200 rounded hover:bg-gray-50 transition-colors dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-750"
+              className="p-4 rounded transition"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-bg)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-surface)')}
             >
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">24/7 Support</p>
-              <p className="font-semibold text-gray-900 dark:text-white mb-1">Crisis Chat</p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Talk online with a counselor</p>
+              <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>24/7 Support</p>
+              <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Crisis Chat</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Talk online with a counselor</p>
             </a>
           </div>
 
@@ -1332,13 +1363,19 @@ export default function IntakePage() {
           <div className="flex gap-3">
             <button
               onClick={() => setStep('urgency')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+              className="flex-1 px-4 py-2 font-medium rounded transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Back
             </button>
             <button
               onClick={() => setStep('appointment')}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="flex-1 px-4 py-2 text-white font-medium rounded transition"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)')}
             >
               Continue
             </button>
@@ -1362,18 +1399,18 @@ export default function IntakePage() {
       >
         <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 2 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Personal Information</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Please provide your contact details to get started</p>
+          <div className="mb-8 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Step 2 of 8</span>
+            <h1 className="text-xl font-semibold mt-2 mb-1" style={{ color: 'var(--color-text-primary)' }}>Personal Information</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Please provide your contact details to get started</p>
           </div>
 
           <div className="space-y-4 mb-6">
             {/* Name Row - First, Middle, Last */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  First Name <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                  First Name <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -1381,11 +1418,12 @@ export default function IntakePage() {
                   value={personalInfo.first_name}
                   onChange={handlePersonalInfoChange}
                   placeholder="John"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                   Middle Name
                 </label>
                 <input
@@ -1394,12 +1432,13 @@ export default function IntakePage() {
                   value={personalInfo.middle_name}
                   onChange={handlePersonalInfoChange}
                   placeholder="Christopher (optional)"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Last Name <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                  Last Name <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -1407,7 +1446,8 @@ export default function IntakePage() {
                   value={personalInfo.last_name}
                   onChange={handlePersonalInfoChange}
                   placeholder="Doe"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
             </div>
@@ -1415,26 +1455,28 @@ export default function IntakePage() {
             {/* Birthday and Gender Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Birthday <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                  Birthday <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input
                   type="date"
                   name="birthday"
                   value={personalInfo.birthday}
                   onChange={handlePersonalInfoChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Gender <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                  Gender <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <select
                   name="gender"
                   value={personalInfo.gender}
                   onChange={handlePersonalInfoChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 >
                   <option value="">Select Gender</option>
                   <option value="male">Male</option>
@@ -1448,8 +1490,8 @@ export default function IntakePage() {
             {/* ID Number Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  ID Number <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                  ID Number <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -1458,29 +1500,31 @@ export default function IntakePage() {
                   onChange={handlePersonalInfoChange}
                   placeholder="11234567"
                   maxLength={8}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Must be 8 digits (e.g., 11234567)</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Must be 8 digits (e.g., 11234567)</p>
               </div>
             </div>
 
             {/* Email and Contact Number Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                   Email (from your account)
                 </label>
                 <input
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed"
+                  className="w-full px-3 py-2 text-sm rounded-lg cursor-not-allowed"
+                  style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This cannot be changed during intake</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>This cannot be changed during intake</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Contact Number <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                  Contact Number <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input
                   type="tel"
@@ -1488,25 +1532,26 @@ export default function IntakePage() {
                   value={personalInfo.contact_number}
                   onChange={handlePersonalInfoChange}
                   placeholder="+63 9 XX XXX XXXX"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
             </div>
 
             {/* Consent Section */}
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="p-4 rounded-lg" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   name="personal_data_consent"
                   checked={personalInfo.personal_data_consent}
                   onChange={handlePersonalInfoChange}
-                  className="w-5 h-5 mt-1 rounded border-gray-300 dark:border-gray-600"
+                  className="w-5 h-5 mt-1 rounded"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  <span className="font-medium block mb-1">I consent to the collection and use of my personal data</span>
+                <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                  <span className="font-medium block mb-1" style={{ color: 'var(--color-text-primary)' }}>I consent to the collection and use of my personal data</span>
                   I understand that my personal information (name, contact details, address) will be collected and securely stored. This information will be used only for counseling services administration and will not be shared outside of authorized university staff without my consent. I acknowledge the counseling center's privacy practices.
-                  <span className="text-red-500 font-semibold"> *</span>
+                  <span className="font-semibold" style={{ color: 'var(--color-danger)' }}> *</span>
                 </span>
               </label>
             </div>
@@ -1514,7 +1559,7 @@ export default function IntakePage() {
 
           {/* Inline validation error */}
           {personalInfoError && (
-            <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 text-sm">
+            <div className="mb-4 flex items-center gap-2 p-3 rounded-lg text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger-text)' }}>
               <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" /></svg>
               {personalInfoError}
             </div>
@@ -1524,7 +1569,10 @@ export default function IntakePage() {
           <div className="flex gap-3">
             <button
               onClick={() => setStep('concern')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+              className="flex-1 px-4 py-2 font-medium rounded transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Back
             </button>
@@ -1535,7 +1583,10 @@ export default function IntakePage() {
                   setStep('distress_level');
                 }
               }}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="flex-1 px-4 py-2 text-white font-medium rounded transition"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)')}
             >
               Continue
             </button>
@@ -1559,35 +1610,36 @@ export default function IntakePage() {
       >
         <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 3 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Do you need assistance right away?</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">This helps us prioritize your appointment scheduling</p>
+          <div className="mb-8 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Step 3 of 8</span>
+            <h1 className="text-xl font-semibold mt-2 mb-1" style={{ color: 'var(--color-text-primary)' }}>Do you need assistance right away?</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>This helps us prioritize your appointment scheduling</p>
           </div>
 
           {/* Options */}
           <div className="space-y-3 mb-8">
             {/* In Distress Option */}
+            {/* In distress: kept fixed red (crisis-UI) */}
             <button
               onClick={() => handleDistressLevel(true)}
-              className={`w-full p-6 rounded border-2 text-left transition-all ${
-                isInDistress === true
-                  ? 'bg-red-50 border-red-400 dark:bg-red-900/20 dark:border-red-600'
-                  : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
-              }`}
+              className="w-full p-6 rounded border-2 text-left transition"
+              style={isInDistress === true
+                ? { background: '#FEF2F2', borderColor: '#F87171' }
+                : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+              onMouseEnter={e => { if (isInDistress !== true) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+              onMouseLeave={e => { if (isInDistress !== true) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface)'; }}
             >
               <div className="flex items-start justify-between">
                 <div className="text-left">
-                  <p className="font-semibold text-gray-900 dark:text-white mb-2">Yes, I'm in distress and need assistance ASAP</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    I'm experiencing a crisis or urgent mental health concern and need immediate support within 30 minutes
+                  <p className="font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>Yes, I&apos;m in distress and need assistance ASAP</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    I&apos;m experiencing a crisis or urgent mental health concern and need immediate support within 30 minutes
                   </p>
                 </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 ${
-                  isInDistress === true
-                    ? 'border-red-400 bg-red-400 dark:border-red-600 dark:bg-red-600'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}>
+                <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1"
+                  style={isInDistress === true
+                    ? { borderColor: '#F87171', background: '#F87171' }
+                    : { borderColor: 'var(--color-border-strong)' }}>
                   {isInDistress === true && <span className="text-white text-lg">✓</span>}
                 </div>
               </div>
@@ -1596,24 +1648,24 @@ export default function IntakePage() {
             {/* Can Wait Option */}
             <button
               onClick={() => handleDistressLevel(false)}
-              className={`w-full p-6 rounded border-2 text-left transition-all ${
-                isInDistress === false
-                  ? 'bg-blue-50 border-blue-400 dark:bg-blue-900/20 dark:border-blue-600'
-                  : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750'
-              }`}
+              className="w-full p-6 rounded border-2 text-left transition"
+              style={isInDistress === false
+                ? { background: 'var(--color-primary-surface)', borderColor: 'var(--color-primary)' }
+                : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+              onMouseEnter={e => { if (isInDistress !== false) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+              onMouseLeave={e => { if (isInDistress !== false) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface)'; }}
             >
               <div className="flex items-start justify-between">
                 <div className="text-left">
-                  <p className="font-semibold text-gray-900 dark:text-white mb-2">No, I can wait for an appointment</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    I'm experiencing challenges but not in immediate crisis. I'm flexible with scheduling based on availability
+                  <p className="font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>No, I can wait for an appointment</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    I&apos;m experiencing challenges but not in immediate crisis. I&apos;m flexible with scheduling based on availability
                   </p>
                 </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 ${
-                  isInDistress === false
-                    ? 'border-blue-400 bg-blue-400 dark:border-blue-600 dark:bg-blue-600'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}>
+                <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1"
+                  style={isInDistress === false
+                    ? { borderColor: 'var(--color-primary)', background: 'var(--color-primary)' }
+                    : { borderColor: 'var(--color-border-strong)' }}>
                   {isInDistress === false && <span className="text-white text-lg">✓</span>}
                 </div>
               </div>
@@ -1624,7 +1676,10 @@ export default function IntakePage() {
           <div className="flex gap-3">
             <button
               onClick={() => setStep('personal_info')}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+              className="flex-1 px-4 py-2 font-medium rounded transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Back
             </button>
@@ -1636,7 +1691,10 @@ export default function IntakePage() {
                 }
                 // If true, handleDistressLevel already navigated to appointment
               }}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="flex-1 px-4 py-2 text-white font-medium rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+              onMouseLeave={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
             >
               Continue
             </button>
@@ -1659,39 +1717,39 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl mx-auto">
-          <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Step 7 of 8</span>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-2 mb-1">Schedule Your Appointment</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Choose your preferred date and time</p>
+          <div className="mb-8 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Step 7 of 8</span>
+            <h1 className="text-xl font-semibold mt-2 mb-1" style={{ color: 'var(--color-text-primary)' }}>Schedule Your Appointment</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Choose your preferred date and time</p>
           </div>
 
           {/* Appointment Info based on Urgency Level */}
           {automaticAppointmentInfo && (
-            <div className={`p-4 border rounded mb-6 dark:bg-gray-800 ${
-              urgencyLevel === 'RED' 
-                ? 'border-red-300 bg-red-50 dark:border-red-600' 
-                : urgencyLevel === 'YELLOW'
-                ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-600'
-                : 'border-gray-300'
-            }`}>
+            <div className="p-4 rounded mb-6" style={{
+              border: `1px solid ${urgencyLevel === 'RED' ? '#F87171' : urgencyLevel === 'YELLOW' ? '#FCD34D' : 'var(--color-border)'}`,
+              background: urgencyLevel === 'RED' ? '#FEF2F2' : urgencyLevel === 'YELLOW' ? '#FFFBEB' : 'var(--color-bg)'
+            }}>
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                  <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
                     {urgencyLevel === 'RED' ? '🔴 ' : urgencyLevel === 'YELLOW' ? '🟡 ' : '🟢 '}
                     {urgencyLevel === 'RED' || urgencyLevel === 'YELLOW' ? 'Recommended Appointment' : 'Suggested Appointment'}
                   </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <p className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                     {automaticAppointmentInfo.automatic_date_formatted}
                   </p>
                 </div>
                 <button
                   onClick={() => setAppointmentOverridden(!appointmentOverridden)}
-                  className="px-2 py-1 text-xs font-medium rounded bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 whitespace-nowrap transition-colors"
+                  className="px-2 py-1 text-xs font-medium rounded whitespace-nowrap transition"
+                  style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-surface)')}
                 >
                   {appointmentOverridden ? 'Use Recommended' : 'Choose Different'}
                 </button>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                 {urgencyLevel === 'RED' 
                   ? 'Earliest available - highest priority' 
                   : urgencyLevel === 'YELLOW'
@@ -1702,7 +1760,7 @@ export default function IntakePage() {
           )}
 
           {isCalculatingAppointment && (
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded mb-6 text-center text-sm text-gray-700 dark:text-gray-300">
+            <div className="p-4 rounded mb-6 text-center text-sm" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
               Calculating appointment...
             </div>
           )}
@@ -1713,33 +1771,35 @@ export default function IntakePage() {
             {isInDistress && (
               <div className="space-y-3">
                 {distressSlotsLoading ? (
-                  <div className="p-4 border border-red-200 dark:border-red-700 rounded bg-red-50 dark:bg-red-900/20 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
+                  <div className="p-4 rounded text-sm flex items-center gap-2" style={{ border: '1px solid #F87171', background: '#FEF2F2', color: '#991B1B' }}>
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                     Finding earliest available slot…
                   </div>
                 ) : distressSlots.length === 0 ? (
                   <div className="space-y-3">
-                    <div className="p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-200">
+                    <div className="p-4 rounded-lg text-sm" style={{ border: '1px solid var(--color-warning)', background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' }}>
                       No counselor slots are currently open. Enter your preferred date and time — CPS will prioritize your request as urgent.
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Preferred Date</label>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>Preferred Date</label>
                         <input
                           type="date"
                           value={appointmentDate}
                           onChange={e => setAppointmentDate(e.target.value)}
                           min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                           max={new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Preferred Time</label>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>Preferred Time</label>
                         <select
                           value={appointmentTime}
                           onChange={e => setAppointmentTime(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm rounded-lg outline-none transition"
+                          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                         >
                           <option value="">Select a time</option>
                           {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'].map(t => (
@@ -1750,7 +1810,7 @@ export default function IntakePage() {
                         </select>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">For immediate crisis support, call <strong>988</strong> anytime.</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>For immediate crisis support, call <strong>988</strong> anytime.</p>
                   </div>
                 ) : (
                   <>
@@ -1759,12 +1819,12 @@ export default function IntakePage() {
                       const sel = distressSlots.find(s => s.slot_id === distressSelectedSlotId) || distressSlots[0];
                       const start = new Date(sel.slot_start);
                       return (
-                        <div className="p-4 border-2 border-red-400 dark:border-red-500 rounded-lg bg-red-50 dark:bg-red-900/20">
-                          <p className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide mb-2">🔴 Earliest Available</p>
-                          <p className="text-base font-bold text-gray-900 dark:text-white">
+                        <div className="p-4 border-2 rounded-lg" style={{ borderColor: '#F87171', background: '#FEF2F2' }}>
+                          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#B91C1C' }}>🔴 Earliest Available</p>
+                          <p className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>
                             {start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                           </p>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
+                          <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                             {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · {sel.counselor_name}
                           </p>
                         </div>
@@ -1775,7 +1835,7 @@ export default function IntakePage() {
                     <button
                       type="button"
                       onClick={() => setDistressShowAllSlots(v => !v)}
-                      className="text-sm text-blue-700 dark:text-green-400 font-medium hover:underline"
+                      className="text-sm font-medium hover:underline" style={{ color: 'var(--color-primary-text)' }}
                     >
                       {distressShowAllSlots ? '▲ Hide other slots' : '▼ Choose a different slot (optional)'}
                     </button>
@@ -1794,21 +1854,20 @@ export default function IntakePage() {
                                 setAppointmentDate(slot.slot_start.split('T')[0]);
                                 setAppointmentTime(slot.slot_start.split('T')[1]?.slice(0, 5) || '09:00');
                               }}
-                              className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 text-left transition-all ${
-                                isSelected
-                                  ? 'border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-500'
-                                  : 'border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600'
-                              }`}
+                              className="flex items-center justify-between px-4 py-3 rounded-lg border-2 text-left transition-all"
+                              style={isSelected
+                                ? { borderColor: '#F87171', background: '#FEF2F2' }
+                                : { borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
                             >
                               <div>
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                                   {start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                                   {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · {slot.counselor_name}
                                 </p>
                               </div>
-                              {isSelected && <span className="text-red-500 dark:text-red-400 text-sm font-bold">✓</span>}
+                              {isSelected && <span className="text-sm font-bold" style={{ color: '#DC2626' }}>✓</span>}
                             </button>
                           );
                         })}
@@ -1821,29 +1880,18 @@ export default function IntakePage() {
 
             {/* Use Recommended Time (Default) — non-distress path */}
             {!isInDistress && !appointmentOverridden && automaticAppointmentInfo && (
-              <div className={`p-3 border rounded ${
-                urgencyLevel === 'RED'
-                  ? 'bg-red-50 border-red-200 dark:bg-red-900 dark:border-red-800'
-                  : urgencyLevel === 'YELLOW'
-                  ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900 dark:border-yellow-800'
-                  : 'bg-blue-50 border-blue-200 dark:bg-blue-900 dark:border-blue-800'
-              }`}>
-                <p className={`text-sm font-medium mb-2 ${
-                  urgencyLevel === 'RED'
-                    ? 'text-red-900 dark:text-red-100'
-                    : urgencyLevel === 'YELLOW'
-                    ? 'text-yellow-900 dark:text-yellow-100'
-                    : 'text-blue-900 dark:text-blue-100'
-                }`}>
+              <div className="p-3 rounded" style={{
+                border: `1px solid ${urgencyLevel === 'RED' ? '#F87171' : urgencyLevel === 'YELLOW' ? '#FCD34D' : 'var(--color-primary-muted)'}`,
+                background: urgencyLevel === 'RED' ? '#FEF2F2' : urgencyLevel === 'YELLOW' ? '#FFFBEB' : 'var(--color-primary-surface)'
+              }}>
+                <p className="text-sm font-medium mb-2" style={{
+                  color: urgencyLevel === 'RED' ? '#991B1B' : urgencyLevel === 'YELLOW' ? '#92400E' : 'var(--color-primary-text)'
+                }}>
                   ✓ {urgencyLevel === 'RED' || urgencyLevel === 'YELLOW' ? 'Using Recommended' : 'Using Suggested'} Appointment
                 </p>
-                <p className={`text-sm ${
-                  urgencyLevel === 'RED'
-                    ? 'text-red-800 dark:text-red-200'
-                    : urgencyLevel === 'YELLOW'
-                    ? 'text-yellow-800 dark:text-yellow-200'
-                    : 'text-blue-800 dark:text-blue-200'
-                }`}>
+                <p className="text-sm" style={{
+                  color: urgencyLevel === 'RED' ? '#B91C1C' : urgencyLevel === 'YELLOW' ? '#78350F' : 'var(--color-primary-text)'
+                }}>
                   📅 <strong>{automaticAppointmentInfo.automatic_date_formatted}</strong> at <strong>{automaticAppointmentInfo.appointment_time}</strong>
                 </p>
               </div>
@@ -1853,13 +1901,13 @@ export default function IntakePage() {
             {!isInDistress && appointmentOverridden && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                     Your Preferred Date
                   </label>
 
                   {isLoadingDates ? (
-                    <div className="px-3 py-3 border border-gray-200 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                      <svg className="w-4 h-4 animate-spin text-green-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    <div className="px-3 py-3 rounded text-sm flex items-center gap-2" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--color-primary)' }}><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                       Loading available dates…
                     </div>
                   ) : availableDates.length > 0 ? (
@@ -1870,7 +1918,8 @@ export default function IntakePage() {
                         setAppointmentDate(newDate);
                         fetchAvailableTimesForDate(newDate);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      className="w-full px-3 py-2 rounded text-sm outline-none transition"
+                      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                     >
                       <option value="">— Select a date —</option>
                       {availableDates.map((date_option: any) => (
@@ -1880,20 +1929,19 @@ export default function IntakePage() {
                       ))}
                     </select>
                   ) : (
-                    <div className="px-4 py-3 border border-amber-200 dark:border-amber-700 rounded bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-200 flex items-center justify-between gap-3">
+                    <div className="px-4 py-3 rounded text-sm flex items-center justify-between gap-3"
+                      style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning-text)' }}>
                       <span>No available dates found in the next 30 days.</span>
-                      <button
-                        type="button"
-                        onClick={fetchAvailableDates}
-                        className="text-xs font-medium text-green-600 dark:text-green-400 hover:underline whitespace-nowrap"
-                      >
+                      <button type="button" onClick={fetchAvailableDates}
+                        className="text-xs font-medium hover:underline whitespace-nowrap"
+                        style={{ color: 'var(--color-primary)' }}>
                         Retry
                       </button>
                     </div>
                   )}
 
                   {!isLoadingDates && availableDates.length > 0 && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                       Only dates with available counselor slots are shown
                     </p>
                   )}
@@ -1904,21 +1952,21 @@ export default function IntakePage() {
             {/* Time Selection - Shown when date is selected — non-distress path only */}
             {!isInDistress && appointmentOverridden && appointmentDate && (
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                   Available Time Slots
                 </label>
                 {isLoadingTimes ? (
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded text-center">
-                    <p className="text-sm text-blue-900 dark:text-blue-100">Loading available times...</p>
+                  <div className="p-3 rounded text-center" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+                    <p className="text-sm" style={{ color: 'var(--color-primary)' }}>Loading available times...</p>
                   </div>
                 ) : availableTimes.length > 0 ? (
                   <div className="space-y-2">
                     {availableTimes.map(timeSlot => (
-                      <label key={timeSlot.datetime} className={`flex items-start p-4 border rounded cursor-pointer transition-colors ${
-                        appointmentTime === timeSlot.time
-                          ? 'bg-blue-50 border-blue-400 dark:bg-blue-900 dark:border-blue-600'
-                          : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-750'
-                      }`}>
+                      <label key={timeSlot.datetime}
+                      className="flex items-start p-4 rounded cursor-pointer transition"
+                      style={appointmentTime === timeSlot.time
+                        ? { background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }
+                        : { background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                         <input
                           type="radio"
                           name="time"
@@ -1929,17 +1977,16 @@ export default function IntakePage() {
                         />
                         <div className="flex-1">
                           <div className="flex items-baseline gap-2 mb-1">
-                            <span className="font-semibold text-gray-900 dark:text-white">{timeSlot.time}</span>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                              timeSlot.available_counselors >= 3
-                                ? 'bg-green-100 text-green-800 dark:bg-blue-900 dark:text-green-200'
-                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                            }`}>
+                            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{timeSlot.time}</span>
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                              style={timeSlot.available_counselors >= 3
+                                ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }
+                                : { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' }}>
                               {timeSlot.available_counselors} counselor{timeSlot.available_counselors !== 1 ? 's' : ''} available
                             </span>
                           </div>
                           {timeSlot.counselor_details && timeSlot.counselor_details.length > 0 && (
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                            <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                               <p className="mt-1">Available with:</p>
                               <div className="mt-1 ml-2 space-y-0.5">
                                 {timeSlot.counselor_details.slice(0, 2).map((counselor: any, idx: number) => (
@@ -1956,15 +2003,15 @@ export default function IntakePage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded flex items-center justify-between gap-3">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <div className="p-3 rounded flex items-center justify-between gap-3"
+                    style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+                    <p className="text-sm" style={{ color: 'var(--color-warning-text)' }}>
                       Slots for this date just filled up. Please choose another date.
                     </p>
-                    <button
-                      type="button"
+                    <button type="button"
                       onClick={() => { setAppointmentDate(''); setAvailableTimes([]); fetchAvailableDates(); }}
-                      className="text-xs font-medium text-green-600 dark:text-green-400 hover:underline whitespace-nowrap"
-                    >
+                      className="text-xs font-medium hover:underline whitespace-nowrap"
+                      style={{ color: 'var(--color-primary)' }}>
                       Pick another
                     </button>
                   </div>
@@ -1973,36 +2020,41 @@ export default function IntakePage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">How to Meet</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>How to Meet</label>
               <div className="space-y-2">
                 {[
                   { value: 'zoom', label: 'Zoom Video Call' },
                   { value: 'google_meet', label: 'Google Meet' },
                   { value: 'in_person', label: 'In Person' }
                 ].map(({ value, label }) => (
-                  <label key={value} className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
+                  <label key={value}
+                    className="flex items-center p-3 rounded text-sm cursor-pointer transition"
+                    style={communicationMethod === value
+                      ? { background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }
+                      : { background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                     <input
                       type="radio"
                       name="communication"
                       value={value}
                       checked={communicationMethod === value}
-                      onChange={(e) => setCommunicationMethod(e.target.value as any)}
+                      onChange={(e) => setCommunicationMethod(e.target.value as 'zoom' | 'google_meet' | 'in_person')}
                       className="mr-3 w-4 h-4"
+                      style={{ accentColor: 'var(--color-primary)' }}
                     />
-                    <span className="text-gray-900 dark:text-white">{label}</span>
+                    <span style={{ color: 'var(--color-text-primary)' }}>{label}</span>
                   </label>
                 ))}
               </div>
             </div>
 
-            <label className="flex items-start p-3 border border-gray-300 dark:border-gray-600 rounded text-xs cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
-              <input
-                type="checkbox"
-                checked={consentGiven}
-                onChange={(e) => setConsentGiven(e.target.checked)}
+            <label className="flex items-start p-3 rounded text-xs cursor-pointer transition"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLLabelElement).style.background = 'var(--color-bg)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLLabelElement).style.background = 'var(--color-surface)')}>
+              <input type="checkbox" checked={consentGiven} onChange={(e) => setConsentGiven(e.target.checked)}
                 className="mr-3 mt-0.5 w-4 h-4 flex-shrink-0"
-              />
-              <span className="text-gray-900 dark:text-white">
+                style={{ accentColor: 'var(--color-primary)' }} />
+              <span style={{ color: 'var(--color-text-primary)' }}>
                 I consent to my responses being used for assessment and to be contacted for my appointment. I understand I can call 988 anytime for crisis support.
               </span>
             </label>
@@ -2013,7 +2065,10 @@ export default function IntakePage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setStep('personal_info')}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+                className="flex-1 px-4 py-2 font-medium rounded transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 Back
               </button>
@@ -2027,7 +2082,10 @@ export default function IntakePage() {
                   }
                 }}
                 disabled={!appointmentDate || !appointmentTime || !consentGiven}
-                className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600"
+                className="flex-1 px-4 py-2 text-white font-medium rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+              onMouseLeave={e => { if (!(e.currentTarget as HTMLButtonElement).disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
               >
                 {urgencyLevel === 'RED' ? 'Confirm Assignment' : 'Review & Submit'}
               </button>
@@ -2053,9 +2111,9 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="rounded-lg overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             {/* Header */}
-            <div className="bg-red-700 dark:bg-red-800 text-white p-6 mb-6">
+            <div className="text-white p-6 mb-6" style={{ background: '#B91C1C' }}>
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-4xl">🔴</span>
                 <h1 className="text-2xl font-bold">Priority Alert: Immediate Attention</h1>
@@ -2065,60 +2123,60 @@ export default function IntakePage() {
 
             <div className="px-8 py-6 space-y-6">
               {/* Risk Level Explanation */}
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
-                <h2 className="font-semibold text-red-900 dark:text-red-200 mb-2">Why This Alert?</h2>
-                <p className="text-sm text-red-800 dark:text-red-300">
+              <div className="rounded-lg p-4" style={{ background: '#FEF2F2', border: '1px solid #F87171' }}>
+                <h2 className="font-semibold mb-2" style={{ color: '#991B1B' }}>Why This Alert?</h2>
+                <p className="text-sm" style={{ color: '#B91C1C' }}>
                   Based on your assessment responses, we've identified symptoms that require prompt professional attention. Your intake interview appointment has been marked as high-priority, and you'll be scheduled with one of our available counselors.
                 </p>
               </div>
 
               {/* Appointment Confirmation */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                <h3 className="font-semibold text-green-900 dark:text-green-200 mb-3">Your Appointment Details</h3>
+              <div className="rounded-lg p-4" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+                <h3 className="font-semibold mb-3" style={{ color: 'var(--color-primary-text)' }}>Your Appointment Details</h3>
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">📅 Date</span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>📅 Date</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                       {appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '-'}
                     </span>
                   </div>
                   <div className="flex items-start justify-between">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">⏰ Time</span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">{appointmentTime}</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>⏰ Time</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{appointmentTime}</span>
                   </div>
                   <div className="flex items-start justify-between">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">📞 Method</span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-50 capitalize">{communicationMethod.replace('_', ' ')}</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>📞 Method</span>
+                    <span className="text-sm font-semibold capitalize" style={{ color: 'var(--color-text-primary)' }}>{communicationMethod.replace('_', ' ')}</span>
                   </div>
                 </div>
               </div>
 
               {/* Available Counselors */}
               {selectedTimeSlot && selectedTimeSlot.counselor_details && (
-                <div className="bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-lg p-4">
-                  <h3 className="font-semibold text-green-900 dark:text-green-200 mb-3 flex items-center gap-2">
+                <div className="rounded-lg p-4" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--color-success-text)' }}>
                     <span>👥</span> Available Counselors
                   </h3>
                   <div className="space-y-2">
                     {selectedTimeSlot.counselor_details.map((counselor: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3 p-2 bg-white dark:bg-gray-800 rounded">
-                        <span className="w-8 h-8 flex items-center justify-center bg-green-200 dark:bg-blue-700 rounded-full text-sm font-bold text-green-900 dark:text-green-100">
+                      <div key={idx} className="flex items-center gap-3 p-2 rounded" style={{ background: 'var(--color-surface)' }}>
+                        <span className="w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)' }}>
                           {idx + 1}
                         </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-50">{counselor.counselor_name}</span>
+                        <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{counselor.counselor_name}</span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-green-700 dark:text-green-300 mt-3">
+                  <p className="text-xs mt-3" style={{ color: 'var(--color-success-text)' }}>
                     ✓ A counselor will be assigned to best match your needs
                   </p>
                 </div>
               )}
 
               {/* Important Information */}
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
-                <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-2">📋 Important</h3>
-                <ul className="text-sm text-amber-800 dark:text-amber-300 space-y-1 list-disc list-inside">
+              <div className="rounded-lg p-4" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--color-warning-text)' }}>📋 Important</h3>
+                <ul className="text-sm space-y-1 list-disc list-inside" style={{ color: 'var(--color-warning-text)' }}>
                   <li>If you are in immediate crisis, please call 988 (Suicide & Crisis Lifeline)</li>
                   <li>Your counselor will follow up before your appointment to confirm details</li>
                   <li>You can reschedule if needed by contacting our office</li>
@@ -2126,16 +2184,22 @@ export default function IntakePage() {
               </div>
 
               {/* Confirmation Buttons */}
-              <div className="flex flex-col gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col gap-3 pt-6" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <button
                   onClick={() => setStep('appointment')}
-                  className="w-full px-4 py-2 border border-gray-300 text-gray-900 font-medium rounded hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-750"
+                  className="w-full px-4 py-2 font-medium rounded transition"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', background: 'transparent' }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'transparent')}
                 >
                   ← Go Back
                 </button>
                 <button
                   onClick={() => setStep('review')}
-                  className="w-full px-4 py-3 bg-red-700 hover:bg-red-800 text-white font-semibold rounded transition-colors dark:bg-red-600 dark:hover:bg-red-700 flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 text-white font-semibold rounded transition flex items-center justify-center gap-2"
+                  style={{ background: '#DC2626' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = '#B91C1C'}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = '#DC2626'}
                 >
                   <span>✓</span> Confirm & Proceed
                 </button>
@@ -2160,51 +2224,51 @@ export default function IntakePage() {
         subtitle="Campus Counseling Services"
       >
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="rounded-lg overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             {/* Header */}
-            <div className="bg-emerald-700 dark:bg-emerald-800 text-white p-6 mb-6">
+            <div className="text-white p-6 mb-6" style={{ background: 'var(--color-primary)' }}>
               <h1 className="text-3xl font-bold mb-2">Intake Assessment Form</h1>
-              <p className="text-emerald-50">Please review all information carefully before submitting</p>
+              <p style={{ color: 'rgba(255,255,255,0.8)' }}>Please review all information carefully before submitting</p>
             </div>
 
             <div className="px-8 pb-8">
               {/* Info: PDF Export Available After Submission */}
-              <div className="mb-6 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded">
-                <p className="text-sm text-green-900 dark:text-green-200">
+              <div className="mb-6 p-4 rounded" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+                <p className="text-sm" style={{ color: 'var(--color-success-text)' }}>
                   <span className="font-semibold">📄 After submission:</span> You'll receive an official confirmation document that you can print or download as PDF, and a confirmation email will be sent to you.
                 </p>
               </div>
 
               {/* Personal Information */}
               <div className="mb-8">
-                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                <div className="text-white px-4 py-2 rounded mb-4" style={{ background: 'var(--color-primary)' }}>
                   <h2 className="font-bold text-lg">PERSONAL INFORMATION</h2>
                 </div>
-                <div className="border border-gray-200 dark:border-gray-700 rounded">
+                <div className="rounded" style={{ border: '1px solid var(--color-border)' }}>
                   <div className="grid grid-cols-2 gap-0">
-                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">First Name</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.first_name || '-'}</p>
+                    <div className="p-4" style={{ borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>First Name</p>
+                      <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{personalInfo.first_name || '-'}</p>
                     </div>
-                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Last Name</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.last_name || '-'}</p>
+                    <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Last Name</p>
+                      <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{personalInfo.last_name || '-'}</p>
                     </div>
-                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Birthday</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.birthday || '-'}</p>
+                    <div className="p-4" style={{ borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Birthday</p>
+                      <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{personalInfo.birthday || '-'}</p>
                     </div>
-                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Gender</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.gender || '-'}</p>
+                    <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Gender</p>
+                      <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{personalInfo.gender || '-'}</p>
                     </div>
-                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">ID Number</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.id_number || '-'}</p>
+                    <div className="p-4" style={{ borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>ID Number</p>
+                      <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{personalInfo.id_number || '-'}</p>
                     </div>
-                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Contact Number</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium">{personalInfo.contact_number || '-'}</p>
+                    <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Contact Number</p>
+                      <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{personalInfo.contact_number || '-'}</p>
                     </div>
                   </div>
                 </div>
@@ -2212,34 +2276,34 @@ export default function IntakePage() {
 
               {/* Appointment Details */}
               <div className="mb-8">
-                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                <div className="text-white px-4 py-2 rounded mb-4" style={{ background: 'var(--color-primary)' }}>
                   <h2 className="font-bold text-lg">APPOINTMENT DETAILS</h2>
                 </div>
-                <div className="border border-gray-200 dark:border-gray-700 rounded">
+                <div className="rounded" style={{ border: '1px solid var(--color-border)' }}>
                   <div className="grid grid-cols-2 gap-0">
-                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Scheduled Date</p>
+                    <div className="p-4" style={{ borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Scheduled Date</p>
                       {!appointmentDate ? (
-                        <p className="text-red-600 dark:text-red-400 font-medium">Required: Select a date</p>
+                        <p className="font-medium" style={{ color: 'var(--color-danger)' }}>Required: Select a date</p>
                       ) : (
-                        <p className="text-gray-900 dark:text-gray-50 font-medium">{new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                       )}
                     </div>
-                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Time</p>
+                    <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Time</p>
                       {!appointmentTime ? (
-                        <p className="text-red-600 dark:text-red-400 font-medium">Required: Select a time</p>
+                        <p className="font-medium" style={{ color: 'var(--color-danger)' }}>Required: Select a time</p>
                       ) : (
-                        <p className="text-gray-900 dark:text-gray-50 font-medium">{appointmentTime}</p>
+                        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{appointmentTime}</p>
                       )}
                     </div>
-                    <div className="border-r border-gray-200 dark:border-gray-700 border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Communication Method</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium capitalize">{communicationMethod.replace('_', ' ')}</p>
+                    <div className="p-4" style={{ borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Communication Method</p>
+                      <p className="font-medium capitalize" style={{ color: 'var(--color-text-primary)' }}>{communicationMethod.replace('_', ' ')}</p>
                     </div>
-                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
-                      <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-1">Concern</p>
-                      <p className="text-gray-900 dark:text-gray-50 font-medium">{selectedConcern ? (CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern) : '-'}</p>
+                    <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Concern</p>
+                      <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{selectedConcern ? (CONCERN_TYPES[selectedConcern as keyof typeof CONCERN_TYPES]?.label || selectedConcern) : '-'}</p>
                     </div>
                   </div>
                 </div>
@@ -2248,14 +2312,14 @@ export default function IntakePage() {
               {/* Assessments */}
               {selectedAssessments.length > 0 && (
                 <div className="mb-8">
-                  <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                  <div className="text-white px-4 py-2 rounded mb-4" style={{ background: 'var(--color-primary)' }}>
                     <h2 className="font-bold text-lg">SCREENING ASSESSMENTS COMPLETED</h2>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-gray-50 dark:bg-gray-800">
+                  <div className="rounded p-4" style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
                     <div className="space-y-2">
                       {selectedAssessments.map(assessment => (
-                        <div key={assessment} className="flex items-center gap-2 text-gray-900 dark:text-gray-50">
-                          <span className="text-green-600 dark:text-green-400">✓</span>
+                        <div key={assessment} className="flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+                          <span style={{ color: 'var(--color-success)' }}>✓</span>
                           {ASSESSMENTS[assessment as keyof typeof ASSESSMENTS]?.name || assessment}
                         </div>
                       ))}
@@ -2266,10 +2330,10 @@ export default function IntakePage() {
 
               {/* Important Notes */}
               <div className="mb-8">
-                <div className="bg-emerald-700 dark:bg-emerald-800 text-white px-4 py-2 rounded mb-4">
+                <div className="text-white px-4 py-2 rounded mb-4" style={{ background: 'var(--color-primary)' }}>
                   <h2 className="font-bold text-lg">IMPORTANT NOTES</h2>
                 </div>
-                <ul className="space-y-2 text-gray-700 dark:text-gray-300 list-none">
+                <ul className="space-y-2 list-none" style={{ color: 'var(--color-text-secondary)' }}>
                   <li>• All information provided must be accurate and complete</li>
                   <li>• You will receive a confirmation email with appointment details and PDF document</li>
                   <li>• Contact support at least 24 hours before for rescheduling requests</li>
@@ -2278,7 +2342,7 @@ export default function IntakePage() {
               </div>
 
               {/* Verification Checkbox */}
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-8">
+              <div className="rounded-lg p-4 mb-8" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -2287,22 +2351,21 @@ export default function IntakePage() {
                     className="w-5 h-5 mt-1 rounded"
                   />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-50">I verify that all information is correct</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">I confirm all details are accurate and agree to proceed with this intake submission. <span className="text-red-500 font-semibold">*</span></p>
+                    <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>I verify that all information is correct</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>I confirm all details are accurate and agree to proceed with this intake submission. <span className="font-semibold" style={{ color: 'var(--color-danger)' }}>*</span></p>
                   </div>
                 </label>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex gap-3 pt-6" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <button
                   onClick={handleSubmitIntake}
                   disabled={!consentGiven || isSubmitting}
-                  className={`flex-1 px-6 py-3 rounded font-bold transition ${
-                    !consentGiven || isSubmitting
-                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                      : 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                  }`}
+                  className="flex-1 px-6 py-3 rounded font-bold transition disabled:cursor-not-allowed disabled:opacity-40 text-white"
+                  style={{ background: (!consentGiven || isSubmitting) ? 'var(--color-border-strong)' : 'var(--color-primary)' }}
+                  onMouseEnter={e => { if (consentGiven && !isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+                  onMouseLeave={e => { if (consentGiven && !isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Intake'}
                 </button>
@@ -2310,15 +2373,13 @@ export default function IntakePage() {
                   type="button"
                   onClick={saveDraft}
                   disabled={isSubmitting || draftStatus === 'saving'}
-                  className={`px-6 py-3 rounded font-bold transition ${
-                    isSubmitting || draftStatus === 'saving'
-                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                      : draftStatus === 'saved'
-                      ? 'bg-green-600 text-white'
-                      : draftStatus === 'error'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-amber-600 hover:bg-amber-700 text-white'
-                  }`}
+                  className="px-6 py-3 rounded font-bold transition text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{
+                    background: (isSubmitting || draftStatus === 'saving') ? 'var(--color-border-strong)'
+                      : draftStatus === 'saved' ? 'var(--color-success)'
+                      : draftStatus === 'error' ? 'var(--color-danger)'
+                      : 'var(--color-warning)'
+                  }}
                 >
                   {draftStatus === 'saving' ? 'Saving…' : draftStatus === 'saved' ? '✓ Saved' : draftStatus === 'error' ? 'Save failed' : 'Save for Later'}
                 </button>
@@ -2326,7 +2387,10 @@ export default function IntakePage() {
                   type="button"
                   onClick={() => setStep('appointment')}
                   disabled={isSubmitting}
-                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-bold"
+                  className="px-6 py-3 rounded font-bold transition"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'transparent' }}
+                  onMouseEnter={e => { if (!isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+                  onMouseLeave={e => { if (!isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                 >
                   Back
                 </button>
@@ -2352,34 +2416,34 @@ export default function IntakePage() {
       >
         <div className="max-w-2xl mx-auto">
           {/* Success Header */}
-          <div className="text-center mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Intake Submitted</h1>
-            <p className="text-gray-600 dark:text-gray-400">Your appointment has been scheduled successfully</p>
+          <div className="text-center mb-8 pb-6" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <h1 className="text-2xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>Intake Submitted</h1>
+            <p style={{ color: 'var(--color-text-secondary)' }}>Your appointment has been scheduled successfully</p>
           </div>
 
           {/* Next Steps */}
           <div className="mb-8">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">What happens next</h3>
+            <h3 className="text-sm font-semibold mb-4 uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>What happens next</h3>
             <div className="space-y-3">
               <div className="flex gap-3">
-                <span className="font-semibold text-gray-900 dark:text-white flex-shrink-0">1</span>
+                <span className="font-semibold flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>1</span>
                 <div>
-                  <p className="text-gray-900 dark:text-white font-medium">Check your email</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">You'll receive confirmation with your appointment details</p>
+                  <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Check your email</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>You'll receive confirmation with your appointment details</p>
                 </div>
               </div>
               <div className="flex gap-3">
-                <span className="font-semibold text-gray-900 dark:text-white flex-shrink-0">2</span>
+                <span className="font-semibold flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>2</span>
                 <div>
-                  <p className="text-gray-900 dark:text-white font-medium">Counselor will contact you</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">We'll confirm your appointment time with you</p>
+                  <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Counselor will contact you</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>We'll confirm your appointment time with you</p>
                 </div>
               </div>
               <div className="flex gap-3">
-                <span className="font-semibold text-gray-900 dark:text-white flex-shrink-0">3</span>
+                <span className="font-semibold flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>3</span>
                 <div>
-                  <p className="text-gray-900 dark:text-white font-medium">Join your appointment</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">You'll receive login info for your appointment</p>
+                  <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Join your appointment</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>You'll receive login info for your appointment</p>
                 </div>
               </div>
             </div>
@@ -2403,91 +2467,90 @@ export default function IntakePage() {
           </div>
 
           {/* Appointment Summary */}
-          <div className="mb-8 p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Your Appointment</h3>
+          <div className="mb-8 p-4 rounded" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+            <h3 className="text-sm font-semibold mb-4 uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>Your Appointment</h3>
 
-            
             <div className="space-y-3">
-              {/* Reference ID */}
               {counselingId && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reference ID</p>
-                  <p className="text-sm font-mono text-gray-900 dark:text-white break-all">{counselingId}</p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Reference ID</p>
+                  <p className="text-sm font-mono break-all" style={{ color: 'var(--color-text-primary)' }}>{counselingId}</p>
                 </div>
               )}
-
-              {/* Reason */}
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reason</p>
-                <p className="text-gray-900 dark:text-white font-medium capitalize">{selectedConcern || 'Personal'}</p>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Reason</p>
+                <p className="font-medium capitalize" style={{ color: 'var(--color-text-primary)' }}>{selectedConcern || 'Personal'}</p>
               </div>
-
-              {/* Date */}
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Scheduled Date</p>
-                <p className="text-gray-900 dark:text-white font-medium">
-                  {appointmentData?.appointment_date 
+                <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Scheduled Date</p>
+                <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                  {appointmentData?.appointment_date
                     ? new Date(appointmentData.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Pending'}
                 </p>
               </div>
-
-              {/* Time */}
               {!isUrgent && (appointmentData?.appointment_time || appointmentTime) && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Time</p>
-                  <p className="text-gray-900 dark:text-white font-medium">{appointmentData?.appointment_time || appointmentTime}</p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Time</p>
+                  <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{appointmentData?.appointment_time || appointmentTime}</p>
                 </div>
               )}
-
-              {/* Format */}
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Format</p>
-                <p className="text-gray-900 dark:text-white font-medium capitalize">
+                <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Format</p>
+                <p className="font-medium capitalize" style={{ color: 'var(--color-text-primary)' }}>
                   {appointmentData?.preferred_platform?.replace(/_/g, ' ') || communicationMethod?.replace(/_/g, ' ') || 'Online'}
                 </p>
               </div>
-
               {isUrgent && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Priority</p>
-                  <p className="text-gray-900 dark:text-white font-medium">Urgent - Within 30 minutes</p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Priority</p>
+                  <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Urgent - Within 30 minutes</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Support Resources */}
-          <div className="mb-8 p-4 border border-gray-200 rounded dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Need support?</h3>
+          <div className="mb-8 p-4 rounded" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+            <h3 className="text-sm font-semibold mb-4 uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>Need support?</h3>
             <div className="space-y-2">
-              <a href="tel:988" className="block p-3 border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-750 transition-colors">
-                <p className="text-gray-900 dark:text-white font-medium">Crisis Support: Call 988</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Available 24/7</p>
+              <a href="tel:988" className="block p-3 rounded transition"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-surface)'}>
+                <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Crisis Support: Call 988</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Available 24/7</p>
               </a>
-              <a href="https://suicidepreventionlifeline.org/chat" target="_blank" rel="noopener noreferrer" className="block p-3 border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-750 transition-colors">
-                <p className="text-gray-900 dark:text-white font-medium">Chat Online</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">24/7 crisis chat support</p>
+              <a href="https://suicidepreventionlifeline.org/chat" target="_blank" rel="noopener noreferrer" className="block p-3 rounded transition"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-surface)'}>
+                <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Chat Online</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>24/7 crisis chat support</p>
               </a>
             </div>
           </div>
 
-          {/* Meeting Link if Available */}
           {appointmentData?.join_url && (
-            <a 
-              href={appointmentData.join_url} 
-              target="_blank" 
+            <a
+              href={appointmentData.join_url}
+              target="_blank"
               rel="noopener noreferrer"
-              className="block w-full px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded text-center transition-colors mb-4 dark:bg-gray-700 dark:hover:bg-gray-600"
+              className="block w-full px-4 py-3 text-white font-medium rounded text-center transition mb-4"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-primary-hover)'}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-primary)'}
             >
               Join Meeting
             </a>
           )}
 
-          {/* Return to Dashboard */}
           <Link href="/dashboard">
-            <button className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded transition-colors dark:bg-gray-700 dark:hover:bg-gray-600">
+            <button className="w-full px-4 py-3 text-white font-medium rounded transition"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}>
               Return to Dashboard
             </button>
           </Link>

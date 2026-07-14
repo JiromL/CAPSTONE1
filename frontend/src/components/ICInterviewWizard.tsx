@@ -536,7 +536,7 @@ export function ICInterviewWizard({
 }: ICInterviewWizardProps) {
   const initDraft = () => {
     const base = existingForm ? { ...existingForm } : {};
-    if (!base.type_of_service) base.type_of_service = 'Intake Interview';
+    base.type_of_service = 'Intake Interview';
     if (triageScores && !base.phq9_responses) {
       base.phq9_responses = triageScores.phq9Responses;
       base.phq9_score     = triageScores.phq9Score;
@@ -597,7 +597,7 @@ export function ICInterviewWizard({
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>IC Interview Documentation</h2>
-          <button onClick={() => { setDraft({ ...existingForm }); setEditing(true); setCurrentStep(0); setStepErrors({}); setShowSaveSummary(false); }}
+          <button onClick={() => { setDraft(initDraft()); setEditing(true); setCurrentStep(0); setStepErrors({}); setShowSaveSummary(false); }}
             className="text-sm font-medium hover:underline" style={{ color: 'var(--color-primary-text)' }}>Edit</button>
         </div>
         <ICInterviewReadView form={existingForm} sessionInfo={sessionInfo} updatedAt={updatedAt} />
@@ -610,7 +610,7 @@ export function ICInterviewWizard({
       {existingForm && (
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>IC Interview Documentation</h2>
-          <button onClick={() => { setDraft({ ...existingForm }); setEditing(false); setCurrentStep(0); setStepErrors({}); setShowSaveSummary(false); }}
+          <button onClick={() => { setDraft(initDraft()); setEditing(false); setCurrentStep(0); setStepErrors({}); setShowSaveSummary(false); }}
             className="text-sm hover:underline" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
         </div>
       )}
@@ -676,7 +676,7 @@ export function ICInterviewWizard({
                   Type of Service <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </p>
                 <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
-                  {d.type_of_service}
+                  {d.type_of_service || 'Intake Interview'}
                 </p>
               </div>
               <CheckboxFieldWithOther label="Referral Source" name="referral_source" required

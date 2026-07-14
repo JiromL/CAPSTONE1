@@ -151,7 +151,7 @@ export default function LoginPage() {
             >
               <span className="text-[10px] font-extrabold text-white tracking-tighter select-none">CPS</span>
             </div>
-            <span className="text-xs font-bold text-white/60 uppercase tracking-widest">
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.85)' }}>
               DLSU CPS
             </span>
           </div>
@@ -164,19 +164,19 @@ export default function LoginPage() {
             <h1 className="text-[2.6rem] font-extrabold text-white leading-[1.1] tracking-tight mb-5">
               Your well-being<br />comes first.
             </h1>
-            <p className="text-[0.9375rem] leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <p className="text-[0.9375rem] leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
               A confidential space to connect with licensed counselors and psychologists — on your own terms, at your own pace.
             </p>
 
             {/* Confidentiality indicator */}
             <div
               className="mt-8 flex items-start gap-3 px-4 py-3.5 rounded-xl"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 mt-0.5 flex-shrink-0" stroke="rgba(69,117,240,0.9)" strokeWidth="2">
+              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 mt-0.5 flex-shrink-0" stroke="#7BAAF7" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.72)' }}>
                 Everything you share is{' '}
                 <span className="text-white font-semibold">strictly confidential</span>
                 {' '}and protected under RA 10173.
@@ -187,23 +187,23 @@ export default function LoginPage() {
           {/* Bottom */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 flex-shrink-0" stroke="rgba(239,68,68,0.7)" strokeWidth="2">
+              <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 flex-shrink-0" stroke="#F87171" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 In crisis?{' '}
                 <a
                   href="https://ncmh.gov.ph"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2 font-medium transition-opacity hover:opacity-80"
-                  style={{ color: 'rgba(239,68,68,0.7)' }}
+                  style={{ color: '#F87171' }}
                 >
                   24/7 Philippine Mental Health Hotline
                 </a>
               </span>
             </div>
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
               © {new Date().getFullYear()} De La Salle University Manila
             </p>
           </div>

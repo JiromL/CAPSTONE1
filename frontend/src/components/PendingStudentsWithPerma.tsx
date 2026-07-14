@@ -13,7 +13,7 @@ interface PendingStudent {
 
 type PermaLevel = 'Excelling' | 'Thriving' | 'Surviving' | 'Struggling' | 'In Crisis';
 
-const PERMA_STYLES: Record<PermaLevel, { bg: string; color: string; dot: string }> = {
+export const PERMA_STYLES: Record<PermaLevel, { bg: string; color: string; dot: string }> = {
   'Excelling':  { bg: 'var(--color-success-surface)',  color: 'var(--color-success-text)',  dot: 'var(--color-success)' },
   'Thriving':   { bg: '#F0FDFA', color: '#0F766E', dot: '#14B8A6' },
   'Surviving':  { bg: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', dot: 'var(--color-warning)' },

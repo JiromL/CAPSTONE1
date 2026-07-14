@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import PendingStudentsWithPerma, { PermaBadge, PERMA_CONFIG } from '@/components/PendingStudentsWithPerma';
+import PendingStudentsWithPerma, { PermaBadge, PERMA_STYLES } from '@/components/PendingStudentsWithPerma';
 import { api } from '@/utils/api';
 import {
   Activity, Wifi, WifiOff, RefreshCw, Loader2, Users,
@@ -117,7 +117,7 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
 
   useEffect(() => { load(); }, []);
 
-  const cfg = label ? (PERMA_CONFIG[label] ?? null) : null;
+  const cfg = label ? (PERMA_STYLES[label] ?? null) : null;
 
   return (
     <div className="max-w-lg mx-auto space-y-5">
@@ -325,12 +325,12 @@ function StaffView({ username, onDisconnect }: { username: string; onDisconnect:
                 {LABEL_ORDER.map(label => {
                   const count = dist.distribution[label] ?? 0;
                   const pct = totalLabeled > 0 ? Math.round((count / totalLabeled) * 100) : 0;
-                  const cfg = PERMA_CONFIG[label];
+                  const cfg = PERMA_STYLES[label];
                   return (
                     <div key={label} className="flex items-center gap-3">
                       <div className="w-24 text-right"><PermaBadge label={label} /></div>
                       <div className="flex-1 rounded-full h-2.5 overflow-hidden" style={{ background: 'var(--color-bg)' }}>
-                        <div className={cfg?.dot ?? ''} style={{ width: `${pct}%`, transition: 'width 0.6s ease', height: '100%', borderRadius: '9999px' }} />
+                        <div style={{ width: `${pct}%`, transition: 'width 0.6s ease', height: '100%', borderRadius: '9999px', backgroundColor: cfg?.dot ?? 'var(--color-text-muted)' }} />
                       </div>
                       <span className="w-16 text-right text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                         {count} <span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>({pct}%)</span>

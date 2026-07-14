@@ -119,24 +119,24 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+    <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+      <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
         Create Check-In
       </h3>
 
       {/* Error Message */}
       {error && (
-        <div className="flex gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
-          <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-          <p className="font-medium text-red-900 dark:text-red-200">{error}</p>
+        <div className="flex gap-3 rounded-lg p-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+          <AlertCircle className="flex-shrink-0" size={20} style={{ color: 'var(--color-danger)' }} />
+          <p className="font-medium" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
         </div>
       )}
 
       {/* Success Message */}
       {success && (
-        <div className="flex gap-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-lg p-4">
-          <CheckCircle className="text-green-600 dark:text-green-400 flex-shrink-0" size={20} />
-          <p className="font-medium text-green-900 dark:text-green-200">
+        <div className="flex gap-3 rounded-lg p-4" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+          <CheckCircle className="flex-shrink-0" size={20} style={{ color: 'var(--color-success)' }} />
+          <p className="font-medium" style={{ color: 'var(--color-success-text)' }}>
             Check-in created successfully!
           </p>
         </div>
@@ -145,14 +145,15 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Check-In Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
             Check-In Type <span className="text-red-500">*</span>
           </label>
           <select
             name="check_in_type"
             value={formData.check_in_type}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-3 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           >
             {CHECK_IN_TYPES.map((type) => (
               <option key={type.value} value={type.value}>
@@ -164,14 +165,15 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
 
         {/* Contact Method */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
             Contact Method <span className="text-red-500">*</span>
           </label>
           <select
             name="contact_method"
             value={formData.contact_method}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-3 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           >
             {CONTACT_METHODS.map((method) => (
               <option key={method.value} value={method.value}>
@@ -185,7 +187,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Duration */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
             Duration (minutes)
           </label>
           <input
@@ -195,20 +197,22 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
             onChange={handleChange}
             min="5"
             step="5"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-3 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           />
         </div>
 
         {/* Outcome */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
             Outcome <span className="text-red-500">*</span>
           </label>
           <select
             name="outcome"
             value={formData.outcome}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-3 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           >
             {CHECK_IN_OUTCOMES.map((outcome) => (
               <option key={outcome.value} value={outcome.value}>
@@ -221,7 +225,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-1">
+        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
           Check-In Notes <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -230,13 +234,13 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
           onChange={handleChange}
           rows={4}
           placeholder="Document how the client is doing, any updates, concerns, etc."
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full px-3 py-2 rounded-lg outline-none transition"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
         />
       </div>
 
-      {/* Next Check-In Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-1">
+        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
           Next Check-In Date (Optional)
         </label>
         <input
@@ -244,40 +248,36 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
           name="next_check_in_date"
           value={formData.next_check_in_date || ''}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full px-3 py-2 rounded-lg outline-none transition"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
         />
-        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
           When should the next check-in be scheduled? (Leave blank for 30-day default)
         </p>
       </div>
 
-      {/* Action Items */}
       <div>
-        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-50 mb-3">
+        <h4 className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-primary)' }}>
           Action Items (Optional)
         </h4>
-        
+
         {formData.action_items.length > 0 && (
           <div className="space-y-2 mb-4">
             {formData.action_items.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-start justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700"
-              >
+              <div key={index} className="flex items-start justify-between p-3 rounded-2xl" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
                 <div className="flex-1">
-                  <p className="text-sm text-gray-900 dark:text-gray-50 font-medium">
-                    {item.action}
-                  </p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.action}</p>
                   {item.due_date && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      Due: {new Date(item.due_date).toLocaleDateString()}
-                    </p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>Due: {new Date(item.due_date).toLocaleDateString()}</p>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={() => removeActionItem(index)}
-                  className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium ml-2"
+                  className="text-sm font-medium ml-2"
+                  style={{ color: 'var(--color-danger)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-danger-hover)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-danger)'}
                 >
                   Remove
                 </button>
@@ -290,24 +290,25 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
           <input
             type="text"
             value={newActionItem.action}
-            onChange={(e) =>
-              setNewActionItem({ ...newActionItem, action: e.target.value })
-            }
+            onChange={e => setNewActionItem({ ...newActionItem, action: e.target.value })}
             placeholder="What action needs to be taken?"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-3 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           />
           <input
             type="date"
             value={newActionItem.due_date || ''}
-            onChange={(e) =>
-              setNewActionItem({ ...newActionItem, due_date: e.target.value })
-            }
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            onChange={e => setNewActionItem({ ...newActionItem, due_date: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           />
           <button
             type="button"
             onClick={addActionItem}
-            className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium"
+            className="flex items-center gap-2 text-sm font-medium"
+            style={{ color: 'var(--color-primary)' }}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-primary-hover)'}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-primary)'}
           >
             <Plus size={16} />
             Add Action Item
@@ -315,12 +316,14 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
         </div>
       </div>
 
-      {/* Submit Button */}
       <div className="flex gap-4">
         <button
           type="submit"
           disabled={isLoading}
-          className="flex items-center gap-2 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition"
+          className="flex items-center gap-2 text-white px-6 py-2 rounded-lg font-medium transition disabled:opacity-50"
+          style={{ background: 'var(--color-primary)' }}
+          onMouseEnter={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+          onMouseLeave={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
         >
           {isLoading ? (
             <>
@@ -358,17 +361,17 @@ export function CheckInHistory({ checkIns, isLoading = false }: CheckInHistoryPr
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader size={24} className="animate-spin text-blue-600 dark:text-blue-400" />
+        <Loader size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
       </div>
     );
   }
 
   if (checkIns.length === 0) {
     return (
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-8 text-center">
-        <Calendar className="mx-auto text-gray-400 dark:text-gray-500 mb-3" size={32} />
-        <p className="text-gray-900 dark:text-gray-50 font-medium">No check-ins yet</p>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
+      <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+        <Calendar className="mx-auto mb-3" size={32} style={{ color: 'var(--color-text-muted)' }} />
+        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>No check-ins yet</p>
+        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           Create the first check-in to start tracking interactions
         </p>
       </div>
@@ -380,41 +383,43 @@ export function CheckInHistory({ checkIns, isLoading = false }: CheckInHistoryPr
       {checkIns.map((checkIn, index) => (
         <div
           key={index}
-          className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-4 hover:shadow-md transition"
+          className="rounded-2xl p-4 transition"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
         >
           <div className="flex items-start justify-between mb-3">
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-gray-50">
+              <h4 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 {CHECK_IN_TYPES.find((t) => t.value === checkIn.check_in_type)
                   ?.label || checkIn.check_in_type}
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                 {new Date(checkIn.created_at).toLocaleDateString()} •{' '}
                 {CONTACT_METHODS.find((m) => m.value === checkIn.contact_method)
                   ?.label || checkIn.contact_method}
               </p>
             </div>
             <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
+              className="px-3 py-1 rounded-full text-xs font-medium"
+              style={
                 checkIn.outcome === 'RESOLVED'
-                  ? 'bg-green-100 dark:bg-blue-900/30 text-green-800 dark:text-green-300'
+                  ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }
                   : checkIn.outcome === 'REFERRED'
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                  ? { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' }
                   : checkIn.outcome === 'NEEDS_FOLLOWUP'
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
-              }`}
+                  ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' }
+                  : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }
+              }
             >
               {CHECK_IN_OUTCOMES.find((o) => o.value === checkIn.outcome)
                 ?.label || checkIn.outcome}
             </span>
           </div>
 
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+          <p className="text-sm mb-2" style={{ color: 'var(--color-text-primary)' }}>
             {checkIn.notes}
           </p>
 
-          <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
             {checkIn.duration_minutes && (
               <div className="flex items-center gap-1">
                 <Clock size={14} />
@@ -453,16 +458,16 @@ export function PendingCheckIns({ checkIns, isLoading = false }: PendingCheckIns
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader size={24} className="animate-spin text-[#2563eb] dark:text-blue-400" />
+        <Loader size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
       </div>
     );
   }
 
   if (checkIns.length === 0) {
     return (
-      <div className="bg-green-50 dark:bg-blue-900/20 rounded-lg border border-green-200 dark:border-blue-700 p-8 text-center">
-        <CheckCircle className="mx-auto text-green-600 dark:text-green-400 mb-3" size={32} />
-        <p className="text-green-900 dark:text-green-200 font-medium">
+      <div className="rounded-lg p-8 text-center" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+        <CheckCircle className="mx-auto mb-3" size={32} style={{ color: 'var(--color-success)' }} />
+        <p className="font-medium" style={{ color: 'var(--color-success-text)' }}>
           All check-ins up to date!
         </p>
       </div>
@@ -474,34 +479,37 @@ export function PendingCheckIns({ checkIns, isLoading = false }: PendingCheckIns
       {checkIns.map((checkIn, index) => (
         <div
           key={index}
-          className={`p-4 rounded-lg border transition ${
+          className="p-4 rounded-lg border transition"
+          style={
             checkIn.is_overdue
-              ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
-              : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
-          }`}
+              ? { background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }
+              : { background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }
+          }
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-gray-50">
+              <h4 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 {checkIn.student_name || `Case ${checkIn.case_id}`}
               </h4>
               <p
-                className={`text-sm mt-1 ${
-                  checkIn.is_overdue
-                    ? 'text-red-700 dark:text-red-300'
-                    : 'text-yellow-700 dark:text-yellow-300'
-                }`}
+                className="text-sm mt-1"
+                style={{ color: checkIn.is_overdue ? 'var(--color-danger-text)' : 'var(--color-warning-text)' }}
               >
                 {checkIn.is_overdue ? '⚠️ OVERDUE' : '⏰ DUE SOON'}:{' '}
                 {checkIn.days_since_last} days since last check-in
               </p>
               {checkIn.next_check_in_date && (
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
                   Scheduled: {new Date(checkIn.next_check_in_date).toLocaleDateString()}
                 </p>
               )}
             </div>
-            <button className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white px-3 py-1 rounded text-sm font-medium transition">
+            <button
+              className="text-white px-3 py-1 rounded text-sm font-medium transition"
+              style={{ background: 'var(--color-primary)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}
+            >
               Check In
             </button>
           </div>

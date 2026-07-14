@@ -44,16 +44,16 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-24 rounded"></div>
-        <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-32 rounded"></div>
+        <div className="animate-pulse h-24 rounded" style={{ background: 'var(--color-border)' }}></div>
+        <div className="animate-pulse h-32 rounded" style={{ background: 'var(--color-border)' }}></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-        <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+      <div className="rounded-lg p-4" style={{ border: '1px solid var(--color-danger)', background: 'var(--color-danger-surface)' }}>
+        <p className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
       </div>
     );
   }
@@ -66,20 +66,20 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
     <div className="space-y-6">
       {/* Alerts Section */}
       {dashboardData.alerts && dashboardData.alerts.length > 0 && (
-        <div className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+        <div className="rounded-lg p-4" style={{ border: '1px solid var(--color-danger)', background: 'var(--color-danger-surface)' }}>
           <div className="flex items-center gap-2 mb-3">
-            <AlertCircle size={18} className="text-red-600 dark:text-red-400" />
-            <h3 className="font-semibold text-red-900 dark:text-red-200">
+            <AlertCircle size={18} style={{ color: 'var(--color-danger)' }} />
+            <h3 className="font-semibold" style={{ color: 'var(--color-danger-text)' }}>
               {dashboardData.alerts.length} High-Risk Alert{dashboardData.alerts.length !== 1 ? 's' : ''}
             </h3>
           </div>
           <div className="space-y-2">
             {dashboardData.alerts.slice(0, 5).map((alert: any, idx: number) => (
               <div key={idx} className="flex items-center justify-between text-sm">
-                <span className="text-red-800 dark:text-red-300">
+                <span style={{ color: 'var(--color-danger-text)' }}>
                   {getRiskLevelIcon(alert.risk_level)} Case {alert.counseling_id}
                 </span>
-                <span className="font-mono text-xs text-red-700 dark:text-red-400">
+                <span className="font-mono text-xs" style={{ color: 'var(--color-danger)' }}>
                   {alert.risk_level}
                 </span>
               </div>
@@ -93,9 +93,9 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {userRole === 'STUDENT' && (
             <>
-              <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Intakes</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Total Intakes</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                   {dashboardData.summary.total_intakes || 0}
                 </p>
               </div>
@@ -104,21 +104,21 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
 
           {userRole === 'COUNSELOR' && (
             <>
-              <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Assigned Cases</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Assigned Cases</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                   {dashboardData.summary.assigned_cases || 0}
                 </p>
               </div>
-              <div className="border border-orange-200 dark:border-orange-800 rounded p-4 bg-orange-50 dark:bg-orange-900/20">
-                <p className="text-xs text-orange-600 dark:text-orange-400 mb-1">High-Risk Alerts</p>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+              <div className="rounded p-4" style={{ border: '1px solid #F97316', background: '#FFF7ED' }}>
+                <p className="text-xs mb-1" style={{ color: '#C2410C' }}>High-Risk Alerts</p>
+                <p className="text-2xl font-bold" style={{ color: '#9A3412' }}>
                   {dashboardData.summary.high_risk_alerts || 0}
                 </p>
               </div>
-              <div className="border border-blue-200 dark:border-blue-800 rounded p-4 bg-blue-50 dark:bg-blue-900/20">
-                <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Recent Assessments</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-info)', background: 'var(--color-info-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-info-text)' }}>Recent Assessments</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-info-text)' }}>
                   {dashboardData.summary.recent_assessments || 0}
                 </p>
               </div>
@@ -127,21 +127,21 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
 
           {userRole === 'PSYCHOLOGIST' && (
             <>
-              <div className="border border-red-200 dark:border-red-800 rounded p-4 bg-red-50 dark:bg-red-900/20">
-                <p className="text-xs text-red-600 dark:text-red-400 mb-1">Critical Cases</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-danger)', background: 'var(--color-danger-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-danger-text)' }}>Critical Cases</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-danger-text)' }}>
                   {dashboardData.summary.critical_cases || 0}
                 </p>
               </div>
-              <div className="border border-orange-200 dark:border-orange-800 rounded p-4 bg-orange-50 dark:bg-orange-900/20">
-                <p className="text-xs text-orange-600 dark:text-orange-400 mb-1">High-Risk Cases</p>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+              <div className="rounded p-4" style={{ border: '1px solid #F97316', background: '#FFF7ED' }}>
+                <p className="text-xs mb-1" style={{ color: '#C2410C' }}>High-Risk Cases</p>
+                <p className="text-2xl font-bold" style={{ color: '#9A3412' }}>
                   {dashboardData.summary.high_risk_cases || 0}
                 </p>
               </div>
-              <div className="border border-blue-200 dark:border-blue-800 rounded p-4 bg-blue-50 dark:bg-blue-900/20">
-                <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Total Reviewed</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-info)', background: 'var(--color-info-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-info-text)' }}>Total Reviewed</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-info-text)' }}>
                   {dashboardData.summary.total_reviewed || 0}
                 </p>
               </div>
@@ -150,21 +150,21 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
 
           {userRole === 'IC' && (
             <>
-              <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Intakes</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Total Intakes</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                   {dashboardData.summary.total_intakes || 0}
                 </p>
               </div>
-              <div className="border border-red-200 dark:border-red-800 rounded p-4 bg-red-50 dark:bg-red-900/20">
-                <p className="text-xs text-red-600 dark:text-red-400 mb-1">Emergency Cases</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-danger)', background: 'var(--color-danger-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-danger-text)' }}>Emergency Cases</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-danger-text)' }}>
                   {dashboardData.summary.emergency_count || 0}
                 </p>
               </div>
-              <div className="border border-purple-200 dark:border-purple-800 rounded p-4 bg-purple-50 dark:bg-purple-900/20">
-                <p className="text-xs text-purple-600 dark:text-purple-400 mb-1">Anonymous</p>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+              <div className="rounded p-4" style={{ border: '1px solid #D8B4FE', background: '#FAF5FF' }}>
+                <p className="text-xs mb-1" style={{ color: '#7C3AED' }}>Anonymous</p>
+                <p className="text-2xl font-bold" style={{ color: '#6B21A8' }}>
                   {dashboardData.summary.anonymous_count || 0}
                 </p>
               </div>
@@ -173,20 +173,20 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
 
           {['ADMIN', 'DPO', 'CASE_MANAGER'].includes(userRole) && (
             <>
-              <div className="border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-900">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Intakes</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Total Intakes</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                   {dashboardData.summary.total_intakes || 0}
                 </p>
               </div>
-              <div className="border border-red-200 dark:border-red-800 rounded p-4 bg-red-50 dark:bg-red-900/20">
-                <p className="text-xs text-red-600 dark:text-red-400 mb-1">Critical Alerts</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">
+              <div className="rounded p-4" style={{ border: '1px solid var(--color-danger)', background: 'var(--color-danger-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-danger-text)' }}>Critical Alerts</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-danger-text)' }}>
                   {dashboardData.summary.critical_alerts || 0}
                 </p>
               </div>
-              <div className="border border-green-200 dark:border-blue-800 rounded p-4 bg-green-50 dark:bg-blue-900/20 col-span-2">
-                <p className="text-xs text-green-600 dark:text-green-400 mb-1">Risk Distribution</p>
+              <div className="rounded p-4 col-span-2" style={{ border: '1px solid var(--color-success)', background: 'var(--color-success-surface)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--color-success-text)' }}>Risk Distribution</p>
                 <div className="flex gap-2 text-sm">
                   <span className="font-semibold">🟢 {dashboardData.summary.risk_distribution?.GREEN || 0}</span>
                   <span className="font-semibold">🟡 {dashboardData.summary.risk_distribution?.YELLOW || 0}</span>
@@ -201,39 +201,44 @@ export function AssessmentDashboard({ token, userRole }: AssessmentDashboardProp
 
       {/* Recent Cases */}
       {dashboardData.recent_cases && dashboardData.recent_cases.length > 0 && (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-50">Recent Cases</h3>
+        <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+          <div className="p-4" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+            <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Recent Cases</h3>
           </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div style={{ background: 'var(--color-surface)' }}>
             {dashboardData.recent_cases.slice(0, 10).map((caseItem: any, idx: number) => (
-              <div key={idx} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+              <div
+                key={idx}
+                className="p-4 transition"
+                style={{ borderTop: idx > 0 ? '1px solid var(--color-border)' : undefined }}
+                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--color-surface)'}
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                      <span className="text-sm font-mono" style={{ color: 'var(--color-text-secondary)' }}>
                         {caseItem.counseling_id}
                       </span>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full font-medium ${getRiskLevelColor(
-                          caseItem.risk_level
-                        )}`}
+                        className="text-xs px-2 py-1 rounded-full font-medium"
+                        style={getRiskLevelColor(caseItem.risk_level)}
                       >
                         {getRiskLevelIcon(caseItem.risk_level)} {caseItem.risk_level}
                       </span>
                     </div>
                     {caseItem.purpose && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
                         Concern: {caseItem.purpose}
                       </p>
                     )}
                     {caseItem.submitted_at && (
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                         {formatDateTime(caseItem.submitted_at)}
                       </p>
                     )}
                     {caseItem.is_emergency && (
-                      <p className="text-xs text-red-600 dark:text-red-400 font-semibold mt-1">
+                      <p className="text-xs font-semibold mt-1" style={{ color: 'var(--color-danger)' }}>
                         🚨 Emergency Case
                       </p>
                     )}

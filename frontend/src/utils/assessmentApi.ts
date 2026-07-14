@@ -2,6 +2,7 @@
  * Assessment API Integration - Role-based data fetching
  * Efficient queries for dashboard data from backend endpoints
  */
+import type React from 'react';
 
 import { api } from './api';
 
@@ -197,18 +198,18 @@ export function formatDateTime(isoString: string | null | undefined): string {
 /**
  * Get risk level badge color
  */
-export function getRiskLevelColor(level: string): string {
+export function getRiskLevelColor(level: string): React.CSSProperties {
   switch (level) {
     case 'CRITICAL':
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return { background: '#FEF2F2', color: '#991B1B' };
     case 'RED':
-      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+      return { background: '#FFF7ED', color: '#9A3412' };
     case 'YELLOW':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      return { background: '#FFFBEB', color: '#92400E' };
     case 'GREEN':
-      return 'bg-green-100 text-blue-800 dark:bg-blue-900 dark:text-green-200';
+      return { background: '#ECFDF5', color: '#065F46' };
     default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      return { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' };
   }
 }
 

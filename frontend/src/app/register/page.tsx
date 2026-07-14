@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import PageShell from '@/components/PageShell'
 import { api } from '@/utils/api';
 
-const INPUT_CLS = "w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+const IC = 'w-full px-3.5 py-2.5 text-sm rounded-lg outline-none transition';
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 function passwordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -14,11 +15,11 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   const levels = [
-    { label: '', color: 'bg-gray-200' },
-    { label: 'Weak', color: 'bg-red-400' },
-    { label: 'Fair', color: 'bg-amber-400' },
-    { label: 'Good', color: 'bg-yellow-400' },
-    { label: 'Strong', color: 'bg-green-500' },
+    { label: '',       color: '#E5E7EB' },
+    { label: 'Weak',   color: '#F87171' },
+    { label: 'Fair',   color: '#FBBF24' },
+    { label: 'Good',   color: '#FACC15' },
+    { label: 'Strong', color: '#22C55E' },
   ];
   return { score, ...levels[score] };
 }
@@ -38,12 +39,9 @@ export default function RegisterPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (form.password !== confirm) { setError('Passwords do not match.'); return; }
-    if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (form.password.length < 8)  { setError('Password must be at least 8 characters.'); return; }
     if (!form.email.endsWith('@dlsu.edu.ph')) { setError('Only @dlsu.edu.ph email addresses are allowed.'); return; }
-    setError('')
-    setMsg('')
-    setLoading(true)
-
+    setError(''); setMsg(''); setLoading(true)
     try {
       const res = await fetch(api('/api/auth/register'), {
         method: 'POST',
@@ -51,16 +49,9 @@ export default function RegisterPage() {
         body: JSON.stringify(form),
       })
       const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Registration failed')
-        setLoading(false)
-        return
-      }
-
+      if (!res.ok) { setError(data.error || 'Registration failed'); setLoading(false); return; }
       setMsg('Account created! Check your email to verify your account.')
       router.push(`/verify-email?email=${encodeURIComponent(form.email)}&user_id=${data.user_id}`)
-
     } catch {
       setError('Network error. Please try again.')
       setLoading(false)
@@ -69,12 +60,12 @@ export default function RegisterPage() {
 
   return (
     <PageShell title="Register" subtitle="Create a CPS account" hideNav>
-      <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-xl shadow dark:shadow-gray-800 p-6">
-        <h1 className="text-2xl font-bold mb-1 text-gray-900 dark:text-gray-50">Create your account</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">DLSU Counseling & Psychological Services</p>
+      <div className="max-w-md mx-auto rounded-xl p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-card)' }}>
+        <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>Create your account</h1>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-text-secondary)' }}>DLSU Counseling & Psychological Services</p>
 
-        <div className="mb-5 px-3.5 py-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
+        <div className="mb-5 px-3.5 py-3 rounded-lg" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-primary-text)' }}>
             Only <strong>@dlsu.edu.ph</strong> email addresses are permitted.
           </p>
         </div>
@@ -82,31 +73,34 @@ export default function RegisterPage() {
         <form onSubmit={submit} className="space-y-3.5">
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">First name</label>
-              <input className={INPUT_CLS} placeholder="Juan" value={form.first_name}
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>First name</label>
+              <input className={IC} style={ICS} placeholder="Juan" value={form.first_name}
                 onChange={e => setForm({ ...form, first_name: e.target.value })} required />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Last name</label>
-              <input className={INPUT_CLS} placeholder="dela Cruz" value={form.last_name}
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Last name</label>
+              <input className={IC} style={ICS} placeholder="dela Cruz" value={form.last_name}
                 onChange={e => setForm({ ...form, last_name: e.target.value })} required />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">DLSU Email</label>
-            <input className={INPUT_CLS} placeholder="you@dlsu.edu.ph" type="email"
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>DLSU Email</label>
+            <input className={IC} style={ICS} placeholder="you@dlsu.edu.ph" type="email"
               value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required autoComplete="email" />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Password</label>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Password</label>
             <div className="relative">
-              <input className={INPUT_CLS + ' pr-10'} type={showPw ? 'text' : 'password'}
+              <input className={IC + ' pr-10'} style={ICS} type={showPw ? 'text' : 'password'}
                 placeholder="At least 8 characters" value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })} required autoComplete="new-password" />
               <button type="button" onClick={() => setShowPw(p => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs transition"
+                style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
                 {showPw ? 'Hide' : 'Show'}
               </button>
             </div>
@@ -114,42 +108,47 @@ export default function RegisterPage() {
               <div className="mt-1.5 flex items-center gap-2">
                 <div className="flex gap-0.5 flex-1">
                   {[1,2,3,4].map(i => (
-                    <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= pwStrength.score ? pwStrength.color : 'bg-gray-200 dark:bg-gray-700'}`} />
+                    <div key={i} className="h-1 flex-1 rounded-full transition-colors"
+                      style={{ background: i <= pwStrength.score ? pwStrength.color : 'var(--color-border)' }} />
                   ))}
                 </div>
-                <span className="text-xs text-gray-400">{pwStrength.label}</span>
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{pwStrength.label}</span>
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Confirm password</label>
-            <input className={INPUT_CLS + (pwMismatch ? ' border-red-400 focus:ring-red-400' : '')}
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Confirm password</label>
+            <input className={IC}
+              style={pwMismatch ? { ...ICS, border: '1px solid var(--color-danger)' } : ICS}
               type={showPw ? 'text' : 'password'} placeholder="Re-enter password"
               value={confirm} onChange={e => setConfirm(e.target.value)} required autoComplete="new-password" />
-            {pwMismatch && <p className="text-xs text-red-500 mt-1">Passwords do not match.</p>}
+            {pwMismatch && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>Passwords do not match.</p>}
           </div>
 
           {error && (
-            <div className="px-3.5 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+            <div className="px-3.5 py-3 rounded-lg text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger-text)' }}>
               {error}
             </div>
           )}
 
-          <button
-            className="w-full py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          <button className="w-full py-2.5 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: 'var(--color-primary)' }}
             type="submit" disabled={loading || pwMismatch}
-          >
+            onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+            onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}>
             {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
-        {msg && <p className="mt-4 text-sm text-blue-700 dark:text-blue-400">{msg}</p>}
+        {msg && <p className="mt-4 text-sm" style={{ color: 'var(--color-primary-text)' }}>{msg}</p>}
 
-        <div className="mt-5 border-t border-gray-200 dark:border-gray-700 pt-4 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Prefer Google? <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">Use Google Sign-In on the login page</a></p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
-            Already have an account? <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">Sign in</a>
+        <div className="mt-5 pt-4 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>
+            Prefer Google? <a href="/login" className="hover:underline" style={{ color: 'var(--color-primary)' }}>Use Google Sign-In on the login page</a>
+          </p>
+          <p className="text-sm mt-3" style={{ color: 'var(--color-text-secondary)' }}>
+            Already have an account? <a href="/login" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>Sign in</a>
           </p>
         </div>
       </div>

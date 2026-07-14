@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { Calendar, Edit, Save, X, AlertCircle, Check } from 'lucide-react';
+import { Calendar, Edit, Save, X, AlertCircle } from 'lucide-react';
 import { api } from '@/utils/api';
 
 interface CheckInClient {
@@ -26,6 +26,20 @@ const FREQUENCY_OPTIONS = [
   { value: 90, label: 'Quarterly' },
 ];
 
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+
+// Status badge styles — semantic
+const STATUS_STYLE: Record<string, React.CSSProperties> = {
+  active:  { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' },
+  overdue: { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' },
+  paused:  { background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' },
+};
+const CARD_STYLE: Record<string, React.CSSProperties> = {
+  active:  { background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' },
+  overdue: { background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' },
+  paused:  { background: 'var(--color-surface)', border: '1px solid var(--color-border)' },
+};
+
 export default function CheckInManagementPage() {
   const [clients, setClients] = useState<CheckInClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,34 +50,21 @@ export default function CheckInManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'overdue' | 'paused'>('all');
 
-  useEffect(() => {
-    loadClients();
-  }, []);
+  useEffect(() => { loadClients(); }, []);
 
   const loadClients = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No authentication token found');
-        setLoading(false);
-        return;
-      }
-
+      if (!token) { setError('No authentication token found'); setLoading(false); return; }
       const response = await fetch(api('/api/cases/check-in-clients'), {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch check-in clients: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Failed to fetch check-in clients: ${response.status}`);
       const data = await response.json();
       setClients(Array.isArray(data.clients) ? data.clients : []);
       setError(null);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load check-in clients';
-      console.error('Error loading clients:', err);
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to load check-in clients');
     } finally {
       setLoading(false);
     }
@@ -75,49 +76,37 @@ export default function CheckInManagementPage() {
       const token = localStorage.getItem('token');
       const response = await fetch(api(`/api/cases/${clientId}/check-in-frequency`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ check_in_frequency_days: editFrequency }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update frequency');
-      }
-
+      if (!response.ok) throw new Error('Failed to update frequency');
       await loadClients();
       setEditingId(null);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update frequency';
-      console.error('Error saving frequency:', err);
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to update frequency');
     } finally {
       setActionLoading(false);
     }
   };
 
   const filteredClients = clients.filter(client => {
-    const matchSearch = 
+    const matchSearch =
       client.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.student_email?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchStatus = filterStatus === 'all' || client.status === filterStatus;
-    
-    return matchSearch && matchStatus;
+    return matchSearch && (filterStatus === 'all' || client.status === filterStatus);
   });
 
   const statusCounts = {
-    active: clients.filter(c => c.status === 'active').length,
+    active:  clients.filter(c => c.status === 'active').length,
     overdue: clients.filter(c => c.status === 'overdue').length,
-    paused: clients.filter(c => c.status === 'paused').length,
+    paused:  clients.filter(c => c.status === 'paused').length,
   };
 
   if (loading) {
     return (
       <DashboardPageWrapper title="Check-In Management" subtitle="Configure check-in frequencies for non-counseling clients">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12" style={{ borderWidth: 2, borderStyle: 'solid', borderColor: 'transparent', borderBottomColor: 'var(--color-primary)' }} />
         </div>
       </DashboardPageWrapper>
     );
@@ -127,49 +116,40 @@ export default function CheckInManagementPage() {
     <DashboardPageWrapper title="Check-In Management" subtitle={`${clients.length} client${clients.length !== 1 ? 's' : ''} in system`}>
       <div className="space-y-6">
         {error && (
-          <div className="border border-red-200 bg-red-50 dark:bg-red-900/30 rounded p-4 flex gap-2">
-            <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="rounded p-4 flex gap-2" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle className="flex-shrink-0" size={20} style={{ color: 'var(--color-danger)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
           </div>
         )}
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="border border-green-200 dark:border-blue-800 bg-green-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <p className="text-xs text-green-600 dark:text-green-400">Active Clients</p>
-            <p className="text-2xl font-bold text-green-900 dark:text-green-100">{statusCounts.active}</p>
+          <div className="rounded-lg p-4" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-success-text)' }}>Active Clients</p>
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{statusCounts.active}</p>
           </div>
-          <div className="border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-            <p className="text-xs text-yellow-600 dark:text-yellow-400">Overdue Check-Ins</p>
-            <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{statusCounts.overdue}</p>
+          <div className="rounded-lg p-4" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}>Overdue Check-Ins</p>
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{statusCounts.overdue}</p>
           </div>
-          <div className="border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4">
-            <p className="text-xs text-gray-600 dark:text-gray-400">Paused</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.paused}</p>
+          <div className="rounded-lg p-4" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Paused</p>
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{statusCounts.paused}</p>
           </div>
         </div>
 
         {/* Search & Filter */}
         <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400"
-          />
-          
+          <input type="text" placeholder="Search by name or email..."
+            value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 text-sm rounded-lg outline-none" style={ICS} />
           <div className="flex gap-2">
             {(['all', 'active', 'overdue', 'paused'] as const).map(status => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1 text-xs font-medium rounded transition ${
-                  filterStatus === status
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                }`}
-              >
+              <button key={status} onClick={() => setFilterStatus(status)}
+                className="px-3 py-1 text-xs font-medium rounded transition"
+                style={filterStatus === status
+                  ? { background: 'var(--color-primary)', color: '#fff' }
+                  : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
                 {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
             ))}
@@ -179,50 +159,33 @@ export default function CheckInManagementPage() {
         {/* Clients List */}
         {filteredClients.length === 0 ? (
           <div className="text-center py-12">
-            <Calendar className="mx-auto mb-3 text-gray-400" size={40} />
-            <p className="text-gray-500 dark:text-gray-400 mb-1">No clients found</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Check-in clients will appear here</p>
+            <Calendar className="mx-auto mb-3" size={40} style={{ color: 'var(--color-text-muted)' }} />
+            <p className="mb-1" style={{ color: 'var(--color-text-secondary)' }}>No clients found</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Check-in clients will appear here</p>
           </div>
         ) : (
           <div className="space-y-2">
             {filteredClients.map(client => (
-              <div
-                key={client._id}
-                className={`border rounded-lg p-4 transition ${
-                  client.status === 'overdue'
-                    ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20'
-                    : client.status === 'active'
-                    ? 'border-green-200 dark:border-blue-800 bg-green-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
-                }`}
-              >
+              <div key={client._id} className="rounded-lg p-4 transition" style={CARD_STYLE[client.status]}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-50">{client.student_name}</h3>
-                      <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                        client.status === 'overdue'
-                          ? 'bg-yellow-200 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-100'
-                          : client.status === 'active'
-                          ? 'bg-green-200 dark:bg-blue-700 text-green-900 dark:text-blue-100'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                      }`}>
+                      <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{client.student_name}</h3>
+                      <span className="px-2 py-1 text-xs font-semibold rounded" style={STATUS_STYLE[client.status]}>
                         {client.status.toUpperCase()}
                       </span>
                     </div>
-                    
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{client.student_email}</p>
-                    
+                    <p className="text-xs mb-3" style={{ color: 'var(--color-text-secondary)' }}>{client.student_email}</p>
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
-                        <p className="text-gray-500 dark:text-gray-500">Last Check-In</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-50">
+                        <p style={{ color: 'var(--color-text-muted)' }}>Last Check-In</p>
+                        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
                           {client.last_check_in ? new Date(client.last_check_in).toLocaleDateString() : 'Never'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 dark:text-gray-500">Next Due</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-50">
+                        <p style={{ color: 'var(--color-text-muted)' }}>Next Due</p>
+                        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
                           {client.next_check_in_due ? new Date(client.next_check_in_due).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
@@ -232,47 +195,37 @@ export default function CheckInManagementPage() {
                   <div className="text-right space-y-2">
                     {editingId === client._id ? (
                       <div className="space-y-2">
-                        <select
-                          value={editFrequency}
-                          onChange={(e) => setEditFrequency(parseInt(e.target.value))}
-                          className="w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 text-sm"
-                        >
+                        <select value={editFrequency} onChange={e => setEditFrequency(parseInt(e.target.value))}
+                          className="w-40 px-3 py-2 text-sm rounded outline-none" style={ICS}>
                           {FREQUENCY_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleSaveFrequency(client._id)}
-                            disabled={actionLoading}
-                            className="flex-1 px-3 py-1 rounded text-xs font-medium bg-green-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            <Save size={14} className="inline mr-1" />
-                            Save
+                          <button onClick={() => handleSaveFrequency(client._id)} disabled={actionLoading}
+                            className="flex-1 px-3 py-1 rounded text-xs font-medium text-white transition disabled:opacity-50"
+                            style={{ background: 'var(--color-success)' }}>
+                            <Save size={14} className="inline mr-1" /> Save
                           </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="flex-1 px-3 py-1 rounded text-xs font-medium bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-400 dark:hover:bg-gray-500"
-                          >
-                            <X size={14} className="inline mr-1" />
-                            Cancel
+                          <button onClick={() => setEditingId(null)}
+                            className="flex-1 px-3 py-1 rounded text-xs font-medium transition"
+                            style={{ background: 'var(--color-border)', color: 'var(--color-text-primary)' }}>
+                            <X size={14} className="inline mr-1" /> Cancel
                           </button>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                           Every {client.check_in_frequency_days} days
                         </p>
                         <button
-                          onClick={() => {
-                            setEditingId(client._id);
-                            setEditFrequency(client.check_in_frequency_days);
-                          }}
-                          className="w-full px-3 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-700 text-blue-900 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-600"
-                        >
-                          <Edit size={14} className="inline mr-1" />
-                          Update
+                          onClick={() => { setEditingId(client._id); setEditFrequency(client.check_in_frequency_days); }}
+                          className="w-full px-3 py-1 rounded text-xs font-medium transition"
+                          style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                          <Edit size={14} className="inline mr-1" /> Update
                         </button>
                       </>
                     )}

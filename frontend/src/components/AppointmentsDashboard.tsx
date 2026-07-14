@@ -1859,13 +1859,13 @@ export default function AppointmentsDashboard() {
       {/* ── Intake Forms Modal (IC) ─────────────────────────────────────── */}
       {formsTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div className="flex items-center gap-3">
                 <FileText size={16} className="text-gray-500" />
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Intake Forms — {formsTarget.student_name}</h3>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Intake Forms — {formsTarget.student_name}</h3>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                     {formsPacket ? `Submitted by ${formsPacket.submitted_by_role === 'ic' ? 'IC during interview' : formsPacket.submitted_by_role === 'oa' ? 'Office Assistant' : 'student online'}` : 'No forms submitted yet'}
                   </p>
                 </div>
@@ -1873,12 +1873,17 @@ export default function AppointmentsDashboard() {
               <div className="flex items-center gap-2">
                 {formsPacket && !formsEditing && (
                   <button onClick={() => setFormsEditing(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition"
+                    style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
                     <Pencil size={11} /> Edit
                   </button>
                 )}
                 <button onClick={() => { setFormsTarget(null); setFormsEditing(false); }}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+                  className="p-2 rounded-lg transition"
+                  onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
                   <X size={14} className="text-gray-400" />
                 </button>
               </div>
@@ -1907,11 +1912,11 @@ export default function AppointmentsDashboard() {
                             ['Referral', formsPacket.icf.referral_source || '—'],
                             ['Emergency Contact', [formsPacket.icf.emergency_contact_name, formsPacket.icf.emergency_contact_relationship, formsPacket.icf.emergency_contact_phone].filter(Boolean).join(' · ') || '—'],
                           ].map(([k,v]) => (
-                            <div key={k as string}><span className="text-gray-400 text-xs">{k}:</span> <span className="font-medium text-gray-800 dark:text-gray-200">{v}</span></div>
+                            <div key={k as string}><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{k}:</span> <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{v}</span></div>
                           ))}
-                          <div className="col-span-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl mt-1">
-                            <p className="text-xs text-gray-400 mb-1">Presenting Concern</p>
-                            <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">{formsPacket.icf.presenting_concern || '—'}</p>
+                          <div className="col-span-2 p-3 rounded-xl mt-1" style={{ background: 'var(--color-bg)' }}>
+<p className="text-xs text-gray-400 mb-1">Presenting Concern</p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{formsPacket.icf.presenting_concern || '—'}</p>
                           </div>
                         </div>
                       </div>
@@ -1931,7 +1936,7 @@ export default function AppointmentsDashboard() {
                             ['Prev. Counseling', formsPacket.spif.previous_counseling ? 'Yes' : 'No'],
                             ['Prev. Psychiatric', formsPacket.spif.previous_psychiatric ? 'Yes' : 'No'],
                           ].map(([k,v]) => (
-                            <div key={k as string}><span className="text-gray-400 text-xs">{k}:</span> <span className="font-medium text-gray-800 dark:text-gray-200">{v}</span></div>
+                            <div key={k as string}><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{k}:</span> <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{v}</span></div>
                           ))}
                         </div>
                       </div>
@@ -1956,17 +1961,17 @@ export default function AppointmentsDashboard() {
                     )}
                     {/* Triage summary */}
                     {formsIntake && (formsIntake.phq9_score != null || formsIntake.triage_decision) && (
-                      <div className="border border-amber-100 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
-                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-2">Triage Results</p>
+                      <div className="rounded-xl p-4" style={{ border: '1px solid #FDE68A', background: 'var(--color-warning-surface)' }}>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-warning-text)' }}>Triage Results</p>
                         <div className="grid grid-cols-2 gap-3">
-                          {formsIntake.phq9_score != null && <div className="text-center bg-white dark:bg-gray-800 rounded-lg p-2"><p className="text-[10px] text-gray-400">PHQ-9</p><p className="text-lg font-bold text-gray-900 dark:text-white">{formsIntake.phq9_score}/27</p></div>}
-                          {formsIntake.gad7_score != null && <div className="text-center bg-white dark:bg-gray-800 rounded-lg p-2"><p className="text-[10px] text-gray-400">GAD-7</p><p className="text-lg font-bold text-gray-900 dark:text-white">{formsIntake.gad7_score}/21</p></div>}
+                          {formsIntake.phq9_score != null && <div className="text-center rounded-lg p-2" style={{ background: 'var(--color-surface)' }}><p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>PHQ-9</p><p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{formsIntake.phq9_score}/27</p></div>}
+                          {formsIntake.gad7_score != null && <div className="text-center rounded-lg p-2" style={{ background: 'var(--color-surface)' }}><p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>GAD-7</p><p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{formsIntake.gad7_score}/21</p></div>}
                         </div>
                         {formsIntake.triage_decision && (
-                          <p className="text-xs text-gray-700 dark:text-gray-300 mt-2"><span className="font-semibold">Decision:</span> {formsIntake.triage_decision === 'ENDORSE_CC' ? 'Endorsed to Counselor (CC)' : formsIntake.triage_decision === 'ENDORSE_CP' ? 'Endorsed to Psychologist (CP)' : 'Closed at Intake'}</p>
+                          <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}><span className="font-semibold">Decision:</span> {formsIntake.triage_decision === 'ENDORSE_CC' ? 'Endorsed to Counselor (CC)' : formsIntake.triage_decision === 'ENDORSE_CP' ? 'Endorsed to Psychologist (CP)' : 'Closed at Intake'}</p>
                         )}
                         {formsIntake.endorsement_notes && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">"{formsIntake.endorsement_notes}"</p>
+                          <p className="text-xs mt-1 italic" style={{ color: 'var(--color-text-muted)' }}>"{formsIntake.endorsement_notes}"</p>
                         )}
                       </div>
                     )}
@@ -1986,13 +1991,15 @@ export default function AppointmentsDashboard() {
                           <div key={k}>
                             <label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
                             <input value={formsDraftIcf[k] || ''} onChange={e => setFormsDraftIcf(p => ({...p,[k]:e.target.value}))}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white" />
+                              className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+                              style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                           </div>
                         ))}
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Service Requested</label>
                           <select value={formsDraftIcf.service_requested || ''} onChange={e => setFormsDraftIcf(p => ({...p,service_requested:e.target.value}))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
+                            className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+                            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
                             <option value="">—</option>
                             {['personal_counseling','academic_concerns','career_guidance','family_concerns','relationship_concerns','crisis_support','psychiatric_evaluation','other'].map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
                           </select>
@@ -2000,7 +2007,8 @@ export default function AppointmentsDashboard() {
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Referral Source</label>
                           <select value={formsDraftIcf.referral_source || ''} onChange={e => setFormsDraftIcf(p => ({...p,referral_source:e.target.value}))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none bg-white dark:bg-gray-800 dark:text-white">
+                            className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+                            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
                             <option value="">—</option>
                             {['self_referred','faculty_referred','parent_referred','friend_referred','online_referral','office_referred'].map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
                           </select>
@@ -2008,7 +2016,8 @@ export default function AppointmentsDashboard() {
                         <div className="col-span-2">
                           <label className="block text-xs text-gray-500 mb-1">Presenting Concern</label>
                           <textarea rows={3} value={formsDraftIcf.presenting_concern || ''} onChange={e => setFormsDraftIcf(p => ({...p,presenting_concern:e.target.value}))}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none resize-none dark:bg-gray-800 dark:text-white" />
+                            className="w-full px-3 py-2 text-sm rounded-lg outline-none resize-none"
+                            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                         </div>
                       </div>
                     </div>
@@ -2016,22 +2025,22 @@ export default function AppointmentsDashboard() {
                     <div>
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Personal Background (SPIF-IF)</p>
                       <div className="grid grid-cols-3 gap-3">
-                        <div><label className="block text-xs text-gray-500 mb-1">Birthdate</label><input type="date" value={formsDraftSpif.birthdate||''} onChange={e=>setFormsDraftSpif(p=>({...p,birthdate:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/></div>
+                        <div><label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Birthdate</label><input type="date" value={formsDraftSpif.birthdate||''} onChange={e=>setFormsDraftSpif(p=>({...p,birthdate:e.target.value}))} className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/></div>
                         {(['gender','civil_status','family_composition'] as string[]).map(k => (
                           <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
-                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
+                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/>
                           </div>
                         ))}
                         {(['living_with','existing_medical_conditions','current_medications'] as string[]).map(k => (
                           <div key={k}><label className="block text-xs text-gray-500 mb-1 capitalize">{k.replace(/_/g,' ')}</label>
-                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} placeholder="None" className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#2563eb]/25 focus:outline-none dark:bg-gray-800 dark:text-white"/>
+                            <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} placeholder="None" className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/>
                           </div>
                         ))}
                         <div className="col-span-3 grid grid-cols-2 gap-3">
                           {(['previous_counseling','previous_psychiatric'] as string[]).map(k=>(
-                            <label key={k} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
-                              <input type="checkbox" checked={!!formsDraftSpif[k]} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.checked}))} className="w-4 h-4 rounded border-gray-300 text-blue-700"/>
-                              <span className="text-xs text-gray-700 dark:text-gray-300 capitalize">{k.replace(/_/g,' ')}?</span>
+                            <label key={k} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer" style={{ border: '1px solid var(--color-border)' }}>
+                              <input type="checkbox" checked={!!formsDraftSpif[k]} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.checked}))} className="w-4 h-4 rounded"/>
+                              <span className="text-xs capitalize" style={{ color: 'var(--color-text-secondary)' }}>{k.replace(/_/g,' ')}?</span>
                             </label>
                           ))}
                         </div>
@@ -2042,13 +2051,16 @@ export default function AppointmentsDashboard() {
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">PHQ-4 Pre-Screen</p>
                       <div className="space-y-2">
                         {['Little interest or pleasure in doing things','Feeling down, depressed, or hopeless','Feeling nervous, anxious, or on edge','Not being able to stop or control worrying'].map((q,i)=>(
-                          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                            <span className="text-xs text-gray-400 w-3">{i+1}.</span>
-                            <span className="flex-1 text-xs text-gray-700 dark:text-gray-300">{q}</span>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--color-bg)' }}>
+                            <span className="text-xs w-3" style={{ color: 'var(--color-text-muted)' }}>{i+1}.</span>
+                            <span className="flex-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>{q}</span>
                             <div className="flex gap-1">
                               {[0,1,2,3].map(v=>(
                                 <button key={v} onClick={()=>{const a=[...formsDraftPhq4];a[i]=a[i]===v?null:v;setFormsDraftPhq4(a)}}
-                                  className={`w-8 h-8 rounded-lg text-xs font-semibold border-2 transition ${formsDraftPhq4[i]===v?'bg-[#2563eb] border-[#2563eb] text-white':'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-[#2563eb]/40 bg-white dark:bg-gray-900'}`}>
+                                  className="w-8 h-8 rounded-lg text-xs font-semibold border-2 transition"
+                                  style={formsDraftPhq4[i]===v
+                                    ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: '#fff' }
+                                    : { border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}>
                                   {v}
                                 </button>
                               ))}
@@ -2057,7 +2069,7 @@ export default function AppointmentsDashboard() {
                         ))}
                       </div>
                     </div>
-                    {formsMsg && <p className={`text-xs font-medium ${formsMsg.includes('saved')||formsMsg.includes('saved') ? 'text-blue-700 dark:text-green-400' : 'text-red-600'}`}>{formsMsg}</p>}
+                    {formsMsg && <p className="text-xs font-medium" style={{ color: formsMsg.includes('saved') ? 'var(--color-primary-text)' : 'var(--color-danger)' }}>{formsMsg}</p>}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-40 text-sm text-gray-400">No forms submitted yet.</div>
@@ -2065,7 +2077,7 @@ export default function AppointmentsDashboard() {
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <div className="px-6 py-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--color-border)' }}>
               {formsEditing ? (
                 <>
                   <button onClick={() => setFormsEditing(false)} className="text-xs text-gray-500 hover:text-gray-700 transition">Cancel</button>
@@ -2087,7 +2099,10 @@ export default function AppointmentsDashboard() {
                 <>
                   <span />
                   <button onClick={() => setFormsTarget(null)}
-                    className="px-4 py-2 text-sm text-gray-600 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    className="px-4 py-2 text-sm rounded-lg transition"
+                    style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
                     Close
                   </button>
                 </>

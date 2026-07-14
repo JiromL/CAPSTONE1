@@ -5,213 +5,165 @@ import { Lightbulb, AlertCircle, CheckCircle, ArrowRight, User } from 'lucide-re
 import { api } from '@/utils/api';
 import PageShell from '@/components/PageShell';
 
+interface Suggestion {
+  case_id: string;
+  student_name: string;
+  current_counselor: string;
+  suggested_counselor: string;
+  confidence: number;
+  reason: string;
+}
+
 export default function ReassignmentSuggestionsPage() {
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [successMsg, setSuccessMsg] = useState('');
-  const [processing, setProcessing] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(api('/api/cases/reassignment-suggestions'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Failed to fetch suggestions');
+        const data = await response.json();
+        setSuggestions(data.suggestions || []);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load suggestions');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchSuggestions();
   }, []);
 
-  const fetchSuggestions = async () => {
+  const handleApply = async (suggestion: Suggestion) => {
+    setApplyingId(suggestion.case_id);
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(api('/api/appointments/staff/reassignment-suggestions'), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(api(`/api/cases/${suggestion.case_id}/reassign`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counselor_name: suggestion.suggested_counselor }),
       });
-
-      if (!response.ok) throw new Error('Failed to fetch suggestions');
-      const data = await response.json();
-      setSuggestions(data.suggestions || []);
+      if (!response.ok) throw new Error('Failed to apply reassignment');
+      setAppliedIds(prev => new Set([...prev, suggestion.case_id]));
+      setSuccessMsg(`Reassigned ${suggestion.student_name} to ${suggestion.suggested_counselor}`);
+      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to apply reassignment');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const applySuggestion = async (suggestion: any) => {
-    setProcessing(suggestion.appointment_id);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `/api/appointments/${suggestion.appointment_id}/assign`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            counselor_id: suggestion.suggested_counselor_id,
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to apply suggestion');
-      
-      setSuccessMsg(`Appointment reassigned to ${suggestion.suggested_counselor_name}`);
-      setTimeout(() => setSuccessMsg(''), 3000);
-      
-      // Remove from suggestions
-      setSuggestions(suggestions.filter((s: any) => s.appointment_id !== suggestion.appointment_id));
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setProcessing(null);
+      setApplyingId(null);
     }
   };
 
   if (loading) {
     return (
-      <PageShell title="Reassignment Suggestions" subtitle="AI-powered workload balancing recommendations">
+      <PageShell title="Reassignment Suggestions" subtitle="AI-powered counselor reassignment recommendations">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12" style={{ borderWidth: 2, borderStyle: 'solid', borderColor: 'transparent', borderBottomColor: 'var(--color-primary)' }} />
         </div>
       </PageShell>
     );
   }
 
   return (
-    <PageShell title="Reassignment Suggestions" subtitle="AI-powered workload balancing recommendations">
-      {successMsg && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-800 rounded-lg flex gap-2">
-          <CheckCircle size={20} className="text-green-600 dark:text-green-400 flex-shrink-0" />
-          <span className="text-green-800 dark:text-green-300">{successMsg}</span>
-        </div>
-      )}
+    <PageShell title="Reassignment Suggestions" subtitle="AI-powered counselor reassignment recommendations">
+      <div className="space-y-4">
+        {successMsg && (
+          <div className="p-4 rounded-lg flex gap-2" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+            <CheckCircle size={20} className="flex-shrink-0" style={{ color: 'var(--color-success)' }} />
+            <span className="text-sm" style={{ color: 'var(--color-success-text)' }}>{successMsg}</span>
+          </div>
+        )}
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex gap-2">
-          <AlertCircle size={20} className="text-red-600 dark:text-red-400 flex-shrink-0" />
-          <span className="text-red-800 dark:text-red-300">{error}</span>
-        </div>
-      )}
+        {error && (
+          <div className="p-4 rounded-lg flex gap-2" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle size={20} className="flex-shrink-0" style={{ color: 'var(--color-danger)' }} />
+            <span className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</span>
+          </div>
+        )}
 
-      {suggestions.length === 0 ? (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-12 text-center">
-          <Lightbulb size={48} className="mx-auto text-green-400 mb-4" />
-          <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-            No Reassignments Needed
-          </h3>
-          <p className="text-green-800 dark:text-green-300">
-            Workload is well balanced across all counselors. Check back later for new recommendations.
+        {/* Info box */}
+        <div className="p-4 rounded-lg flex gap-3" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+          <Lightbulb size={20} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-warning-text)' }}>
+            These suggestions are generated based on counselor workload, specialization, and student needs. Review each suggestion before applying.
           </p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {suggestions.map((suggestion, idx) => (
-            <div
-              key={idx}
-              className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden hover:shadow-md transition"
-            >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-2">
-                      {suggestion.student_name || 'Student'}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      Appointment: {new Date(suggestion.scheduled_start).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded">
-                    {Math.round(suggestion.confidence * 100)}% confidence
-                  </div>
-                </div>
 
-                {/* Current vs Suggested */}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between gap-4">
-                    {/* Currently Assigned */}
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        Currently Assigned
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <User size={20} className="text-orange-600" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-50">
-                            {suggestion.current_counselor_name}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            Load: {suggestion.current_utilization}%
-                          </p>
-                        </div>
+        {suggestions.length === 0 ? (
+          <div className="p-12 rounded-lg text-center" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+            <Lightbulb size={48} className="mx-auto mb-4" style={{ color: 'var(--color-primary)' }} />
+            <p className="font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>No Suggestions Available</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+              The system has no reassignment recommendations at this time. All cases appear to be optimally assigned.
+            </p>
+          </div>
+        ) : (
+          suggestions.map(suggestion => {
+            const isApplied = appliedIds.has(suggestion.case_id);
+            const isApplying = applyingId === suggestion.case_id;
+            return (
+              <div key={suggestion.case_id} className="rounded-lg overflow-hidden"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card-md)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}>
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <User size={16} style={{ color: 'var(--color-text-secondary)' }} />
+                        <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{suggestion.student_name}</h3>
+                        <span className="px-2 py-0.5 text-xs font-medium rounded"
+                          style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)' }}>
+                          {suggestion.confidence}% confidence
+                        </span>
                       </div>
                     </div>
+                    {isApplied ? (
+                      <span className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded"
+                        style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
+                        <CheckCircle size={14} /> Applied
+                      </span>
+                    ) : (
+                      <button onClick={() => handleApply(suggestion)} disabled={isApplying}
+                        className="px-4 py-1.5 text-sm font-medium rounded text-white transition disabled:opacity-50"
+                        style={{ background: isApplying ? 'var(--color-border-strong)' : 'var(--color-primary)' }}
+                        onMouseEnter={e => { if (!isApplying) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+                        onMouseLeave={e => { if (!isApplying) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}>
+                        {isApplying ? 'Applying...' : 'Apply'}
+                      </button>
+                    )}
+                  </div>
 
-                    <ArrowRight size={24} className="text-gray-400 flex-shrink-0" />
-
-                    {/* Suggested */}
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        Suggested
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <User size={20} className="text-green-600" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-50">
-                            {suggestion.suggested_counselor_name}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            Load: {suggestion.suggested_utilization}%
-                          </p>
-                        </div>
-                      </div>
+                  {/* Current → Suggested */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg mb-3" style={{ background: 'var(--color-bg)' }}>
+                    <div className="flex-1 text-sm">
+                      <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Current</p>
+                      <p className="font-medium" style={{ color: '#EA580C' }}>{suggestion.current_counselor}</p>
+                    </div>
+                    <ArrowRight size={18} style={{ color: 'var(--color-text-muted)' }} />
+                    <div className="flex-1 text-sm">
+                      <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Suggested</p>
+                      <p className="font-medium" style={{ color: '#16A34A' }}>{suggestion.suggested_counselor}</p>
                     </div>
                   </div>
-                </div>
 
-                {/* Reason */}
-                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-blue-900 dark:text-blue-100">
-                    <span className="font-medium">Why:</span> {suggestion.reason || 'Better workload distribution'}
-                  </p>
-                </div>
-
-                {/* Impact */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="text-sm">
-                    <p className="text-gray-600 dark:text-gray-400 text-xs mb-1">Load Reduction</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-50">
-                      -{suggestion.load_reduction}%
-                    </p>
-                  </div>
-                  <div className="text-sm">
-                    <p className="text-gray-600 dark:text-gray-400 text-xs mb-1">Balance Improvement</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-50">
-                      +{suggestion.balance_improvement}%
-                    </p>
+                  {/* Why */}
+                  <div className="p-3 rounded-lg" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+                    <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-primary-text)' }}>Why this suggestion?</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{suggestion.reason}</p>
                   </div>
                 </div>
-
-                {/* Action */}
-                <button
-                  onClick={() => applySuggestion(suggestion)}
-                  disabled={processing === suggestion.appointment_id}
-                  className="w-full bg-[#2563eb] hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition"
-                >
-                  {processing === suggestion.appointment_id ? 'Applying...' : 'Apply Suggestion'}
-                </button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Info Box */}
-      <div className="mt-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-        <p className="text-sm text-amber-900 dark:text-amber-100">
-          <span className="font-medium">💡 Tip:</span> These recommendations are based on current workload distribution, 
-          counselor expertise, and appointment type. Review and approve each suggestion before applying.
-        </p>
+            );
+          })
+        )}
       </div>
     </PageShell>
   );

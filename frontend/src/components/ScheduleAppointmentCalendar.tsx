@@ -203,24 +203,22 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-700 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">Schedule Appointment</h3>
+    <div className="rounded-2xl p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Schedule Appointment</h3>
 
       {message && (
-        <div
-          className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
-            message.type === 'success'
-              ? 'bg-green-100 dark:bg-blue-900/30 text-green-700 dark:text-green-300'
-              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-          }`}
-        >
+        <div className="mb-4 p-3 rounded-lg flex items-center gap-2" style={
+          message.type === 'success'
+            ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }
+            : { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }
+        }>
           {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
           {message.text}
         </div>
       )}
 
       {loadingError && (
-        <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+        <div className="mb-4 p-3 rounded-lg flex items-center gap-2" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
           <AlertCircle size={18} />
           {loadingError}
         </div>
@@ -228,124 +226,105 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
 
       {!counselorId && !loadingError && (
         <div className="mb-6 p-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-50 mb-3"></div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Loading available appointment times...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 mb-3" style={{ borderColor: 'var(--color-primary)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading available appointment times...</p>
         </div>
       )}
 
       {counselorId && (
         <>
-          {/* Calendar */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={previousMonth}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-          >
-            <ChevronLeft size={20} className="text-gray-600 dark:text-gray-400" />
-          </button>
-          <h4 className="text-base font-medium text-gray-900 dark:text-gray-50">{monthName}</h4>
-          <button
-            onClick={nextMonth}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-          >
-            <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
-          </button>
-        </div>
-
-        {/* Day headers */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-center text-xs font-semibold text-gray-600 dark:text-gray-400 py-2">
-              {day}
+              <button onClick={previousMonth} className="p-2 rounded-lg transition"
+                style={{ color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
+                <ChevronLeft size={20} />
+              </button>
+              <h4 className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>{monthName}</h4>
+              <button onClick={nextMonth} className="p-2 rounded-lg transition"
+                style={{ color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
+                <ChevronRight size={20} />
+              </button>
             </div>
-          ))}
-        </div>
 
-        {/* Calendar days */}
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((day, index) => {
-            const slots = day ? getSlotsForDate(day) : [];
-            const isToday = day && new Date().toDateString() === day.toDateString();
-            const isSelected = day && selectedSlot && selectedSlot.slot_start.startsWith(day.toISOString().split('T')[0]);
+            <div className="grid grid-cols-7 gap-2 mb-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="text-center text-xs font-semibold py-2" style={{ color: 'var(--color-text-secondary)' }}>{day}</div>
+              ))}
+            </div>
 
-            return (
-              <div
-                key={index}
-                className={`aspect-square flex flex-col items-center justify-center rounded-lg border p-1 cursor-pointer transition ${
-                  !day
-                    ? 'bg-gray-50 dark:bg-gray-700/50 border-transparent'
-                    : slots.length > 0
-                    ? 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50'
-                } ${isToday ? 'border-gray-900 dark:border-gray-300' : ''} ${
-                  isSelected ? 'bg-gray-900 dark:bg-gray-700 border-gray-900 dark:border-gray-600' : ''
-                }`}
-              >
-                {day && (
-                  <>
-                    <span
-                      className={`text-xs font-semibold ${
-                        isSelected ? 'text-white' : isToday ? 'text-gray-900 dark:text-gray-50' : 'text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      {day.getDate()}
-                    </span>
-                    {slots.length > 0 && (
-                      <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-                        {slots.length}
-                      </span>
+            <div className="grid grid-cols-7 gap-2">
+              {days.map((day, index) => {
+                const slots = day ? getSlotsForDate(day) : [];
+                const isToday = day && new Date().toDateString() === day.toDateString();
+                const isSelected = day && selectedSlot && selectedSlot.slot_start.startsWith(day.toISOString().split('T')[0]);
+
+                const cellStyle: React.CSSProperties = !day
+                  ? { background: 'transparent', border: '1px solid transparent' }
+                  : isSelected
+                  ? { background: 'var(--color-primary)', border: '1px solid var(--color-primary)' }
+                  : isToday
+                  ? { border: '1px solid var(--color-primary)', background: 'var(--color-primary-surface)' }
+                  : slots.length > 0
+                  ? { border: '1px solid var(--color-border)', background: 'var(--color-surface)' }
+                  : { border: '1px solid var(--color-border)', background: 'var(--color-bg)', opacity: 0.5 };
+
+                return (
+                  <div key={index}
+                    className="aspect-square flex flex-col items-center justify-center rounded-lg p-1 cursor-pointer transition"
+                    style={cellStyle}
+                    onClick={() => { if (day && slots.length > 0) { const slot = slots[0]; setSelectedSlot(slot); } }}
+                  >
+                    {day && (
+                      <>
+                        <span className="text-xs font-semibold" style={{ color: isSelected ? '#fff' : 'var(--color-text-primary)' }}>
+                          {day.getDate()}
+                        </span>
+                        {slots.length > 0 && (
+                          <span className="text-xs font-medium" style={{ color: isSelected ? '#fff' : 'var(--color-text-muted)' }}>
+                            {slots.length}
+                          </span>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Available slots for selected date */}
-      {selectedSlot && (
-        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border border-gray-100 shadow-sm dark:border-gray-600">
-          <h5 className="font-medium text-gray-900 dark:text-gray-50 mb-2">Selected Slot:</h5>
-          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <Clock size={16} />
-            <span>
-              {new Date(selectedSlot.slot_start).toLocaleString('en-US', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}{' '}
-              - 
-              {new Date(selectedSlot.slot_end).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
+                  </div>
+                );
               })}
-            </span>
+            </div>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-            Counselor: <span className="font-medium">{selectedSlot.counselor_name}</span>
-          </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Duration: <span className="font-medium">{selectedSlot.duration_minutes} minutes</span>
-          </p>
-        </div>
-      )}
+
+          {selectedSlot && (
+            <div className="mb-6 p-4 rounded-2xl" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+              <h5 className="font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Selected Slot:</h5>
+              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <Clock size={16} />
+                <span>
+                  {new Date(selectedSlot.slot_start).toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}{' '}
+                  - {new Date(selectedSlot.slot_end).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <p className="text-sm mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                Counselor: <span className="font-medium">{selectedSlot.counselor_name}</span>
+              </p>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                Duration: <span className="font-medium">{selectedSlot.duration_minutes} minutes</span>
+              </p>
+            </div>
+          )}
         </>
       )}
 
-      {/* Action buttons */}
       <div className="flex gap-3">
         <button
           onClick={handleScheduleAppointment}
           disabled={!selectedSlot || scheduling}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition ${
-            selectedSlot && !scheduling
-              ? 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600'
-              : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-          }`}
+          className="flex-1 px-4 py-2 rounded-lg font-medium transition disabled:cursor-not-allowed disabled:opacity-50 text-white"
+          style={{ background: selectedSlot && !scheduling ? 'var(--color-primary)' : 'var(--color-border-strong)' }}
+          onMouseEnter={e => { if (selectedSlot && !scheduling) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+          onMouseLeave={e => { if (selectedSlot && !scheduling) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
         >
           {scheduling ? 'Scheduling...' : 'Schedule Appointment'}
         </button>

@@ -1,39 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Search, Filter, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, Search, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { api } from '@/utils/api';
 import PageShell from '@/components/PageShell';
+
+const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none';
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+
+// Status badge styles — semantic colors, kept fixed
+const STATUS_STYLE: Record<string, React.CSSProperties> = {
+  pending:   { background: '#FFFBEB', color: '#92400E' },
+  confirmed: { background: '#EFF6FF', color: '#1E40AF' },
+  completed: { background: '#ECFDF5', color: '#065F46' },
+  cancelled: { background: '#FEF2F2', color: '#991B1B' },
+};
+const STATUS_ICON: Record<string, any> = {
+  pending: Clock, confirmed: CheckCircle, completed: CheckCircle, cancelled: AlertCircle,
+};
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
-
-  useEffect(() => {
-    filterAndSort();
-  }, [appointments, searchTerm, statusFilter, platformFilter, sortBy]);
+  useEffect(() => { fetchAppointments(); }, []);
+  useEffect(() => { filterAndSort(); }, [appointments, searchTerm, statusFilter, platformFilter, sortBy]);
 
   const fetchAppointments = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(api('/api/appointments'), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      const response = await fetch(api('/api/appointments'), { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error('Failed to fetch appointments');
       const data = await response.json();
       setAppointments(Array.isArray(data) ? data : data.appointments || []);
@@ -46,76 +49,32 @@ export default function AppointmentsPage() {
 
   const filterAndSort = () => {
     let result = [...appointments];
-
-    // Apply filters
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (apt: any) =>
-          (apt.student_name?.toLowerCase() || '').includes(term) ||
-          (apt.counselor_name?.toLowerCase() || '').includes(term) ||
-          (apt._id || '').includes(term)
+      result = result.filter((apt: any) =>
+        (apt.student_name?.toLowerCase() || '').includes(term) ||
+        (apt.counselor_name?.toLowerCase() || '').includes(term) ||
+        (apt._id || '').includes(term)
       );
     }
-
-    if (statusFilter !== 'all') {
-      result = result.filter((apt: any) => apt.status === statusFilter);
-    }
-
-    if (platformFilter !== 'all') {
-      result = result.filter((apt: any) => apt.preferred_platform === platformFilter);
-    }
-
-    // Apply sorting
+    if (statusFilter !== 'all') result = result.filter((apt: any) => apt.status === statusFilter);
+    if (platformFilter !== 'all') result = result.filter((apt: any) => apt.preferred_platform === platformFilter);
     result.sort((a: any, b: any) => {
       switch (sortBy) {
-        case 'date':
-          return new Date(a.scheduled_start || a.requested_start || 0).getTime() -
-            new Date(b.scheduled_start || b.requested_start || 0).getTime();
-        case 'status':
-          return (a.status || '').localeCompare(b.status || '');
-        case 'student':
-          return (a.student_name || '').localeCompare(b.student_name || '');
-        default:
-          return 0;
+        case 'date': return new Date(a.scheduled_start || a.requested_start || 0).getTime() - new Date(b.scheduled_start || b.requested_start || 0).getTime();
+        case 'status': return (a.status || '').localeCompare(b.status || '');
+        case 'student': return (a.student_name || '').localeCompare(b.student_name || '');
+        default: return 0;
       }
     });
-
     setFiltered(result);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { bg: string; text: string; icon: any }> = {
-      pending: {
-        bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-        text: 'text-yellow-800 dark:text-yellow-300',
-        icon: Clock,
-      },
-      confirmed: {
-        bg: 'bg-blue-100 dark:bg-blue-900/30',
-        text: 'text-green-800 dark:text-green-300',
-        icon: CheckCircle,
-      },
-      completed: {
-        bg: 'bg-green-100 dark:bg-blue-900/30',
-        text: 'text-green-800 dark:text-green-300',
-        icon: CheckCircle,
-      },
-      cancelled: {
-        bg: 'bg-red-100 dark:bg-red-900/30',
-        text: 'text-red-800 dark:text-red-300',
-        icon: AlertCircle,
-      },
-    };
-    const config = statusMap[status] || statusMap.pending;
-    return config;
   };
 
   if (loading) {
     return (
       <PageShell title="All Appointments" subtitle="View and manage all system appointments">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12" style={{ borderWidth: 2, borderStyle: 'solid', borderColor: 'transparent', borderBottomColor: 'var(--color-primary)' }} />
         </div>
       </PageShell>
     );
@@ -124,134 +83,83 @@ export default function AppointmentsPage() {
   return (
     <PageShell title="All Appointments" subtitle="View and manage all system appointments">
       {error && (
-        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex gap-2">
-          <AlertCircle size={20} className="text-red-600 dark:text-red-400 flex-shrink-0" />
-          <span className="text-red-800 dark:text-red-300">{error}</span>
+        <div className="mb-4 p-4 rounded-lg flex gap-2" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+          <AlertCircle size={20} className="flex-shrink-0" style={{ color: 'var(--color-danger)' }} />
+          <span className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</span>
         </div>
       )}
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6 shadow-sm">
+      <div className="rounded-lg p-4 mb-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {/* Search */}
           <div className="md:col-span-2 relative">
-            <Search size={18} className="absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search student, counselor, or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500"
-            />
+            <Search size={18} className="absolute left-3 top-3" style={{ color: 'var(--color-text-muted)' }} />
+            <input type="text" placeholder="Search student, counselor, or ID..."
+              value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm rounded-lg outline-none" style={ICS} />
           </div>
-
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-
-          {/* Platform Filter */}
-          <select
-            value={platformFilter}
-            onChange={(e) => setPlatformFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-          >
-            <option value="all">All Platforms</option>
-            <option value="in-person">In-Person</option>
-            <option value="zoom">Zoom</option>
-            <option value="phone">Phone</option>
-          </select>
-
-          {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-          >
-            <option value="date">Sort by Date</option>
-            <option value="status">Sort by Status</option>
-            <option value="student">Sort by Student</option>
-          </select>
+          {[
+            { value: statusFilter, onChange: setStatusFilter, opts: [['all','All Status'],['pending','Pending'],['confirmed','Confirmed'],['completed','Completed'],['cancelled','Cancelled']] },
+            { value: platformFilter, onChange: setPlatformFilter, opts: [['all','All Platforms'],['in-person','In-Person'],['zoom','Zoom'],['phone','Phone']] },
+            { value: sortBy, onChange: setSortBy, opts: [['date','Sort by Date'],['status','Sort by Status'],['student','Sort by Student']] },
+          ].map((sel, i) => (
+            <select key={i} value={sel.value} onChange={e => sel.onChange(e.target.value)}
+              className="px-4 py-2 text-sm rounded-lg outline-none" style={ICS}>
+              {sel.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          ))}
         </div>
       </div>
 
       {/* Results Count */}
       <div className="mb-4 flex items-center gap-2">
-        <Calendar size={20} className="text-green-600" />
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Showing <span className="font-semibold text-gray-900 dark:text-gray-50">{filtered.length}</span> of{' '}
-          <span className="font-semibold text-gray-900 dark:text-gray-50">{appointments.length}</span> appointments
+        <Calendar size={20} style={{ color: 'var(--color-success)' }} />
+        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          Showing <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{filtered.length}</span> of{' '}
+          <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{appointments.length}</span> appointments
         </p>
       </div>
 
       {/* Appointments List */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
-            <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">No appointments found matching your filters</p>
+          <div className="rounded-lg p-12 text-center" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+            <AlertCircle size={48} className="mx-auto mb-4" style={{ color: 'var(--color-text-muted)' }} />
+            <p style={{ color: 'var(--color-text-secondary)' }}>No appointments found matching your filters</p>
           </div>
         ) : (
           filtered.map((apt, idx) => {
-            const statusConfig = getStatusBadge(apt.status);
-            const StatusIcon = statusConfig.icon;
+            const sStyle = STATUS_STYLE[apt.status] || STATUS_STYLE.pending;
+            const SIcon = STATUS_ICON[apt.status] || Clock;
             const appointmentDate = new Date(apt.scheduled_start || apt.requested_start);
-
             return (
-              <div
-                key={idx}
-                className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition p-4"
-              >
+              <div key={idx} className="rounded-lg p-4 transition"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card-md)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Calendar size={18} className="text-gray-500" />
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-50">
-                        {apt.student_name || 'Unknown Student'}
-                      </h3>
+                      <Calendar size={18} style={{ color: 'var(--color-text-secondary)' }} />
+                      <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name || 'Unknown Student'}</h3>
                     </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-500">Date & Time</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-50">
-                          {appointmentDate.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-500">Counselor</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-50">
-                          {apt.counselor_name || 'Unassigned'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-500">Platform</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-50 capitalize">
-                          {apt.preferred_platform?.replace('-', ' ') || 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-500">Type</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-50 capitalize">
-                          {apt.appointment_type || 'N/A'}
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+                      {[
+                        ['Date & Time', appointmentDate.toLocaleString()],
+                        ['Counselor', apt.counselor_name || 'Unassigned'],
+                        ['Platform', apt.preferred_platform?.replace('-', ' ') || 'N/A'],
+                        ['Type', apt.appointment_type || 'N/A'],
+                      ].map(([label, val]) => (
+                        <div key={label}>
+                          <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+                          <p className="font-medium capitalize" style={{ color: 'var(--color-text-primary)' }}>{val}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-
                   <div className="flex-shrink-0">
-                    <span
-                      className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}
-                    >
-                      <StatusIcon size={16} />
+                    <span className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium" style={sStyle}>
+                      <SIcon size={14} />
                       {apt.status?.charAt(0).toUpperCase() + apt.status?.slice(1)}
                     </span>
                   </div>

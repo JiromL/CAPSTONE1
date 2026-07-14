@@ -265,7 +265,7 @@ export default function ConductIntakePage() {
     try {
       const realId = intake?._id || intakeId;
       const provisionalDecision =
-        calculatedRisk === 'CRITICAL' ? 'CRISIS' :
+        calculatedRisk === 'CRITICAL' ? 'ENDORSE_CP' :
         calculatedRisk === 'RED'      ? 'ENDORSE_CP' :
                                         'ENDORSE_CC';
       const r = await fetch(api(`/api/intake/${realId}/triage`), {

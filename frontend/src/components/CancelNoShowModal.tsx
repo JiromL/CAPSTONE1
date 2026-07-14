@@ -12,6 +12,9 @@ interface CancelNoShowModalProps {
   counselorName?: string;
 }
 
+const IC = 'w-full px-3 py-2 text-sm rounded outline-none resize-none';
+const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
+
 export function CancelNoShowModal({
   isOpen,
   onClose,
@@ -47,75 +50,68 @@ export function CancelNoShowModal({
     : 'Are you sure you want to mark this appointment as no show?';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
-        {/* Header */}
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+      <div className="rounded-lg p-6 max-w-md w-full" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          >
+          <h3 className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>{title}</h3>
+          <button onClick={onClose} style={{ color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'}>
             <X size={20} />
           </button>
         </div>
 
-        {/* Appointment Info */}
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Appointment</p>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">{appointmentDate}</p>
+        <div className="mb-4 p-3 rounded" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+          <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>Appointment</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{appointmentDate}</p>
           {counselorName && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">with {counselorName}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>with {counselorName}</p>
           )}
         </div>
 
-        {/* Description */}
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{description}</p>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>{description}</p>
 
-        {/* Reason Input */}
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
               Reason {appointmentType === 'cancel' ? 'for cancellation' : 'for no show'}
             </label>
-            <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+            <span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
           </div>
           <textarea
             value={reason}
-            onChange={(e) => {
-              setReason(e.target.value);
-              setError(null);
-            }}
-            placeholder={`${appointmentType === 'cancel' ? 'Tell us why you\'re cancelling...' : 'Provide details about the missed appointment...'}`}
+            onChange={e => { setReason(e.target.value); setError(null); }}
+            placeholder={appointmentType === 'cancel' ? "Tell us why you're cancelling..." : 'Provide details about the missed appointment...'}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-gray-400 focus:border-transparent resize-none"
+            className={IC}
+            style={ICS}
           />
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded">
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="mb-4 p-3 rounded" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <p className="text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
           </div>
         )}
 
-        {/* Buttons */}
         <div className="flex gap-3">
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2 rounded font-medium transition disabled:opacity-50"
+            style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'transparent' }}
+            onMouseEnter={e => { if (!isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'; }}
+            onMouseLeave={e => { if (!isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
           >
             Keep Appointment
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`flex-1 px-4 py-2 rounded font-medium text-white transition-colors disabled:opacity-50 ${
-              appointmentType === 'cancel'
-                ? 'bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-600'
-                : 'bg-gray-600 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600'
-            }`}
+            className="flex-1 px-4 py-2 rounded font-medium text-white transition disabled:opacity-50"
+            style={{ background: appointmentType === 'cancel' ? 'var(--color-danger)' : 'var(--color-text-secondary)' }}
+            onMouseEnter={e => { if (!isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = appointmentType === 'cancel' ? 'var(--color-danger-hover)' : 'var(--color-text-primary)'; }}
+            onMouseLeave={e => { if (!isSubmitting) (e.currentTarget as HTMLButtonElement).style.background = appointmentType === 'cancel' ? 'var(--color-danger)' : 'var(--color-text-secondary)'; }}
           >
             {isSubmitting ? 'Submitting...' : submitLabel}
           </button>

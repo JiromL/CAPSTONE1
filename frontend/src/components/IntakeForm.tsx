@@ -98,20 +98,20 @@ export default function IntakeForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Error Message */}
       {error && (
-        <div className="flex gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
-          <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
+        <div className="flex gap-3 rounded-lg p-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+          <AlertCircle className="flex-shrink-0" size={20} style={{ color: 'var(--color-danger)' }} />
           <div>
-            <p className="font-medium text-red-900 dark:text-red-200">{error}</p>
+            <p className="font-medium" style={{ color: 'var(--color-danger-text)' }}>{error}</p>
           </div>
         </div>
       )}
 
       {/* Success Message */}
       {success && (
-        <div className="flex gap-3 bg-green-50 dark:bg-blue-900/20 border border-green-200 dark:border-blue-700 rounded-lg p-4">
-          <CheckCircle className="text-green-600 dark:text-green-400 flex-shrink-0" size={20} />
+        <div className="flex gap-3 rounded-lg p-4" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+          <CheckCircle className="flex-shrink-0" size={20} style={{ color: 'var(--color-success)' }} />
           <div>
-            <p className="font-medium text-green-900 dark:text-green-200">
+            <p className="font-medium" style={{ color: 'var(--color-success-text)' }}>
               {isEditing ? 'Case updated successfully' : 'Intake submitted successfully'}
             </p>
           </div>
@@ -121,14 +121,15 @@ export default function IntakeForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Client Status */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
             Client Status <span className="text-red-500">*</span>
           </label>
           <select
             name="client_status"
             value={formData.client_status}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-4 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           >
             {CLIENT_STATUSES.map((status) => (
               <option key={status.value} value={status.value}>
@@ -136,21 +137,22 @@ export default function IntakeForm({
               </option>
             ))}
           </select>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
             Select how the client will be served (active counseling, periodic check-ins, etc.)
           </p>
         </div>
 
         {/* Transaction Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
             Transaction Type <span className="text-red-500">*</span>
           </label>
           <select
             name="transaction_type"
             value={formData.transaction_type}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            className="w-full px-4 py-2 rounded-lg outline-none transition"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           >
             {TRANSACTION_TYPES.map((type) => (
               <option key={type.value} value={type.value}>
@@ -158,7 +160,7 @@ export default function IntakeForm({
               </option>
             ))}
           </select>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
             How is the student coming to services? (self-referred, referred, check-in, etc.)
           </p>
         </div>
@@ -166,7 +168,7 @@ export default function IntakeForm({
 
       {/* Presenting Issue */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
+        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
           Presenting Issue <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -175,13 +177,13 @@ export default function IntakeForm({
           onChange={handleChange}
           rows={4}
           placeholder="What brings the student in today? (e.g., anxiety, academic stress, relationship issues, etc.)"
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full px-4 py-2 rounded-lg outline-none transition"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
         />
       </div>
 
-      {/* Primary Concern */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
+        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
           Primary Concern
         </label>
         <textarea
@@ -190,16 +192,16 @@ export default function IntakeForm({
           onChange={handleChange}
           rows={3}
           placeholder="What is the main area of focus? (Can differ from presenting issue for check-ins)"
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full px-4 py-2 rounded-lg outline-none transition"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
         />
-        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
           Useful for tracking changes during check-ins
         </p>
       </div>
 
-      {/* Additional Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-50 mb-2">
+        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
           Additional Notes
         </label>
         <textarea
@@ -208,14 +210,14 @@ export default function IntakeForm({
           onChange={handleChange}
           rows={3}
           placeholder="Any additional information..."
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full px-4 py-2 rounded-lg outline-none transition"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
         />
       </div>
 
-      {/* Status Legend */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-3">Client Status Guide</h4>
-        <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-300">
+      <div className="rounded-lg p-4" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+        <h4 className="font-medium mb-3" style={{ color: 'var(--color-primary-text)' }}>Client Status Guide</h4>
+        <ul className="space-y-2 text-sm" style={{ color: 'var(--color-primary-text)' }}>
           <li><strong>ACTIVE:</strong> Student receiving active ongoing counseling (8 weeks typical)</li>
           <li><strong>CHECK_IN_ONLY:</strong> Periodic monitoring after completing counseling</li>
           <li><strong>WITH_MH_CHECK_IN:</strong> Collaborative care with external mental health provider</li>
@@ -225,10 +227,9 @@ export default function IntakeForm({
         </ul>
       </div>
 
-      {/* Transaction Type Legend */}
-      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
-        <h4 className="font-medium text-purple-900 dark:text-purple-200 mb-3">Transaction Type Guide</h4>
-        <ul className="space-y-2 text-sm text-purple-800 dark:text-purple-300">
+      <div className="rounded-lg p-4" style={{ background: '#FAF5FF', border: '1px solid #D8B4FE' }}>
+        <h4 className="font-medium mb-3" style={{ color: '#6B21A8' }}>Transaction Type Guide</h4>
+        <ul className="space-y-2 text-sm" style={{ color: '#7C3AED' }}>
           <li><strong>NEW_INTAKE:</strong> First-time student seeking services</li>
           <li><strong>SELF_REFERRED:</strong> Student initiated contact themselves</li>
           <li><strong>REFERRED:</strong> Referred from another campus department</li>
@@ -238,12 +239,14 @@ export default function IntakeForm({
         </ul>
       </div>
 
-      {/* Submit Button */}
       <div className="flex gap-4">
         <button
           type="submit"
           disabled={isLoading}
-          className="flex items-center gap-2 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition"
+          className="flex items-center gap-2 text-white px-6 py-2 rounded-lg font-medium transition disabled:opacity-50"
+          style={{ background: 'var(--color-primary)' }}
+          onMouseEnter={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
+          onMouseLeave={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
         >
           {isLoading ? (
             <>

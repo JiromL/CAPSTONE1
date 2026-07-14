@@ -80,9 +80,9 @@ interface Props {
 
 function SectionHeader({ label, sub }: { label: string; sub: string }) {
   return (
-    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-blue-100 dark:border-blue-900">
-      <span className="text-xs font-bold text-white bg-[#2563eb] px-2 py-0.5 rounded">{label}</span>
-      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{sub}</span>
+    <div className="flex items-center gap-2 mb-4 pb-2" style={{ borderBottom: '1px solid var(--color-primary-muted)' }}>
+      <span className="text-xs font-bold text-white px-2 py-0.5 rounded" style={{ background: 'var(--color-primary)' }}>{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{sub}</span>
     </div>
   );
 }
@@ -90,10 +90,10 @@ function SectionHeader({ label, sub }: { label: string; sub: string }) {
 function FieldLabel({ label, hint, required }: { label: string; hint?: string; required?: boolean }) {
   return (
     <div className="mb-2">
-      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+      <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </p>
-      {hint && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 italic">{hint}</p>}
+      {hint && <p className="text-xs mt-0.5 italic" style={{ color: 'var(--color-text-muted)' }}>{hint}</p>}
     </div>
   );
 }
@@ -122,7 +122,7 @@ function CheckGroup({
               onChange={() => onToggle(opt)}
               className="mt-0.5 rounded border-gray-300 text-[#2563eb] focus:ring-[#2563eb]"
             />
-            <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900">{opt}</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
           </label>
         ))}
       </div>
@@ -132,7 +132,8 @@ function CheckGroup({
           placeholder="Please specify…"
           value={otherValue}
           onChange={e => onOtherChange(e.target.value)}
-          className="mt-2 w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+          className="mt-2 w-full px-3 py-1.5 text-xs rounded-lg outline-none"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
         />
       )}
     </div>
@@ -163,7 +164,7 @@ function RadioGroup({
               onChange={() => onSelect(opt)}
               className="mt-0.5 border-gray-300 text-[#2563eb] focus:ring-[#2563eb]"
             />
-            <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900">{opt}</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
           </label>
         ))}
       </div>
@@ -173,7 +174,8 @@ function RadioGroup({
           placeholder="Please specify…"
           value={otherValue}
           onChange={e => onOtherChange(e.target.value)}
-          className="mt-2 w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+          className="mt-2 w-full px-3 py-1.5 text-xs rounded-lg outline-none"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
         />
       )}
     </div>
@@ -191,8 +193,8 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
   return (
     <div className="space-y-6">
       {/* ── Session Context ─────────────────────────────────────── */}
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">Session Context</p>
+      <div className="rounded-xl p-4" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Session Context</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <FieldLabel label="Mode of Session" required />
@@ -201,7 +203,7 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
                 <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
                   <input type="radio" checked={value.mode_of_session === opt} onChange={() => set({ mode_of_session: opt })}
                     className="border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">{opt}</span>
+                  <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
                 </label>
               ))}
             </div>
@@ -213,7 +215,7 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
                 <label key={n} className="flex items-center gap-1 cursor-pointer">
                   <input type="radio" checked={value.session_number === n} onChange={() => set({ session_number: n })}
                     className="border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">{n}</span>
+                  <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{n}</span>
                 </label>
               ))}
             </div>
@@ -226,14 +228,15 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
               onChange={e => set({ counseling_goal: e.target.value })}
               rows={2}
               placeholder="e.g., Client will apply one relaxation or grounding technique during anxiety-provoking situations at least three times before the next session."
-              className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+              className="w-full px-3 py-2 text-xs rounded-lg outline-none"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
             />
           </div>
         </div>
       </div>
 
       {/* ── S — Subjective ──────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+      <div className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
         <SectionHeader label="S" sub="Subjective — Client's Report" />
 
         <CheckGroup
@@ -320,7 +323,7 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
       </div>
 
       {/* ── O — Objective ───────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+      <div className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
         <SectionHeader label="O" sub="Objective — Counselor's Observations" />
 
         <CheckGroup
@@ -407,7 +410,7 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
       </div>
 
       {/* ── A — Assessment ──────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+      <div className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
         <SectionHeader label="A" sub="Assessment — Clinical Evaluation" />
 
         <RadioGroup
@@ -497,13 +500,14 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
             onChange={e => set({ a_remarks: e.target.value })}
             rows={2}
             placeholder="None"
-            className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+            className="w-full px-3 py-2 text-xs rounded-lg outline-none"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           />
         </div>
       </div>
 
       {/* ── P — Plan ────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+      <div className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
         <SectionHeader label="P" sub="Plan — Next Steps" />
 
         <CheckGroup
@@ -595,7 +599,8 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
             onChange={e => set({ p_remarks: e.target.value })}
             rows={2}
             placeholder="None"
-            className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+            className="w-full px-3 py-2 text-xs rounded-lg outline-none"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           />
         </div>
 
@@ -624,7 +629,8 @@ export function StructuredSOAPForm({ value, onChange }: Props) {
             onChange={e => set({ p_termination_summary: e.target.value })}
             rows={2}
             placeholder="None"
-            className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+            className="w-full px-3 py-2 text-xs rounded-lg outline-none"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           />
         </div>
       </div>

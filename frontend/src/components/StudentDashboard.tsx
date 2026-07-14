@@ -264,7 +264,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <div className="pointer-events-none absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
                 <div className="relative z-10">
                   <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Welcome to CPS</p>
-                  <h3 className="text-xl font-bold mb-2 leading-snug">
+                  <h3 className="text-xl font-bold mb-2 leading-snug" style={{ color: 'white' }}>
                     No need to wait, {firstName}.<br />Book your session online.
                   </h3>
                   <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>

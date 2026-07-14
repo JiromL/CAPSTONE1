@@ -536,6 +536,7 @@ export function ICInterviewWizard({
 }: ICInterviewWizardProps) {
   const initDraft = () => {
     const base = existingForm ? { ...existingForm } : {};
+    if (!base.type_of_service) base.type_of_service = 'Intake Interview';
     if (triageScores && !base.phq9_responses) {
       base.phq9_responses = triageScores.phq9Responses;
       base.phq9_score     = triageScores.phq9Score;
@@ -670,11 +671,14 @@ export function ICInterviewWizard({
                   ))}
                 </div>
               )}
-              <RadioField label="Type of Service" name="type_of_service" required
-                options={['Initial Interview', 'Triage Interview', 'Intake Interview', 'Counseling/Psychotherapy Session', 'Testing', 'Termination']}
-                value={d.type_of_service || ''} onChange={v => upd('type_of_service', v)}
-                hasError={!!(stepErrors[0]?.some(e => e.includes('Type of Service')))} />
-              {stepErrors[0]?.some(e => e.includes('Type of Service')) && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>This field is required</p>}
+              <div className="mb-4">
+                <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                  Type of Service <span style={{ color: 'var(--color-danger)' }}>*</span>
+                </p>
+                <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
+                  {d.type_of_service}
+                </p>
+              </div>
               <CheckboxFieldWithOther label="Referral Source" name="referral_source" required
                 options={['Self – client initiated the counseling request independently', 'Faculty / Staff – referred by teaching or non-teaching personnel', 'Parent / Guardian – referral made by family member or guardian', 'Peer / Friend – encouraged by classmate or colleague', 'Supervisor / Manager – referral from workplace or internship site', 'Academic Department / Program Chair – referral through college office or adviser', 'DLSU Office / Support Unit (e.g., SDFO, OUR, OAS, HSO)']}
                 value={d.referral_source || []} otherValue={d.referral_source_other || ''}

@@ -162,9 +162,9 @@ export default function AvailabilityPage() {
                       ...w,
                       [dow]: { ...w[dow], enabled: !w[dow].enabled, session_method: w[dow].enabled ? w[dow].session_method : sessionMethod },
                     }))}
-                      className="relative w-10 h-5 rounded-full transition-colors flex-shrink-0"
+                      className="relative w-10 h-5 rounded-full transition-colors flex-shrink-0 overflow-hidden"
                       style={{ background: entry.enabled ? 'var(--color-primary)' : 'var(--color-border)' }}>
-                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${entry.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${entry.enabled ? 'translate-x-[1.375rem]' : 'translate-x-0.5'}`} />
                     </button>
 
                     {/* Day name */}

@@ -1689,7 +1689,7 @@ export default function AppointmentsDashboard() {
                 className="flex-1 px-4 py-2 text-sm font-semibold text-white rounded-lg transition disabled:opacity-50"
                 style={{ background: 'var(--color-danger)' }}
                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-hover)'}
-                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger)'}>
                 {cancellingId ? 'Cancelling…' : 'Cancel Appointment'}
               </button>
             </div>
@@ -2030,14 +2030,14 @@ export default function AppointmentsDashboard() {
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition"
                     style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
                     onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
                     <Pencil size={11} /> Edit
                   </button>
                 )}
                 <button onClick={() => { setFormsTarget(null); setFormsEditing(false); }}
                   className="p-2 rounded-lg transition"
                   onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
                   <X size={14} style={{ color: 'var(--color-text-muted)' }} />
                 </button>
               </div>
@@ -2242,7 +2242,7 @@ export default function AppointmentsDashboard() {
                     className="flex items-center gap-2 px-5 py-2 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition"
                     style={{ background: 'var(--color-primary)' }}
                     onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}>
                     {formsSaving ? <Loader2 size={13} className="animate-spin" /> : null}
                     {formsSaving ? 'Saving…' : 'Save Forms'}
                   </button>
@@ -2265,7 +2265,7 @@ export default function AppointmentsDashboard() {
                     className="px-4 py-2 text-sm rounded-lg transition"
                     style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
                     onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
                     Close
                   </button>
                 </>

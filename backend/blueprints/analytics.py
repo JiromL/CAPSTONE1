@@ -486,12 +486,13 @@ def get_intake_conversion():
 @jwt_required()
 @dpo_admin_only
 def get_appointments_monthly():
-    """Get monthly appointment counts for the last 6 months"""
+    """Get monthly appointment counts (default last 6 months, configurable via ?months=N)"""
     try:
+        num_months = min(int(request.args.get('months', 6)), 24)
         result = []
         now = datetime.utcnow()
 
-        for i in range(5, -1, -1):
+        for i in range(num_months - 1, -1, -1):
             # Build month boundaries
             year = now.year
             month = now.month - i
@@ -530,12 +531,13 @@ def get_appointments_monthly():
 @jwt_required()
 @dpo_admin_only
 def get_cases_monthly():
-    """Get monthly new case and closure counts for the last 6 months"""
+    """Get monthly new case and closure counts (default last 6 months, configurable via ?months=N)"""
     try:
+        num_months = min(int(request.args.get('months', 6)), 24)
         result = []
         now = datetime.utcnow()
 
-        for i in range(5, -1, -1):
+        for i in range(num_months - 1, -1, -1):
             year = now.year
             month = now.month - i
             while month <= 0:

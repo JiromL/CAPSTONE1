@@ -312,10 +312,9 @@ def list_appointments():
         
     except Exception as e:
         import traceback
-        error_trace = traceback.format_exc()
         print(f"Error in list_appointments: {str(e)}")
-        print(error_trace)
-        return jsonify({'error': f'Failed to fetch appointments: {str(e)}', 'details': error_trace}), 500
+        print(traceback.format_exc())
+        return jsonify({'error': 'Failed to fetch appointments'}), 500
 
 
 @appointments_bp.route('/my-appointments', methods=['GET'])
@@ -641,7 +640,10 @@ def request_appointment():
             slot_oid = ObjectId(slot_id)
         except Exception:
             return jsonify({'error': 'Invalid slot_id'}), 400
-        booked_slot = db.db.counselor_availability.find_one({'_id': slot_oid, 'is_available': True})
+        booked_slot = db.db.counselor_availability.find_one_and_update(
+            {'_id': slot_oid, 'is_available': True},
+            {'$set': {'is_available': False}}
+        )
         if not booked_slot:
             return jsonify({'error': 'Slot not found or already booked. Please choose another slot.'}), 409
         requested_start = booked_slot['slot_start']
@@ -826,12 +828,11 @@ def request_appointment():
         result = db.db.appointments.insert_one(appointment)
         appointment_id = str(result.inserted_id)
 
-        # Mark the slot as booked so no one else can take it
+        # Record who booked the slot and which appointment owns it
         if booked_slot:
             db.db.counselor_availability.update_one(
                 {"_id": booked_slot["_id"]},
-                {"$set": {"is_available": False, "booked_by": user_id_obj,
-                           "appointment_id": result.inserted_id}}
+                {"$set": {"booked_by": user_id_obj, "appointment_id": result.inserted_id}}
             )
 
         # Slot-based bookings have a pre-assigned counselor; manual requests stay REQUESTED for IC review
@@ -2449,7 +2450,7 @@ def staff_schedule_for_student():
             'student_id': student_oid,
             'student_name': f"{student.get('first_name','')} {student.get('last_name','')}".strip(),
             'student_email': student.get('email', ''),
-            'case_status': 'open',
+            'case_status': 'ACTIVE',
             'chief_complaint': concern,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
@@ -2468,7 +2469,10 @@ def staff_schedule_for_student():
     if slot_id:
         try:
             slot_oid = ObjectId(slot_id)
-            booked_slot = db.db.counselor_availability.find_one({'_id': slot_oid, 'is_available': True})
+            booked_slot = db.db.counselor_availability.find_one_and_update(
+                {'_id': slot_oid, 'is_available': True},
+                {'$set': {'is_available': False}}
+            )
         except Exception:
             pass
         if booked_slot:
@@ -2508,9 +2512,6 @@ def staff_schedule_for_student():
         'created_at': datetime.utcnow(),
         'updated_at': datetime.utcnow(),
     }
-    if booked_slot:
-        db.db.counselor_availability.update_one({'_id': booked_slot['_id']}, {'$set': {'is_available': False}})
-
     db.db.appointments.insert_one(apt)
     audit_log(db.db, 'appointment', 'staff_schedule', entity_id=str(apt['_id']))
     return jsonify({'appointment_id': str(apt['_id']), 'status': status}), 201

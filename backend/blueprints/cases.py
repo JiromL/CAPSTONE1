@@ -182,13 +182,12 @@ def create_checkin_case():
         '_id': ObjectId(),
         'student_id': student_obj_id,
         'assigned_counselor_id': assigned_counselor_id,
-        'case_status': CaseStatus.ACTIVE.value,  # Case itself is active
-        'client_status': data['client_status'],  # Type of client (CHECK_IN_ONLY, etc)
+        'case_status': CaseStatus.ACTIVE.value,
+        'client_status': data['client_status'],
         'presenting_issue': data['concern'],
         'primary_concern': data.get('primary_concern', data['concern']),
-        'case_type': CaseType.DEVELOPMENTAL.value,  # Non-counseling cases are DEVELOPMENTAL type
-        'risk_level': RiskLevel.GREEN.value,  # Default GREEN for check-in only
-        'case_status': 'open',
+        'case_type': CaseType.DEVELOPMENTAL.value,
+        'risk_level': RiskLevel.GREEN.value,
         'created_at': datetime.utcnow(),
         'updated_at': datetime.utcnow(),
         'created_by': ObjectId(user_id) if isinstance(user_id, str) else user_id,

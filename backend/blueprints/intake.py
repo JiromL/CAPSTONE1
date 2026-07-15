@@ -631,7 +631,7 @@ def submit_triage(intake_id):
                     'counselor_id': counselor_obj_id,
                     'counselor_name': counselor_name,
                     'purpose': 'FOLLOW_UP',
-                    'status': AppointmentStatus.CONFIRMED.value,
+                    'status': AppointmentStatus.REQUESTED.value,
                     'concern': intake.get('concern', ''),
                     'risk_level': risk_level,
                     'case_id': case_id,
@@ -797,7 +797,7 @@ def student_submit_intake():
     # Get user info
     user = db.db.users.find_one({"_id": user_obj_id})
     user_email = user.get('email', '') if user else ''
-    user_name = user.get('name', 'Student') if user else 'Student'
+    user_name = f"{user.get('first_name','')} {user.get('last_name','')}".strip() if user else 'Student'
     
     # RULE 1: Student can only have ONE active appointment at a time
     # Active statuses: REQUESTED (PENDING), PENDING_APPROVAL, APPROVED, MATCHED, CONFIRMED
@@ -851,7 +851,7 @@ def student_submit_intake():
             "_id": ObjectId(),
             "student_id": user_obj_id,
             "assigned_counselor_id": None,
-            "case_status": "open",
+            "case_status": "ACTIVE",
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
@@ -1124,7 +1124,8 @@ def student_submit_intake():
                 next_step = f"Your appointment is scheduled for {appointment_datetime_str}."
             else:
                 status_msg = "Your intake has been received and reviewed."
-                counselor_name = db.db.users.find_one({"_id": assigned_counselor_id}).get('name', 'A counselor') if assigned_counselor_id else 'A counselor'
+                c_doc = db.db.users.find_one({"_id": assigned_counselor_id}) if assigned_counselor_id else None
+                counselor_name = f"{c_doc.get('first_name','')} {c_doc.get('last_name','')}".strip() if c_doc else 'A counselor'
                 next_step = f"You've been assigned to {counselor_name}. Your appointment is scheduled for {appointment_datetime_str}."
             
             # Build score summary (only show scores for assessments taken)
@@ -1351,7 +1352,7 @@ def get_emergency_intakes():
         result.append({
             'intake_id': str(intake['_id']),
             'counseling_id': intake.get('counseling_id'),
-            'student_name': student.get('name', 'Unknown'),
+            'student_name': f"{student.get('first_name','')} {student.get('last_name','')}".strip() or 'Unknown',
             'emergency_notes': intake.get('responses', {}).get('emergency_notes', ''),
             'phq9_score': intake.get('responses', {}).get('phq9_score'),
             'gad7_score': intake.get('responses', {}).get('gad7_score'),
@@ -2363,7 +2364,7 @@ def create_walkin_intake():
     user = db.db.users.find_one({"_id": ObjectId(user_id)})
     
     # Verify user has permission (STAFF/office assistant can create walk-ins)
-    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'OFFICE_ASSISTANT', 'IC']:
+    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'IC']:
         return jsonify({'error': 'Insufficient permissions to create walk-in intake'}), 403
     
     try:
@@ -3041,7 +3042,7 @@ def get_intake_packet(appointment_id):
     # OA can see ICF/SPIF only (not PHQ-4 scores — those are clinical data)
     # IC, Director, Admin see everything
     # STUDENT can check submitted status for their own appointment (returns only submitted flag)
-    ALLOWED = {'IC', 'INTAKE_COUNSELOR', 'ADMIN', 'STAFF', 'OA', 'OFFICE_ASSISTANT', 'DIRECTOR', 'DPO', 'STUDENT'}
+    ALLOWED = {'IC', 'INTAKE_COUNSELOR', 'ADMIN', 'STAFF', 'DIRECTOR', 'DPO', 'STUDENT'}
     if not user or user_role not in ALLOWED:
         return jsonify({'error': 'Unauthorized'}), 403
 
@@ -3075,7 +3076,7 @@ def get_intake_packet(appointment_id):
     result['phq4_summary'] = result.pop('phq4', None)
 
     # OA role: strip clinical screening scores (data minimization — RA 10173)
-    if user_role in {'OA', 'OFFICE_ASSISTANT'}:
+    if user_role == 'STAFF':
         result.pop('phq4_summary', None)
         result.pop('phq4_responses', None)
 
@@ -3093,7 +3094,7 @@ def get_intake_packet_by_email(email):
         return jsonify({'error': 'Invalid token'}), 401
 
     user = db.db.users.find_one({'_id': uid_obj})
-    if not user or user.get('role') not in {'IC', 'INTAKE_COUNSELOR', 'ADMIN', 'STAFF', 'OA'}:
+    if not user or user.get('role') not in {'IC', 'INTAKE_COUNSELOR', 'ADMIN', 'STAFF'}:
         return jsonify({'error': 'Unauthorized'}), 403
 
     packet = db.db.intake_packets.find_one(

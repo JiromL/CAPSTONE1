@@ -250,7 +250,7 @@ def update_user_role(user_id):
     data = request.get_json()
     
     # Valid roles
-    VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'STAFF', 'STUDENT']
+    VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'STAFF', 'STUDENT']
     
     try:
         # Check if current user is admin

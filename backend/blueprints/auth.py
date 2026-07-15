@@ -58,6 +58,9 @@ def google_oauth_callback():
     existing_user = db.db.users.find_one({"email": email})
     
     if existing_user:
+        if not existing_user.get('is_active', True):
+            return jsonify({'error': 'User account is inactive'}), 403
+
         # User exists - update oauth info if not already linked
         if not existing_user.get('oauth_provider'):
             db.db.users.update_one(
@@ -70,7 +73,7 @@ def google_oauth_callback():
                     "updated_at": datetime.utcnow()
                 }}
             )
-        
+
         audit_log(db.db, 'auth', 'oauth_login', entity_id=str(existing_user['_id']))
     else:
         # Create new user via OAuth
@@ -384,7 +387,7 @@ def login():
         user = db.db.users.find_one({"id_number": identifier})
 
     if user:
-        pwd_check = check_password_hash(user['password_hash'], data['password']) if 'password_hash' in user else False
+        pwd_check = check_password_hash(user['password_hash'], data['password']) if user.get('password_hash') else False
         if pwd_check:
             if not user.get('is_verified', True):
                 return jsonify({
@@ -636,7 +639,7 @@ def reset_password():
 
     db.db.users.update_one(
         {'_id': user['_id']},
-        {'$set': {'password': generate_password_hash(new_password)},
+        {'$set': {'password_hash': generate_password_hash(new_password)},
          '$unset': {'reset_token': '', 'reset_token_expiry': ''}}
     )
     return jsonify({'message': 'Password reset successfully'}), 200

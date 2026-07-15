@@ -21,6 +21,25 @@ STAFF_ROLES = {'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'IC', 'STAFF'}
 # Doc shape:  { counselor_id, schedule: [{day_of_week: 0-6, start_time: "HH:MM", end_time: "HH:MM"}] }
 # ============================================================================
 
+@availability_bp.route('', methods=['GET'])
+@jwt_required()
+def list_all_slots():
+    """Return all availability slots across all counselors (for IC schedule view)."""
+    slots = list(db.db.availability.find({}).sort('start_time', 1).limit(500))
+    result = []
+    for s in slots:
+        result.append({
+            '_id': str(s['_id']),
+            'counselor_id': str(s.get('counselor_id', '')),
+            'counselor_name': s.get('counselor_name', ''),
+            'start_time': s['start_time'].isoformat() if hasattr(s.get('start_time'), 'isoformat') else str(s.get('start_time', '')),
+            'end_time': s['end_time'].isoformat() if hasattr(s.get('end_time'), 'isoformat') else str(s.get('end_time', '')),
+            'status': s.get('status', 'available'),
+            'is_available': s.get('is_available', True),
+        })
+    return jsonify(result), 200
+
+
 @availability_bp.route('/weekly', methods=['GET'])
 @jwt_required()
 def get_weekly_schedule():

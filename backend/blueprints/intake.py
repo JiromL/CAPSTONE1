@@ -3109,3 +3109,37 @@ def get_intake_packet_by_email(email):
         packet['appointment_id'] = str(packet['appointment_id'])
 
     return jsonify({'packet': packet, 'submitted': True}), 200
+
+
+@intake_bp.route('/<intake_id>/verify', methods=['POST'])
+@jwt_required()
+def verify_intake(intake_id):
+    """IC: Approve or reject a completed intake record for QA verification."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)}) if user_id else None
+    if not user or user.get('role') not in {'IC', 'STAFF', 'ADMIN', 'DPO'}:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.get_json() or {}
+    action = data.get('action', '').lower()
+    if action not in ('approve', 'reject'):
+        return jsonify({'error': 'action must be "approve" or "reject"'}), 400
+
+    try:
+        iid = ObjectId(intake_id)
+    except Exception:
+        return jsonify({'error': 'Invalid intake ID'}), 400
+
+    verification_status = 'approved' if action == 'approve' else 'rejected'
+    result = db.db.appointments.update_one(
+        {'_id': iid},
+        {'$set': {
+            'verification_status': verification_status,
+            'verified_by': ObjectId(user_id),
+            'verified_at': datetime.utcnow(),
+        }}
+    )
+    if result.matched_count == 0:
+        return jsonify({'error': 'Intake record not found'}), 404
+
+    return jsonify({'success': True, 'verification_status': verification_status}), 200

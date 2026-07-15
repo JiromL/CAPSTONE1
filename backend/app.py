@@ -58,6 +58,9 @@ from blueprints.qr_checkin import qr_bp
 from blueprints.consent import consent_bp
 from blueprints.announcements import announcements_bp
 from blueprints.reports import reports_bp
+from blueprints.forms import forms_bp
+from blueprints.qa import qa_bp
+from blueprints.communications import communications_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -125,6 +128,9 @@ def create_app(config_name=None):
     app.register_blueprint(consent_bp)
     app.register_blueprint(announcements_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(forms_bp)
+    app.register_blueprint(qa_bp)
+    app.register_blueprint(communications_bp)
 
     # Start background reminder scheduler
     from scheduler import start_scheduler

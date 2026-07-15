@@ -218,7 +218,7 @@ def list_users_by_role():
     elif role == 'COUNSELOR':
         query = {'role': {'$in': COUNSELOR_ROLES}}
     elif role:
-        query = {'role': role}
+        query = {'role': role.upper()}
     else:
         query = {}
     if q:

@@ -23,18 +23,16 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   ];
 
   // ============ IC (Intake Counselor) ============
-  // Unified pipeline: confirm slot → conduct intake → write assessment
+  // Pipeline: conduct intake → QA (verify / review / follow-up) → schedule
   const icItems: MenuItem[] = [
-    { label: 'Dashboard',          href: '/dashboard',           id: 'dashboard'         },
-    { label: 'Intake Management',  href: '/intake-management',   id: 'intake-management' },
-    { label: 'Review Forms',       href: '/ic/forms/review',     id: 'forms-review'      },
-    { label: 'QA Follow-up',       href: '/ic/qa/follow-up',     id: 'qa-follow-up'      },
-    { label: 'Verify Intakes',     href: '/ic/qa/verify',        id: 'qa-verify'         },
-    { label: 'My Schedule',        href: '/schedule',            id: 'schedule'          },
-    { label: 'My Availability',    href: '/availability',        id: 'availability'      },
-    { label: 'EMA',                href: '/mhbot',               id: 'mhbot'             },
-    { label: 'Announcements',      href: '/announcements',       id: 'announcements'     },
-    { label: 'Profile',            href: '/profile',             id: 'profile'           },
+    { label: 'Dashboard',         href: '/dashboard',         id: 'dashboard'        },
+    { label: 'Intake Management', href: '/intake-management', id: 'intake-management'},
+    { label: 'QA',                href: '/ic/qa',             id: 'ic-qa'            },
+    { label: 'My Schedule',       href: '/schedule',          id: 'schedule'         },
+    { label: 'My Availability',   href: '/availability',      id: 'availability'     },
+    { label: 'EMA',               href: '/mhbot',             id: 'mhbot'            },
+    { label: 'Announcements',     href: '/announcements',     id: 'announcements'    },
+    { label: 'Profile',           href: '/profile',           id: 'profile'          },
   ];
 
   // ============ COUNSELOR ============
@@ -166,10 +164,14 @@ export function getActiveSectionFromPath(pathname: string): string {
     'new-intakes':          'new-intakes',
     'intake-management':    'intake-management',
 
-    // IC sub-pages
-    'review':               'forms-review',
-    'follow-up':            'qa-follow-up',
-    'verify':               'qa-verify',
+    // IC QA section — all sub-paths map to the unified QA nav item
+    'qa':                   'ic-qa',
+    'review':               'ic-qa',
+    'follow-up':            'ic-qa',
+    'verify':               'ic-qa',
+    'missing-data':         'ic-qa',
+    'contact':              'ic-qa',
+    'forms':                'ic-qa',
 
     // Cases / Clinical
     'cases':                'cases',

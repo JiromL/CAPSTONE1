@@ -2761,7 +2761,13 @@ def get_reassignment_suggestions():
     try:
         active_statuses = ['ACTIVE', 'NEW', 'active', 'new']
         active_cases = list(db.db.cases.find(
-            {'case_status': {'$in': active_statuses}, 'assigned_counselor_id': {'$exists': True, '$ne': None}},
+            {
+                '$or': [
+                    {'case_status': {'$in': active_statuses}},
+                    {'status': {'$in': active_statuses}},
+                ],
+                'assigned_counselor_id': {'$exists': True, '$ne': None},
+            },
             {'_id': 1, 'assigned_counselor_id': 1, 'student_id': 1}
         ))
 

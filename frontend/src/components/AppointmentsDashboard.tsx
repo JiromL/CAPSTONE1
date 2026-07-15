@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/utils/api';
-import { PermaBadge, PERMA_CONFIG } from '@/components/PendingStudentsWithPerma';
+import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Appointment {

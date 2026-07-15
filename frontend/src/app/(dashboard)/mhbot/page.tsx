@@ -117,7 +117,7 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
 
   useEffect(() => { load(); }, []);
 
-  const cfg = label ? (PERMA_STYLES[label] ?? null) : null;
+  const cfg = label ? (PERMA_STYLES[label as keyof typeof PERMA_STYLES] ?? null) : null;
 
   return (
     <div className="max-w-lg mx-auto space-y-5">
@@ -325,7 +325,7 @@ function StaffView({ username, onDisconnect }: { username: string; onDisconnect:
                 {LABEL_ORDER.map(label => {
                   const count = dist.distribution[label] ?? 0;
                   const pct = totalLabeled > 0 ? Math.round((count / totalLabeled) * 100) : 0;
-                  const cfg = PERMA_STYLES[label];
+                  const cfg = PERMA_STYLES[label as keyof typeof PERMA_STYLES];
                   return (
                     <div key={label} className="flex items-center gap-3">
                       <div className="w-24 text-right"><PermaBadge label={label} /></div>

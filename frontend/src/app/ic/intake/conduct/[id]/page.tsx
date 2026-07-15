@@ -283,8 +283,8 @@ export default function ConductIntakePage() {
       if (r.ok) {
         const newCaseId = d.case_id || (() => {
           return fetch(api(`/api/intake/${realId}`), { headers: { Authorization: `Bearer ${token}` } })
-            .then(ir => ir.ok ? ir.json() : {})
-            .then(u => u.case_id || null);
+            .then(ir => ir.ok ? ir.json() : {} as Record<string, unknown>)
+            .then((u: Record<string, unknown>) => u.case_id || null);
         })();
         const resolved = typeof newCaseId === 'string' ? newCaseId : await newCaseId;
         if (resolved) setCaseId(String(resolved));

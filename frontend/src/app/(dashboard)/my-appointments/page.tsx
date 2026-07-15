@@ -526,6 +526,36 @@ export default function MyAppointmentsPage() {
                             <MapPin size={10} /> {appt.office}
                           </p>
                         )}
+
+                        {/* Status timeline */}
+                        {['REQUESTED','PENDING_APPROVAL','MATCHED','CONFIRMED','APPROVED','CHECKED_IN','EVALUATION'].includes(appt.status) && (() => {
+                          const step2 = ['CONFIRMED','APPROVED','CHECKED_IN','EVALUATION'].includes(appt.status);
+                          const step3 = appt.status === 'EVALUATION';
+                          const steps = [
+                            { label: 'Requested', done: true },
+                            { label: 'Confirmed',  done: step2 },
+                            { label: 'Session',    done: step3 },
+                          ];
+                          return (
+                            <div className="flex items-center mt-3 mb-1">
+                              {steps.map((s, i) => (
+                                <div key={s.label} className="flex items-center" style={{ flex: i < steps.length - 1 ? '1' : 'none' }}>
+                                  <div className="flex flex-col items-center">
+                                    <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                                      style={{ background: s.done ? 'var(--color-success)' : 'var(--color-border)', color: s.done ? 'white' : 'var(--color-text-muted)' }}>
+                                      {s.done ? '✓' : i + 1}
+                                    </div>
+                                    <span className="text-[9px] mt-0.5 whitespace-nowrap" style={{ color: s.done ? 'var(--color-success)' : 'var(--color-text-muted)' }}>{s.label}</span>
+                                  </div>
+                                  {i < steps.length - 1 && (
+                                    <div className="flex-1 h-px mx-1 mb-3" style={{ background: steps[i + 1].done ? 'var(--color-success)' : 'var(--color-border)' }} />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+
                         {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_start && (
                           <p className="mt-1 text-xs" style={{ color: 'var(--color-primary)' }}>Proposed new time: {fmtDateTime(appt.reschedule_requested_start)}</p>
                         )}

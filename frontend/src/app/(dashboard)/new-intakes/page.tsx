@@ -170,7 +170,7 @@ export default function NewIntakesPage() {
 
   return (
     <>
-    <DashboardPageWrapper title={userRole === 'IC' ? 'Intake Tracker' : 'New Client Intakes'} subtitle="Track and manage new counseling intake requests">
+    <DashboardPageWrapper title={userRole === 'IC' ? 'Intake Tracker' : 'NC Client Tracker'} subtitle="Non-counseling client intake tracking and management">
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

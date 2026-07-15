@@ -106,6 +106,14 @@ export default function CaseManagerQueuePage() {
     <DashboardPageWrapper title="CM Queue" subtitle="Students flagged as Struggling or In Crisis via EMA">
       <div className="max-w-3xl mx-auto space-y-5">
 
+        <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
+          <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+          <p style={{ color: 'var(--color-primary)' }}>
+            <span className="font-semibold">About this queue: </span>
+            Students flagged by EMA risk scoring as Struggling or In Crisis. Not all may have an open case yet — use this list to prioritize outreach and case creation.
+          </p>
+        </div>
+
         <div className="flex items-center gap-3">
           <input type="text" placeholder="Search name, ID or college…"
             value={search} onChange={e => setSearch(e.target.value)}

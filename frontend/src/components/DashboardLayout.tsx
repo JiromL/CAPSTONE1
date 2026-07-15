@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Power, Menu, Bell, X, CheckCheck, ChevronRight } from 'lucide-react';
+import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
@@ -61,6 +61,7 @@ export function DashboardLayout({
   onMenuClick,
 }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen]       = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [reminderCount, setReminderCount] = useState(0);
   const [reminders, setReminders]         = useState<any[]>([]);
   const [bellOpen, setBellOpen]           = useState(false);
@@ -69,6 +70,21 @@ export function DashboardLayout({
   const { theme, toggleTheme }            = useTheme();
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sidebar-collapsed');
+      if (stored !== null) setSidebarCollapsed(stored === 'true');
+    } catch {}
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(v => {
+      const next = !v;
+      try { localStorage.setItem('sidebar-collapsed', String(next)); } catch {}
+      return next;
+    });
+  };
 
   const fetchReminders = useCallback(() => {
     const token = localStorage.getItem('token');
@@ -135,11 +151,11 @@ export function DashboardLayout({
           {icon}
         </span>
 
-        {/* Label — hidden when collapsed on desktop */}
+        {/* Label — hidden when sidebar is collapsed on desktop */}
         <span className={`
           flex-1 text-sm font-medium whitespace-nowrap overflow-hidden leading-none
           transition-opacity duration-150
-          ${mobileOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100 delay-[30ms]'}
+          ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
         `}>
           {item.label}
         </span>
@@ -150,7 +166,7 @@ export function DashboardLayout({
             flex-shrink-0 text-[10px] min-w-[18px] h-[18px] px-1.5
             flex items-center justify-center rounded-full font-bold
             transition-opacity duration-150
-            ${mobileOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100'}
+            ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
             ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-primary)] text-white'}
           `}>
             {item.badge > 99 ? '99+' : item.badge}
@@ -186,8 +202,8 @@ export function DashboardLayout({
 
         {/* Wordmark */}
         <div className={`
-          min-w-0 overflow-hidden transition-opacity duration-150
-          ${mobileOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100 delay-[30ms]'}
+          flex-1 min-w-0 overflow-hidden transition-opacity duration-150
+          ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
         `}>
           <p className="text-sm font-bold text-white leading-tight whitespace-nowrap">CPS Portal</p>
           <p className="text-[9px] text-white/35 leading-tight whitespace-nowrap font-medium tracking-wide uppercase">
@@ -195,10 +211,19 @@ export function DashboardLayout({
           </p>
         </div>
 
+        {/* Desktop collapse toggle */}
+        <button
+          onClick={toggleSidebar}
+          className="hidden lg:flex ml-auto flex-shrink-0 items-center justify-center w-6 h-6 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {sidebarCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+        </button>
+
         {/* Mobile close */}
         <button
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden ml-auto p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors"
+          className="lg:hidden flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors"
         >
           <X size={15} />
         </button>
@@ -237,7 +262,7 @@ export function DashboardLayout({
           </span>
           <span className={`
             text-sm font-medium whitespace-nowrap transition-opacity duration-150
-            ${mobileOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100'}
+            ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
           `}>
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </span>
@@ -256,7 +281,7 @@ export function DashboardLayout({
           {/* Name + role */}
           <div className={`
             flex-1 min-w-0 overflow-hidden transition-opacity duration-150
-            ${mobileOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100'}
+            ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
           `}>
             <p className="text-xs font-semibold text-white/90 truncate leading-tight">{fullName}</p>
             <p className="text-[10px] text-white/35 truncate leading-tight mt-0.5">{roleLabel}</p>
@@ -276,7 +301,7 @@ export function DashboardLayout({
           </span>
           <span className={`
             text-sm font-medium whitespace-nowrap transition-opacity duration-150
-            ${mobileOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100'}
+            ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
           `}>
             Sign out
           </span>
@@ -299,14 +324,13 @@ export function DashboardLayout({
 
       {/* ── Sidebar ──────────────────────────────────────── */}
       <aside className={`
-        group/sidebar
         fixed left-0 top-0 h-screen z-30 flex-col flex
         overflow-hidden
         transition-[width,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
         border-r border-white/[0.04]
         w-72
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        lg:w-16 lg:hover:w-60
+        ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-60'}
       `}
       style={{ background: 'var(--color-sidebar)' }}
       >
@@ -314,7 +338,7 @@ export function DashboardLayout({
       </aside>
 
       {/* ── Main area ────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-h-screen lg:ml-16">
+      <div className={`flex-1 flex flex-col min-h-screen transition-[margin] duration-200 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
 
         {/* Top header */}
         <header

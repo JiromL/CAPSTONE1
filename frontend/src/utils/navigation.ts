@@ -27,6 +27,9 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const icItems: MenuItem[] = [
     { label: 'Dashboard',          href: '/dashboard',           id: 'dashboard'         },
     { label: 'Intake Management',  href: '/intake-management',   id: 'intake-management' },
+    { label: 'Review Forms',       href: '/ic/forms/review',     id: 'forms-review'      },
+    { label: 'QA Follow-up',       href: '/ic/qa/follow-up',     id: 'qa-follow-up'      },
+    { label: 'Verify Intakes',     href: '/ic/qa/verify',        id: 'qa-verify'         },
     { label: 'My Schedule',        href: '/schedule',            id: 'schedule'          },
     { label: 'My Availability',    href: '/availability',        id: 'availability'      },
     { label: 'EMA',                href: '/mhbot',               id: 'mhbot'             },
@@ -40,7 +43,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard',       href: '/dashboard',     id: 'dashboard'    },
     { label: 'Cases',           href: '/cases',         id: 'cases'        },
     { label: 'My Referrals',    href: '/my-referrals',  id: 'my-referrals' },
-    { label: 'Sessions',        href: '/appointments',  id: 'appointments' },
+    { label: 'Appointments',    href: '/appointments',  id: 'appointments' },
     { label: 'My Schedule',     href: '/schedule',      id: 'schedule'     },
     { label: 'My Availability', href: '/availability',  id: 'availability' },
     { label: 'EMA',             href: '/mhbot',         id: 'mhbot'        },
@@ -49,12 +52,12 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   ];
 
   // ============ PSYCHOLOGIST ============
-  // Most frequent: High-Risk (unique role) → Cases → Sessions → Availability → EMA
+  // Most frequent: High-Risk (unique role) → Cases → Appointments → Availability → EMA
   const psychologistItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',     id: 'dashboard'    },
     { label: 'High-Risk Monitoring', href: '/high-risk',     id: 'high-risk'    },
     { label: 'Cases',                href: '/cases',         id: 'cases'        },
-    { label: 'Sessions',             href: '/appointments',  id: 'appointments' },
+    { label: 'Appointments',         href: '/appointments',  id: 'appointments' },
     { label: 'My Schedule',          href: '/schedule',      id: 'schedule'     },
     { label: 'My Availability',      href: '/availability',  id: 'availability' },
     { label: 'EMA',                  href: '/mhbot',         id: 'mhbot'        },
@@ -89,14 +92,15 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   ];
 
   // ============ ADMIN ============
-  // Most frequent: User Mgmt → Appointment Requests → New Intakes → Cases → Analytics
+  // Most frequent: User Mgmt → Appointment Requests → Cases → Analytics
   const adminItems: MenuItem[] = [
-    { label: 'Dashboard',       href: '/dashboard',       id: 'dashboard'    },
-    { label: 'User Management', href: '/admin/users',     id: 'admin'        },
-    { label: 'Cases',           href: '/cases',           id: 'cases'        },
-    { label: 'Analytics',       href: '/admin/analytics', id: 'analytics'    },
-    { label: 'Announcements',   href: '/announcements',   id: 'announcements'},
-    { label: 'Profile',         href: '/profile',         id: 'profile'      },
+    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
+    { label: 'User Management',      href: '/admin/users',          id: 'admin'        },
+    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
+    { label: 'Cases',                href: '/cases',                id: 'cases'        },
+    { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'    },
+    { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
+    { label: 'Profile',              href: '/profile',              id: 'profile'      },
   ];
 
   // ============ DPO (Data Protection Officer) ============
@@ -104,7 +108,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard',       href: '/dashboard',       id: 'dashboard'    },
     { label: 'Audit Logs',      href: '/admin/audit-log', id: 'audit'        },
     { label: 'User Management', href: '/admin/users',     id: 'admin'        },
-    { label: 'New Intakes',     href: '/new-intakes',     id: 'new-intakes'  },
+    { label: 'NC Client Tracker', href: '/new-intakes',   id: 'new-intakes'  },
     { label: 'Cases',           href: '/cases',           id: 'cases'        },
     { label: 'Announcements',   href: '/announcements',   id: 'announcements'},
     { label: 'Profile',         href: '/profile',         id: 'profile'      },
@@ -161,6 +165,11 @@ export function getActiveSectionFromPath(pathname: string): string {
     // Intakes
     'new-intakes':          'new-intakes',
     'intake-management':    'intake-management',
+
+    // IC sub-pages
+    'review':               'forms-review',
+    'follow-up':            'qa-follow-up',
+    'verify':               'qa-verify',
 
     // Cases / Clinical
     'cases':                'cases',

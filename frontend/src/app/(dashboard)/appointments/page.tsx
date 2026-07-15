@@ -256,7 +256,7 @@ export default function AppointmentsPage() {
 
   if (loading) {
     return (
-      <DashboardPageWrapper title="My Sessions" subtitle="Appointments assigned to you">
+      <DashboardPageWrapper title="My Appointments" subtitle="Sessions assigned to you">
         <div className="flex items-center justify-center h-52 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
           <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
         </div>
@@ -265,7 +265,7 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <DashboardPageWrapper title="My Sessions" subtitle="Appointments assigned to you">
+    <DashboardPageWrapper title="My Appointments" subtitle="Sessions assigned to you">
 
       {/* Summary strip */}
       {dashboard?.summary && (

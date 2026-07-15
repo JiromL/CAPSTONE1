@@ -327,13 +327,16 @@ def get_case(case_id):
     if raw_student_id:
         student_doc = db.db.users.find_one(
             {'_id': raw_student_id},
-            {'name': 1, 'email': 1, 'student_id': 1, 'mhbot_username': 1, 'college': 1, 'course': 1, 'program': 1, 'year_level': 1}
+            {'name': 1, 'email': 1, 'student_id': 1, 'id_number': 1, 'mhbot_username': 1,
+             'college': 1, 'course': 1, 'program': 1, 'year_level': 1, 'first_name': 1, 'last_name': 1}
         )
         if student_doc:
+            full_name = (student_doc.get('name') or
+                         f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip())
             serialized['student'] = {
-                'name': student_doc.get('name', ''),
+                'name': full_name,
                 'email': student_doc.get('email', ''),
-                'school_id': student_doc.get('student_id', ''),
+                'school_id': (student_doc.get('student_id') or student_doc.get('id_number') or ''),
                 'mhbot_username': student_doc.get('mhbot_username', ''),
                 'college': student_doc.get('college', ''),
                 'course': student_doc.get('course', '') or student_doc.get('program', ''),

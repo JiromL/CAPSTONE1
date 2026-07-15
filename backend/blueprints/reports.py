@@ -141,12 +141,34 @@ def cps_summary():
 
 # ─── sheet builders ───────────────────────────────────────────────────────────
 
+_STATUS_LABELS = {
+    'REQUESTED':               'Service Request Received',
+    'PENDING':                 'Pending Review',
+    'PENDING_STUDENT_APPROVAL':'Awaiting Student Confirmation',
+    'APPROVED':                'Approved',
+    'CONFIRMED':               'Confirmed',
+    'MATCHED':                 'Matched with Counselor',
+    'SCHEDULED':               'Scheduled',
+    'EVALUATION':              'Under Evaluation',
+    'FOLLOW_UP':               'Follow-up Scheduled',
+    'RESCHEDULE_REQUESTED':    'Reschedule Requested',
+    'COMPLETED':               'Completed',
+    'CANCELLED':               'Cancelled',
+    'NO_SHOW':                 'No Show',
+    'CHECKED_IN':              'Checked In',
+}
+
+
+def _label(status):
+    return _STATUS_LABELS.get(str(status).upper(), str(status).replace('_', ' ').title())
+
+
 def _sheet_new_clients(start, end):
     """
     PDF page 29 — New Clients
     Columns: Date, Time, Source, Transaction Type, ID Number, Last Name, First Name,
              College/Unit, Degree Program, Service Requested, Intake Counselor,
-             Action Taken, CC Assigned, CP Assigned, Status
+             Action Taken, CC Assigned, CP Assigned
     """
     query = {}
     if start and end:
@@ -156,43 +178,71 @@ def _sheet_new_clients(start, end):
         db.db.appointments.find(query).sort('created_at', -1).limit(1000)
     )
 
-    # Batch-fetch related users and cases
+    appt_ids      = [a['_id']         for a in appointments]
     student_ids   = [a['student_id']  for a in appointments if a.get('student_id')]
     counselor_ids = [a['counselor_id'] for a in appointments if a.get('counselor_id')]
-    case_ids      = [a['case_id']      for a in appointments if a.get('case_id')]
 
     students   = {u['_id']: u for u in db.db.users.find({'_id': {'$in': student_ids}})}
     counselors = {u['_id']: u for u in db.db.users.find({'_id': {'$in': counselor_ids}})}
-    cases      = {c['_id']: c for c in db.db.cases.find({'_id': {'$in': case_ids}})}
+
+    # Batch-fetch intake packets — used as fallback for college/id_number/program
+    intake_pkts = {}
+    for pkt in db.db.intake_packets.find({'appointment_id': {'$in': appt_ids}}):
+        aid = pkt.get('appointment_id')
+        if aid and aid not in intake_pkts:
+            intake_pkts[aid] = pkt
 
     rows = []
     for a in appointments:
-        student  = students.get(a.get('student_id'))
+        student   = students.get(a.get('student_id'))
         counselor = counselors.get(a.get('counselor_id'))
-        case     = cases.get(a.get('case_id'))
+        pkt       = intake_pkts.get(a['_id'])
+        icf       = pkt.get('icf', {}) if pkt else {}
 
-        created = a.get('created_at')
+        created  = a.get('created_at')
         date_str = created.strftime('%Y-%m-%d') if isinstance(created, datetime) else _s(created)[:10]
         time_str = created.strftime('%H:%M')    if isinstance(created, datetime) else ''
 
-        c_role = counselor.get('role', '') if counselor else ''
+        # Pull from user profile first, fall back to ICF intake data
+        id_number   = _s(student.get('id_number') or icf.get('student_id') or icf.get('id_number'))  if student else _s(icf.get('student_id', ''))
+        college     = _s(student.get('department') or student.get('college') or icf.get('college'))   if student else _s(icf.get('college', ''))
+        program     = _s(student.get('course')     or student.get('program') or icf.get('program'))   if student else _s(icf.get('program', ''))
+
+        method = (a.get('method') or a.get('preferred_method') or '').lower()
+        if method in ('walk-in', 'walkin', 'face_to_face', 'f2f', 'in-person'):
+            source = 'Walk-in'
+        elif method in ('online', 'virtual', 'video'):
+            source = 'Online'
+        else:
+            source = method.replace('_', ' ').title() if method else 'Online'
+
+        c_role   = counselor.get('role', '') if counselor else ''
+        ic_name  = ''
+        cc_name  = ''
+        cp_name  = ''
+        if c_role == 'IC':
+            ic_name = _name(counselor)
+        elif c_role == 'COUNSELOR':
+            cc_name = _name(counselor)
+        elif c_role == 'PSYCHOLOGIST':
+            cp_name = _name(counselor)
 
         rows.append({
             'Date of Request':   date_str,
             'Time of Request':   time_str,
-            'Source':            'Walk-in' if a.get('preferred_method') in ('walk-in', 'walkin') else 'Online',
-            'Transaction Type':  a.get('purpose', 'Initial Consultation'),
-            'ID Number':         student.get('id_number', '') if student else '',
-            'Last Name':         student.get('last_name',  '') if student else a.get('student_name', ''),
-            'First Name':        student.get('first_name', '') if student else '',
-            'College/Unit':      student.get('department', '') if student else '',
-            'Degree Program':    student.get('course', '')     if student else '',
-            'Service Requested': a.get('concern', '') or a.get('purpose', ''),
-            'Intake Counselor':  _name(counselor) if c_role == 'IC' else '',
-            'Action Taken':      a.get('status', ''),
-            'CC Assigned':       _name(counselor) if c_role == 'COUNSELOR'   else '',
-            'CP Assigned':       _name(counselor) if c_role == 'PSYCHOLOGIST' else '',
-            'Status':            a.get('status', ''),
+            'Source':            source,
+            'Transaction Type':  a.get('appointment_type') or a.get('purpose') or 'Initial Consultation',
+            'ID Number':         id_number,
+            'Last Name':         _s(student.get('last_name'))  if student else a.get('student_name', ''),
+            'First Name':        _s(student.get('first_name')) if student else '',
+            'College/Unit':      college,
+            'Degree Program':    program,
+            'Year Level':        _s(student.get('year_level') or icf.get('year_level')) if student else _s(icf.get('year_level', '')),
+            'Service Requested': a.get('concern') or a.get('purpose') or icf.get('service_requested', ''),
+            'Intake Counselor':  ic_name,
+            'Action Taken':      _label(a.get('status', '')),
+            'CC Assigned':       cc_name,
+            'CP Assigned':       cp_name,
         })
 
     return rows
@@ -222,13 +272,16 @@ def _sheet_counseling_cases(start, end):
 
         rows.append({
             'Counselor':               _name(counselor),
-            'Case Number':             c.get('case_number', ''),
-            'ID Number':               student.get('id_number', '') if student else '',
-            'Client Name':             _name(student),
+            'Case Number':             _s(c.get('case_number', '')),
+            'ID Number':               _s(student.get('id_number') or student.get('student_id')) if student else '',
+            'Last Name':               _s(student.get('last_name'))  if student else '',
+            'First Name':              _s(student.get('first_name')) if student else '',
+            'College/Unit':            _s(student.get('department') or student.get('college')) if student else '',
+            'Degree Program':          _s(student.get('course') or student.get('program'))     if student else '',
             'Target No. of Sessions':  _s(c.get('target_sessions', '')),
             'Current No. of Sessions': _s(c.get('session_count', 0)),
             'Risk Level':              c.get('risk_level', 'GREEN'),
-            'Status':                  c.get('client_status', c.get('status', '')),
+            'Case Status':             _label(c.get('client_status') or c.get('status', '')),
         })
 
     return rows
@@ -276,13 +329,15 @@ def _sheet_checkins(start, end):
 
         rows.append({
             'Counselor':      _name(counselor),
-            'Case Number':    c.get('case_number', ''),
-            'ID Number':      student.get('id_number', '') if student else '',
-            'Client Name':    _name(student),
-            'Concern':        c.get('presenting_concern', '') or (ci.get('notes', '') if ci else ''),
-            'Check-in Type':  ci.get('check_in_type', '') if ci else '',
-            'Last Check-in':  _s(ci.get('created_at')) if ci else '',
-            'Status':         c.get('client_status', ''),
+            'Case Number':    _s(c.get('case_number', '')),
+            'ID Number':      _s(student.get('id_number') or student.get('student_id')) if student else '',
+            'Last Name':      _s(student.get('last_name'))  if student else '',
+            'First Name':     _s(student.get('first_name')) if student else '',
+            'College/Unit':   _s(student.get('department') or student.get('college')) if student else '',
+            'Concern':        _s(c.get('presenting_concern') or (ci.get('notes') if ci else '')),
+            'Check-in Type':  _s(ci.get('check_in_type')) if ci else '',
+            'Last Check-in':  _s(ci.get('created_at'))    if ci else '',
+            'Status':         _label(c.get('client_status', '')),
         })
 
     return rows
@@ -320,16 +375,17 @@ def appointments_csv():
             rows.append({
                 'Date':           dt.strftime('%Y-%m-%d') if isinstance(dt, datetime) else _s(dt)[:10],
                 'Time':           dt.strftime('%H:%M')    if isinstance(dt, datetime) else '',
-                'Student ID':     student.get('id_number', '') if student else '',
-                'Student Name':   _name(student),
-                'College':        student.get('college', '') if student else '',
-                'Program':        student.get('program', '')  if student else '',
+                'ID Number':      _s(student.get('id_number') or student.get('student_id')) if student else '',
+                'Last Name':      _s(student.get('last_name'))  if student else '',
+                'First Name':     _s(student.get('first_name')) if student else '',
+                'College/Unit':   _s(student.get('department') or student.get('college')) if student else '',
+                'Degree Program': _s(student.get('course') or student.get('program'))     if student else '',
                 'Counselor':      _name(counselor),
                 'Counselor Role': counselor.get('role', '') if counselor else '',
-                'Type':           a.get('appointment_type', a.get('purpose', '')),
-                'Method':         a.get('method', a.get('preferred_method', '')),
-                'Status':         a.get('status', ''),
-                'Concern':        a.get('concern', ''),
+                'Type':           _s(a.get('appointment_type') or a.get('purpose')),
+                'Method':         _s(a.get('method') or a.get('preferred_method')),
+                'Status':         _label(a.get('status', '')),
+                'Concern':        _s(a.get('concern')),
             })
 
         audit_log(db.db, 'reports', 'export_appointments', new_values={'month': month or 'all', 'rows': len(rows)})

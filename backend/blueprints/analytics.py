@@ -702,3 +702,216 @@ def get_appointments_by_day():
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@analytics_bp.route('/appointments/breakdown', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_appointments_breakdown():
+    """Session mode (F2F/Online) and type (INTAKE/COUNSELING) breakdown + monthly method trend."""
+    try:
+        days_back = int(request.args.get('days', 180))
+        start_date = datetime.utcnow() - timedelta(days=days_back)
+
+        # Method distribution (all-time)
+        method_agg = list(db.db.appointments.aggregate([
+            {'$group': {'_id': '$method', 'count': {'$sum': 1}}}
+        ]))
+        method_dist = {item['_id']: item['count'] for item in method_agg if item['_id']}
+
+        # Type distribution (all-time)
+        type_agg = list(db.db.appointments.aggregate([
+            {'$group': {'_id': '$appointment_type', 'count': {'$sum': 1}}}
+        ]))
+        type_dist = {item['_id']: item['count'] for item in type_agg if item['_id']}
+
+        # Monthly method breakdown (period)
+        now = datetime.utcnow()
+        num_months = min(int(request.args.get('months', 6)), 12)
+        monthly = []
+        for i in range(num_months - 1, -1, -1):
+            yr, mo = now.year, now.month - i
+            while mo <= 0:
+                mo += 12; yr -= 1
+            ms = datetime(yr, mo, 1)
+            me = datetime(yr, mo + 1, 1) if mo < 12 else datetime(yr + 1, 1, 1)
+            qr = {'created_at': {'$gte': ms, '$lt': me}}
+            f2f    = db.db.appointments.count_documents({**qr, 'method': {'$in': ['F2F', 'f2f', 'face-to-face']}})
+            online = db.db.appointments.count_documents({**qr, 'method': {'$in': ['Online', 'online', 'ONLINE', 'virtual', 'VIRTUAL']}})
+            intake  = db.db.appointments.count_documents({**qr, 'appointment_type': {'$in': ['INTAKE', 'intake']}})
+            counsel = db.db.appointments.count_documents({**qr, 'appointment_type': {'$in': ['COUNSELING', 'counseling']}})
+            monthly.append({
+                'short': ms.strftime('%b'), 'label': ms.strftime('%b %Y'),
+                'f2f': f2f, 'online': online, 'intake': intake, 'counseling': counsel,
+            })
+
+        return jsonify({
+            'method_distribution': method_dist,
+            'type_distribution': type_dist,
+            'monthly': monthly,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@analytics_bp.route('/students/demographics', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_student_demographics():
+    """College and year-level distribution of students who have ever had an appointment."""
+    try:
+        # Students who have had at least one appointment
+        student_ids = db.db.appointments.distinct('student_id')
+
+        college_agg = list(db.db.users.aggregate([
+            {'$match': {'_id': {'$in': student_ids}, 'role': 'STUDENT'}},
+            {'$group': {'_id': '$college', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+        ]))
+        year_agg = list(db.db.users.aggregate([
+            {'$match': {'_id': {'$in': student_ids}, 'role': 'STUDENT'}},
+            {'$group': {'_id': '$year_level', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+        ]))
+
+        # All registered students for comparison
+        total_students = db.db.users.count_documents({'role': 'STUDENT'})
+        served_students = len(student_ids)
+
+        college_data = [{'college': item['_id'] or 'Unspecified', 'count': item['count']} for item in college_agg]
+        year_data    = [{'year_level': item['_id'] or 'Unspecified', 'count': item['count']} for item in year_agg]
+
+        return jsonify({
+            'college_distribution': college_data,
+            'year_level_distribution': year_data,
+            'total_students': total_students,
+            'students_served': served_students,
+            'utilization_rate': round(served_students / total_students * 100, 1) if total_students else 0,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@analytics_bp.route('/cases/pipeline', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_cases_pipeline():
+    """Case status pipeline, source distribution, endorsement routing, and top diagnoses."""
+    try:
+        # Status pipeline (use case_status field, fall back to status)
+        pipeline_order = ['NEW', 'INTAKE_SCHEDULED', 'ACTIVE', 'PENDING_TERMINATION', 'CLOSED', 'CANCELLED']
+        pipeline_counts = {}
+        for stage in pipeline_order:
+            count = db.db.cases.count_documents({
+                '$or': [{'case_status': stage}, {'status': stage}]
+            })
+            pipeline_counts[stage] = count
+
+        # Source distribution
+        source_agg = list(db.db.cases.aggregate([
+            {'$group': {'_id': '$source', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+        ]))
+        source_data = [{'source': (item['_id'] or 'Unspecified').replace('_', ' ').title(), 'count': item['count']} for item in source_agg]
+
+        # Endorsement routing (CC vs CP)
+        endorse_agg = list(db.db.cases.aggregate([
+            {'$match': {'endorsed_to_role': {'$exists': True, '$ne': None}}},
+            {'$group': {'_id': '$endorsed_to_role', 'count': {'$sum': 1}}},
+        ]))
+        endorse_data = {item['_id']: item['count'] for item in endorse_agg}
+
+        # Top diagnoses (from cases.diagnoses array)
+        diag_pipeline = [
+            {'$unwind': '$diagnoses'},
+            {'$group': {'_id': '$diagnoses.name', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+            {'$limit': 10},
+        ]
+        diagnoses = [{'name': item['_id'], 'count': item['count']} for item in db.db.cases.aggregate(diag_pipeline) if item['_id']]
+
+        # Cases stuck in NEW for > 7 days (need assignment)
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        stuck_new = db.db.cases.count_documents({
+            '$or': [{'case_status': 'NEW'}, {'status': 'NEW'}],
+            'created_at': {'$lt': week_ago},
+        })
+
+        return jsonify({
+            'pipeline': [{'stage': s, 'count': pipeline_counts[s]} for s in pipeline_order],
+            'source_distribution': source_data,
+            'endorsement_routing': endorse_data,
+            'top_diagnoses': diagnoses,
+            'stuck_new_cases': stuck_new,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@analytics_bp.route('/sessions/outcomes', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def get_session_outcomes():
+    """Monthly avg mood from session notes, risk-flagged count, PERMA label distribution."""
+    try:
+        months_back = min(int(request.args.get('months', 6)), 12)
+        now = datetime.utcnow()
+        mood_monthly = []
+        for i in range(months_back - 1, -1, -1):
+            yr, mo = now.year, now.month - i
+            while mo <= 0:
+                mo += 12; yr -= 1
+            ms = datetime(yr, mo, 1)
+            me = datetime(yr, mo + 1, 1) if mo < 12 else datetime(yr + 1, 1, 1)
+            agg = list(db.db.session_notes.aggregate([
+                {'$match': {
+                    'session_date': {'$gte': ms, '$lt': me},
+                    'mood_rating': {'$exists': True, '$type': 'number'},
+                    'is_deleted': {'$ne': True},
+                }},
+                {'$group': {'_id': None, 'avg_mood': {'$avg': '$mood_rating'}, 'count': {'$sum': 1}}},
+            ]))
+            mood_monthly.append({
+                'short': ms.strftime('%b'), 'label': ms.strftime('%b %Y'),
+                'avg_mood': round(agg[0]['avg_mood'], 1) if agg else None,
+                'session_count': agg[0]['count'] if agg else 0,
+            })
+
+        # Risk-flagged sessions
+        total_notes = db.db.session_notes.count_documents({'is_deleted': {'$ne': True}})
+        flagged     = db.db.session_notes.count_documents({'risk_flagged': True, 'is_deleted': {'$ne': True}})
+
+        # Session type distribution
+        stype_agg = list(db.db.session_notes.aggregate([
+            {'$match': {'is_deleted': {'$ne': True}}},
+            {'$group': {'_id': '$session_type', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+        ]))
+        session_types = [{'type': item['_id'] or 'Unspecified', 'count': item['count']} for item in stype_agg]
+
+        # PERMA label distribution (from perma_snapshots, latest per student)
+        perma_agg = list(db.db.perma_snapshots.aggregate([
+            {'$sort': {'saved_at': -1}},
+            {'$group': {'_id': '$student_user_id', 'perma_label': {'$first': '$perma_label'}}},
+            {'$group': {'_id': '$perma_label', 'count': {'$sum': 1}}},
+            {'$sort': {'count': -1}},
+        ]))
+        perma_dist = [{'label': item['_id'] or 'Unknown', 'count': item['count']} for item in perma_agg]
+
+        # No-show risk: students with ≥2 consecutive no-shows
+        noshows_at_risk = db.db.missed_appointment_tracker.count_documents({
+            'consecutive_no_shows': {'$gte': 2},
+            'auto_closed': {'$ne': True},
+        })
+
+        return jsonify({
+            'mood_monthly': mood_monthly,
+            'risk_flagged_sessions': flagged,
+            'total_sessions': total_notes,
+            'flagged_rate': round(flagged / total_notes * 100, 1) if total_notes else 0,
+            'session_type_distribution': session_types,
+            'perma_label_distribution': perma_dist,
+            'noshows_at_risk': noshows_at_risk,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

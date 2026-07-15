@@ -8,6 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from bson.objectid import ObjectId
 from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
+from utils import serialize_doc
 
 cases_bp = Blueprint('cases', __name__, url_prefix='/api/cases')
 
@@ -16,18 +17,6 @@ def has_permission(user_role, permission):
     """Check if user role has permission"""
     return permission in ROLE_PERMISSIONS.get(user_role, set())
 
-
-def serialize_doc(v):
-    """Recursively convert ObjectId/datetime in nested dicts and lists."""
-    if isinstance(v, ObjectId):
-        return str(v)
-    if isinstance(v, datetime):
-        return v.isoformat()
-    if isinstance(v, dict):
-        return {k: serialize_doc(val) for k, val in v.items()}
-    if isinstance(v, list):
-        return [serialize_doc(item) for item in v]
-    return v
 
 
 def get_cases_for_user(user_id, user_role):

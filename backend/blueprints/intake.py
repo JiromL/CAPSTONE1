@@ -6,7 +6,7 @@ MongoDB-compatible version
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, IntakeStatus, PermissionType, AppointmentStatus
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, serialize_doc
 from datetime import datetime, timedelta
 from bson import ObjectId
 import random
@@ -760,15 +760,7 @@ def get_case_intake(case_id):
     if not intake:
         return jsonify({'error': 'No intake found'}), 404
 
-    serialized = {}
-    for k, v in intake.items():
-        if isinstance(v, ObjectId):
-            serialized[k] = str(v)
-        elif isinstance(v, datetime):
-            serialized[k] = v.isoformat()
-        else:
-            serialized[k] = v
-
+    serialized = {k: serialize_doc(v) for k, v in intake.items()}
     return jsonify(serialized), 200
 
 

@@ -614,47 +614,48 @@ def submit_triage(intake_id):
             }}
         )
 
-        # Create follow-up appointment assigned to the chosen counselor.
+        # Create follow-up appointment. Always create it so the case is never
+        # left in limbo — counselor_id may be None if IC didn't assign one yet,
+        # in which case admin/staff can assign via Reassignment Suggestions.
         # Guard: only create one per intake to prevent duplicate re-triages.
-        if counselor_obj_id:
-            existing_followup = db.db.appointments.find_one({
-                'endorsed_from_intake': intake['_id'],
-                'status': {'$ne': AppointmentStatus.CANCELLED.value},
-            })
-            if not existing_followup:
-                student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
-                student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
+        existing_followup = db.db.appointments.find_one({
+            'endorsed_from_intake': intake['_id'],
+            'status': {'$ne': AppointmentStatus.CANCELLED.value},
+        })
+        if not existing_followup:
+            student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
+            student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
 
-                follow_up_appt = {
-                    'student_id': student_id,
-                    'student_name': student_name,
+            follow_up_appt = {
+                'student_id': student_id,
+                'student_name': student_name,
+                'counselor_id': counselor_obj_id,
+                'counselor_name': counselor_name if counselor_obj_id else None,
+                'purpose': 'FOLLOW_UP',
+                'status': AppointmentStatus.REQUESTED.value,
+                'concern': intake.get('concern', ''),
+                'risk_level': risk_level,
+                'case_id': case_id,
+                'source': 'endorsed',
+                'endorsed_from_intake': intake['_id'],
+                'method': 'in_person',
+                'preferred_date': None,
+                'preferred_time': None,
+                'created_at': now,
+                'updated_at': now,
+            }
+            db.db.appointments.insert_one(follow_up_appt)
+        else:
+            # Re-triage: update the existing follow-up to reflect the new counselor
+            db.db.appointments.update_one(
+                {'_id': existing_followup['_id']},
+                {'$set': {
                     'counselor_id': counselor_obj_id,
-                    'counselor_name': counselor_name,
-                    'purpose': 'FOLLOW_UP',
-                    'status': AppointmentStatus.REQUESTED.value,
-                    'concern': intake.get('concern', ''),
+                    'counselor_name': counselor_name if counselor_obj_id else None,
                     'risk_level': risk_level,
-                    'case_id': case_id,
-                    'source': 'endorsed',
-                    'endorsed_from_intake': intake['_id'],
-                    'method': 'in_person',
-                    'preferred_date': None,
-                    'preferred_time': None,
-                    'created_at': now,
                     'updated_at': now,
-                }
-                db.db.appointments.insert_one(follow_up_appt)
-            else:
-                # Re-triage: update the existing follow-up to reflect the new counselor
-                db.db.appointments.update_one(
-                    {'_id': existing_followup['_id']},
-                    {'$set': {
-                        'counselor_id': counselor_obj_id,
-                        'counselor_name': counselor_name,
-                        'risk_level': risk_level,
-                        'updated_at': now,
-                    }}
-                )
+                }}
+            )
 
     audit_log(db.db, 'intake', 'triage', entity_id=intake_id,
               new_values={'risk_level': risk_level, 'triage_decision': decision})
@@ -1093,7 +1094,13 @@ def student_submit_intake():
         appointment_doc['location'] = meeting_link_info.get('location', 'CPS Office')
     
     db.db.appointments.insert_one(appointment_doc)
-    
+
+    # Link the appointment back into the intake so submit_triage can mark it COMPLETED
+    db.db.intakes.update_one(
+        {'_id': intake_id},
+        {'$set': {'appointment_id': appointment_id, 'updated_at': datetime.utcnow()}}
+    )
+
     # Send email with counseling ID and appointment info
     smtp_host = current_app.config.get('SMTP_HOST')
     smtp_user = current_app.config.get('SMTP_USER')

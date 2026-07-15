@@ -72,6 +72,7 @@ class AppointmentStatus(str, Enum):
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
     NO_SHOW = "NO_SHOW"
+    CHECKED_IN = "CHECKED_IN"              # Student arrived at office for their appointment
     CLOSED_AT_INTAKE = "CLOSED_AT_INTAKE"   # IC closed case — no continuing sessions needed
     PENDING_STUDENT_APPROVAL = "PENDING_STUDENT_APPROVAL"  # Counselor proposed schedule, awaiting student confirmation
 

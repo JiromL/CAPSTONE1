@@ -35,13 +35,22 @@ def _email_footer():
 # ============================================================================
 
 def has_conflicting_appointment(counselor_id, start_time, end_time):
-    """Check if a counselor has a conflicting confirmed/matched appointment"""
+    """Check if a counselor has a conflicting active appointment (confirmed, approved, or matched)."""
+    active_statuses = [
+        AppointmentStatus.CONFIRMED.value,
+        AppointmentStatus.MATCHED.value,
+        AppointmentStatus.APPROVED.value,
+        AppointmentStatus.CHECKED_IN.value,
+    ]
     try:
+        # Check both requested_start (for unscheduled) and scheduled_start (for confirmed slots)
         conflict = db.db.appointments.find_one({
             'counselor_id': counselor_id,
-            'status': {'$in': [AppointmentStatus.CONFIRMED.value, AppointmentStatus.MATCHED.value]},
-            'requested_start': {'$lt': end_time},
-            'requested_end': {'$gt': start_time}
+            'status': {'$in': active_statuses},
+            '$or': [
+                {'requested_start':  {'$lt': end_time}, 'requested_end':  {'$gt': start_time}},
+                {'scheduled_start':  {'$lt': end_time}, 'scheduled_end':  {'$gt': start_time}},
+            ]
         })
         return conflict is not None
     except Exception as e:
@@ -680,10 +689,15 @@ def request_appointment():
             old_appt_id = ObjectId(reschedule_appointment_id) if isinstance(reschedule_appointment_id, str) else reschedule_appointment_id
             old_appointment = db.db.appointments.find_one({'_id': old_appt_id, 'student_id': user_id_obj})
             if old_appointment:
-                # Mark old appointment as rescheduled
+                # Cancel the old appointment; it has been superseded by the new request
                 db.db.appointments.update_one(
                     {'_id': old_appt_id},
-                    {'$set': {'status': 'RESCHEDULED', 'rescheduled_to': None, 'updated_at': datetime.utcnow()}}
+                    {'$set': {
+                        'status': AppointmentStatus.CANCELLED.value,
+                        'cancellation_reason': 'Superseded by a new reschedule request.',
+                        'cancelled_at': datetime.utcnow(),
+                        'updated_at': datetime.utcnow(),
+                    }}
                 )
         except:
             pass  # If reschedule_id is invalid, just continue (old appointment stays active)
@@ -763,7 +777,8 @@ def request_appointment():
                 "student_id": user_id_obj,
                 "student_name": f"{user.get('first_name', '')} {user.get('last_name', '')}",
                 "student_email": user.get('email', ''),
-                "status": "active",
+                "status": CaseStatus.ACTIVE.value,
+                "case_status": CaseStatus.ACTIVE.value,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }
@@ -1642,6 +1657,18 @@ def mark_no_show(appointment_id):
     if not appointment:
         return jsonify({'error': 'Appointment not found'}), 404
 
+    # Guard: only active appointments can be marked no-show
+    current_status = appointment.get('status', '')
+    terminal_statuses = {
+        AppointmentStatus.COMPLETED.value,
+        AppointmentStatus.CANCELLED.value,
+        AppointmentStatus.NO_SHOW.value,
+        AppointmentStatus.CLOSED_AT_INTAKE.value,
+        AppointmentStatus.DENIED.value,
+    }
+    if current_status in terminal_statuses:
+        return jsonify({'error': f'Cannot mark no-show: appointment is already {current_status}'}), 400
+
     now = datetime.utcnow()
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
@@ -1692,7 +1719,7 @@ def mark_no_show(appointment_id):
                     'case_id': case_id,
                     'appointment_id': str(appointment['_id']),
                     'message': '3 consecutive no-shows recorded. Case flagged for administrative termination.',
-                    'target_user_id': appointment.get('assigned_counselor_id'),
+                    'target_user_id': appointment.get('counselor_id'),
                     'read': False,
                     'created_at': now,
                 })
@@ -1737,7 +1764,19 @@ def complete_appointment(appointment_id):
     
     if not appointment:
         return jsonify({'error': 'Appointment not found'}), 404
-    
+
+    # Guard: only sessions that actually took place can be marked completed
+    completable = {
+        AppointmentStatus.CONFIRMED.value,
+        AppointmentStatus.APPROVED.value,
+        AppointmentStatus.MATCHED.value,
+        AppointmentStatus.CHECKED_IN.value,
+        AppointmentStatus.EVALUATION.value,
+        AppointmentStatus.FOLLOW_UP.value,
+    }
+    if appointment.get('status') not in completable:
+        return jsonify({'error': f"Cannot complete appointment with status {appointment.get('status')}"}), 400
+
     actual_start = appointment.get('scheduled_start') or appointment.get('requested_start') or datetime.utcnow()
     actual_end = appointment.get('scheduled_end') or appointment.get('requested_end') or datetime.utcnow()
 
@@ -1766,6 +1805,47 @@ def complete_appointment(appointment_id):
         'message': 'Appointment completed',
         'appointment_id': str(appointment['_id']),
         'status': AppointmentStatus.COMPLETED.value
+    }), 200
+
+
+@appointments_bp.route('/<appointment_id>/check-in', methods=['POST'])
+@jwt_required()
+def check_in_appointment(appointment_id):
+    """Mark student as checked-in (arrived at the office). Staff/counselor action."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
+    except Exception:
+        return jsonify({'error': 'Invalid appointment ID'}), 400
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    allowed = {
+        AppointmentStatus.CONFIRMED.value,
+        AppointmentStatus.APPROVED.value,
+        AppointmentStatus.MATCHED.value,
+    }
+    if apt.get('status') not in allowed:
+        return jsonify({'error': f"Cannot check in from status {apt.get('status')}"}), 400
+
+    now = datetime.utcnow()
+    db.db.appointments.update_one(
+        {'_id': apt['_id']},
+        {'$set': {'status': AppointmentStatus.CHECKED_IN.value, 'checked_in_at': now, 'updated_at': now}}
+    )
+
+    audit_log(db.db, 'appointment', 'check_in', entity_id=str(apt['_id']),
+              new_values={'status': AppointmentStatus.CHECKED_IN.value})
+
+    return jsonify({
+        'message': 'Student checked in',
+        'appointment_id': str(apt['_id']),
+        'status': AppointmentStatus.CHECKED_IN.value,
+        'checked_in_at': now.isoformat(),
     }), 200
 
 
@@ -2609,10 +2689,10 @@ def get_workload_report():
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
-        # Get all active counselors
+        # Get all active counselors (users use is_active boolean, not status string)
         counselors = list(db.db.users.find({
             'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']},
-            'status': 'active'
+            'is_active': {'$ne': False}
         }))
         
         workload_data = []
@@ -2754,16 +2834,20 @@ def cancel_appointment(appointment_id):
     except:
         user_id_obj = user_id
     
-    student_id = appointment.get('student_id')
+    student_id   = appointment.get('student_id')
     counselor_id = appointment.get('counselor_id')
-    
-    # Only student or assigned counselor can cancel
-    if str(user_id_obj) != str(student_id) and str(user_id_obj) != str(counselor_id):
-        return jsonify({'error': 'Insufficient permissions'}), 403
-    
-    # Can't cancel already completed or cancelled appointments
+
+    # Student, assigned counselor, or admin/staff can cancel
+    user_doc  = db.db.users.find_one({'_id': user_id_obj})
+    user_role = (user_doc.get('role') or '') if user_doc else ''
+    is_admin_or_staff = user_role in ('ADMIN', 'STAFF', 'DPO')
+    is_participant    = str(user_id_obj) in (str(student_id), str(counselor_id))
+    if not is_participant and not is_admin_or_staff:
+        return jsonify({'error': 'Insufficient permissions to cancel this appointment'}), 403
+
+    # Can't cancel already terminal appointments
     current_status = appointment.get('status', '').upper()
-    if current_status in ['COMPLETED', 'CANCELLED']:
+    if current_status in ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'CLOSED_AT_INTAKE']:
         return jsonify({'error': f'Cannot cancel appointment with status {current_status}'}), 400
 
     try:
@@ -2806,16 +2890,60 @@ def cancel_appointment(appointment_id):
         if result.modified_count == 0:
             return jsonify({'error': 'Failed to cancel appointment'}), 500
         
+        # Restore the booked availability slot so it can be rebooked
+        try:
+            db.db.counselor_availability.update_one(
+                {'appointment_id': appointment['_id']},
+                {'$set': {'is_available': True, 'booked_by': None, 'appointment_id': None}}
+            )
+        except Exception:
+            pass
+
         # Log audit trail
         audit_log(
-            db.db, 
-            'appointments', 
+            db.db,
+            'appointments',
             'cancelled',
             entity_id=str(apt_id),
             old_values={'status': current_status},
             new_values={'status': 'CANCELLED', 'reason': reason}
         )
-        
+
+        # Notify both student and counselor of the cancellation
+        try:
+            email_svc = EmailService()
+            canceller_role = 'student' if str(user_id_obj) == str(student_id) else 'counselor/staff'
+            apt_date = appointment.get('scheduled_start') or appointment.get('requested_start')
+            date_str = apt_date.strftime('%B %d, %Y at %I:%M %p') if apt_date else 'the scheduled date'
+            cancel_subject = 'CPS Appointment Cancelled'
+            cancel_body_tpl = (
+                '<html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px">'
+                '<h2 style="color:#B91C1C;">Appointment Cancelled</h2>'
+                '<p>Dear {name},</p>'
+                '<p>Your counseling appointment on <strong>{date}</strong> has been cancelled by the {by}.</p>'
+                '<p><strong>Reason:</strong> {reason}</p>'
+                '<p>If you have questions, please contact the CPS office.</p>'
+                '</body></html>'
+            )
+            # Notify student
+            student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
+            if student_doc and student_doc.get('email'):
+                sname = f"{student_doc.get('first_name', '')} {student_doc.get('last_name', '')}".strip() or 'Student'
+                email_svc._send_email(
+                    student_doc['email'], cancel_subject,
+                    cancel_body_tpl.format(name=sname, date=date_str, by=canceller_role, reason=reason)
+                )
+            # Notify counselor
+            counselor_doc = db.db.users.find_one({'_id': counselor_id}) if counselor_id else None
+            if counselor_doc and counselor_doc.get('email'):
+                cname = f"{counselor_doc.get('first_name', '')} {counselor_doc.get('last_name', '')}".strip() or 'Counselor'
+                email_svc._send_email(
+                    counselor_doc['email'], cancel_subject,
+                    cancel_body_tpl.format(name=cname, date=date_str, by=canceller_role, reason=reason)
+                )
+        except Exception as email_err:
+            print(f"⚠ Cancellation email failed: {email_err}")
+
         resp = {
             'message': 'Appointment cancelled successfully',
             'appointment_id': str(apt_id),
@@ -2956,17 +3084,39 @@ def deny_appointment(appointment_id):
         
         if result.modified_count == 0:
             return jsonify({'error': 'Failed to deny appointment'}), 500
-        
+
+        # Notify the student their request was not approved
+        try:
+            student_doc = db.db.users.find_one({'_id': appointment.get('student_id')})
+            if student_doc and student_doc.get('email'):
+                sname = f"{student_doc.get('first_name', '')} {student_doc.get('last_name', '')}".strip() or 'Student'
+                email_svc = EmailService()
+                email_svc._send_email(
+                    student_doc['email'],
+                    'CPS Appointment Request Not Approved',
+                    f"""<html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px">
+                    <h2 style="color:#B91C1C;">Appointment Request Not Approved</h2>
+                    <p>Dear {sname},</p>
+                    <p>We regret to inform you that your appointment request (ID: {apt_id}) could not be approved at this time.</p>
+                    <p><strong>Reason:</strong> {denial_reason}</p>
+                    <p>You are welcome to submit a new appointment request. If you have urgent concerns,
+                    please contact the CPS office directly.</p>
+                    <p style="color:#666;font-size:12px;">{_email_footer()}</p>
+                    </body></html>"""
+                )
+        except Exception as email_err:
+            print(f"⚠ Denial email failed: {email_err}")
+
         # Log audit trail
         audit_log(
-            db.db, 
-            'appointments', 
+            db.db,
+            'appointments',
             'denied',
             entity_id=str(apt_id),
             old_values={'status': current_status},
             new_values={'status': 'DENIED', 'reason': denial_reason}
         )
-        
+
         return jsonify({
             'message': 'Appointment denied successfully',
             'appointment_id': str(apt_id),

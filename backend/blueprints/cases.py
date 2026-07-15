@@ -234,7 +234,21 @@ def create_case():
             return jsonify({'error': 'student_id required'}), 400
     else:
         student_id = ObjectId(data['student_id'])
-    
+
+    # Prevent duplicate active cases — a student can only have one non-closed case at a time
+    existing_active = db.db.cases.find_one({
+        'student_id': student_id,
+        '$or': [
+            {'case_status': {'$nin': [CaseStatus.CLOSED.value, CaseStatus.CANCELLED.value]}},
+            {'status':      {'$nin': [CaseStatus.CLOSED.value, CaseStatus.CANCELLED.value]}},
+        ]
+    })
+    if existing_active:
+        return jsonify({
+            'error': 'Student already has an active case',
+            'existing_case_id': str(existing_active['_id']),
+        }), 409
+
     # Create case
     new_case = {
         'student_id': student_id,
@@ -503,6 +517,39 @@ def assign_case(case_id):
         }}
     )
     
+    # Notify student who their counselor is
+    try:
+        student_doc = db.db.users.find_one({'_id': case.get('student_id')})
+        if student_doc and student_doc.get('email'):
+            sname = f"{student_doc.get('first_name', '')} {student_doc.get('last_name', '')}".strip() or 'Student'
+            cname = f"{counselor['first_name']} {counselor['last_name']}".strip()
+            from services.email_service import EmailService
+            email_svc = EmailService()
+            email_svc._send_email(
+                student_doc['email'],
+                'Your CPS Counselor Has Been Assigned',
+                f"""<html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px">
+                <h2 style="color:#1B5E20;">Your Counselor Has Been Assigned</h2>
+                <p>Dear {sname},</p>
+                <p>We are pleased to inform you that your case has been assigned to
+                <strong>{cname}</strong>.</p>
+                <p>Your counselor will be in touch shortly to confirm your first session.
+                If you have any questions in the meantime, please contact the CPS office.</p>
+                </body></html>"""
+            )
+        # In-app notification
+        if student_doc:
+            db.db.notifications.insert_one({
+                'type': 'CASE_ASSIGNED',
+                'case_id': case.get('_id'),
+                'message': f'Your case has been assigned to {counselor["first_name"]} {counselor["last_name"]}.',
+                'target_user_id': case.get('student_id'),
+                'read': False,
+                'created_at': datetime.utcnow(),
+            })
+    except Exception as notif_err:
+        print(f"⚠ Case assignment notification failed: {notif_err}")
+
     return jsonify({
         'success': True,
         'message': f'Case assigned to {counselor["first_name"]} {counselor["last_name"]}'
@@ -888,3 +935,78 @@ def remove_diagnosis(case_id, index):
     return jsonify({'success': True}), 200
 
 
+
+
+@cases_bp.route('/<case_id>/reopen', methods=['POST'])
+@jwt_required()
+def reopen_case(case_id):
+    """Reopen a CLOSED case for a returning client. Only IC/COUNSELOR/ADMIN/DPO may reopen."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not user or user.get('role') not in (
+        UserRole.IC, UserRole.COUNSELOR, UserRole.PSYCHOLOGIST,
+        UserRole.CASE_MANAGER, UserRole.ADMIN, UserRole.DPO
+    ):
+        return jsonify({'error': 'Insufficient permissions to reopen a case'}), 403
+
+    try:
+        case = db.db.cases.find_one({'_id': ObjectId(case_id)})
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+
+    closeable_statuses = {CaseStatus.CLOSED.value, CaseStatus.CANCELLED.value}
+    current_status = case.get('case_status') or case.get('status', '')
+    if current_status not in closeable_statuses:
+        return jsonify({'error': f'Case is not closed (current status: {current_status})'}), 400
+
+    data = request.get_json() or {}
+    reason = data.get('reason', 'Returning client — case reopened.')
+    now = datetime.utcnow()
+
+    db.db.cases.update_one(
+        {'_id': ObjectId(case_id)},
+        {'$set': {
+            'case_status': CaseStatus.ACTIVE.value,
+            'status':      CaseStatus.ACTIVE.value,
+            'reopened_at': now,
+            'reopened_by': user_id,
+            'reopen_reason': reason,
+            'updated_at': now,
+        }}
+    )
+
+    # Reset the consecutive no-show tracker so a returning client starts fresh
+    db.db.missed_appointment_tracker.update_one(
+        {'case_id': ObjectId(case_id)},
+        {'$set': {'consecutive_no_shows': 0}},
+        upsert=False,
+    )
+
+    # Notify student that their case is active again
+    try:
+        student_doc = db.db.users.find_one({'_id': case.get('student_id')})
+        if student_doc:
+            db.db.notifications.insert_one({
+                'type': 'CASE_REOPENED',
+                'case_id': ObjectId(case_id),
+                'message': 'Your counseling case has been reopened. Please contact CPS to schedule your next session.',
+                'target_user_id': case.get('student_id'),
+                'read': False,
+                'created_at': now,
+            })
+    except Exception:
+        pass
+
+    audit_log(db.db, 'case', 'reopen', entity_id=case_id,
+              old_values={'case_status': current_status},
+              new_values={'case_status': CaseStatus.ACTIVE.value, 'reason': reason})
+
+    return jsonify({
+        'success': True,
+        'message': 'Case reopened successfully',
+        'case_id': case_id,
+        'case_status': CaseStatus.ACTIVE.value,
+    }), 200

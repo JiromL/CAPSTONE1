@@ -435,6 +435,7 @@ export default function AppointmentsDashboard() {
         'set-follow-up':  'Marked as Follow-Up.',
         'set-referral':   'Marked as Referral.',
         'complete':       'Marked as Completed.',
+        'check-in':       'Student checked in successfully.',
       };
       if (r.ok) {
         setActionMsg({ id: aptId, type: 'ok', text: msgs[endpoint] ?? 'Done.' });
@@ -1040,6 +1041,18 @@ export default function AppointmentsDashboard() {
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#2563eb' }}>
                                     <UserCheck size={12} /> Assign Counselor
+                                  </button>
+                                )}
+
+                                {['CONFIRMED', 'APPROVED', 'MATCHED'].includes(apt.status) && (canManage || isOA) && (
+                                  <button onClick={() => doSessionAction(apt.appointment_id, 'check-in')}
+                                    disabled={actioningId === apt.appointment_id}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg disabled:opacity-50 transition"
+                                    style={{ background: 'var(--color-success)' }}
+                                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-success-hover, #15803d)'}
+                                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-success)'}>
+                                    {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : <UserCheck size={11} />}
+                                    Check In
                                   </button>
                                 )}
 

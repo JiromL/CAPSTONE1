@@ -301,6 +301,7 @@ export default function CaseDetailPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showTerminationForm, setShowTerminationForm] = useState(false);
   const [confirmingNoShowTerm, setConfirmingNoShowTerm] = useState(false);
+  const [reopeningCase, setReopeningCase] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
   const [structuredSoap, setStructuredSoap] = useState<StructuredSOAPData>({ ...emptyStructuredSOAP });
@@ -872,6 +873,30 @@ export default function CaseDetailPage() {
     }
   };
 
+  const handleReopenCase = async () => {
+    setReopeningCase(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api(`/api/cases/${caseId}/reopen`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Returning client — case reopened by staff.' }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error || 'Failed to reopen case');
+        return;
+      }
+      showSuccess('Case reopened. Student has been notified.');
+      const r2 = await fetch(api(`/api/cases/${caseId}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r2.ok) setCaseData(await r2.json());
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setReopeningCase(false);
+    }
+  };
+
   const handleSaveNote = async () => {
     try {
       setSavingNote(true);
@@ -1071,6 +1096,17 @@ export default function CaseDetailPage() {
                 style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}
               >
                 Terminate Case
+              </button>
+            )}
+            {['CLOSED', 'closed', 'CANCELLED', 'cancelled'].includes(caseData.case_status || caseData.client_status || '') &&
+              ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(currentUser?.role || '') && (
+              <button
+                onClick={handleReopenCase}
+                disabled={reopeningCase}
+                className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80 disabled:opacity-50"
+                style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' }}
+              >
+                {reopeningCase ? 'Reopening…' : 'Reopen Case'}
               </button>
             )}
           </div>

@@ -17,6 +17,19 @@ def has_permission(user_role, permission):
     return permission in ROLE_PERMISSIONS.get(user_role, set())
 
 
+def serialize_doc(v):
+    """Recursively convert ObjectId/datetime in nested dicts and lists."""
+    if isinstance(v, ObjectId):
+        return str(v)
+    if isinstance(v, datetime):
+        return v.isoformat()
+    if isinstance(v, dict):
+        return {k: serialize_doc(val) for k, val in v.items()}
+    if isinstance(v, list):
+        return [serialize_doc(item) for item in v]
+    return v
+
+
 def get_cases_for_user(user_id, user_role):
     """Get cases filtered by role"""
     if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER]:
@@ -313,16 +326,9 @@ def get_case(case_id):
     elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.IC, UserRole.CASE_MANAGER, UserRole.ADMIN, UserRole.DPO]:
         pass  # clinical staff and oversight roles can view any case
     
-    # Serialize all ObjectId and datetime fields safely
+    # Serialize all ObjectId and datetime fields safely (including nested structures)
     raw_student_id = case.get('student_id')
-    serialized = {}
-    for k, v in case.items():
-        if isinstance(v, ObjectId):
-            serialized[k] = str(v)
-        elif isinstance(v, datetime):
-            serialized[k] = v.isoformat()
-        else:
-            serialized[k] = v
+    serialized = {k: serialize_doc(v) for k, v in case.items()}
 
     # Embed student details so the frontend can show name/email without a second request
     if raw_student_id:

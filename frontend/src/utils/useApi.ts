@@ -170,7 +170,7 @@ export function useCheckInApi(options: UseIntakeApiOptions = {}) {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch check-in history');
+          throw new Error(errorData.error || errorData.message || 'Failed to fetch check-in history');
         }
 
         const result = await response.json();

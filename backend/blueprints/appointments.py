@@ -1519,6 +1519,8 @@ def confirm_appointment(appointment_id):
             platform = platform_map.get((platform or '').lower(), platform or 'In-Person')
         
         # Prepare appointment data dict
+        apt_start_dt = appointment.get('scheduled_start') or appointment.get('requested_start')
+        apt_end_dt   = appointment.get('scheduled_end') or (apt_start_dt + timedelta(hours=1) if apt_start_dt else None)
         appointment_data = {
             'student_name': student_name,
             'student_id': student_id_str,
@@ -1530,7 +1532,10 @@ def confirm_appointment(appointment_id):
             'platform': platform,
             'counselor_name': counselor_name,
             'concern': appointment.get('concern', ''),
-            'screenings_completed': []
+            'meeting_link': appointment.get('meeting_link', ''),
+            'screenings_completed': [],
+            'start_dt': apt_start_dt,
+            'end_dt':   apt_end_dt,
         }
         
         # Try to generate PDF
@@ -3801,6 +3806,43 @@ def confirm_schedule(appointment_id):
         'updated_at':   now,
     }})
     audit_log(db.db, 'appointments', 'student_confirmed_schedule', entity_id=appointment_id)
+
+    # Send confirmation email with calendar invite
+    try:
+        student   = db.db.users.find_one({'_id': apt.get('student_id')})
+        counselor = db.db.users.find_one({'_id': apt.get('counselor_id')}) if apt.get('counselor_id') else None
+        scheduled_start = apt.get('scheduled_start')
+        if student and scheduled_start:
+            from services.email_service import EmailService
+            from datetime import timedelta
+            end_dt = apt.get('scheduled_end') or (scheduled_start + timedelta(hours=1))
+            platform_raw = apt.get('method') or apt.get('preferred_method') or 'in_person'
+            platform_map = {'google_meet': 'Google Meet', 'google-meet': 'Google Meet',
+                            'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}
+            platform_label = platform_map.get(platform_raw, platform_raw.replace('_', ' ').title())
+            counselor_name = (
+                f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
+                if counselor else 'CPS Counselor'
+            )
+            EmailService().send_appointment_confirmation_email(
+                recipient_email=student.get('email', ''),
+                student_name=f"{student.get('first_name','')} {student.get('last_name','')}".strip(),
+                appointment_details={
+                    'reference_id':      str(apt['_id']),
+                    'appointment_date':  scheduled_start.strftime('%B %d, %Y'),
+                    'appointment_time':  scheduled_start.strftime('%I:%M %p'),
+                    'platform':          platform_label,
+                    'counselor_name':    counselor_name,
+                    'concern':           apt.get('concern', ''),
+                    'meeting_link':      apt.get('meeting_link', ''),
+                    'start_dt':          scheduled_start,
+                    'end_dt':            end_dt,
+                },
+            )
+            print(f"✓ Schedule-confirmation email sent to {student.get('email')}")
+    except Exception as e:
+        print(f"⚠ Schedule-confirmation email failed: {e}")
+
     return jsonify({'message': 'Schedule confirmed.'}), 200
 
 
@@ -3884,6 +3926,8 @@ def confirm_intake_slot(appointment_id):
                 'meeting_link':    meeting_link or '',
                 'screenings_completed': [],
             }
+            appt_data['start_dt'] = scheduled_start
+            appt_data['end_dt']   = scheduled_end
             EmailService().send_appointment_confirmation_email(
                 recipient_email=student.get('email', ''),
                 student_name=appt_data['student_name'],

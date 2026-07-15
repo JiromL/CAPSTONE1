@@ -198,126 +198,241 @@ class EmailService:
         
         return self._send_email(recipient_email, subject, html_body)
     
+    def _generate_ics(self, title, start_dt, end_dt, description, location, uid):
+        """Generate .ics calendar invite string (RFC 5545)."""
+        def fmt(dt):
+            return dt.strftime('%Y%m%dT%H%M%SZ')
+        desc = (description or '').replace('\n', '\\n').replace(',', '\\,').replace(';', '\\;')
+        loc  = (location  or '').replace(',', '\\,').replace(';', '\\;')
+        return (
+            'BEGIN:VCALENDAR\r\n'
+            'VERSION:2.0\r\n'
+            f'PRODID:-//{_org("ORG_SHORT","DLSU CPS")}//CPS Portal//EN\r\n'
+            'METHOD:REQUEST\r\n'
+            'BEGIN:VEVENT\r\n'
+            f'UID:{uid}\r\n'
+            f'DTSTAMP:{fmt(datetime.utcnow())}\r\n'
+            f'DTSTART:{fmt(start_dt)}\r\n'
+            f'DTEND:{fmt(end_dt)}\r\n'
+            f'SUMMARY:{title}\r\n'
+            f'DESCRIPTION:{desc}\r\n'
+            f'LOCATION:{loc}\r\n'
+            'STATUS:CONFIRMED\r\n'
+            'SEQUENCE:0\r\n'
+            'END:VEVENT\r\n'
+            'END:VCALENDAR\r\n'
+        )
+
+    def _google_calendar_link(self, title, start_dt, end_dt, description, location):
+        """Return an Add-to-Google-Calendar URL."""
+        from urllib.parse import urlencode
+        params = {
+            'action': 'TEMPLATE',
+            'text': title,
+            'dates': f"{start_dt.strftime('%Y%m%dT%H%M%SZ')}/{end_dt.strftime('%Y%m%dT%H%M%SZ')}",
+            'details': description or '',
+            'location': location or '',
+        }
+        return 'https://calendar.google.com/calendar/render?' + urlencode(params)
+
     def send_appointment_confirmation_email(self, recipient_email, student_name, appointment_details, pdf_file_path=None):
-        """Send appointment confirmation email with optional PDF attachment
-        
-        Args:
-            recipient_email: Email address of student
-            student_name: Full name of student
-            appointment_details: Dict containing appointment info:
-                - reference_id: Confirmation number
-                - appointment_date: Date of appointment
-                - appointment_time: Time of appointment
-                - platform: Meeting platform (In-Person, Google Meet, Zoom)
-                - counselor_name: Name of assigned counselor
-                - concern: Primary concern (optional)
-        pdf_file_path: Path to confirmation PDF file to attach
+        """Send appointment confirmation email.
+
+        appointment_details keys:
+          reference_id, appointment_date (str), appointment_time (str),
+          platform, counselor_name, concern, meeting_link,
+          start_dt (datetime, optional), end_dt (datetime, optional)
         """
-        
-        subject = f"Your Appointment Confirmation - {appointment_details.get('reference_id', 'CPS')}"
-        
+        subject = f"Your Appointment is Confirmed — {appointment_details.get('reference_id', 'CPS')}"
+
         appointment_date = appointment_details.get('appointment_date', '')
         appointment_time = appointment_details.get('appointment_time', '')
-        platform = appointment_details.get('platform', 'In-Person')
-        counselor_name = appointment_details.get('counselor_name', 'CPS Staff')
-        concern = appointment_details.get('concern', '')
-        reference_id = appointment_details.get('reference_id', '')
-        
-        html_body = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #1B5E20; text-align: center;">Appointment Confirmed</h2>
-                    
-                    <p>Dear {student_name},</p>
-                    
-                    <p>Thank you for scheduling an appointment with the Counseling and Psychological Services (CPS). Your appointment has been confirmed.</p>
-                    
-                    <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #1B5E20;">
-                        <h3 style="color: #1B5E20; margin-top: 0;">Appointment Details</h3>
-                        <p style="margin: 10px 0;"><strong>Confirmation Number:</strong> {reference_id}</p>
-                        <p style="margin: 10px 0;"><strong>Date:</strong> {appointment_date}</p>
-                        <p style="margin: 10px 0;"><strong>Time:</strong> {appointment_time}</p>
-                        <p style="margin: 10px 0;"><strong>Format:</strong> {platform}</p>
-                        <p style="margin: 10px 0;"><strong>Counselor:</strong> {counselor_name}</p>
-                        {f'<p style="margin: 10px 0;"><strong>Concern:</strong> {concern}</p>' if concern else ''}
-                    </div>
-                    
-                    <div style="background-color: #FFF3E0; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #FF6F00;">
-                        <h4 style="margin-top: 0; color: #E65100;">Important Notes:</h4>
-                        <ol style="margin: 0; padding-left: 20px;">
-                            <li>Please arrive 10 minutes early for in-person appointments.</li>
-                            <li>If meeting via Google Meet or Zoom, ensure you have a stable internet connection.</li>
-                            <li>If you need to reschedule, contact us at least 24 hours before your appointment.</li>
-                            <li>Your appointment confirmation document has been attached for your reference.</li>
-                        </ol>
-                    </div>
-                    
-                    <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-                    
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    
-                    <p style="color: #999; font-size: 12px; text-align: center;">
-                        {_org('ORG_UNIVERSITY', 'De La Salle University')} &mdash; {_org('ORG_NAME', 'Counseling &amp; Psychological Services')}<br>
-                        <a href="mailto:{_org('SUPPORT_EMAIL', 'cps@dlsu.edu.ph')}" style="color: #0052cc; text-decoration: none;">{_org('SUPPORT_EMAIL', 'cps@dlsu.edu.ph')}</a>
-                    </p>
-                </div>
-            </body>
-        </html>
-        """
-        
-        return self._send_email(recipient_email, subject, html_body, attachment_path=pdf_file_path)
-    
+        platform         = appointment_details.get('platform', 'In-Person')
+        counselor_name   = appointment_details.get('counselor_name', 'CPS Staff')
+        concern          = appointment_details.get('concern', '')
+        reference_id     = appointment_details.get('reference_id', '')
+        meeting_link     = appointment_details.get('meeting_link', '')
 
-    def _send_email(self, recipient_email, subject, html_body, attachment_path=None):
-        """Internal method to send email with optional file attachment"""
+        # Build calendar section if we have datetime objects
+        start_dt = appointment_details.get('start_dt')
+        end_dt   = appointment_details.get('end_dt')
+        ics_content = None
+        calendar_section = ''
+
+        if start_dt:
+            if not end_dt:
+                end_dt = start_dt + timedelta(hours=1)
+
+            is_online = bool(meeting_link)
+            location  = meeting_link if is_online else f'{_org("ORG_SHORT","DLSU CPS")} Office, De La Salle University'
+            evt_desc  = (
+                f'Counseling session with {counselor_name}.'
+                + (f' Meeting link: {meeting_link}' if is_online else ' Please come to the CPS office.')
+            )
+
+            gcal_link = self._google_calendar_link(
+                title=f'{_org("ORG_SHORT","DLSU CPS")} Counseling Appointment',
+                start_dt=start_dt, end_dt=end_dt,
+                description=evt_desc, location=location,
+            )
+            ics_content = self._generate_ics(
+                title=f'{_org("ORG_SHORT","DLSU CPS")} Counseling Appointment',
+                start_dt=start_dt, end_dt=end_dt,
+                description=evt_desc, location=location,
+                uid=f"cps-{reference_id or 'apt'}@dlsu-cps.edu.ph",
+            )
+
+            join_row = (
+                f'<p style="margin:10px 0;"><strong>Meeting Link:</strong> '
+                f'<a href="{meeting_link}" style="color:#1a73e8;">{meeting_link}</a></p>'
+            ) if is_online else ''
+
+            calendar_section = f"""
+            <div style="text-align:center;margin:28px 0 12px;">
+              <a href="{gcal_link}" target="_blank"
+                 style="display:inline-block;background:#1a73e8;color:#ffffff;
+                        font-size:14px;font-weight:600;text-decoration:none;
+                        padding:12px 28px;border-radius:8px;letter-spacing:0.2px;">
+                &#128197; Add to Google Calendar
+              </a>
+            </div>
+            <p style="font-size:12px;color:#9ca3af;text-align:center;margin-top:4px;">
+              Or open the attached <strong>appointment.ics</strong> file to add to Apple Calendar or Outlook.
+            </p>"""
+        else:
+            join_row = (
+                f'<p style="margin:10px 0;"><strong>Meeting Link:</strong> '
+                f'<a href="{meeting_link}" style="color:#1a73e8;">{meeting_link}</a></p>'
+            ) if meeting_link else ''
+
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 16px;">
+<tr><td align="center">
+<table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+  <!-- Header -->
+  <tr>
+    <td style="background:#1a73e8;padding:32px 40px;">
+      <p style="margin:0;font-size:13px;color:#c7d2fe;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
+        {_org('ORG_UNIVERSITY','De La Salle University')} &mdash; {_org('ORG_NAME','Counseling &amp; Psychological Services')}
+      </p>
+      <h1 style="margin:10px 0 0;font-size:22px;font-weight:700;color:#ffffff;">Appointment Confirmed &#10003;</h1>
+    </td>
+  </tr>
+
+  <!-- Body -->
+  <tr>
+    <td style="padding:32px 40px 24px;">
+      <p style="margin:0 0 16px;font-size:14px;color:#4b5563;line-height:1.6;">
+        Hi <strong>{student_name}</strong>, your counseling appointment has been confirmed.
+      </p>
+
+      <!-- Details card -->
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:20px;">
+        <p style="margin:0 0 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#6b7280;">
+          Appointment Details
+        </p>
+        <p style="margin:10px 0;font-size:14px;color:#111827;"><strong>Ref #:</strong> {reference_id}</p>
+        <p style="margin:10px 0;font-size:14px;color:#111827;"><strong>Date:</strong> {appointment_date}</p>
+        <p style="margin:10px 0;font-size:14px;color:#111827;"><strong>Time:</strong> {appointment_time}</p>
+        <p style="margin:10px 0;font-size:14px;color:#111827;"><strong>Format:</strong> {platform}</p>
+        <p style="margin:10px 0;font-size:14px;color:#111827;"><strong>Counselor:</strong> {counselor_name}</p>
+        {join_row}
+        {f'<p style="margin:10px 0;font-size:14px;color:#111827;"><strong>Concern:</strong> {concern}</p>' if concern else ''}
+      </div>
+
+      {calendar_section}
+
+      <!-- Reminders -->
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px;margin-top:20px;">
+        <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#92400e;">Reminders</p>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:#78350f;line-height:1.7;">
+          <li>Arrive 10 minutes early for in-person sessions.</li>
+          <li>For online sessions, ensure a stable internet connection.</li>
+          <li>Reschedule at least 24 hours in advance via the CPS portal.</li>
+        </ul>
+      </div>
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td style="background:#f9fafb;padding:18px 40px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+        {_org('ORG_UNIVERSITY','De La Salle University')} &mdash; {_org('ORG_NAME','Counseling &amp; Psychological Services')}<br>
+        <a href="mailto:{_org('SUPPORT_EMAIL','cps@dlsu.edu.ph')}" style="color:#1a73e8;text-decoration:none;">{_org('SUPPORT_EMAIL','cps@dlsu.edu.ph')}</a>
+        &nbsp;&bull;&nbsp; This is an automated email — please do not reply.
+      </p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+        return self._send_email(
+            recipient_email, subject, html_body,
+            attachment_path=pdf_file_path,
+            ics_content=ics_content,
+        )
+
+
+    def _send_email(self, recipient_email, subject, html_body, attachment_path=None, ics_content=None):
+        """Internal method to send email with optional attachments."""
         
         if self.dev_mode:
             print(f"\n{'='*60}")
-            print(f"[EMAIL MODE: DEVELOPMENT]")
-            print(f"To: {recipient_email}")
-            print(f"Subject: {subject}")
-            print(f"{'='*60}")
-            print(html_body)
+            print(f"[EMAIL DEV] To: {recipient_email} | Subject: {subject}")
+            if ics_content:
+                print("[EMAIL DEV] .ics calendar invite attached")
             if attachment_path:
-                print(f"[ATTACHMENT]: {attachment_path}")
+                print(f"[EMAIL DEV] File attachment: {attachment_path}")
             print(f"{'='*60}\n")
             return True
-        
+
         try:
-            # Create message
-            message = MIMEMultipart('alternative')
+            # Use 'mixed' to allow multiple attachment types
+            message = MIMEMultipart('mixed')
             message['Subject'] = subject
-            message['From'] = self.from_email
-            message['To'] = recipient_email
-            
-            # Attach HTML
-            message.attach(MIMEText(html_body, 'html'))
-            
-            # Attach file if provided
+            message['From']    = self.from_email
+            message['To']      = recipient_email
+
+            # HTML body wrapped in 'alternative'
+            alt = MIMEMultipart('alternative')
+            alt.attach(MIMEText(html_body, 'html'))
+            message.attach(alt)
+
+            # .ics calendar invite
+            if ics_content:
+                ics_part = MIMEText(ics_content, 'calendar', 'utf-8')
+                ics_part.add_header('Content-Disposition', 'attachment; filename="appointment.ics"')
+                message.attach(ics_part)
+
+            # Optional file attachment (e.g. PDF)
             if attachment_path and os.path.exists(attachment_path):
                 try:
-                    with open(attachment_path, 'rb') as attachment:
+                    with open(attachment_path, 'rb') as f:
                         part = MIMEBase('application', 'octet-stream')
-                        part.set_payload(attachment.read())
-                    
+                        part.set_payload(f.read())
                     encoders.encode_base64(part)
-                    filename = os.path.basename(attachment_path)
-                    part.add_header('Content-Disposition', f'attachment; filename= {filename}')
+                    part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(attachment_path)}"')
                     message.attach(part)
-                    print(f"✓ Attached file: {filename}")
                 except Exception as e:
                     print(f"⚠ Could not attach file: {e}")
-            
-            # Send via SMTP
+
             with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
                 server.starttls()
                 server.login(self.smtp_user, self.smtp_password)
                 server.send_message(message)
-            
+
             print(f"✓ Email sent to {recipient_email}")
             return True
-            
+
         except Exception as e:
             print(f"✗ Failed to send email: {e}")
             return False

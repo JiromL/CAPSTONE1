@@ -121,7 +121,7 @@ export default function WalkinIntakePage() {
     college: '', program: '', year_level: '',
     referral_source: 'self-referred', referred_by: '',
     emergency_contact_name: '', emergency_contact_relationship: '', emergency_contact_phone: '',
-    presenting_concern: '', crisis_type: '', service_requested: 'personal_counseling',
+    presenting_concern: '', crisis_type: '', service_requested: '',
     consent_to_service: false, consent_to_data: false,
   });
 
@@ -277,7 +277,7 @@ export default function WalkinIntakePage() {
 
   const resetForm = () => {
     setSuccess(''); setStep(0); setIsCrisis(false); setIntakeId('');
-    setIcf({ first_name:'',last_name:'',middle_name:'',email:'',student_id:'',phone:'',college:'',program:'',year_level:'',referral_source:'self-referred',referred_by:'',emergency_contact_name:'',emergency_contact_relationship:'',emergency_contact_phone:'',presenting_concern:'',crisis_type:'',service_requested:'personal_counseling',consent_to_service:false,consent_to_data:false });
+    setIcf({ first_name:'',last_name:'',middle_name:'',email:'',student_id:'',phone:'',college:'',program:'',year_level:'',referral_source:'self-referred',referred_by:'',emergency_contact_name:'',emergency_contact_relationship:'',emergency_contact_phone:'',presenting_concern:'',crisis_type:'',service_requested:'',consent_to_service:false,consent_to_data:false });
     setSpif({ birthdate:'',gender:'',civil_status:'single',religion:'',nationality:'Filipino',address:'',family_composition:'complete',living_with:'',birth_order:'',number_of_siblings:'',existing_medical_conditions:'',current_medications:'',previous_counseling:false,previous_counseling_details:'',previous_psychiatric:false,previous_psychiatric_details:'',family_mental_health_history:'',sleep_hours:'',exercise_frequency:'rarely',substance_use:'none' });
     setPhq4([null,null,null,null]);
   };
@@ -586,12 +586,13 @@ export default function WalkinIntakePage() {
                     </F>
                     <F label="Service Requested">
                       <select className={IC} style={ICS} value={icf.service_requested} onChange={e => setI('service_requested', e.target.value)}>
-                        <option value="personal_counseling">Personal Counseling</option>
-                        <option value="academic_counseling">Academic Counseling</option>
-                        <option value="career_counseling">Career Counseling</option>
-                        <option value="crisis_support">Crisis Support</option>
-                        <option value="psychotherapy">Psychotherapy</option>
-                        <option value="consultation">Consultation</option>
+                        <option value="">— Select service —</option>
+                        <option value="Individual Counseling">Individual Counseling</option>
+                        <option value="Psychological Assessment">Psychological Assessment</option>
+                        <option value="Group Counseling">Group Counseling</option>
+                        <option value="Crisis Intervention">Crisis Intervention</option>
+                        <option value="Consultation">Consultation</option>
+                        <option value="Other">Other</option>
                       </select>
                     </F>
                   </div>
@@ -601,11 +602,13 @@ export default function WalkinIntakePage() {
                   <F label="How did the student come to CPS?">
                     <select className={IC} style={ICS} value={icf.referral_source} onChange={e => setI('referral_source', e.target.value)}>
                       <option value="self-referred">Self-Referred (walked in on own)</option>
-                      <option value="faculty">Referred by Faculty</option>
-                      <option value="sdfo">Referred by SDFO</option>
-                      <option value="peer">Referred by Peer / Friend</option>
-                      <option value="family">Referred by Family</option>
-                      <option value="other">Other</option>
+                      <option value="Faculty / Professor">Referred by Faculty / Professor</option>
+                      <option value="Dean / Department Chair">Referred by Dean / Department Chair</option>
+                      <option value="Guidance Counselor">Referred by Guidance Counselor</option>
+                      <option value="Friend / Classmate">Referred by Friend / Classmate</option>
+                      <option value="Parent / Family">Referred by Parent / Family</option>
+                      <option value="University Health Service">Referred by University Health Service</option>
+                      <option value="Other">Other</option>
                     </select>
                   </F>
                   {icf.referral_source !== 'self-referred' && (

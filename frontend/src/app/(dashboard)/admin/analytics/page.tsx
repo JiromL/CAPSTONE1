@@ -943,7 +943,20 @@ function OutcomesTab({ sessionOutcomes, isDark }: {
   sessionOutcomes: SessionOutcomes | null; isDark: boolean;
 }) {
   const ct = useChartTheme(isDark);
-  if (!sessionOutcomes) return <div className="flex items-center justify-center h-60"><Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-border-strong)' }} /></div>;
+
+  if (!sessionOutcomes) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl p-10 text-center" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <Brain size={36} className="mx-auto mb-3" style={{ color: 'var(--color-border-strong)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Clinical outcomes data unavailable</p>
+          <p className="text-xs mt-1 max-w-sm mx-auto" style={{ color: 'var(--color-text-muted)' }}>
+            This tab requires session notes with mood ratings and PERMA check-in data. Make sure the backend is running and session notes exist.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const permaData = sessionOutcomes.perma_label_distribution.map(d => ({
     name: d.label, value: d.count,
@@ -1333,7 +1346,10 @@ export default function AnalyticsDashboardPage() {
     if (breakdown) setApptBreakdown(breakdown);
     if (demo)      setDemographics(demo);
     if (pipeline)  setCasesPipeline(pipeline);
-    if (outcomes)  setSessionOutcomes(outcomes);
+    setSessionOutcomes(outcomes ?? {
+      mood_monthly: [], risk_flagged_sessions: 0, total_sessions: 0,
+      flagged_rate: 0, session_type_distribution: [], perma_label_distribution: [], noshows_at_risk: 0,
+    });
     setLoading(false);
     setRefreshing(false);
   }, [period]);

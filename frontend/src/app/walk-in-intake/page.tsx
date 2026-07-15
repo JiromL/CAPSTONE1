@@ -40,9 +40,11 @@ export default function WalkInIntakePage() {
   const [studentNum, setStudentNum] = useState('');
   const [phone, setPhone]           = useState('');
 
-  const [concern, setConcern]   = useState('');
-  const [isUrgent, setIsUrgent] = useState(false);
-  const [notes, setNotes]       = useState('');
+  const [service, setService]     = useState('');
+  const [referral, setReferral]   = useState('');
+  const [concern, setConcern]     = useState('');
+  const [isUrgent, setIsUrgent]   = useState(false);
+  const [notes, setNotes]         = useState('');
 
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
@@ -89,7 +91,7 @@ export default function WalkInIntakePage() {
     setSelected(null);
     setFirstName(''); setLastName(''); setEmail('');
     setStudentNum(''); setPhone('');
-    setConcern(''); setIsUrgent(false); setNotes('');
+    setService(''); setReferral(''); setConcern(''); setIsUrgent(false); setNotes('');
     setError(''); setSuccess('');
   };
 
@@ -115,6 +117,8 @@ export default function WalkInIntakePage() {
         last_name: ln,
         email: em,
         phone,
+        service_requested: service,
+        referral_source: referral,
         concern,
         is_urgent: isUrgent,
         notes,
@@ -272,7 +276,7 @@ export default function WalkInIntakePage() {
 
             <div className="rounded-xl p-5 space-y-4" style={CARD}>
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Visit Details</p>
-              <VisitFields concern={concern} setConcern={setConcern} isUrgent={isUrgent} setIsUrgent={setIsUrgent} notes={notes} setNotes={setNotes} />
+              <VisitFields service={service} setService={setService} referral={referral} setReferral={setReferral} concern={concern} setConcern={setConcern} isUrgent={isUrgent} setIsUrgent={setIsUrgent} notes={notes} setNotes={setNotes} />
             </div>
 
             <FormFooter error={error} success={success} loading={loading} onCancel={reset} />
@@ -328,7 +332,7 @@ export default function WalkInIntakePage() {
 
             <div className="rounded-xl p-5 space-y-4" style={CARD}>
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Visit Details</p>
-              <VisitFields concern={concern} setConcern={setConcern} isUrgent={isUrgent} setIsUrgent={setIsUrgent} notes={notes} setNotes={setNotes} />
+              <VisitFields service={service} setService={setService} referral={referral} setReferral={setReferral} concern={concern} setConcern={setConcern} isUrgent={isUrgent} setIsUrgent={setIsUrgent} notes={notes} setNotes={setNotes} />
             </div>
 
             <FormFooter error={error} success={success} loading={loading} onCancel={reset} />
@@ -339,7 +343,24 @@ export default function WalkInIntakePage() {
   );
 }
 
-function VisitFields({ concern, setConcern, isUrgent, setIsUrgent, notes, setNotes }: {
+const SERVICES_LIST = [
+  'Individual Counseling', 'Psychological Assessment', 'Group Counseling',
+  'Crisis Intervention', 'Consultation', 'Other',
+];
+const REFERRAL_LIST = [
+  'Self-referred', 'Faculty / Professor', 'Dean / Department Chair',
+  'Guidance Counselor', 'Friend / Classmate', 'Parent / Family',
+  'University Health Service', 'Other',
+];
+const CONCERN_LIST = [
+  'Academic Concerns', 'Anxiety / Stress', 'Depression / Low Mood',
+  'Relationship Issues', 'Family Concerns', 'Career / Life Direction',
+  'Grief / Loss', 'Trauma', 'Crisis / Safety', 'Other',
+];
+
+function VisitFields({ service, setService, referral, setReferral, concern, setConcern, isUrgent, setIsUrgent, notes, setNotes }: {
+  service: string; setService: (v: string) => void;
+  referral: string; setReferral: (v: string) => void;
   concern: string; setConcern: (v: string) => void;
   isUrgent: boolean; setIsUrgent: (v: boolean) => void;
   notes: string; setNotes: (v: string) => void;
@@ -352,16 +373,26 @@ function VisitFields({ concern, setConcern, isUrgent, setIsUrgent, notes, setNot
   return (
     <>
       <div>
-        <label className={LABEL_CLS} style={LABEL_S}>Primary Concern</label>
+        <label className={LABEL_CLS} style={LABEL_S}>Service Requested <span className="normal-case font-normal text-red-500">*</span></label>
+        <select value={service} onChange={e => setService(e.target.value)} className={IC} style={ICS}>
+          <option value="">— Select service —</option>
+          {SERVICES_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      <div>
+        <label className={LABEL_CLS} style={LABEL_S}>Referred by</label>
+        <select value={referral} onChange={e => setReferral(e.target.value)} className={IC} style={ICS}>
+          <option value="">— Select referral source —</option>
+          {REFERRAL_LIST.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </div>
+
+      <div>
+        <label className={LABEL_CLS} style={LABEL_S}>Presenting Concern</label>
         <select value={concern} onChange={e => setConcern(e.target.value)} className={IC} style={ICS}>
           <option value="">— Select a concern —</option>
-          <option value="academic">Academic Concerns</option>
-          <option value="mental_health">Mental Health</option>
-          <option value="personal">Personal Issues</option>
-          <option value="relationship">Relationship Issues</option>
-          <option value="career">Career Counseling</option>
-          <option value="crisis">Crisis Support</option>
-          <option value="other">Other</option>
+          {CONCERN_LIST.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
 

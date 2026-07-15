@@ -6,7 +6,7 @@ Role-based appointment request viewing for different user types
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db, AppointmentStatus
 
 appointments_dashboard_bp = Blueprint('appointments_dashboard', __name__, url_prefix='/api/appointments/dashboard')
@@ -253,7 +253,7 @@ def get_staff_dashboard(user_id_obj, user_name):
     try:
         # Unassigned requests waiting for OA to assign
         unassigned = list(db.db.appointments.find({
-            'counselor_id': {'$exists': False},
+            'counselor_id': None,
             'status': {'$in': [
                 AppointmentStatus.REQUESTED.value,
                 AppointmentStatus.PENDING_APPROVAL.value,
@@ -265,7 +265,7 @@ def get_staff_dashboard(user_id_obj, user_name):
             'status': {'$in': [
                 AppointmentStatus.CONFIRMED.value,
                 AppointmentStatus.MATCHED.value,
-                AppointmentStatus.CHECKED_IN.value,
+                "CHECKED_IN",
             ]}
         }).sort("scheduled_start", 1).limit(200))
 
@@ -397,7 +397,7 @@ def format_appointments(appointments):
                 'counselor_id': str(apt.get('counselor_id', '')) if apt.get('counselor_id') else None,
                 'counselor_name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}".strip() if counselor else 'Not Assigned',
                 'status': apt.get('status', 'UNKNOWN'),
-                'purpose': apt.get('purpose', ''),
+                'purpose': apt.get('purpose') or ('intake_interview' if apt.get('appointment_type', '').upper() == 'INTAKE' else 'counseling'),
                 'concern': apt.get('concern', ''),
                 'preferred_date': preferred_date,
                 'preferred_time': preferred_time,
@@ -416,3 +416,106 @@ def format_appointments(appointments):
             continue
     
     return formatted
+
+
+# ─────────────────────────────────────────────────────────────
+# Calendar endpoint — returns appointments for a date range
+# ─────────────────────────────────────────────────────────────
+@appointments_dashboard_bp.route('/calendar', methods=['GET'])
+@jwt_required()
+def get_calendar_appointments():
+    """Return appointments within a date range, formatted for week-view calendar."""
+    user_id = get_jwt_identity()
+
+    try:
+        user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        user = db.db.users.find_one({'_id': user_id_obj})
+    except Exception:
+        user = db.db.users.find_one({'_id': user_id})
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    role = user.get('role', '').upper()
+
+    from_str = request.args.get('from')
+    to_str   = request.args.get('to')
+
+    if not from_str or not to_str:
+        return jsonify({'error': 'from and to query params required'}), 400
+
+    try:
+        from_dt = datetime.fromisoformat(from_str)
+        to_dt   = datetime.fromisoformat(to_str)
+    except ValueError:
+        return jsonify({'error': 'Invalid date format, use ISO 8601'}), 400
+
+    query = {
+        'scheduled_start': {'$gte': from_dt, '$lt': to_dt},
+        'status': {'$nin': ['CANCELLED', 'DENIED', 'CLOSED_AT_INTAKE']},
+    }
+
+    # Own appointments only for clinical staff
+    if role in ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'INTAKE_COUNSELOR', 'CASE_MANAGER'):
+        query['counselor_id'] = user_id_obj
+    # STAFF, ADMIN, DPO — no counselor_id filter (see all)
+
+    try:
+        apts = list(db.db.appointments.find(query).sort('scheduled_start', 1))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    # Cache lookups to avoid N+1
+    user_cache: dict = {}
+
+    def get_user(uid):
+        if uid is None:
+            return None
+        key = str(uid)
+        if key not in user_cache:
+            try:
+                user_cache[key] = db.db.users.find_one({'_id': uid if isinstance(uid, ObjectId) else ObjectId(uid)},
+                                                        {'first_name': 1, 'last_name': 1, 'role': 1})
+            except Exception:
+                user_cache[key] = None
+        return user_cache[key]
+
+    def full_name(u):
+        if not u:
+            return 'Unknown'
+        return f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or 'Unknown'
+
+    result = []
+    for apt in apts:
+        try:
+            student   = get_user(apt.get('student_id'))
+            counselor = get_user(apt.get('counselor_id'))
+
+            start = apt.get('scheduled_start')
+            end   = apt.get('scheduled_end')
+            if not end and start:
+                end = start + timedelta(minutes=50)
+
+            result.append({
+                'id':               str(apt['_id']),
+                'student_name':     full_name(student),
+                'counselor_name':   full_name(counselor) if apt.get('counselor_id') else 'Unassigned',
+                'counselor_id':     str(apt['counselor_id']) if apt.get('counselor_id') else '',
+                'counselor_role':   counselor.get('role', '') if counselor else '',
+                'scheduled_start':  start.isoformat() if start else None,
+                'scheduled_end':    end.isoformat() if end else None,
+                'status':           apt.get('status', ''),
+                'purpose':          apt.get('purpose') or (
+                                        'intake_interview'
+                                        if apt.get('appointment_type', '').upper() == 'INTAKE'
+                                        else 'counseling'
+                                    ),
+                'method':           apt.get('preferred_method') or apt.get('method') or 'in-person',
+                'meeting_link':     apt.get('meeting_link', ''),
+                'office':           apt.get('office', ''),
+            })
+        except Exception as e:
+            print(f"[calendar] error formatting apt {apt.get('_id')}: {e}")
+            continue
+
+    return jsonify({'appointments': result})

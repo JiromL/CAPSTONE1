@@ -479,7 +479,7 @@ export function DashboardLayout({
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-6">
-          <div className="max-w-6xl mx-auto animate-fade-up">
+          <div className="max-w-6xl mx-auto animate-fade-in">
             {children}
           </div>
         </main>

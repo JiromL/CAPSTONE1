@@ -249,15 +249,26 @@ def list_users_with_risk():
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     # get student usernames from users collection
-    student_docs = db.db.users.find({'role': 'STUDENT'}, {'username': 1})
+    student_docs = db.db.users.find(
+        {'role': 'STUDENT'},
+        {'username': 1, 'first_name': 1, 'last_name': 1, 'email': 1}
+    )
     users = []
     for doc in student_docs:
         uname = doc.get('username')
+        first = doc.get('first_name', '')
+        last  = doc.get('last_name', '')
+        full_name = f"{first} {last}".strip() or doc.get('email', '') or uname or ''
         # fetch latest perma entry
         entry = db.db.perma_history.find({'username': uname}).sort('date', -1).limit(1)
         latest = list(entry)
         risk = _compute_risk_from_label(latest[0].get('perma_label')) if latest else 'UNKNOWN'
-        users.append({'username': uname, 'risk': risk})
+        users.append({
+            'username': uname,
+            'name': full_name,
+            'email': doc.get('email', ''),
+            'risk': risk,
+        })
 
     return jsonify(users), 200
 

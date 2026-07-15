@@ -3160,8 +3160,19 @@ def list_reschedule_requests():
 
     results = []
     for apt in raw:
-        # Resolve student name
-        student_name = apt.get('student_name', '')
+        # Resolve student name — prefer student_id lookup, fall back to stored fields
+        student_name = ''
+        sid = apt.get('student_id')
+        if sid:
+            try:
+                s = db.db.users.find_one({"_id": sid if isinstance(sid, ObjectId) else ObjectId(str(sid))},
+                                         {"first_name": 1, "last_name": 1})
+                if s:
+                    student_name = f"{s.get('first_name','')} {s.get('last_name','')}".strip()
+            except Exception:
+                pass
+        if not student_name:
+            student_name = apt.get('student_name', '')
         if not student_name and apt.get('student_email'):
             student_name = apt['student_email']
         if not student_name and apt.get('rescheduled_by_user_id'):

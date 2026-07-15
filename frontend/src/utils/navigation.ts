@@ -27,6 +27,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const icItems: MenuItem[] = [
     { label: 'Dashboard',          href: '/dashboard',           id: 'dashboard'         },
     { label: 'Intake Management',  href: '/intake-management',   id: 'intake-management' },
+    { label: 'My Schedule',        href: '/schedule',            id: 'schedule'          },
     { label: 'My Availability',    href: '/availability',        id: 'availability'      },
     { label: 'EMA',                href: '/mhbot',               id: 'mhbot'             },
     { label: 'Announcements',      href: '/announcements',       id: 'announcements'     },
@@ -40,6 +41,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases',           href: '/cases',         id: 'cases'        },
     { label: 'My Referrals',    href: '/my-referrals',  id: 'my-referrals' },
     { label: 'Sessions',        href: '/appointments',  id: 'appointments' },
+    { label: 'My Schedule',     href: '/schedule',      id: 'schedule'     },
     { label: 'My Availability', href: '/availability',  id: 'availability' },
     { label: 'EMA',             href: '/mhbot',         id: 'mhbot'        },
     { label: 'Announcements',   href: '/announcements', id: 'announcements'},
@@ -53,6 +55,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'High-Risk Monitoring', href: '/high-risk',     id: 'high-risk'    },
     { label: 'Cases',                href: '/cases',         id: 'cases'        },
     { label: 'Sessions',             href: '/appointments',  id: 'appointments' },
+    { label: 'My Schedule',          href: '/schedule',      id: 'schedule'     },
     { label: 'My Availability',      href: '/availability',  id: 'availability' },
     { label: 'EMA',                  href: '/mhbot',         id: 'mhbot'        },
     { label: 'Announcements',        href: '/announcements', id: 'announcements'},
@@ -77,6 +80,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const staffItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',             id: 'dashboard'          },
     { label: 'Appointment Requests', href: '/appointment-requests',  id: 'appointments'       },
+    { label: 'CPS Calendar',         href: '/schedule',              id: 'schedule'           },
     { label: 'Counselor Schedules',  href: '/counselor-schedules',   id: 'counselor-schedules'},
     { label: 'Walk-In Intake',       href: '/staff/walkin-intake',   id: 'walk-in-intake'     },
     { label: 'Reschedule Requests',  href: '/reschedule-requests',   id: 'reschedule-requests'},
@@ -172,6 +176,7 @@ export function getActiveSectionFromPath(pathname: string): string {
 
     // Schedules
     'counselor-schedules':  'counselor-schedules',
+    'schedule':             'schedule',
 
     // Availability
     'availability':         'availability',

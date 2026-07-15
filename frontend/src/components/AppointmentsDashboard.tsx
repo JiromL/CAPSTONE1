@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Clock, CheckCircle, AlertCircle, UserCheck, MessageSquare,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Plus, X, Search, Loader2, RefreshCw,
@@ -1207,7 +1208,7 @@ export default function AppointmentsDashboard() {
       </div>
 
       {/* ── Assign Counselor Modal ────────────────────────────────────────── */}
-      {assignTarget && (
+      {assignTarget && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="rounded-2xl w-full max-w-md overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -1505,10 +1506,10 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── Schedule for Student Modal ────────────────────────────────────── */}
-      {showScheduleModal && (
+      {showScheduleModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -1648,10 +1649,10 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── Counselor Reschedule Modal ───────────────────────────────────── */}
-      {cancelTarget && (
+      {cancelTarget && createPortal(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-sm p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between mb-4">
@@ -1695,9 +1696,9 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
-      {reschedTarget && (
+      {reschedTarget && createPortal(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-sm p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between mb-4">
@@ -1754,10 +1755,10 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── Follow-Up Scheduling Modal ────────────────────────────────────── */}
-      {followUpTarget && (
+      {followUpTarget && createPortal(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
@@ -1824,10 +1825,10 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── Close at Intake Modal ──────────────────────────────────────────── */}
-      {closeIntakeTarget && (
+      {closeIntakeTarget && createPortal(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
@@ -1871,10 +1872,10 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── Complete & Termination Type Modal ─────────────────────────────── */}
-      {terminationTarget && (
+      {terminationTarget && createPortal(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center gap-2 mb-4">
@@ -1926,10 +1927,10 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── Edit Appointment Modal ──────────────────────────────────────── */}
-      {editTarget && (
+      {editTarget && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="rounded-2xl w-full max-w-sm overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -2008,10 +2009,10 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── Intake Forms Modal (IC) ─────────────────────────────────────── */}
-      {formsTarget && (
+      {formsTarget && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -2273,7 +2274,7 @@ export default function AppointmentsDashboard() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
     </div>
   );

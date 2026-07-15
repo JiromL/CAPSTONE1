@@ -1590,14 +1590,27 @@ def get_assessment_dashboard():
             try:
                 cases = list(db.db.cases.find({"assigned_counselor_id": ObjectId(user_id)}).limit(50))
                 case_ids = [case['_id'] for case in cases]
-                
+
+                # Build lookup maps to avoid N+1 queries
+                case_map = {str(c['_id']): c for c in cases}
+                student_ids = [c['student_id'] for c in cases if c.get('student_id')]
+                student_docs = list(db.db.users.find(
+                    {"_id": {"$in": student_ids}},
+                    {"first_name": 1, "last_name": 1, "email": 1}
+                )) if student_ids else []
+                student_map = {str(s['_id']): s for s in student_docs}
+
+                # Also fetch the current user's name for alerts
+                me = db.db.users.find_one({"_id": ObjectId(user_id)}, {"first_name": 1, "last_name": 1})
+                counselor_name = f"{me.get('first_name', '')} {me.get('last_name', '')}".strip() if me else ''
+
                 if case_ids:
                     # Efficiently get all assessments for assigned cases
                     intakes = list(db.db.intakes.find({
                         "case_id": {"$in": case_ids},
                         "status": "COMPLETED"
                     }).sort("student_submitted_at", -1).limit(20))
-                    
+
                     for intake in intakes:
                         try:
                             scores = intake.get('responses', {})
@@ -1605,19 +1618,32 @@ def get_assessment_dashboard():
                                 scores.get('phq9_score'),
                                 scores.get('gad7_score')
                             )
-                            
+
+                            # Resolve student name for this intake
+                            case_doc = case_map.get(str(intake.get('case_id', '')))
+                            student_doc = student_map.get(str(case_doc.get('student_id', ''))) if case_doc else None
+                            if student_doc:
+                                student_name = f"{student_doc.get('first_name', '')} {student_doc.get('last_name', '')}".strip() or student_doc.get('email', '')
+                            else:
+                                student_name = None
+                            case_status = case_doc.get('status') if case_doc else None
+
                             if risk in ['RED', 'CRITICAL']:
                                 dashboard_data['alerts'].append({
                                     'case_id': str(intake['case_id']),
                                     'counseling_id': intake.get('counseling_id'),
+                                    'student_name': student_name,
+                                    'counselor_name': counselor_name,
                                     'risk_level': risk,
                                     'type': 'high_risk_assessment'
                                 })
-                            
+
                             submitted_at = intake.get('student_submitted_at')
                             dashboard_data['recent_cases'].append({
                                 'case_id': str(intake['case_id']),
                                 'counseling_id': intake.get('counseling_id'),
+                                'student_name': student_name,
+                                'status': case_status,
                                 'submitted_at': submitted_at.isoformat() if submitted_at else None,
                                 'risk_level': risk,
                                 'is_emergency': intake.get('is_emergency')
@@ -1627,7 +1653,24 @@ def get_assessment_dashboard():
                             continue
                 else:
                     intakes = []
-                
+
+                # If no completed intakes, fall back to showing cases directly
+                if not dashboard_data['recent_cases'] and cases:
+                    for c in cases[:6]:
+                        student_doc = student_map.get(str(c.get('student_id', '')))
+                        if student_doc:
+                            sname = f"{student_doc.get('first_name', '')} {student_doc.get('last_name', '')}".strip() or student_doc.get('email', '')
+                        else:
+                            sname = None
+                        dashboard_data['recent_cases'].append({
+                            'case_id': str(c['_id']),
+                            'counseling_id': c.get('counseling_id'),
+                            'student_name': sname,
+                            'status': c.get('status'),
+                            'risk_level': c.get('current_risk_level', 'GREEN'),
+                            'is_emergency': False
+                        })
+
                 dashboard_data['summary'] = {
                     'assigned_cases': len(cases),
                     'high_risk_alerts': len(dashboard_data['alerts']),
@@ -1636,41 +1679,6 @@ def get_assessment_dashboard():
             except Exception as counselor_err:
                 print(f"Error loading counselor dashboard: {counselor_err}")
                 dashboard_data['summary'] = {'error': str(counselor_err)}
-        
-        elif user_role == 'PSYCHOLOGIST':
-            # Psychologists see high-complexity cases (mental health focus)
-            intakes = list(db.db.intakes.find({
-                "$or": [
-                    {"responses.phq9_score": {"$gte": 20}},
-                    {"responses.gad7_score": {"$gte": 15}},
-                    {"is_emergency": True}
-                ]
-            }).sort("student_submitted_at", -1).limit(30))
-            
-            for intake in intakes:
-                scores = intake.get('responses', {})
-                risk = get_risk_level(
-                    scores.get('phq9_score'),
-                    scores.get('gad7_score'),
-                    scores.get('pss_score')
-                )
-                
-                dashboard_data['recent_cases'].append({
-                    'case_id': str(intake['case_id']),
-                    'counseling_id': intake.get('counseling_id'),
-                    'phq9': scores.get('phq9_score'),
-                    'gad7': scores.get('gad7_score'),
-                    'pss': scores.get('pss_score'),
-                    'risk_level': risk,
-                    'is_emergency': intake.get('is_emergency'),
-                    'submitted_at': intake.get('student_submitted_at').isoformat() if intake.get('student_submitted_at') else None
-                })
-            
-            dashboard_data['summary'] = {
-                'critical_cases': len([c for c in dashboard_data['recent_cases'] if c['risk_level'] == 'CRITICAL']),
-                'high_risk_cases': len([c for c in dashboard_data['recent_cases'] if c['risk_level'] == 'RED']),
-                'total_reviewed': len(intakes)
-            }
         
         elif user_role == 'IC':
             # Intake counselors see all new intakes

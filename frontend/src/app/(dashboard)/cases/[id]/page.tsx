@@ -2109,13 +2109,13 @@ export default function CaseDetailPage() {
 
       {/* ── Clinical Record Tab: Treatment Plan ────────────────── */}
       {activeTab === 'clinical-record' && (
-        <div className="space-y-4">
+        <div className="space-y-4 mt-8">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Treatment Plan</h3>
             {!editingPlan && (
               <button
                 onClick={() => setEditingPlan(true)}
-                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-90"
+                className="flex items-center gap-2.5 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90"
                 style={{ background: 'var(--color-primary)' }}
               >
                 <Target size={15} /> {treatmentPlan ? 'Edit Plan' : 'Create Plan'}

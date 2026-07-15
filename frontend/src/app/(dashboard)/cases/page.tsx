@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
@@ -82,6 +83,7 @@ function StatCard({
 
 /* ── Main ───────────────────────────────────────────────── */
 export default function CasesPage() {
+  const router = useRouter();
   const [user, setUser]         = useState<any>(null);
   const [cases, setCases]       = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -311,10 +313,13 @@ export default function CasesPage() {
                       <tr
                         key={c._id}
                         className={`transition-colors duration-100 animate-fade-up`}
+                        onClick={() => router.push(`/cases/${c._id}`)}
                         style={{
                           borderBottom: '1px solid var(--color-border)',
                           background: isHighRisk ? 'rgba(220,38,38,0.03)' : 'transparent',
                           animationDelay: `${Math.min(i * 30, 300)}ms`,
+                          cursor: 'pointer',
+                          boxShadow: `inset 3px 0 0 ${riskCfg.dot}`,
                         }}
                         onMouseEnter={e => (e.currentTarget.style.background = isHighRisk ? 'rgba(220,38,38,0.06)' : 'var(--color-bg)')}
                         onMouseLeave={e => (e.currentTarget.style.background = isHighRisk ? 'rgba(220,38,38,0.03)' : 'transparent')}

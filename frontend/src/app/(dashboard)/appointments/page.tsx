@@ -6,7 +6,8 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Loader2, Eye, Video, RotateCcw, Star, ExternalLink, RefreshCw,
-  Archive, CheckCircle, History, X, AlertCircle, CalendarDays,
+  Archive, CheckCircle, History, X, AlertCircle, AlertTriangle, CalendarDays,
+  Search, ArrowUpDown, NotebookPen,
 } from 'lucide-react';
 
 interface Appointment {
@@ -146,6 +147,9 @@ export default function AppointmentsPage() {
   const [loadingMySlots, setLoadingMySlots] = useState(false);
   const [intakeSummary, setIntakeSummary] = useState<any>(null);
   const [intakePacket, setIntakePacket] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'date-asc' | 'date-desc' | 'risk'>('date-asc');
+  const [riskFilter, setRiskFilter] = useState<'all' | 'high'>('all');
 
   const load = async () => {
     setLoading(true);
@@ -188,6 +192,24 @@ export default function AppointmentsPage() {
   const displayTab = (activeTab === 'reschedule' && counts.reschedule === 0) ? 'active' : activeTab;
   const filtered = apts.filter(a => TAB_STATUSES[displayTab].includes(a.status));
   const canManage = dashboard?.can_manage_sessions ?? false;
+
+  const RISK_ORDER: Record<string, number> = { CRITICAL: 0, RED: 1, YELLOW: 2, GREEN: 3 };
+  const displayed = filtered
+    .filter(a => {
+      if (search && !a.student_name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (riskFilter === 'high' && !['RED', 'CRITICAL'].includes((a.risk_level ?? '').toUpperCase())) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'risk') {
+        const ra = RISK_ORDER[(a.risk_level ?? '').toUpperCase()] ?? 4;
+        const rb = RISK_ORDER[(b.risk_level ?? '').toUpperCase()] ?? 4;
+        return ra - rb;
+      }
+      const da = a.preferred_date ? new Date(a.preferred_date).getTime() : (sortBy === 'date-asc' ? Infinity : -Infinity);
+      const db2 = b.preferred_date ? new Date(b.preferred_date).getTime() : (sortBy === 'date-asc' ? Infinity : -Infinity);
+      return sortBy === 'date-asc' ? da - db2 : db2 - da;
+    });
 
   const doAction = async (aptId: string, endpoint: string, body?: object) => {
     setActioningId(aptId); setActionMsg(null);
@@ -330,20 +352,56 @@ export default function AppointmentsPage() {
           })}
         </div>
 
-        {filtered.length === 0 ? (
+        {/* Filter bar */}
+        <div className="flex items-center gap-2 px-3 py-2.5 flex-wrap" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+          <div className="relative flex-1 min-w-[140px]">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
+            <input
+              type="text"
+              placeholder="Search student…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+            />
+          </div>
+          <div className="relative flex items-center">
+            <ArrowUpDown size={11} className="absolute left-2.5 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
+              className="pl-7 pr-2 py-1.5 text-xs rounded-lg outline-none appearance-none cursor-pointer"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-secondary)' }}>
+              <option value="date-asc">Soonest first</option>
+              <option value="date-desc">Latest first</option>
+              <option value="risk">Risk level</option>
+            </select>
+          </div>
+          <button onClick={() => setRiskFilter(r => r === 'all' ? 'high' : 'all')}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition whitespace-nowrap"
+            style={riskFilter === 'high'
+              ? { background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }
+              : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+            <AlertTriangle size={11} /> High Risk
+          </button>
+        </div>
+
+        {displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
               <CalendarDays size={18} style={{ color: 'var(--color-text-muted)' }} />
             </div>
-            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No sessions here</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+              {filtered.length === 0 ? 'No sessions here' : 'No matches'}
+            </p>
             <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-              {activeTab === 'active' ? 'No confirmed sessions at the moment.' : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
+              {filtered.length === 0
+                ? (activeTab === 'active' ? 'No confirmed sessions at the moment.' : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`)
+                : 'Try adjusting your search or filters.'}
             </p>
           </div>
         ) : (
           <>
             <div className="p-4 space-y-3">
-              {filtered.map((apt) => {
+              {displayed.map((apt) => {
                 const cfg = STATUS_STYLE[apt.status] ?? { label: apt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', border: 'var(--color-border)' };
                 const isEval = apt.status === 'EVALUATION';
                 const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
@@ -435,6 +493,13 @@ export default function AppointmentsPage() {
 
                             {isConfirmed && !isPendingStudentApproval && (
                               <>
+                                {apt.case_id && (
+                                  <a href={`/cases/${apt.case_id}?tab=session-notes`}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border transition"
+                                    style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>
+                                    <NotebookPen size={11} /> Session Notes
+                                  </a>
+                                )}
                                 <button onClick={() => doAction(aptId, 'set-evaluation')} disabled={actioningId === aptId}
                                   className="flex items-center gap-1 px-2.5 py-1 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 hover:opacity-90"
                                   style={{ background: 'var(--color-warning)' }}>
@@ -449,6 +514,14 @@ export default function AppointmentsPage() {
                                   No Show
                                 </button>
                               </>
+                            )}
+
+                            {isEval && apt.case_id && (
+                              <a href={`/cases/${apt.case_id}?tab=session-notes`}
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border transition"
+                                style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>
+                                <NotebookPen size={11} /> Write Note
+                              </a>
                             )}
 
                             {isEval && (
@@ -510,7 +583,8 @@ export default function AppointmentsPage() {
             </div>
             <div className="px-5 py-3.5" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                Showing <strong style={{ color: 'var(--color-text-secondary)' }}>{filtered.length}</strong> session{filtered.length !== 1 ? 's' : ''}
+                Showing <strong style={{ color: 'var(--color-text-secondary)' }}>{displayed.length}</strong>
+                {displayed.length !== filtered.length && <span> of {filtered.length}</span>} session{displayed.length !== 1 ? 's' : ''}
               </p>
             </div>
           </>

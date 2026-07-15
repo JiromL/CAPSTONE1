@@ -134,6 +134,82 @@ def disconnect_calendar():
         return jsonify({'error': str(e)}), 400
 
 
+@calendar_bp.route('/personal-events', methods=['GET'])
+@jwt_required()
+def list_personal_events():
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+    except Exception:
+        uid = user_id
+    from_str = request.args.get('from')
+    to_str   = request.args.get('to')
+    query = {'user_id': uid}
+    if from_str or to_str:
+        query['start'] = {}
+        if from_str:
+            query['start']['$gte'] = datetime.fromisoformat(from_str.replace('Z', '+00:00'))
+        if to_str:
+            query['start']['$lte'] = datetime.fromisoformat(to_str.replace('Z', '+00:00'))
+    events = list(db.db.personal_events.find(query).sort('start', 1))
+    return jsonify([{
+        'id':    str(e['_id']),
+        'title': e.get('title', ''),
+        'start': e['start'].isoformat() if isinstance(e['start'], datetime) else e['start'],
+        'end':   e['end'].isoformat()   if isinstance(e['end'],   datetime) else e['end'],
+        'note':  e.get('note', ''),
+        'color': e.get('color', '#64748b'),
+    } for e in events]), 200
+
+
+@calendar_bp.route('/personal-events', methods=['POST'])
+@jwt_required()
+def create_personal_event():
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+    except Exception:
+        uid = user_id
+    data = request.get_json() or {}
+    title = (data.get('title') or '').strip()
+    if not title:
+        return jsonify({'error': 'title is required'}), 400
+    try:
+        start = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
+        end   = datetime.fromisoformat(data['end'].replace('Z', '+00:00'))
+    except Exception:
+        return jsonify({'error': 'start and end must be ISO datetime strings'}), 400
+    doc = {
+        'user_id':    uid,
+        'title':      title,
+        'start':      start,
+        'end':        end,
+        'note':       data.get('note', ''),
+        'color':      data.get('color', '#64748b'),
+        'created_at': datetime.utcnow(),
+    }
+    res = db.db.personal_events.insert_one(doc)
+    return jsonify({'id': str(res.inserted_id)}), 201
+
+
+@calendar_bp.route('/personal-events/<event_id>', methods=['DELETE'])
+@jwt_required()
+def delete_personal_event(event_id):
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+    except Exception:
+        uid = user_id
+    try:
+        eid = ObjectId(event_id)
+    except Exception:
+        return jsonify({'error': 'Invalid event id'}), 400
+    result = db.db.personal_events.delete_one({'_id': eid, 'user_id': uid})
+    if result.deleted_count == 0:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify({'message': 'Deleted'}), 200
+
+
 def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None):
     """
     Sync appointment to Google Calendar and create a Meet link for online sessions.

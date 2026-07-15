@@ -61,7 +61,9 @@ export default function HighRiskPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const highCount = cases.filter(c => c.riskLevel === 'high' || c.riskLevel === 'critical').length;
+  const criticalCount = cases.filter(c => c.riskLevel === 'critical').length;
+  const highCount     = cases.filter(c => c.riskLevel === 'high').length;
+  const moderateCount = cases.filter(c => c.riskLevel === 'medium').length;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -81,17 +83,22 @@ export default function HighRiskPage() {
     <DashboardPageWrapper title="High-Risk Monitoring" subtitle="Students flagged for elevated mental health risk">
 
       {/* Summary strip */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { icon: ShieldAlert,   label: 'Active Cases',        value: cases.length,  highlight: false },
-          { icon: AlertTriangle, label: 'High Risk / Critical', value: highCount,     highlight: highCount > 0 },
-        ].map(({ icon: Icon, label, value, highlight }) => (
+          { icon: ShieldAlert,   label: 'Monitoring',  value: cases.length,   color: 'var(--color-text-primary)', accent: 'var(--color-primary)' },
+          { icon: AlertTriangle, label: 'Critical',    value: criticalCount,  color: criticalCount > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)', accent: 'var(--color-danger)' },
+          { icon: AlertTriangle, label: 'High Risk',   value: highCount,      color: highCount > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)',  accent: 'var(--color-warning)' },
+          { icon: ShieldAlert,   label: 'Moderate',    value: moderateCount,  color: 'var(--color-text-secondary)', accent: 'var(--color-text-muted)' },
+        ].map(({ icon: Icon, label, value, color, accent }) => (
           <div key={label} className="rounded-2xl border shadow-card px-4 py-3 flex items-center gap-3"
             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-            <Icon size={18} style={{ color: highlight ? 'var(--color-danger)' : 'var(--color-text-muted)' }} />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)` }}>
+              <Icon size={15} style={{ color: accent }} />
+            </div>
             <div>
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
-              <p className="text-xl font-semibold" style={{ color: highlight ? 'var(--color-danger)' : 'var(--color-text-primary)' }}>{value}</p>
+              <p className="text-xl font-semibold tabular-nums" style={{ color }}>{value}</p>
             </div>
           </div>
         ))}

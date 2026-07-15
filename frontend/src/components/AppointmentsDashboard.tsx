@@ -85,14 +85,14 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_BADGE_STYLE: Record<string, React.CSSProperties> = {
   REQUESTED:            { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fde68a' },
   PENDING_APPROVAL:     { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fde68a' },
-  RESCHEDULE_REQUESTED: { background: '#fff7ed', color: '#c2410c', boxShadow: '0 0 0 1px #fed7aa' },
+  RESCHEDULE_REQUESTED: { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px rgba(217,119,6,0.3)' },
   CONFIRMED:            { background: 'var(--color-success-surface)', color: 'var(--color-success-text)', boxShadow: '0 0 0 1px #bbf7d0' },
   APPROVED:             { background: 'var(--color-success-surface)', color: 'var(--color-success-text)', boxShadow: '0 0 0 1px #bbf7d0' },
   MATCHED:              { background: 'var(--color-success-surface)', color: 'var(--color-success-text)', boxShadow: '0 0 0 1px #bbf7d0' },
   CHECKED_IN:           { background: 'var(--color-info-surface)', color: 'var(--color-info-text)', boxShadow: '0 0 0 1px #bfdbfe' },
   EVALUATION:           { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fcd34d' },
-  FOLLOW_UP:            { background: '#eef2ff', color: '#4338ca', boxShadow: '0 0 0 1px #c7d2fe' },
-  REFERRAL:             { background: '#faf5ff', color: '#7e22ce', boxShadow: '0 0 0 1px #e9d5ff' },
+  FOLLOW_UP:            { background: 'rgba(79,70,229,0.08)', color: '#4338ca', boxShadow: '0 0 0 1px rgba(99,102,241,0.25)' },
+  REFERRAL:             { background: 'rgba(124,58,237,0.08)', color: '#7e22ce', boxShadow: '0 0 0 1px rgba(139,92,246,0.25)' },
   COMPLETED:            { background: 'var(--color-bg)', color: 'var(--color-text-muted)', boxShadow: '0 0 0 1px var(--color-border)' },
   CANCELLED:            { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
   DENIED:               { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
@@ -102,7 +102,7 @@ const STATUS_BADGE_STYLE: Record<string, React.CSSProperties> = {
 const RISK_BADGE_STYLE: Record<string, React.CSSProperties> = {
   YELLOW:   { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', boxShadow: '0 0 0 1px #fde68a' },
   RED:      { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
-  CRITICAL: { background: '#fee2e2', color: '#7f1d1d', fontWeight: 600, boxShadow: '0 0 0 1px #fca5a5' },
+  CRITICAL: { background: 'var(--color-danger-surface)', color: 'var(--color-danger)', fontWeight: 700, boxShadow: '0 0 0 1px var(--color-danger)' },
 };
 
 function fmtDate(d?: string) {
@@ -812,14 +812,14 @@ export default function AppointmentsDashboard() {
       {pendingReschedules > 0 && (
         <a href="/reschedule-requests"
           className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition"
-          style={{ background: '#FFF7ED', border: '1px solid #FDBA74' }}
-          onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = '#FFEDD5'}
-          onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = '#FFF7ED'}>
-          <RefreshCw size={14} className="flex-shrink-0" style={{ color: '#F97316' }} />
-          <span style={{ color: '#9A3412' }}>
+          style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}
+          onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.85'}
+          onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}>
+          <RefreshCw size={14} className="flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
+          <span style={{ color: 'var(--color-warning-text)' }}>
             <strong>{pendingReschedules}</strong> student{pendingReschedules !== 1 ? 's' : ''} requested to reschedule.
           </span>
-          <span className="ml-auto text-xs font-semibold underline underline-offset-2" style={{ color: '#C2410C' }}>Review →</span>
+          <span className="ml-auto text-xs font-semibold underline underline-offset-2" style={{ color: 'var(--color-warning-text)' }}>Review →</span>
         </a>
       )}
 
@@ -845,7 +845,7 @@ export default function AppointmentsDashboard() {
             <button
               onClick={() => { resetScheduleForm(); setShowScheduleModal(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition"
-              style={{ backgroundColor: '#2563eb' }}
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               <Plus size={15} /> Schedule for Student
             </button>
@@ -900,13 +900,13 @@ export default function AppointmentsDashboard() {
                 const permaLabel  = apt.mhbot_username ? (permaLabels[apt.mhbot_username] ?? null) : null;
                 const isInCrisis  = permaLabel === 'In Crisis';
                 const cardStyle: React.CSSProperties = isInCrisis
-                  ? { borderColor: '#FCA5A5', background: 'rgba(254,242,242,0.4)' }
+                  ? { borderColor: 'var(--color-danger)', background: 'var(--color-danger-surface)' }
                   : isHighRisk
-                    ? { borderColor: '#FECACA', background: 'rgba(254,242,242,0.2)' }
+                    ? { borderColor: 'rgba(220,38,38,0.3)', background: 'var(--color-danger-surface)' }
                     : isNew
-                      ? { borderColor: 'rgba(253,230,138,0.7)', background: 'rgba(255,251,235,0.2)' }
+                      ? { borderColor: 'var(--color-warning)', background: 'var(--color-warning-surface)' }
                       : isEval
-                        ? { borderColor: '#FEF3C7', background: 'rgba(255,251,235,0.1)' }
+                        ? { borderColor: 'var(--color-warning)', background: 'var(--color-warning-surface)' }
                         : { borderColor: 'var(--color-border)', background: 'var(--color-surface)' };
 
                 return (
@@ -923,8 +923,8 @@ export default function AppointmentsDashboard() {
                               {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
                             </span>
                             {apt.risk_level && apt.risk_level !== 'GREEN' && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={RISK_BADGE_STYLE[apt.risk_level.toUpperCase()] ?? {}}>
-                                ⚠ {apt.risk_level}
+                              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold" style={RISK_BADGE_STYLE[apt.risk_level.toUpperCase()] ?? {}}>
+                                <AlertCircle size={9} /> {apt.risk_level}
                               </span>
                             )}
                             {apt.status === 'RESCHEDULE_REQUESTED' && apt.reschedule_requested_by_role !== 'STUDENT' && (
@@ -939,13 +939,13 @@ export default function AppointmentsDashboard() {
                             <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
                             {apt.mhbot_username && permaLabels[apt.mhbot_username] !== undefined && (
                               isInCrisis ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#FEE2E2', color: '#B91C1C', boxShadow: '0 0 0 1px #FCA5A5' }}>
-                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#EF4444' }} />
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}>
+                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--color-danger)' }} />
                                   In Crisis
                                 </span>
                               ) : permaLabel === 'Struggling' ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#FFEDD5', color: '#9A3412' }}>
-                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#F97316' }} />
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' }}>
+                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--color-warning)' }} />
                                   Struggling
                                 </span>
                               ) : (

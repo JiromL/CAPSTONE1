@@ -60,6 +60,15 @@ export interface CalAppt {
   office?: string;
 }
 
+export interface PersonalEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  note?: string;
+  color?: string;
+}
+
 interface Props {
   appointments: CalAppt[];
   loading?: boolean;
@@ -68,6 +77,9 @@ interface Props {
   onPrevWeek: () => void;
   onNextWeek: () => void;
   onToday: () => void;
+  personalEvents?: PersonalEvent[];
+  onGridClick?: (date: Date, hour: number, minute: number) => void;
+  onDeletePersonalEvent?: (id: string) => void;
 }
 
 interface PositionedAppt extends CalAppt {
@@ -224,6 +236,7 @@ function DRow({ icon, label, children }: { icon: React.ReactNode; label: string;
 // ─── Single appointment column ────────────────────────────────
 function ApptColumn({
   laid, isToday, ctTop, getColor, colorBy, dayView, onSelect,
+  day, personalEvents, onGridClick, onDeletePersonalEvent,
 }: {
   laid: PositionedAppt[];
   isToday: boolean;
@@ -232,10 +245,28 @@ function ApptColumn({
   colorBy: 'status' | 'counselor';
   dayView: boolean;
   onSelect: (apt: CalAppt) => void;
+  day: Date;
+  personalEvents: PersonalEvent[];
+  onGridClick?: (date: Date, hour: number, minute: number) => void;
+  onDeletePersonalEvent?: (id: string) => void;
 }) {
   const hoursList = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+
+  function handleColumnClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!onGridClick) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top + e.currentTarget.scrollTop;
+    const totalMin = START_HOUR * 60 + Math.floor(y / PX_PER_MIN);
+    const hour = Math.min(Math.floor(totalMin / 60), END_HOUR - 1);
+    const minute = Math.round((totalMin % 60) / 15) * 15 % 60;
+    onGridClick(day, hour, minute);
+  }
+
   return (
-    <div className="border-l relative" style={{ borderColor: 'var(--color-border)', height: GRID_H }}>
+    <div className="border-l relative" style={{ borderColor: 'var(--color-border)', height: GRID_H, cursor: onGridClick ? 'crosshair' : 'default' }}
+      onClick={handleColumnClick}>
       {hoursList.map(h => (
         <div key={h}
           style={{ position: 'absolute', top: (h - START_HOUR) * HOUR_H, left: 0, right: 0, height: 1, background: 'var(--color-border)', opacity: 0.6 }} />
@@ -303,6 +334,53 @@ function ApptColumn({
           </button>
         );
       })}
+
+      {/* Personal events */}
+      {personalEvents.map(ev => {
+        if (!ev.start || !ev.end) return null;
+        const top    = calcTop(ev.start);
+        const height = calcHeight(ev.start, ev.end);
+        const hex    = ev.color || '#64748b';
+        const bgHex  = hex + '22';
+        return (
+          <div key={ev.id}
+            style={{
+              position: 'absolute', top, height,
+              left: 2, right: 2,
+              background: bgHex,
+              border: `1.5px dashed ${hex}`,
+              borderRadius: 4,
+              overflow: 'hidden',
+              zIndex: 1,
+              padding: dayView ? '3px 6px' : '2px 4px',
+            }}>
+            <p className="font-semibold leading-tight truncate"
+              style={{ color: hex, fontSize: dayView ? 11 : 9 }}>
+              {ev.title}
+            </p>
+            {height >= 28 && (
+              <p className="leading-tight truncate"
+                style={{ color: hex, opacity: 0.75, fontSize: 9 }}>
+                {fmtTime(ev.start)}{dayView ? ` – ${fmtTime(ev.end)}` : ''}
+              </p>
+            )}
+            {onDeletePersonalEvent && (
+              <button
+                onClick={e => { e.stopPropagation(); onDeletePersonalEvent(ev.id); }}
+                style={{
+                  position: 'absolute', top: 2, right: 2,
+                  width: 14, height: 14, borderRadius: '50%',
+                  background: hex, color: 'white',
+                  fontSize: 9, lineHeight: '14px', textAlign: 'center',
+                  cursor: 'pointer', border: 'none', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                ×
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -360,6 +438,9 @@ export default function CalendarWeekView({
   onPrevWeek,
   onNextWeek,
   onToday,
+  personalEvents = [],
+  onGridClick,
+  onDeletePersonalEvent,
 }: Props) {
   const [view, setView]               = useState<'week' | 'day'>('week');
   const [selectedDay, setSelectedDay] = useState<Date>(() => {
@@ -405,6 +486,18 @@ export default function CalendarWeekView({
     });
     return map;
   }, [appointments, days, selectedDay]);
+
+  const personalByDay = useMemo(() => {
+    const map = new Map<string, PersonalEvent[]>();
+    days.forEach(d => map.set(d.toDateString(), []));
+    if (!map.has(selectedDay.toDateString())) map.set(selectedDay.toDateString(), []);
+    personalEvents.forEach(ev => {
+      if (!ev.start) return;
+      const key = new Date(ev.start).toDateString();
+      if (map.has(key)) map.get(key)!.push(ev);
+    });
+    return map;
+  }, [personalEvents, days, selectedDay]);
 
   const layoutByDay = useMemo(() => {
     const map = new Map<string, PositionedAppt[]>();
@@ -600,6 +693,10 @@ export default function CalendarWeekView({
               colorBy={colorBy}
               dayView={view === 'day'}
               onSelect={setSelected}
+              day={day}
+              personalEvents={personalByDay.get(day.toDateString()) ?? []}
+              onGridClick={onGridClick}
+              onDeletePersonalEvent={onDeletePersonalEvent}
             />
           ))}
         </div>

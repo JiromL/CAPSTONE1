@@ -8,7 +8,14 @@ interface CaseSummary {
   generated_at: string;
   case: {
     case_number: string; status: string; risk_level: string;
-    opening_date: string; chief_complaint: string; treatment_plan: string;
+    opening_date: string; chief_complaint: string;
+    treatment_plan: string | {
+      goals?: { goal: string; status?: string; target_date?: string }[] | string;
+      interventions?: string | string[];
+      progress_summary?: string;
+      estimated_duration?: string;
+      next_review_date?: string;
+    } | null;
   };
   student: { name: string; id_number: string; email: string; college: string; program: string; };
   counselor:    { name: string; role: string; };
@@ -16,7 +23,7 @@ interface CaseSummary {
   icf: Record<string, string>;
   spif: Record<string, string>;
   phq4: (number | null)[] | null;
-  notes: { date: string; content: string; author: string; }[];
+  notes: { date: string; content: string; author: string; note_format?: string; soap?: { subjective?: string; objective?: string; assessment?: string; plan?: string } | null; }[];
 }
 
 const PHQ4_LABELS = [
@@ -193,7 +200,70 @@ export default function CasePrintPage() {
         {/* Treatment plan */}
         {data.case.treatment_plan && (
           <Section title="Treatment Plan">
-            <p className="text-xs whitespace-pre-line leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{data.case.treatment_plan}</p>
+            {typeof data.case.treatment_plan === 'string' ? (
+              <p className="text-xs whitespace-pre-line leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{data.case.treatment_plan}</p>
+            ) : (
+              (() => {
+                const tp = data.case.treatment_plan as Exclude<typeof data.case.treatment_plan, string | null>;
+                const goals = tp.goals;
+                const interventions = tp.interventions;
+                return (
+                  <div className="space-y-2">
+                    {goals && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Goals</p>
+                        {Array.isArray(goals) ? (
+                          <ul className="space-y-1">
+                            {goals.map((g, i) => (
+                              <li key={i} className="text-xs flex gap-2">
+                                <span style={{ color: 'var(--color-text-muted)' }}>{i + 1}.</span>
+                                <span style={{ color: 'var(--color-text-secondary)' }}>
+                                  {g.goal}
+                                  {g.status && <span className="ml-1" style={{ color: 'var(--color-text-muted)' }}>({g.status})</span>}
+                                  {g.target_date && <span className="ml-1" style={{ color: 'var(--color-text-muted)' }}>— {g.target_date}</span>}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-secondary)' }}>{goals}</p>
+                        )}
+                      </div>
+                    )}
+                    {interventions && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Interventions</p>
+                        <p className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-secondary)' }}>
+                          {Array.isArray(interventions) ? interventions.join('\n') : interventions}
+                        </p>
+                      </div>
+                    )}
+                    {tp.progress_summary && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Progress Summary</p>
+                        <p className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-secondary)' }}>{tp.progress_summary}</p>
+                      </div>
+                    )}
+                    {(tp.estimated_duration || tp.next_review_date) && (
+                      <div className="grid grid-cols-2 gap-4 mt-1">
+                        {tp.estimated_duration && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Est. Duration: </span>
+                            <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{tp.estimated_duration}</span>
+                          </div>
+                        )}
+                        {tp.next_review_date && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Next Review: </span>
+                            <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{tp.next_review_date}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            )}
           </Section>
         )}
 
@@ -203,11 +273,27 @@ export default function CasePrintPage() {
             <div className="space-y-3">
               {data.notes.map((n, i) => (
                 <div key={i} className="rounded-lg p-3" style={{ border: '1px solid var(--color-border)' }}>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{n.date}</p>
-                    {n.author && <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{n.author}</p>}
+                    <div className="flex items-center gap-2">
+                      {n.note_format === 'SOAP' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EEF2FF', color: '#4F46E5' }}>SOAP</span>
+                      )}
+                      {n.author && <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{n.author}</p>}
+                    </div>
                   </div>
-                  <p className="text-xs whitespace-pre-line leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{n.content}</p>
+                  {n.note_format === 'SOAP' && n.soap ? (
+                    <div className="space-y-1.5">
+                      {(['subjective', 'objective', 'assessment', 'plan'] as const).map(k => n.soap![k] ? (
+                        <div key={k}>
+                          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{k}: </span>
+                          <span className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-secondary)' }}>{n.soap![k]}</span>
+                        </div>
+                      ) : null)}
+                    </div>
+                  ) : (
+                    <p className="text-xs whitespace-pre-line leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{n.content}</p>
+                  )}
                 </div>
               ))}
             </div>

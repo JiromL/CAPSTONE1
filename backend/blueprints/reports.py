@@ -419,13 +419,53 @@ def case_summary(case_id):
         student      = db.db.users.find_one({'_id': case.get('student_id')})
         counselor    = db.db.users.find_one({'_id': case.get('assigned_counselor_id') or case.get('counselor_id')})
         psychologist = db.db.users.find_one({'_id': case.get('assigned_psychologist_id')})
-        appointment  = db.db.appointments.find_one({'case_id': oid})
-        intake_pkt   = db.db.intake_packets.find_one({'appointment_id': appointment['_id']}) if appointment else None
 
-        icf  = intake_pkt.get('icf',  {}) if intake_pkt else {}
-        spif = intake_pkt.get('spif', {}) if intake_pkt else {}
-        phq4 = intake_pkt.get('phq4_responses') if intake_pkt else None
-        notes = case.get('progress_notes', [])
+        # Find intake packet via multiple strategies:
+        # 1. By actual appointment IDs on this case (walk-in / post-fix online)
+        # 2. By intake._id used as appointment_id (pre-fix IC-entered online packets)
+        # 3. Fallback to raw intakes doc for basic field reconstruction
+        intake_pkt = None
+        for appt in db.db.appointments.find({'case_id': oid}):
+            intake_pkt = db.db.intake_packets.find_one({'appointment_id': appt['_id']})
+            if intake_pkt:
+                break
+
+        intake_doc = db.db.intakes.find_one({'case_id': oid})
+        if not intake_pkt and intake_doc:
+            # IC conduct page saved the packet keyed to intake._id when appointment_id
+            # wasn't yet stored on the intake (pre-fix online bookings).
+            intake_pkt = db.db.intake_packets.find_one({'appointment_id': intake_doc['_id']})
+
+        icf  = (intake_pkt or {}).get('icf',  {}) or {}
+        spif = (intake_pkt or {}).get('spif', {}) or {}
+        phq4 = (intake_pkt or {}).get('phq4_responses')
+
+        # If still empty, pull what we can from the intakes document
+        if not icf and intake_doc:
+            icf = {
+                'first_name':    (student or {}).get('first_name', ''),
+                'last_name':     (student or {}).get('last_name', ''),
+                'email':         (student or {}).get('email', ''),
+                'phone':         intake_doc.get('phone', ''),
+                'year_level':    intake_doc.get('year_level', ''),
+                'presenting_concern': intake_doc.get('responses', {}).get('purpose', intake_doc.get('purpose', '')),
+                'service_requested':  intake_doc.get('responses', {}).get('purpose', ''),
+                'referral_source':    intake_doc.get('referral_source', ''),
+                'referred_by':        intake_doc.get('referred_by', ''),
+                'emergency_contact_name':         intake_doc.get('emergency_contact_name', ''),
+                'emergency_contact_phone':        intake_doc.get('emergency_contact_phone', ''),
+                'emergency_contact_relationship': intake_doc.get('emergency_contact_relationship', ''),
+            }
+        if not spif and intake_doc:
+            spif = {
+                'address':   intake_doc.get('address', ''),
+                'birthdate': intake_doc.get('birthdate', ''),
+                'gender':    intake_doc.get('gender', ''),
+            }
+
+        # Session notes live in the session_notes collection, not embedded in case
+        raw_notes = list(db.db.session_notes.find({'case_id': case['_id']}).sort('session_date', 1))
+        notes = raw_notes
 
         def fmt_date(v):
             return v.strftime('%B %d, %Y') if isinstance(v, datetime) else _s(v)[:10]
@@ -459,9 +499,18 @@ def case_summary(case_id):
             'phq4': phq4,
             'notes': [
                 {
-                    'date':    _s(n.get('date') or n.get('created_at')),
-                    'content': n.get('content', n.get('note', '')),
-                    'author':  n.get('author', ''),
+                    'date': (
+                        n['session_date'].strftime('%B %d, %Y')
+                        if isinstance(n.get('session_date'), datetime)
+                        else _s(n.get('session_date') or n.get('date') or n.get('created_at'))[:10]
+                    ),
+                    'content': n.get('note_content') or n.get('content') or n.get('note') or '',
+                    'soap': n.get('soap'),
+                    'note_format': n.get('note_format', 'freeform'),
+                    'author': (
+                        _name(db.db.users.find_one({'_id': n['counselor_id']}))
+                        if n.get('counselor_id') else n.get('author', '')
+                    ),
                 }
                 for n in (notes if isinstance(notes, list) else [])
             ],

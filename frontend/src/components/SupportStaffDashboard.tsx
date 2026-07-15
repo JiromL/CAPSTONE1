@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ListChecks, CalendarDays, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { Loader2, ListChecks, CalendarDays, ChevronLeft, ChevronRight, MoreHorizontal, UserPlus, ClipboardList } from 'lucide-react';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -302,6 +302,34 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
       <div className="mb-6 pb-5 animate-fade-up" style={{ borderBottom: '1px solid var(--color-border)' }}>
         <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{todayDateStr}</p>
         <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
+      </div>
+
+      {/* Quick action strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 animate-fade-up">
+        {[
+          { label: 'Today', value: loading ? '–' : todayList.length, color: 'var(--color-primary)', icon: CalendarDays, href: null },
+          { label: 'Pending', value: loading ? '–' : pendingList.length, color: pendingList.length > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)', icon: ListChecks, href: null },
+          { label: 'Walk-In Intake', value: null, color: 'var(--color-primary)', icon: UserPlus, href: '/staff/walkin-intake' },
+          { label: 'Manage Requests', value: null, color: 'var(--color-primary)', icon: ClipboardList, href: '/appointment-requests' },
+        ].map(({ label, value, color, icon: Icon, href }) => (
+          href ? (
+            <Link key={label} href={href}
+              className="flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all"
+              style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-primary-surface)'; }}
+              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-surface)'; }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-primary-surface)' }}>
+                <Icon size={15} style={{ color: 'var(--color-primary)' }} />
+              </div>
+              <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{label}</p>
+            </Link>
+          ) : (
+            <div key={label} className="rounded-2xl border px-4 py-3" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+              <p className="text-2xl font-bold tabular-nums mt-0.5" style={{ color }}>{value}</p>
+            </div>
+          )
+        ))}
       </div>
 
       {loading ? (

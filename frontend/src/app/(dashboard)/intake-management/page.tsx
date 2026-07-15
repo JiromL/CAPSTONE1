@@ -164,7 +164,7 @@ function ScheduledCard({ apt }: { apt: IntakeAppointment }) {
 function WriteCard({ intake, onExport }: { intake: IntakeRecord; onExport: () => void }) {
   return (
     <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
-      style={{ background: '#FAF5FF', borderColor: '#DDD6FE' }}>
+      style={{ background: 'rgba(124,58,237,0.06)', borderColor: 'rgba(124,58,237,0.25)' }}>
       <div className="min-w-0">
         <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
         <div className="flex items-center gap-2 mt-0.5">
@@ -196,7 +196,7 @@ function WriteCard({ intake, onExport }: { intake: IntakeRecord; onExport: () =>
           <button onClick={onExport}
             className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition whitespace-nowrap"
             style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.color = '#7C3AED'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.6)'; e.currentTarget.style.color = '#7C3AED'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
             <FileText size={11} /> Export
           </button>

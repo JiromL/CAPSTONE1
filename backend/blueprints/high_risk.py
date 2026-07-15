@@ -228,41 +228,62 @@ def get_user_perma_history(username):
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    entries = list(db.db.perma_history.find({'username': username}).sort('date', -1))
-    result = []
-    for e in entries:
-        result.append({
-            'date': e.get('date').isoformat() if hasattr(e.get('date'), 'isoformat') else e.get('date'),
-            'perma_label': e.get('perma_label')
-        })
+    # accept email or username as identifier; look up the canonical username from the user doc
+    student = db.db.users.find_one({'$or': [{'email': username}, {'username': username}]})
+    uname = (student.get('username') or username) if student else username
+
+    entries = list(db.db.perma_history.find({'username': uname}).sort('date', -1))
+    result = [{
+        'date': e.get('date').isoformat() if hasattr(e.get('date'), 'isoformat') else e.get('date'),
+        'perma_label': e.get('perma_label'),
+    } for e in entries]
     risk = _compute_risk_from_label(result[0]['perma_label']) if result else 'UNKNOWN'
 
-    return jsonify({'username': username, 'risk': risk, 'history': result}), 200
+    return jsonify({'username': uname, 'risk': risk, 'history': result}), 200
 
+
+_CASE_RISK_MAP = {
+    'RED':    'HIGH',
+    'YELLOW': 'MEDIUM',
+    'GREEN':  'LOW',
+}
 
 @high_risk_bp.route('/users', methods=['GET'])
 @jwt_required()
 def list_users_with_risk():
-    """List all student usernames along with their current risk classification."""
+    """List students who have a case, with risk from case risk_level (or PERMA history)."""
     user_id = get_jwt_identity()
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    # get student usernames from users collection
+    # Only students who have an active case
+    cases = list(db.db.cases.find(
+        {'case_status': {'$in': ['ACTIVE', 'NEW', 'active', 'new']}},
+        {'student_id': 1, 'risk_level': 1}
+    ))
+    student_ids = [c['student_id'] for c in cases if c.get('student_id')]
+    case_risk_by_student = {str(c['student_id']): c.get('risk_level', '') for c in cases}
+
     student_docs = db.db.users.find(
-        {'role': 'STUDENT'},
+        {'_id': {'$in': student_ids}, 'role': 'STUDENT'},
         {'username': 1, 'first_name': 1, 'last_name': 1, 'email': 1}
     )
+
     users = []
     for doc in student_docs:
         uname = doc.get('username')
         first = doc.get('first_name', '')
         last  = doc.get('last_name', '')
         full_name = f"{first} {last}".strip() or doc.get('email', '') or uname or ''
-        # fetch latest perma entry
-        entry = db.db.perma_history.find({'username': uname}).sort('date', -1).limit(1)
-        latest = list(entry)
-        risk = _compute_risk_from_label(latest[0].get('perma_label')) if latest else 'UNKNOWN'
+
+        # Primary: case risk_level; secondary: PERMA history
+        case_risk_raw = case_risk_by_student.get(str(doc['_id']), '')
+        risk = _CASE_RISK_MAP.get(str(case_risk_raw).upper(), '')
+
+        if not risk:
+            entry = list(db.db.perma_history.find({'username': uname}).sort('date', -1).limit(1))
+            risk = _compute_risk_from_label(entry[0].get('perma_label')) if entry else 'UNKNOWN'
+
         users.append({
             'username': uname,
             'name': full_name,
@@ -270,6 +291,9 @@ def list_users_with_risk():
             'risk': risk,
         })
 
+    # Sort: HIGH first, then MEDIUM, then LOW, then UNKNOWN
+    _order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2, 'UNKNOWN': 3}
+    users.sort(key=lambda u: _order.get(u['risk'], 3))
     return jsonify(users), 200
 
 
@@ -332,8 +356,8 @@ def notify_counselor_for_user(username):
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    # find student user
-    student = db.db.users.find_one({'username': username})
+    # find student by email or username
+    student = db.db.users.find_one({'$or': [{'email': username}, {'username': username}]})
     if not student:
         return jsonify({'error': 'Student not found'}), 404
 

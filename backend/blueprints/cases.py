@@ -109,18 +109,8 @@ def get_cases():
     query.update(filters)
     
     # Get cases
-    cases = []
-    for case in db.db.cases.find(query).sort('created_at', -1):
-        serialized = {}
-        for k, v in case.items():
-            if isinstance(v, ObjectId):
-                serialized[k] = str(v)
-            elif isinstance(v, datetime):
-                serialized[k] = v.isoformat()
-            else:
-                serialized[k] = v
-        cases.append(serialized)
-    
+    cases = [serialize_doc(case) for case in db.db.cases.find(query).sort('created_at', -1)]
+
     return jsonify({
         'count': len(cases),
         'role': user_role,

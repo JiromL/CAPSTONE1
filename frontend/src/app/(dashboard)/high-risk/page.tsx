@@ -1,29 +1,48 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import ManualNotifyForm from '@/components/ManualNotifyForm';
 import { api } from '@/utils/api';
 import {
   AlertTriangle, ChevronDown, ChevronUp, Phone, ShieldAlert,
-  Loader2, Clock, Send, CheckCircle, XCircle,
+  Loader2, Clock, Send, CheckCircle, XCircle, Search,
 } from 'lucide-react';
 
-function getRiskStyle(level: string): { label: string; bg: string; text: string; border: string } {
+type RiskLevel = 'high' | 'medium' | 'low' | 'unknown';
+
+function getRiskStyle(level: string) {
   switch ((level || '').toLowerCase()) {
-    case 'critical': return { label: 'Critical',  bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',  border: 'var(--color-danger)' };
-    case 'red':      return { label: 'High Risk', bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',  border: 'var(--color-danger)' };
-    case 'yellow':   return { label: 'Moderate',  bg: 'var(--color-warning-surface)', text: 'var(--color-warning)', border: 'var(--color-warning)' };
-    case 'green':    return { label: 'Low Risk',  bg: 'var(--color-success-surface)', text: 'var(--color-success)', border: 'var(--color-success)' };
-    default:         return { label: level?.toUpperCase() || 'Unknown', bg: 'var(--color-bg)', text: 'var(--color-text-muted)', border: 'var(--color-border)' };
+    case 'high':
+    case 'critical':
+    case 'red':
+      return { label: 'High Risk', bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',  border: 'var(--color-danger)' };
+    case 'medium':
+    case 'yellow':
+      return { label: 'Moderate',  bg: 'var(--color-warning-surface)', text: 'var(--color-warning)', border: 'var(--color-warning)' };
+    case 'low':
+    case 'green':
+      return { label: 'Low Risk',  bg: 'var(--color-success-surface)', text: 'var(--color-success)', border: 'var(--color-success)' };
+    default:
+      return { label: 'Unknown',   bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', border: 'var(--color-border)' };
   }
 }
+
+const FILTER_OPTIONS: { label: string; value: RiskLevel | 'all' }[] = [
+  { label: 'All',      value: 'all' },
+  { label: 'High',     value: 'high' },
+  { label: 'Moderate', value: 'medium' },
+  { label: 'Low',      value: 'low' },
+  { label: 'Unknown',  value: 'unknown' },
+];
 
 export default function HighRiskPage() {
   const [cases, setCases]           = useState<any[]>([]);
   const [tab, setTab]               = useState<'cases' | 'manual'>('cases');
   const [loading, setLoading]       = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [search, setSearch]         = useState('');
+  const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -31,19 +50,31 @@ export default function HighRiskPage() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         setCases((Array.isArray(data) ? data : []).map((u: any, i: number) => ({
-          id: i, name: u.name || u.username, studentId: u.username,
-          email: u.email || '', riskLevel: (u.risk || 'unknown').toLowerCase(),
+          id: i,
+          name: u.name || u.email,
+          studentId: u.email,   // use email — username is null for most seeded students
+          email: u.email || '',
+          riskLevel: (u.risk || 'unknown').toLowerCase() as RiskLevel,
         })));
       })
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
 
-  const redCount    = cases.filter(c => ['red', 'critical'].includes(c.riskLevel)).length;
+  const highCount = cases.filter(c => c.riskLevel === 'high' || c.riskLevel === 'critical').length;
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return cases.filter(c => {
+      const matchRisk   = riskFilter === 'all' || c.riskLevel === riskFilter;
+      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
+      return matchRisk && matchSearch;
+    });
+  }, [cases, search, riskFilter]);
 
   const TABS = [
     { key: 'cases' as const,  label: 'Active Cases',  count: cases.length },
-    { key: 'manual' as const, label: 'Manual Notify', count: 0 },
+    { key: 'manual' as const, label: 'Manual Notify',  count: 0 },
   ];
 
   return (
@@ -52,8 +83,8 @@ export default function HighRiskPage() {
       {/* Summary strip */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         {[
-          { icon: ShieldAlert, label: 'Total Flagged', value: cases.length, highlight: false },
-          { icon: AlertTriangle, label: 'High Risk / Critical', value: redCount, highlight: redCount > 0 },
+          { icon: ShieldAlert,   label: 'Active Cases',        value: cases.length,  highlight: false },
+          { icon: AlertTriangle, label: 'High Risk / Critical', value: highCount,     highlight: highCount > 0 },
         ].map(({ icon: Icon, label, value, highlight }) => (
           <div key={label} className="rounded-2xl border shadow-card px-4 py-3 flex items-center gap-3"
             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
@@ -116,22 +147,75 @@ export default function HighRiskPage() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
-                      {['#', 'Student', 'Risk Level', 'History', 'Action'].map(h => (
-                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cases.map((c, i) => <HighRiskRow key={c.id} caseItem={c} index={i} />)}
-                  </tbody>
-                </table>
+              {/* Search + filter bar */}
+              <div className="flex flex-wrap items-center gap-3 px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                {/* Search */}
+                <div className="relative flex-1 min-w-[160px] max-w-xs">
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search by name or email…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg outline-none"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                  />
+                </div>
+
+                {/* Risk level filter pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {FILTER_OPTIONS.map(opt => {
+                    const active = riskFilter === opt.value;
+                    const style = opt.value !== 'all' ? getRiskStyle(opt.value) : null;
+                    return (
+                      <button key={opt.value} onClick={() => setRiskFilter(opt.value)}
+                        className="px-3 py-1 text-xs rounded-full font-medium border transition-all"
+                        style={active && style
+                          ? { background: style.bg, color: style.text, borderColor: style.border }
+                          : active
+                          ? { background: 'var(--color-primary)', color: 'white', borderColor: 'var(--color-primary)' }
+                          : { background: 'transparent', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                        {opt.label}
+                        {opt.value !== 'all' && (
+                          <span className="ml-1 opacity-70">
+                            {cases.filter(c => c.riskLevel === opt.value).length}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-center px-6">
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No results</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                    {search ? `No students match "${search}"` : 'No students at this risk level.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                        {['#', 'Student', 'Risk Level', 'History', 'Action'].map(h => (
+                          <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((c, i) => <HighRiskRow key={c.id} caseItem={c} index={i} />)}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="px-5 py-3" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
-                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{cases.length} flagged student{cases.length !== 1 ? 's' : ''}</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {filtered.length === cases.length
+                    ? `${cases.length} student${cases.length !== 1 ? 's' : ''}`
+                    : `${filtered.length} of ${cases.length} student${cases.length !== 1 ? 's' : ''}`}
+                </p>
               </div>
             </>
           )
@@ -160,11 +244,11 @@ export default function HighRiskPage() {
         <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Monitoring Guidelines</p>
         <ul className="space-y-1.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           {[
-            ['Daily Check-ins', 'Contact high-risk clients daily or per treatment plan'],
-            ['Safety Plans', 'Ensure current safety plans are in place and reviewed'],
-            ['Emergency Contacts', 'Maintain accessible emergency contact information'],
-            ['Documentation', 'Record all contact attempts and client status'],
-            ['Escalation', 'Escalate to crisis services immediately if needed'],
+            ['Daily Check-ins',   'Contact high-risk clients daily or per treatment plan'],
+            ['Safety Plans',      'Ensure current safety plans are in place and reviewed'],
+            ['Emergency Contacts','Maintain accessible emergency contact information'],
+            ['Documentation',     'Record all contact attempts and client status'],
+            ['Escalation',        'Escalate to crisis services immediately if needed'],
           ].map(([title, desc]) => (
             <li key={title} className="flex gap-2">
               <span className="font-medium whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>{title}:</span>
@@ -184,8 +268,8 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
   const [loadingHist, setLoadingHist] = useState(false);
   const [notifyState, setNotifyState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
 
-  const risk = getRiskStyle(caseItem.riskLevel);
-  const isHighRisk = ['red', 'critical'].includes(caseItem.riskLevel);
+  const risk      = getRiskStyle(caseItem.riskLevel);
+  const isHighRisk = caseItem.riskLevel === 'high' || caseItem.riskLevel === 'critical';
 
   const toggleHistory = async () => {
     if (!expanded && history.length === 0) {
@@ -223,7 +307,7 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
         <td className="px-5 py-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>{index + 1}.</td>
         <td className="px-5 py-4">
           <p className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>{caseItem.name}</p>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{caseItem.email || caseItem.studentId}</p>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{caseItem.email}</p>
         </td>
         <td className="px-5 py-4">
           <span className="inline-flex text-xs px-2 py-0.5 rounded-full font-medium border"
@@ -247,8 +331,9 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
               <CheckCircle size={14} /> Notified
             </span>
           ) : notifyState === 'error' ? (
-            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--color-danger)' }}>
-              <XCircle size={14} /> Failed
+            <span className="flex items-center gap-1 text-xs font-medium cursor-pointer" style={{ color: 'var(--color-danger)' }}
+              onClick={() => setNotifyState('idle')} title="Click to retry">
+              <XCircle size={14} /> Failed — retry?
             </span>
           ) : (
             <button onClick={handleNotify} disabled={notifyState === 'loading'}
@@ -268,7 +353,7 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
                 <Loader2 size={15} className="animate-spin" /> Loading history…
               </span>
             ) : history.length === 0 ? (
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No PERMA history available.</span>
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No PERMA check-in history available for this student.</span>
             ) : (
               <ul className="space-y-1">
                 {history.map((h, idx) => (

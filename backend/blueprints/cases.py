@@ -365,24 +365,71 @@ def get_case(case_id):
         except Exception:
             pass
 
-    # Embed most recent appointment info (date, time, method) for IC form pre-fill.
-    # Pre-intake appointments don't have case_id yet, so fall back to student_id.
+    # Embed appointment info for IC Interview Documentation Section 1.
+    # Online intake appointments are created BEFORE the case exists, so they have
+    # no case_id. After triage, only the FOLLOW_UP appointment carries case_id.
+    # Strategy: use case.intake_id → intake.appointment_id to find the original
+    # intake appointment directly; fall back to student_id query excluding FOLLOW_UP.
     case_obj_id = case.get('_id')
-    appt = db.db.appointments.find_one(
-        {'case_id': case_obj_id},
-        sort=[('created_at', -1)]
-    )
+    appt = None
+    intake_doc_for_appt = None
+
+    intake_ref = case.get('intake_id')
+    if intake_ref:
+        try:
+            intake_oid = intake_ref if isinstance(intake_ref, ObjectId) else ObjectId(str(intake_ref))
+            intake_doc_for_appt = db.db.intakes.find_one(
+                {'_id': intake_oid},
+                {'appointment_id': 1, 'appointment_date': 1, 'preferred_platform': 1}
+            )
+        except Exception:
+            pass
+
+    if intake_doc_for_appt and intake_doc_for_appt.get('appointment_id'):
+        try:
+            appt_oid = intake_doc_for_appt['appointment_id']
+            if not isinstance(appt_oid, ObjectId):
+                appt_oid = ObjectId(str(appt_oid))
+            appt = db.db.appointments.find_one({'_id': appt_oid})
+        except Exception:
+            pass
+
+    # Fallback: case_id query excluding follow-up endorsement appointments
+    if not appt:
+        appt = db.db.appointments.find_one(
+            {'case_id': case_obj_id, 'purpose': {'$ne': 'FOLLOW_UP'}},
+            sort=[('created_at', -1)]
+        )
+    if not appt:
+        appt = db.db.appointments.find_one(
+            {'case_id': case_obj_id},
+            sort=[('created_at', -1)]
+        )
+    if not appt and raw_student_id:
+        appt = db.db.appointments.find_one(
+            {'student_id': raw_student_id, 'purpose': {'$ne': 'FOLLOW_UP'}},
+            sort=[('created_at', -1)]
+        )
     if not appt and raw_student_id:
         appt = db.db.appointments.find_one(
             {'student_id': raw_student_id},
             sort=[('created_at', -1)]
         )
+
     if appt:
         appt_start = appt.get('scheduled_start') or appt.get('requested_start') or appt.get('scheduled_date')
         serialized['appointment_info'] = {
             'date': appt_start.isoformat() if isinstance(appt_start, datetime) else appt_start,
-            'method': appt.get('method') or appt.get('appointment_method') or appt.get('preferred_method') or '',
+            'method': (appt.get('method') or appt.get('appointment_method') or
+                       appt.get('preferred_method') or appt.get('preferred_platform') or ''),
             'appointment_id': str(appt.get('_id', '')),
+        }
+    elif intake_doc_for_appt and intake_doc_for_appt.get('appointment_date'):
+        # Last resort: build from intake document directly
+        serialized['appointment_info'] = {
+            'date': intake_doc_for_appt['appointment_date'],
+            'method': intake_doc_for_appt.get('preferred_platform', ''),
+            'appointment_id': '',
         }
 
     # Embed consecutive no-show count from tracker

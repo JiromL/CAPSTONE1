@@ -1619,12 +1619,19 @@ export default function CaseDetailPage() {
           {/* ── IC Interview Documentation ─────────────────────── */}
           {intakeSummaryLoaded && (() => {
             const rawDate = caseData?.appointment_info?.date || caseData?.appointment_date || caseData?.scheduled_start;
+            const rawMode = caseData?.appointment_info?.method || caseData?.method || caseData?.appointment_method;
+            const modeMap: Record<string, string> = {
+              'in-person': 'F2F', 'in_person': 'F2F', 'face_to_face': 'F2F', 'f2f': 'F2F',
+              'zoom': 'Zoom', 'google_meet': 'Google Meet', 'google-meet': 'Google Meet',
+              'online': 'Online', 'telehealth': 'Telehealth',
+            };
+            const displayMode = rawMode ? (modeMap[rawMode.toLowerCase()] || rawMode) : undefined;
             const sessionInfo = rawDate ? {
               date: new Date(rawDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
               time: new Date(rawDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-              mode: caseData?.appointment_info?.method || caseData?.method || caseData?.appointment_method,
-              studentId: caseData?.student?.school_id,
-              college: caseData?.student?.college || caseData?.student?.course,
+              mode: displayMode,
+              studentId: caseData?.student?.school_id || caseData?.student_id,
+              college: caseData?.student?.college || caseData?.student?.course || caseData?.student?.program,
             } : undefined;
             return (
               <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--color-border)' }}>
@@ -2379,7 +2386,7 @@ export default function CaseDetailPage() {
                     <span className="font-mono text-sm font-bold w-20 flex-shrink-0" style={{ color: 'var(--color-primary)' }}>{d.code}</span>
                     <span className="text-sm flex-1" style={{ color: 'var(--color-text-primary)' }}>{d.description}</span>
                     <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>{d.system}</span>
-                    <span className="text-xs px-2 py-0.5 rounded font-medium" style={typeStyle}>{d.type.replace('_', ' ')}</span>
+                    <span className="text-xs px-2 py-0.5 rounded font-medium" style={typeStyle}>{(d.type || '').replace('_', ' ')}</span>
                     <button onClick={() => handleRemoveDiagnosis(i)} className="ml-1 transition"
                       style={{ color: 'var(--color-text-muted)' }}
                       onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}

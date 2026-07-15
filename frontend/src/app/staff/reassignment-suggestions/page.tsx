@@ -26,7 +26,7 @@ export default function ReassignmentSuggestionsPage() {
     const fetchSuggestions = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(api('/api/cases/reassignment-suggestions'), {
+        const response = await fetch(api('/api/appointments/staff/reassignment-suggestions'), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error('Failed to fetch suggestions');

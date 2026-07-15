@@ -1000,3 +1000,49 @@ def reopen_case(case_id):
         'case_id': case_id,
         'case_status': CaseStatus.ACTIVE.value,
     }), 200
+
+
+@cases_bp.route('/<case_id>/reassign', methods=['POST'])
+@jwt_required()
+def reassign_case(case_id):
+    """Reassign a case to a different counselor by name."""
+    from utils import audit_log
+    get_jwt_identity()
+    data = request.get_json() or {}
+    counselor_name = (data.get('counselor_name') or '').strip()
+    if not counselor_name:
+        return jsonify({'error': 'counselor_name required'}), 400
+
+    try:
+        case_obj_id = ObjectId(case_id)
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+
+    case = db.db.cases.find_one({'_id': case_obj_id})
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+
+    # Find counselor by full name (first + last)
+    parts = counselor_name.split()
+    if len(parts) >= 2:
+        counselor = db.db.users.find_one({
+            'first_name': parts[0], 'last_name': ' '.join(parts[1:]),
+            'role': {'$in': ['COUNSELOR', 'GUIDANCE_COUNSELOR', 'PSYCHOLOGIST']}
+        })
+    else:
+        counselor = db.db.users.find_one({
+            '$or': [{'first_name': counselor_name}, {'last_name': counselor_name}],
+            'role': {'$in': ['COUNSELOR', 'GUIDANCE_COUNSELOR', 'PSYCHOLOGIST']}
+        })
+
+    if not counselor:
+        return jsonify({'error': f'Counselor "{counselor_name}" not found'}), 404
+
+    old_cid = case.get('assigned_counselor_id')
+    db.db.cases.update_one({'_id': case_obj_id}, {'$set': {'assigned_counselor_id': counselor['_id']}})
+
+    audit_log(db.db, 'case', 'reassign', entity_id=case_id,
+              old_values={'assigned_counselor_id': str(old_cid) if old_cid else None},
+              new_values={'assigned_counselor_id': str(counselor['_id'])})
+
+    return jsonify({'success': True, 'message': f'Case reassigned to {counselor_name}'}), 200

@@ -2747,71 +2747,82 @@ def get_workload_report():
 @appointments_bp.route('/staff/reassignment-suggestions', methods=['GET'])
 @jwt_required()
 def get_reassignment_suggestions():
-    """Get suggestions for which counselor should take unassigned appointments (STAFF ONLY)"""
+    """Suggest cases to reassign based on counselor workload imbalance."""
     user_id = get_jwt_identity()
-    
-    # Check permission
+
     if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
-    
+
     try:
-        # Find all REQUESTED appointments without counselor
-        unassigned_appointments = list(db.db.appointments.find({
-            'status': AppointmentStatus.REQUESTED.value,
-            'counselor_id': {'$exists': False}
-        }).limit(10))  # Max 10 suggestions
-        
+        active_statuses = ['ACTIVE', 'NEW', 'active', 'new']
+        active_cases = list(db.db.cases.find(
+            {'case_status': {'$in': active_statuses}, 'assigned_counselor_id': {'$exists': True, '$ne': None}},
+            {'_id': 1, 'assigned_counselor_id': 1, 'student_id': 1}
+        ))
+
+        if not active_cases:
+            return jsonify({'suggestions': []}), 200
+
+        # Count cases per counselor
+        from collections import Counter
+        workload = Counter(str(c['assigned_counselor_id']) for c in active_cases)
+        if not workload:
+            return jsonify({'suggestions': []}), 200
+
+        avg = sum(workload.values()) / len(workload)
+
+        # Counselors with below-average load are candidates to receive cases
+        counselor_ids = list(workload.keys())
+        counselors = {str(d['_id']): d for d in db.db.users.find(
+            {'_id': {'$in': [ObjectId(cid) for cid in counselor_ids]},
+             'role': {'$in': ['COUNSELOR', 'GUIDANCE_COUNSELOR', 'PSYCHOLOGIST']}},
+            {'_id': 1, 'first_name': 1, 'last_name': 1, 'role': 1}
+        )}
+
+        low_load = [cid for cid in counselor_ids if workload[cid] < avg and cid in counselors]
+
         suggestions = []
-        
-        for apt in unassigned_appointments:
-            # Find best available counselor for this appointment
-            best_counselor = find_available_counselor(
-                apt['case_id'],
-                apt['requested_start'],
-                apt['requested_end']
-            )
-            
-            if best_counselor:
-                workload = get_counselor_workload(best_counselor['_id'])
-                suggestions.append({
-                    'appointment_id': str(apt['_id']),
-                    'appointment_type': apt.get('appointment_type'),
-                    'requested_start': apt['requested_start'].isoformat(),
-                    'requested_end': apt['requested_end'].isoformat(),
-                    'suggested_counselor_id': str(best_counselor['_id']),
-                    'suggested_counselor_name': f"{best_counselor.get('first_name', '')} {best_counselor.get('last_name', '')}",
-                    'counselor_role': best_counselor.get('role'),
-                    'counselor_workload': workload,
-                    'reason': f"Lowest workload ({workload} active appointments)"
-                })
-            else:
-                suggestions.append({
-                    'appointment_id': str(apt['_id']),
-                    'appointment_type': apt.get('appointment_type'),
-                    'requested_start': apt['requested_start'].isoformat(),
-                    'requested_end': apt['requested_end'].isoformat(),
-                    'suggested_counselor_id': None,
-                    'suggested_counselor_name': None,
-                    'reason': 'No available counselor for this time slot'
-                })
-        
-        return jsonify({
-            'unassigned_count': len(unassigned_appointments),
-            'suggestions': suggestions
-        }), 200
-    
+        for case in active_cases:
+            current_cid = str(case['assigned_counselor_id'])
+            if workload[current_cid] <= avg or current_cid not in counselors:
+                continue
+            if not low_load:
+                break
+            target_cid = min(low_load, key=lambda c: workload[c])
+            if current_cid == target_cid:
+                continue
+
+            student = db.db.users.find_one({'_id': case.get('student_id')}, {'first_name': 1, 'last_name': 1, 'email': 1})
+            student_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else 'Unknown Student'
+            current_c = counselors[current_cid]
+            target_c = counselors[target_cid]
+            current_name = f"{current_c.get('first_name','')} {current_c.get('last_name','')}".strip()
+            target_name = f"{target_c.get('first_name','')} {target_c.get('last_name','')}".strip()
+
+            load_diff = workload[current_cid] - workload[target_cid]
+            confidence = min(99, 60 + load_diff * 5)
+
+            suggestions.append({
+                'case_id': str(case['_id']),
+                'student_name': student_name,
+                'current_counselor': current_name,
+                'suggested_counselor': target_name,
+                'confidence': confidence,
+                'reason': (
+                    f"{current_name} has {workload[current_cid]} active cases "
+                    f"({load_diff} more than {target_name}). Moving this case balances workload."
+                ),
+            })
+
+            if len(suggestions) >= 10:
+                break
+
+        return jsonify({'suggestions': suggestions}), 200
+
     except Exception as e:
-        print(f"Error in get_reassignment_suggestions: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to generate suggestions: {str(e)}'}), 500
-    
-    except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"Error in get_appointment_details: {str(e)}")
-        print(error_trace)
-        return jsonify({'error': f'Failed to get appointment details: {str(e)}', 'details': error_trace}), 500
 
 @appointments_bp.route('/<appointment_id>/cancel', methods=['POST'])
 @jwt_required()

@@ -52,16 +52,30 @@ export default function CheckInManagementPage() {
 
   useEffect(() => { loadClients(); }, []);
 
+  const normalizeStatus = (s: string): 'active' | 'overdue' | 'paused' => {
+    const lower = (s || '').toLowerCase();
+    if (lower === 'active') return 'active';
+    if (lower === 'overdue') return 'overdue';
+    return 'paused';
+  };
+
   const loadClients = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) { setError('No authentication token found'); setLoading(false); return; }
-      const response = await fetch(api('/api/cases/check-in-clients'), {
+      const response = await fetch(api('/api/client-tracking/check-ins'), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(`Failed to fetch check-in clients: ${response.status}`);
       const data = await response.json();
-      setClients(Array.isArray(data.clients) ? data.clients : []);
+      const raw = Array.isArray(data) ? data : (data.data || data.clients || []);
+      setClients(raw.map((c: any) => ({
+        ...c,
+        student_name: c.client_name || c.student_name || '',
+        student_email: c.student_email || c.client_id_number || '',
+        status: normalizeStatus(c.status),
+        check_in_frequency_days: c.check_in_frequency_days || 30,
+      })));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load check-in clients');
@@ -74,7 +88,7 @@ export default function CheckInManagementPage() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(api(`/api/cases/${clientId}/check-in-frequency`), {
+      const response = await fetch(api(`/api/client-tracking/check-ins/${clientId}`), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ check_in_frequency_days: editFrequency }),
@@ -90,9 +104,10 @@ export default function CheckInManagementPage() {
   };
 
   const filteredClients = clients.filter(client => {
-    const matchSearch =
-      client.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.student_email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const name = (client.student_name || '').toLowerCase();
+    const email = (client.student_email || '').toLowerCase();
+    const q = searchTerm.toLowerCase();
+    const matchSearch = !q || name.includes(q) || email.includes(q);
     return matchSearch && (filterStatus === 'all' || client.status === filterStatus);
   });
 

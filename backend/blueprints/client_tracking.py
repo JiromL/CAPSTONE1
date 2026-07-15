@@ -394,13 +394,13 @@ def update_check_in_client(client_id):
     
     old_values = client.copy()
     
-    update_fields = ['client_name', 'concern', 'status']
+    update_fields = ['client_name', 'concern', 'status', 'check_in_frequency_days']
     for field in update_fields:
         if field in data:
             client[field] = data[field]
-    
+
     client['updated_date'] = datetime.utcnow()
-    
+
     db.db.non_counseling_clients.update_one({"_id": client_obj_id}, {"$set": client})
     
     audit_log(

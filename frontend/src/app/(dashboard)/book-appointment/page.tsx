@@ -184,7 +184,7 @@ export default function BookAppointmentPage() {
     consent_to_service: true, consent_to_data: true,
   });
   const [spif, setSpif] = useState({
-    birthdate:'', gender:'', civil_status:'single', religion:'', nationality:'Filipino', address:'',
+    birthdate:'', gender:'', religion:'', nationality:'Filipino', address:'',
     family_composition:'complete', living_with:'', birth_order:'', number_of_siblings:'',
     existing_medical_conditions:'', current_medications:'',
     previous_counseling: false, previous_counseling_details:'',
@@ -582,14 +582,6 @@ export default function BookAppointmentPage() {
                           <select className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} value={spif.gender} onChange={e => setSpif(p=>({...p,gender:e.target.value}))}>
                             <option value="">— Select —</option>
                             {['male','female','non-binary','prefer_not_to_say','other'].map(v=><option key={v} value={v}>{v.replace('_',' ')}</option>)}
-                          </select>
-                        </F>
-                        <F label="Civil Status">
-                          <select className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} value={spif.civil_status} onChange={e => setSpif(p=>({...p,civil_status:e.target.value}))}>
-                            <option value="single">Single</option>
-                            <option value="in_relationship">In a relationship</option>
-                            <option value="married">Married</option>
-                            <option value="separated">Separated</option>
                           </select>
                         </F>
                       </div>

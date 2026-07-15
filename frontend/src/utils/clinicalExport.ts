@@ -258,7 +258,6 @@ ${s.spif ? `
 <div class="grid3">
   <div class="field"><div class="field-label">Birthdate</div><div class="field-value">${fmtDate(spif.birthdate)}</div></div>
   <div class="field"><div class="field-label">Gender</div><div class="field-value">${val(spif.gender)}</div></div>
-  <div class="field"><div class="field-label">Civil Status</div><div class="field-value">${val(spif.civil_status)}</div></div>
 </div>
 <div class="grid3">
   <div class="field"><div class="field-label">Religion</div><div class="field-value">${val(spif.religion)}</div></div>

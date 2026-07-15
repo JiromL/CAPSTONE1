@@ -831,7 +831,6 @@ export default function ConductIntakePage() {
                         {[
                           ['Birthdate', packet.spif.birthdate || '—'],
                           ['Gender', packet.spif.gender || '—'],
-                          ['Civil Status', packet.spif.civil_status || '—'],
                           ['Family Setup', packet.spif.family_composition?.replace(/_/g,' ') || '—'],
                           ['Living With', packet.spif.living_with || '—'],
                           ['Medical', packet.spif.existing_medical_conditions || 'None'],
@@ -983,7 +982,6 @@ export default function ConductIntakePage() {
                     </div>
                     {([
                       { key: 'gender',       label: 'Gender',       opts: ['male','female','non_binary','prefer_not_to_say'] },
-                      { key: 'civil_status', label: 'Civil Status', opts: ['single','married','separated','widowed'] },
                       { key: 'family_composition', label: 'Family Setup', opts: ['complete','single_parent','blended','extended','others'] },
                     ] as { key: string; label: string; opts: string[] }[]).map(f => (
                       <div key={f.key}>

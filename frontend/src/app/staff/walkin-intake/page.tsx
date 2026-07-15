@@ -126,7 +126,7 @@ export default function WalkinIntakePage() {
   });
 
   const [spif, setSpif] = useState({
-    birthdate: '', gender: '', civil_status: 'single', religion: '', nationality: 'Filipino', address: '',
+    birthdate: '', gender: '', religion: '', nationality: 'Filipino', address: '',
     family_composition: 'complete', living_with: '', birth_order: '', number_of_siblings: '',
     existing_medical_conditions: '', current_medications: '',
     previous_counseling: false, previous_counseling_details: '',
@@ -278,7 +278,7 @@ export default function WalkinIntakePage() {
   const resetForm = () => {
     setSuccess(''); setStep(0); setIsCrisis(false); setIntakeId('');
     setIcf({ first_name:'',last_name:'',middle_name:'',email:'',student_id:'',phone:'',college:'',program:'',year_level:'',referral_source:'self-referred',referred_by:'',emergency_contact_name:'',emergency_contact_relationship:'',emergency_contact_phone:'',presenting_concern:'',crisis_type:'',service_requested:'',consent_to_service:false,consent_to_data:false });
-    setSpif({ birthdate:'',gender:'',civil_status:'single',religion:'',nationality:'Filipino',address:'',family_composition:'complete',living_with:'',birth_order:'',number_of_siblings:'',existing_medical_conditions:'',current_medications:'',previous_counseling:false,previous_counseling_details:'',previous_psychiatric:false,previous_psychiatric_details:'',family_mental_health_history:'',sleep_hours:'',exercise_frequency:'rarely',substance_use:'none' });
+    setSpif({ birthdate:'',gender:'',religion:'',nationality:'Filipino',address:'',family_composition:'complete',living_with:'',birth_order:'',number_of_siblings:'',existing_medical_conditions:'',current_medications:'',previous_counseling:false,previous_counseling_details:'',previous_psychiatric:false,previous_psychiatric_details:'',family_mental_health_history:'',sleep_hours:'',exercise_frequency:'rarely',substance_use:'none' });
     setPhq4([null,null,null,null]);
   };
 
@@ -672,15 +672,6 @@ export default function WalkinIntakePage() {
                         <option value="non-binary">Non-binary</option>
                         <option value="prefer_not_to_say">Prefer not to say</option>
                         <option value="other">Other</option>
-                      </select>
-                    </F>
-                    <F label="Civil Status">
-                      <select className={IC} style={ICS} value={spif.civil_status} onChange={e => setS('civil_status', e.target.value)}>
-                        <option value="single">Single</option>
-                        <option value="in_relationship">In a relationship</option>
-                        <option value="married">Married</option>
-                        <option value="separated">Separated</option>
-                        <option value="widowed">Widowed</option>
                       </select>
                     </F>
                   </div>

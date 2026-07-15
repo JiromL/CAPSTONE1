@@ -1582,7 +1582,6 @@ export default function CaseDetailPage() {
                           { label: 'Program',              val: icf.program ?? icf.degree_program },
                           { label: 'Year Level',           val: icf.year_level },
                           { label: 'Gender',               val: spif.gender },
-                          { label: 'Civil Status',         val: spif.civil_status ?? icf.civil_status },
                           { label: 'Birthdate',            val: spif.birthdate ? new Date(spif.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null },
                           { label: 'Living With',          val: spif.living_with },
                           { label: 'Family Composition',   val: spif.family_composition },

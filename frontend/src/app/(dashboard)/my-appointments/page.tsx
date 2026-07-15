@@ -1059,7 +1059,7 @@ export default function MyAppointmentsPage() {
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                       {[
                         ['Birthdate', viewFormsPacket.spif.birthdate], ['Gender', viewFormsPacket.spif.gender],
-                        ['Civil Status', viewFormsPacket.spif.civil_status], ['Religion', viewFormsPacket.spif.religion],
+                        ['Religion', viewFormsPacket.spif.religion],
                         ['Nationality', viewFormsPacket.spif.nationality], ['Address', viewFormsPacket.spif.address],
                         ['Living With', viewFormsPacket.spif.living_with], ['Birth Order', viewFormsPacket.spif.birth_order],
                         ['No. of Siblings', viewFormsPacket.spif.number_of_siblings], ['Sleep (hrs/night)', viewFormsPacket.spif.sleep_hours],

@@ -94,7 +94,7 @@ function Card({ icon: Icon, title, headerStyle, children }: {
 
 const INIT_ICF = {
   first_name: '', last_name: '', email: '', phone: '',
-  year_level: '', college: '', degree: '', civil_status: '',
+  year_level: '', college: '', degree: '',
   referral_source: '', service_requested: '',
   prior_consultation: false, prior_consultation_details: '',
   consent_to_service: false, consent_to_data: false,
@@ -314,12 +314,6 @@ export default function WalkInSelfCheckinPage() {
               </F>
               <F label="Degree Program">
                 <input className={IC} style={ICS} value={icf.degree} onChange={e => setIcf(p => ({ ...p, degree: e.target.value }))} placeholder="e.g. BS Computer Science" />
-              </F>
-              <F label="Civil Status">
-                <select className={IC} style={ICS} value={icf.civil_status} onChange={e => setIcf(p => ({ ...p, civil_status: e.target.value }))}>
-                  <option value="">Select status</option>
-                  {CIVIL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
               </F>
             </Card>
 

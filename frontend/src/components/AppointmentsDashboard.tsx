@@ -2096,7 +2096,6 @@ export default function AppointmentsDashboard() {
                           {[
                             ['Birthdate', formsPacket.spif.birthdate || '—'],
                             ['Gender', formsPacket.spif.gender || '—'],
-                            ['Civil Status', formsPacket.spif.civil_status || '—'],
                             ['Family Setup', formsPacket.spif.family_composition?.replace(/_/g,' ') || '—'],
                             ['Living With', formsPacket.spif.living_with || '—'],
                             ['Medical', formsPacket.spif.existing_medical_conditions || 'None'],
@@ -2194,7 +2193,7 @@ export default function AppointmentsDashboard() {
                       <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Personal Background (SPIF-IF)</p>
                       <div className="grid grid-cols-3 gap-3">
                         <div><label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Birthdate</label><input type="date" value={formsDraftSpif.birthdate||''} onChange={e=>setFormsDraftSpif(p=>({...p,birthdate:e.target.value}))} className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/></div>
-                        {(['gender','civil_status','family_composition'] as string[]).map(k => (
+                        {(['gender','family_composition'] as string[]).map(k => (
                           <div key={k}><label className="block text-xs mb-1 capitalize" style={{ color: 'var(--color-text-secondary)' }}>{k.replace(/_/g,' ')}</label>
                             <input value={formsDraftSpif[k]||''} onChange={e=>setFormsDraftSpif(p=>({...p,[k]:e.target.value}))} className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}/>
                           </div>

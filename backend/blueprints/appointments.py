@@ -2363,6 +2363,97 @@ def disconnect_google_calendar():
     }), 200
 
 
+@appointments_bp.route('/dashboard/calendar', methods=['GET'])
+@jwt_required()
+def dashboard_calendar():
+    """Return appointments for the weekly calendar view, filtered by date range and role."""
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+        user = db.db.users.find_one({'_id': uid})
+    except Exception:
+        return jsonify({'error': 'Invalid user'}), 401
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    role = user.get('role', '').upper()
+    from_str = request.args.get('from')
+    to_str   = request.args.get('to')
+
+    date_filter = {}
+    if from_str or to_str:
+        date_filter['scheduled_start'] = {}
+        if from_str:
+            try:
+                date_filter['scheduled_start']['$gte'] = datetime.fromisoformat(from_str.replace('Z', '+00:00'))
+            except Exception:
+                pass
+        if to_str:
+            try:
+                date_filter['scheduled_start']['$lte'] = datetime.fromisoformat(to_str.replace('Z', '+00:00'))
+            except Exception:
+                pass
+
+    if role in ('STAFF', 'ADMIN', 'DPO'):
+        query = {**date_filter}
+    elif role == 'STUDENT':
+        query = {'student_id': uid, **date_filter}
+    else:
+        # COUNSELOR, PSYCHOLOGIST, IC, CASE_MANAGER — own assigned appointments
+        query = {'counselor_id': uid, **date_filter}
+
+    raw = list(db.db.appointments.find(query).sort('scheduled_start', 1).limit(300))
+
+    # Pre-fetch counselor names in one batch
+    counselor_ids = {a.get('counselor_id') for a in raw if a.get('counselor_id')}
+    counselor_map: dict = {}
+    for cid in counselor_ids:
+        try:
+            c = db.db.users.find_one({'_id': ObjectId(str(cid))}, {'first_name': 1, 'last_name': 1, 'role': 1})
+            if c:
+                counselor_map[str(cid)] = {
+                    'name': f"{c.get('first_name','')} {c.get('last_name','')}".strip(),
+                    'role': c.get('role', ''),
+                }
+        except Exception:
+            pass
+
+    # Pre-fetch student names in one batch
+    student_ids = {a.get('student_id') for a in raw if a.get('student_id')}
+    student_map: dict = {}
+    for sid in student_ids:
+        try:
+            s = db.db.users.find_one({'_id': ObjectId(str(sid))}, {'first_name': 1, 'last_name': 1})
+            if s:
+                student_map[str(sid)] = f"{s.get('first_name','')} {s.get('last_name','')}".strip()
+        except Exception:
+            pass
+
+    results = []
+    for a in raw:
+        cid  = str(a.get('counselor_id', ''))
+        sid  = str(a.get('student_id', ''))
+        cinfo = counselor_map.get(cid, {})
+        s_start = a.get('scheduled_start')
+        s_end   = a.get('scheduled_end')
+        results.append({
+            'id':             str(a['_id']),
+            'student_name':   student_map.get(sid) or a.get('student_name', ''),
+            'counselor_name': cinfo.get('name', ''),
+            'counselor_id':   cid,
+            'counselor_role': cinfo.get('role', ''),
+            'scheduled_start': s_start.isoformat() if hasattr(s_start, 'isoformat') else (s_start or ''),
+            'scheduled_end':   s_end.isoformat()   if hasattr(s_end,   'isoformat') else (s_end   or ''),
+            'status':  a.get('status', ''),
+            'purpose': a.get('purpose') or a.get('appointment_type', ''),
+            'method':  a.get('preferred_method') or a.get('method', ''),
+            'meeting_link': a.get('meeting_link') or a.get('video_link', ''),
+            'office': a.get('office', ''),
+        })
+
+    return jsonify({'appointments': results}), 200
+
+
 @appointments_bp.route('/<appointment_id>', methods=['GET'])
 @jwt_required()
 def get_appointment_details(appointment_id):

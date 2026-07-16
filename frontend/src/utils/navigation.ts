@@ -29,7 +29,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Intake Management', href: '/intake-management', id: 'intake-management'},
     { label: 'QA',                href: '/ic/qa',             id: 'ic-qa'            },
     { label: 'My Schedule',       href: '/schedule',          id: 'schedule'         },
-    { label: 'My Availability',   href: '/availability',      id: 'availability'     },
     { label: 'EMA',               href: '/mhbot',             id: 'mhbot'            },
     { label: 'Announcements',     href: '/announcements',     id: 'announcements'    },
     { label: 'Profile',           href: '/profile',           id: 'profile'          },
@@ -43,7 +42,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'My Referrals',    href: '/my-referrals',  id: 'my-referrals' },
     { label: 'Appointments',    href: '/appointments',  id: 'appointments' },
     { label: 'My Schedule',     href: '/schedule',      id: 'schedule'     },
-    { label: 'My Availability', href: '/availability',  id: 'availability' },
     { label: 'EMA',             href: '/mhbot',         id: 'mhbot'        },
     { label: 'Announcements',   href: '/announcements', id: 'announcements'},
     { label: 'Profile',         href: '/profile',       id: 'profile'      },
@@ -57,7 +55,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases',                href: '/cases',         id: 'cases'        },
     { label: 'Appointments',         href: '/appointments',  id: 'appointments' },
     { label: 'My Schedule',          href: '/schedule',      id: 'schedule'     },
-    { label: 'My Availability',      href: '/availability',  id: 'availability' },
     { label: 'EMA',                  href: '/mhbot',         id: 'mhbot'        },
     { label: 'Announcements',        href: '/announcements', id: 'announcements'},
     { label: 'Profile',              href: '/profile',       id: 'profile'      },
@@ -189,8 +186,8 @@ export function getActiveSectionFromPath(pathname: string): string {
     'counselor-schedules':  'counselor-schedules',
     'schedule':             'schedule',
 
-    // Availability
-    'availability':         'availability',
+    // Availability now lives at /schedule?tab=availability
+    'availability':         'schedule',
 
     // Announcements
     'announcements':        'announcements',

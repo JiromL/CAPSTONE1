@@ -2865,11 +2865,20 @@ def list_intakes():
     # Build appointment query — appointments of intake type that haven't been conducted yet
     base_appt_types = ['intake_interview', 'initial', 'triage_interview', 'initial_interview']
 
+    active_statuses = ['REQUESTED', 'CONFIRMED', 'PENDING', 'IN_PROGRESS', 'SCHEDULED']
+
     if status_param == 'COMPLETED':
         appt_statuses = ['COMPLETED', 'DONE']
+        deadline_filter = {}
+    elif status_param == 'OVERDUE':
+        appt_statuses = active_statuses
+        deadline_filter = {'created_at': {'$lte': now - timedelta(days=OVERDUE_DAYS)}}
+    elif status_param == 'IN_PROGRESS':
+        appt_statuses = active_statuses
+        deadline_filter = {'created_at': {'$gt': now - timedelta(days=OVERDUE_DAYS)}}
     else:
-        # PENDING, IN_PROGRESS, OVERDUE all map to not-yet-completed appointments
-        appt_statuses = ['REQUESTED', 'CONFIRMED', 'PENDING', 'IN_PROGRESS', 'SCHEDULED']
+        appt_statuses = active_statuses
+        deadline_filter = {}
 
     user_role = user.get('role', '')
     appt_query = {
@@ -2878,6 +2887,7 @@ def list_intakes():
             {'appointment_type': {'$in': base_appt_types}},
         ],
         'status': {'$in': appt_statuses},
+        **deadline_filter,
     }
 
     # IC only sees their own assigned intakes — unassigned queue belongs to OA
@@ -2913,6 +2923,7 @@ def list_intakes():
             'student_name': student_name,
             'student_email': student.get('email', '') if student else '',
             'status': appt.get('status', ''),
+            'verification_status': appt.get('verification_status', 'pending'),
             'appointment_type': appt.get('appointment_type', ''),
             'scheduled_start': appt.get('scheduled_start', ''),
             'concern': concern,

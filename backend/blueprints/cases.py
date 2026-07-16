@@ -97,16 +97,24 @@ def get_cases():
     if query is None:
         return jsonify({'error': 'Insufficient permissions'}), 403
     
-    # Apply filters
-    filters = {}
-    if request.args.get('status'):
-        filters['case_status'] = request.args.get('status')
+    # Apply simple key filters
     if request.args.get('case_type'):
-        filters['case_type'] = request.args.get('case_type')
+        query['case_type'] = request.args.get('case_type')
     if request.args.get('risk_level'):
-        filters['risk_level'] = request.args.get('risk_level')
-    
-    query.update(filters)
+        query['risk_level'] = request.args.get('risk_level')
+
+    # Status filter: walk-in cases store in case_status, triage cases store in status
+    if request.args.get('status'):
+        status_val = request.args.get('status')
+        status_cond = {'$or': [{'case_status': status_val}, {'status': status_val}]}
+        if '$or' in query:
+            # Safely combine with existing $or (e.g. IC role filter)
+            existing_and = query.pop('$and', [])
+            existing_and.append({'$or': query.pop('$or')})
+            existing_and.append(status_cond)
+            query['$and'] = existing_and
+        else:
+            query.update(status_cond)
     
     # Get cases
     cases = [serialize_doc(case) for case in db.db.cases.find(query).sort('created_at', -1)]

@@ -246,7 +246,8 @@ function FollowUpTab() {
   const [actioningId, setActioningId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(api('/api/qa/follow-up?status=pending'), { headers: { Authorization: `Bearer ${token()}` } })
+    // Fetch all statuses so Attempted/Completed sub-tabs persist across refresh
+    fetch(api('/api/qa/follow-up'), { headers: { Authorization: `Bearer ${token()}` } })
       .then(r => r.ok ? r.json() : [])
       .then(d => setTasks(Array.isArray(d) ? d : d.tasks || []))
       .catch(() => setTasks([]))
@@ -345,11 +346,10 @@ function MissingDataTab() {
 
   const getMissing = (intake: any) => {
     const fields = [];
-    if (!intake.phone) fields.push('Phone');
-    if (!intake.email) fields.push('Email');
-    if (!intake.date_of_birth) fields.push('DOB');
-    if (!intake.emergency_contact) fields.push('Emergency Contact');
-    if (!intake.medical_history) fields.push('Medical History');
+    if (!intake.student_email) fields.push('Email');
+    if (!intake.concern) fields.push('Concern');
+    if (!intake.scheduled_start) fields.push('Schedule');
+    if (!intake.intake_packet_submitted) fields.push('Intake Packet');
     return fields;
   };
 

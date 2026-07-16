@@ -256,9 +256,12 @@ def list_users_with_risk():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_RISK_DASHBOARD.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    # Only students who have an active case
+    # Only students who have an active case (walk-in path uses case_status, triage path uses status)
     cases = list(db.db.cases.find(
-        {'case_status': {'$in': ['ACTIVE', 'NEW', 'active', 'new']}},
+        {'$or': [
+            {'case_status': {'$in': ['ACTIVE', 'NEW', 'active', 'new']}},
+            {'status': {'$in': ['ACTIVE', 'NEW', 'active', 'new']}},
+        ]},
         {'student_id': 1, 'risk_level': 1}
     ))
     student_ids = [c['student_id'] for c in cases if c.get('student_id')]

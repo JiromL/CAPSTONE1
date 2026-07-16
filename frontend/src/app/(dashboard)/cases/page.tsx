@@ -398,8 +398,8 @@ export default function CasesPage() {
                           {fmt(c.created_at)}
                         </td>
 
-                        {/* Link */}
-                        <td className="px-5 py-4">
+                        {/* Link — stopPropagation prevents double-navigation with the <tr> onClick */}
+                        <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
                           <Link href={`/cases/${c._id}`}>
                             <button
                               className="p-1.5 rounded-lg transition-all duration-150"

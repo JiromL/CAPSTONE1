@@ -92,6 +92,10 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/ic/intake/overdue': ['IC', 'ADMIN', 'DPO'],
   '/ic/forms': ['IC', 'ADMIN', 'DPO'],
   '/ic/qa': ['IC', 'ADMIN', 'DPO'],
+  '/ic/qa/verify': ['IC', 'ADMIN', 'DPO'],
+  '/ic/qa/follow-up': ['IC', 'ADMIN', 'DPO'],
+  '/ic/qa/missing-data': ['IC', 'ADMIN', 'DPO'],
+  '/ic/qa/contact': ['IC', 'ADMIN', 'DPO'],
   '/ic/schedule': ['IC', 'ADMIN', 'DPO'],
 
   // Staff sub-routes

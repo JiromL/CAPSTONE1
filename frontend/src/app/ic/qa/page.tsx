@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import PageShell from '@/components/PageShell';
+import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import {
   CheckCircle2, XCircle, Clock, Phone, Mail, AlertTriangle,
   MessageSquare, Send, Loader2, AlertCircle, FileText, Eye,
@@ -559,7 +559,7 @@ export default function QAPage() {
   };
 
   return (
-    <PageShell title="QA" subtitle="Quality assurance — verify, review, and follow up on intakes">
+    <DashboardPageWrapper title="QA" subtitle="Quality assurance — verify, review, and follow up on intakes">
       <div className="space-y-6">
         {/* Tab bar */}
         <div className="flex gap-1 overflow-x-auto pb-1" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -584,6 +584,6 @@ export default function QAPage() {
         {active === 'missing-data' && <MissingDataTab />}
         {active === 'contact'      && <ContactTab />}
       </div>
-    </PageShell>
+    </DashboardPageWrapper>
   );
 }

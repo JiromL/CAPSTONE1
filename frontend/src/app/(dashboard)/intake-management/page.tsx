@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
@@ -8,7 +8,7 @@ import { ClinicalExportModal } from '@/components/ClinicalExportModal';
 import {
   Loader2, AlertCircle, RefreshCw, Search, CheckCircle2,
   ClipboardList, CalendarDays, FileCheck, PenLine, Clock,
-  FileText, ChevronRight,
+  FileText, ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 interface IntakeAppointment {
@@ -238,6 +238,198 @@ function DoneCard({ intake, onExport }: { intake: IntakeRecord; onExport: () => 
   );
 }
 
+// ─── Mini schedule helpers ───────────────────────────────────────────────────
+
+interface SchedAppt {
+  id: string;
+  student_name: string;
+  scheduled_start: string;
+  scheduled_end: string;
+  status: string;
+  purpose?: string;
+}
+
+function getMondayOf(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function fmtApptTime(iso: string) {
+  const d = new Date(iso);
+  const h = d.getHours(), m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function MiniSchedulePanel({
+  requestedDates,
+}: {
+  requestedDates: string[]; // ISO preferred_date strings from awaiting appointments
+}) {
+  const [weekStart, setWeekStart]   = useState<Date>(() => getMondayOf(new Date()));
+  const [appts, setAppts]           = useState<SchedAppt[]>([]);
+  const [loading, setLoading]       = useState(false);
+  const [open, setOpen]             = useState(true);
+
+  const fetchWeek = useCallback(async (start: Date) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setLoading(true);
+    try {
+      const from = start.toISOString();
+      const end  = new Date(start); end.setDate(end.getDate() + 7);
+      const r = await fetch(
+        api(`/api/appointments/dashboard/calendar?from=${from}&to=${end.toISOString()}`),
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (r.ok) { const d = await r.json(); setAppts(d.appointments ?? []); }
+      else setAppts([]);
+    } catch { setAppts([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchWeek(weekStart); }, [weekStart, fetchWeek]);
+
+  function prevWeek() { setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; }); }
+  function nextWeek() { setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; }); }
+
+  // Build set of "YYYY-MM-DD" from requested dates that fall in this week
+  const requestedSet = new Set<string>();
+  requestedDates.forEach(iso => {
+    if (!iso) return;
+    const d = new Date(iso);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const wEnd = new Date(weekStart); wEnd.setDate(wEnd.getDate() + 7);
+    if (d >= weekStart && d < wEnd) requestedSet.add(key);
+  });
+
+  // Group appts by day index (0=Mon … 6=Sun)
+  const byDay: SchedAppt[][] = Array.from({ length: 7 }, () => []);
+  appts.forEach(a => {
+    const d = new Date(a.scheduled_start);
+    const diff = Math.floor((d.getTime() - weekStart.getTime()) / 86400000);
+    if (diff >= 0 && diff < 7) byDay[diff].push(a);
+  });
+
+  const endDate = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const weekLabel = `${fmt(weekStart)} – ${fmt(endDate)}`;
+
+  return (
+    <div className="rounded-2xl border overflow-hidden mb-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      {/* Header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-3 text-left"
+        style={{ borderBottom: open ? '1px solid var(--color-border)' : 'none' }}>
+        <div className="flex items-center gap-2">
+          <CalendarDays size={14} style={{ color: 'var(--color-primary)' }} />
+          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>My Schedule This Week</span>
+          {requestedSet.size > 0 && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
+              {requestedSet.size} requested slot{requestedSet.size !== 1 ? 's' : ''} this week
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Week nav — stop propagation so clicks don't toggle the panel */}
+          <button onClick={e => { e.stopPropagation(); prevWeek(); }}
+            className="p-1 rounded transition" title="Previous week"
+            style={{ color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <ChevronLeft size={13} />
+          </button>
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>{weekLabel}</span>
+          <button onClick={e => { e.stopPropagation(); nextWeek(); }}
+            className="p-1 rounded transition" title="Next week"
+            style={{ color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <ChevronRight size={13} />
+          </button>
+          <Link href="/schedule" className="text-[10px] font-medium px-2 py-0.5 rounded transition"
+            onClick={e => e.stopPropagation()}
+            style={{ color: 'var(--color-primary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-primary-surface)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            Full view ↗
+          </Link>
+          {open ? <ChevronUp size={13} style={{ color: 'var(--color-text-muted)' }} /> : <ChevronDown size={13} style={{ color: 'var(--color-text-muted)' }} />}
+        </div>
+      </button>
+
+      {/* Body */}
+      {open && (
+        loading ? (
+          <div className="flex items-center justify-center py-6 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={13} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading schedule…
+          </div>
+        ) : (
+          <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+            {WEEK_DAYS.map((dayLabel, idx) => {
+              const dayAppts = byDay[idx];
+              const dayDate  = new Date(weekStart); dayDate.setDate(dayDate.getDate() + idx);
+              const dateKey  = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
+              const isToday  = dateKey === new Date().toISOString().slice(0, 10);
+              const isRequested = requestedSet.has(dateKey);
+
+              return (
+                <div key={idx} className="flex items-start gap-3 px-5 py-2.5"
+                  style={isRequested ? { background: 'var(--color-warning-surface)' } : undefined}>
+                  {/* Day label */}
+                  <div className="flex-shrink-0 w-14 pt-0.5">
+                    <span className={`text-xs font-semibold ${isToday ? '' : ''}`}
+                      style={{ color: isToday ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
+                      {dayLabel}
+                    </span>
+                    <br />
+                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                      {dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                    {isToday && (
+                      <span className="block text-[9px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--color-primary)' }}>Today</span>
+                    )}
+                  </div>
+
+                  {/* Appointments */}
+                  <div className="flex-1 flex flex-wrap gap-1.5 py-0.5">
+                    {dayAppts.length === 0 ? (
+                      <span className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>
+                        {isRequested ? 'Free — student requested this day' : 'No appointments'}
+                      </span>
+                    ) : dayAppts.map(a => (
+                      <span key={a.id} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                        style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }}>
+                        <span>{fmtApptTime(a.scheduled_start)}</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>·</span>
+                        <span className="max-w-[120px] truncate">{a.student_name}</span>
+                      </span>
+                    ))}
+                    {isRequested && dayAppts.length > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                        style={{ background: 'var(--color-warning)', color: 'white' }}>
+                        ⚠ Requested
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 function EmptyState({ msg, icon: Icon }: { msg: string; icon: React.ElementType }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -386,6 +578,9 @@ export default function IntakeManagementPage() {
             );
           })}
         </div>
+
+        {/* Mini schedule panel */}
+        <MiniSchedulePanel requestedDates={awaiting.map(a => a.preferred_date ?? '')} />
 
         {/* List card */}
         <div className="rounded-2xl border shadow-card overflow-hidden animate-fade-up" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>

@@ -744,6 +744,27 @@ def get_intake(intake_id):
         except Exception:
             pass
 
+    # Enrich with student's school ID and college/department
+    if serialized.get('student_id'):
+        try:
+            student = db.db.users.find_one({'_id': ObjectId(serialized['student_id'])})
+            if student:
+                serialized['student_school_id'] = (
+                    student.get('id_number') or student.get('school_id') or ''
+                )
+                serialized['student_college'] = (
+                    student.get('college') or student.get('department') or
+                    student.get('course') or ''
+                )
+                if not serialized.get('student_name'):
+                    first = student.get('first_name', '')
+                    last  = student.get('last_name', '')
+                    serialized['student_name'] = f"{first} {last}".strip() or student.get('email', '')
+                if not serialized.get('student_email'):
+                    serialized['student_email'] = student.get('email', '')
+        except Exception:
+            pass
+
     return jsonify(serialized), 200
 
 

@@ -449,8 +449,8 @@ export default function ConductIntakePage() {
         };
         return map[raw.toLowerCase()] || raw || undefined;
       })(),
-      studentId: intake?.student_id || intake?.student?.school_id,
-      college: intake?.student?.college,
+      studentId: intake?.student_school_id || intake?.student?.school_id || undefined,
+      college: intake?.student_college || intake?.student?.college || intake?.student?.department || undefined,
     };
     const docPhq9Responses = phq9Done ? (phq9 as (number | null)[]) : (intake?.phq9_responses || new Array(9).fill(null));
     const docPhq9Score     = phq9Done ? phq9Score : (intake?.phq9_score ?? null);

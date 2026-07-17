@@ -246,7 +246,6 @@ interface SchedAppt {
   scheduled_start: string;
   scheduled_end: string;
   status: string;
-  purpose?: string;
 }
 
 function getMondayOf(date: Date): Date {
@@ -257,25 +256,20 @@ function getMondayOf(date: Date): Date {
   return d;
 }
 
-const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const SCHED_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function fmtApptTime(iso: string) {
   const d = new Date(iso);
   const h = d.getHours(), m = d.getMinutes();
   const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-function MiniSchedulePanel({
-  requestedDates,
-}: {
-  requestedDates: string[]; // ISO preferred_date strings from awaiting appointments
-}) {
-  const [weekStart, setWeekStart]   = useState<Date>(() => getMondayOf(new Date()));
-  const [appts, setAppts]           = useState<SchedAppt[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [open, setOpen]             = useState(true);
+function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
+  const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
+  const [appts, setAppts]         = useState<SchedAppt[]>([]);
+  const [loading, setLoading]     = useState(false);
+  const [open, setOpen]           = useState(true);
 
   const fetchWeek = useCallback(async (start: Date) => {
     const token = localStorage.getItem('token');
@@ -299,125 +293,144 @@ function MiniSchedulePanel({
   function prevWeek() { setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; }); }
   function nextWeek() { setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; }); }
 
-  // Build set of "YYYY-MM-DD" from requested dates that fall in this week
+  // Dates (YYYY-MM-DD local) that students in awaiting list have requested, limited to this week
+  const wEnd = new Date(weekStart); wEnd.setDate(wEnd.getDate() + 7);
   const requestedSet = new Set<string>();
   requestedDates.forEach(iso => {
     if (!iso) return;
     const d = new Date(iso);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const wEnd = new Date(weekStart); wEnd.setDate(wEnd.getDate() + 7);
-    if (d >= weekStart && d < wEnd) requestedSet.add(key);
+    if (d >= weekStart && d < wEnd) {
+      requestedSet.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    }
   });
 
-  // Group appts by day index (0=Mon … 6=Sun)
+  // Group appointments by day index 0-6 (Mon=0)
   const byDay: SchedAppt[][] = Array.from({ length: 7 }, () => []);
   appts.forEach(a => {
-    const d = new Date(a.scheduled_start);
+    const d    = new Date(a.scheduled_start);
     const diff = Math.floor((d.getTime() - weekStart.getTime()) / 86400000);
     if (diff >= 0 && diff < 7) byDay[diff].push(a);
   });
 
-  const endDate = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const weekLabel = `${fmt(weekStart)} – ${fmt(endDate)}`;
+  const endDate    = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
+  const todayKey   = new Date().toISOString().slice(0, 10);
+  const weekLabel  = `${weekStart.toLocaleDateString('en-US', { month:'short', day:'numeric' })} – ${endDate.toLocaleDateString('en-US', { month:'short', day:'numeric' })}`;
 
   return (
     <div className="rounded-2xl border overflow-hidden mb-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-      {/* Header */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-3 text-left"
-        style={{ borderBottom: open ? '1px solid var(--color-border)' : 'none' }}>
-        <div className="flex items-center gap-2">
-          <CalendarDays size={14} style={{ color: 'var(--color-primary)' }} />
-          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>My Schedule This Week</span>
+
+      {/* Header — collapse toggle and week nav are SEPARATE, never nested */}
+      <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: open ? '1px solid var(--color-border)' : 'none' }}>
+
+        {/* Collapse button */}
+        <button onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-2 flex-1 text-left min-w-0"
+          title={open ? 'Hide schedule' : 'Show schedule'}>
+          <CalendarDays size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+          <span className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>My Schedule This Week</span>
           {requestedSet.size > 0 && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
               style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
-              {requestedSet.size} requested slot{requestedSet.size !== 1 ? 's' : ''} this week
+              {requestedSet.size} day{requestedSet.size !== 1 ? 's' : ''} requested
             </span>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Week nav — stop propagation so clicks don't toggle the panel */}
-          <button onClick={e => { e.stopPropagation(); prevWeek(); }}
-            className="p-1 rounded transition" title="Previous week"
+          {open
+            ? <ChevronUp size={13} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+            : <ChevronDown size={13} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />}
+        </button>
+
+        {/* Week navigation — fully independent of collapse toggle */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={prevWeek} title="Previous week"
+            className="w-6 h-6 flex items-center justify-center rounded transition"
             style={{ color: 'var(--color-text-muted)' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <ChevronLeft size={13} />
           </button>
-          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>{weekLabel}</span>
-          <button onClick={e => { e.stopPropagation(); nextWeek(); }}
-            className="p-1 rounded transition" title="Next week"
+          <span className="text-xs px-1" style={{ color: 'var(--color-text-secondary)', minWidth: 120, textAlign: 'center' }}>{weekLabel}</span>
+          <button onClick={nextWeek} title="Next week"
+            className="w-6 h-6 flex items-center justify-center rounded transition"
             style={{ color: 'var(--color-text-muted)' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <ChevronRight size={13} />
           </button>
-          <Link href="/schedule" className="text-[10px] font-medium px-2 py-0.5 rounded transition"
-            onClick={e => e.stopPropagation()}
-            style={{ color: 'var(--color-primary)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-primary-surface)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            Full view ↗
+          <Link href="/schedule"
+            className="text-[10px] font-semibold px-2 py-1 rounded-lg ml-1 transition"
+            style={{ color: 'var(--color-primary)', background: 'var(--color-primary-surface)' }}>
+            Full ↗
           </Link>
-          {open ? <ChevronUp size={13} style={{ color: 'var(--color-text-muted)' }} /> : <ChevronDown size={13} style={{ color: 'var(--color-text-muted)' }} />}
         </div>
-      </button>
+      </div>
 
       {/* Body */}
       {open && (
         loading ? (
-          <div className="flex items-center justify-center py-6 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <div className="flex items-center justify-center py-5 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
             <Loader2 size={13} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading schedule…
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-            {WEEK_DAYS.map((dayLabel, idx) => {
-              const dayAppts = byDay[idx];
-              const dayDate  = new Date(weekStart); dayDate.setDate(dayDate.getDate() + idx);
-              const dateKey  = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
-              const isToday  = dateKey === new Date().toISOString().slice(0, 10);
+          /* 7-column day grid */
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)', borderTop: 'none' }}>
+            {SCHED_DAYS.map((label, idx) => {
+              const dayDate    = new Date(weekStart); dayDate.setDate(dayDate.getDate() + idx);
+              const dateKey    = `${dayDate.getFullYear()}-${String(dayDate.getMonth()+1).padStart(2,'0')}-${String(dayDate.getDate()).padStart(2,'0')}`;
+              const isToday    = dateKey === todayKey;
               const isRequested = requestedSet.has(dateKey);
+              const dayAppts   = byDay[idx];
+              const hasBoth    = isRequested && dayAppts.length > 0;
 
               return (
-                <div key={idx} className="flex items-start gap-3 px-5 py-2.5"
-                  style={isRequested ? { background: 'var(--color-warning-surface)' } : undefined}>
-                  {/* Day label */}
-                  <div className="flex-shrink-0 w-14 pt-0.5">
-                    <span className={`text-xs font-semibold ${isToday ? '' : ''}`}
+                <div key={idx} className="flex flex-col"
+                  style={{
+                    borderRight: idx < 6 ? '1px solid var(--color-border)' : 'none',
+                    background: isRequested ? 'var(--color-warning-surface)' : 'transparent',
+                  }}>
+                  {/* Column header */}
+                  <div className="px-2 pt-2.5 pb-1.5 text-center"
+                    style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide"
                       style={{ color: isToday ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
-                      {dayLabel}
-                    </span>
-                    <br />
-                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                      {dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                    {isToday && (
-                      <span className="block text-[9px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--color-primary)' }}>Today</span>
+                      {label}
+                    </p>
+                    <p className="text-xs font-semibold mt-0.5"
+                      style={{
+                        color: isToday ? 'white' : 'var(--color-text-secondary)',
+                        background: isToday ? 'var(--color-primary)' : 'transparent',
+                        borderRadius: '50%', width: 22, height: 22,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                      {dayDate.getDate()}
+                    </p>
+                    {isRequested && (
+                      <p className="text-[9px] font-bold mt-0.5 uppercase tracking-wide"
+                        style={{ color: 'var(--color-warning)' }}>
+                        ↑ Requested
+                      </p>
                     )}
                   </div>
 
                   {/* Appointments */}
-                  <div className="flex-1 flex flex-wrap gap-1.5 py-0.5">
+                  <div className="px-1.5 py-2 space-y-1 flex-1">
                     {dayAppts.length === 0 ? (
-                      <span className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>
-                        {isRequested ? 'Free — student requested this day' : 'No appointments'}
-                      </span>
-                    ) : dayAppts.map(a => (
-                      <span key={a.id} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
-                        style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }}>
-                        <span>{fmtApptTime(a.scheduled_start)}</span>
-                        <span style={{ color: 'var(--color-text-muted)' }}>·</span>
-                        <span className="max-w-[120px] truncate">{a.student_name}</span>
-                      </span>
-                    ))}
-                    {isRequested && dayAppts.length > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold"
-                        style={{ background: 'var(--color-warning)', color: 'white' }}>
-                        ⚠ Requested
-                      </span>
+                      <p className="text-[10px] text-center py-1"
+                        style={{ color: isRequested ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
+                        {isRequested ? '✓ Free' : '—'}
+                      </p>
+                    ) : (
+                      <>
+                        {dayAppts.map(a => (
+                          <div key={a.id} className="rounded px-1.5 py-1 text-[10px] leading-tight"
+                            style={{
+                              background: hasBoth ? 'var(--color-warning)' : 'var(--color-primary-surface)',
+                              color: hasBoth ? 'white' : 'var(--color-primary)',
+                            }}>
+                            <p className="font-semibold">{fmtApptTime(a.scheduled_start)}</p>
+                            <p className="truncate opacity-80">{a.student_name.split(' ')[0]}</p>
+                          </div>
+                        ))}
+                      </>
                     )}
                   </div>
                 </div>
@@ -425,6 +438,25 @@ function MiniSchedulePanel({
             })}
           </div>
         )
+      )}
+
+      {/* Legend */}
+      {open && !loading && (
+        <div className="px-4 py-2 flex items-center gap-4 flex-wrap"
+          style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: 'var(--color-primary)' }} />
+            <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Existing appointment</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: 'var(--color-warning)' }} />
+            <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Conflict — student requesting this day</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold" style={{ color: 'var(--color-success)' }}>✓ Free</span>
+            <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Student requested, you&apos;re available</span>
+          </div>
+        </div>
       )}
     </div>
   );

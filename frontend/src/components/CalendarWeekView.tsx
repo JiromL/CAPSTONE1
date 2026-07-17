@@ -556,7 +556,11 @@ export default function CalendarWeekView({
   const dayLabel = `${DAYS_LONG[selectedDay.getDay()]}, ${MONTHS[selectedDay.getMonth()]} ${selectedDay.getDate()}, ${selectedDay.getFullYear()}`;
 
   const thisWeekStart = (() => {
-    const d = new Date(now); d.setDate(d.getDate() - d.getDay()); d.setHours(0,0,0,0); return d;
+    const d = new Date(now);
+    const day = d.getDay();
+    d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day)); // go to Monday
+    d.setHours(0, 0, 0, 0);
+    return d;
   })();
   const isThisWeek = isSameDay(days[0], thisWeekStart);
   const isToday    = isSameDay(selectedDay, now);

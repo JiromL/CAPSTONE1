@@ -7,12 +7,60 @@ from flask import Blueprint, request, jsonify, current_app, url_for, redirect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from integrations.google import GoogleIntegration
 from integrations.token_store import get_tokens, save_tokens
-from models import db
+from models import db, PermissionType
+from utils import user_has_permission
 from bson import ObjectId
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 calendar_bp = Blueprint('calendar', __name__, url_prefix='/api/calendar')
+
+SYSTEM_CALENDAR_USER = '__cps_system__'
+
+
+@calendar_bp.route('/system-authorize', methods=['GET'])
+@jwt_required()
+def system_authorize_calendar():
+    """Admin-only: authorize a single CPS system Google account used for all appointments."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_USERS.value):
+        return jsonify({'error': 'Admin access required'}), 403
+
+    state = f"{SYSTEM_CALENDAR_USER}_{datetime.utcnow().timestamp()}"
+    google = GoogleIntegration(current_app.config)
+    auth_url = google.get_authorize_url(state=state)
+
+    db.db.oauth_states.update_one(
+        {"user_id": SYSTEM_CALENDAR_USER},
+        {"$set": {"state": state, "created_at": datetime.utcnow(),
+                  "expires_at": datetime.utcnow() + timedelta(hours=1)}},
+        upsert=True
+    )
+    return jsonify({'auth_url': auth_url}), 200
+
+
+@calendar_bp.route('/system-status', methods=['GET'])
+@jwt_required()
+def system_calendar_status():
+    """Check if the CPS system Google account is connected."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_USERS.value):
+        return jsonify({'error': 'Admin access required'}), 403
+
+    tokens = get_tokens(db.db, current_app.config, SYSTEM_CALENDAR_USER, 'google')
+    return jsonify({'connected': tokens is not None and bool(tokens.get('access_token'))}), 200
+
+
+@calendar_bp.route('/system-disconnect', methods=['POST'])
+@jwt_required()
+def system_disconnect_calendar():
+    """Disconnect the CPS system Google account."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_USERS.value):
+        return jsonify({'error': 'Admin access required'}), 403
+
+    db.db.tokens.delete_one({"user_id": SYSTEM_CALENDAR_USER, "provider": "google"})
+    return jsonify({'message': 'System Google Calendar disconnected'}), 200
 
 
 @calendar_bp.route('/authorize', methods=['GET'])
@@ -65,32 +113,44 @@ def calendar_callback():
     if not code or not state:
         return jsonify({'error': 'Missing code or state parameter'}), 400
     
-    # Verify state and get user_id
+    # Verify state and get user_id (supports both regular users and __cps_system__)
     try:
-        user_id = state.split('_')[0]
-        state_record = db.db.oauth_states.find_one({
-            "user_id": ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id,
-            "state": state,
-            "expires_at": {"$gt": datetime.utcnow()}
-        })
-        
+        raw_user_id = state.split('_')[0]
+        is_system = raw_user_id == SYSTEM_CALENDAR_USER or state.startswith(SYSTEM_CALENDAR_USER)
+
+        if is_system:
+            db_user_id = SYSTEM_CALENDAR_USER
+            state_record = db.db.oauth_states.find_one({
+                "user_id": SYSTEM_CALENDAR_USER,
+                "state": state,
+                "expires_at": {"$gt": datetime.utcnow()}
+            })
+        else:
+            db_user_id = raw_user_id
+            state_record = db.db.oauth_states.find_one({
+                "user_id": ObjectId(raw_user_id),
+                "state": state,
+                "expires_at": {"$gt": datetime.utcnow()}
+            })
+
         if not state_record:
             return jsonify({'error': 'Invalid or expired state'}), 400
     except Exception as e:
         return jsonify({'error': f'State verification failed: {str(e)}'}), 400
-    
+
     # Exchange code for tokens
     try:
         google = GoogleIntegration(current_app.config)
-        tokens = google.exchange_code_and_store(db, current_app.config, user_id, code)
-        
-        # Clean up state
+        tokens = google.exchange_code_and_store(db, current_app.config, db_user_id, code)
+
         db.db.oauth_states.delete_one({"_id": state_record['_id']})
-        
-        # Redirect to frontend success page
+
         frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:3000')
-        redirect_url = f"{frontend_url}/dashboard?calendar_connected=true"
-        
+        if is_system:
+            redirect_url = f"{frontend_url}/admin/settings?calendar_connected=true"
+        else:
+            redirect_url = f"{frontend_url}/dashboard?calendar_connected=true"
+
         return redirect(redirect_url)
     except Exception as e:
         return jsonify({'error': f'Token exchange failed: {str(e)}'}), 400
@@ -217,8 +277,11 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
     """
     try:
         google = GoogleIntegration(current_app.config)
-        access_token = google.get_valid_token(db.db, current_app.config, user_id)
 
+        # Try the counselor's own token first, fall back to the CPS system account
+        access_token = google.get_valid_token(db.db, current_app.config, user_id)
+        if not access_token:
+            access_token = google.get_valid_token(db.db, current_app.config, SYSTEM_CALENDAR_USER)
         if not access_token:
             return None, None
         
@@ -245,18 +308,34 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
             except:
                 counselor = db.db.users.find_one({"_id": appointment_data['counselor_id']})
         
-        # Build calendar event
-        start_time = appointment_data.get('requested_start')
-        end_time = appointment_data.get('requested_end')
-        
+        # Build calendar event — prefer confirmed scheduled times, fall back to requested
+        start_time = appointment_data.get('scheduled_start') or appointment_data.get('requested_start')
+        end_time   = appointment_data.get('scheduled_end')   or appointment_data.get('requested_end')
+
         if isinstance(start_time, str):
-            start_time = datetime.fromisoformat(start_time)
+            start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
         if isinstance(end_time, str):
-            end_time = datetime.fromisoformat(end_time)
+            end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        if start_time and not end_time:
+            end_time = start_time + timedelta(minutes=60)
         
+        s_name = f"{student.get('first_name', 'Student')} {student.get('last_name', '')}".strip() if student else 'Student'
+        c_name = f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}".strip() if counselor else 'Counselor'
+        purpose_label = {
+            'intake_interview': 'Intake Interview',
+            'counseling': 'Counseling Session',
+            'follow_up_counselling': 'Follow-up Session',
+        }.get(appointment_data.get('purpose', ''), 'Counseling Session')
+
         event = {
-            'summary': f"Therapy Session - {student.get('first_name', 'Student')} {student.get('last_name', '')}",
-            'description': f"CPS Counseling Appointment\nCase: {str(case_id) if case_id else 'N/A'}\nType: {appointment_data.get('appointment_type', 'General')}",
+            'summary': f"CPS {purpose_label} — {s_name}",
+            'description': (
+                f"DLSU Counseling & Psychological Services\n\n"
+                f"Student: {s_name}\n"
+                f"Counselor: {c_name}\n"
+                f"Type: {purpose_label}\n"
+                f"Case: {str(case_id) if case_id else 'N/A'}"
+            ),
             'start': {
                 'dateTime': start_time.isoformat(),
                 'timeZone': 'Asia/Manila'  # DLSU timezone

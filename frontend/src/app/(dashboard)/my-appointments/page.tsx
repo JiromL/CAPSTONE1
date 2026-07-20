@@ -344,7 +344,7 @@ export default function MyAppointmentsPage() {
         <Link href="/book-appointment">
           <button className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-all hover:opacity-90 shadow-sm"
             style={{ background: 'var(--color-primary)' }}>
-            <Plus size={14} /> New Request
+            <Plus size={14} /> Book a Session
           </button>
         </Link>
       </div>
@@ -448,17 +448,20 @@ export default function MyAppointmentsPage() {
             <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
               <Clock size={22} style={{ color: 'var(--color-text-muted)' }} />
             </div>
-            <p className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>No records found</p>
-            <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
-              {activeTab === 'upcoming' ? 'You have no upcoming sessions.'
-              : activeTab === 'evaluation' ? 'No sessions waiting for your rating.'
-              : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
+            <p className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>
+              {activeTab === 'upcoming' ? 'No sessions yet.' : 'Nothing here.'}
+            </p>
+            <p className="text-sm mt-1 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {activeTab === 'upcoming'
+                ? 'When you book a session, it will appear here. Everything you share stays private.'
+                : activeTab === 'evaluation' ? 'No sessions waiting for your feedback right now.'
+                : `You have no ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
             </p>
             {activeTab === 'upcoming' && (
               <Link href="/book-appointment"
                 className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition hover:opacity-90"
                 style={{ background: 'var(--color-primary)' }}>
-                <Plus size={14} /> Book an Appointment
+                <Plus size={14} /> Talk to Someone
               </Link>
             )}
           </div>
@@ -869,7 +872,7 @@ export default function MyAppointmentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Cancel Appointment</h3>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Cancel this session?</h3>
               <button onClick={() => setCancelTarget(null)} className="p-1.5 rounded-lg transition-colors"
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -877,11 +880,11 @@ export default function MyAppointmentsPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Are you sure you want to cancel this appointment? This cannot be undone.</p>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>Your spot will be released. If things change, you can always book another session — we're here whenever you're ready.</p>
               <div>
-                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Cancellation Remarks</label>
+                <label className="text-sm font-semibold block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Reason for cancelling <span className="font-normal">(optional)</span></label>
                 <textarea value={cancelReason} onChange={e => setCancelReason(e.target.value)}
-                  placeholder="Optional — let us know why you're cancelling"
+                  placeholder="Let us know if there's anything we can do differently."
                   rows={3}
                   className="w-full px-3 py-2 text-sm rounded-xl outline-none transition-all resize-none"
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
@@ -892,17 +895,19 @@ export default function MyAppointmentsPage() {
               {cancelError && <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{cancelError}</p>}
               <div className="flex gap-2">
                 <button onClick={() => setCancelTarget(null)}
-                  className="flex-1 px-4 py-2 text-sm rounded-xl transition-colors border"
-                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  className="flex-1 px-4 py-2 text-sm font-semibold rounded-xl transition-colors border"
+                  style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-primary-surface)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  Keep
+                  Keep my session
                 </button>
                 <button onClick={handleCancel} disabled={cancelling}
-                  className="flex-1 px-4 py-2 text-white text-sm font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90"
-                  style={{ background: 'var(--color-danger)' }}>
+                  className="flex-1 px-4 py-2 text-sm rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90"
+                  style={{ border: '1px solid var(--color-danger)', color: 'var(--color-danger)', background: 'transparent' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   {cancelling && <Loader2 size={13} className="animate-spin" />}
-                  Cancel Appointment
+                  Yes, cancel it
                 </button>
               </div>
             </div>
@@ -990,13 +995,13 @@ export default function MyAppointmentsPage() {
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  Cancel
+                  Go Back
                 </button>
                 <button onClick={handleReschedule} disabled={rescheduling}
                   className="flex-1 px-4 py-2 text-white text-sm font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90"
                   style={{ background: 'var(--color-primary)' }}>
                   {rescheduling && <Loader2 size={13} className="animate-spin" />}
-                  Submit Request
+                  Request New Time
                 </button>
               </div>
             </div>

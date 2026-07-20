@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Save, Calendar, CheckCircle, Loader2, Link2Off } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -39,6 +39,35 @@ function Tog({ label, checked, onChange }: { label: string; checked: boolean; on
 
 export default function SettingsPage() {
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [calConnected, setCalConnected]     = useState<boolean | null>(null);
+  const [calConnecting, setCalConnecting]   = useState(false);
+  const [calDisconnecting, setCalDisconnecting] = useState(false);
+
+  const tok = () => localStorage.getItem('token') || '';
+
+  useEffect(() => {
+    fetch(api('/api/calendar/system-status'), { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setCalConnected(d.connected))
+      .catch(() => {});
+  }, []);
+
+  const handleConnectCal = async () => {
+    setCalConnecting(true);
+    try {
+      const res = await fetch(api('/api/calendar/system-authorize'), { headers: { Authorization: `Bearer ${tok()}` } });
+      if (res.ok) { window.location.href = (await res.json()).auth_url; }
+    } finally { setCalConnecting(false); }
+  };
+
+  const handleDisconnectCal = async () => {
+    if (!confirm('Disconnect the CPS system Google Calendar? Meet links will no longer be auto-generated.')) return;
+    setCalDisconnecting(true);
+    try {
+      const res = await fetch(api('/api/calendar/system-disconnect'), { method: 'POST', headers: { Authorization: `Bearer ${tok()}` } });
+      if (res.ok) setCalConnected(false);
+    } finally { setCalDisconnecting(false); }
+  };
   const [s, setS] = useState({
     system_name: 'CPS Counseling System', support_email: 'cps@dlsu.edu.ph',
     allowed_domain: 'dlsu.edu.ph', session_timeout: '60',
@@ -104,6 +133,38 @@ export default function SettingsPage() {
 
         <Sec title="Data">
           <F label="Data Retention (days)"><input type="number" value={s.data_retention_days} onChange={e => set('data_retention_days', e.target.value)} className={IC} style={ICS} /></F>
+        </Sec>
+
+        <Sec title="Integrations">
+          <div className="space-y-1">
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Google Calendar / Meet</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              Connect a CPS system Google account so all confirmed appointments automatically get a Google Meet link — no per-counselor setup needed.
+            </p>
+          </div>
+          {calConnected === null ? (
+            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              <Loader2 size={12} className="animate-spin" /> Checking…
+            </div>
+          ) : calConnected ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-success)' }}>
+                <CheckCircle size={15} /> Connected — Meet links are auto-generated
+              </div>
+              <button onClick={handleDisconnectCal} disabled={calDisconnecting}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-bg)' }}>
+                <Link2Off size={12} /> {calDisconnecting ? 'Disconnecting…' : 'Disconnect'}
+              </button>
+            </div>
+          ) : (
+            <button onClick={handleConnectCal} disabled={calConnecting}
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition disabled:opacity-50"
+              style={{ background: 'var(--color-primary)', color: 'white' }}>
+              <Calendar size={14} />
+              {calConnecting ? 'Redirecting to Google…' : 'Connect CPS Google Calendar'}
+            </button>
+          )}
         </Sec>
 
         <button onClick={handleSave} disabled={status === 'saving'}

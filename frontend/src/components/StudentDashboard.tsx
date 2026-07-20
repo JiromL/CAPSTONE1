@@ -265,20 +265,20 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <div className="relative z-10">
                   <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Welcome to CPS</p>
                   <h3 className="text-xl font-bold mb-2 leading-snug" style={{ color: 'white' }}>
-                    No need to wait, {firstName}.<br />Book your session online.
+                    You don't have to figure this out alone, {firstName}.
                   </h3>
                   <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                    Confidential, free counseling for all DLSU students. Book an appointment, attend your intake, and get matched with a counselor.
+                    Free, confidential counseling for all DLSU students. In-person or online — on your own terms, at your own pace.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {['In-person', 'Online', 'Confidential'].map(t => (
+                    {['Free', 'Confidential', 'In-person & Online'].map(t => (
                       <span key={t} className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.18)', color: 'white' }}>{t}</span>
                     ))}
                   </div>
                   <Link href="/book-appointment">
                     <button className="px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
                       style={{ background: 'white', color: 'var(--color-primary)' }}>
-                      Book an Appointment →
+                      Talk to Someone →
                     </button>
                   </Link>
                 </div>
@@ -291,15 +291,15 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <div className="pointer-events-none absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
                 <div className="relative z-10">
                   <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Your counseling journey</p>
-                  <h3 className="text-xl font-bold mb-2">Keep going, {firstName}.</h3>
+                  <h3 className="text-xl font-bold mb-2">Reaching out was a brave first step, {firstName}.</h3>
                   <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                    {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review.`}
+                    {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review. We'll be in touch within 1–2 business days.`}
                   </p>
                   {!isCheckInOnly && (
                     <Link href="/book-appointment">
                       <button className="px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
                         style={{ background: 'white', color: 'var(--color-primary)' }}>
-                        Book Another Appointment →
+                        Book Another Session →
                       </button>
                     </Link>
                   )}
@@ -352,6 +352,18 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 </div>
               )}
             </div>
+            {/* Crisis support strip */}
+            <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', borderLeftWidth: 3 }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold" style={{ color: 'var(--color-danger)' }}>Need support right now?</p>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--color-danger)' }}>
+                  24/7 Crisis Hotline:{' '}
+                  <a href="tel:1553" className="font-bold underline underline-offset-2">1553</a>
+                  {' '}· NCMH:{' '}
+                  <a href="tel:028928922" className="font-bold underline underline-offset-2">0917-899-8727</a>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Right column — Upcoming Sessions */}
@@ -370,11 +382,13 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
                     <CalendarDays size={22} style={{ color: 'var(--color-text-muted)' }} />
                   </div>
-                  <p className="text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>No upcoming sessions.</p>
+                  <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>No sessions yet.</p>
+                  <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>When you book a session, it'll appear here. Everything is private.</p>
                   {!isCheckInOnly && (
                     <Link href="/book-appointment">
-                      <button className="mt-2 text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>
-                        Book one now →
+                      <button className="mt-1 text-xs font-semibold px-4 py-2 rounded-xl transition-all hover:opacity-90"
+                        style={{ background: 'var(--color-primary)', color: 'white' }}>
+                        Talk to Someone →
                       </button>
                     </Link>
                   )}
@@ -533,8 +547,8 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-success-surface)' }}>
                   <CalendarDays size={22} style={{ color: 'var(--color-success)' }} />
                 </div>
-                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Request submitted!</p>
-                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Your counselor will confirm the new time.</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Reschedule request sent!</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Your counselor will confirm the new time shortly.</p>
               </div>
             ) : (
               <div className="p-6 space-y-4">
@@ -615,7 +629,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                     onMouseEnter={e => { if (!rescheduling) e.currentTarget.style.background = 'var(--color-primary-hover)'; }}
                     onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}>
                     {rescheduling && <Loader2 size={13} className="animate-spin" />}
-                    Submit Request
+                    Request New Time
                   </button>
                 </div>
               </div>
@@ -629,17 +643,17 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="px-6 py-5" style={{ background: 'var(--color-primary)' }}>
-              <h2 className="text-base font-bold" style={{ color: 'white' }}>Before You Begin</h2>
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>Please review and accept the following before using CPS services.</p>
+              <h2 className="text-base font-bold" style={{ color: 'white' }}>A quick note before we begin</h2>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>We want to make sure you know how your information is kept safe.</p>
             </div>
             <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto text-sm" style={{ color: 'var(--color-text-secondary)' }}>
               <div>
-                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Confidentiality &amp; Exceptions</p>
-                <p className="text-xs leading-relaxed">All information shared during counseling sessions is strictly confidential and will not be disclosed without your written consent, <span className="font-semibold">except</span> in situations involving risk to your safety or others, court orders, or mandatory reporting obligations.</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Your sessions are confidential</p>
+                <p className="text-xs leading-relaxed">Everything you share with your counselor stays between you and your care team. The only exceptions are situations involving immediate risk to your safety or others — and we'll always tell you when that applies.</p>
               </div>
               <div>
-                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Data Privacy</p>
-                <p className="text-xs leading-relaxed">Your mental health records are classified as sensitive personal information under RA 10173 and require your explicit consent to process.</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Your data is protected</p>
+                <p className="text-xs leading-relaxed">Your mental health records are treated as sensitive personal information under RA 10173 (Data Privacy Act). We only collect what's needed to provide you with care.</p>
               </div>
               <div className="space-y-3 pt-2">
                 {([

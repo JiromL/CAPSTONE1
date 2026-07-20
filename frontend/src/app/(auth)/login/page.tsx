@@ -78,7 +78,7 @@ export default function LoginPage() {
       localStorage.setItem('token', d.access_token);
       localStorage.setItem('user', JSON.stringify(d));
       router.replace('/dashboard');
-    } catch { setError('Sign-in failed'); }
+    } catch { setError('Google sign-in failed. Please try again or use email and password.'); }
     finally { setLoading(false); }
   };
 
@@ -93,14 +93,14 @@ export default function LoginPage() {
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        setError(d.error || 'Login failed');
+        setError(d.error || "That email and password didn't match. Please try again.");
         return;
       }
       const d = await r.json();
       localStorage.setItem('token', d.access_token);
       localStorage.setItem('user', JSON.stringify(d));
       router.replace('/dashboard');
-    } catch { setError('Login failed'); }
+    } catch { setError('Unable to connect. Check your internet connection and try again.'); }
     finally { setLoading(false); }
   };
 

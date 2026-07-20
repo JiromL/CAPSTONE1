@@ -14,24 +14,24 @@ import {
 import { SignaturePad } from '@/components/SignaturePad';
 
 const PURPOSES = [
-  { value: 'intake_interview',      label: 'Intake Interview', desc: 'First-time visit — includes intake forms' },
-  { value: 'counseling',            label: 'Counseling',       desc: 'Continuing counseling session' },
-  { value: 'follow_up_counselling', label: 'Follow-up',        desc: 'Follow-up counseling session' },
-  { value: 'others',                label: 'Others',           desc: 'Other type of session' },
+  { value: 'intake_interview',      label: "First time — I'd like to talk to someone", desc: "We'll walk you through everything, step by step" },
+  { value: 'counseling',            label: 'Continuing Counseling',                    desc: 'A follow-on session with your counselor' },
+  { value: 'follow_up_counselling', label: 'Follow-up',                                desc: 'A scheduled follow-up with your care team' },
+  { value: 'others',                label: 'Something else',                           desc: "Tell us a bit more and we'll find the right fit" },
 ];
 
 const PHQ4Q = [
-  { text: 'Little interest or pleasure in doing things' },
-  { text: 'Feeling down, depressed, or hopeless' },
-  { text: 'Feeling nervous, anxious, or on edge' },
-  { text: 'Not being able to stop or control worrying' },
+  { text: "I've been finding it hard to enjoy things I usually like" },
+  { text: "I've been feeling down, low, or like things won't get better" },
+  { text: "I've been feeling nervous, on edge, or anxious" },
+  { text: "I've been struggling to stop or control my worrying" },
 ];
 
 const FREQ = [
-  { v: 0, s: 'Not at all',              textColor: 'var(--color-text-secondary)', selBg: '#6B7280' },
-  { v: 1, s: 'Several days',            textColor: 'var(--color-primary)',        selBg: 'var(--color-primary)' },
-  { v: 2, s: 'More than half the days', textColor: 'var(--color-warning)',        selBg: 'var(--color-warning)' },
-  { v: 3, s: 'Nearly every day',        textColor: 'var(--color-danger)',         selBg: 'var(--color-danger)' },
+  { v: 0, s: 'Not at all',       dots: 1, textColor: '#93C5FD', selBg: '#93C5FD' },
+  { v: 1, s: 'A few days',       dots: 2, textColor: '#60A5FA', selBg: '#60A5FA' },
+  { v: 2, s: 'More than half',   dots: 3, textColor: '#3B82F6', selBg: '#3B82F6' },
+  { v: 3, s: 'Almost every day', dots: 4, textColor: '#1D4ED8', selBg: '#1D4ED8' },
 ];
 
 const INTAKE_STEPS = [
@@ -76,7 +76,7 @@ function fmtT(t: string) {
 function F({ label, req, children, span }: { label: string; req?: boolean; children: React.ReactNode; span?: boolean }) {
   return (
     <div className={span ? 'col-span-full' : ''}>
-      <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
+      <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
         {label}{req && <span className="ml-1" style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
       {children}
@@ -563,8 +563,8 @@ export default function BookAppointmentPage() {
 
                     <div className="rounded-xl p-4 space-y-2" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
                       <p className="text-xs font-bold flex items-center gap-1" style={{ color: 'var(--color-primary)' }}><ClipboardCheck size={11} /> Presenting Concern</p>
-                      <F label="" req>
-                        <textarea className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} rows={3} value={icf.presenting_concern} onChange={e => setIcf(p=>({...p,presenting_concern:e.target.value}))} placeholder="What brings you to CPS? Briefly describe your main concern…" />
+                      <F label="What would you like to talk about? (A few words is enough)" req>
+                        <textarea className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} rows={3} value={icf.presenting_concern} onChange={e => setIcf(p=>({...p,presenting_concern:e.target.value}))} placeholder="What's been on your mind lately? You don't need to have everything figured out…" />
                       </F>
                     </div>
                   </div>
@@ -656,8 +656,8 @@ export default function BookAppointmentPage() {
                       </div>
                     )}
                     <div className="rounded-xl px-4 py-3" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
-                      <p className="text-xs font-bold" style={{ color: 'var(--color-warning)' }}>Over the last 2 weeks, how often have you been bothered by the following?</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-warning)' }}>This helps your counselor assess your current wellbeing.</p>
+                      <p className="text-xs font-bold" style={{ color: 'var(--color-warning)' }}>Over the last 2 weeks, how often have you felt this way?</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-warning)' }}>There are no right or wrong answers. This helps your counselor understand how you've been doing.</p>
                     </div>
                     <div className="h-px" style={{ background: 'var(--color-border)' }} />
                     {PHQ4Q.slice(0,2).map((q,i) => (
@@ -676,7 +676,7 @@ export default function BookAppointmentPage() {
                                 style={sel
                                   ? { background: opt.selBg, borderColor: opt.selBg, color: 'white' }
                                   : { background: 'var(--color-bg)', borderColor: 'var(--color-border)', color: opt.textColor }}>
-                                <span className="block text-base font-bold">{opt.v}</span>{opt.s}
+                                <span className="block text-xs mb-0.5" aria-hidden>{'●'.repeat(opt.dots)}</span>{opt.s}
                               </button>
                             );
                           })}
@@ -700,7 +700,7 @@ export default function BookAppointmentPage() {
                                 style={sel
                                   ? { background: opt.selBg, borderColor: opt.selBg, color: 'white' }
                                   : { background: 'var(--color-bg)', borderColor: 'var(--color-border)', color: opt.textColor }}>
-                                <span className="block text-base font-bold">{opt.v}</span>{opt.s}
+                                <span className="block text-xs mb-0.5" aria-hidden>{'●'.repeat(opt.dots)}</span>{opt.s}
                               </button>
                             );
                           })}
@@ -781,15 +781,15 @@ export default function BookAppointmentPage() {
               <CheckCircle size={24} className="flex-shrink-0 mt-0.5" style={{ color: '#86EFAC' }} />
               <div>
                 <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: '#86EFAC' }}>
-                  {isSlotBooking ? 'Slot Reserved' : 'Request Submitted'}
+                  {isSlotBooking ? "You're all set" : 'Request sent'}
                 </p>
                 <p className="text-lg font-bold">Ticket #{ticketNumber}</p>
                 {isSlotBooking ? (
                   <p className="text-sm mt-1 text-white/80">
-                    Your slot at <strong>{fmtT(prefTime)}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it shortly.
+                    Your slot at <strong>{fmtT(prefTime)}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it within 1–2 business days.
                   </p>
                 ) : (
-                  <p className="text-sm mt-1 text-white/80">Our office will review your request and contact you to schedule a session.</p>
+                  <p className="text-sm mt-1 text-white/80">Taking this step takes courage. The CPS team will reach out within 1–2 business days to schedule your session.</p>
                 )}
               </div>
             </div>

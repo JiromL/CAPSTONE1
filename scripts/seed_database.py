@@ -8,6 +8,8 @@ from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 from bson import ObjectId
 import os
+import random as _random_mod
+_rng = _random_mod.Random(2024)
 
 MONGODB_URI     = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
 MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'cps_system_dev')
@@ -49,30 +51,31 @@ dpo_id   = make_user('dpo@university.edu','dpo123','Sarah','Director','DPO')
 staff_id = make_user('staff@university.edu','staff123','Alex','Staff','STAFF')
 cm_id    = make_user('cm@university.edu','cm123','Morgan','Manager','CASE_MANAGER')
 
-ic_julse  = make_user('julse@university.edu','julse123','Julse','','IC')
-ic_archie = make_user('archie@university.edu','archie123','Archie','','IC')
-ic_mars   = make_user('mars@university.edu','mars123','Mars','','IC')
-ic_ria    = make_user('ria@university.edu','ria123','Ria','','IC')
-ic_cris   = make_user('cris@university.edu','cris123','Cris','','IC')
-ic_wil    = make_user('wil@university.edu','wil123','Wil','','IC')
-ic_rose_c = make_user('rose.c@university.edu','rosec123','Rose','C.','IC')
-ic_gracie = make_user('gracie@university.edu','gracie123','Gracie','','IC')
+ic_julse  = make_user('julse@university.edu','julse123','Julse','Aguilar','IC')
+ic_archie = make_user('archie@university.edu','archie123','Archie','Fernandez','IC')
+ic_mars   = make_user('mars@university.edu','mars123','Mars','Dela Cruz','IC')
+ic_ria    = make_user('ria@university.edu','ria123','Ria','Ocampo','IC')
+ic_cris   = make_user('cris@university.edu','cris123','Cris','Villanueva','IC')
+ic_wil    = make_user('wil@university.edu','wil123','Wil','Santos','IC')
+ic_rose_c = make_user('rose.c@university.edu','rosec123','Rose','Cabrera','IC')
+ic_gracie = make_user('gracie@university.edu','gracie123','Gracie','Mendoza','IC')
 ICS       = [ic_julse,ic_archie,ic_mars,ic_ria,ic_cris,ic_wil,ic_rose_c,ic_gracie]
-IC_NAMES  = ['Julse','Archie','Mars','Ria','Cris','Wil','Rose C.','Gracie']
+IC_NAMES  = ['Julse Aguilar','Archie Fernandez','Mars Dela Cruz','Ria Ocampo',
+             'Cris Villanueva','Wil Santos','Rose Cabrera','Gracie Mendoza']
 
-c_rose_t = make_user('rose.t@university.edu','roset123','Rose','T.','COUNSELOR')
-c_bia    = make_user('bia@university.edu','bia123','Bia','','COUNSELOR')
-c_chelly = make_user('chelly@university.edu','chelly123','Chelly','','COUNSELOR')
-c_daye   = make_user('daye@university.edu','daye123','Daye','','COUNSELOR')
-c_csc    = make_user('csc@university.edu','csc123','CSC','Counselor','COUNSELOR')
+c_rose_t = make_user('rose.t@university.edu','roset123','Rose','Tolentino','COUNSELOR')
+c_bia    = make_user('bia@university.edu','bia123','Bia','Alcantara','COUNSELOR')
+c_chelly = make_user('chelly@university.edu','chelly123','Chelly','Reyes','COUNSELOR')
+c_daye   = make_user('daye@university.edu','daye123','Daye','Navarro','COUNSELOR')
+c_csc    = make_user('csc@university.edu','csc123','Clara','Santos','COUNSELOR')
 
-p_daryl = make_user('daryl@university.edu','daryl123','Daryl','','PSYCHOLOGIST')
-p_niko  = make_user('niko@university.edu','niko123','Niko','','PSYCHOLOGIST')
-p_bon   = make_user('bon@university.edu','bon123','Bon','','PSYCHOLOGIST')
-p_shel  = make_user('shel@university.edu','shel123','Shel','','PSYCHOLOGIST')
-p_jenny = make_user('jenny@university.edu','jenny123','Jenny','','PSYCHOLOGIST')
-p_chona = make_user('chona@university.edu','chona123','Chona','','PSYCHOLOGIST')
-p_csp   = make_user('csp@university.edu','csp123','CSP','Psych','PSYCHOLOGIST')
+p_daryl = make_user('daryl@university.edu','daryl123','Daryl','Bautista','PSYCHOLOGIST')
+p_niko  = make_user('niko@university.edu','niko123','Niko','Pascual','PSYCHOLOGIST')
+p_bon   = make_user('bon@university.edu','bon123','Bon','Aquino','PSYCHOLOGIST')
+p_shel  = make_user('shel@university.edu','shel123','Shel','Macaraeg','PSYCHOLOGIST')
+p_jenny = make_user('jenny@university.edu','jenny123','Jenny','Soriano','PSYCHOLOGIST')
+p_chona = make_user('chona@university.edu','chona123','Chona','Lim','PSYCHOLOGIST')
+p_csp   = make_user('csp@university.edu','csp123','Carl','de Guzman','PSYCHOLOGIST')
 
 # Original 9 students
 s1 = make_user('student1@university.edu','student123','Emma','Johnson','STUDENT',
@@ -121,7 +124,7 @@ s20 = make_user('student20@university.edu','student20','Kevin','Lim','STUDENT',
 s21 = make_user('student21@university.edu','student21','Diana','Santos','STUDENT',
                 college='Education',course='BEEd Elementary',year_level='4th Year',student_id='2021-00021')
 
-# IC queue students (s22–s77): intake appointments only, 7 per IC
+# IC queue students (s22–s79): intake appointments only, 7 per IC
 _Q_NAMES = [
     'Anna','Ben','Cara','Dan','Ella','Finn','Gina',
     'Hank','Iris','Jake','Kim','Luis','Mia','Neil',
@@ -133,13 +136,42 @@ _Q_NAMES = [
     'Vera','Wade','Xena','Yale','Zara','Abel','Bea',
     'Cruz','Dina','Eric','Faye',
 ]
+_Q_SURNAMES = [
+    'Reyes','Santos','Garcia','Cruz','Lim','Bautista','Aquino',
+    'Ramos','Torres','Dela Cruz','Gonzales','Rivera','Ramirez',
+    'Hernandez','Diaz','Villanueva','Navarro','Castillo','Pascual',
+    'Aguilar','Mendoza','Flores','Manalo','Soriano','Macaraeg',
+    'Domingo','Tolentino','Alcantara','Cabrera','Ocampo','Fernandez',
+    'Tan','Co','Uy','Sy','Go','Velasco','Salazar','Miranda','Guerrero',
+    'Buenaventura','Macapagal','Medina','Rosales','Santiago','Espiritu',
+    'Sarmiento','Evangelista','Catalan','Ilagan','Peralta','Manalang',
+    'Ignacio','De Guzman','Chua','Pangilinan','Magbanua','Baluyot',
+]
+_Q_COLLEGES = [
+    'College of Engineering','College of Business','College of Arts and Sciences',
+    'College of Nursing','College of Education','College of Law',
+    'College of Architecture','College of Science',
+]
+_Q_COURSES = [
+    'BS Computer Science','BS Civil Engineering','BS Electrical Engineering',
+    'BS Mechanical Engineering','BS Accountancy','BS Business Administration',
+    'BS Marketing','BS Management','BA Psychology','BA Communication',
+    'BS Biology','BS Chemistry','BS Nursing','BS Pharmacy',
+    'BS Medical Technology','Bachelor of Elementary Education',
+    'Bachelor of Secondary Education','AB Political Science',
+    'Juris Doctor','BS Architecture',
+]
+_Q_YEARS = ['1st Year','2nd Year','3rd Year','4th Year']
+
 IC_Q = []
 for idx, fname in enumerate(_Q_NAMES):
     n = 22 + idx
     IC_Q.append(make_user(
         f'student{n}@university.edu', f'student{n}',
-        fname, f'Q{n}', 'STUDENT',
-        college='Various', course='Various', year_level='Various',
+        fname, _Q_SURNAMES[idx % len(_Q_SURNAMES)], 'STUDENT',
+        college=_Q_COLLEGES[idx % len(_Q_COLLEGES)],
+        course=_Q_COURSES[idx % len(_Q_COURSES)],
+        year_level=_Q_YEARS[(idx * 3) % len(_Q_YEARS)],
         student_id=f'2024-{n:05d}'
     ))
 
@@ -162,6 +194,57 @@ for ic_id, method, slots in ic_sched_data:
         db[col].update_one({'counselor_id':ic_id},
             {'$set':{'counselor_id':ic_id,'session_method':method,'schedule':sched,'updated_at':now}},upsert=True)
 print("✅ IC schedules seeded\n")
+
+# ── COUNSELOR & PSYCHOLOGIST SCHEDULES ────────────────────────────────────────
+coun_sched_data = [
+    (c_rose_t, 'F2F',    [(MON,'09:00','15:00'),(WED,'09:00','15:00'),(THU,'09:00','15:00')]),
+    (c_bia,    'Online',  [(TUE,'10:00','16:00'),(WED,'10:00','16:00'),(FRI,'10:00','16:00')]),
+    (c_chelly, 'Online',  [(MON,'08:00','14:00'),(TUE,'08:00','14:00'),(THU,'08:00','14:00')]),
+    (c_daye,   'F2F',    [(MON,'13:00','17:00'),(WED,'13:00','17:00'),(FRI,'13:00','17:00')]),
+    (c_csc,    'F2F',    [(TUE,'09:00','13:00'),(THU,'09:00','13:00'),(FRI,'09:00','13:00')]),
+]
+psych_sched_data = [
+    (p_daryl,  'F2F',    [(MON,'09:00','15:00'),(WED,'09:00','15:00'),(FRI,'09:00','15:00')]),
+    (p_niko,   'Online',  [(TUE,'10:00','16:00'),(THU,'10:00','16:00')]),
+    (p_bon,    'F2F',    [(MON,'08:00','14:00'),(TUE,'08:00','14:00'),(WED,'08:00','14:00')]),
+    (p_shel,   'Online',  [(WED,'13:00','17:00'),(THU,'13:00','17:00'),(FRI,'13:00','17:00')]),
+    (p_jenny,  'F2F',    [(MON,'09:00','15:00'),(TUE,'09:00','15:00'),(THU,'09:00','15:00')]),
+    (p_chona,  'F2F',    [(TUE,'10:00','14:00'),(WED,'10:00','14:00'),(FRI,'10:00','14:00')]),
+    (p_csp,    'Online',  [(MON,'08:00','12:00'),(THU,'08:00','12:00'),(FRI,'08:00','12:00')]),
+]
+
+for _cid, _method, _slots in coun_sched_data + psych_sched_data:
+    _sched = [{'day_of_week':d,'start_time':s,'end_time':e} for d,s,e in _slots]
+    db.counselor_weekly_schedule.update_one({'counselor_id':_cid},
+        {'$set':{'counselor_id':_cid,'session_method':_method,'schedule':_sched,'updated_at':now}},upsert=True)
+print("✅ Counselor/psychologist weekly schedules seeded\n")
+
+# Generate individual availability slot docs for counselors/psychologists (next 28 days)
+# ~45% of slots are pre-booked / blocked so schedule looks realistically occupied
+_slot_docs = []
+for _cid, _method, _slots in coun_sched_data + psych_sched_data:
+    for _day_off in range(1, 29):
+        _slot_date = TODAY + timedelta(days=_day_off)
+        _dow = _slot_date.weekday()
+        for _day_of_week, _start_str, _end_str in _slots:
+            if _dow == _day_of_week:
+                _sh, _sm = int(_start_str[:2]), int(_start_str[3:])
+                _eh, _em = int(_end_str[:2]), int(_end_str[3:])
+                _s = _slot_date.replace(hour=_sh, minute=_sm, second=0, microsecond=0)
+                _e_lim = _slot_date.replace(hour=_eh, minute=_em, second=0, microsecond=0)
+                while _s + timedelta(hours=1) <= _e_lim:
+                    _e = _s + timedelta(hours=1)
+                    _slot_docs.append({
+                        'counselor_id': _cid,
+                        'slot_start': _s,
+                        'slot_end': _e,
+                        'is_available': _rng.random() > 0.45,
+                        'created_at': now,
+                    })
+                    _s = _e
+if _slot_docs:
+    db.counselor_availability.insert_many(_slot_docs)
+print(f"✅ {len(_slot_docs)} individual availability slots seeded for counselors/psychologists\n")
 
 # ── CASES ─────────────────────────────────────────────────────────────────────
 def mk_case(sid, sname, semail, counselor_id, ic_id, status, risk, concern, issue,
@@ -706,22 +789,79 @@ appt(s1,c_rose_t,c1,'CANCELLED','COUNSELING','F2F',F(12,10),
 print("✓ Staff-visible: 7 REQUESTED (unassigned) + 1 CANCELLED\n")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# IC QUEUE APPOINTMENTS — 7 active appointments per IC (REQUESTED, CONFIRMED, EVALUATION)
-# Each IC gets: 3 REQUESTED walk-ins, 2 CONFIRMED intake sessions, 2 EVALUATION
+# IC QUEUE APPOINTMENTS — 7 intake appointments per IC, unique pattern per IC
 # ══════════════════════════════════════════════════════════════════════════════
 print("Seeding IC queue appointments...")
-IC_STATUSES = [
-    ('REQUESTED','F2F',  -5,  9, 'Walk-in request — first time seeking counseling'),
-    ('REQUESTED','Online',-3, 10, 'Online intake request submitted via portal'),
-    ('REQUESTED','F2F',  -1, 11, 'Same-day walk-in request — reports feeling overwhelmed'),
-    ('CONFIRMED','F2F',   2,  9, None),
-    ('CONFIRMED','Online',5, 10, None),
-    ('EVALUATION','F2F', -2, 14, None),
-    ('EVALUATION','Online',-1,15,None),
+IC_QUEUE_PATTERNS = [
+    # Julse Aguilar — heavy walk-in traffic, mornings
+    [('REQUESTED','F2F',  -8,  9, 'Walk-in — overwhelmed by midterms, first time seeking help'),
+     ('REQUESTED','F2F',  -5, 10, 'Walk-in — reports persistent sadness and low motivation'),
+     ('REQUESTED','Online',-2, 11, 'Portal submission — academic stress, multiple deadlines'),
+     ('CONFIRMED','F2F',   1,  9, None),
+     ('CONFIRMED','Online', 4, 11, None),
+     ('EVALUATION','F2F', -3,  9, None),
+     ('EVALUATION','Online',-1,15, None)],
+    # Archie Fernandez — more confirmed, afternoon slots
+    [('REQUESTED','Online',-6, 13, 'Portal — relationship breakdown, difficulty sleeping'),
+     ('REQUESTED','F2F',  -3, 14, 'Walk-in, appeared tearful at reception'),
+     ('CONFIRMED','F2F',   2, 13, None),
+     ('CONFIRMED','Online', 5, 14, None),
+     ('CONFIRMED','F2F',   9, 13, None),
+     ('EVALUATION','F2F', -4, 14, None),
+     ('EVALUATION','Online',-1,13, None)],
+    # Mars Dela Cruz — all online, spread across days
+    [('REQUESTED','Online',-7,  9, 'Portal — sleep problems and low mood for 3 weeks'),
+     ('REQUESTED','Online',-4, 11, 'Portal — social anxiety, avoids group work'),
+     ('REQUESTED','Online',-1, 14, 'Urgent portal note — cried during class'),
+     ('CONFIRMED','Online', 3,  9, None),
+     ('CONFIRMED','Online', 7, 11, None),
+     ('EVALUATION','Online',-2, 9, None),
+     ('EVALUATION','Online',-1,15, None)],
+    # Ria Ocampo — all F2F, full queue
+    [('REQUESTED','F2F',  -9,  9, 'Walk-in — first time, referred by adviser'),
+     ('REQUESTED','F2F',  -5, 10, 'Walk-in — family conflict affecting studies'),
+     ('REQUESTED','F2F',  -1, 11, 'Same-day walk-in, visibly distressed'),
+     ('CONFIRMED','F2F',   1,  9, None),
+     ('CONFIRMED','F2F',   3, 10, None),
+     ('CONFIRMED','F2F',   6,  9, None),
+     ('EVALUATION','F2F', -2, 12, None)],
+    # Cris Villanueva — lighter load, mixed methods
+    [('REQUESTED','F2F',  -5, 10, 'Walk-in — conflict with thesis group members'),
+     ('REQUESTED','Online',-2, 14, 'Portal — anxiety about career direction'),
+     ('CONFIRMED','F2F',   2, 10, None),
+     ('CONFIRMED','Online', 5, 14, None),
+     ('CONFIRMED','F2F',  10, 10, None),
+     ('EVALUATION','F2F', -3, 10, None),
+     ('EVALUATION','Online',-1,14, None)],
+    # Wil Santos — all online, afternoon/evening
+    [('REQUESTED','Online',-6, 14, 'Portal — burnout from part-time work and studies'),
+     ('REQUESTED','Online',-3, 15, 'Second request — first-choice slot was taken'),
+     ('REQUESTED','Online',-1, 16, 'Urgent note: panic symptoms before exam'),
+     ('CONFIRMED','Online', 2, 14, None),
+     ('CONFIRMED','Online', 6, 15, None),
+     ('EVALUATION','Online',-4,14, None),
+     ('EVALUATION','Online',-2,16, None)],
+    # Rose Cabrera — fewer working days, F2F, varied hours
+    [('REQUESTED','F2F',  -7,  8, 'Walk-in — grief after loss of grandparent'),
+     ('REQUESTED','F2F',  -3,  9, 'Walk-in — family financial stress'),
+     ('CONFIRMED','F2F',   1,  8, None),
+     ('CONFIRMED','F2F',   5,  9, None),
+     ('CONFIRMED','F2F',   8, 10, None),
+     ('EVALUATION','F2F', -2,  8, None),
+     ('EVALUATION','F2F', -1,  9, None)],
+    # Gracie Mendoza — mixed online/F2F, mid-morning
+    [('REQUESTED','Online',-5, 10, 'Portal — test anxiety, failing major subjects'),
+     ('REQUESTED','F2F',  -3, 11, 'Walk-in, referred by nurse clinic'),
+     ('REQUESTED','Online',-1, 14, 'Last-minute portal — roommate conflict'),
+     ('CONFIRMED','Online', 2, 10, None),
+     ('CONFIRMED','F2F',   4, 11, None),
+     ('EVALUATION','Online',-4,10, None),
+     ('EVALUATION','F2F', -2, 11, None)],
 ]
 for ic_idx, ic_id in enumerate(ICS):
     ic_name = IC_NAMES[ic_idx]
-    for q_idx, (status, method, day_offset, hour, note) in enumerate(IC_STATUSES):
+    pattern = IC_QUEUE_PATTERNS[ic_idx]
+    for q_idx, (status, method, day_offset, hour, note) in enumerate(pattern):
         student_idx = ic_idx * 7 + q_idx
         sid = IC_Q[student_idx]
         start = F(day_offset, hour) if day_offset >= 0 else H(-day_offset, hour)
@@ -1156,31 +1296,31 @@ ADMIN / SYSTEM
   staff@university.edu     staff123    STAFF
   cm@university.edu        cm123       CASE_MANAGER
 
-INTAKE COUNSELORS (8) — each has 7 active intake appointments
-  julse@university.edu     julse123
-  archie@university.edu    archie123
-  mars@university.edu      mars123
-  ria@university.edu       ria123
-  cris@university.edu      cris123
-  wil@university.edu       wil123
-  rose.c@university.edu    rosec123
-  gracie@university.edu    gracie123
+INTAKE COUNSELORS (8) — each has 7 active intake appointments (unique patterns)
+  julse@university.edu     julse123    Julse Aguilar
+  archie@university.edu    archie123   Archie Fernandez
+  mars@university.edu      mars123     Mars Dela Cruz
+  ria@university.edu       ria123      Ria Ocampo
+  cris@university.edu      cris123     Cris Villanueva
+  wil@university.edu       wil123      Wil Santos
+  rose.c@university.edu    rosec123    Rose Cabrera
+  gracie@university.edu    gracie123   Gracie Mendoza
 
-COUNSELORS — each has 10-15 appointments (COMPLETED, CONFIRMED, EVALUATION, FOLLOW_UP, REFERRAL)
-  rose.t@university.edu    roset123    → Emma + Maria + Leo (~15 appts)
-  bia@university.edu       bia123      → Priya + Grace (~11 appts)
-  chelly@university.edu    chelly123   → Sofia + Rachel (~11 appts)
-  daye@university.edu      daye123     → Lena (~11 appts)
-  csc@university.edu       csc123      → Nina (~11 appts)
+COUNSELORS — each has weekly schedule + availability slots for 28 days
+  rose.t@university.edu    roset123    Rose Tolentino  → Emma + Maria + Leo (~15 appts)
+  bia@university.edu       bia123      Bia Alcantara   → Priya + Grace (~11 appts)
+  chelly@university.edu    chelly123   Chelly Reyes    → Sofia + Rachel (~11 appts)
+  daye@university.edu      daye123     Daye Navarro    → Lena (~11 appts)
+  csc@university.edu       csc123      Clara Santos    → Nina (~11 appts)
 
-PSYCHOLOGISTS — each has 10-16 appointments (COMPLETED, CONFIRMED, EVALUATION, FOLLOW_UP, REFERRAL)
-  daryl@university.edu     daryl123    → Mark + James + Kevin (~16 appts)
-  niko@university.edu      niko123     → Sam + Diana (~12 appts)
-  bon@university.edu       bon123      → Amy (~11 appts)
-  shel@university.edu      shel123     → Miguel (~11 appts)
-  jenny@university.edu     jenny123    → Carlos (~11 appts)
-  chona@university.edu     chona123    → David (~11 appts)
-  csp@university.edu       csp123      → Ethan — CLOSED case history (~10 appts)
+PSYCHOLOGISTS — each has weekly schedule + availability slots for 28 days
+  daryl@university.edu     daryl123    Daryl Bautista  → Mark + James + Kevin (~16 appts)
+  niko@university.edu      niko123     Niko Pascual    → Sam + Diana (~12 appts)
+  bon@university.edu       bon123      Bon Aquino      → Amy (~11 appts)
+  shel@university.edu      shel123     Shel Macaraeg   → Miguel (~11 appts)
+  jenny@university.edu     jenny123    Jenny Soriano   → Carlos (~11 appts)
+  chona@university.edu     chona123    Chona Lim       → David (~11 appts)
+  csp@university.edu       csp123      Carl de Guzman  → Ethan — CLOSED case history (~10 appts)
 
 STUDENTS (21 main + 56 IC-queue)
   student1@university.edu  student123  Emma Johnson   — ACTIVE GREEN, treatment plan

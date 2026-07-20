@@ -214,6 +214,7 @@ export function DashboardLayout({
         {/* Desktop collapse toggle */}
         <button
           onClick={toggleSidebar}
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className="hidden lg:flex ml-auto flex-shrink-0 items-center justify-center w-6 h-6 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
@@ -223,6 +224,7 @@ export function DashboardLayout({
         {/* Mobile close */}
         <button
           onClick={() => setMobileOpen(false)}
+          aria-label="Close navigation menu"
           className="lg:hidden flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors"
         >
           <X size={15} />
@@ -353,6 +355,7 @@ export function DashboardLayout({
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation menu"
             className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl transition-colors"
             style={{ color: 'var(--color-text-secondary)' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-border)')}
@@ -385,6 +388,7 @@ export function DashboardLayout({
             <div className="relative" ref={bellRef}>
               <button
                 onClick={() => setBellOpen(v => { if (!v) setReminderCount(0); return !v; })}
+                aria-label={reminderCount > 0 ? `Notifications (${reminderCount} new)` : 'Notifications'}
                 className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-colors duration-150"
                 style={{ color: 'var(--color-text-secondary)' }}
                 onMouseEnter={e => {

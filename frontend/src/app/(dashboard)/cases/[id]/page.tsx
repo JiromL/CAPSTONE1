@@ -378,6 +378,16 @@ export default function CaseDetailPage() {
     loadCaseAppointments();
   }, [caseId]);
 
+  // Warn before leaving when a note form has unsaved content
+  useEffect(() => {
+    if (!showNoteForm) return;
+    const hasContent = noteForm.soap_subjective || noteForm.soap_objective || noteForm.soap_assessment || noteForm.soap_plan || noteForm.content;
+    if (!hasContent) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [showNoteForm, noteForm.soap_subjective, noteForm.soap_objective, noteForm.soap_assessment, noteForm.soap_plan, noteForm.content]);
+
   const loadCaseAppointments = async () => {
     try {
       const token = localStorage.getItem('token');

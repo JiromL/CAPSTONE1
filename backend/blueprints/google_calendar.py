@@ -114,9 +114,10 @@ def calendar_callback():
         return jsonify({'error': 'Missing code or state parameter'}), 400
     
     # Verify state and get user_id (supports both regular users and __cps_system__)
+    # System state format: "__cps_system___{timestamp}"
+    # User state format:   "{user_id}_{timestamp}"
     try:
-        raw_user_id = state.split('_')[0]
-        is_system = raw_user_id == SYSTEM_CALENDAR_USER or state.startswith(SYSTEM_CALENDAR_USER)
+        is_system = state.startswith(SYSTEM_CALENDAR_USER)
 
         if is_system:
             db_user_id = SYSTEM_CALENDAR_USER
@@ -126,6 +127,7 @@ def calendar_callback():
                 "expires_at": {"$gt": datetime.utcnow()}
             })
         else:
+            raw_user_id = state.rsplit('_', 1)[0]
             db_user_id = raw_user_id
             state_record = db.db.oauth_states.find_one({
                 "user_id": ObjectId(raw_user_id),

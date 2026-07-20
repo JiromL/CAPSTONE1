@@ -150,6 +150,7 @@ export default function AppointmentsPage() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date-asc' | 'date-desc' | 'risk'>('date-asc');
   const [riskFilter, setRiskFilter] = useState<'all' | 'high'>('all');
+  const [mineOnly, setMineOnly] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -198,6 +199,7 @@ export default function AppointmentsPage() {
     .filter(a => {
       if (search && !a.student_name.toLowerCase().includes(search.toLowerCase())) return false;
       if (riskFilter === 'high' && !['RED', 'CRITICAL'].includes((a.risk_level ?? '').toUpperCase())) return false;
+      if (mineOnly && a.counselor_name && dashboard?.user_name && !a.counselor_name.toLowerCase().includes(dashboard.user_name.toLowerCase())) return false;
       return true;
     })
     .sort((a, b) => {
@@ -381,6 +383,14 @@ export default function AppointmentsPage() {
               ? { background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }
               : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
             <AlertTriangle size={11} /> High Risk
+          </button>
+          <button onClick={() => setMineOnly(v => !v)}
+            aria-label={mineOnly ? 'Show all appointments' : 'Show only my appointments'}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition whitespace-nowrap"
+            style={mineOnly
+              ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }
+              : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+            Mine only
           </button>
         </div>
 

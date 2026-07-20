@@ -354,6 +354,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   ACCESSIBILITY
+───────────────────────────────────────────────────────── */
+
+/* WCAG 2.2 SC 2.4.11 — visible focus for keyboard users */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Override Tailwind's focus:outline-none only when focus-visible */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Bump text-xs form labels to text-sm (14px) for readability */
+label.text-xs {
+  font-size: 0.875rem;
+}
+
+/* ─────────────────────────────────────────────────────────────
    REDUCED MOTION
 ───────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {

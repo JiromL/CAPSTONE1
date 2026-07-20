@@ -27,9 +27,9 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const icItems: MenuItem[] = [
     { label: 'Dashboard',         href: '/dashboard',         id: 'dashboard'        },
     { label: 'Intake Management', href: '/intake-management', id: 'intake-management'},
-    { label: 'QA',                href: '/ic/qa',             id: 'ic-qa'            },
+    { label: 'Intake Review',     href: '/ic/qa',             id: 'ic-qa'            },
     { label: 'My Schedule',       href: '/schedule',          id: 'schedule'         },
-    { label: 'EMA',               href: '/mhbot',             id: 'mhbot'            },
+    { label: 'EMA Bot',           href: '/mhbot',             id: 'mhbot'            },
     { label: 'Announcements',     href: '/announcements',     id: 'announcements'    },
     { label: 'Profile',           href: '/profile',           id: 'profile'          },
   ];
@@ -42,7 +42,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'My Referrals',    href: '/my-referrals',  id: 'my-referrals' },
     { label: 'Appointments',    href: '/appointments',  id: 'appointments' },
     { label: 'My Schedule',     href: '/schedule',      id: 'schedule'     },
-    { label: 'EMA',             href: '/mhbot',         id: 'mhbot'        },
+    { label: 'EMA Bot',         href: '/mhbot',         id: 'mhbot'        },
     { label: 'Announcements',   href: '/announcements', id: 'announcements'},
     { label: 'Profile',         href: '/profile',       id: 'profile'      },
   ];
@@ -55,7 +55,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases',                href: '/cases',         id: 'cases'        },
     { label: 'Appointments',         href: '/appointments',  id: 'appointments' },
     { label: 'My Schedule',          href: '/schedule',      id: 'schedule'     },
-    { label: 'EMA',                  href: '/mhbot',         id: 'mhbot'        },
+    { label: 'EMA Bot',              href: '/mhbot',         id: 'mhbot'        },
     { label: 'Announcements',        href: '/announcements', id: 'announcements'},
     { label: 'Profile',              href: '/profile',       id: 'profile'      },
   ];
@@ -89,13 +89,14 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ ADMIN ============
   // Most frequent: User Mgmt → Appointment Requests → Cases → Analytics
   const adminItems: MenuItem[] = [
-    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'    },
-    { label: 'User Management',      href: '/admin/users',          id: 'admin'        },
-    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments' },
-    { label: 'Cases',                href: '/cases',                id: 'cases'        },
-    { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'    },
-    { label: 'Announcements',        href: '/announcements',        id: 'announcements'},
-    { label: 'Profile',              href: '/profile',              id: 'profile'      },
+    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'       },
+    { label: 'User Management',      href: '/admin/users',          id: 'admin'           },
+    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'    },
+    { label: 'Cases',                href: '/cases',                id: 'cases'           },
+    { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'       },
+    { label: 'Announcements',        href: '/announcements',        id: 'announcements'   },
+    { label: 'System Settings',      href: '/admin/settings',       id: 'admin-settings'  },
+    { label: 'Profile',              href: '/profile',              id: 'profile'         },
   ];
 
   // ============ DPO (Data Protection Officer) ============
@@ -181,6 +182,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     'users':                'admin',
     'analytics':            'analytics',
     'audit-log':            'audit',
+    'settings':             'admin-settings',
 
     // Schedules
     'counselor-schedules':  'counselor-schedules',

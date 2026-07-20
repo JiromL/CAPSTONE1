@@ -152,7 +152,7 @@ export default function BookAppointmentPage() {
   const [prefDate, setPrefDate]           = useState('');
   const [prefTime, setPrefTime]           = useState('');
   const [slotCounselorId, setSlotCounselorId] = useState('');
-  const [slots, setSlots]                 = useState<{ time: string; method: string; counselor_id: string; counselor_name: string }[]>([]);
+  const [slots, setSlots]                 = useState<{ time: string; method: string; counselor_id: string; counselor_name: string; count?: number }[]>([]);
   const [slotsLoading, setSlotsLoading]   = useState(false);
   const [noSlotsNextDate, setNoSlotsNextDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
@@ -1383,14 +1383,19 @@ export default function BookAppointmentPage() {
                             <p className="text-[10px] mt-0.5 truncate" style={{ color: sel ? 'rgba(255,255,255,0.7)' : 'var(--color-text-muted)' }}>{s.counselor_name}</p>
                           )}
                         </div>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2"
-                          style={sel
-                            ? { background: 'rgba(255,255,255,0.2)', color: 'white' }
-                            : slotCountByTime[s.time] === 1
-                            ? { background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }
-                            : { background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
-                          {slotCountByTime[s.time]} slot{slotCountByTime[s.time] !== 1 ? 's' : ''} left
-                        </span>
+                        {purpose === 'intake_interview' && (() => {
+                          const n = s.count ?? slotCountByTime[s.time] ?? 1;
+                          return (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2"
+                              style={sel
+                                ? { background: 'rgba(255,255,255,0.2)', color: 'white' }
+                                : n === 1
+                                ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }
+                                : { background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
+                              {n} IC{n !== 1 ? 's' : ''} free
+                            </span>
+                          );
+                        })()}
                       </button>
                     );
                   })}

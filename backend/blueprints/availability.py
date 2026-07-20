@@ -298,20 +298,24 @@ def get_open_slots():
     ics_sorted = sorted(ics, key=lambda ic: ic_load.get(ic['_id'], 0))
 
     def build_slots_for_date(date):
-        seen_times = set()
-        combined = []
+        time_counts = {}   # time_str → number of ICs available
+        time_first  = {}   # time_str → (ic, method) — least-busy IC for that time
         for ic in ics_sorted:
             for s in slots_for_counselor(ic, date):
-                if s['time'] in seen_times:
-                    continue
-                seen_times.add(s['time'])
-                combined.append({
-                    'time': s['time'],
-                    'method': s['method'],
-                    'counselor_id': str(ic['_id']),
-                    'counselor_name': f"{ic.get('first_name','')} {ic.get('last_name','')}".strip(),
-                })
-        combined.sort(key=lambda x: x['time'])
+                t = s['time']
+                time_counts[t] = time_counts.get(t, 0) + 1
+                if t not in time_first:
+                    time_first[t] = (ic, s['method'])
+        combined = []
+        for time_str in sorted(time_counts.keys()):
+            ic, method = time_first[time_str]
+            combined.append({
+                'time': time_str,
+                'method': method,
+                'counselor_id': str(ic['_id']),
+                'counselor_name': f"{ic.get('first_name','')} {ic.get('last_name','')}".strip(),
+                'count': time_counts[time_str],
+            })
         return combined
 
     slots = build_slots_for_date(target_date)

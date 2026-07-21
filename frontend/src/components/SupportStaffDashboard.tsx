@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, ListChecks, CalendarDays, ChevronLeft, ChevronRight, MoreHorizontal, UserPlus, ClipboardList } from 'lucide-react';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -385,6 +386,10 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
             a.counselor_name && a.counselor_name !== 'Not Assigned' &&
             ['CONFIRMED','APPROVED','CHECKED_IN','MATCHED'].includes((a.status || '').toUpperCase())
           )} />
+
+          <div className="lg:col-span-2">
+            <AnnouncementsPanel />
+          </div>
 
         </div>
       )}

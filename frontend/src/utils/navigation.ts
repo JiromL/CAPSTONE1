@@ -23,41 +23,37 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   ];
 
   // ============ IC (Intake Counselor) ============
-  // Pipeline: conduct intake → QA (verify / review / follow-up) → schedule
   const icItems: MenuItem[] = [
-    { label: 'Dashboard',         href: '/dashboard',         id: 'dashboard'        },
-    { label: 'Intake Management', href: '/intake-management', id: 'intake-management'},
-    { label: 'Intake Review',     href: '/ic/qa',             id: 'ic-qa'            },
-    { label: 'My Schedule',       href: '/schedule',          id: 'schedule'         },
-    { label: 'EMA Bot',           href: '/mhbot',             id: 'mhbot'            },
-    { label: 'Announcements',     href: '/announcements',     id: 'announcements'    },
-    { label: 'Profile',           href: '/profile',           id: 'profile'          },
+    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'          },
+    { label: 'Intake Management',    href: '/intake-management',    id: 'intake-management'  },
+    { label: 'Reschedule Requests',  href: '/reschedule-requests',  id: 'reschedule-requests'},
+    { label: 'My Schedule',          href: '/schedule',             id: 'schedule'           },
+    { label: 'EMA Bot',              href: '/mhbot',                id: 'mhbot'              },
+    { label: 'Profile',              href: '/profile',              id: 'profile'            },
   ];
 
   // ============ COUNSELOR ============
-  // Most frequent: Cases (daily notes) → Sessions (schedule) → Availability → EMA
   const counselorItems: MenuItem[] = [
-    { label: 'Dashboard',       href: '/dashboard',     id: 'dashboard'    },
-    { label: 'Cases',           href: '/cases',         id: 'cases'        },
-    { label: 'My Referrals',    href: '/my-referrals',  id: 'my-referrals' },
-    { label: 'Appointments',    href: '/appointments',  id: 'appointments' },
-    { label: 'My Schedule',     href: '/schedule',      id: 'schedule'     },
-    { label: 'EMA Bot',         href: '/mhbot',         id: 'mhbot'        },
-    { label: 'Announcements',   href: '/announcements', id: 'announcements'},
-    { label: 'Profile',         href: '/profile',       id: 'profile'      },
+    { label: 'Dashboard',           href: '/dashboard',           id: 'dashboard'          },
+    { label: 'Cases',               href: '/cases',               id: 'cases'              },
+    { label: 'My Referrals',        href: '/my-referrals',        id: 'my-referrals'       },
+    { label: 'Appointments',        href: '/appointments',        id: 'appointments'       },
+    { label: 'Reschedule Requests', href: '/reschedule-requests', id: 'reschedule-requests'},
+    { label: 'My Schedule',         href: '/schedule',            id: 'schedule'           },
+    { label: 'EMA Bot',             href: '/mhbot',               id: 'mhbot'              },
+    { label: 'Profile',             href: '/profile',             id: 'profile'            },
   ];
 
   // ============ PSYCHOLOGIST ============
-  // Most frequent: High-Risk (unique role) → Cases → Appointments → Availability → EMA
   const psychologistItems: MenuItem[] = [
-    { label: 'Dashboard',            href: '/dashboard',     id: 'dashboard'    },
-    { label: 'High-Risk Monitoring', href: '/high-risk',     id: 'high-risk'    },
-    { label: 'Cases',                href: '/cases',         id: 'cases'        },
-    { label: 'Appointments',         href: '/appointments',  id: 'appointments' },
-    { label: 'My Schedule',          href: '/schedule',      id: 'schedule'     },
-    { label: 'EMA Bot',              href: '/mhbot',         id: 'mhbot'        },
-    { label: 'Announcements',        href: '/announcements', id: 'announcements'},
-    { label: 'Profile',              href: '/profile',       id: 'profile'      },
+    { label: 'Dashboard',            href: '/dashboard',           id: 'dashboard'          },
+    { label: 'High-Risk Monitoring', href: '/high-risk',           id: 'high-risk'          },
+    { label: 'Cases',                href: '/cases',               id: 'cases'              },
+    { label: 'Appointments',         href: '/appointments',        id: 'appointments'       },
+    { label: 'Reschedule Requests',  href: '/reschedule-requests', id: 'reschedule-requests'},
+    { label: 'My Schedule',          href: '/schedule',            id: 'schedule'           },
+    { label: 'EMA Bot',              href: '/mhbot',               id: 'mhbot'              },
+    { label: 'Profile',              href: '/profile',             id: 'profile'            },
   ];
 
   // ============ CASE MANAGER ============
@@ -69,7 +65,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'High-Risk',    href: '/high-risk',          id: 'high-risk'    },
     { label: 'Referrals',    href: '/referrals',          id: 'referrals'    },
     { label: 'Appointments', href: '/appointments',       id: 'appointments' },
-    { label: 'Announcements',href: '/announcements',      id: 'announcements'},
     { label: 'Profile',      href: '/profile',            id: 'profile'      },
   ];
 
@@ -82,7 +77,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Counselor Schedules',  href: '/counselor-schedules',   id: 'counselor-schedules'},
     { label: 'Walk-In Intake',       href: '/staff/walkin-intake',   id: 'walk-in-intake'     },
     { label: 'Reschedule Requests',  href: '/reschedule-requests',   id: 'reschedule-requests'},
-    { label: 'Announcements',        href: '/announcements',         id: 'announcements'      },
     { label: 'Profile',              href: '/profile',               id: 'profile'            },
   ];
 
@@ -94,7 +88,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'    },
     { label: 'Cases',                href: '/cases',                id: 'cases'           },
     { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'       },
-    { label: 'Announcements',        href: '/announcements',        id: 'announcements'   },
     { label: 'System Settings',      href: '/admin/settings',       id: 'admin-settings'  },
     { label: 'Profile',              href: '/profile',              id: 'profile'         },
   ];
@@ -106,7 +99,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'User Management', href: '/admin/users',     id: 'admin'        },
     { label: 'NC Client Tracker', href: '/new-intakes',   id: 'new-intakes'  },
     { label: 'Cases',           href: '/cases',           id: 'cases'        },
-    { label: 'Announcements',   href: '/announcements',   id: 'announcements'},
     { label: 'Profile',         href: '/profile',         id: 'profile'      },
   ];
 
@@ -162,14 +154,6 @@ export function getActiveSectionFromPath(pathname: string): string {
     'new-intakes':          'new-intakes',
     'intake-management':    'intake-management',
 
-    // IC QA section — all sub-paths map to the unified QA nav item
-    'qa':                   'ic-qa',
-    'review':               'ic-qa',
-    'follow-up':            'ic-qa',
-    'verify':               'ic-qa',
-    'missing-data':         'ic-qa',
-    'contact':              'ic-qa',
-    'forms':                'ic-qa',
 
     // Cases / Clinical
     'cases':                'cases',

@@ -90,6 +90,7 @@ export default function CasesPage() {
   const [error, setError]       = useState<string | null>(null);
   const [search, setSearch]     = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>('all');
+  const [myCasesOnly, setMyCasesOnly] = useState(false);
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
@@ -163,7 +164,9 @@ export default function CasesPage() {
     const matchSearch = !t || [c.student_name, c.student_email, c.chief_complaint, c.presenting_issue, c.case_number]
       .some(v => v?.toLowerCase().includes(t));
 
-    return matchTab && matchSearch;
+    const matchMine = !myCasesOnly || c.assigned_counselor_id === user?._id;
+
+    return matchTab && matchSearch && matchMine;
   });
 
   const openCount   = cases.filter(c => ['open', 'ACTIVE', 'NEW', 'INTAKE_SCHEDULED'].includes(c.status)).length;
@@ -237,14 +240,14 @@ export default function CasesPage() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="px-4 pb-3 pt-2">
-            <div className="relative">
+          {/* Search + My Cases toggle */}
+          <div className="px-4 pb-3 pt-2 flex items-center gap-2">
+            <div className="relative flex-1">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search name, issue, case #…"
+                placeholder="Search name, email, case #…"
                 className="w-full pl-8 pr-3 py-2 text-sm rounded-xl outline-none transition-all duration-150"
                 style={{
                   background:   'var(--color-bg)',
@@ -261,6 +264,23 @@ export default function CasesPage() {
                 }}
               />
             </div>
+            {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
+              <button
+                onClick={() => setMyCasesOnly(v => !v)}
+                className="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-all duration-150"
+                style={myCasesOnly ? {
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  border: '1px solid var(--color-primary)',
+                } : {
+                  background: 'var(--color-bg)',
+                  color: 'var(--color-text-secondary)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                My Cases
+              </button>
+            )}
           </div>
         </div>
 

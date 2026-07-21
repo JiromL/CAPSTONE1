@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Clock, CheckCircle, AlertCircle, UserCheck, MessageSquare,
-  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Plus, X, Search, Loader2, RefreshCw,
+  Clock, CheckCircle, AlertCircle, UserCheck,
+  ChevronLeft, ChevronRight, Plus, X, Search, Loader2, RefreshCw,
   ExternalLink, Archive, Star, CalendarDays, Users, Send, Filter,
   XCircle, ThumbsUp, MapPin, RotateCcw, ClipboardList, Pencil,
   FileText, Eye,
@@ -225,8 +225,6 @@ export default function AppointmentsDashboard() {
   const [reschedMsg, setReschedMsg]         = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Check-ins expansion
-  const [checkinRow, setCheckinRow]     = useState<string | null>(null);
-  const [checkinData, setCheckinData]   = useState<Record<string, any[]>>({});
 
   // Schedule-for-student modal
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -623,16 +621,6 @@ export default function AppointmentsDashboard() {
     } finally { setSubmittingEdit(false); }
   };
 
-  const toggleCheckins = async (aptId: string) => {
-    if (checkinRow === aptId) { setCheckinRow(null); return; }
-    setCheckinRow(aptId);
-    if (!checkinData[aptId]) {
-      const token = localStorage.getItem('token');
-      const r = await fetch(api(`/api/check-ins/for-appointment/${aptId}`), { headers: { Authorization: `Bearer ${token}` } });
-      const d = r.ok ? await r.json() : { check_ins: [] };
-      setCheckinData(prev => ({ ...prev, [aptId]: d.check_ins || [] }));
-    }
-  };
 
   const searchStudents = async (q: string) => {
     setStudentQuery(q);
@@ -988,15 +976,6 @@ export default function AppointmentsDashboard() {
 
                           {/* Actions */}
                           <div className="flex items-center gap-2 mt-3 flex-wrap">
-                            <button onClick={() => toggleCheckins(apt.appointment_id)}
-                              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition"
-                              style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
-                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-border)'; }}
-                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}>
-                              <MessageSquare size={11} />
-                              {checkinData[apt.appointment_id] != null ? checkinData[apt.appointment_id].length : '—'}
-                              {checkinRow === apt.appointment_id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                            </button>
 
                             {showActions && (
                               <>
@@ -1044,7 +1023,7 @@ export default function AppointmentsDashboard() {
                                   </button>
                                 )}
 
-                                {['CONFIRMED', 'APPROVED', 'MATCHED'].includes(apt.status) && (canManage || isOA) && (
+                                {['CONFIRMED', 'APPROVED', 'MATCHED'].includes(apt.status) && canManage && (
                                   <button onClick={() => doSessionAction(apt.appointment_id, 'check-in')}
                                     disabled={actioningId === apt.appointment_id}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg disabled:opacity-50 transition"
@@ -1179,36 +1158,6 @@ export default function AppointmentsDashboard() {
                       </div>
                     </div>
 
-                    {/* Check-ins expansion */}
-                    {checkinRow === apt.appointment_id && (
-                      <div className="mt-1 rounded-xl px-4 py-3" style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
-                        {!checkinData[apt.appointment_id] ? (
-                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Loading…</span>
-                        ) : checkinData[apt.appointment_id].length === 0 ? (
-                          <span className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No check-ins submitted yet.</span>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Student Check-ins</p>
-                            {checkinData[apt.appointment_id].map((c: any) => {
-                              const emoji: Record<string, string> = { DOING_WELL: '😊', MANAGING: '😐', STRUGGLING: '😔', IN_CRISIS: '😰' };
-                              return (
-                                <div key={c._id} className="flex items-start gap-3 text-xs rounded-lg px-3 py-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                                  <span>{emoji[c.status] ?? '📝'}</span>
-                                  <div className="flex-1">
-                                    <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.status?.replace(/_/g, ' ')}</span>
-                                    {c.wellness_rating && <span className="ml-2" style={{ color: 'var(--color-text-muted)' }}>· {c.wellness_rating}/10</span>}
-                                    {c.notes && <p className="mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>{c.notes}</p>}
-                                  </div>
-                                  <span className="whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
-                                    {c.submitted_at ? new Date(c.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </React.Fragment>
                 );
               })}
@@ -1316,7 +1265,7 @@ export default function AppointmentsDashboard() {
                             </div>
                             <div className="grid grid-cols-7 mb-1">
                               {['M','T','W','T','F','S','S'].map((d, i) => (
-                                <div key={i} className="text-center text-[9px] font-semibold py-0.5" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
+                                <div key={i} className="text-center text-[10px] font-semibold py-0.5" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
                               ))}
                             </div>
                             <div className="grid grid-cols-7 gap-y-0.5">
@@ -1392,9 +1341,9 @@ export default function AppointmentsDashboard() {
                                           <p className="text-xs font-bold" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{fmtSlotTime(s.time)}</p>
                                           <p className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>{s.counselor_name}</p>
                                         </div>
-                                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
                                           style={isOnline ? { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' } : { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>{isOnline ? 'Online' : 'F2F'}</span>
-                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[9px] flex-shrink-0">✓</span>}
+                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[10px] flex-shrink-0">✓</span>}
                                       </button>
                                     );
                                   })}

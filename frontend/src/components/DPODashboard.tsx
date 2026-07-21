@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -133,6 +134,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
             </div>
 
           </div>
+          <AnnouncementsPanel />
         </div>
       )}
     </DashboardLayout>

@@ -7,6 +7,7 @@ import { fetchDashboardData } from '@/utils/dashboard-api';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, Shield, MoreHorizontal, Calendar, AlertTriangle } from 'lucide-react';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface AttentionCase {
   _id: string; student_name: string; case_status: string; risk_level: string; reason: string;
@@ -255,6 +256,9 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-up" style={{ animationDelay: '60ms' }}>
           <TodayScheduleTable appts={todayAppts} fmtTime={fmtTime} />
           <CasesNeedingAttention />
+          <div className="lg:col-span-2">
+            <AnnouncementsPanel />
+          </div>
         </div>
       )}
     </DashboardLayout>

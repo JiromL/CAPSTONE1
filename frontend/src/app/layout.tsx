@@ -39,7 +39,7 @@ export default function RootLayout({
   --color-primary-text:#2352CC;--color-primary-muted:rgba(35,82,204,0.12);
   --color-bg:#F5F7FB;--color-surface:#FFFFFF;--color-sidebar:#0F1729;
   --color-border:#E4E7F0;--color-border-strong:#CBD0DC;
-  --color-text-primary:#0D1526;--color-text-secondary:#64748B;--color-text-muted:#9CA3AF;
+  --color-text-primary:#0D1526;--color-text-secondary:#475569;--color-text-muted:#6B7280;
   --color-success:#059669;--color-success-hover:#047857;--color-success-surface:#ECFDF5;--color-success-text:#065F46;
   --color-warning:#D97706;--color-warning-surface:#FFFBEB;--color-warning-text:#92400E;
   --color-danger:#DC2626;--color-danger-hover:#B91C1C;--color-danger-surface:#FEF2F2;--color-danger-text:#991B1B;
@@ -56,7 +56,7 @@ html.dark{
   --color-primary-text:#7BAAF7;--color-primary-muted:rgba(69,117,240,0.15);
   --color-bg:#0A0D14;--color-surface:#111827;--color-sidebar:#070B14;
   --color-border:#1F2640;--color-border-strong:#2D3852;
-  --color-text-primary:#F1F5F9;--color-text-secondary:#94A3B8;--color-text-muted:#6B7280;
+  --color-text-primary:#F1F5F9;--color-text-secondary:#CBD5E1;--color-text-muted:#94A3B8;
   --color-success-surface:#022C22;--color-success-text:#34D399;
   --color-warning-surface:#1C1400;--color-warning-text:#FCD34D;
   --color-danger-surface:#1F0708;--color-danger-text:#FCA5A5;

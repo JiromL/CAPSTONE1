@@ -77,7 +77,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/availability': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
   // Announcements
-  '/announcements': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/announcements': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Supervision
   '/supervision': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
@@ -90,12 +90,6 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/ic/intake/new': ['IC', 'ADMIN', 'DPO'],
   '/ic/intake/completed': ['IC', 'ADMIN', 'DPO'],
   '/ic/intake/overdue': ['IC', 'ADMIN', 'DPO'],
-  '/ic/forms': ['IC', 'ADMIN', 'DPO'],
-  '/ic/qa': ['IC', 'ADMIN', 'DPO'],
-  '/ic/qa/verify': ['IC', 'ADMIN', 'DPO'],
-  '/ic/qa/follow-up': ['IC', 'ADMIN', 'DPO'],
-  '/ic/qa/missing-data': ['IC', 'ADMIN', 'DPO'],
-  '/ic/qa/contact': ['IC', 'ADMIN', 'DPO'],
   '/ic/schedule': ['IC', 'ADMIN', 'DPO'],
 
   // Staff sub-routes

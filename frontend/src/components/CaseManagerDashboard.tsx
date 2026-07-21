@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DashboardPageWrapper } from './DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { AlertTriangle, Users, ClipboardList, ArrowRight, RefreshCw } from 'lucide-react';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -144,6 +145,9 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
               </Link>
             ))}
           </div>
+        </div>
+        <div className="mt-5">
+          <AnnouncementsPanel />
         </div>
       </div>
     </DashboardPageWrapper>

@@ -224,7 +224,7 @@ export default function BookAppointmentPage() {
             if (sPhq4) setPhq4(sPhq4);
             if (typeof sStep === 'number') setIntakeStep(sStep);
           } else if (u) {
-            setIcf(prev => ({ ...prev, first_name: u.first_name||'', last_name: u.last_name||'', email: u.email||'', student_id: u.student_number||u.student_id||'', college: u.college||'', program: u.program||'' }));
+            setIcf(prev => ({ ...prev, first_name: u.first_name||'', last_name: u.last_name||'', email: u.email||'', student_id: u.student_number||u.student_id||'', college: u.college||'', program: u.program||u.course||'', phone: u.phone||'', emergency_contact_name: u.emergency_contact||'', emergency_contact_relationship: u.emergency_contact_relationship||'', emergency_contact_phone: u.emergency_phone||'' }));
           }
         } catch {
           if (u) setIcf(prev => ({ ...prev, first_name: u.first_name||'', last_name: u.last_name||'', email: u.email||'' }));
@@ -334,7 +334,7 @@ export default function BookAppointmentPage() {
         const apptId = d.counseling_id || d.appointment_id || '';
         setTicketNumber(apptId); setAppointmentId(apptId);
         if (purpose === 'intake_interview') {
-          setIcf(p => ({ ...p, first_name: user?.first_name||'', last_name: user?.last_name||'', email: user?.email||'', student_id: user?.student_id||user?.id_number||'', phone: user?.phone||'', college: user?.college||'', program: user?.program||'', presenting_concern: concern, referral_source: referralType==='referred'?'referred':'self-referred', referred_by: referredBy }));
+          setIcf(p => ({ ...p, first_name: user?.first_name||'', last_name: user?.last_name||'', email: user?.email||'', student_id: user?.student_id||user?.id_number||'', phone: user?.phone||'', college: user?.college||'', program: user?.program||user?.course||'', emergency_contact_name: user?.emergency_contact||'', emergency_contact_relationship: user?.emergency_contact_relationship||'', emergency_contact_phone: user?.emergency_phone||'', presenting_concern: concern, referral_source: referralType==='referred'?'referred':'self-referred', referred_by: referredBy }));
           setIntakeStep(0); setIntakeError('');
           setShowFormsChoice(true);
         } else { setSuccess(true); }
@@ -480,7 +480,7 @@ export default function BookAppointmentPage() {
               <CheckCircle size={18} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-success)' }} />
               <div className="flex-1">
                 <p className="text-sm font-bold" style={{ color: 'var(--color-success)' }}>Appointment Booked — Ticket #{ticketNumber}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-success)' }}>Please complete the intake forms below. Your IC will review these before your session.</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-success)' }}>Please complete the intake forms below. Your IC will use this information during your session.</p>
               </div>
             </div>
 
@@ -1392,7 +1392,7 @@ export default function BookAppointmentPage() {
                                 : n === 1
                                 ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }
                                 : { background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
-                              {n} IC{n !== 1 ? 's' : ''} free
+                              {n} slot{n !== 1 ? 's' : ''} left
                             </span>
                           );
                         })()}

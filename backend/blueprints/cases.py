@@ -21,11 +21,9 @@ def has_permission(user_role, permission):
 
 def get_cases_for_user(user_id, user_role):
     """Get cases filtered by role"""
-    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER]:
+    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER, UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
         # These roles see all cases
         return {}
-    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
-        return {'assigned_counselor_id': ObjectId(user_id)}
     elif user_role == UserRole.IC:
         # IC sees new/pending intake cases (query both field names for compatibility)
         return {'$or': [

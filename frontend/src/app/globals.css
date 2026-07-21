@@ -26,7 +26,7 @@
 
   /* Text */
   --color-text-primary:   #0D1526;
-  --color-text-secondary: #4B5563;
+  --color-text-secondary: #475569;
   --color-text-muted:     #6B7280;
 
   /* Semantic — success */
@@ -80,7 +80,7 @@ html.dark {
   --color-border:        #1F2640;
   --color-border-strong: #2D3852;
 
-  /* Text */
+  /* Text — all three pass WCAG AA on the dark surface (#111827) */
   --color-text-primary:   #F1F5F9;
   --color-text-secondary: #CBD5E1;
   --color-text-muted:     #94A3B8;
@@ -332,9 +332,9 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.2;
   padding: 0.25rem 0.625rem;
   border-radius: 99px;
   letter-spacing: 0.01em;
@@ -352,6 +352,30 @@ h1, h2, h3, h4, h5, h6 {
   animation: shimmer 1.5s linear infinite;
   border-radius: 0.5rem;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   TYPOGRAPHY SCALE
+   Semantic hierarchy — use these classes for content text so
+   sizes stay consistent and accessible across the system.
+   WCAG AA requires 4.5:1 contrast for text below 18px/14px bold.
+───────────────────────────────────────────────────────────── */
+
+/* Page-level heading */
+.type-page-title    { font-size: 1.25rem;   font-weight: 700; line-height: 1.75rem; letter-spacing: -0.02em; }
+/* Card / panel section heading */
+.type-section-title { font-size: 1rem;      font-weight: 600; line-height: 1.5rem;  letter-spacing: -0.01em; }
+/* Card title / primary list label */
+.type-card-title    { font-size: 0.9375rem; font-weight: 600; line-height: 1.375rem; }
+/* Standard body prose */
+.type-body          { font-size: 0.9375rem; font-weight: 400; line-height: 1.5rem; }
+/* Secondary / supporting body text */
+.type-body-sm       { font-size: 0.875rem;  font-weight: 400; line-height: 1.375rem; }
+/* Form labels, table headers */
+.type-label         { font-size: 0.8125rem; font-weight: 500; line-height: 1.25rem; }
+/* Captions, timestamps, helper text — minimum for informational text */
+.type-caption       { font-size: 0.75rem;   font-weight: 500; line-height: 1.125rem; }
+/* ALL-CAPS overline — decorative separators only, not for data */
+.type-overline      { font-size: 0.6875rem; font-weight: 700; line-height: 1rem; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ─────────────────────────────────────────────────────────────
    ACCESSIBILITY

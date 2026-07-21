@@ -544,11 +544,11 @@ export default function MyAppointmentsPage() {
                               {steps.map((s, i) => (
                                 <div key={s.label} className="flex items-center" style={{ flex: i < steps.length - 1 ? '1' : 'none' }}>
                                   <div className="flex flex-col items-center">
-                                    <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                                    <div className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                                       style={{ background: s.done ? 'var(--color-success)' : 'var(--color-border)', color: s.done ? 'white' : 'var(--color-text-muted)' }}>
                                       {s.done ? '✓' : i + 1}
                                     </div>
-                                    <span className="text-[9px] mt-0.5 whitespace-nowrap" style={{ color: s.done ? 'var(--color-success)' : 'var(--color-text-muted)' }}>{s.label}</span>
+                                    <span className="text-xs mt-0.5 whitespace-nowrap" style={{ color: s.done ? 'var(--color-success)' : 'var(--color-text-muted)' }}>{s.label}</span>
                                   </div>
                                   {i < steps.length - 1 && (
                                     <div className="flex-1 h-px mx-1 mb-3" style={{ background: steps[i + 1].done ? 'var(--color-success)' : 'var(--color-border)' }} />
@@ -721,7 +721,7 @@ export default function MyAppointmentsPage() {
                     ['Mode', fmtPlatform(detailAppt.preferred_method, detailAppt.preferred_platform)],
                   ].map(([k, v]) => (
                     <div key={k} className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
-                      <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>{k}</p>
+                      <p className="text-xs font-semibold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>{k}</p>
                       <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{v}</p>
                     </div>
                   ))}
@@ -731,18 +731,18 @@ export default function MyAppointmentsPage() {
                   ['Assigned Counselor', detailAppt.counselor_name || 'Not yet assigned'],
                 ].map(([k, v]) => (
                   <div key={k} className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
-                    <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>{k}</p>
+                    <p className="text-xs font-semibold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>{k}</p>
                     <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{v}</p>
                   </div>
                 ))}
                 <div className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Status</p>
-                  <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-semibold border"
+                  <p className="text-xs font-semibold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Status</p>
+                  <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full font-semibold border"
                     style={{ background: cfg.bg, color: cfg.text, borderColor: cfg.ring }}>{cfg.label}</span>
                 </div>
                 {detailAppt.concern && (
                   <div className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
-                    <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
+                    <p className="text-xs font-semibold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
                     <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{detailAppt.concern}</p>
                   </div>
                 )}
@@ -750,7 +750,7 @@ export default function MyAppointmentsPage() {
                   <div className="rounded-xl border p-3 flex items-start gap-2" style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
                     <MapPin size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-warning)' }}>Office / Room</p>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-warning)' }}>Office / Room</p>
                       <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{detailAppt.office}</p>
                     </div>
                   </div>

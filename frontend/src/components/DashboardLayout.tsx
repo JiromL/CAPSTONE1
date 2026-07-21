@@ -206,7 +206,7 @@ export function DashboardLayout({
           ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
         `}>
           <p className="text-sm font-bold text-white leading-tight whitespace-nowrap">CPS Portal</p>
-          <p className="text-[9px] text-white/35 leading-tight whitespace-nowrap font-medium tracking-wide uppercase">
+          <p className="text-[10px] text-white/35 leading-tight whitespace-nowrap font-medium tracking-wide uppercase">
             De La Salle University
           </p>
         </div>
@@ -286,7 +286,7 @@ export function DashboardLayout({
             ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
           `}>
             <p className="text-xs font-semibold text-white/90 truncate leading-tight">{fullName}</p>
-            <p className="text-[10px] text-white/35 truncate leading-tight mt-0.5">{roleLabel}</p>
+            <p className="text-xs text-white/40 truncate leading-tight mt-0.5">{roleLabel}</p>
           </div>
         </div>
 
@@ -366,11 +366,11 @@ export function DashboardLayout({
 
           {/* Page title — desktop */}
           <div className="hidden lg:block flex-1 min-w-0">
-            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
+            <p className="text-base font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
               {title}
             </p>
             {subtitle && (
-              <p className="text-[11px] leading-none mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="text-xs leading-none mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
                 {subtitle}
               </p>
             )}
@@ -378,7 +378,7 @@ export function DashboardLayout({
 
           {/* Page title — mobile (centered) */}
           <div className="lg:hidden flex-1 text-center">
-            <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>{title}</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{title}</p>
           </div>
 
           {/* Right actions */}
@@ -465,7 +465,7 @@ export function DashboardLayout({
                               {r.message || r.title || 'Notification'}
                             </p>
                             {r.created_at && (
-                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                                 {new Date(r.created_at).toLocaleString('en-US', {
                                   month: 'short', day: 'numeric',
                                   hour: 'numeric', minute: '2-digit',

@@ -759,7 +759,7 @@ export default function ConductIntakePage() {
                     : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', cursor: 'default' }}>
                 {i < stepIdx
                   ? <Check size={11} />
-                  : <span className="w-3 h-3 rounded-full border flex items-center justify-center text-[9px] font-bold" style={{ borderColor: 'currentColor' }}>{i+1}</span>}
+                  : <span className="w-3 h-3 rounded-full border flex items-center justify-center text-[10px] font-bold" style={{ borderColor: 'currentColor' }}>{i+1}</span>}
                 {s.label}
               </button>
               {i < allSteps.length - 1 && <ChevronRight size={13} style={{ color: 'var(--color-border-strong)' }} className="flex-shrink-0" />}

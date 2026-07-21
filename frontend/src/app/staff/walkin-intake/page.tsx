@@ -84,7 +84,7 @@ function StepWizard({ current }: { current: number }) {
                 style={{ color: active ? 'var(--color-primary)' : done ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}>
                 {s.label}
               </p>
-              <span className="text-[9px] uppercase tracking-wide font-bold mt-0.5"
+              <span className="text-[10px] uppercase tracking-wide font-bold mt-0.5"
                 style={{ color: active ? 'var(--color-primary-text)' : 'var(--color-text-muted)' }}>{s.sub}</span>
             </div>
             {i < STEP_LABELS.length - 1 && (
@@ -485,18 +485,18 @@ export default function WalkinIntakePage() {
               </div>
             </div>
 
-            {/* Direct staff assignment */}
+            {/* Direct counselor/psychologist assignment */}
             <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid #FECACA' }}>
               <div className="px-4 py-2.5" style={{ background: '#FEF2F2', borderBottom: '1px solid #FECACA' }}>
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#B91C1C' }}>Assign to Available Staff</p>
-                <p className="text-[11px] mt-0.5" style={{ color: '#EF4444' }}>Route directly to a counselor, psychologist, or case manager. Leave unassigned to route to the IC queue.</p>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#B91C1C' }}>Route to Available Counselor / Psychologist</p>
+                <p className="text-[11px] mt-0.5" style={{ color: '#EF4444' }}>Assign now to confirm immediately. If left unassigned, it goes to Appointment Requests for the OA to assign later.</p>
               </div>
               <div className="px-4 py-3">
                 {loadingCrisisStaff ? (
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Loading available staff…</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Loading available counselors…</p>
                 ) : (
                   <select value={selectedCrisisStaffId} onChange={e => setSelectedCrisisStaffId(e.target.value)} className={IC} style={ICS}>
-                    <option value="">— Route to IC queue (unassigned) —</option>
+                    <option value="">— Leave unassigned (goes to Appointment Requests) —</option>
                     {crisisStaff.filter(s => s.role === 'COUNSELOR').length > 0 && (
                       <optgroup label="Counselors">
                         {crisisStaff.filter(s => s.role === 'COUNSELOR').map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
@@ -943,7 +943,7 @@ export default function WalkinIntakePage() {
                 )}
 
                 <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)', color: 'var(--color-primary-text)' }}>
-                  <strong>Optional:</strong> You can submit without assigning a slot — the intake will be queued and an IC can be assigned later from the Appointment Requests page.
+                  <strong>Assign now</strong> to confirm the appointment immediately. If no IC is selected, the intake goes to <strong>Appointment Requests</strong> for the OA to assign later.
                 </div>
               </div>
             )}

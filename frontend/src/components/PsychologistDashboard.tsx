@@ -7,6 +7,7 @@ import { fetchDashboardData } from '@/utils/dashboard-api';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, Shield, MoreHorizontal, Calendar } from 'lucide-react';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 const PERMA_BARS: { label: string; color: string }[] = [
   { label: 'Excelling',  color: '#10B981' },
@@ -378,6 +379,10 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="lg:col-span-2">
+            <AnnouncementsPanel />
           </div>
 
         </div>

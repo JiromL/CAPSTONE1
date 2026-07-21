@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { OnboardingModal } from './OnboardingModal';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -61,7 +62,13 @@ function fmtApptDate(s: string): string {
   catch { return ''; }
 }
 
+function isProfileIncomplete(u: any) {
+  return !u?.college || !u?.phone || !u?.emergency_contact || !u?.emergency_phone;
+}
+
 export function StudentDashboard({ user, onLogout }: DashboardProps) {
+  const [currentUser, setCurrentUser]           = useState<any>(user);
+  const [showOnboarding, setShowOnboarding]     = useState(false);
   const [appointments, setAppointments]         = useState<any[]>([]);
   const [announcements, setAnnouncements]       = useState<Announcement[]>([]);
   const [openAnnouncement, setOpenAnnouncement] = useState<Announcement | null>(null);
@@ -88,6 +95,13 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [reschedSuccess, setReschedSuccess]           = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+      setShowOnboarding(isProfileIncomplete(user));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!reschedDate) { setRescheduleSlots([]); setRescheduleNextDate(null); return; }
@@ -168,7 +182,23 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard">
+    <>
+    {showOnboarding && (
+      <OnboardingModal
+        user={currentUser}
+        onComplete={(updated) => {
+          const merged = { ...currentUser, ...updated };
+          setCurrentUser(merged);
+          try {
+            const stored = localStorage.getItem('user');
+            const base = stored ? JSON.parse(stored) : {};
+            localStorage.setItem('user', JSON.stringify({ ...base, ...updated }));
+          } catch {}
+          setShowOnboarding(false);
+        }}
+      />
+    )}
+    <DashboardLayout user={currentUser} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard">
 
       {loading ? (
         <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -207,7 +237,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                         Confirmed
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2 leading-snug">{title}</h3>
+                    <h3 className="text-xl font-bold mb-2 leading-snug" style={{ color: 'white' }}>{title}</h3>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm mb-6" style={{ color: 'rgba(255,255,255,0.8)' }}>
                       <span className="font-semibold text-white">with {counselor}</span>
                       {dateStr && (
@@ -717,5 +747,6 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       )}
 
     </DashboardLayout>
+    </>
   );
 }

@@ -404,7 +404,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
                       {dayDate.getDate()}
                     </p>
                     {isRequested && (
-                      <p className="text-[9px] font-bold mt-0.5 uppercase tracking-wide"
+                      <p className="text-xs font-bold mt-0.5 uppercase tracking-wide"
                         style={{ color: 'var(--color-warning)' }}>
                         ↑ Requested
                       </p>

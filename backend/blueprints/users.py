@@ -54,8 +54,8 @@ def update_profile():
             'updated_at': datetime.utcnow()
         }
 
-        optional_fields = ['id_number', 'course', 'major', 'year',
-                           'emergency_contact', 'emergency_phone']
+        optional_fields = ['id_number', 'college', 'course', 'major', 'year',
+                           'emergency_contact', 'emergency_phone', 'emergency_contact_relationship']
         for field in optional_fields:
             if data.get(field) is not None:
                 update_data[field] = data[field]
@@ -84,11 +84,13 @@ def update_profile():
                 'phone': updated_user.get('phone'),
                 'role': updated_user.get('role'),
                 'id_number': updated_user.get('id_number'),
+                'college': updated_user.get('college'),
                 'course': updated_user.get('course'),
                 'major': updated_user.get('major'),
                 'year': updated_user.get('year'),
                 'emergency_contact': updated_user.get('emergency_contact'),
                 'emergency_phone': updated_user.get('emergency_phone'),
+                'emergency_contact_relationship': updated_user.get('emergency_contact_relationship'),
             }
         }), 200
     
@@ -121,11 +123,13 @@ def get_profile():
             'phone': user.get('phone'),
             'role': user.get('role'),
             'id_number': user.get('id_number'),
+            'college': user.get('college'),
             'course': user.get('course'),
             'major': user.get('major'),
             'year': user.get('year'),
             'emergency_contact': user.get('emergency_contact'),
             'emergency_phone': user.get('emergency_phone'),
+            'emergency_contact_relationship': user.get('emergency_contact_relationship'),
             'created_at': user.get('created_at').isoformat() if user.get('created_at') else None,
             'ema_consent_given': user.get('ema_consent_given', False),
             'mhbot_username': user.get('mhbot_username'),

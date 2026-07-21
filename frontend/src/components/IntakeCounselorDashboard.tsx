@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, CheckCircle, AlertCircle, ClipboardList, CalendarClock, ChevronRight, ShieldCheck } from 'lucide-react';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -187,6 +188,10 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="lg:col-span-2">
+            <AnnouncementsPanel />
           </div>
 
         </div>

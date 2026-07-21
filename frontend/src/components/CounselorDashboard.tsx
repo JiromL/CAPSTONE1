@@ -233,10 +233,10 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Counselor';
 
   const fmtTime = (s: string) => {
-    try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return '—'; }
+    try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return '—'; }
   };
 
-  const dateLabel = new Date().toLocaleDateString('en-US', {
+  const dateLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 

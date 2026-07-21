@@ -93,7 +93,7 @@ export default function CheckInTrackingPage() {
       const data = await res.json();
       const rows = (data.data || []).map((c: NonCounselingClient) => [
         c.case_number, c.client_name, c.client_id_number, c.concern, c.status,
-        new Date(c.created_date).toLocaleDateString(),
+        new Date(c.created_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }),
       ]);
       exportToExcel({ headers: ['Case Number', 'Client Name', 'ID Number', 'Concern', 'Status', 'Date Created'], rows, filename: 'non-counseling-check-ins' });
     } catch {}
@@ -192,10 +192,10 @@ export default function CheckInTrackingPage() {
                           </td>
                           <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{c.primary_concern || '—'}</td>
                           <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
-                            {c.last_check_in_date ? new Date(c.last_check_in_date).toLocaleDateString() : <span style={{ color: 'var(--color-text-muted)' }}>Never</span>}
+                            {c.last_check_in_date ? new Date(c.last_check_in_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : <span style={{ color: 'var(--color-text-muted)' }}>Never</span>}
                           </td>
                           <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
-                            {c.next_check_in_date ? new Date(c.next_check_in_date).toLocaleDateString() : '—'}
+                            {c.next_check_in_date ? new Date(c.next_check_in_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : '—'}
                           </td>
                           <td className="px-4 py-3">
                             <span className="flex items-center gap-1 text-xs font-medium"
@@ -289,7 +289,7 @@ export default function CheckInTrackingPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
-                            {new Date(c.created_date).toLocaleDateString()}
+                            {new Date(c.created_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}
                           </td>
                         </tr>
                       ))}

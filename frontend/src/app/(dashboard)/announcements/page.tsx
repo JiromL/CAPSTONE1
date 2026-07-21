@@ -33,10 +33,10 @@ function typeStyle(t: string): React.CSSProperties {
 }
 
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
 }
 function fmtEventDate(s: string) {
-  return new Date(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 const POSTER_ROLES = new Set(['PSYCHOLOGIST', 'ADMIN', 'DPO']);

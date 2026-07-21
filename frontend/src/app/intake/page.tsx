@@ -248,7 +248,7 @@ export default function IntakePage() {
         if (data.has_active_appointment) {
           let appointmentTimeStr = 'Unknown';
           if (data.appointment_time) {
-            appointmentTimeStr = new Date(data.appointment_time).toLocaleDateString('en-US', {
+            appointmentTimeStr = new Date(data.appointment_time).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
               day: 'numeric',
               month: 'long',
               year: 'numeric',
@@ -771,7 +771,7 @@ export default function IntakePage() {
           if (data.has_active_appointment) {
             let appointmentTimeStr = 'Unknown';
             if (data.appointment_time) {
-              appointmentTimeStr = new Date(data.appointment_time).toLocaleDateString('en-US', {
+              appointmentTimeStr = new Date(data.appointment_time).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
@@ -1804,7 +1804,7 @@ export default function IntakePage() {
                           <option value="">Select a time</option>
                           {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'].map(t => (
                             <option key={t} value={t}>
-                              {new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              {new Date(`1970-01-01T${t}`).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })}
                             </option>
                           ))}
                         </select>
@@ -1822,10 +1822,10 @@ export default function IntakePage() {
                         <div className="p-4 border-2 rounded-lg" style={{ borderColor: '#F87171', background: '#FEF2F2' }}>
                           <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#B91C1C' }}>🔴 Earliest Available</p>
                           <p className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                            {start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            {start.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric' })}
                           </p>
                           <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                            {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · {sel.counselor_name}
+                            {start.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })} · {sel.counselor_name}
                           </p>
                         </div>
                       );
@@ -1861,10 +1861,10 @@ export default function IntakePage() {
                             >
                               <div>
                                 <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                                  {start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                  {start.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' })}
                                 </p>
                                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                                  {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · {slot.counselor_name}
+                                  {start.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })} · {slot.counselor_name}
                                 </p>
                               </div>
                               {isSelected && <span className="text-sm font-bold" style={{ color: '#DC2626' }}>✓</span>}
@@ -2137,7 +2137,7 @@ export default function IntakePage() {
                   <div className="flex items-start justify-between">
                     <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>📅 Date</span>
                     <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                      {appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '-'}
+                      {appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric' }) : '-'}
                     </span>
                   </div>
                   <div className="flex items-start justify-between">
@@ -2286,7 +2286,7 @@ export default function IntakePage() {
                       {!appointmentDate ? (
                         <p className="font-medium" style={{ color: 'var(--color-danger)' }}>Required: Select a date</p>
                       ) : (
-                        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{new Date(appointmentDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{new Date(appointmentDate).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                       )}
                     </div>
                     <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
@@ -2485,8 +2485,8 @@ export default function IntakePage() {
                 <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Scheduled Date</p>
                 <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
                   {appointmentData?.appointment_date
-                    ? new Date(appointmentData.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                    : appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    ? new Date(appointmentData.appointment_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })
+                    : appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Pending'}
                 </p>
               </div>

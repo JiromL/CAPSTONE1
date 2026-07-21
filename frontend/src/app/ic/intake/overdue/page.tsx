@@ -55,7 +55,7 @@ export default function OverdueIntakesPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold" style={{ color: 'var(--color-danger-text)' }}>{intake.student_name}</h3>
-                  <p className="text-sm" style={{ color: 'var(--color-danger)' }}>Due: {new Date(intake.deadline).toLocaleDateString()}</p>
+                  <p className="text-sm" style={{ color: 'var(--color-danger)' }}>Due: {new Date(intake.deadline).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</p>
                   <p className="text-sm font-bold mt-1" style={{ color: 'var(--color-danger-text)' }}>⚠️ {intake.days_overdue} days overdue</p>
                 </div>
                 <span className="text-xs px-3 py-1 rounded font-bold"

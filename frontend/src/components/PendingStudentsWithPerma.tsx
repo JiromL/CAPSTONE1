@@ -136,7 +136,7 @@ export default function PendingStudentsWithPerma() {
             {lookupResult.history?.slice(0, 4).map((h: any, i: number) => (
               <div key={i} className="flex justify-between text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 <span>{h.perma_label || '—'}</span>
-                <span>{new Date(h.date).toLocaleDateString()}</span>
+                <span>{new Date(h.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>
               </div>
             ))}
           </div>
@@ -164,7 +164,7 @@ export default function PendingStudentsWithPerma() {
                   <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{s.student_name}</p>
                   <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{s.student_email}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                    {s.appointment_type} · {new Date(s.requested_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    {s.appointment_type} · {new Date(s.requested_start).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </p>
                 </div>
                 <div className="flex-shrink-0">

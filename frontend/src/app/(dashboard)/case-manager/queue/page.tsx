@@ -32,7 +32,7 @@ function labelStyle(label: string): { badge: React.CSSProperties; dot: React.CSS
 
 function fmtDate(d: string | null) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function CaseManagerQueuePage() {

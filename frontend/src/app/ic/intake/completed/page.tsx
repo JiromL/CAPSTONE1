@@ -81,7 +81,7 @@ export default function CompletedIntakesPage() {
                   Completed
                 </span>
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                  {intake.completed_at ? new Date(intake.completed_at).toLocaleDateString() : '—'}
+                  {intake.completed_at ? new Date(intake.completed_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : '—'}
                 </p>
               </div>
             </div>

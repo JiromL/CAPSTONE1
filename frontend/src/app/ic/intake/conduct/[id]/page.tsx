@@ -438,8 +438,8 @@ export default function ConductIntakePage() {
   if (step === 'ic_doc') {
     const sessionDate = intake?.scheduled_start || intake?.preferred_date || intake?.created_at;
     const sessionInfo = {
-      date: sessionDate ? new Date(sessionDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
-      time: sessionDate ? new Date(sessionDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : undefined,
+      date: sessionDate ? new Date(sessionDate).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
+      time: sessionDate ? new Date(sessionDate).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }) : undefined,
       mode: (() => {
         const raw = intake?.method || intake?.preferred_method || intake?.session_type || '';
         const map: Record<string, string> = {

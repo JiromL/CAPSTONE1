@@ -121,7 +121,7 @@ export default function AssessmentsPage() {
                     <FileText size={14} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
                     <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                       {a.submitted_at
-                        ? new Date(a.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                        ? new Date(a.submitted_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' })
                         : 'Date unknown'}
                     </p>
                   </div>
@@ -172,7 +172,7 @@ export default function AssessmentsPage() {
                     </p>
                     {a.submitted_at && (
                       <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                        {new Date(a.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(a.submitted_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
                     )}
                   </div>

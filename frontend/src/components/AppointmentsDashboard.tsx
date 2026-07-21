@@ -107,7 +107,7 @@ const RISK_BADGE_STYLE: Record<string, React.CSSProperties> = {
 
 function fmtDate(d?: string) {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return d; }
 }
 function fmtTime(d?: string, t?: string) {
@@ -120,7 +120,7 @@ function fmtTime(d?: string, t?: string) {
   if (!d) return '';
   try {
     const dt = new Date(d);
-    return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return dt.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
   } catch { return ''; }
 }
 function fmtMethod(m?: string) {
@@ -1237,12 +1237,12 @@ export default function AppointmentsDashboard() {
                     const blanks = (firstDay + 6) % 7;
                     const cells: (number | null)[] = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
                     while (cells.length % 7 !== 0) cells.push(null);
-                    const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    const monthLabel = new Date(year, month).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
                     const toDS2 = (d: number) => `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                     const today = new Date(); today.setHours(0,0,0,0);
 
                     const fmtSlotTime = (t: string) => { const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ap}`; };
-                    const selectedDayLabel = assignForm.date ? new Date(assignForm.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : null;
+                    const selectedDayLabel = assignForm.date ? new Date(assignForm.date + 'T12:00:00').toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric' }) : null;
 
                     return (
                       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>

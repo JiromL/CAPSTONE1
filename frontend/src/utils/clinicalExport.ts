@@ -72,14 +72,14 @@ function decisionLabel(d: string) {
 function fmtDate(s?: string) {
   if (!s) return '—';
   try {
-    return new Date(s).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' });
   } catch { return s; }
 }
 
 function fmtDateTime(s?: string) {
   if (!s) return '—';
   try {
-    return new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    return new Date(s).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
   } catch { return s; }
 }
 
@@ -101,7 +101,7 @@ function buildHtml(intake: any, packet: any, sections: SectionsMap = DEFAULT_SEC
     ? `${(icf.last_name || '').toUpperCase()}, ${icf.first_name}${icf.middle_name ? ' ' + icf.middle_name : ''}`
     : val(intake?.responses?.first_name ? `${(intake.responses.last_name || '').toUpperCase()}, ${intake.responses.first_name}` : null);
 
-  const generatedAt = new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  const generatedAt = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
   const docId = `CPS-${Date.now().toString(36).toUpperCase()}`;
 
   const css = `

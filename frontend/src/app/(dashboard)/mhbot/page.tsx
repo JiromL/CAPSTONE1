@@ -20,7 +20,7 @@ const EMA_URL = 'https://pchrd-ema.dlsu.edu.ph/app/login/';
 
 function fmtDate(d: string | null) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';

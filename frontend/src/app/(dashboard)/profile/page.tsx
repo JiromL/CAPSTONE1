@@ -427,7 +427,7 @@ export default function ProfilePage() {
                     {trend === 'same' && <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>→ Stable</span>}
                     {permaData.latest_date && (
                       <span className="text-xs ml-auto" style={{ color: 'var(--color-text-muted)' }}>
-                        Last assessed {new Date(permaData.latest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        Last assessed {new Date(permaData.latest_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     )}
                   </div>
@@ -488,7 +488,7 @@ export default function ProfilePage() {
                                 fill={LABEL_COLOR[p.label] ?? '#6b7280'} stroke="white" strokeWidth={2} />
                               {showDate && (
                                 <text x={xOf(i)} y={H - 6} textAnchor="middle" fontSize={7.5} fill="#9ca3af">
-                                  {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  {new Date(p.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}
                                 </text>
                               )}
                             </g>

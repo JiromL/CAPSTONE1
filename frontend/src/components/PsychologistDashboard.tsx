@@ -97,7 +97,7 @@ function PermaTrendsWidget() {
         {months.map(month => {
           const counts = data.monthly[month] ?? {};
           const total = TREND_LABELS.reduce((s, l) => s + (counts[l] ?? 0), 0);
-          const label = new Date(month + '-15').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+          const label = new Date(month + '-15').toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', year: '2-digit' });
           return (
             <div key={month} className="flex items-start gap-3">
               <span className="text-xs w-12 flex-shrink-0 pt-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
@@ -274,10 +274,10 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Psychologist';
 
   const fmtTime = (s: string) => {
-    try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return '—'; }
+    try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return '—'; }
   };
 
-  const dateLabel = new Date().toLocaleDateString('en-US', {
+  const dateLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 

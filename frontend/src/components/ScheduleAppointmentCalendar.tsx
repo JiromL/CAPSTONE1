@@ -187,7 +187,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
     return availableSlots.filter((slot) => slot.slot_start.startsWith(dateStr));
   };
 
-  const monthName = currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const monthName = currentDate.toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
   const days = [];
@@ -302,8 +302,8 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
               <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                 <Clock size={16} />
                 <span>
-                  {new Date(selectedSlot.slot_start).toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}{' '}
-                  - {new Date(selectedSlot.slot_end).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(selectedSlot.slot_start).toLocaleString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}{' '}
+                  - {new Date(selectedSlot.slot_end).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
               <p className="text-sm mt-2" style={{ color: 'var(--color-text-secondary)' }}>

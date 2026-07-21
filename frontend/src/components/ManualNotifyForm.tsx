@@ -121,7 +121,7 @@ export default function ManualNotifyForm() {
         <ul className="text-xs mt-2 list-disc ml-4">
           {history.map((h, idx) => (
             <li key={idx}>
-              {new Date(h.date).toLocaleDateString()}: {h.perma_label}
+              {new Date(h.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}: {h.perma_label}
             </li>
           ))}
         </ul>

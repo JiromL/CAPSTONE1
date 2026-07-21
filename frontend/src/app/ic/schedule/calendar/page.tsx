@@ -141,7 +141,7 @@ export default function ScheduleCalendarPage() {
         <div className="rounded-lg p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-              {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              {currentDate.toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' })}
             </h2>
             <div className="flex gap-2">
               <button
@@ -207,7 +207,7 @@ export default function ScheduleCalendarPage() {
                       >
                         <div className="font-medium truncate">{apt.counselor_name || 'Unassigned'}</div>
                         <div className="text-xs opacity-75 truncate">
-                          {new Date(apt.scheduled_start || apt.requested_start).toLocaleTimeString('en-US', {
+                          {new Date(apt.scheduled_start || apt.requested_start).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila',
                             hour: '2-digit',
                             minute: '2-digit',
                           })}

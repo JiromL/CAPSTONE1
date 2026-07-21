@@ -366,7 +366,7 @@ function HighRiskRow({ caseItem, index }: { caseItem: any; index: number }) {
                 {history.map((h, idx) => (
                   <li key={idx} className="flex items-start gap-3 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                     <span className="flex items-center gap-1 whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
-                      <Clock size={12} /> {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <Clock size={12} /> {new Date(h.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                     <span>{h.perma_label}</span>
                   </li>

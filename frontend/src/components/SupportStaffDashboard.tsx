@@ -11,11 +11,11 @@ import { AnnouncementsPanel } from './AnnouncementsPanel';
 interface DashboardProps { user: any; onLogout: () => void; }
 
 function fmtTime(s: string) {
-  try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); }
+  try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); }
   catch { return '—'; }
 }
 function fmtShortDate(d: Date) {
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' });
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -285,7 +285,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Staff';
 
   const fmtDate = (s: string) => {
-    try { return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch { return '—'; }
+    try { return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }); } catch { return '—'; }
   };
 
   const METHOD_LABEL: Record<string, string> = {
@@ -293,7 +293,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
     'gmeet': 'Google Meet', 'zoom': 'Zoom', 'phone': 'Phone',
   };
 
-  const todayDateStr = new Date().toLocaleDateString('en-US', {
+  const todayDateStr = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 

@@ -278,7 +278,7 @@ function ReferralCard({ referral }: { referral: Referral }) {
       </div>
       <div className="flex items-center gap-4 text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
         {referral.urgency && <span className="capitalize">Urgency: {referral.urgency}</span>}
-        {referral.created_at && <span>{new Date(referral.created_at).toLocaleDateString()}</span>}
+        {referral.created_at && <span>{new Date(referral.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>}
         {!referral.warm_handoff_completed && (
           <span className="font-medium" style={{ color: 'var(--color-warning)' }}>Handoff pending</span>
         )}

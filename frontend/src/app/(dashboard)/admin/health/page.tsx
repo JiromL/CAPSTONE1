@@ -42,7 +42,7 @@ export default function HealthPage() {
         <div className="flex items-center justify-between">
           {lastChecked && (
             <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              Last checked: {lastChecked.toLocaleTimeString()}
+              Last checked: {lastChecked.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })}
             </p>
           )}
           <button onClick={fetchHealth} disabled={loading}

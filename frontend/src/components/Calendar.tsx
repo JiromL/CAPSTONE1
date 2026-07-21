@@ -65,7 +65,7 @@ export function DashboardCalendar({
       {showAppointments && selectedDateObj && (
         <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
           <h3 className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
-            Appointments for {selectedDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            Appointments for {selectedDateObj.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' })}
           </h3>
           {dayAppointments.length > 0 ? (
             <div className="space-y-2">

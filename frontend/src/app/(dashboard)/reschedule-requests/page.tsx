@@ -23,12 +23,12 @@ type Tab = 'pending' | 'approved' | 'denied';
 
 function fmtDate(s?: string) {
   if (!s) return '—';
-  try { return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  try { return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return '—'; }
 }
 function fmtTime(s?: string) {
   if (!s) return '';
-  try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); }
+  try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); }
   catch { return ''; }
 }
 function fmtAgo(s?: string) {

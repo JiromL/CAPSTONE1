@@ -201,7 +201,7 @@ export default function VideoLinksPage() {
                         <div>
                           <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{link.session_name}</h3>
                           <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                            {link.start_time ? new Date(link.start_time).toLocaleString() : 'Time not specified'}
+                            {link.start_time ? new Date(link.start_time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Time not specified'}
                           </p>
                           <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>with {link.counselor_name}</p>
                           <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium"
@@ -270,7 +270,7 @@ export default function VideoLinksPage() {
                   style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
                   <h3 className="font-medium line-through" style={{ color: 'var(--color-text-secondary)' }}>{link.session_name}</h3>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                    {link.start_time ? new Date(link.start_time).toLocaleString() : 'Time not specified'} · {link.platform.toUpperCase()}
+                    {link.start_time ? new Date(link.start_time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Time not specified'} · {link.platform.toUpperCase()}
                   </p>
                 </div>
               ))}

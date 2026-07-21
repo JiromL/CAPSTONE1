@@ -219,7 +219,7 @@ export default function DocumentationPage() {
                         )}
                       </div>
                       <p className="text-xs mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                        Type: {doc.document_type} · Created: {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'N/A'}
+                        Type: {doc.document_type} · Created: {doc.created_at ? new Date(doc.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : 'N/A'}
                       </p>
                       {doc.content && (
                         <p className="text-sm line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{doc.content}</p>

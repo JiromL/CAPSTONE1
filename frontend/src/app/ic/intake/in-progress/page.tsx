@@ -56,8 +56,8 @@ export default function InProgressIntakesPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{intake.student_name}</h3>
-                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Started: {new Date(intake.created_at).toLocaleDateString()}</p>
-                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>Updated: {new Date(intake.last_updated).toLocaleDateString()}</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Started: {new Date(intake.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</p>
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>Updated: {new Date(intake.last_updated).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</p>
                 </div>
                 <span className="text-xs px-3 py-1 rounded font-semibold"
                   style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary)' }}>

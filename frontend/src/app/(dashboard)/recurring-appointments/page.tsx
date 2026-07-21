@@ -61,7 +61,7 @@ export default function RecurringAppointmentsPage() {
     const base = new Date(`${form.start_date}T${form.time}`);
     setPreview(Array.from({ length: count }, (_, i) => {
       const d = new Date(base); d.setDate(d.getDate() + step * i);
-      return { session: i + 1, date: d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) };
+      return { session: i + 1, date: d.toLocaleString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) };
     }));
   }, [form.start_date, form.time, form.recurrence, form.sessions]);
 
@@ -109,7 +109,7 @@ export default function RecurringAppointmentsPage() {
                   style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
                   {s.session}
                 </span>
-                <span>{new Date(s.date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                <span>{new Date(s.date).toLocaleString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
               </div>
             ))}
           </div>

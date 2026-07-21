@@ -586,7 +586,7 @@ export default function StaffSettingsPage() {
                 {bookingRules.blackout_dates.map(d => (
                   <span key={d} className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full"
                     style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}>
-                    {new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(d + 'T00:00:00').toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                     <button onClick={() => setBookingRules({ ...bookingRules, blackout_dates: bookingRules.blackout_dates.filter(x => x !== d) })}>
                       <X size={12} />
                     </button>

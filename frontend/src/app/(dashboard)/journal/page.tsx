@@ -24,13 +24,13 @@ const MOODS = [
 function getMood(v: number) { return MOODS[Math.max(0, Math.min(4, v - 1))]; }
 
 function fmtFull(d: string) {
-  return new Date(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 function fmtTime(d: string) {
-  return new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return new Date(d).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 function fmtMonthYear(d: string) {
-  return new Date(d).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
 }
 
 export default function JournalPage() {
@@ -102,7 +102,7 @@ export default function JournalPage() {
     else grouped.push({ month: m, items: [e] });
   }
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const today = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const currentMoodColor = getMood(mood).color;
 
   return (

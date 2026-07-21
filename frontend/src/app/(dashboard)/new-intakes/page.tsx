@@ -50,7 +50,7 @@ function statusLabel(status: string) {
 
 function fmt(d?: string) {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return d; }
 }
 

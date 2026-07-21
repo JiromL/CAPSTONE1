@@ -23,7 +23,7 @@ const TYPE_META: Record<string, { label: string; accent: string }> = {
 };
 
 function fmtEventDate(s: string) {
-  return new Date(s).toLocaleDateString('en-US', {
+  return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   });
 }

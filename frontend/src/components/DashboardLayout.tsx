@@ -102,7 +102,7 @@ export function DashboardLayout({
 
   useEffect(() => {
     fetchReminders();
-    localStorage.setItem('last_login_display', new Date().toLocaleDateString('en-US', {
+    localStorage.setItem('last_login_display', new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
     }));
@@ -466,7 +466,7 @@ export function DashboardLayout({
                             </p>
                             {r.created_at && (
                               <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                                {new Date(r.created_at).toLocaleString('en-US', {
+                                {new Date(r.created_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila',
                                   month: 'short', day: 'numeric',
                                   hour: 'numeric', minute: '2-digit',
                                 })}

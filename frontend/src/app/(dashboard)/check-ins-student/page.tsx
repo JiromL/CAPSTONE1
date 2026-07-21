@@ -192,7 +192,7 @@ export default function CheckInPage() {
                             )}
                           </div>
                           <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                            {new Date(ci.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {new Date(ci.submitted_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
                         </div>
                         <button onClick={() => setExpandedId(exp ? null : ci._id)}

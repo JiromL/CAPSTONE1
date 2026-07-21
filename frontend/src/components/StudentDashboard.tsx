@@ -29,7 +29,7 @@ const TYPE_META: Record<string, { label: string; accent: string }> = {
 };
 
 function fmtEventDate(s: string) {
-  return new Date(s).toLocaleDateString('en-US', {
+  return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   });
 }
@@ -58,7 +58,7 @@ function getMethodLabel(appt: any): string {
 }
 
 function fmtApptDate(s: string): string {
-  try { return new Date(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+  try { return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' }); }
   catch { return ''; }
 }
 
@@ -172,14 +172,14 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const nextAppt  = upcoming[0];
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Student';
 
-  const fmtTime = (s: string) => { try { return new Date(s).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}); } catch { return ''; } };
-  const apptDay = (s: string) => { try { return new Date(s).toLocaleDateString('en-US',{weekday:'short'}); } catch { return ''; } };
+  const fmtTime = (s: string) => { try { return new Date(s).toLocaleTimeString('en-PH',{ timeZone: 'Asia/Manila',hour:'numeric',minute:'2-digit',hour12:true}); } catch { return ''; } };
+  const apptDay = (s: string) => { try { return new Date(s).toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'short'}); } catch { return ''; } };
   const apptNum = (s: string) => { try { return new Date(s).getDate(); } catch { return ''; } };
 
   const menuItems = getMenuItemsByRole(user.role).map(item =>
     item.id === 'resources' ? { ...item, badge: resourceCount } : item
   );
-  const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthYear = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
 
   return (
     <>

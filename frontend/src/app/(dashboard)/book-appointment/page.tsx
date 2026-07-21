@@ -786,7 +786,7 @@ export default function BookAppointmentPage() {
                 <p className="text-lg font-bold">Ticket #{ticketNumber}</p>
                 {isSlotBooking ? (
                   <p className="text-sm mt-1 text-white/80">
-                    Your slot at <strong>{fmtT(prefTime)}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it within 1–2 business days.
+                    Your slot at <strong>{fmtT(prefTime)}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it within 1–2 business days.
                   </p>
                 ) : (
                   <p className="text-sm mt-1 text-white/80">Taking this step takes courage. The CPS team will reach out within 1–2 business days to schedule your session.</p>
@@ -851,7 +851,7 @@ export default function BookAppointmentPage() {
   const blanks = (firstDay + 6) % 7;
   const cells: (number | null)[] = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   while (cells.length % 7 !== 0) cells.push(null);
-  const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthLabel = new Date(year, month).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
 
   const isSelectable = (day: number) => {
     const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
@@ -886,7 +886,7 @@ export default function BookAppointmentPage() {
               {[
                 ['Purpose', purpose==='intake_interview'?'Intake Interview':purpose==='counseling'?'Counseling':purpose==='follow_up_counselling'?'Follow-up':purpose],
                 ['Mode', `${slotMethod==='F2F'?'Face to Face':'Online'}${slotMethod==='Online'&&prefPlatform?` · ${prefPlatform==='google-meet'?'Google Meet':'Zoom'}`:''}`],
-                ...(prefDate ? [['Date & Time', `${new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}${prefTime?` at ${fmtT(prefTime)}`:''}`]] : []),
+                ...(prefDate ? [['Date & Time', `${new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'short',month:'short',day:'numeric'})}${prefTime?` at ${fmtT(prefTime)}`:''}`]] : []),
                 ...(concern ? [['Concern', concern]] : []),
                 ['Referral', referralType==='referred'?`Referred by ${referredBy}`:'Self Referred'],
               ].map(([k,v]) => (
@@ -1001,7 +1001,7 @@ export default function BookAppointmentPage() {
                 <div>
                   <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Date &amp; Time</p>
                   <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                    {new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',weekday:'short'})}
+                    {new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',month:'short',day:'numeric',weekday:'short'})}
                     {prefTime && <><br />{fmtT(prefTime)}</>}
                   </p>
                 </div>
@@ -1235,7 +1235,7 @@ export default function BookAppointmentPage() {
                     {noSlotsNextDate && (
                       <p className="text-xs mb-2" style={{ color: 'var(--color-warning)' }}>
                         Next available: <button onClick={() => { setPrefDate(noSlotsNextDate); setCalendarMonth({ year: parseInt(noSlotsNextDate.split('-')[0]), month: parseInt(noSlotsNextDate.split('-')[1]) - 1 }); }}
-                          className="font-semibold underline" style={{ color: 'var(--color-warning)' }}>{new Date(noSlotsNextDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</button>
+                          className="font-semibold underline" style={{ color: 'var(--color-warning)' }}>{new Date(noSlotsNextDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',month:'short',day:'numeric'})}</button>
                       </p>
                     )}
                     <label className="flex items-start gap-2.5 cursor-pointer">
@@ -1344,7 +1344,7 @@ export default function BookAppointmentPage() {
           <div className="w-52 flex-shrink-0 hidden xl:flex flex-col rounded-2xl border shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                {prefDate ? new Date(prefDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}) : 'Select a date'}
+                {prefDate ? new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'long',month:'short',day:'numeric'}) : 'Select a date'}
               </p>
               <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                 {prefDate ? (purpose === 'intake_interview' ? 'IC available slots' : `${slotMethod === 'F2F' ? 'Face to Face' : 'Online'} slots`) : 'Available time slots will appear here'}

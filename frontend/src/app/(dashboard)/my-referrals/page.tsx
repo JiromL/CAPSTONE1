@@ -36,7 +36,7 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  try { return new Date(iso).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return iso; }
 }
 

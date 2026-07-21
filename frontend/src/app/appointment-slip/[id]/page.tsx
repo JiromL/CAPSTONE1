@@ -29,9 +29,9 @@ function formatDt(dt: string | undefined) {
   const d = new Date(dt);
   if (isNaN(d.getTime())) return dt;
   return (
-    d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+    d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
     '  ·  ' +
-    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    d.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })
   );
 }
 
@@ -146,7 +146,7 @@ export default function AppointmentSlipPage() {
               <div className="text-right flex-shrink-0">
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Date Printed</p>
                 <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                  {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  {new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function AppointmentSlipPage() {
                     label="Date Filed"
                     value={
                       slip.created_at
-                        ? new Date(slip.created_at).toLocaleDateString('en-US', {
+                        ? new Date(slip.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
                             year: 'numeric', month: 'long', day: 'numeric',
                           })
                         : undefined
@@ -238,7 +238,7 @@ export default function AppointmentSlipPage() {
                       {slip.qr_expires_at && (
                         <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                           Valid until{' '}
-                          {new Date(slip.qr_expires_at).toLocaleTimeString('en-US', {
+                          {new Date(slip.qr_expires_at).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila',
                             hour: 'numeric', minute: '2-digit', hour12: true,
                           })}
                         </p>

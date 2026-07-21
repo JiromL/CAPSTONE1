@@ -29,8 +29,8 @@ function formatDt(dt: string | undefined) {
   if (!dt) return '—';
   const d = new Date(dt);
   if (isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
-    ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function aptStatusStyle(status: string): React.CSSProperties {

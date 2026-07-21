@@ -412,7 +412,7 @@ export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
   return (
     <div>
       {updatedAt && (
-        <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>Last updated: {new Date(updatedAt).toLocaleString()}</p>
+        <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>Last updated: {new Date(updatedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</p>
       )}
       <ReadSection title="Section 1: Session Information">
         {sessionInfo && (

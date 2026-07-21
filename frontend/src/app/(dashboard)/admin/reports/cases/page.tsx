@@ -81,7 +81,7 @@ export default function CasesReportPage() {
                 <div key={card.label} className="rounded-2xl p-5"
                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderLeft: `4px solid ${card.accent}` }}>
                   <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>{card.label}</p>
-                  <p className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{card.value.toLocaleString()}</p>
+                  <p className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{card.value.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</p>
                 </div>
               ))}
             </div>

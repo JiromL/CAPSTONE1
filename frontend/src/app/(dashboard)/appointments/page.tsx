@@ -89,14 +89,14 @@ function fmtDate(d?: string) {
   if (!d) return '—';
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return '—';
-  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return dt.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
 }
 function fmtTime(d?: string, t?: string) {
   if (t) return t;
   if (!d) return '';
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return '';
-  return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return dt.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 function fmtPurpose(p?: string) {
   if (!p) return '—';

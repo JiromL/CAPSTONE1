@@ -167,7 +167,7 @@ export async function initializeAssessmentIndexes(token: string) {
 export function formatTimestamp(isoString: string | null | undefined): string {
   if (!isoString) return 'N/A';
   try {
-    return new Date(isoString).toLocaleDateString('en-US', {
+    return new Date(isoString).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -183,7 +183,7 @@ export function formatTimestamp(isoString: string | null | undefined): string {
 export function formatDateTime(isoString: string | null | undefined): string {
   if (!isoString) return 'N/A';
   try {
-    return new Date(isoString).toLocaleDateString('en-US', {
+    return new Date(isoString).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
       month: 'short',
       day: 'numeric',
       year: 'numeric',

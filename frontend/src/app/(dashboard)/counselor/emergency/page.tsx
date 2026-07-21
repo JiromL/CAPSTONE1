@@ -75,7 +75,7 @@ export default function CounselorEmergencyPage() {
   };
 
   const formatDate = (s: string) =>
-    new Date(s).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   if (loading) {
     return (

@@ -99,7 +99,7 @@ export default function BatchAssignPage() {
                           Assigned to: <span className="font-medium">{apt.counselor_name || 'Counselor'}</span>
                         </p>
                         <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                          {new Date(apt.scheduled_start).toLocaleString()}
+                          {new Date(apt.scheduled_start).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
                         </p>
                       </div>
                       <span className="px-2 py-1 text-xs font-medium rounded" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>

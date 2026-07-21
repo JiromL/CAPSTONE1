@@ -1207,7 +1207,7 @@ export default function CaseDetailPage() {
               <div>
                 <p style={{ color: 'var(--color-text-secondary)' }}>Created</p>
                 <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                  {caseData.created_at ? new Date(caseData.created_at).toLocaleDateString() : 'N/A'}
+                  {caseData.created_at ? new Date(caseData.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : 'N/A'}
                 </p>
               </div>
               {caseData.target_sessions != null && (
@@ -1266,7 +1266,7 @@ export default function CaseDetailPage() {
                   <div>
                     <p style={{ color: 'var(--color-text-secondary)' }}>Endorsed on</p>
                     <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                      {new Date(caseData.endorsed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {new Date(caseData.endorsed_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                 )}
@@ -1287,7 +1287,7 @@ export default function CaseDetailPage() {
                 {caseAppointments.map((appt) => {
                   const dateStr = appt.scheduled_at || appt.preferred_date;
                   const displayDate = dateStr
-                    ? new Date(dateStr).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                    ? new Date(dateStr).toLocaleString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
                     : 'No date set';
                   return (
                     <div key={appt._id} className="flex items-center justify-between gap-4 p-3 rounded-lg"
@@ -1430,7 +1430,7 @@ export default function CaseDetailPage() {
             const gad2Score = phq4r.length >= 4 ? phq4r[2] + phq4r[3] : null;
 
             const fmtDt = (s: string) => {
-              try { return new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); }
+              try { return new Date(s).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); }
               catch { return s; }
             };
 
@@ -1592,7 +1592,7 @@ export default function CaseDetailPage() {
                           { label: 'Program',              val: icf.program ?? icf.degree_program },
                           { label: 'Year Level',           val: icf.year_level },
                           { label: 'Gender',               val: spif.gender },
-                          { label: 'Birthdate',            val: spif.birthdate ? new Date(spif.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null },
+                          { label: 'Birthdate',            val: spif.birthdate ? new Date(spif.birthdate).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }) : null },
                           { label: 'Living With',          val: spif.living_with },
                           { label: 'Family Composition',   val: spif.family_composition },
                           { label: 'Birth Order',          val: spif.birth_order ? `${spif.birth_order} of ${spif.number_of_siblings ?? '?'}` : null },
@@ -1637,8 +1637,8 @@ export default function CaseDetailPage() {
             };
             const displayMode = rawMode ? (modeMap[rawMode.toLowerCase()] || rawMode) : undefined;
             const sessionInfo = rawDate ? {
-              date: new Date(rawDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-              time: new Date(rawDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+              date: new Date(rawDate).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' }),
+              time: new Date(rawDate).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }),
               mode: displayMode,
               studentId: caseData?.student?.school_id || caseData?.student_id,
               college: caseData?.student?.college || caseData?.student?.course || caseData?.student?.program,
@@ -1862,8 +1862,8 @@ export default function CaseDetailPage() {
                   const fmtDate = (d: string) => {
                     try {
                       const dt = new Date(d);
-                      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                        + ' · ' + dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                      return dt.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })
+                        + ' · ' + dt.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
                     } catch { return d; }
                   };
 
@@ -2140,7 +2140,7 @@ export default function CaseDetailPage() {
                               {note.supervisor_approved && note.supervisor_name && (
                                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                                   Approved by <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>{note.supervisor_name}</span>
-                                  {note.supervisor_action_at && ` · ${new Date(note.supervisor_action_at).toLocaleDateString()}`}
+                                  {note.supervisor_action_at && ` · ${new Date(note.supervisor_action_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}`}
                                 </p>
                               )}
                               {['PSYCHOLOGIST','ADMIN'].includes(currentUser?.role || '') && !note.supervisor_approved && !note.supervisor_name && (
@@ -2287,7 +2287,7 @@ export default function CaseDetailPage() {
                           <div key={i} className="flex items-center gap-2 text-sm">
                             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
                             <span className="flex-1" style={{ color: 'var(--color-text-primary)' }}>{g.goal}</span>
-                            {g.target_date && <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{new Date(g.target_date).toLocaleDateString()}</span>}
+                            {g.target_date && <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{new Date(g.target_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>}
                             <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={badgeStyle}>{g.status.replace('_', ' ')}</span>
                           </div>
                         );
@@ -2309,7 +2309,7 @@ export default function CaseDetailPage() {
                 {(treatmentPlan.estimated_duration || treatmentPlan.next_review_date) && (
                   <div className="flex gap-6 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                     {treatmentPlan.estimated_duration && <span><span className="font-medium">Duration:</span> {treatmentPlan.estimated_duration}</span>}
-                    {treatmentPlan.next_review_date && <span><span className="font-medium">Next review:</span> {new Date(treatmentPlan.next_review_date).toLocaleDateString()}</span>}
+                    {treatmentPlan.next_review_date && <span><span className="font-medium">Next review:</span> {new Date(treatmentPlan.next_review_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>}
                   </div>
                 )}
                 {treatmentPlan.progress_summary && (
@@ -2742,7 +2742,7 @@ export default function CaseDetailPage() {
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                           <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
-                            {new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {new Date(a.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                           </td>
                           <td className="px-4 py-2.5">
                             <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{a.assessment_type === 'PSS' ? 'PSS-10' : a.assessment_type.replace('9', '-9').replace('7', '-7')}</span>
@@ -2814,7 +2814,7 @@ export default function CaseDetailPage() {
                       <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>every {s.interval_days} days</span>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                         Next due: <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-                          {new Date(s.next_due).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {new Date(s.next_due).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </p>
                     </div>
@@ -2930,7 +2930,7 @@ export default function CaseDetailPage() {
               .reverse()
               .map(h => ({
                 dateRaw: h.date,
-                date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                date: new Date(h.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }),
                 score: LABEL_TO_SCORE[h.perma_label!],
                 label: h.perma_label!,
               }));
@@ -2945,7 +2945,7 @@ export default function CaseDetailPage() {
                 <div className="shadow-lg rounded-lg px-3 py-2 text-xs"
                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                   <p className="mb-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                    {new Date(d.dateRaw).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    {new Date(d.dateRaw).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </p>
                   <p className="font-semibold" style={{ color: SCORE_COLOR[d.score] }}>{d.label}</p>
                 </div>
@@ -3001,7 +3001,7 @@ export default function CaseDetailPage() {
                       {[...permaHistory].slice(0, 6).map((h, i) => (
                         <div key={i} className="flex items-center justify-between">
                           <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            {new Date(h.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            {new Date(h.date).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
                           </span>
                           <PermaBadge label={h.perma_label} />
                         </div>

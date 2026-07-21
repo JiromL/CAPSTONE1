@@ -72,7 +72,7 @@ export default function CounselingCasesPage() {
       const d = await r.json();
       exportToExcel({
         headers: ['Case Number','Client Name','ID Number','Target Sessions','Current Sessions','Status','Date Created'],
-        rows: (d.data || []).map((c: CounselingCase) => [c.case_number, c.client_name, c.client_id_number, c.target_sessions, c.current_sessions, c.status, new Date(c.created_date).toLocaleDateString()]),
+        rows: (d.data || []).map((c: CounselingCase) => [c.case_number, c.client_name, c.client_id_number, c.target_sessions, c.current_sessions, c.status, new Date(c.created_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })]),
         filename: 'counseling-cases',
       });
     } catch {}
@@ -180,7 +180,7 @@ export default function CounselingCasesPage() {
                         <td className="px-6 py-3">
                           <span className="px-3 py-1 rounded-full text-xs font-medium" style={caseStatusStyle(c.status)}>{c.status}</span>
                         </td>
-                        <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{new Date(c.created_date).toLocaleDateString()}</td>
+                        <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{new Date(c.created_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</td>
                       </tr>
                     );
                   })}

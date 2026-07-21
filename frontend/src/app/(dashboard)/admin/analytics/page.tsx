@@ -127,7 +127,7 @@ function CustomTooltip({ active, payload, label, isDark }: {
       {payload.map((p, i) => (
         <p key={i} style={{ color: t.text, fontSize: 12, marginBottom: 2 }}>
           <span style={{ color: p.color, fontWeight: 600 }}>{p.name}: </span>
-          {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
+          {typeof p.value === 'number' ? p.value.toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : p.value}
         </p>
       ))}
     </div>
@@ -429,7 +429,7 @@ function AppointmentsTab({ apptStats, byDay, byHour, monthlyAppts, breakdown, is
   return (
     <div className="space-y-6">
       {apptStats && (
-        <Card title="Performance Overview" subtitle={`Last 30 days — ${apptStats.total_appointments.toLocaleString()} appointments total`}>
+        <Card title="Performance Overview" subtitle={`Last 30 days — ${apptStats.total_appointments.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} appointments total`}>
           <MetricRow items={[
             { label: 'Completion Rate', value: `${apptStats.completion_rate}%`,  accent: apptStats.completion_rate >= 75 ? C.green : C.amber },
             { label: 'No-Show Rate',    value: `${apptStats.no_show_rate}%`,     accent: apptStats.no_show_rate > 15 ? C.red : apptStats.no_show_rate > 8 ? C.amber : C.green },
@@ -564,7 +564,7 @@ function CasesTab({ riskDist, concerns, scoreTrends, assessments, intake, demogr
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-primary-text)' }}>service utilization</p>
               </div>
               <p className="text-sm" style={{ color: 'var(--color-primary-text)' }}>
-                <strong>{demographics.students_served.toLocaleString()}</strong> of <strong>{demographics.total_students.toLocaleString()}</strong> registered
+                <strong>{demographics.students_served.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</strong> of <strong>{demographics.total_students.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</strong> registered
                 students have used CPS services at least once. Students not yet reached may benefit from targeted outreach.
               </p>
             </div>
@@ -764,7 +764,7 @@ function CasesTab({ riskDist, concerns, scoreTrends, assessments, intake, demogr
                   <div className="flex justify-between mb-1">
                     <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
                     <span className="text-xs font-semibold" style={{ color }}>
-                      {count.toLocaleString()}{pct < 100 ? ` · ${Math.round(pct)}%` : ''}
+                      {count.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}{pct < 100 ? ` · ${Math.round(pct)}%` : ''}
                     </span>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
@@ -1169,7 +1169,7 @@ function ReportsTab({ cpsSummary }: { cpsSummary: CpsSummary | null }) {
             ].map(({ label, value, sub, color }) => (
               <div key={label} className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
-                <p className="text-2xl font-bold" style={{ color }}>{value.toLocaleString()}</p>
+                <p className="text-2xl font-bold" style={{ color }}>{value.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>
               </div>
             ))}

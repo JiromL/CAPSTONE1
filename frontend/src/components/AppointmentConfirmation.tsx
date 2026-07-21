@@ -33,7 +33,7 @@ export function AppointmentConfirmation({
   };
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { 
+    return new Date(date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -187,7 +187,7 @@ export function AppointmentConfirmation({
           style={{ borderTop: '2px solid #1f2937', background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
           <p className="font-semibold mb-1">Counseling and Psychological Services</p>
           <p className="mb-2">De La Salle University - Manila</p>
-          <p style={{ color: 'var(--color-text-secondary)' }}>{new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
+          <p style={{ color: 'var(--color-text-secondary)' }}>{new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
         </div>
       </div>
     </div>

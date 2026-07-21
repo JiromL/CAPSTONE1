@@ -8,11 +8,11 @@ import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, Users, CalendarDays, BarChart3, Megaphone, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 
 function fmtTime(s: string) {
-  try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); }
+  try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); }
   catch { return '—'; }
 }
 function fmtShortDate(d: Date) {
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' });
 }
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -208,7 +208,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
   const staffCount = (summary?.total_counselors ?? 0) + (summary?.total_psychologists ?? 0);
   const latestAnn  = announcements[0];
 
-  const dateLabel = new Date().toLocaleDateString('en-US', {
+  const dateLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'long', month: 'long', day: 'numeric',
   });
 
@@ -335,7 +335,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
                         {fmtAuditTarget(log)}
                       </span>
                       <span className="text-xs tabular-nums text-right" style={{ color: 'var(--color-text-muted)' }}>
-                        {log.timestamp ? new Date(log.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '—'}
+                        {log.timestamp ? new Date(log.timestamp).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }) : '—'}
                       </span>
                     </div>
                   ))}

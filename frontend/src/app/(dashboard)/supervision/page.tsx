@@ -137,7 +137,7 @@ export default function SupervisionPage() {
                         <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-secondary)' }}>{c.client_status || '—'}</td>
                         <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-secondary)' }}>{c.case_status || c.status || '—'}</td>
                         <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                          {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
+                          {c.created_at ? new Date(c.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : '—'}
                         </td>
                       </tr>
                     ))}

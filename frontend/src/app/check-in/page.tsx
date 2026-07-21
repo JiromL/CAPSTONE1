@@ -25,8 +25,8 @@ function formatDt(dt: string | undefined) {
   if (!dt) return '—';
   const d = new Date(dt);
   if (isNaN(d.getTime())) return dt;
-  return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
-    ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+    ' at ' + d.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function formatMethod(m: string | undefined) {
@@ -105,7 +105,7 @@ function CheckInContent() {
               <CheckCircle size={36} className="text-white mx-auto mb-2" />
               <p className="text-white font-bold text-lg">Checked In</p>
               <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                {new Date(result.checked_in_at || '').toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                {new Date(result.checked_in_at || '').toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })}
               </p>
             </div>
 

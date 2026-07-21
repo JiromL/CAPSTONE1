@@ -178,11 +178,11 @@ export default function WaitlistPage() {
                   <div className="flex items-center gap-3 mt-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                     <span>{METHOD_LABELS[entry.preferred_method] ?? entry.preferred_method}</span>
                     <span>·</span>
-                    <span>Joined {new Date(entry.joined_at).toLocaleDateString()}</span>
+                    <span>Joined {new Date(entry.joined_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>
                     {entry.promoted_at && (
                       <>
                         <span>·</span>
-                        <span style={{ color: 'var(--color-success)' }}>Promoted {new Date(entry.promoted_at).toLocaleDateString()}</span>
+                        <span style={{ color: 'var(--color-success)' }}>Promoted {new Date(entry.promoted_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>
                       </>
                     )}
                   </div>

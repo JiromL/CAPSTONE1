@@ -268,7 +268,7 @@ export function CheckInForm({ caseId, onSubmit, isLoading = false }: CheckInForm
                 <div className="flex-1">
                   <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.action}</p>
                   {item.due_date && (
-                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>Due: {new Date(item.due_date).toLocaleDateString()}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>Due: {new Date(item.due_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</p>
                   )}
                 </div>
                 <button
@@ -393,7 +393,7 @@ export function CheckInHistory({ checkIns, isLoading = false }: CheckInHistoryPr
                   ?.label || checkIn.check_in_type}
               </h4>
               <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                {new Date(checkIn.created_at).toLocaleDateString()} •{' '}
+                {new Date(checkIn.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })} •{' '}
                 {CONTACT_METHODS.find((m) => m.value === checkIn.contact_method)
                   ?.label || checkIn.contact_method}
               </p>
@@ -429,7 +429,7 @@ export function CheckInHistory({ checkIns, isLoading = false }: CheckInHistoryPr
             {checkIn.next_check_in_date && (
               <div className="flex items-center gap-1">
                 <Calendar size={14} />
-                Next: {new Date(checkIn.next_check_in_date).toLocaleDateString()}
+                Next: {new Date(checkIn.next_check_in_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}
               </div>
             )}
           </div>
@@ -500,7 +500,7 @@ export function PendingCheckIns({ checkIns, isLoading = false }: PendingCheckIns
               </p>
               {checkIn.next_check_in_date && (
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                  Scheduled: {new Date(checkIn.next_check_in_date).toLocaleDateString()}
+                  Scheduled: {new Date(checkIn.next_check_in_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}
                 </p>
               )}
             </div>

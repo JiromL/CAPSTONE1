@@ -49,10 +49,10 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
   );
 
   const fmtTime = (s: string) => {
-    try { return new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return ''; }
+    try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return ''; }
   };
 
-  const dateLabel = new Date().toLocaleDateString('en-US', {
+  const dateLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 
@@ -117,7 +117,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                   <div>
                     <p className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.student_name || 'Student'}</p>
                     <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                      {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                      {c.created_at ? new Date(c.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }) : ''}
                     </p>
                   </div>
                 </Link>

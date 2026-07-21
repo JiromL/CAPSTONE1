@@ -133,7 +133,7 @@ export default function AuditLogPage() {
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                      {new Date(log.timestamp).toLocaleString()}
+                      {new Date(log.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
                     </td>
                     <td className="px-4 py-3 font-medium capitalize text-xs" style={{ color: 'var(--color-text-primary)' }}>{log.module}</td>
                     <td className="px-4 py-3">

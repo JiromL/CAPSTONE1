@@ -34,7 +34,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
   const highRisk      = summary?.high_risk_cases ?? 0;
   const clinicalStaff = (summary?.total_counselors ?? 0) + (summary?.total_psychologists ?? 0);
 
-  const dateLabel = new Date().toLocaleDateString('en-US', {
+  const dateLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 

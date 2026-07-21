@@ -145,7 +145,7 @@ export default function AppointmentsPage() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
                       {[
-                        ['Date & Time', appointmentDate.toLocaleString()],
+                        ['Date & Time', appointmentDate.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })],
                         ['Counselor', apt.counselor_name || 'Unassigned'],
                         ['Platform', apt.preferred_platform?.replace('-', ' ') || 'N/A'],
                         ['Type', apt.appointment_type || 'N/A'],

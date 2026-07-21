@@ -170,7 +170,7 @@ export default function WellnessResourcesPage() {
 
                   <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
                     <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      {new Date(resource.created_at).toLocaleDateString()}
+                      {new Date(resource.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}
                     </p>
                   </div>
                 </a>

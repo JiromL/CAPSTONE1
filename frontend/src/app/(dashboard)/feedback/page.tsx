@@ -215,7 +215,7 @@ export default function FeedbackPage() {
                       <option value="">Select a session…</option>
                       {completedAppts.map(a => {
                         const dt = a.scheduled_start || a.requested_start;
-                        const label = dt ? new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Session';
+                        const label = dt ? new Date(dt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }) : 'Session';
                         return <option key={a._id} value={a._id}>{label}{a.counselor_name ? ` · ${a.counselor_name}` : ''}</option>;
                       })}
                     </select>

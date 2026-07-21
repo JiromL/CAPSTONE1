@@ -273,7 +273,7 @@ export default function RemindersPage() {
                             {reminder.title}
                           </h3>
                           <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            {new Date(reminder.reminder_time).toLocaleString()}
+                            {new Date(reminder.reminder_time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
                           </p>
                         </div>
                       </div>

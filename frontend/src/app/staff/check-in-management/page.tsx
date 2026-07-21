@@ -195,13 +195,13 @@ export default function CheckInManagementPage() {
                       <div>
                         <p style={{ color: 'var(--color-text-muted)' }}>Last Check-In</p>
                         <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                          {client.last_check_in ? new Date(client.last_check_in).toLocaleDateString() : 'Never'}
+                          {client.last_check_in ? new Date(client.last_check_in).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : 'Never'}
                         </p>
                       </div>
                       <div>
                         <p style={{ color: 'var(--color-text-muted)' }}>Next Due</p>
                         <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                          {client.next_check_in_due ? new Date(client.next_check_in_due).toLocaleDateString() : 'N/A'}
+                          {client.next_check_in_due ? new Date(client.next_check_in_due).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : 'N/A'}
                         </p>
                       </div>
                     </div>

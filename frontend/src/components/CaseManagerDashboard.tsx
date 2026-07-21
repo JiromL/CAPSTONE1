@@ -21,7 +21,7 @@ const DIST_BARS = [
 
 export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Manager';
-  const todayStr = new Date().toLocaleDateString('en-US', {
+  const todayStr = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 

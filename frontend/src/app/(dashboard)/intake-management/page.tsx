@@ -79,7 +79,7 @@ const SERVICE_LABELS: Record<string, string> = {
 
 function fmtDate(d?: string) {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }); }
   catch { return d; }
 }
 
@@ -314,7 +314,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
 
   const endDate    = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
   const todayKey   = new Date().toISOString().slice(0, 10);
-  const weekLabel  = `${weekStart.toLocaleDateString('en-US', { month:'short', day:'numeric' })} – ${endDate.toLocaleDateString('en-US', { month:'short', day:'numeric' })}`;
+  const weekLabel  = `${weekStart.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month:'short', day:'numeric' })} – ${endDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month:'short', day:'numeric' })}`;
 
   return (
     <div className="rounded-2xl border overflow-hidden mb-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>

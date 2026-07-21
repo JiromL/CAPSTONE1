@@ -95,7 +95,7 @@ export default function AssignSchedulePage() {
                     <Clock size={16} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
                     <div>
                       <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                        {slot.date ? new Date(slot.date).toLocaleDateString() : '—'} at {slot.time || '—'}
+                        {slot.date ? new Date(slot.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : '—'} at {slot.time || '—'}
                       </p>
                       <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{slot.counselor_name} · {slot.duration || 50} min</p>
                     </div>

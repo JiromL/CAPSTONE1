@@ -69,7 +69,7 @@ function AppointmentCard({ appointment, onSelect }: { appointment: AppointmentDe
   const aptDate = new Date(appointment.preferred_date);
   const today = new Date();
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-  let dateLabel = aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' });
+  let dateLabel = aptDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', weekday: 'short' });
   if (aptDate.toDateString() === today.toDateString()) dateLabel = 'Today';
   else if (aptDate.toDateString() === tomorrow.toDateString()) dateLabel = 'Tomorrow';
 
@@ -151,7 +151,7 @@ function AppointmentDetailsModal({ appointment, onClose }: { appointment: Appoin
           {/* Details grid */}
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'Date', value: new Date(appointment.preferred_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
+              { label: 'Date', value: new Date(appointment.preferred_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
               { label: 'Time', value: appointment.preferred_time || 'TBD' },
             ].map(({ label, value }) => (
               <div key={label}>

@@ -121,6 +121,14 @@ def google_oauth_callback():
         'last_name': existing_user.get('last_name', ''),
         'picture': existing_user.get('picture', ''),
         'role': existing_user.get('role', UserRole.STUDENT.value),
+        'id_number': existing_user.get('id_number'),
+        'phone': existing_user.get('phone'),
+        'college': existing_user.get('college'),
+        'course': existing_user.get('course'),
+        'year': existing_user.get('year'),
+        'emergency_contact': existing_user.get('emergency_contact'),
+        'emergency_phone': existing_user.get('emergency_phone'),
+        'emergency_contact_relationship': existing_user.get('emergency_contact_relationship'),
     }), 200
 
 

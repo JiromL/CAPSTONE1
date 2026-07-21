@@ -69,33 +69,30 @@ export function OnboardingModal({ user, onComplete }: Props) {
   async function handleFinish() {
     setSaving(true);
     setError('');
-    const payload = {
-      first_name: user.first_name,
-      last_name:  user.last_name,
-      email:      user.email,
-      phone:      form.phone,
-      college:    form.college,
-      course:     form.course,
-      year:       form.year,
-      id_number:  form.student_id || undefined,
-      emergency_contact:              form.ec_name,
-      emergency_contact_relationship: form.ec_rel,
-      emergency_phone:                form.ec_phone,
-    };
-    console.log('[Onboarding] PUT payload:', payload);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(api('/api/users/profile'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          first_name: user.first_name,
+          last_name:  user.last_name,
+          email:      user.email,
+          phone:      form.phone,
+          college:    form.college,
+          course:     form.course,
+          year:       form.year,
+          id_number:  form.student_id || undefined,
+          emergency_contact:              form.ec_name,
+          emergency_contact_relationship: form.ec_rel,
+          emergency_phone:                form.ec_phone,
+        }),
       });
       const data = await res.json();
-      console.log('[Onboarding] PUT response:', res.status, data);
       if (!res.ok) { setError(data.error || 'Failed to save. Please try again.'); return; }
+      if (!data.user) { setError('Save succeeded but response was incomplete. Please try again.'); return; }
       onComplete(data.user);
-    } catch (err) {
-      console.error('[Onboarding] PUT error:', err);
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setSaving(false);

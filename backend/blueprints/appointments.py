@@ -699,6 +699,17 @@ def request_appointment():
                         'updated_at': datetime.utcnow(),
                     }}
                 )
+                # Remove from Google Calendar
+                try:
+                    cal_event_id = old_appointment.get('calendar_event_id')
+                    if cal_event_id:
+                        from blueprints.google_calendar import delete_appointment_from_calendar, SYSTEM_CALENDAR_USER
+                        old_counselor_id = old_appointment.get('counselor_id')
+                        deleted = old_counselor_id and delete_appointment_from_calendar(str(old_counselor_id), cal_event_id)
+                        if not deleted:
+                            delete_appointment_from_calendar(SYSTEM_CALENDAR_USER, cal_event_id)
+                except Exception:
+                    pass
         except:
             pass  # If reschedule_id is invalid, just continue (old appointment stays active)
     
@@ -789,9 +800,6 @@ def request_appointment():
     reference_id = _cfg('REFERENCE_ID_PREFIX', 'CPS-') + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
     try:
-        # Slot-based bookings are confirmed immediately; manual requests stay REQUESTED
-        initial_status = AppointmentStatus.CONFIRMED.value if booked_slot else AppointmentStatus.REQUESTED.value
-
         preferred_counselor_id = None
         if data.get('preferred_counselor_id'):
             try:
@@ -807,14 +815,19 @@ def request_appointment():
             except Exception:
                 pass
 
+        # When a specific IC/counselor is pre-selected (either via a reserved slot or the
+        # open-slots picker), the time is committed — set it confirmed immediately.
+        has_committed_slot = bool(booked_slot or weekly_slot_counselor_id)
+        initial_status = AppointmentStatus.CONFIRMED.value if has_committed_slot else AppointmentStatus.REQUESTED.value
+
         appointment = {
             "student_id": user_id_obj,
             "case_id": case_id,
             "appointment_type": data.get('appointment_type', 'initial'),
             "requested_start": requested_start,
             "requested_end": requested_end,
-            "scheduled_start": requested_start if booked_slot else None,
-            "scheduled_end":   requested_end   if booked_slot else None,
+            "scheduled_start": requested_start if has_committed_slot else None,
+            "scheduled_end":   requested_end   if has_committed_slot else None,
             "status": initial_status,
             "reference_id": reference_id,
             "purpose": data.get('purpose'),
@@ -822,6 +835,7 @@ def request_appointment():
             "referral_type": data.get('referral_type'),
             "referred_by": data.get('referred_by'),
             "preferred_method": data.get('preferred_method'),
+            "preferred_platform": data.get('preferred_platform'),
             "preferred_counselor_id": preferred_counselor_id,
             "created_at": datetime.utcnow()
         }
@@ -1047,6 +1061,14 @@ def match_counselor(appointment_id):
             except Exception as e:
                 print(f"⚠ Google Meet creation failed: {e}")
 
+        # Fall back to the student's requested time when no explicit scheduled time is provided
+        if not scheduled_start:
+            scheduled_start = appointment.get('requested_start')
+        if not scheduled_end:
+            scheduled_end = appointment.get('requested_end')
+            if not scheduled_end and scheduled_start:
+                scheduled_end = scheduled_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
+
         # Build update fields
         update_fields = {
             "counselor_id": counselor['_id'],
@@ -1102,7 +1124,7 @@ def match_counselor(appointment_id):
                 student_doc = db.db.users.find_one({'_id': appointment.get('student_id')})
                 s_email = student_doc.get('email', '') if student_doc else ''
                 s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip() if student_doc else ''
-                appt_time_str = appt_time.strftime('%B %d, %Y at %I:%M %p')
+                appt_time_str = appt_time.strftime('%B %d, %Y at %I:%M %p') + ' PHT'
                 for label, offset in [('24h', timedelta(hours=_cfg('REMINDER_HOURS_24', 24))), ('1h', timedelta(hours=_cfg('REMINDER_HOURS_1', 1)))]:
                     if not db.db.reminders.find_one({'appointment_id': appointment['_id'], 'reminder_type': label}):
                         db.db.reminders.insert_one({
@@ -1128,8 +1150,12 @@ def match_counselor(appointment_id):
                 s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip()
                 c_name = f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
                 appt_display_time = (scheduled_start or appointment.get('requested_start'))
-                date_str = appt_display_time.strftime('%B %d, %Y') if appt_display_time else 'TBD'
-                time_str = appt_display_time.strftime('%I:%M %p') if appt_display_time else 'TBD'
+                if appt_display_time:
+                    date_str = appt_display_time.strftime('%B %d, %Y')
+                    time_str = appt_display_time.strftime('%I:%M %p') + ' PHT'
+                else:
+                    date_str = 'TBD'
+                    time_str = 'TBD'
                 preferred_platform_val = appointment.get('preferred_platform', '')
                 platform_map = {'zoom': 'Zoom', 'google_meet': 'Google Meet', 'google-meet': 'Google Meet', 'in_person': 'In-Person', 'in-person': 'In-Person', 'phone': 'Phone', 'online': 'Online'}
                 if preferred_method == 'online' and preferred_platform_val:
@@ -1148,7 +1174,7 @@ def match_counselor(appointment_id):
                 confirmation_html = f"""
                 <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
                   <div style="max-width:600px;margin:0 auto;padding:20px;">
-                    <h2 style="color:#1B5E20;">Appointment Confirmed</h2>
+                    <h2 style="color:#1B5E20;">Your Appointment is Confirmed</h2>
                     <p>Dear {s_name},</p>
                     <p>Your counseling appointment has been confirmed.</p>
                     <div style="background:#f5f5f5;padding:15px;margin:20px 0;border-radius:5px;border-left:4px solid #1B5E20;">
@@ -1168,7 +1194,7 @@ def match_counselor(appointment_id):
                 </body></html>"""
 
                 email_svc = EmailService()
-                email_svc._send_email(s_email, "Your CPS Appointment is Confirmed", confirmation_html)
+                email_svc._send_email(s_email, f"CPS Appointment Confirmed — {date_str} at {time_str}", confirmation_html)
                 print(f"✓ Confirmation email sent to {s_email}")
 
                 # Notify counselor of new assignment
@@ -1195,7 +1221,7 @@ def match_counselor(appointment_id):
                         </p>
                       </div>
                     </body></html>"""
-                    email_svc._send_email(c_email, f"New Appointment: {s_name} on {date_str}", counselor_html)
+                    email_svc._send_email(c_email, f"New Appointment — {s_name} on {date_str} at {time_str}", counselor_html)
                     print(f"✓ Counselor notification sent to {c_email}")
         except Exception as e:
             print(f"⚠ Could not send confirmation email: {e}")
@@ -1751,6 +1777,230 @@ def mark_no_show(appointment_id):
     }), 200
 
 
+# ---------------------------------------------------------------------------
+# Student self-scheduling after IC endorsement
+# ---------------------------------------------------------------------------
+
+@appointments_bp.route('/pending-session', methods=['GET'])
+@jwt_required()
+def get_pending_session():
+    """Return the student's endorsed appointment that still needs a time to be scheduled."""
+    user_id = get_jwt_identity()
+    try:
+        user_id_obj = ObjectId(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid user'}), 400
+
+    user = db.db.users.find_one({'_id': user_id_obj})
+    if not user or user.get('role', '').upper() != 'STUDENT':
+        return jsonify({'pending_session': None}), 200
+
+    # Find cases for this student
+    cases = list(db.db.cases.find({'student_id': user_id_obj}))
+    case_ids = [c['_id'] for c in cases]
+    if not case_ids:
+        return jsonify({'pending_session': None}), 200
+
+    appt = db.db.appointments.find_one({
+        'case_id': {'$in': case_ids},
+        'source': 'endorsed',
+        'status': AppointmentStatus.REQUESTED.value,
+        '$or': [
+            {'requested_start': None},
+            {'requested_start': {'$exists': False}},
+        ],
+        'counselor_id': {'$exists': True, '$ne': None},
+    })
+
+    if not appt:
+        return jsonify({'pending_session': None}), 200
+
+    # Enrich with counselor info
+    counselor = db.db.users.find_one({'_id': appt['counselor_id']}) if appt.get('counselor_id') else None
+    counselor_name = (
+        f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
+        if counselor else 'Your Counselor'
+    )
+    counselor_role = counselor.get('role', 'COUNSELOR') if counselor else 'COUNSELOR'
+
+    return jsonify({
+        'pending_session': {
+            'appointment_id': str(appt['_id']),
+            'counselor_id': str(appt['counselor_id']),
+            'counselor_name': counselor_name,
+            'counselor_role': counselor_role,
+            'concern': appt.get('concern', ''),
+            'risk_level': appt.get('risk_level', 'GREEN'),
+        }
+    }), 200
+
+
+@appointments_bp.route('/counselor-slots', methods=['GET'])
+@jwt_required()
+def get_counselor_slots():
+    """Return open 1-hour slots for a specific counselor on a given date (for student self-scheduling)."""
+    counselor_id_str = request.args.get('counselor_id')
+    date_str = request.args.get('date')
+    if not counselor_id_str or not date_str:
+        return jsonify({'error': 'counselor_id and date are required'}), 400
+
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d')
+        counselor_oid = ObjectId(counselor_id_str)
+    except Exception:
+        return jsonify({'error': 'Invalid counselor_id or date format (YYYY-MM-DD)'}), 400
+
+    counselor = db.db.users.find_one({'_id': counselor_oid})
+    if not counselor:
+        return jsonify({'error': 'Counselor not found'}), 404
+
+    SLOT_DURATION = 60  # minutes
+    dow = target_date.weekday()
+
+    doc = db.db.counselor_availability.find_one({'counselor_id': counselor_oid})
+    if not doc or not doc.get('schedule'):
+        return jsonify({'slots': [], 'date': date_str}), 200
+
+    working = next((e for e in doc['schedule'] if e.get('day_of_week') == dow), None)
+    if not working:
+        return jsonify({'slots': [], 'date': date_str}), 200
+
+    sh, sm = map(int, working['start_time'].split(':'))
+    eh, em = map(int, working['end_time'].split(':'))
+    cursor = target_date.replace(hour=sh, minute=sm, second=0, microsecond=0)
+    day_end = target_date.replace(hour=eh, minute=em, second=0, microsecond=0)
+
+    all_slots = []
+    while cursor + timedelta(minutes=SLOT_DURATION) <= day_end:
+        all_slots.append(cursor)
+        cursor += timedelta(minutes=SLOT_DURATION)
+
+    # Exclude slots in the past
+    now = datetime.utcnow()
+    all_slots = [s for s in all_slots if s > now]
+
+    # Exclude already-booked slots
+    day_start_dt = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end_dt   = target_date.replace(hour=23, minute=59, second=59)
+    booked = list(db.db.appointments.find({
+        'counselor_id': counselor_oid,
+        'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'PENDING_STUDENT_APPROVAL', 'CHECKED_IN']},
+        '$or': [
+            {'scheduled_start': {'$gte': day_start_dt, '$lte': day_end_dt}},
+            {'requested_start':  {'$gte': day_start_dt, '$lte': day_end_dt}},
+        ],
+    }))
+
+    def is_booked(slot_dt):
+        slot_end = slot_dt + timedelta(minutes=SLOT_DURATION)
+        for apt in booked:
+            apt_start = apt.get('scheduled_start') or apt.get('requested_start')
+            if not apt_start:
+                continue
+            if isinstance(apt_start, str):
+                try:
+                    apt_start = datetime.fromisoformat(apt_start)
+                except Exception:
+                    continue
+            apt_end = apt_start + timedelta(minutes=SLOT_DURATION)
+            if slot_dt < apt_end and slot_end > apt_start:
+                return True
+        return False
+
+    free_slots = [s.strftime('%H:%M') for s in all_slots if not is_booked(s)]
+    return jsonify({'slots': free_slots, 'date': date_str}), 200
+
+
+@appointments_bp.route('/<appointment_id>/student-pick-slot', methods=['POST'])
+@jwt_required()
+def student_pick_slot(appointment_id):
+    """Student picks a time slot for their endorsed counseling appointment. Auto-confirms."""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+
+    date_str = data.get('date')   # YYYY-MM-DD
+    time_str = data.get('time')   # HH:MM
+    if not date_str or not time_str:
+        return jsonify({'error': 'date and time are required'}), 400
+
+    try:
+        apt_id = ObjectId(appointment_id)
+        user_id_obj = ObjectId(user_id)
+        scheduled_start = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M')
+        scheduled_end = scheduled_start + timedelta(minutes=60)
+    except Exception:
+        return jsonify({'error': 'Invalid input'}), 400
+
+    appt = db.db.appointments.find_one({'_id': apt_id})
+    if not appt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    # Verify student owns this appointment via their case
+    cases = list(db.db.cases.find({'student_id': user_id_obj}))
+    case_ids = [c['_id'] for c in cases]
+    if appt.get('case_id') not in case_ids:
+        return jsonify({'error': 'Not authorised'}), 403
+
+    if appt.get('status') != AppointmentStatus.REQUESTED.value:
+        return jsonify({'error': 'This appointment is no longer available for scheduling'}), 409
+
+    # Check slot is still free for counselor
+    counselor_id = appt.get('counselor_id')
+    if counselor_id:
+        conflict = db.db.appointments.find_one({
+            'counselor_id': counselor_id,
+            '_id': {'$ne': apt_id},
+            'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
+            '$or': [
+                {'scheduled_start': {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
+                {'requested_start':  {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
+            ],
+        })
+        if conflict:
+            return jsonify({'error': 'That slot was just taken. Please pick another time.'}), 409
+
+    db.db.appointments.update_one(
+        {'_id': apt_id},
+        {'$set': {
+            'requested_start':  scheduled_start,
+            'scheduled_start':  scheduled_start,
+            'scheduled_end':    scheduled_end,
+            'status':           AppointmentStatus.CONFIRMED.value,
+            'scheduled_by':     'student',
+            'updated_at':       datetime.utcnow(),
+        }}
+    )
+
+    audit_log(db.db, 'appointments', 'student_scheduled', entity_id=str(apt_id),
+              new_values={'scheduled_start': scheduled_start.isoformat(), 'scheduled_by': 'student'})
+
+    # Notify counselor
+    counselor = db.db.users.find_one({'_id': counselor_id}) if counselor_id else None
+    student  = db.db.users.find_one({'_id': user_id_obj})
+    if counselor and student:
+        try:
+            from services.email_service import send_email
+            student_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
+            slot_str = scheduled_start.strftime('%B %d, %Y at %I:%M %p')
+            send_email(
+                to=counselor.get('email', ''),
+                subject=f'New session scheduled — {student_name}',
+                body=(
+                    f"Dear {counselor.get('first_name','')},\n\n"
+                    f"{student_name} has scheduled a counseling session with you on {slot_str}.\n\n"
+                    f"Please log in to the CPS portal to view the session details.\n\nCPS System"
+                ),
+            )
+        except Exception as e:
+            print(f'[student-pick-slot] email error: {e}')
+
+    return jsonify({
+        'message': 'Session scheduled successfully.',
+        'scheduled_start': scheduled_start.isoformat(),
+        'status': AppointmentStatus.CONFIRMED.value,
+    }), 200
+
+
 @appointments_bp.route('/<appointment_id>/complete', methods=['POST'])
 @jwt_required()
 def complete_appointment(appointment_id):
@@ -1953,6 +2203,7 @@ def set_follow_up(appointment_id):
         'purpose': 'follow_up_counselling',
         'concern': data.get('notes', apt.get('concern', '')),
         'preferred_method': apt.get('preferred_method', 'in-person'),
+        'preferred_platform': apt.get('preferred_platform'),
         'method': apt.get('preferred_method', 'in-person'),
         'office': data.get('office', apt.get('office', '')),
         'scheduled_start': sched_start,
@@ -1965,6 +2216,54 @@ def set_follow_up(appointment_id):
     }
     result = db.db.appointments.insert_one(new_apt)
     new_apt_id = str(result.inserted_id)
+    new_apt['_id'] = result.inserted_id
+
+    # Sync to Google Calendar
+    try:
+        if apt.get('counselor_id'):
+            from blueprints.google_calendar import sync_appointment_to_calendar
+            cal_event_id, meet_link = sync_appointment_to_calendar(str(apt['counselor_id']), new_apt)
+            if cal_event_id:
+                db.db.appointments.update_one({'_id': result.inserted_id}, {'$set': {'calendar_event_id': cal_event_id}})
+                if meet_link:
+                    db.db.appointments.update_one({'_id': result.inserted_id}, {'$set': {'meeting_link': meet_link}})
+    except Exception as cal_err:
+        print(f"⚠ Follow-up calendar sync failed: {cal_err}")
+
+    # Email student with follow-up details
+    try:
+        student_doc = db.db.users.find_one({'_id': apt.get('student_id')})
+        counselor_doc = db.db.users.find_one({'_id': apt.get('counselor_id')}) if apt.get('counselor_id') else None
+        if student_doc and student_doc.get('email'):
+            from services.email_service import EmailService
+            pref_method   = apt.get('preferred_method', 'in-person')
+            pref_platform = apt.get('preferred_platform', '')
+            platform_map  = {'google_meet': 'Google Meet', 'google-meet': 'Google Meet',
+                             'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}
+            if pref_method == 'online' and pref_platform:
+                platform_label = platform_map.get(pref_platform, pref_platform.replace('-', ' ').title())
+            else:
+                platform_label = platform_map.get(pref_method, pref_method.replace('-', ' ').title())
+            c_name = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip() if counselor_doc else 'Your Counselor'
+            s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip()
+            EmailService().send_appointment_confirmation_email(
+                recipient_email=student_doc['email'],
+                student_name=s_name,
+                appointment_details={
+                    'reference_id':      new_counseling_id,
+                    'appointment_date':  sched_start.strftime('%B %d, %Y'),
+                    'appointment_time':  sched_start.strftime('%I:%M %p') + ' PHT',
+                    'platform':          platform_label,
+                    'counselor_name':    c_name,
+                    'concern':           new_apt.get('concern', ''),
+                    'meeting_link':      new_apt.get('meeting_link', ''),
+                    'start_dt':          sched_start,
+                    'end_dt':            sched_end,
+                },
+            )
+            print(f"✓ Follow-up confirmation email sent to {student_doc['email']}")
+    except Exception as email_err:
+        print(f"⚠ Follow-up email failed: {email_err}")
 
     return jsonify({
         'message': 'Follow-up session scheduled.',
@@ -3012,6 +3311,19 @@ def cancel_appointment(appointment_id):
         except Exception:
             pass
 
+        # Remove from Google Calendar
+        try:
+            cal_event_id = appointment.get('calendar_event_id')
+            if cal_event_id:
+                from blueprints.google_calendar import delete_appointment_from_calendar, SYSTEM_CALENDAR_USER
+                # Try counselor's token first (they may have created it), then system account
+                deleted = counselor_id and delete_appointment_from_calendar(str(counselor_id), cal_event_id)
+                if not deleted:
+                    delete_appointment_from_calendar(SYSTEM_CALENDAR_USER, cal_event_id)
+                print(f"✓ Removed calendar event {cal_event_id}")
+        except Exception as cal_err:
+            print(f"⚠ Calendar event deletion failed: {cal_err}")
+
         # Log audit trail
         audit_log(
             db.db,
@@ -3367,13 +3679,47 @@ def reschedule_appointment(appointment_id):
         )
         
         new_count = reschedule_count + 1
-        # Flag for staff follow-up after repeated rescheduling
         if new_count >= 2:
             db.db.appointments.update_one({"_id": apt_id}, {"$set": {"reschedule_flagged": True}})
 
+        # Notify the assigned counselor/IC directly
+        try:
+            counselor_doc = db.db.users.find_one({'_id': appointment.get('counselor_id')}) if appointment.get('counselor_id') else None
+            student_doc   = db.db.users.find_one({'_id': user_id_obj})
+            if counselor_doc and counselor_doc.get('email') and student_doc:
+                from services.email_service import EmailService
+                s_name    = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip()
+                c_name    = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip()
+                old_time  = (appointment.get('scheduled_start') or appointment.get('requested_start'))
+                old_str   = old_time.strftime('%B %d, %Y at %I:%M %p PHT') if old_time else 'TBD'
+                new_str   = new_start.strftime('%B %d, %Y at %I:%M %p PHT')
+                html = f"""<html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
+                  <div style="max-width:600px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#1B5E20;">Reschedule Request</h2>
+                    <p>Dear {c_name},</p>
+                    <p><strong>{s_name}</strong> has requested to reschedule their appointment.</p>
+                    <div style="background:#f5f5f5;padding:15px;margin:20px 0;border-radius:5px;border-left:4px solid #1B5E20;">
+                      <p style="margin:8px 0;"><strong>Current time:</strong> {old_str}</p>
+                      <p style="margin:8px 0;"><strong>Requested new time:</strong> {new_str}</p>
+                      {'<p style="margin:8px 0;"><strong>Reason:</strong> ' + reason + '</p>' if reason else ''}
+                    </div>
+                    <p>Please log in to the CPS portal to approve or deny this request.</p>
+                    <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
+                    <p style="color:#999;font-size:12px;text-align:center;">{_email_footer()}</p>
+                  </div>
+                </body></html>"""
+                EmailService()._send_email(
+                    counselor_doc['email'],
+                    f"Reschedule Request — {s_name}",
+                    html,
+                )
+                print(f"✓ Reschedule notification sent to {counselor_doc['email']}")
+        except Exception as notify_err:
+            print(f"⚠ Reschedule notification email failed: {notify_err}")
+
         return jsonify({
             'message': 'Reschedule request submitted successfully',
-            'detail': 'Your request has been submitted. Staff will confirm your new time.',
+            'detail': 'Your request has been sent to your counselor for approval.',
             'appointment_id': str(apt_id),
             'status': AppointmentStatus.RESCHEDULE_REQUESTED.value,
             'reschedule_requested_start': new_start.isoformat(),
@@ -3519,6 +3865,27 @@ def approve_reschedule_request(request_id):
         }
     )
     audit_log(db.db, 'appointments', 'reschedule_approved', entity_id=str(apt_id))
+
+    # Update Google Calendar: delete old event, create new one with the updated time
+    try:
+        cal_event_id = apt.get('calendar_event_id')
+        counselor_id = apt.get('counselor_id')
+        if counselor_id:
+            from blueprints.google_calendar import delete_appointment_from_calendar, sync_appointment_to_calendar, SYSTEM_CALENDAR_USER
+            if cal_event_id:
+                deleted = delete_appointment_from_calendar(str(counselor_id), cal_event_id)
+                if not deleted:
+                    delete_appointment_from_calendar(SYSTEM_CALENDAR_USER, cal_event_id)
+            updated_apt = dict(apt)
+            updated_apt['scheduled_start'] = new_start
+            updated_apt['scheduled_end'] = new_end
+            new_event_id, _ = sync_appointment_to_calendar(str(counselor_id), updated_apt)
+            if new_event_id:
+                db.db.appointments.update_one({'_id': apt_id}, {'$set': {'calendar_event_id': new_event_id}})
+                print(f"✓ Calendar event rescheduled: {new_event_id}")
+    except Exception as cal_err:
+        print(f"⚠ Calendar reschedule update failed: {cal_err}")
+
     return jsonify({'message': 'Reschedule approved', 'appointment_id': str(apt_id)}), 200
 
 
@@ -3913,10 +4280,14 @@ def confirm_schedule(appointment_id):
             from services.email_service import EmailService
             from datetime import timedelta
             end_dt = apt.get('scheduled_end') or (scheduled_start + timedelta(hours=1))
-            platform_raw = apt.get('method') or apt.get('preferred_method') or 'in_person'
-            platform_map = {'google_meet': 'Google Meet', 'google-meet': 'Google Meet',
-                            'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}
-            platform_label = platform_map.get(platform_raw, platform_raw.replace('_', ' ').title())
+            platform_raw  = apt.get('preferred_method') or apt.get('method') or 'in_person'
+            pref_platform = apt.get('preferred_platform', '')
+            platform_map  = {'google_meet': 'Google Meet', 'google-meet': 'Google Meet',
+                             'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}
+            if platform_raw == 'online' and pref_platform:
+                platform_label = platform_map.get(pref_platform, pref_platform.replace('-', ' ').title())
+            else:
+                platform_label = platform_map.get(platform_raw, platform_raw.replace('_', ' ').title())
             counselor_name = (
                 f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
                 if counselor else 'CPS Counselor'
@@ -3925,7 +4296,7 @@ def confirm_schedule(appointment_id):
                 recipient_email=student.get('email', ''),
                 student_name=f"{student.get('first_name','')} {student.get('last_name','')}".strip(),
                 appointment_details={
-                    'reference_id':      str(apt['_id']),
+                    'reference_id':      apt.get('reference_id', ''),
                     'appointment_date':  scheduled_start.strftime('%B %d, %Y'),
                     'appointment_time':  scheduled_start.strftime('%I:%M %p'),
                     'platform':          platform_label,
@@ -3982,9 +4353,11 @@ def confirm_intake_slot(appointment_id):
     if not apt.get('preferred_method'):
         confirm_fields['preferred_method'] = preferred_method
 
-    # Auto-create Google Meet link for online appointments
+    # Auto-create Google Meet link only for Google Meet appointments
     meeting_link = apt.get('meeting_link')
-    if not meeting_link and preferred_method in ('google_meet', 'google-meet', 'online') and scheduled_start:
+    pref_platform = apt.get('preferred_platform', '')
+    is_google_meet = preferred_method in ('google_meet', 'google-meet') or pref_platform in ('google-meet', 'google_meet')
+    if not meeting_link and is_google_meet and scheduled_start:
         try:
             from blueprints.google_calendar import sync_appointment_to_calendar
             appt_for_sync = dict(apt)
@@ -4014,10 +4387,13 @@ def confirm_intake_slot(appointment_id):
                 'student_id':      student.get('student_id', 'N/A'),
                 'student_email':   student.get('email', ''),
                 'student_contact': student.get('phone_number', student.get('email', '')),
-                'reference_id':    str(apt['_id']),
+                'reference_id':    apt.get('reference_id', ''),
                 'appointment_date': scheduled_start.strftime('%B %d, %Y'),
                 'appointment_time': scheduled_start.strftime('%I:%M %p'),
-                'platform':        (lambda pm, pp: {'google_meet': 'Google Meet', 'google-meet': 'Google Meet', 'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person', 'online': pp.replace('-', ' ').title() if pp else 'Online'}.get(pm, pm or 'In-Person'))(preferred_method, apt.get('preferred_platform', '')),
+                'platform':        {'google_meet': 'Google Meet', 'google-meet': 'Google Meet', 'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}.get(
+                                       pref_platform if preferred_method == 'online' else preferred_method,
+                                       (pref_platform or preferred_method or 'In-Person').replace('-', ' ').title()
+                                   ),
                 'counselor_name':  f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip() if counselor else 'CPS Intake Counselor',
                 'concern':         apt.get('concern', ''),
                 'meeting_link':    meeting_link or '',

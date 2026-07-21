@@ -7,6 +7,7 @@ import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle } from 'lucide-react';
 import { OnboardingModal } from './OnboardingModal';
+import { ScheduleSessionCard } from './ScheduleSessionCard';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -75,6 +76,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [loading, setLoading]                   = useState(true);
   const [isCheckInOnly, setIsCheckInOnly]       = useState(false);
   const [resourceCount, setResourceCount]       = useState(0);
+  const [hasPendingSession, setHasPendingSession] = useState(false);
   const [mounted, setMounted]                   = useState(false);
 
   const [showConsent, setShowConsent]           = useState(false);
@@ -146,18 +148,20 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
     if (!token) { setLoading(false); return; }
     (async () => {
       try {
-        const [apptRes, caseRes, resRes, annoRes, consentRes] = await Promise.all([
+        const [apptRes, caseRes, resRes, annoRes, consentRes, pendingRes] = await Promise.all([
           fetch(api('/api/appointments'), { headers: { Authorization: `Bearer ${token}` } }),
           fetch(api('/api/cases/my-current'), { headers: { Authorization: `Bearer ${token}` } }),
           fetch(api('/api/resources/student'), { headers: { Authorization: `Bearer ${token}` } }),
           fetch(api('/api/announcements?limit=10'), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
           fetch(api('/api/consent/status'), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+          fetch(api('/api/appointments/pending-session'), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         ]);
         if (apptRes.ok) { const d = await apptRes.json(); if (Array.isArray(d.appointments)) setAppointments(d.appointments); }
         if (caseRes.ok) { const d = await caseRes.json(); if (['CHECK_IN_ONLY','WITH_MH_CHECK_IN','UNDER_ACCOMMODATION'].includes(d.client_status)) setIsCheckInOnly(true); }
         if (resRes.ok)  { const d = await resRes.json(); setResourceCount(d.resources_count || 0); }
         if (annoRes?.ok) { const d = await annoRes.json(); setAnnouncements(d.announcements || []); }
         if (consentRes?.ok) { const d = await consentRes.json(); if (!d.consent_given) setShowConsent(true); }
+        if (pendingRes?.ok) { const d = await pendingRes.json(); if (d.pending_session) setHasPendingSession(true); }
       } finally { setLoading(false); }
     })();
   }, [mounted]);
@@ -210,6 +214,19 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
           {/* Left column */}
           <div className="flex-1 space-y-5 min-w-0">
+
+            {/* Schedule session card — shown when IC has endorsed but student hasn't picked a time yet */}
+            {hasPendingSession && (
+              <ScheduleSessionCard onScheduled={() => {
+                setHasPendingSession(false);
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                fetch(api('/api/appointments'), { headers: { Authorization: `Bearer ${token}` } })
+                  .then(r => r.ok ? r.json() : null)
+                  .then(d => { if (d?.appointments) setAppointments(d.appointments); })
+                  .catch(() => {});
+              }} />
+            )}
 
             {/* Hero banner */}
             {nextAppt ? (() => {

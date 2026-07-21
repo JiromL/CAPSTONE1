@@ -414,6 +414,12 @@ def login():
                 'last_name': user['last_name'],
                 'role': user['role'],
                 'phone': user.get('phone', ''),
+                'college': user.get('college'),
+                'course': user.get('course'),
+                'year': user.get('year'),
+                'emergency_contact': user.get('emergency_contact'),
+                'emergency_phone': user.get('emergency_phone'),
+                'emergency_contact_relationship': user.get('emergency_contact_relationship'),
             }), 200
 
     audit_log(db.db, 'access_control', 'failed_login', old_values={'identifier': identifier})

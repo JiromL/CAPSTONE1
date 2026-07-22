@@ -597,8 +597,16 @@ def submit_triage(intake_id):
             try:
                 counselor_obj_id = ObjectId(assigned_counselor_id)
                 c = db.db.users.find_one({'_id': counselor_obj_id})
-                if c:
-                    counselor_name = f"{c.get('last_name','').upper()}, {c.get('first_name','')}"
+                if not c:
+                    return jsonify({'error': 'Assigned user not found.'}), 400
+                actual_role = c.get('role', '')
+                if endorsed_role == 'COUNSELOR' and actual_role != 'COUNSELOR':
+                    return jsonify({'error': f'ENDORSE_CC requires a Counselor. Selected user has role: {actual_role}.'}), 400
+                if endorsed_role == 'PSYCHOLOGIST' and actual_role != 'PSYCHOLOGIST':
+                    return jsonify({'error': f'ENDORSE_CP requires a Psychologist. Selected user has role: {actual_role}.'}), 400
+                if not c.get('is_active', True):
+                    return jsonify({'error': 'Selected user account is deactivated.'}), 400
+                counselor_name = f"{c.get('last_name','').upper()}, {c.get('first_name','')}"
             except Exception:
                 pass
 

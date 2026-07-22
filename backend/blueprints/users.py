@@ -205,26 +205,17 @@ def list_users_by_role():
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     role  = request.args.get('role')
-    roles = request.args.get('roles')  # comma-separated, e.g. roles=COUNSELOR,CSC
+    roles = request.args.get('roles')  # comma-separated, e.g. roles=COUNSELOR,PSYCHOLOGIST
     q = request.args.get('q', '').strip()
-    # 'COUNSELOR' is treated as a group: all counseling-type roles
-    COUNSELOR_ROLES = ['COUNSELOR', 'PSYCHOLOGIST', 'IC']
     if roles:
         role_list = [r.strip().upper() for r in roles.split(',') if r.strip()]
-        # Expand 'COUNSELOR' group if present
-        expanded = []
-        for r in role_list:
-            if r == 'COUNSELOR':
-                expanded.extend(COUNSELOR_ROLES)
-            else:
-                expanded.append(r)
-        query = {'role': {'$in': list(set(expanded))}}
-    elif role == 'COUNSELOR':
-        query = {'role': {'$in': COUNSELOR_ROLES}}
+        query = {'role': {'$in': role_list}}
     elif role:
         query = {'role': role.upper()}
     else:
         query = {}
+    # Only return active accounts
+    query['is_active'] = {'$ne': False}
     if q:
         import re
         pattern = re.compile(re.escape(q), re.IGNORECASE)

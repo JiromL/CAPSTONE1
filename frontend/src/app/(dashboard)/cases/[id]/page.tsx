@@ -38,6 +38,9 @@ interface SessionNote {
   supervisor_name?: string;
   supervisor_comment?: string;
   supervisor_action_at?: string;
+  is_deleted?: boolean;
+  deleted_by_name?: string;
+  deleted_at?: string;
 }
 
 const IC    = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
@@ -299,7 +302,15 @@ export default function CaseDetailPage() {
   const [intakeFormSuccess, setIntakeFormSuccess] = useState(false);
 
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showEditTriageModal, setShowEditTriageModal] = useState(false);
+  const [editTriageDecision, setEditTriageDecision] = useState('');
+  const [editTriageRisk, setEditTriageRisk] = useState('');
+  const [editTriageNotes, setEditTriageNotes] = useState('');
+  const [savingEditTriage, setSavingEditTriage] = useState(false);
+  const [editTriageError, setEditTriageError] = useState('');
   const [showTerminationForm, setShowTerminationForm] = useState(false);
+  const [showClosureChecklist, setShowClosureChecklist] = useState(false);
+  const [closureChecks, setClosureChecks] = useState({ notes: false, referrals: false, notified: false });
   const [confirmingNoShowTerm, setConfirmingNoShowTerm] = useState(false);
   const [reopeningCase, setReopeningCase] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
@@ -507,7 +518,9 @@ export default function CaseDetailPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setSessionNotes(data.sessions || data.notes || []);
+        const notes = (data.sessions || data.notes || []);
+        notes.sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+        setSessionNotes(notes);
       }
     } catch (err) {
       console.error('Failed to load session notes:', err);
@@ -859,6 +872,40 @@ export default function CaseDetailPage() {
     setTimeout(() => setSuccess(null), 3000);
   };
 
+  const handleEditTriage = async () => {
+    if (!intakeSummary?._id || !editTriageDecision) return;
+    if (editTriageDecision === 'CLOSE_AT_INTAKE' && !editTriageNotes.trim()) {
+      setEditTriageError('Closure notes are required when closing at intake.');
+      return;
+    }
+    setSavingEditTriage(true);
+    setEditTriageError('');
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/intake/${intakeSummary._id}/triage`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          triage_decision: editTriageDecision,
+          endorsement_notes: editTriageNotes,
+          risk_override: editTriageRisk || undefined,
+          phq9_responses: intakeSummary.phq9_responses || [],
+          gad7_responses: intakeSummary.gad7_responses || [],
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setEditTriageError(d.error || 'Failed to update triage'); return; }
+      setShowEditTriageModal(false);
+      showSuccess('Triage decision updated.');
+      setIntakeSummaryLoaded(false);
+      await loadIntakeSummary();
+    } catch (e: any) {
+      setEditTriageError(e.message || 'Network error');
+    } finally {
+      setSavingEditTriage(false);
+    }
+  };
+
   const handleUpdateStatus = async (clientStatus: string) => {
     try {
       setError(null);
@@ -1153,7 +1200,7 @@ export default function CaseDetailPage() {
                   </span>
                 )}
                 <button
-                  onClick={() => setShowTerminationForm(true)}
+                  onClick={() => { setClosureChecks({ notes: false, referrals: false, notified: false }); setShowClosureChecklist(true); }}
                   className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
                   style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}
                 >
@@ -1538,7 +1585,26 @@ export default function CaseDetailPage() {
                           <p className="text-sm mt-2 leading-relaxed pt-2" style={{ color: 'var(--color-text-secondary)', borderTop: '1px solid rgba(0,0,0,.05)' }}>{intakeSummary.endorsement_notes}</p>
                         )}
                       </div>
-                      <span className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold" style={riskCfg.badgeStyle}>{riskCfg.label}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={riskCfg.badgeStyle}>{riskCfg.label}</span>
+                        {['IC', 'ADMIN', 'DPO', 'PSYCHOLOGIST'].includes(currentUser?.role || '') && (
+                          <button
+                            onClick={() => {
+                              setEditTriageDecision(decision || '');
+                              setEditTriageRisk(intakeSummary.risk_level || '');
+                              setEditTriageNotes(intakeSummary.endorsement_notes || '');
+                              setEditTriageError('');
+                              setShowEditTriageModal(true);
+                            }}
+                            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-medium transition"
+                            style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                          >
+                            <Pencil size={11} /> Edit
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1589,30 +1655,46 @@ export default function CaseDetailPage() {
                 </div>
 
                 {/* PHQ-4 pre-screen */}
-                {phq4r.length >= 4 && (
-                  <div className="rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                    <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>PHQ-4 Pre-Screen</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { label: 'PHQ-2', score: phq2Score, max: 6, threshold: 3, name: 'Depression screen' },
-                        { label: 'GAD-2', score: gad2Score, max: 6, threshold: 3, name: 'Anxiety screen'    },
-                        { label: 'Total', score: phq2Score != null && gad2Score != null ? phq2Score + gad2Score : null, max: 12, threshold: 6, name: 'Combined' },
-                      ].map(({ label, score, max, threshold, name }) => (
-                        <div key={label} className="text-center">
-                          <p className="text-[10px] mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</p>
-                          <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
-                          <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{score ?? '—'}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{max}</span></p>
-                          {score != null && (
-                            <span className="text-[10px] font-semibold mt-0.5 inline-block"
-                              style={{ color: score >= threshold ? '#ef4444' : '#10b981' }}>
-                              {score >= threshold ? '⚑ Positive' : '✓ Negative'}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                {phq4r.length >= 4 && (() => {
+                  const totalPhq4 = phq2Score != null && gad2Score != null ? phq2Score + gad2Score : null;
+                  const phq4Sev = totalPhq4 == null ? null
+                    : totalPhq4 <= 2 ? { label: 'None',     color: '#10b981' }
+                    : totalPhq4 <= 5 ? { label: 'Mild',     color: '#d97706' }
+                    : totalPhq4 <= 8 ? { label: 'Moderate', color: '#ea580c' }
+                    :                  { label: 'Severe',   color: '#dc2626' };
+                  return (
+                    <div className="rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>PHQ-4 Pre-Screen</p>
+                        {phq4Sev && (
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full"
+                            style={{ background: `${phq4Sev.color}18`, color: phq4Sev.color }}>
+                            {phq4Sev.label}
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { label: 'PHQ-2', score: phq2Score, max: 6, threshold: 3, name: 'Depression screen' },
+                          { label: 'GAD-2', score: gad2Score, max: 6, threshold: 3, name: 'Anxiety screen'    },
+                          { label: 'Total', score: totalPhq4, max: 12, threshold: 6, name: 'Combined'          },
+                        ].map(({ label, score, max, threshold, name }) => (
+                          <div key={label} className="text-center">
+                            <p className="text-[10px] mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</p>
+                            <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+                            <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{score ?? '—'}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{max}</span></p>
+                            {score != null && (
+                              <span className="text-[10px] font-semibold mt-0.5 inline-block"
+                                style={{ color: score >= threshold ? '#ef4444' : '#10b981' }}>
+                                {score >= threshold ? '⚑ Positive' : '✓ Negative'}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Presenting concern */}
                 {(icf.presenting_concern || intakeSummary.concern) && (
@@ -1777,6 +1859,52 @@ export default function CaseDetailPage() {
               </button>
             </div>
 
+            {/* ── Mood Trend Chart ── */}
+            {sessionNotes.filter(n => n.mood_rating).length >= 2 && (() => {
+              const moodChartData = [...sessionNotes]
+                .filter(n => n.mood_rating)
+                .reverse()
+                .map((n, i) => ({
+                  label: `S${i + 1}`,
+                  mood: n.mood_rating as number,
+                  risk: n.risk_flagged,
+                }));
+              return (
+                <div className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-secondary)' }}>Mood Trend Across Sessions</p>
+                  <ResponsiveContainer width="100%" height={90}>
+                    <AreaChart data={moodChartData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 10]} ticks={[0, 5, 10]} tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-text-primary)' }}
+                        formatter={(v: any) => [`${v}/10`, 'Mood']}
+                      />
+                      <ReferenceLine y={5} stroke="var(--color-border)" strokeDasharray="4 2" />
+                      <Area
+                        type="monotone" dataKey="mood"
+                        stroke="var(--color-primary)" fill="url(#moodGrad)" strokeWidth={2}
+                        dot={(p: any) => p.payload.risk
+                          ? <circle key={p.key} cx={p.cx} cy={p.cy} r={4} fill="var(--color-danger)" stroke="#fff" strokeWidth={1.5} />
+                          : <circle key={p.key} cx={p.cx} cy={p.cy} r={3} fill="var(--color-primary)" strokeWidth={0} />}
+                        activeDot={{ r: 4 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                    Red dots indicate sessions where a risk concern was flagged.
+                  </p>
+                </div>
+              );
+            })()}
+
             {/* ── Add Note Form ── */}
             {showNoteForm && (
               <div className="rounded-2xl shadow-card overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
@@ -1898,7 +2026,7 @@ export default function CaseDetailPage() {
             ) : (
               <div className="space-y-2">
                 {sessionNotes.map((note, idx) => {
-                  const num = sessionNotes.length - idx;
+                  const num = idx + 1;
                   const isExpanded = expandedNotes.has(note.note_id);
                   const stype = note.session_type || 'INDIVIDUAL';
                   const isRisk = note.risk_flagged;
@@ -1926,7 +2054,7 @@ export default function CaseDetailPage() {
                   return (
                     <div key={note.note_id}
                       className="rounded-xl shadow-card overflow-hidden"
-                      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderLeft: `3px solid ${accentColor}` }}>
+                      style={{ background: note.is_deleted ? 'var(--color-danger-surface)' : 'var(--color-surface)', border: `1px solid ${note.is_deleted ? 'rgba(220,38,38,0.3)' : 'var(--color-border)'}`, borderLeft: `3px solid ${note.is_deleted ? 'var(--color-danger)' : accentColor}`, opacity: note.is_deleted ? 0.8 : 1 }}>
 
                       {/* ── Card header (always visible) ── */}
                       <div className="px-5 py-4">
@@ -1966,19 +2094,25 @@ export default function CaseDetailPage() {
                             </div>
                           </button>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {approvalStatus === 'approved' && (
+                            {note.is_deleted && (
+                              <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                                style={{ background: 'rgba(220,38,38,0.15)', color: 'var(--color-danger)' }}>
+                                ✕ Deleted{note.deleted_by_name ? ` by ${note.deleted_by_name}` : ''}
+                              </span>
+                            )}
+                            {!note.is_deleted && approvalStatus === 'approved' && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                                 style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>✓ Approved</span>
                             )}
-                            {approvalStatus === 'rejected' && (
+                            {!note.is_deleted && approvalStatus === 'rejected' && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                                 style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>✗ Rejected</span>
                             )}
-                            {approvalStatus === 'pending' && (
+                            {!note.is_deleted && approvalStatus === 'pending' && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                                 style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>Pending review</span>
                             )}
-                            {canEdit && (
+                            {canEdit && !note.is_deleted && (
                               <>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); if (isEditingThis) { setEditingNoteId(null); } else { setEditingNoteId(note.note_id); setEditNoteForm({ topics_discussed: note.topics_discussed || '', interventions: note.interventions || '', client_response: note.client_response || '', homework_assigned: note.homework_assigned || '', mood_rating: note.mood_rating || 5, risk_flagged: note.risk_flagged || false, risk_notes: note.risk_notes || '', change_reason: '' }); setExpandedNotes(prev => { const n = new Set(prev); n.add(note.note_id); return n; }); } }}
@@ -3084,12 +3218,123 @@ export default function CaseDetailPage() {
         onClose={() => setShowExportModal(false)}
       />
     )}
+    {showClosureChecklist && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowClosureChecklist(false)} />
+        <div className="relative rounded-2xl shadow-xl w-full max-w-sm p-6" style={{ background: 'var(--color-surface)' }}>
+          <h2 className="text-base font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>Pre-Closure Checklist</h2>
+          <p className="text-xs mb-5" style={{ color: 'var(--color-text-muted)' }}>
+            Confirm all steps are completed before closing this case.
+          </p>
+          <div className="space-y-3 mb-6">
+            {([
+              { key: 'notes',    label: 'All session notes have been documented and saved.' },
+              { key: 'referrals',label: 'Referrals or follow-up care have been arranged (if applicable).' },
+              { key: 'notified', label: 'The student has been informed of case closure.' },
+            ] as const).map(({ key, label }) => (
+              <label key={key} className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={closureChecks[key]}
+                  onChange={e => setClosureChecks(prev => ({ ...prev, [key]: e.target.checked }))}
+                  className="mt-0.5 w-4 h-4 rounded accent-primary flex-shrink-0"
+                />
+                <span className="text-sm leading-snug" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowClosureChecklist(false)}
+              className="flex-1 text-sm font-medium px-4 py-2.5 rounded-xl border transition hover:opacity-80"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!closureChecks.notes || !closureChecks.referrals || !closureChecks.notified}
+              onClick={() => { setShowClosureChecklist(false); setShowTerminationForm(true); }}
+              className="flex-1 text-sm font-semibold px-4 py-2.5 rounded-xl text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: 'var(--color-danger)' }}
+            >
+              Continue to Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {showTerminationForm && (
       <TerminationFormModal
         studentName={studentName}
         onClose={() => setShowTerminationForm(false)}
         onSubmit={handleTerminateCase}
       />
+    )}
+
+    {/* ── Edit Triage Modal ── */}
+    {showEditTriageModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowEditTriageModal(false)} />
+        <div className="relative rounded-2xl shadow-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)' }}>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>Edit Triage Decision</h3>
+            <button onClick={() => setShowEditTriageModal(false)} className="p-1 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <XIcon size={16} />
+            </button>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Triage Decision</label>
+              <select value={editTriageDecision} onChange={e => setEditTriageDecision(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={ICS}>
+                <option value="">Select…</option>
+                <option value="ENDORSE_CC">Endorse to Counselor (CC)</option>
+                <option value="ENDORSE_CP">Endorse to Psychologist (CP)</option>
+                <option value="CLOSE_AT_INTAKE">Close at Intake</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Risk Level Override</label>
+              <select value={editTriageRisk} onChange={e => setEditTriageRisk(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg outline-none" style={ICS}>
+                <option value="">Keep calculated risk</option>
+                <option value="GREEN">Green — Low Risk</option>
+                <option value="YELLOW">Yellow — Moderate</option>
+                <option value="RED">Red — High Risk</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Notes {editTriageDecision === 'CLOSE_AT_INTAKE' && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+              </label>
+              <textarea value={editTriageNotes} onChange={e => setEditTriageNotes(e.target.value)}
+                rows={3} placeholder="Reason for update, resources provided, follow-up plan…"
+                className="w-full px-3 py-2 text-sm rounded-lg outline-none resize-none" style={ICS} />
+            </div>
+            {editTriageError && (
+              <p className="text-xs" style={{ color: 'var(--color-danger)' }}>{editTriageError}</p>
+            )}
+          </div>
+          <div className="flex gap-3 mt-6">
+            <button onClick={() => setShowEditTriageModal(false)}
+              className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              Cancel
+            </button>
+            <button onClick={handleEditTriage} disabled={savingEditTriage || !editTriageDecision}
+              className="flex-1 px-4 py-2 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition hover:opacity-90"
+              style={{ background: 'var(--color-primary)' }}>
+              {savingEditTriage ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
     )}
 
     {showScheduleModal && (

@@ -143,31 +143,45 @@ def get_profile():
 @users_bp.route('/all', methods=['GET'])
 @jwt_required()
 def get_all_users():
-    """Get all users (admin only)"""
+    """Get all users with server-side search and pagination (admin/DPO only)."""
     user_id = get_jwt_identity()
-    
+
     try:
-        # Check if user is admin
+        import re as _re
         user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
         current_user = db.db.users.find_one({'_id': user_id_obj})
-        
-        print(f'[Users/All] Current user: {current_user.get("email") if current_user else "NOT FOUND"}, Role: {current_user.get("role") if current_user else "NONE"}')
-        
-        if not current_user:
-            return jsonify({'error': 'User not found', 'user_id': str(user_id_obj)}), 404
 
+        if not current_user:
+            return jsonify({'error': 'User not found'}), 404
         if current_user.get('role') not in ('ADMIN', 'DPO'):
             return jsonify({'error': f'Unauthorized - admin access required. Your role: {current_user.get("role")}'}), 403
 
-        # Get all users
-        users = list(db.db.users.find(
-            {},
-            {'password_hash': 0}  # Exclude passwords
-        ))
-        
-        print(f'[Users/All] Found {len(users)} users')
-        
-        # Format user data
+        # Pagination + search params
+        try:
+            page  = max(1, int(request.args.get('page', 1)))
+            limit = min(100, max(1, int(request.args.get('limit', 25))))
+        except ValueError:
+            page, limit = 1, 25
+
+        q           = request.args.get('q', '').strip()
+        role_filter = request.args.get('role', '').strip().upper()
+
+        query: dict = {}
+        if role_filter:
+            query['role'] = role_filter
+        if q:
+            pattern = _re.compile(_re.escape(q), _re.IGNORECASE)
+            query['$or'] = [
+                {'name': pattern}, {'email': pattern},
+                {'first_name': pattern}, {'last_name': pattern},
+                {'role': pattern},
+            ]
+
+        total = db.db.users.count_documents(query)
+        skip  = (page - 1) * limit
+
+        users = list(db.db.users.find(query, {'password_hash': 0}).skip(skip).limit(limit))
+
         formatted_users = []
         for user in users:
             formatted_users.append({
@@ -179,16 +193,18 @@ def get_all_users():
                 'created_at': user.get('created_at').isoformat() if user.get('created_at') else None,
                 'department': user.get('department', ''),
             })
-        
+
         return jsonify({
-            'users': formatted_users,
-            'count': len(formatted_users)
+            'users':       formatted_users,
+            'count':       len(formatted_users),
+            'total':       total,
+            'page':        page,
+            'limit':       limit,
+            'total_pages': max(1, (total + limit - 1) // limit),
         }), 200
-    
+
     except Exception as e:
-        print(f'[Users/All] Error fetching all users: {str(e)}')
-        import traceback
-        traceback.print_exc()
+        import traceback; traceback.print_exc()
         return jsonify({'error': f'Failed to fetch users: {str(e)}'}), 500
 
 

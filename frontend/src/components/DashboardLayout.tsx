@@ -86,9 +86,15 @@ export function DashboardLayout({
     });
   };
 
-  const fetchReminders = useCallback(() => {
+  const fetchReminders = useCallback((force = false) => {
     const token = localStorage.getItem('token');
     if (!token) return;
+    if (!force) {
+      try {
+        const last = parseInt(localStorage.getItem('reminders_last_fetch') || '0', 10);
+        if (Date.now() - last < 5 * 60 * 1000) return;
+      } catch {}
+    }
     fetch(api('/api/reminders'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
@@ -96,16 +102,31 @@ export function DashboardLayout({
         const list: any[] = Array.isArray(d.reminders) ? d.reminders : Array.isArray(d) ? d : [];
         setReminderCount(list.filter((r: any) => !r.is_read && !r.acknowledged).length);
         setReminders(list.slice(0, 8));
+        try { localStorage.setItem('reminders_last_fetch', String(Date.now())); } catch {}
+      })
+      .catch(() => {});
+  }, []);
+
+  const markAllRead = useCallback(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(api('/api/reminders/mark-all-read'), { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      .then(() => {
+        setReminderCount(0);
+        setReminders(prev => prev.map((r: any) => ({ ...r, is_read: true, acknowledged: true })));
+        try { localStorage.removeItem('reminders_last_fetch'); } catch {}
       })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    fetchReminders();
+    fetchReminders(true);
     localStorage.setItem('last_login_display', new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
     }));
+    const id = setInterval(() => fetchReminders(), 5 * 60 * 1000);
+    return () => clearInterval(id);
   }, [fetchReminders]);
 
   useEffect(() => {
@@ -195,18 +216,21 @@ export function DashboardLayout({
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 py-5 flex-shrink-0">
-        {/* Mark */}
-        <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-md shadow-blue-900/30 select-none">
+        {/* Mark — clicking it expands the sidebar when collapsed */}
+        <div
+          onClick={!mobileOpen && sidebarCollapsed ? toggleSidebar : undefined}
+          className={`flex-shrink-0 w-8 h-8 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-md shadow-blue-900/30 select-none transition-opacity ${!mobileOpen && sidebarCollapsed ? 'cursor-pointer hover:opacity-80' : ''}`}
+        >
           <span className="text-[10px] font-extrabold text-white tracking-tighter">CPS</span>
         </div>
 
-        {/* Wordmark */}
+        {/* Wordmark — removed from layout flow when collapsed so toggle button stays visible */}
         <div className={`
-          flex-1 min-w-0 overflow-hidden transition-opacity duration-150
-          ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
+          overflow-hidden transition-all duration-200 whitespace-nowrap
+          ${(mobileOpen || !sidebarCollapsed) ? 'max-w-[200px] opacity-100 flex-1 min-w-0' : 'max-w-0 opacity-0 flex-none w-0'}
         `}>
-          <p className="text-sm font-bold text-white leading-tight whitespace-nowrap">CPS Portal</p>
-          <p className="text-[10px] text-white/35 leading-tight whitespace-nowrap font-medium tracking-wide uppercase">
+          <p className="text-sm font-bold text-white leading-tight">CPS Portal</p>
+          <p className="text-[10px] text-white/35 leading-tight font-medium tracking-wide uppercase">
             De La Salle University
           </p>
         </div>
@@ -215,10 +239,10 @@ export function DashboardLayout({
         <button
           onClick={toggleSidebar}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden lg:flex ml-auto flex-shrink-0 items-center justify-center w-6 h-6 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
+          className="hidden lg:flex ml-auto flex-shrink-0 items-center justify-center w-6 h-6 rounded-lg text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors"
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {sidebarCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+          {sidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
         </button>
 
         {/* Mobile close */}
@@ -314,6 +338,15 @@ export function DashboardLayout({
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-bg)' }}>
+
+      {/* Skip-to-content — visible only on focus (keyboard users) */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[9999] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:rounded-xl focus:outline-none"
+        style={{ background: 'var(--color-primary)', color: '#fff' }}
+      >
+        Skip to main content
+      </a>
 
       {/* Mobile backdrop */}
       {mobileOpen && (
@@ -427,11 +460,15 @@ export function DashboardLayout({
                     <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
                       Notifications
                     </p>
-                    {reminderCount > 0 && (
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)' }}>
-                        {reminderCount} new
-                      </span>
-                    )}
+                    {reminderCount > 0 ? (
+                      <button
+                        onClick={markAllRead}
+                        className="text-xs font-medium transition-opacity hover:opacity-70"
+                        style={{ color: 'var(--color-primary-text)' }}
+                      >
+                        Mark all read
+                      </button>
+                    ) : null}
                   </div>
 
                   {/* Items */}
@@ -506,7 +543,7 @@ export function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main id="main-content" className="flex-1 p-4 lg:p-6" tabIndex={-1}>
           <div className="max-w-6xl mx-auto animate-fade-in">
             {children}
           </div>

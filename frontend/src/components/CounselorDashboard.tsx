@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { fetchDashboardData } from '@/utils/dashboard-api';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, Shield, MoreHorizontal, Calendar, AlertTriangle } from 'lucide-react';
+import { Loader2, Shield, MoreHorizontal, Calendar, AlertTriangle, FileText } from 'lucide-react';
 import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface AttentionCase {
@@ -87,6 +87,82 @@ function CasesNeedingAttention() {
                 className="flex-shrink-0 text-xs px-2.5 py-1 text-white rounded-lg transition-opacity hover:opacity-90"
                 style={{ background: 'var(--color-primary)' }}>
                 View
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface PendingNote {
+  appointment_id: string;
+  case_id: string | null;
+  student_name: string;
+  scheduled_start: string;
+}
+
+function PendingNotesPanel() {
+  const [items, setItems] = useState<PendingNote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch(api('/api/appointments/dashboard/pending-notes'), { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setItems(d.pending || []))
+      .catch(() => setErr(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const fmtDate = (s: string) => {
+    try {
+      return new Date(s).toLocaleDateString('en-PH', {
+        timeZone: 'Asia/Manila', month: 'short', day: 'numeric',
+      });
+    } catch { return '—'; }
+  };
+
+  return (
+    <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <FileText size={14} style={{ color: 'var(--color-warning)' }} />
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Pending Session Notes</p>
+        </div>
+        <Link href="/cases" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View cases</Link>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-32 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <Loader2 size={14} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+        </div>
+      ) : err ? (
+        <div className="flex flex-col items-center justify-center h-32 text-center">
+          <AlertTriangle size={18} className="mb-2" style={{ color: 'var(--color-warning)' }} />
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Could not load pending notes</p>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-32 text-center">
+          <FileText size={22} className="mb-2" style={{ color: 'var(--color-success)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>All notes up to date</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>No completed sessions are missing a note.</p>
+        </div>
+      ) : (
+        <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+          {items.map(item => (
+            <div key={item.appointment_id} className="py-2.5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{item.student_name}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Session on {fmtDate(item.scheduled_start)}</p>
+              </div>
+              <Link
+                href={item.case_id ? `/cases/${item.case_id}` : '/cases'}
+                className="flex-shrink-0 text-xs px-2.5 py-1 text-white rounded-lg transition-opacity hover:opacity-90"
+                style={{ background: 'var(--color-warning)' }}>
+                Add Note
               </Link>
             </div>
           ))}
@@ -255,7 +331,10 @@ export function CounselorDashboard({ user, onLogout }: DashboardProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-up" style={{ animationDelay: '60ms' }}>
-          <TodayScheduleTable appts={todayAppts} fmtTime={fmtTime} />
+          <div className="lg:col-span-2">
+            <TodayScheduleTable appts={todayAppts} fmtTime={fmtTime} />
+          </div>
+          <PendingNotesPanel />
           <CasesNeedingAttention />
           <div className="lg:col-span-2">
             <AnnouncementsPanel />

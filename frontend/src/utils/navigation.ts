@@ -17,6 +17,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard',         href: '/dashboard',        id: 'dashboard'       },
     { label: 'Request a Session', href: '/book-appointment', id: 'book-appointment'},
     { label: 'My Appointments',   href: '/my-appointments',  id: 'my-appointments' },
+    { label: 'Session History',   href: '/counseling',       id: 'counseling'      },
     { label: 'Journal',           href: '/journal',          id: 'journal'         },
     { label: 'Wellness Resources',href: '/resources',        id: 'resources'       },
     { label: 'Profile',           href: '/profile',          id: 'profile'         },
@@ -140,6 +141,7 @@ export function getActiveSectionFromPath(pathname: string): string {
     // Student
     'book-appointment':    'book-appointment',
     'my-appointments':     'my-appointments',
+    'counseling':          'counseling',
     'journal':             'journal',
 
     // Appointments

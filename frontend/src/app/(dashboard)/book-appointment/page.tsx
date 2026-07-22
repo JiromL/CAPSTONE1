@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -10,6 +10,7 @@ import {
   ChevronRight, ChevronLeft, User, Brain, ClipboardCheck,
   BookOpen, Phone, Clock, CalendarCheck, UserCheck, ClipboardList,
   MapPin, Video, PenLine,
+  Building2, AlertTriangle, FolderOpen, CalendarDays, UserX, Lock, Info,
 } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
 
@@ -19,10 +20,10 @@ const PURPOSES = [
 ];
 
 const PHQ4Q = [
-  { text: "I've been finding it hard to enjoy things I usually like" },
-  { text: "I've been feeling down, low, or like things won't get better" },
-  { text: "I've been feeling nervous, on edge, or anxious" },
-  { text: "I've been struggling to stop or control my worrying" },
+  { text: 'Little interest or pleasure in doing things' },
+  { text: 'Feeling down, depressed, or hopeless' },
+  { text: 'Feeling nervous, anxious or on edge' },
+  { text: 'Not being able to stop or control worrying' },
 ];
 
 const FREQ = [
@@ -45,7 +46,7 @@ const BOOK_STEPS = [
   { label: 'Details',      desc: 'Concern & referral info' },
 ];
 
-const DRAFT_KEY = 'bookAppointmentDraft_v2';
+const DRAFT_KEY_PREFIX = 'bookAppointmentDraft_v2';
 const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
 const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' };
 const onFocusIn  = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
@@ -134,6 +135,7 @@ export default function BookAppointmentPage() {
   const [activeAppt, setActiveAppt] = useState<any>(null);
   const [bookingGate, setBookingGate] = useState<string | null>(null);
   const [gateMessage, setGateMessage] = useState('');
+  const [bypassForOthers, setBypassForOthers] = useState(false);
 
   const [bookingRules, setBookingRules] = useState({
     operating_days: [1,2,3,4,5], operating_hours_start: '09:00', operating_hours_end: '16:00',
@@ -197,6 +199,11 @@ export default function BookAppointmentPage() {
       const raw = localStorage.getItem('user'); const token = localStorage.getItem('token');
       if (!raw || !token) { router.push('/login'); return; }
       const u = JSON.parse(raw); setUser(u);
+      // Block booking if consent has not been given — redirect to dashboard where consent modal shows
+      try {
+        const cr = await fetch(api('/api/consent/status'), { headers: { Authorization: `Bearer ${token}` } });
+        if (cr.ok) { const cd = await cr.json(); if (!cd.consent_given) { router.replace('/dashboard'); return; } }
+      } catch {}
       try { const r = await fetch(api('/api/staff/settings/booking-rules'), { headers: { Authorization: `Bearer ${token}` } }); if (r.ok) setBookingRules(await r.json()); } catch {}
       try {
         const r = await fetch(api('/api/appointments/active'), { headers: { Authorization: `Bearer ${token}` } });
@@ -212,7 +219,8 @@ export default function BookAppointmentPage() {
         const r = await fetch(api('/api/mhbot/my-perma'), { headers: { Authorization: `Bearer ${token}` } });
         if (r.ok) { const d = await r.json(); if (d.mhbot_username) setEmaLabel(d.latest_label ?? null); }
       } catch {}
-      const draft = localStorage.getItem(DRAFT_KEY);
+      const draftKey = `${DRAFT_KEY_PREFIX}_${u?._id || 'guest'}`;
+      const draft = localStorage.getItem(draftKey);
       if (draft) {
         setHasDraft(true);
         try { const d = JSON.parse(draft); if (d.purpose) setPurpose(d.purpose); if (d.concern) setConcern(d.concern); if (d.referralType) setReferralType(d.referralType); if (d.referredBy) setReferredBy(d.referredBy); if (d.prefDate) setPrefDate(d.prefDate); if (d.prefTime) setPrefTime(d.prefTime); } catch {}
@@ -298,8 +306,9 @@ export default function BookAppointmentPage() {
     } else { setSlots([]); setSlotsLoading(false); }
   }, [prefDate, selectedCounselorId, purpose]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const saveDraft = () => { setSavingDraft(true); localStorage.setItem(DRAFT_KEY, JSON.stringify({ purpose, specifyOthers, concern, referralType, referredBy, prefDate, prefTime })); setHasDraft(true); setTimeout(() => setSavingDraft(false), 600); };
-  const clearDraft = () => { localStorage.removeItem(DRAFT_KEY); setHasDraft(false); };
+  const myDraftKey = `${DRAFT_KEY_PREFIX}_${user?._id || 'guest'}`;
+  const saveDraft = () => { setSavingDraft(true); localStorage.setItem(myDraftKey, JSON.stringify({ purpose, specifyOthers, concern, referralType, referredBy, prefDate, prefTime })); setHasDraft(true); setTimeout(() => setSavingDraft(false), 600); };
+  const clearDraft = () => { localStorage.removeItem(myDraftKey); setHasDraft(false); };
 
   const today = new Date();
   const minDate = new Date(today); minDate.setDate(today.getDate() + bookingRules.min_days_ahead);
@@ -402,24 +411,47 @@ export default function BookAppointmentPage() {
   );
 
   // Gate
-  const GATE_CFG: Record<string, { icon: string; title: string; bg: string; border: string; text: string; cta?: { label: string; href: string } }> = {
-    has_active_appointment:    { icon:'📋', title:'You already have an active appointment',           bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)',         cta:{ label:'View Appointments', href:'/my-appointments' } },
-    no_case:                   { icon:'🏥', title:'Walk-in intake required for first-time clients',   bg:'var(--color-primary-surface)', border:'var(--color-primary)', text:'var(--color-primary)' },
-    awaiting_intake:           { icon:'⏳', title:'Your intake appointment is pending',               bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)',         cta:{ label:'View Appointments', href:'/my-appointments' } },
-    pending_termination:       { icon:'⚠️', title:'Your case is pending closure',                     bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
-    case_closed:               { icon:'📁', title:'Your case is currently closed',                    bg:'var(--color-bg)',              border:'var(--color-border)',   text:'var(--color-text-secondary)' },
-    counselor_owns_scheduling: { icon:'📅', title:'Your counselor will schedule your next session',   bg:'var(--color-success-surface)', border:'var(--color-success)', text:'var(--color-success)',         cta:{ label:'View My Appointments', href:'/my-appointments' } },
-    no_active_counselor:       { icon:'👤', title:'No counselor assigned yet',                        bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
+  type GateCfg = { icon: React.ReactNode; title: string; bg: string; border: string; text: string; cta?: { label: string; href: string }; info?: string };
+  const GATE_CFG: Record<string, GateCfg> = {
+    has_active_appointment:    { icon:<ClipboardList size={36} />, title:'You already have an active appointment',         bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)',         cta:{ label:'View Appointments', href:'/my-appointments' } },
+    no_case:                   { icon:<Building2 size={36} />,     title:'Walk-in intake required for first-time clients', bg:'var(--color-primary-surface)', border:'var(--color-primary)', text:'var(--color-primary)',
+                                  info:'Visit us at the Counseling and Psychological Services office (LS Building, Room 101) during walk-in hours: Mon–Fri 8:00 AM – 5:00 PM. Call us at ext. 5000 to confirm availability.' },
+    awaiting_intake:           { icon:<Clock size={36} />,         title:'Your intake appointment is pending',             bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)',         cta:{ label:'View Appointments', href:'/my-appointments' } },
+    pending_termination:       { icon:<AlertTriangle size={36} />, title:'Your case is pending closure',                   bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
+    case_closed:               { icon:<FolderOpen size={36} />,    title:'Your case is currently closed',                  bg:'var(--color-bg)',              border:'var(--color-border)',   text:'var(--color-text-secondary)' },
+    counselor_owns_scheduling: { icon:<CalendarDays size={36} />,  title:'Your counselor will schedule your next session', bg:'var(--color-success-surface)', border:'var(--color-success)', text:'var(--color-success)',         cta:{ label:'View My Appointments', href:'/my-appointments' } },
+    no_active_counselor:       { icon:<UserX size={36} />,         title:'No counselor assigned yet',                      bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
   };
-  if (bookingGate && bookingGate !== 'eligible' && !resumeId) {
-    const cfg = GATE_CFG[bookingGate] ?? { icon:'🔒', title:'Booking unavailable', bg:'var(--color-bg)', border:'var(--color-border)', text:'var(--color-text-secondary)' };
+  if (bookingGate && bookingGate !== 'eligible' && !resumeId && !bypassForOthers) {
+    const cfg = GATE_CFG[bookingGate] ?? { icon:<Lock size={36} />, title:'Booking unavailable', bg:'var(--color-bg)', border:'var(--color-border)', text:'var(--color-text-secondary)' };
+    const canBypass = bookingGate === 'counselor_owns_scheduling';
     return (
       <DashboardPageWrapper title="Book Appointment" subtitle="">
-        <div className="max-w-lg mx-auto mt-8 rounded-2xl p-8 text-center"
+        {/* Crisis contact strip — always visible on gate screens */}
+        <div
+          className="mb-4 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm"
+          style={{ background: '#7F1D1D', color: '#FEE2E2' }}
+          role="complementary"
+          aria-label="Crisis support"
+        >
+          <span className="text-xs">🆘</span>
+          <span className="flex-1 text-xs">
+            <strong style={{ color: '#FCA5A5' }}>Need immediate help?</strong>
+            {' '}CPS crisis line: <strong style={{ color: '#fff' }}>09XX-XXX-XXXX</strong>
+            {' · '}Hopeline: <a href="tel:1553" className="underline" style={{ color: '#FCA5A5' }}>1553</a>
+            {' · '}Emergency: <a href="tel:911" className="underline" style={{ color: '#FCA5A5' }}>911</a>
+          </span>
+        </div>
+        <div className="max-w-lg mx-auto rounded-2xl p-8 text-center"
           style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-          <div className="text-5xl mb-4">{cfg.icon}</div>
+          <div className="flex justify-center mb-4" style={{ color: cfg.text }}>{cfg.icon}</div>
           <h2 className="text-base font-bold mb-2" style={{ color: cfg.text }}>{cfg.title}</h2>
-          <p className="text-sm opacity-80 mb-6" style={{ color: cfg.text }}>{gateMessage}</p>
+          <p className="text-sm opacity-80 mb-3" style={{ color: cfg.text }}>{gateMessage}</p>
+          {cfg.info && (
+            <div className="rounded-xl px-4 py-3 mb-4 text-left text-xs leading-relaxed" style={{ background: 'rgba(0,0,0,0.05)', color: cfg.text }}>
+              {cfg.info}
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row gap-2 justify-center">
             {cfg.cta && (
               <button onClick={() => router.push(cfg.cta!.href)}
@@ -430,6 +462,19 @@ export default function BookAppointmentPage() {
               className="px-5 py-2.5 text-sm font-medium rounded-xl transition border hover:opacity-80"
               style={{ borderColor: cfg.border, color: cfg.text }}>Dashboard</button>
           </div>
+          {canBypass && (
+            <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+              <p className="text-xs mb-2" style={{ color: cfg.text, opacity: 0.7 }}>
+                Have an urgent concern or something else to raise?
+              </p>
+              <button
+                onClick={() => { setPurpose('others'); setSpecifyOthers('General Request'); setBookStep(2); setBypassForOthers(true); }}
+                className="text-xs font-semibold underline underline-offset-2 transition hover:opacity-70"
+                style={{ color: cfg.text }}>
+                Submit a general request instead →
+              </button>
+            </div>
+          )}
         </div>
       </DashboardPageWrapper>
     );
@@ -700,7 +745,7 @@ export default function BookAppointmentPage() {
                                 style={sel
                                   ? { background: opt.selBg, borderColor: opt.selBg, color: 'white' }
                                   : { background: 'var(--color-bg)', borderColor: 'var(--color-border)', color: opt.textColor }}>
-                                <span className="block text-xs mb-0.5" aria-hidden>{'●'.repeat(opt.dots)}</span>{opt.s}
+                                <span className="block text-[11px] font-bold mb-0.5 tabular-nums" aria-hidden>{opt.v}</span>{opt.s}
                               </button>
                             );
                           })}
@@ -724,7 +769,7 @@ export default function BookAppointmentPage() {
                                 style={sel
                                   ? { background: opt.selBg, borderColor: opt.selBg, color: 'white' }
                                   : { background: 'var(--color-bg)', borderColor: 'var(--color-border)', color: opt.textColor }}>
-                                <span className="block text-xs mb-0.5" aria-hidden>{'●'.repeat(opt.dots)}</span>{opt.s}
+                                <span className="block text-[11px] font-bold mb-0.5 tabular-nums" aria-hidden>{opt.v}</span>{opt.s}
                               </button>
                             );
                           })}
@@ -1005,7 +1050,7 @@ export default function BookAppointmentPage() {
                 <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Student</p>
               </div>
             </div>
-            <VerticalStepTracker steps={BOOK_STEPS} current={bookStep} />
+            <VerticalStepTracker steps={BOOK_STEPS} current={purpose === 'others' && bookStep === 2 ? 1 : bookStep} />
           </div>
 
           {bookStep >= 1 && (
@@ -1015,12 +1060,14 @@ export default function BookAppointmentPage() {
                 <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Session type</p>
                 <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{PURPOSES.find(p=>p.value===purpose)?.label || purpose}</p>
               </div>
-              <div>
-                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Mode</p>
-                <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                  {slotMethod === 'F2F' ? 'Face to Face' : `Online · ${prefPlatform === 'google-meet' ? 'Google Meet' : 'Zoom'}`}
-                </p>
-              </div>
+              {purpose !== 'others' && (
+                <div>
+                  <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Mode</p>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                    {slotMethod === 'F2F' ? 'Face to Face' : `Online · ${prefPlatform === 'google-meet' ? 'Google Meet' : 'Zoom'}`}
+                  </p>
+                </div>
+              )}
               {bookStep >= 2 && prefDate && (
                 <div>
                   <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Date &amp; Time</p>
@@ -1077,10 +1124,19 @@ export default function BookAppointmentPage() {
                   </div>
 
                   {purpose === 'others' && (
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Specify <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                      <input value={specifyOthers} onChange={e => setSpecifyOthers(e.target.value)} placeholder="Please specify…"
-                        className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} />
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Specify <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                        <input value={specifyOthers} onChange={e => setSpecifyOthers(e.target.value)} placeholder="Please specify…"
+                          className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} />
+                      </div>
+                      <div className="flex items-start gap-2.5 rounded-xl px-4 py-3" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
+                        <Info size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
+                        <div>
+                          <p className="text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>No date selection needed</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-primary)' }}>CPS staff will review your request and reach out within <strong>1–2 business days</strong> to confirm a schedule.</p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1293,6 +1349,16 @@ export default function BookAppointmentPage() {
                 <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Session details</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Tell your counselor what brings you in</p>
               </div>
+              {purpose === 'others' && (
+                <div className="flex items-start gap-2.5 px-5 pt-4" >
+                  <div className="flex items-start gap-2.5 w-full rounded-xl px-4 py-3" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
+                    <Info size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
+                    <p className="text-xs" style={{ color: 'var(--color-primary)' }}>
+                      <strong>What happens next:</strong> CPS staff will review your request and contact you within 1–2 business days to confirm a schedule.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="p-5 space-y-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Presenting Concern</label>
@@ -1343,7 +1409,7 @@ export default function BookAppointmentPage() {
           {/* Navigation */}
           <div className="flex items-center gap-3 mt-4">
             {bookStep > 0 && (
-              <button onClick={() => { setError(null); setBookStep(s => s - 1); }}
+              <button onClick={() => { setError(null); setBookStep(s => (purpose === 'others' && s === 2) ? 0 : s - 1); }}
                 className="flex items-center gap-1.5 px-4 py-2.5 text-sm rounded-xl transition border"
                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}

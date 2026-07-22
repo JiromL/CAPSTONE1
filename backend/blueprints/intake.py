@@ -655,6 +655,25 @@ def submit_triage(intake_id):
                 'updated_at': now,
             }
             db.db.appointments.insert_one(follow_up_appt)
+            # Notify student that intake is complete and they can now schedule
+            try:
+                role_label = 'counselor' if decision == 'ENDORSE_CC' else 'psychologist'
+                counselor_display = counselor_name if counselor_name else f'a {role_label}'
+                db.db.reminders.insert_one({
+                    'user_id': student_id,
+                    'title': 'Intake Complete — Schedule Your First Session',
+                    'message': (
+                        f'Your intake interview is complete. '
+                        f'You have been referred to {counselor_display}. '
+                        'Please log in to schedule your first counseling session.'
+                    ),
+                    'type': 'triage_complete',
+                    'acknowledged': False,
+                    'is_read': False,
+                    'created_at': now,
+                })
+            except Exception:
+                pass
         else:
             # Re-triage: update the existing follow-up to reflect the new counselor
             db.db.appointments.update_one(
@@ -666,6 +685,25 @@ def submit_triage(intake_id):
                     'updated_at': now,
                 }}
             )
+            # Also notify on re-triage (counselor may have changed)
+            try:
+                role_label = 'counselor' if decision == 'ENDORSE_CC' else 'psychologist'
+                counselor_display = counselor_name if counselor_name else f'a {role_label}'
+                db.db.reminders.insert_one({
+                    'user_id': student_id,
+                    'title': 'Your Referral Has Been Updated',
+                    'message': (
+                        f'Your referral has been updated. '
+                        f'You are now assigned to {counselor_display}. '
+                        'Please log in to schedule your counseling session.'
+                    ),
+                    'type': 'triage_updated',
+                    'acknowledged': False,
+                    'is_read': False,
+                    'created_at': now,
+                })
+            except Exception:
+                pass
 
     audit_log(db.db, 'intake', 'triage', entity_id=intake_id,
               new_values={'risk_level': risk_level, 'triage_decision': decision})
@@ -2600,6 +2638,17 @@ def student_self_checkin():
         counseling_id = generate_counseling_id()
         now = datetime.utcnow()
 
+        # BR-9: derive initial risk level from PHQ-4 total score
+        phq4_total = sum(phq4) if phq4 else None
+        if phq4_total is None:
+            initial_risk = 'GREEN'
+        elif phq4_total >= 9:
+            initial_risk = 'RED'
+        elif phq4_total >= 3:
+            initial_risk = 'YELLOW'
+        else:
+            initial_risk = 'GREEN'
+
         # ── Case ──────────────────────────────────────────────────────────────
         case_id = ObjectId()
         db.db.cases.insert_one({
@@ -2609,7 +2658,7 @@ def student_self_checkin():
             'student_name': f"{data['first_name']} {data['last_name']}",
             'phone': data.get('phone', ''),
             'status': 'ACTIVE',
-            'risk_level': 'GREEN',
+            'risk_level': initial_risk,
             'intake_source': 'SELF_CHECKIN',
             'created_at': now,
         })
@@ -3056,6 +3105,15 @@ def submit_intake_packet():
             {'_id': apt_obj_id},
             {'$set': {'intake_packet_submitted': True, 'intake_packet_id': ObjectId(packet_id)}}
         )
+        # BR-9: auto-apply risk level to linked case from PHQ-4 total
+        if total_phq4 is not None:
+            phq4_risk = 'RED' if total_phq4 >= 9 else ('YELLOW' if total_phq4 >= 3 else 'GREEN')
+            appt = db.db.appointments.find_one({'_id': apt_obj_id})
+            if appt and appt.get('case_id'):
+                db.db.cases.update_one(
+                    {'_id': ObjectId(appt['case_id'])},
+                    {'$set': {'risk_level': phq4_risk}}
+                )
 
     return jsonify({
         'message': 'Intake packet submitted',
@@ -3079,7 +3137,8 @@ def get_intake_packet(appointment_id):
     # OA can see ICF/SPIF only (not PHQ-4 scores — those are clinical data)
     # IC, Director, Admin see everything
     # STUDENT can check submitted status for their own appointment (returns only submitted flag)
-    ALLOWED = {'IC', 'INTAKE_COUNSELOR', 'ADMIN', 'STAFF', 'DIRECTOR', 'DPO', 'STUDENT'}
+    ALLOWED = {'IC', 'INTAKE_COUNSELOR', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER',
+               'ADMIN', 'STAFF', 'DIRECTOR', 'DPO', 'STUDENT'}
     if not user or user_role not in ALLOWED:
         return jsonify({'error': 'Unauthorized'}), 403
 

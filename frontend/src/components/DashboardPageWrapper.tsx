@@ -1,17 +1,54 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Component } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { AlertCircle, RefreshCw, ChevronLeft } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { getMenuItemsByRole, getActiveSectionFromPath } from '@/utils/navigation';
 import { canAccessPage } from '@/utils/roleAccess';
+
+/* ── Error Boundary ─────────────────────────────────────── */
+interface EBState { hasError: boolean }
+class ErrorBoundary extends Component<{ children: React.ReactNode }, EBState> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 gap-4 text-center px-6">
+          <AlertCircle size={32} style={{ color: 'var(--color-danger)' }} />
+          <div>
+            <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>
+              This section is temporarily unavailable
+            </p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+              An unexpected error occurred. Your other pages are unaffected.
+            </p>
+          </div>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl"
+            style={{ background: 'var(--color-primary)', color: '#fff' }}
+          >
+            <RefreshCw size={13} /> Refresh
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface DashboardPageWrapperProps {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
   requiredRoles?: string[];
+  backLink?: { href: string; label: string };
 }
 
 function FullPageLoader() {
@@ -87,9 +124,10 @@ function AccessDenied() {
   );
 }
 
-export function DashboardPageWrapper({ children, title, subtitle, requiredRoles }: DashboardPageWrapperProps) {
+export function DashboardPageWrapper({ children, title, subtitle, requiredRoles, backLink }: DashboardPageWrapperProps) {
   const [user, setUser]               = useState<any>(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [sessionWarning, setSessionWarning] = useState(false);
   const pathname                      = usePathname();
   const router                        = useRouter();
 
@@ -110,8 +148,38 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles 
       return;
     }
 
+    // Enforce page-level role gate declared by the calling page
+    if (requiredRoles && requiredRoles.length > 0) {
+      const userRole = (parsedUser.role || '').toUpperCase();
+      if (!requiredRoles.map(r => r.toUpperCase()).includes(userRole)) {
+        setAccessDenied(true);
+        setTimeout(() => router.push('/dashboard'), 2000);
+        return;
+      }
+    }
+
     setUser(parsedUser);
+
+    // Session timeout warning: alert 5 minutes before JWT expiry
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp) {
+        const msUntilExpiry = payload.exp * 1000 - Date.now();
+        const warnAt = msUntilExpiry - 5 * 60 * 1000;
+        if (warnAt > 0) {
+          const t = setTimeout(() => setSessionWarning(true), warnAt);
+          return () => clearTimeout(t);
+        } else if (msUntilExpiry > 0) {
+          setSessionWarning(true);
+        }
+      }
+    } catch {}
   }, [pathname, router]);
+
+  useEffect(() => {
+    if (title) document.title = `${title} · CPS`;
+    return () => { document.title = 'CPS'; };
+  }, [title]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -133,7 +201,45 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles 
       subtitle={subtitle}
       activeSection={activeSection}
     >
-      {children}
+      {/* Session expiry warning */}
+      {sessionWarning && (
+        <div
+          role="alert"
+          className="mx-4 mt-3 mb-0 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium"
+          style={{ background: 'var(--color-warning-surface)', border: '1px solid rgba(217,119,6,0.25)', color: 'var(--color-warning-text)' }}
+        >
+          <AlertCircle size={14} className="flex-shrink-0" />
+          <span className="flex-1">Your session expires soon.</span>
+          <button
+            className="text-xs font-semibold px-3 py-1 rounded-lg"
+            style={{ background: 'var(--color-primary)', color: '#fff' }}
+            onClick={() => {
+              // Silently extend: re-request a token refresh if the backend supports it,
+              // otherwise redirect to login before expiry to avoid data loss.
+              setSessionWarning(false);
+              window.location.href = '/login';
+            }}
+          >
+            Log in again
+          </button>
+          <button onClick={() => setSessionWarning(false)} aria-label="Dismiss" style={{ color: 'var(--color-warning-text)', opacity: 0.6 }}>✕</button>
+        </div>
+      )}
+      {backLink && (
+        <div className="px-4 pt-3 pb-0">
+          <Link href={backLink.href}
+            className="inline-flex items-center gap-1 text-xs font-medium transition-colors"
+            style={{ color: 'var(--color-text-muted)' }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = 'var(--color-primary)')}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
+            <ChevronLeft size={13} />
+            {backLink.label}
+          </Link>
+        </div>
+      )}
+      <ErrorBoundary>
+        {children}
+      </ErrorBoundary>
     </DashboardLayout>
   );
 }

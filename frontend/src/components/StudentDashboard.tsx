@@ -5,7 +5,36 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle, Phone } from 'lucide-react';
+
+function CrisisStrip() {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div
+      role="complementary"
+      aria-label="Crisis support contact"
+      className="flex items-center gap-3 px-4 py-2.5 text-sm"
+      style={{ background: '#7F1D1D', color: '#FEE2E2', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+    >
+      <Phone size={13} className="flex-shrink-0" style={{ color: '#FCA5A5' }} />
+      <span className="flex-1">
+        <strong style={{ color: '#FCA5A5' }}>Need immediate help?</strong>
+        {' '}Call the CPS crisis line: <strong style={{ color: '#fff' }}>09XX-XXX-XXXX</strong>
+        <span style={{ opacity: 0.6 }}> · National: </span>
+        <a href="tel:1553" style={{ color: '#FCA5A5', textDecoration: 'underline' }}>1553 (Hopeline)</a>
+        <span style={{ opacity: 0.6 }}> · Emergency: </span>
+        <a href="tel:911" style={{ color: '#FCA5A5', textDecoration: 'underline' }}>911</a>
+      </span>
+      <button
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss crisis contact"
+        style={{ opacity: 0.5, lineHeight: 1 }}
+        className="hover:opacity-100 transition-opacity"
+      >✕</button>
+    </div>
+  );
+}
 import { OnboardingModal } from './OnboardingModal';
 import { ScheduleSessionCard } from './ScheduleSessionCard';
 
@@ -33,6 +62,18 @@ function fmtEventDate(s: string) {
   return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   });
+}
+
+function timeAgo(s: string): string {
+  const diff = Date.now() - new Date(s).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2)   return 'just now';
+  if (mins < 60)  return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)   return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7)   return `${days}d ago`;
+  return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' });
 }
 
 function getSessionTitle(appt: any): string {
@@ -75,6 +116,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   const [openAnnouncement, setOpenAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading]                   = useState(true);
   const [isCheckInOnly, setIsCheckInOnly]       = useState(false);
+  const [activeCase, setActiveCase]             = useState<any>(null);
   const [resourceCount, setResourceCount]       = useState(0);
   const [hasPendingSession, setHasPendingSession] = useState(false);
   const [mounted, setMounted]                   = useState(false);
@@ -106,20 +148,27 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
   }, [user]);
 
   useEffect(() => {
-    if (!reschedDate) { setRescheduleSlots([]); setRescheduleNextDate(null); return; }
+    if (!reschedDate || !reschedTarget) { setRescheduleSlots([]); setRescheduleNextDate(null); return; }
     setRescheduleLoadingSlots(true);
     setReschedTime('');
     setRescheduleSlots([]);
     setRescheduleNextDate(null);
     const token = localStorage.getItem('token');
-    fetch(api(`/api/availability/open-slots?date=${reschedDate}`), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    const cid = (reschedTarget as any)?.counselor_id;
+    const url = cid
+      ? `/api/appointments/counselor-slots?counselor_id=${cid}&date=${reschedDate}`
+      : `/api/availability/open-slots?date=${reschedDate}`;
+    fetch(api(url), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { setRescheduleSlots(d.slots || []); setRescheduleNextDate(d.next_available_date || null); })
+      .then(d => {
+        const raw: any[] = d.slots || [];
+        setRescheduleSlots(raw.map(s => typeof s === 'string' ? { time: s } : { time: s.time ?? s }));
+        setRescheduleNextDate(d.next_available_date || null);
+      })
       .catch(() => setRescheduleSlots([]))
       .finally(() => setRescheduleLoadingSlots(false));
-  }, [reschedDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reschedDate, reschedTarget]);
 
   const handleReschedule = async () => {
     if (!reschedTarget || !reschedDate || !reschedTime) { setReschedError('Please select a date and time.'); return; }
@@ -157,7 +206,11 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           fetch(api('/api/appointments/pending-session'), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         ]);
         if (apptRes.ok) { const d = await apptRes.json(); if (Array.isArray(d.appointments)) setAppointments(d.appointments); }
-        if (caseRes.ok) { const d = await caseRes.json(); if (['CHECK_IN_ONLY','WITH_MH_CHECK_IN','UNDER_ACCOMMODATION'].includes(d.client_status)) setIsCheckInOnly(true); }
+        if (caseRes.ok) {
+          const d = await caseRes.json();
+          if (d.case) setActiveCase(d.case);
+          if (['CHECK_IN_ONLY','WITH_MH_CHECK_IN','UNDER_ACCOMMODATION'].includes(d.client_status)) setIsCheckInOnly(true);
+        }
         if (resRes.ok)  { const d = await resRes.json(); setResourceCount(d.resources_count || 0); }
         if (annoRes?.ok) { const d = await annoRes.json(); setAnnouncements(d.announcements || []); }
         if (consentRes?.ok) { const d = await consentRes.json(); if (!d.consent_given) setShowConsent(true); }
@@ -203,6 +256,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       />
     )}
     <DashboardLayout user={currentUser} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard">
+      <CrisisStrip />
 
       {loading ? (
         <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -387,9 +441,14 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                               {a.pinned && <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
                             </div>
                             <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--color-text-primary)' }}>{a.title}</p>
-                            {a.event_date && (
-                              <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{fmtEventDate(a.event_date)}</p>
-                            )}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {a.event_date && (
+                                <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{fmtEventDate(a.event_date)}</span>
+                              )}
+                              {a.created_at && (
+                                <span className="text-[11px]" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>· {timeAgo(a.created_at)}</span>
+                              )}
+                            </div>
                           </div>
                           <ChevronRight size={14} className="flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
                         </div>
@@ -415,13 +474,55 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
           {/* Right column — Upcoming Sessions */}
           <div className="w-full xl:w-72 flex-shrink-0 space-y-5">
+
+            {/* H-03: Active case status card */}
+            {activeCase && (() => {
+              const caseStatus = (activeCase.status || activeCase.case_status || '').replace(/_/g,' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+              const isActive = ['ACTIVE','NEW','INTAKE_SCHEDULED'].includes((activeCase.status || activeCase.case_status || '').toUpperCase());
+              return (
+                <div className="rounded-2xl border p-4 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Your Case</p>
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={isActive
+                        ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
+                        : { background: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+                    >
+                      {caseStatus}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {activeCase.counselor_name ? (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Assigned Counselor</p>
+                        <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{activeCase.counselor_name}</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Counselor</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Not yet assigned</p>
+                      </div>
+                    )}
+                    {activeCase.concern && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
+                        <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{activeCase.concern}</p>
+                      </div>
+                    )}
+                    {activeCase.case_number && (
+                      <p className="text-[10px] font-mono pt-1" style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)' }}>
+                        Case #{activeCase.case_number}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="rounded-2xl border p-5 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Upcoming Sessions</p>
-                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  <CalendarDays size={13} />
-                  <span>{monthYear}</span>
-                </div>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Your next sessions</p>
               </div>
 
               {upcoming.length === 0 && pendingRequests.length === 0 ? (
@@ -749,12 +850,12 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                     I Understand and Consent
                   </button>
                   <button
-                    onClick={() => setShowConsent(false)}
+                    onClick={onLogout}
                     className="w-full py-2 text-xs transition-colors"
                     style={{ color: 'var(--color-text-muted)' }}
                     onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
                     onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
-                    Remind me later
+                    I'm not ready — Log out
                   </button>
                 </>
               )}

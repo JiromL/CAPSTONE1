@@ -494,7 +494,7 @@ export default function IntakeManagementPage() {
       const h = { Authorization: `Bearer ${token}` };
       const [aptRes, intakeRes] = await Promise.all([
         fetch(api('/api/appointments/dashboard/role-view'), { headers: h }),
-        fetch(api('/api/client-tracking/new-intakes?page=1&limit=200&mine=true'), { headers: h }),
+        fetch(api('/api/client-tracking/new-intakes?page=1&limit=500&mine=true'), { headers: h }),
       ]);
       if (aptRes.status === 401 || aptRes.status === 422) {
         ['token', 'user'].forEach(k => localStorage.removeItem(k));

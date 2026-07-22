@@ -384,6 +384,23 @@ def mark_reminders_sent():
         return jsonify({"error": str(e)}), 500
 
 
+@reminders_bp.route('/mark-all-read', methods=['POST'])
+@jwt_required()
+def mark_all_reminders_read():
+    """Mark all of the current user's unread notifications as read."""
+    user_id = get_jwt_identity()
+    try:
+        from bson import ObjectId
+        uid = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        result = db.db.reminders.update_many(
+            {'recipient_id': uid, '$or': [{'is_read': {'$ne': True}}, {'acknowledged': {'$ne': True}}]},
+            {'$set': {'is_read': True, 'acknowledged': True}},
+        )
+        return jsonify({'updated': result.modified_count}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @reminders_bp.route('/upcoming', methods=['GET'])
 @jwt_required()
 def get_upcoming_reminders():

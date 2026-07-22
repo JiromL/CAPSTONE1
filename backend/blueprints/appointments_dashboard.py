@@ -524,3 +524,68 @@ def get_calendar_appointments():
             continue
 
     return jsonify({'appointments': result})
+
+
+@appointments_dashboard_bp.route('/pending-notes', methods=['GET'])
+@jwt_required()
+def dashboard_pending_notes():
+    """Return completed appointments from the last 30 days that lack a session note."""
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+        user = db.db.users.find_one({'_id': uid})
+    except Exception:
+        return jsonify({'error': 'Invalid user'}), 401
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    role = user.get('role', '').upper()
+    if role not in ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'):
+        return jsonify({'pending': [], 'count': 0}), 200
+
+    cutoff = datetime.utcnow() - timedelta(days=30)
+
+    completed = list(db.db.appointments.find(
+        {'counselor_id': uid, 'status': 'COMPLETED', 'scheduled_start': {'$gte': cutoff}},
+        {'_id': 1, 'student_name': 1, 'student_id': 1, 'case_id': 1, 'scheduled_start': 1},
+    ).sort('scheduled_start', -1).limit(50))
+
+    if not completed:
+        return jsonify({'pending': [], 'count': 0}), 200
+
+    apt_ids = [a['_id'] for a in completed]
+
+    noted_ids = set(
+        n['appointment_id']
+        for n in db.db.session_notes.find(
+            {'appointment_id': {'$in': apt_ids}, 'is_deleted': {'$ne': True}},
+            {'appointment_id': 1},
+        )
+        if n.get('appointment_id')
+    )
+
+    pending = []
+    for a in completed:
+        if a['_id'] in noted_ids:
+            continue
+        s_start = a.get('scheduled_start')
+        case_id = a.get('case_id')
+        student_id = a.get('student_id')
+        student_name = a.get('student_name', '')
+        if not student_name and student_id:
+            try:
+                s = db.db.users.find_one({'_id': student_id}, {'first_name': 1, 'last_name': 1})
+                if s:
+                    student_name = f"{s.get('first_name','')} {s.get('last_name','')}".strip()
+            except Exception:
+                pass
+        pending.append({
+            'appointment_id':  str(a['_id']),
+            'case_id':         str(case_id) if case_id else None,
+            'student_name':    student_name or 'Student',
+            'scheduled_start': s_start.isoformat() if hasattr(s_start, 'isoformat') else (s_start or ''),
+        })
+        if len(pending) >= 5:
+            break
+
+    return jsonify({'pending': pending, 'count': len(pending)}), 200

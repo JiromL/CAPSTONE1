@@ -464,7 +464,7 @@ export default function ConductIntakePage() {
     const docGad7Responses = gad7Done ? (gad7 as (number | null)[]) : (intake?.gad7_responses || new Array(7).fill(null));
     const docGad7Score     = gad7Done ? gad7Score : (intake?.gad7_score ?? null);
     return (
-      <DashboardPageWrapper title="IC Interview Documentation" subtitle="Complete during session">
+      <DashboardPageWrapper title="IC Interview Documentation" subtitle="Complete during session" backLink={{ href: '/intake-management', label: 'Intake Management' }}>
         <div className="max-w-4xl mx-auto space-y-4">
           <div className="rounded-2xl px-5 py-4 flex flex-wrap items-center gap-4"
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
@@ -513,7 +513,7 @@ export default function ConductIntakePage() {
       : { background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' };
 
     return (
-      <DashboardPageWrapper title="Route Student" subtitle="Route the student based on your documentation recommendation">
+      <DashboardPageWrapper title="Route Student" subtitle="Route the student based on your documentation recommendation" backLink={{ href: '/intake-management', label: 'Intake Management' }}>
         <div className="max-w-2xl mx-auto space-y-4">
           <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             <CheckCircle2 size={14} style={{ color: '#22C55E' }} />
@@ -709,7 +709,7 @@ export default function ConductIntakePage() {
   }
 
   return (
-    <DashboardPageWrapper title="Intake Interview" subtitle="Complete assessments and document the session">
+    <DashboardPageWrapper title="Intake Interview" subtitle="Complete assessments and document the session" backLink={{ href: '/intake-management', label: 'Intake Management' }}>
       <div className="max-w-3xl mx-auto space-y-4">
 
         {/* Patient header — persistent throughout */}

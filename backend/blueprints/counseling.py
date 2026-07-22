@@ -251,7 +251,14 @@ def get_case_session_history(case_id):
     if not case:
         return jsonify({'error': 'Case not found'}), 404
     
-    notes = list(db.db.session_notes.find({"case_id": case['_id']}).sort("session_date", -1))
+    # C-14: supervisors see deleted notes (soft-deleted) with audit trail
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    can_see_deleted = user and user.get('role') in ('ADMIN', 'DPO', 'PSYCHOLOGIST')
+    note_query = {"case_id": case['_id']}
+    if not can_see_deleted:
+        note_query['is_deleted'] = {'$ne': True}
+
+    notes = list(db.db.session_notes.find(note_query).sort("session_date", -1))
 
     result = []
     for n in notes:
@@ -262,6 +269,14 @@ def get_case_session_history(case_id):
             if c:
                 counselor_name = c.get('name', '')
 
+        # Resolve deleted-by name
+        deleted_by_name = ''
+        if n.get('deleted_by'):
+            deleter = db.db.users.find_one({'_id': n['deleted_by']}, {'name': 1})
+            if deleter:
+                deleted_by_name = deleter.get('name', '')
+
+        deleted_at = n.get('deleted_at')
         result.append({
             'note_id': str(n['_id']),
             'session_date': n['session_date'].isoformat() if isinstance(n.get('session_date'), datetime) else n.get('session_date'),
@@ -285,6 +300,9 @@ def get_case_session_history(case_id):
             'supervisor_name': n.get('supervisor_name', ''),
             'supervisor_comment': n.get('supervisor_comment', ''),
             'supervisor_action_at': n['supervisor_action_at'].isoformat() if isinstance(n.get('supervisor_action_at'), datetime) else n.get('supervisor_action_at'),
+            'is_deleted': n.get('is_deleted', False),
+            'deleted_by_name': deleted_by_name,
+            'deleted_at': deleted_at.isoformat() if isinstance(deleted_at, datetime) else deleted_at,
         })
     return jsonify({'sessions': result, 'total': len(result)}), 200
 

@@ -6,7 +6,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Loader2, Plus, Video, X, RotateCcw, Clock, Eye,
-  CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin,
+  CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin, QrCode,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,7 +21,9 @@ interface Appointment {
   preferred_time?: string;
   requested_start?: string;
   scheduled_start?: string;
+  counselor_id?: string;
   counselor_name?: string;
+  counselor_role?: string;
   counseling_id?: string;
   meeting_link?: string;
   office?: string;
@@ -40,6 +42,13 @@ const TABS = [
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
+
+const ROLE_LABEL: Record<string, string> = {
+  COUNSELOR:    'Counselor',
+  PSYCHOLOGIST: 'Psychologist',
+  IC:           'Intake Counselor',
+  CASE_MANAGER: 'Case Manager',
+};
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
   upcoming:   ['REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
@@ -161,7 +170,7 @@ export default function MyAppointmentsPage() {
   const [rescheduling, setRescheduling]   = useState(false);
   const [reschedError, setReschedError]   = useState('');
   const [respondingId, setRespondingId]   = useState<string | null>(null);
-  const [rescheduleSlots, setRescheduleSlots]               = useState<{ time: string; counselor_id: string; counselor_name: string }[]>([]);
+  const [rescheduleSlots, setRescheduleSlots]               = useState<{ time: string }[]>([]);
   const [rescheduleLoadingSlots, setRescheduleLoadingSlots] = useState(false);
   const [rescheduleNextDate, setRescheduleNextDate]         = useState<string | null>(null);
 
@@ -214,14 +223,30 @@ export default function MyAppointmentsPage() {
     if (!reschedDate) { setRescheduleSlots([]); setRescheduleNextDate(null); return; }
     setRescheduleLoadingSlots(true); setReschedTime(''); setRescheduleSlots([]); setRescheduleNextDate(null);
     const token = localStorage.getItem('token');
-    fetch(api(`/api/availability/open-slots?date=${reschedDate}`), { headers: { Authorization: `Bearer ${token}` } })
+    const cid = (reschedTarget as any)?.counselor_id;
+    const url = cid
+      ? `/api/appointments/counselor-slots?counselor_id=${cid}&date=${reschedDate}`
+      : `/api/availability/open-slots?date=${reschedDate}`;
+    fetch(api(url), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { setRescheduleSlots(d.slots || []); setRescheduleNextDate(d.next_available_date || null); })
+      .then(d => {
+        const raw: any[] = d.slots || [];
+        setRescheduleSlots(raw.map(s => typeof s === 'string' ? { time: s } : { time: s.time ?? s }));
+        setRescheduleNextDate(d.next_available_date || null);
+      })
       .catch(() => setRescheduleSlots([]))
       .finally(() => setRescheduleLoadingSlots(false));
-  }, [reschedDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reschedDate, reschedTarget]);
 
-  const needsEvaluation = (a: Appointment) => a.status === 'EVALUATION' || (a.status === 'COMPLETED' && !a.evaluation);
+  const EVAL_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  const needsEvaluation = (a: Appointment) => {
+    if (a.evaluation) return false;
+    const sessionDate = a.scheduled_start || a.requested_start;
+    const tooOld = sessionDate && Date.now() - new Date(sessionDate).getTime() > EVAL_WINDOW_MS;
+    if (tooOld) return false;
+    return a.status === 'EVALUATION' || a.status === 'COMPLETED';
+  };
 
   const filtered = activeTab === 'evaluation'
     ? appointments.filter(needsEvaluation)
@@ -379,26 +404,36 @@ export default function MyAppointmentsPage() {
       )}
 
       {/* No-show policy notice */}
-      {appointments.filter(a => a.status === 'NO_SHOW').length >= 1 && (
-        <div className="flex items-start gap-3 rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
-          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
-          <div>
-            <p className="font-medium" style={{ color: 'var(--color-danger)' }}>
-              You have {appointments.filter(a => a.status === 'NO_SHOW').length} missed session{appointments.filter(a => a.status === 'NO_SHOW').length > 1 ? 's' : ''} on record.
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-danger)' }}>
-              Per clinic policy, 3 consecutive missed sessions may result in automatic case closure.
-            </p>
+      {(() => {
+        const noShowCount = appointments.filter(a => a.status === 'NO_SHOW').length;
+        if (noShowCount === 0) return null;
+        if (noShowCount === 1) return (
+          <div className="flex items-start gap-3 rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+            <p style={{ color: 'var(--color-primary)' }}>Missed a session? Things happen — your counselor will reach out to reschedule.</p>
           </div>
-        </div>
-      )}
+        );
+        return (
+          <div className="flex items-start gap-3 rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
+            <div>
+              <p className="font-medium" style={{ color: 'var(--color-danger)' }}>
+                You have {noShowCount} missed session{noShowCount > 1 ? 's' : ''} on record.
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-danger)' }}>
+                Per clinic policy, 3 consecutive missed sessions may result in automatic case closure.
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Tab bar + card */}
       <div className="rounded-2xl border shadow-card overflow-hidden animate-fade-up" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
 
         {/* Tabs */}
         <div className="flex items-end overflow-x-auto px-2 pt-2 gap-0.5 scrollbar-hide" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          {TABS.map(tab => {
+          {TABS.filter(tab => tab.key !== 'evaluation' || counts.evaluation > 0).map(tab => {
             const isActive = activeTab === tab.key;
             const cnt = counts[tab.key];
             const Icon = tab.icon;
@@ -471,6 +506,7 @@ export default function MyAppointmentsPage() {
               {filtered.map((appt) => {
                 const dt  = appt.scheduled_start || appt.requested_start;
                 const isTodayAppt = isSameDay(dt);
+                const isWithin24h = dt ? (new Date(dt).getTime() - Date.now() < 24 * 60 * 60 * 1000 && new Date(dt).getTime() > Date.now()) : false;
                 const isSlotReserved = appt.status === 'REQUESTED' && !!appt.preferred_time;
                 const rawCfg = STATUS_CFG[appt.status] ?? { label: appt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', ring: 'var(--color-border)' };
                 const cfg = isSlotReserved
@@ -520,6 +556,9 @@ export default function MyAppointmentsPage() {
                         {appt.counselor_name ? (
                           <p className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                             With <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{appt.counselor_name}</span>
+                            {appt.counselor_role && ROLE_LABEL[appt.counselor_role] && (
+                              <span className="ml-1" style={{ color: 'var(--color-text-muted)' }}>· {ROLE_LABEL[appt.counselor_role]}</span>
+                            )}
                           </p>
                         ) : (
                           <p className="mt-1 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Counselor not yet assigned — we'll notify you soon</p>
@@ -561,6 +600,16 @@ export default function MyAppointmentsPage() {
 
                         {appt.status === 'RESCHEDULE_REQUESTED' && appt.reschedule_requested_start && (
                           <p className="mt-1 text-xs" style={{ color: 'var(--color-primary)' }}>Proposed new time: {fmtDateTime(appt.reschedule_requested_start)}</p>
+                        )}
+
+                        {/* QR check-in hint for confirmed in-person sessions */}
+                        {['CONFIRMED', 'APPROVED'].includes(appt.status) && upcoming &&
+                         (appt.preferred_method === 'in-person' || appt.preferred_method === 'in_person') && (
+                          <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg px-2.5 py-2"
+                            style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
+                            <QrCode size={12} className="mt-px flex-shrink-0" />
+                            <span>When you arrive, scan the <strong>QR code</strong> at the CPS reception desk to check in.</span>
+                          </div>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -667,14 +716,14 @@ export default function MyAppointmentsPage() {
                             </button>
                           )}
                           {active && !needsEval && !awaitingConfirmation && (
-                            isTodayAppt ? (
+                            (isTodayAppt || isWithin24h) ? (
                               <div className="relative group">
                                 <button disabled className="p-1.5 rounded-lg cursor-not-allowed" style={{ color: 'var(--color-border)' }}>
                                   <X size={14} />
                                 </button>
-                                <div className="absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-10 w-52 text-white text-xs rounded-xl px-2.5 py-2 shadow-lg pointer-events-none"
+                                <div className="absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-10 w-56 text-white text-xs rounded-xl px-2.5 py-2 shadow-lg pointer-events-none"
                                   style={{ background: 'var(--color-text-primary)' }}>
-                                  Same-day cancellations must be done in person or by calling CPS directly.
+                                  Cancellations within 24 hours must be done by calling CPS directly.
                                 </div>
                               </div>
                             ) : (
@@ -736,7 +785,9 @@ export default function MyAppointmentsPage() {
                 </div>
                 {[
                   ['Date & Time', fmtDateTime(detailAppt.scheduled_start || detailAppt.requested_start)],
-                  ['Assigned Counselor', detailAppt.counselor_name || 'Not yet assigned'],
+                  ['Assigned Counselor', detailAppt.counselor_name
+                    ? `${detailAppt.counselor_name}${detailAppt.counselor_role && ROLE_LABEL[detailAppt.counselor_role] ? ` · ${ROLE_LABEL[detailAppt.counselor_role]}` : ''}`
+                    : 'Not yet assigned'],
                 ].map(([k, v]) => (
                   <div key={k} className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>
                     <p className="text-xs font-semibold tracking-wide uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>{k}</p>

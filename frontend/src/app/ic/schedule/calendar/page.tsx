@@ -18,7 +18,7 @@ interface Appointment {
 }
 
 export default function ScheduleCalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 17));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

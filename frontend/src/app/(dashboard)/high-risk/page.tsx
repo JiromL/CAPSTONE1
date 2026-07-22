@@ -6,7 +6,7 @@ import ManualNotifyForm from '@/components/ManualNotifyForm';
 import { api } from '@/utils/api';
 import {
   AlertTriangle, ChevronDown, ChevronUp, Phone, ShieldAlert,
-  Loader2, Clock, Send, CheckCircle, XCircle, Search,
+  Loader2, Clock, Send, CheckCircle, XCircle, Search, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 type RiskLevel = 'high' | 'medium' | 'low' | 'unknown';
@@ -43,6 +43,9 @@ export default function HighRiskPage() {
   const [fetchError, setFetchError] = useState(false);
   const [search, setSearch]         = useState('');
   const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all');
+  const [hrPage, setHrPage] = useState(1);
+
+  useEffect(() => { setHrPage(1); }, [search, riskFilter]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -73,6 +76,10 @@ export default function HighRiskPage() {
       return matchRisk && matchSearch;
     });
   }, [cases, search, riskFilter]);
+
+  const HR_PER_PAGE = 30;
+  const totalHrPages = Math.ceil(filtered.length / HR_PER_PAGE);
+  const paginatedHr = filtered.slice((hrPage - 1) * HR_PER_PAGE, hrPage * HR_PER_PAGE);
 
   const TABS = [
     { key: 'cases' as const,  label: 'Active Cases',  count: cases.length },
@@ -212,17 +219,33 @@ export default function HighRiskPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((c, i) => <HighRiskRow key={c.id} caseItem={c} index={i} />)}
+                      {paginatedHr.map((c, i) => <HighRiskRow key={c.id} caseItem={c} index={(hrPage - 1) * HR_PER_PAGE + i} />)}
                     </tbody>
                   </table>
                 </div>
               )}
-              <div className="px-5 py-3" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+              <div className="px-5 py-3 flex items-center justify-between gap-4" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  {filtered.length === cases.length
-                    ? `${cases.length} student${cases.length !== 1 ? 's' : ''}`
-                    : `${filtered.length} of ${cases.length} student${cases.length !== 1 ? 's' : ''}`}
+                  {filtered.length === 0 ? '0' : `${(hrPage - 1) * HR_PER_PAGE + 1}–${Math.min(hrPage * HR_PER_PAGE, filtered.length)}`} of {filtered.length} student{filtered.length !== 1 ? 's' : ''}
+                  {filtered.length !== cases.length && <span> (filtered from {cases.length})</span>}
                 </p>
+                {totalHrPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button disabled={hrPage <= 1} onClick={() => setHrPage(p => p - 1)}
+                      className="p-1.5 rounded-lg transition"
+                      style={{ color: hrPage <= 1 ? 'var(--color-text-muted)' : 'var(--color-text-primary)', cursor: hrPage <= 1 ? 'not-allowed' : 'pointer' }}
+                      aria-label="Previous page">
+                      <ChevronLeft size={14} />
+                    </button>
+                    <span className="text-xs px-2" style={{ color: 'var(--color-text-secondary)' }}>{hrPage} / {totalHrPages}</span>
+                    <button disabled={hrPage >= totalHrPages} onClick={() => setHrPage(p => p + 1)}
+                      className="p-1.5 rounded-lg transition"
+                      style={{ color: hrPage >= totalHrPages ? 'var(--color-text-muted)' : 'var(--color-text-primary)', cursor: hrPage >= totalHrPages ? 'not-allowed' : 'pointer' }}
+                      aria-label="Next page">
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )

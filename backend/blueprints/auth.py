@@ -527,13 +527,40 @@ def update_user_role(user_id):
 @auth_bp.route('/audit-logs', methods=['GET'])
 @jwt_required()
 def get_audit_logs():
-    """Get audit logs (with permission check)"""
+    """Get audit logs with server-side pagination, search, and date filtering"""
     user_id = get_jwt_identity()
-    
+
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_AUDIT_LOG.value):
         return jsonify({'error': 'Permission denied'}), 403
-    
-    logs = list(db.db.audit_logs.find({}).sort("timestamp", -1).limit(50))
+
+    try:
+        page     = max(1, int(request.args.get('page', 1)))
+        per_page = min(100, max(1, int(request.args.get('per_page', 50))))
+    except (ValueError, TypeError):
+        page, per_page = 1, 50
+
+    query: dict = {}
+
+    q = request.args.get('q', '').strip()
+    if q:
+        import re as _re
+        pat = _re.compile(_re.escape(q), _re.IGNORECASE)
+        query['$or'] = [{'action': pat}, {'module': pat}]
+
+    from_date = request.args.get('from_date', '').strip()
+    to_date   = request.args.get('to_date', '').strip()
+    if from_date or to_date:
+        from datetime import datetime as _dt, timezone as _tz
+        ts_filter: dict = {}
+        if from_date:
+            ts_filter['$gte'] = _dt.fromisoformat(from_date).replace(hour=0, minute=0, second=0, microsecond=0)
+        if to_date:
+            ts_filter['$lte'] = _dt.fromisoformat(to_date).replace(hour=23, minute=59, second=59, microsecond=999999)
+        query['timestamp'] = ts_filter
+
+    total = db.db.audit_logs.count_documents(query)
+    skip  = (page - 1) * per_page
+    logs  = list(db.db.audit_logs.find(query).sort("timestamp", -1).skip(skip).limit(per_page))
 
     # Resolve actor names in one batch
     actor_ids = [log['user_id'] for log in logs if log.get('user_id')]
@@ -550,7 +577,13 @@ def get_audit_logs():
         if 'timestamp' in log:
             log['timestamp'] = log['timestamp'].isoformat()
 
-    return jsonify(logs), 200
+    return jsonify({
+        'logs': logs,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': max(1, (total + per_page - 1) // per_page),
+    }), 200
 
 
 @auth_bp.route('/roles', methods=['GET'])

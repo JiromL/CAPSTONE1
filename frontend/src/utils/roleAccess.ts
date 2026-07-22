@@ -103,19 +103,32 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/counselor/emergency':  ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
   // IC sub-routes
-  '/ic/intake/in-progress': ['IC', 'ADMIN', 'DPO'],
-  '/ic/intake/new': ['IC', 'ADMIN', 'DPO'],
-  '/ic/intake/completed': ['IC', 'ADMIN', 'DPO'],
-  '/ic/intake/overdue': ['IC', 'ADMIN', 'DPO'],
-  '/ic/schedule': ['IC', 'ADMIN', 'DPO'],
+  '/ic/intake/in-progress':   ['IC', 'ADMIN', 'DPO'],
+  '/ic/intake/new':           ['IC', 'ADMIN', 'DPO'],
+  '/ic/intake/completed':     ['IC', 'ADMIN', 'DPO'],
+  '/ic/intake/overdue':       ['IC', 'ADMIN', 'DPO'],
+  '/ic/intake/conduct/[id]':  ['IC', 'ADMIN', 'DPO'],
+  '/ic/schedule':             ['IC', 'ADMIN', 'DPO'],
+  '/ic/schedule/calendar':    ['IC', 'ADMIN', 'DPO'],
+  '/ic/schedule/assign':      ['IC', 'ADMIN', 'DPO'],
+  '/ic/schedule/counselors':  ['IC', 'ADMIN', 'DPO'],
+  '/ic/contact/students':     ['IC', 'ADMIN', 'DPO'],
 
   // Staff sub-routes
-  '/staff/batch-assign': ['STAFF', 'ADMIN', 'DPO'],
-  '/staff/workload-report': ['STAFF', 'IC', 'ADMIN', 'DPO'],
-  '/staff/non-counseling-clients': ['STAFF', 'ADMIN', 'DPO'],
+  '/staff/batch-assign':             ['STAFF', 'ADMIN', 'DPO'],
+  '/staff/workload-report':          ['STAFF', 'IC', 'ADMIN', 'DPO'],
+  '/staff/non-counseling-clients':   ['STAFF', 'ADMIN', 'DPO'],
   '/staff/reassignment-suggestions': ['STAFF', 'ADMIN', 'DPO'],
-  '/walkin': ['STAFF', 'ADMIN', 'DPO'],
-  '/office-assistant-settings': ['STAFF', 'ADMIN', 'DPO'],
+  '/staff/check-in-management':      ['STAFF', 'ADMIN', 'DPO'],
+  '/staff/appointments':             ['STAFF', 'IC', 'ADMIN', 'DPO'],
+  '/walkin':                         ['STAFF', 'ADMIN', 'DPO'],
+  '/office-assistant-settings':      ['STAFF', 'ADMIN', 'DPO'],
+
+  // Appointment slip (printable, all clinical roles)
+  '/appointment-slip/[id]': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+
+  // Admin sub-routes not yet listed
+  '/admin/availability': ['ADMIN', 'DPO'],
 
   // Schedule & leave management (counselors/IC manage their availability here)
   '/schedule': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
@@ -160,8 +173,8 @@ export function canAccessPage(pathname: string, userRole: UserRole): boolean {
     if (patternRoles) return patternRoles.includes(normalizedRole);
   }
 
-  // Not listed → allow (treated as publicly accessible to authenticated users)
-  return true;
+  // Not listed → deny. All routes must be explicitly registered above.
+  return false;
 }
 
 /**

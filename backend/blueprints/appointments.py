@@ -401,6 +401,7 @@ def get_my_appointments():
                         ln = counselor.get('last_name', '')
                         apt['counselor_name'] = f"{fn} {ln}".strip() or counselor.get('name', 'Unknown Counselor')
                         apt['counselor_email'] = counselor.get('email', '')
+                        apt['counselor_role'] = counselor.get('role', '')
                 except:
                     pass
 

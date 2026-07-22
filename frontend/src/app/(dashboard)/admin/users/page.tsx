@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Shield, Eye, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Search, Edit2, Trash2, Shield, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -17,6 +17,7 @@ interface User {
   department: string;
 }
 
+const PAGE_SIZE = 25;
 const VALID_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'IC', 'STAFF', 'STUDENT'];
 
 const IS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
@@ -39,7 +40,13 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+
+  const [searchInput, setSearchInput] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [newRole, setNewRole] = useState('');
@@ -47,22 +54,42 @@ export default function UserManagementPage() {
   const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  useEffect(() => { fetchUsers(); }, []);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, [searchInput]);
+
+  useEffect(() => { setPage(1); }, [roleFilter]);
+
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) { window.location.href = '/login'; return; }
 
-      const response = await fetch(api('/api/users/all'), {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (debouncedSearch) params.set('q', debouncedSearch);
+      if (roleFilter) params.set('role', roleFilter);
+
+      const response = await fetch(api(`/api/users/all?${params}`), {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
+        setTotal(data.total ?? data.count ?? 0);
+        setTotalPages(data.total_pages ?? 1);
         setError(null);
       } else if (response.status === 401) {
         window.location.href = '/login';
@@ -75,7 +102,9 @@ export default function UserManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, debouncedSearch, roleFilter]);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const handleChangeRole = (user: User) => {
     setSelectedUser(user);
@@ -91,7 +120,7 @@ export default function UserManagementPage() {
       const token = localStorage.getItem('token');
       const response = await fetch(api(`/api/users/${selectedUser._id}/role`), {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
       if (response.ok) {
@@ -119,11 +148,11 @@ export default function UserManagementPage() {
       const token = localStorage.getItem('token');
       const response = await fetch(api(`/api/users/${user._id}/status`), {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: newStatus }),
       });
       if (response.ok) {
-        setUsers((prev) => prev.map((u) => u._id === user._id ? { ...u, is_active: newStatus } : u));
+        setUsers(prev => prev.map(u => u._id === user._id ? { ...u, is_active: newStatus } : u));
       } else {
         const err = await response.json().catch(() => ({}));
         alert(err.error || 'Failed to update user status');
@@ -135,38 +164,29 @@ export default function UserManagementPage() {
     }
   };
 
-  const filteredUsers = users.filter(
-    (u) =>
-      (u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (u.email?.includes(searchTerm) || false) ||
-      (u.role?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-  );
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to   = Math.min(page * PAGE_SIZE, total);
 
-  if (loading) {
+  if (loading && users.length === 0) {
     return (
       <DashboardPageWrapper title="User Management" subtitle="Manage staff and user accounts">
-        <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-bg)' }}>
-          <div className="animate-spin rounded-full h-12 w-12"
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <div className="animate-spin rounded-full h-10 w-10"
             style={{ borderWidth: 2, borderStyle: 'solid', borderColor: 'transparent', borderBottomColor: 'var(--color-primary)' }} />
         </div>
       </DashboardPageWrapper>
     );
   }
 
-  if (error) {
+  if (error && users.length === 0) {
     return (
       <DashboardPageWrapper title="User Management" subtitle="Manage staff and user accounts">
         <div className="w-full max-w-2xl mx-auto">
           <div className="rounded-lg p-6" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
             <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-danger)' }}>Error Loading Users</h3>
             <p className="mb-4 text-sm" style={{ color: 'var(--color-danger)' }}>{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 rounded-lg font-medium text-sm text-white transition"
-              style={{ background: 'var(--color-danger)' }}
-            >
-              Retry
-            </button>
+            <button onClick={() => fetchUsers()} className="px-4 py-2 rounded-lg font-medium text-sm text-white transition"
+              style={{ background: 'var(--color-danger)' }}>Retry</button>
           </div>
         </div>
       </DashboardPageWrapper>
@@ -178,31 +198,41 @@ export default function UserManagementPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>User Management</h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>Managing {users.length} staff and user accounts</p>
+          <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+            {total} total account{total !== 1 ? 's' : ''}
+          </p>
         </div>
-        <Link
-          href="/admin/users/create"
+        <Link href="/admin/users/create"
           className="flex items-center gap-2 text-white px-6 py-2 rounded-lg font-medium transition text-sm"
           style={{ background: 'var(--color-primary)' }}
           onMouseOver={e => (e.currentTarget.style.background = 'var(--color-primary-hover)')}
-          onMouseOut={e => (e.currentTarget.style.background = 'var(--color-primary)')}
-        >
+          onMouseOut={e  => (e.currentTarget.style.background = 'var(--color-primary)')}>
           <Plus size={20} /> Add User
         </Link>
       </div>
 
-      <div className="rounded-lg p-6 mb-8" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-        <div className="relative">
-          <Search className="absolute left-3 top-3" size={20} style={{ color: 'var(--color-text-muted)' }} />
+      {/* Search + filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5" size={16} style={{ color: 'var(--color-text-muted)' }} />
           <input
             type="text"
-            placeholder="Search by name, email, or role..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm rounded-lg outline-none"
+            placeholder="Search by name, email, or role…"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg outline-none"
             style={IS}
           />
         </div>
+        <select
+          value={roleFilter}
+          onChange={e => setRoleFilter(e.target.value)}
+          className="px-3 py-2 text-sm rounded-lg outline-none"
+          style={{ ...IS, minWidth: 140 }}
+        >
+          <option value="">All roles</option>
+          {VALID_ROLES.map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
+        </select>
       </div>
 
       <div className="rounded-lg overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
@@ -216,8 +246,10 @@ export default function UserManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
+              {loading ? (
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading…</td></tr>
+              ) : users.length > 0 ? (
+                users.map(user => (
                   <tr key={user._id || user.id}
                     className="transition"
                     style={{ borderBottom: '1px solid var(--color-border)' }}
@@ -278,12 +310,49 @@ export default function UserManagementPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>No users found</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    No users found{debouncedSearch ? ` matching "${debouncedSearch}"` : ''}
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination footer */}
+        {total > 0 && (
+          <div className="flex items-center justify-between px-6 py-3"
+            style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {from}–{to} of {total}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1 || loading}
+                className="p-1.5 rounded-lg transition disabled:opacity-40"
+                style={{ color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-xs px-2 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || loading}
+                className="p-1.5 rounded-lg transition disabled:opacity-40"
+                style={{ color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Role Change Modal */}
@@ -293,12 +362,10 @@ export default function UserManagementPage() {
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Change User Role</h2>
-              <button
-                onClick={() => { setShowRoleModal(false); setUpdateMessage(null); }}
+              <button onClick={() => { setShowRoleModal(false); setUpdateMessage(null); }}
                 style={{ color: 'var(--color-text-muted)' }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-primary)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}
-              >
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
                 <X size={24} />
               </button>
             </div>
@@ -324,40 +391,28 @@ export default function UserManagementPage() {
 
             <div className="mb-6">
               <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>New Role</label>
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                disabled={updating}
+              <select value={newRole} onChange={e => setNewRole(e.target.value)} disabled={updating}
                 className="w-full px-4 py-2 text-sm rounded-lg outline-none disabled:opacity-50"
-                style={IS}
-              >
-                <option value="">Select a role...</option>
-                {VALID_ROLES.map(role => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
+                style={IS}>
+                <option value="">Select a role…</option>
+                {VALID_ROLES.map(role => <option key={role} value={role}>{role}</option>)}
               </select>
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => { setShowRoleModal(false); setUpdateMessage(null); }}
-                disabled={updating}
+              <button onClick={() => { setShowRoleModal(false); setUpdateMessage(null); }} disabled={updating}
                 className="flex-1 px-4 py-2 rounded-lg font-medium text-sm transition disabled:opacity-50"
                 style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'transparent' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 Cancel
               </button>
-              <button
-                onClick={submitRoleChange}
-                disabled={!newRole || newRole === selectedUser.role || updating}
+              <button onClick={submitRoleChange} disabled={!newRole || newRole === selectedUser.role || updating}
                 className="flex-1 px-4 py-2 text-white rounded-lg font-medium text-sm transition disabled:opacity-50"
                 style={{ background: 'var(--color-primary)' }}
                 onMouseEnter={e => { if (!updating) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
-                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}
-              >
-                {updating ? 'Updating...' : 'Update Role'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'}>
+                {updating ? 'Updating…' : 'Update Role'}
               </button>
             </div>
           </div>

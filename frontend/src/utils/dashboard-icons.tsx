@@ -18,6 +18,7 @@ import {
   Video,
   BookOpen,
   TrendingUp,
+  History,
 } from 'lucide-react';
 
 export const menuIconMap: Record<string, React.ReactNode> = {
@@ -30,6 +31,7 @@ export const menuIconMap: Record<string, React.ReactNode> = {
   // Student workflow
   'intake': <FileText size={18} />,
   'book-appointment': <Calendar size={18} />,
+  'counseling': <History size={18} />,
   'tasks': <CheckCircle2 size={18} />,
   'check-ins': <CheckCircle2 size={18} />,
   'check-ins-student': <CheckCircle2 size={18} />,

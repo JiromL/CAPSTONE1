@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, X, AlertCircle } from 'lucide-react';
+import { Plus, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { Loader2 } from 'lucide-react';
@@ -164,8 +164,12 @@ export default function ReferralsPage() {
               Pending Warm Handoffs ({pendingHandoffs.length})
             </h2>
             {pendingHandoffs.length === 0 ? (
-              <div className="rounded-2xl border shadow-card p-8 text-center" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No pending warm handoffs.</p>
+              <div className="rounded-2xl border shadow-card p-8 flex flex-col items-center text-center gap-2" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ background: 'var(--color-success-surface)' }}>
+                  <CheckCircle2 size={18} style={{ color: 'var(--color-success)' }} />
+                </div>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>All handoffs complete</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No referrals are awaiting warm handoff confirmation.</p>
               </div>
             ) : (
               <div className="space-y-3">

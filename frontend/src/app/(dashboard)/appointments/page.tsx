@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 import {
   Loader2, Eye, Video, RotateCcw, Star, ExternalLink, RefreshCw,
   Archive, CheckCircle, History, X, AlertCircle, AlertTriangle, CalendarDays,
-  Search, ArrowUpDown, NotebookPen,
+  Search, ArrowUpDown, NotebookPen, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 interface Appointment {
@@ -23,6 +23,7 @@ interface Appointment {
   method?: string;
   preferred_date?: string;
   preferred_time?: string;
+  scheduled_start?: string;
   meeting_link?: string;
   risk_level?: string;
 }
@@ -102,6 +103,9 @@ function fmtPurpose(p?: string) {
   if (!p) return '—';
   return PURPOSE_LABEL[p] ?? p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
+function effDate(a: { scheduled_start?: string; preferred_date?: string }): string | undefined {
+  return a.scheduled_start || a.preferred_date;
+}
 function fmtMethod(m?: string) {
   if (!m) return '—';
   if (m === 'in-person' || m === 'in_person') return 'Face to Face';
@@ -153,6 +157,9 @@ export default function AppointmentsPage() {
   const [sortBy, setSortBy] = useState<'date-asc' | 'date-desc' | 'risk'>('date-asc');
   const [riskFilter, setRiskFilter] = useState<'all' | 'high'>('all');
   const [mineOnly, setMineOnly] = useState(false);
+  const [apptPage, setApptPage] = useState(1);
+
+  useEffect(() => { setApptPage(1); }, [activeTab, search, riskFilter, mineOnly, sortBy]);
 
   const load = async () => {
     setLoading(true);
@@ -204,6 +211,7 @@ export default function AppointmentsPage() {
     ]).then(([s, p]) => { setIntakeSummary(s); setIntakePacket(p); });
   }, [detailAppt]);
 
+  const APPT_PER_PAGE = 25;
   const apts = Array.isArray(dashboard?.appointments) ? dashboard!.appointments! : [];
   const counts = Object.fromEntries(TABS.map(t => [t.key, apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length])) as Record<TabKey, number>;
   const visibleTabs = TABS.filter(tab => tab.key !== 'reschedule' || counts.reschedule > 0);
@@ -225,10 +233,13 @@ export default function AppointmentsPage() {
         const rb = RISK_ORDER[(b.risk_level ?? '').toUpperCase()] ?? 4;
         return ra - rb;
       }
-      const da = a.preferred_date ? new Date(a.preferred_date).getTime() : (sortBy === 'date-asc' ? Infinity : -Infinity);
-      const db2 = b.preferred_date ? new Date(b.preferred_date).getTime() : (sortBy === 'date-asc' ? Infinity : -Infinity);
+      const da = effDate(a) ? new Date(effDate(a)!).getTime() : (sortBy === 'date-asc' ? Infinity : -Infinity);
+      const db2 = effDate(b) ? new Date(effDate(b)!).getTime() : (sortBy === 'date-asc' ? Infinity : -Infinity);
       return sortBy === 'date-asc' ? da - db2 : db2 - da;
     });
+
+  const totalApptPages = Math.ceil(displayed.length / APPT_PER_PAGE);
+  const paginatedApts = displayed.slice((apptPage - 1) * APPT_PER_PAGE, apptPage * APPT_PER_PAGE);
 
   const doAction = async (aptId: string, endpoint: string, body?: object) => {
     setActioningId(aptId); setActionMsg(null);
@@ -346,7 +357,7 @@ export default function AppointmentsPage() {
         const todayPH = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }); // YYYY-MM-DD
         const todaySessions = apts.filter(a => {
           if (!['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status)) return false;
-          const d = a.preferred_date;
+          const d = effDate(a);
           if (!d) return false;
           const dateStr = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
           return dateStr === todayPH;
@@ -366,7 +377,7 @@ export default function AppointmentsPage() {
                 return (
                   <div key={a.appointment_id} className="flex items-center gap-3 px-4 py-2.5">
                     <span className="text-xs font-medium w-20 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
-                      {fmtTime(a.preferred_date)}
+                      {fmtTime(effDate(a))}
                     </span>
                     <span className="text-sm font-semibold flex-1 truncate" style={{ color: 'var(--color-text-primary)' }}>
                       {a.student_name}
@@ -473,7 +484,7 @@ export default function AppointmentsPage() {
         ) : (
           <>
             <div className="p-4 space-y-3">
-              {displayed.map((apt) => {
+              {paginatedApts.map((apt) => {
                 const cfg = STATUS_STYLE[apt.status] ?? { label: apt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', border: 'var(--color-border)' };
                 const isEval = apt.status === 'EVALUATION';
                 const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
@@ -516,11 +527,13 @@ export default function AppointmentsPage() {
                           {apt.concern && <span style={{ color: 'var(--color-text-muted)' }}> · &ldquo;{apt.concern}&rdquo;</span>}
                         </p>
 
-                        {apt.preferred_date && (
+                        {effDate(apt) && (
                           <div className="flex items-center gap-3 mt-1 text-xs flex-wrap" style={{ color: 'var(--color-text-secondary)' }}>
                             <span className="flex items-center gap-1">
                               <CalendarDays size={11} />
-                              {fmtDate(apt.preferred_date)}{apt.preferred_time ? ` ${fmtTime(apt.preferred_date, apt.preferred_time)}` : ''}
+                              {apt.scheduled_start
+                                ? fmtDate(apt.scheduled_start) + ' ' + fmtTime(apt.scheduled_start)
+                                : fmtDate(apt.preferred_date) + (apt.preferred_time ? ` ${fmtTime(apt.preferred_date, apt.preferred_time)}` : '')}
                             </span>
                             <span>{fmtMethod(apt.method)}</span>
                           </div>
@@ -541,7 +554,7 @@ export default function AppointmentsPage() {
                               <Eye size={11} /> View
                             </button>
 
-                            {isConfirmed && !apt.preferred_date && (
+                            {isConfirmed && !effDate(apt) && (
                               <button onClick={() => { setSchedTarget(apt); setSchedDate(''); setSchedTime(''); setSchedOffice(''); setSchedMethod('in_person'); setSchedMsg(null); setSchedMode('slots'); setSchedMySlots([]); }}
                                 className="flex items-center gap-1 px-2.5 py-1 text-white text-xs font-semibold rounded-lg transition hover:opacity-90"
                                 style={{ background: 'var(--color-primary)' }}>
@@ -653,11 +666,36 @@ export default function AppointmentsPage() {
                 );
               })}
             </div>
-            <div className="px-5 py-3.5" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+            <div className="px-5 py-3.5 flex items-center justify-between gap-4" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                Showing <strong style={{ color: 'var(--color-text-secondary)' }}>{displayed.length}</strong>
-                {displayed.length !== filtered.length && <span> of {filtered.length}</span>} session{displayed.length !== 1 ? 's' : ''}
+                Showing <strong style={{ color: 'var(--color-text-secondary)' }}>
+                  {displayed.length === 0 ? 0 : (apptPage - 1) * APPT_PER_PAGE + 1}–{Math.min(apptPage * APPT_PER_PAGE, displayed.length)}
+                </strong> of <strong style={{ color: 'var(--color-text-secondary)' }}>{displayed.length}</strong> session{displayed.length !== 1 ? 's' : ''}
+                {displayed.length !== filtered.length && <span style={{ color: 'var(--color-text-muted)' }}> (filtered from {filtered.length})</span>}
               </p>
+              {totalApptPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    disabled={apptPage <= 1}
+                    onClick={() => setApptPage(p => p - 1)}
+                    className="p-1.5 rounded-lg transition text-xs"
+                    style={{ color: apptPage <= 1 ? 'var(--color-text-muted)' : 'var(--color-text-primary)', background: 'transparent', cursor: apptPage <= 1 ? 'not-allowed' : 'pointer' }}
+                    aria-label="Previous page">
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className="text-xs px-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    {apptPage} / {totalApptPages}
+                  </span>
+                  <button
+                    disabled={apptPage >= totalApptPages}
+                    onClick={() => setApptPage(p => p + 1)}
+                    className="p-1.5 rounded-lg transition text-xs"
+                    style={{ color: apptPage >= totalApptPages ? 'var(--color-text-muted)' : 'var(--color-text-primary)', background: 'transparent', cursor: apptPage >= totalApptPages ? 'not-allowed' : 'pointer' }}
+                    aria-label="Next page">
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -691,7 +729,7 @@ export default function AppointmentsPage() {
                 </div>
               </div>
               {[
-                { title: 'Date & Time', content: `${fmtDate(detailAppt.preferred_date)} ${fmtTime(detailAppt.preferred_date, detailAppt.preferred_time)}` },
+                { title: 'Date & Time', content: detailAppt.scheduled_start ? `${fmtDate(detailAppt.scheduled_start)} ${fmtTime(detailAppt.scheduled_start)}` : `${fmtDate(detailAppt.preferred_date)} ${fmtTime(detailAppt.preferred_date, detailAppt.preferred_time)}` },
               ].map(({ title, content }) => (
                 <div key={title} className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
                   <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{title}</p>

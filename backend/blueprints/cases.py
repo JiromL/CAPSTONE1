@@ -104,12 +104,43 @@ def get_cases():
     if request.args.get('risk_level'):
         query['risk_level'] = request.args.get('risk_level')
 
+    # My Cases: filter to only cases assigned to the current user (server-side)
+    if request.args.get('my_cases') == 'true':
+        query['assigned_counselor_id'] = ObjectId(user_id)
+
+    # Full-text search across student name/email/case number
+    q = request.args.get('q', '').strip()
+    if q:
+        import re as _re
+        pattern = _re.compile(_re.escape(q), _re.IGNORECASE)
+        search_cond = {'$or': [
+            {'student_name': pattern},
+            {'student_email': pattern},
+            {'case_number': pattern},
+            {'chief_complaint': pattern},
+            {'presenting_issue': pattern},
+        ]}
+        if '$and' in query:
+            query['$and'].append(search_cond)
+        elif '$or' in query:
+            existing_and = [{'$or': query.pop('$or')}]
+            existing_and.append(search_cond)
+            query['$and'] = existing_and
+        else:
+            query.update(search_cond)
+
     # Status filter: walk-in cases store in case_status, triage cases store in status
+    # Accepts single value or comma-separated list, e.g. status=ACTIVE,NEW,INTAKE_SCHEDULED
     if request.args.get('status'):
-        status_val = request.args.get('status')
-        status_cond = {'$or': [{'case_status': status_val}, {'status': status_val}]}
+        status_vals = [s.strip() for s in request.args.get('status').split(',') if s.strip()]
+        if len(status_vals) == 1:
+            status_cond = {'$or': [{'case_status': status_vals[0]}, {'status': status_vals[0]}]}
+        else:
+            status_cond = {'$or': [
+                {'case_status': {'$in': status_vals}},
+                {'status': {'$in': status_vals}},
+            ]}
         if '$or' in query:
-            # Safely combine with existing $or (e.g. IC role filter)
             existing_and = query.pop('$and', [])
             existing_and.append({'$or': query.pop('$or')})
             existing_and.append(status_cond)
@@ -136,6 +167,42 @@ def get_cases():
         'total_pages': max(1, (total + per_page - 1) // per_page),
         'role': user_role,
         'cases': cases
+    }), 200
+
+
+@cases_bp.route('/summary', methods=['GET'])
+@jwt_required()
+def get_cases_summary():
+    """Aggregate case counts for dashboard stat cards (C-12)"""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    base_query = get_cases_for_user(user_id, user.get('role'))
+    if base_query is None:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    def merge(base, extra):
+        if not base:
+            return extra
+        return {'$and': [base, extra]}
+
+    active_cond = {'$or': [
+        {'case_status': {'$in': ['ACTIVE', 'NEW', 'INTAKE_SCHEDULED']}},
+        {'status':      {'$in': ['ACTIVE', 'NEW', 'INTAKE_SCHEDULED']}},
+    ]}
+    closed_cond = {'$or': [
+        {'case_status': {'$in': ['CLOSED', 'CANCELLED']}},
+        {'status':      {'$in': ['CLOSED', 'CANCELLED']}},
+    ]}
+
+    return jsonify({
+        'total':     db.db.cases.count_documents(base_query),
+        'active':    db.db.cases.count_documents(merge(base_query, active_cond)),
+        'high_risk': db.db.cases.count_documents(merge(base_query, {'risk_level': 'RED'})),
+        'closed':    db.db.cases.count_documents(merge(base_query, closed_cond)),
     }), 200
 
 

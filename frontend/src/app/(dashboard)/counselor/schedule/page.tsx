@@ -20,6 +20,7 @@ interface AppointmentDetail {
   concern: string;
   preferred_date: string;
   preferred_time: string;
+  scheduled_start?: string;
   method: string;
   meeting_link?: string;
   referral_type: string;
@@ -72,7 +73,7 @@ function AppointmentCard({ appointment, onSelect, onCompleteAndNote, completing 
   completing?: boolean;
 }) {
   const { style: sStyle, label: sLabel } = getStatusStyle(appointment.status);
-  const aptDate = new Date(appointment.preferred_date);
+  const aptDate = new Date(appointment.scheduled_start || appointment.preferred_date);
   const today = new Date();
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
   let dateLabel = aptDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', weekday: 'short' });
@@ -169,8 +170,8 @@ function AppointmentDetailsModal({ appointment, onClose }: { appointment: Appoin
           {/* Details grid */}
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'Date', value: new Date(appointment.preferred_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
-              { label: 'Time', value: appointment.preferred_time || 'TBD' },
+              { label: 'Date', value: new Date(appointment.scheduled_start || appointment.preferred_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
+              { label: 'Time', value: appointment.scheduled_start ? new Date(appointment.scheduled_start).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }) : (appointment.preferred_time || 'TBD') },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
@@ -262,7 +263,7 @@ function CalendarView({ appointments }: { appointments: AppointmentDetail[] }) {
       <div className="grid grid-cols-7">
         {days.map((date, i) => {
           if (!date) return <div key={`e-${i}`} className="p-3 min-h-24" style={{ background: 'var(--color-bg)' }} />;
-          const dayApts = appointments.filter(a => new Date(a.preferred_date).toDateString() === date.toDateString());
+          const dayApts = appointments.filter(a => new Date(a.scheduled_start || a.preferred_date).toDateString() === date.toDateString());
           return (
             <div key={date.toISOString()} className="p-3 min-h-24 transition"
               style={{ border: '1px solid var(--color-border)' }}
@@ -341,16 +342,17 @@ export default function CounselorSchedulePage() {
   const filtered = useMemo(() => {
     let f = appointments;
     const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (filters.dateRange === 'today') { const t2 = new Date(today); t2.setDate(t2.getDate()+1); f = f.filter(a => new Date(a.preferred_date) >= today && new Date(a.preferred_date) < t2); }
-    else if (filters.dateRange === 'week') { const we = new Date(today); we.setDate(we.getDate()+7); f = f.filter(a => new Date(a.preferred_date) >= today && new Date(a.preferred_date) <= we); }
-    else if (filters.dateRange === 'month') { const me = new Date(today); me.setMonth(me.getMonth()+1); f = f.filter(a => new Date(a.preferred_date) >= today && new Date(a.preferred_date) <= me); }
-    else if (filters.dateRange === 'custom' && filters.customStartDate && filters.customEndDate) { f = f.filter(a => new Date(a.preferred_date) >= new Date(filters.customStartDate!) && new Date(a.preferred_date) <= new Date(filters.customEndDate!)); }
+    const aDate = (a: AppointmentDetail) => new Date(a.scheduled_start || a.preferred_date);
+    if (filters.dateRange === 'today') { const t2 = new Date(today); t2.setDate(t2.getDate()+1); f = f.filter(a => aDate(a) >= today && aDate(a) < t2); }
+    else if (filters.dateRange === 'week') { const we = new Date(today); we.setDate(we.getDate()+7); f = f.filter(a => aDate(a) >= today && aDate(a) <= we); }
+    else if (filters.dateRange === 'month') { const me = new Date(today); me.setMonth(me.getMonth()+1); f = f.filter(a => aDate(a) >= today && aDate(a) <= me); }
+    else if (filters.dateRange === 'custom' && filters.customStartDate && filters.customEndDate) { f = f.filter(a => aDate(a) >= new Date(filters.customStartDate!) && aDate(a) <= new Date(filters.customEndDate!)); }
     if (filters.status !== 'all') f = f.filter(a => a.status === filters.status);
     if (filters.method !== 'all') f = f.filter(a => a.method === filters.method);
     if (filters.searchTerm) { const t = filters.searchTerm.toLowerCase(); f = f.filter(a => a.student_name.toLowerCase().includes(t) || a.student_email.toLowerCase().includes(t) || a.purpose.toLowerCase().includes(t)); }
     return [...f].sort((a,b) => {
-      if (sorting === 'date-asc') return new Date(a.preferred_date).getTime() - new Date(b.preferred_date).getTime();
-      if (sorting === 'date-desc') return new Date(b.preferred_date).getTime() - new Date(a.preferred_date).getTime();
+      if (sorting === 'date-asc') return new Date(a.scheduled_start || a.preferred_date).getTime() - new Date(b.scheduled_start || b.preferred_date).getTime();
+      if (sorting === 'date-desc') return new Date(b.scheduled_start || b.preferred_date).getTime() - new Date(a.scheduled_start || a.preferred_date).getTime();
       if (sorting === 'name') return a.student_name.localeCompare(b.student_name);
       return a.status.localeCompare(b.status);
     });

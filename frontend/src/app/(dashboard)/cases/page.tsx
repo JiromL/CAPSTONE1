@@ -1,12 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
-import { Search, Loader2, AlertCircle, ChevronRight, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
+import { Search, Loader2, AlertCircle, ChevronRight, ChevronLeft, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
+
+const PER_PAGE = 20;
+
+const TAB_STATUS: Record<string, string | null> = {
+  all:        null,
+  active:     'ACTIVE,NEW,INTAKE_SCHEDULED',
+  attention:  'PENDING_TERMINATION',
+  'high-risk': null,
+  closed:     'CLOSED,CANCELLED',
+};
 
 /* ── Badge maps ─────────────────────────────────────────── */
 
@@ -88,10 +98,16 @@ export default function CasesPage() {
   const [cases, setCases]       = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
-  const [search, setSearch]     = useState('');
+  const [summary, setSummary]   = useState({ total: 0, active: 0, high_risk: 0, closed: 0 });
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>('all');
   const [myCasesOnly, setMyCasesOnly] = useState(false);
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
+  const [page, setPage]         = useState(1);
+  const [total, setTotal]       = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const u = localStorage.getItem('user');
@@ -103,6 +119,15 @@ export default function CasesPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, [searchInput]);
 
   async function fetchPermaLabels(items: any[]) {
     const usernames = items.map((c: any) => c.mhbot_username).filter(Boolean) as string[];
@@ -118,28 +143,49 @@ export default function CasesPage() {
     } catch {}
   }
 
-  useEffect(() => {
+  const fetchSummary = useCallback(async () => {
     if (!user) return;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const r = await fetch(api('/api/cases'), { headers: { Authorization: `Bearer ${token}` } });
-        if (!r.ok) throw new Error(`${r.status}`);
-        const d = await r.json();
-        const items = d.cases || [];
-        setCases(items);
-        localStorage.setItem('cases_cache', JSON.stringify(items));
-        setError(null);
-        fetchPermaLabels(items);
-      } catch {
-        setError('Failed to load cases.');
-        const cached = localStorage.getItem('cases_cache');
-        if (cached) try { setCases(JSON.parse(cached)); } catch {}
-      } finally { setLoading(false); }
-    };
-    load();
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api('/api/cases/summary'), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setSummary(await r.json());
+    } catch {}
   }, [user]);
+
+  useEffect(() => { fetchSummary(); }, [fetchSummary]);
+
+  const fetchCases = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE) });
+      const statusFilter = TAB_STATUS[activeTab];
+      if (statusFilter) params.set('status', statusFilter);
+      if (activeTab === 'high-risk') params.set('risk_level', 'RED');
+      if (debouncedSearch) params.set('q', debouncedSearch);
+      if (myCasesOnly && user?._id) params.set('my_cases', 'true');
+
+      const r = await fetch(api(`/api/cases?${params}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error(`${r.status}`);
+      const d = await r.json();
+      const items = d.cases || [];
+      setCases(items);
+      setTotal(d.total ?? items.length);
+      setTotalPages(d.total_pages ?? 1);
+      setError(null);
+      fetchPermaLabels(items);
+    } catch {
+      setError('Failed to load cases.');
+    } finally { setLoading(false); }
+  }, [user, page, activeTab, debouncedSearch, myCasesOnly]);
+
+  useEffect(() => { fetchCases(); }, [fetchCases]);
+
+  const handleTabChange = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setPage(1);
+  };
 
   const pageTitle = (() => {
     switch (user?.role?.toUpperCase()) {
@@ -152,39 +198,12 @@ export default function CasesPage() {
     }
   })();
 
-  const filtered = cases.filter(c => {
-    const status = (c.status || c.case_status || '').toUpperCase();
-    const risk   = (c.risk_level || '').toUpperCase();
-    const t      = search.toLowerCase();
-
-    const matchTab = (() => {
-      switch (activeTab) {
-        case 'active':    return ['ACTIVE', 'NEW', 'INTAKE_SCHEDULED'].includes(status);
-        case 'attention': return status === 'PENDING_TERMINATION';
-        case 'high-risk': return ['RED', 'CRITICAL'].includes(risk);
-        case 'closed':    return ['CLOSED', 'CANCELLED'].includes(status);
-        default:          return true;
-      }
-    })();
-
-    const matchSearch = !t || [c.student_name, c.student_email, c.chief_complaint, c.presenting_issue, c.case_number]
-      .some(v => v?.toLowerCase().includes(t));
-
-    const matchMine = !myCasesOnly || c.assigned_counselor_id === user?._id;
-
-    return matchTab && matchSearch && matchMine;
-  });
-
-  const openCount   = cases.filter(c => ['open', 'ACTIVE', 'NEW', 'INTAKE_SCHEDULED'].includes(c.status)).length;
-  const highRisk    = cases.filter(c => ['RED', 'CRITICAL'].includes(c.risk_level?.toUpperCase())).length;
-  const closedCount = cases.filter(c => ['closed', 'CLOSED'].includes(c.status)).length;
-
   const TABS = [
-    { id: 'all'       as const, label: 'All',           count: cases.length },
-    { id: 'active'    as const, label: 'Active',         count: cases.filter(c => ['ACTIVE','NEW','INTAKE_SCHEDULED'].includes((c.status||'').toUpperCase())).length },
-    { id: 'attention' as const, label: 'Needs Attention',count: cases.filter(c => (c.status||'').toUpperCase()==='PENDING_TERMINATION').length },
-    { id: 'high-risk' as const, label: 'High Risk',      count: cases.filter(c => ['RED','CRITICAL'].includes((c.risk_level||'').toUpperCase())).length },
-    { id: 'closed'    as const, label: 'Closed',         count: cases.filter(c => ['CLOSED','CANCELLED'].includes((c.status||'').toUpperCase())).length },
+    { id: 'all'       as const, label: 'All',            count: activeTab === 'all'        ? total : null },
+    { id: 'active'    as const, label: 'Active',          count: activeTab === 'active'     ? total : null },
+    { id: 'attention' as const, label: 'Needs Attention', count: activeTab === 'attention'  ? total : null },
+    { id: 'high-risk' as const, label: 'High Risk',       count: activeTab === 'high-risk'  ? total : null },
+    { id: 'closed'    as const, label: 'Closed',          count: activeTab === 'closed'     ? total : null },
   ];
 
   const showWellbeing = !['STAFF'].includes(user?.role?.toUpperCase());
@@ -194,10 +213,10 @@ export default function CasesPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <StatCard label="Total Cases" value={cases.length}  icon={Users}       active={activeTab === 'all'}       onClick={() => setActiveTab('all')}       accent="var(--color-primary)" />
-        <StatCard label="Open"        value={openCount}      icon={FolderOpen}  active={activeTab === 'active'}    onClick={() => setActiveTab('active')}    accent="var(--color-primary)" />
-        <StatCard label="High Risk"   value={highRisk}       icon={ShieldAlert} active={activeTab === 'high-risk'} onClick={() => setActiveTab('high-risk')} accent="var(--color-danger)" dimmed={highRisk === 0} />
-        <StatCard label="Closed"      value={closedCount}    icon={FolderX}     active={activeTab === 'closed'}    onClick={() => setActiveTab('closed')}    dimmed />
+        <StatCard label="Total Cases" value={summary.total}     icon={Users}       active={activeTab === 'all'}       onClick={() => handleTabChange('all')}       accent="var(--color-primary)" />
+        <StatCard label="Open"        value={summary.active}    icon={FolderOpen}  active={activeTab === 'active'}    onClick={() => handleTabChange('active')}    accent="var(--color-primary)" />
+        <StatCard label="High Risk"   value={summary.high_risk} icon={ShieldAlert} active={activeTab === 'high-risk'} onClick={() => handleTabChange('high-risk')} accent="var(--color-danger)" dimmed={activeTab !== 'high-risk'} />
+        <StatCard label="Closed"      value={summary.closed}    icon={FolderX}     active={activeTab === 'closed'}    onClick={() => handleTabChange('closed')}    dimmed />
       </div>
 
       {/* Error */}
@@ -219,7 +238,7 @@ export default function CasesPage() {
             {TABS.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t whitespace-nowrap border-b-2 transition-all duration-150"
                 style={{
                   borderColor:   activeTab === tab.id ? 'var(--color-primary)' : 'transparent',
@@ -230,7 +249,7 @@ export default function CasesPage() {
                 onMouseLeave={e => activeTab !== tab.id && ((e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)')}
               >
                 {tab.label}
-                {tab.count > 0 && (
+                {tab.count != null && tab.count > 0 && (
                   <span
                     className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold"
                     style={
@@ -251,8 +270,8 @@ export default function CasesPage() {
             <div className="relative flex-1">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
               <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
                 placeholder="Search name, email, case #…"
                 className="w-full pl-8 pr-3 py-2 text-sm rounded-xl outline-none transition-all duration-150"
                 style={{
@@ -272,7 +291,7 @@ export default function CasesPage() {
             </div>
             {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
               <button
-                onClick={() => setMyCasesOnly(v => !v)}
+                onClick={() => { setMyCasesOnly(v => !v); setPage(1); }}
                 className="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-all duration-150"
                 style={myCasesOnly ? {
                   background: 'var(--color-primary)',
@@ -296,7 +315,7 @@ export default function CasesPage() {
             <Loader2 size={15} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
             Loading cases…
           </div>
-        ) : filtered.length === 0 ? (
+        ) : cases.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-border)' }}>
               <FolderOpen size={18} style={{ color: 'var(--color-text-muted)' }} />
@@ -304,7 +323,7 @@ export default function CasesPage() {
             <div>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>No cases found</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                {search ? 'No cases match your search.' : 'No cases in this category.'}
+                {debouncedSearch ? 'No cases match your search.' : 'No cases in this category.'}
               </p>
             </div>
           </div>
@@ -328,7 +347,7 @@ export default function CasesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((c, i) => {
+                  {cases.map((c, i) => {
                     const risk      = c.risk_level?.toUpperCase() || 'GREEN';
                     const statusKey = c.status || c.case_status || '';
                     const riskCfg   = RISK_BADGE[risk] ?? RISK_BADGE['GREEN'];
@@ -352,7 +371,7 @@ export default function CasesPage() {
                       >
                         {/* # */}
                         <td className="px-5 py-4 text-xs tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
-                          {i + 1}
+                          {(page - 1) * PER_PAGE + i + 1}
                         </td>
 
                         {/* Student */}
@@ -450,15 +469,36 @@ export default function CasesPage() {
               </table>
             </div>
 
-            {/* Footer */}
-            <div
-              className="px-5 py-3"
-              style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
-            >
+            {/* Pagination footer */}
+            <div className="flex items-center justify-between px-5 py-3"
+              style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                Showing <strong style={{ color: 'var(--color-text-secondary)' }}>{filtered.length}</strong> of {cases.length} cases
-                {search && <> matching <em>"{search}"</em></>}
+                {total > 0
+                  ? <>{(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of <strong style={{ color: 'var(--color-text-secondary)' }}>{total}</strong> cases</>
+                  : 'No cases'}
+                {debouncedSearch && <> matching <em>"{debouncedSearch}"</em></>}
               </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1 || loading}
+                    className="p-1.5 rounded-lg transition disabled:opacity-40"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <ChevronLeft size={15} />
+                  </button>
+                  <span className="text-xs px-2 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                    {page} / {totalPages}
+                  </span>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading}
+                    className="p-1.5 rounded-lg transition disabled:opacity-40"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}

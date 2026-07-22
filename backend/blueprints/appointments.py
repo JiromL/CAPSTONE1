@@ -1834,11 +1834,11 @@ def get_pending_session():
 
     appt = db.db.appointments.find_one({
         'case_id': {'$in': case_ids},
-        'source': 'endorsed',
+        'source': {'$in': ['endorsed', 'follow_up_pending']},
         'status': AppointmentStatus.REQUESTED.value,
         '$or': [
-            {'requested_start': None},
-            {'requested_start': {'$exists': False}},
+            {'scheduled_start': None},
+            {'scheduled_start': {'$exists': False}},
         ],
         'counselor_id': {'$exists': True, '$ne': None},
     })
@@ -1862,6 +1862,7 @@ def get_pending_session():
             'counselor_role': counselor_role,
             'concern': appt.get('concern', ''),
             'risk_level': appt.get('risk_level', 'GREEN'),
+            'source': appt.get('source', 'endorsed'),
         }
     }), 200
 
@@ -2207,11 +2208,10 @@ def set_evaluation(appointment_id):
 @appointments_bp.route('/<appointment_id>/set-follow-up', methods=['POST'])
 @jwt_required()
 def set_follow_up(appointment_id):
-    """Counselor/staff: schedule a follow-up session.
+    """Counselor: mark current session complete and create a follow-up slot for the student to schedule.
 
-    Creates a new CONFIRMED appointment linked to the same case and student,
-    pre-assigned to the same counselor. Requires scheduled_start (ISO string).
-    Also marks the current appointment as FOLLOW_UP so the record is clear.
+    Creates a new REQUESTED appointment (source: follow_up_pending) with no scheduled time.
+    The student then picks a time from the counselor's availability via the student portal.
     """
     user_id = get_jwt_identity()
     if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
@@ -2227,26 +2227,18 @@ def set_follow_up(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
 
     data = request.get_json() or {}
-
-    if not data.get('scheduled_start'):
-        return jsonify({'error': 'scheduled_start is required to schedule a follow-up.'}), 400
-
-    try:
-        sched_start = datetime.fromisoformat(data['scheduled_start'].replace('Z', '+00:00')).replace(tzinfo=None)
-        sched_end = sched_start + timedelta(minutes=60)
-    except Exception:
-        return jsonify({'error': 'Invalid scheduled_start format. Use ISO 8601.'}), 400
-
-    # Conflict check — ensure the counselor has no overlapping appointment at the requested time
-    counselor_id = apt.get('counselor_id')
-    if counselor_id and has_conflicting_appointment(counselor_id, sched_start, sched_end):
-        return jsonify({
-            'error': 'The selected time conflicts with another appointment for this counselor. Please choose a different time.'
-        }), 409
-
     now = datetime.utcnow()
 
-    # Mark the current appointment as COMPLETED (follow-up link is carried on the new appointment)
+    # Guard: don't create a duplicate pending follow-up for this case
+    existing_pending = db.db.appointments.find_one({
+        'case_id': apt.get('case_id'),
+        'source': 'follow_up_pending',
+        'status': AppointmentStatus.REQUESTED.value,
+    })
+    if existing_pending:
+        return jsonify({'error': 'Student already has a pending session to schedule. Wait for them to pick a time first.'}), 409
+
+    # Mark the current appointment as COMPLETED
     db.db.appointments.update_one(
         {'_id': apt['_id']},
         {'$set': {'status': AppointmentStatus.COMPLETED.value, 'updated_at': now,
@@ -2254,11 +2246,10 @@ def set_follow_up(appointment_id):
                   'follow_up_scheduled_at': now}}
     )
 
-    # Generate counseling_id for new appointment
     import random, string
     new_counseling_id = 'FU-' + ''.join(random.choices(string.digits, k=6))
 
-    # Build new follow-up appointment (same case, student, counselor)
+    # Create follow-up appointment with no time — student will pick from counselor's availability
     new_apt = {
         'counseling_id': new_counseling_id,
         'case_id': apt.get('case_id'),
@@ -2267,78 +2258,51 @@ def set_follow_up(appointment_id):
         'student_email': apt.get('student_email', ''),
         'counselor_id': apt.get('counselor_id'),
         'counselor_name': apt.get('counselor_name', ''),
-        'status': AppointmentStatus.CONFIRMED.value,
+        'status': AppointmentStatus.REQUESTED.value,
+        'source': 'follow_up_pending',
         'purpose': 'follow_up_counselling',
         'concern': data.get('notes', apt.get('concern', '')),
         'preferred_method': apt.get('preferred_method', 'in-person'),
         'preferred_platform': apt.get('preferred_platform'),
         'method': apt.get('preferred_method', 'in-person'),
         'office': data.get('office', apt.get('office', '')),
-        'scheduled_start': sched_start,
-        'scheduled_end': sched_end,
+        'scheduled_start': None,
+        'scheduled_end': None,
         'is_follow_up': True,
         'parent_appointment_id': apt['_id'],
         'created_at': now,
         'updated_at': now,
-        'confirmation_sent': True,
     }
     result = db.db.appointments.insert_one(new_apt)
-    new_apt_id = str(result.inserted_id)
     new_apt['_id'] = result.inserted_id
 
-    # Sync to Google Calendar
+    # Notify student to log in and pick a time
     try:
-        if apt.get('counselor_id'):
-            from blueprints.google_calendar import sync_appointment_to_calendar
-            cal_event_id, meet_link = sync_appointment_to_calendar(str(apt['counselor_id']), new_apt)
-            if cal_event_id:
-                db.db.appointments.update_one({'_id': result.inserted_id}, {'$set': {'calendar_event_id': cal_event_id}})
-                if meet_link:
-                    db.db.appointments.update_one({'_id': result.inserted_id}, {'$set': {'meeting_link': meet_link}})
-    except Exception as cal_err:
-        print(f"⚠ Follow-up calendar sync failed: {cal_err}")
-
-    # Email student with follow-up details
-    try:
-        student_doc = db.db.users.find_one({'_id': apt.get('student_id')})
+        student_doc  = db.db.users.find_one({'_id': apt.get('student_id')})
         counselor_doc = db.db.users.find_one({'_id': apt.get('counselor_id')}) if apt.get('counselor_id') else None
         if student_doc and student_doc.get('email'):
-            from services.email_service import EmailService
-            pref_method   = apt.get('preferred_method', 'in-person')
-            pref_platform = apt.get('preferred_platform', '')
-            platform_map  = {'google_meet': 'Google Meet', 'google-meet': 'Google Meet',
-                             'zoom': 'Zoom', 'in_person': 'In-Person', 'in-person': 'In-Person'}
-            if pref_method == 'online' and pref_platform:
-                platform_label = platform_map.get(pref_platform, pref_platform.replace('-', ' ').title())
-            else:
-                platform_label = platform_map.get(pref_method, pref_method.replace('-', ' ').title())
-            c_name = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip() if counselor_doc else 'Your Counselor'
-            s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip()
-            EmailService().send_appointment_confirmation_email(
-                recipient_email=student_doc['email'],
-                student_name=s_name,
-                appointment_details={
-                    'reference_id':      new_counseling_id,
-                    'appointment_date':  sched_start.strftime('%B %d, %Y'),
-                    'appointment_time':  sched_start.strftime('%I:%M %p') + ' PHT',
-                    'platform':          platform_label,
-                    'counselor_name':    c_name,
-                    'concern':           new_apt.get('concern', ''),
-                    'meeting_link':      new_apt.get('meeting_link', ''),
-                    'start_dt':          sched_start,
-                    'end_dt':            sched_end,
-                },
+            from services.email_service import send_email
+            c_name = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip() if counselor_doc else 'your counselor'
+            s_name = student_doc.get('first_name', 'Student')
+            send_email(
+                to=student_doc['email'],
+                subject='Schedule your next counseling session',
+                body=(
+                    f"Hi {s_name},\n\n"
+                    f"{c_name} has arranged your next counseling session.\n\n"
+                    f"Please log in to the CPS portal and pick a date and time that works for you.\n\n"
+                    f"Your counselor's available slots will be shown for you to choose from.\n\n"
+                    f"CPS Management System\nDe La Salle University"
+                ),
             )
-            print(f"✓ Follow-up confirmation email sent to {student_doc['email']}")
     except Exception as email_err:
-        print(f"⚠ Follow-up email failed: {email_err}")
+        print(f"⚠ Follow-up notification email failed: {email_err}")
 
     return jsonify({
-        'message': 'Follow-up session scheduled.',
-        'new_appointment_id': new_apt_id,
+        'message': 'Student notified to pick a time for their next session.',
+        'new_appointment_id': str(result.inserted_id),
         'new_counseling_id': new_counseling_id,
-        'scheduled_start': sched_start.isoformat(),
-        'status': AppointmentStatus.CONFIRMED.value,
+        'status': AppointmentStatus.REQUESTED.value,
     }), 200
 
 

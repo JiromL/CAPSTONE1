@@ -9,6 +9,7 @@ interface PendingSession {
   counselor_id: string;
   counselor_name: string;
   counselor_role: string;
+  source: string;
 }
 
 interface Props {
@@ -142,7 +143,9 @@ export function ScheduleSessionCard({ onScheduled }: Props) {
           Schedule your session with {session.counselor_name}
         </h3>
         <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-          Your intake interview is complete. Pick a date and time that works for you.
+          {session.source === 'follow_up_pending'
+            ? 'Your counselor is ready for your next session. Pick a date and time that works for you.'
+            : 'Your intake interview is complete. Pick a date and time that works for you.'}
         </p>
       </div>
 

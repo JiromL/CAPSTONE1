@@ -318,8 +318,6 @@ export default function CaseDetailPage() {
   const [completingAppt, setCompletingAppt] = useState<string | null>(null);
 
   const [showScheduleModal, setShowScheduleModal]   = useState(false);
-  const [scheduleDate, setScheduleDate]             = useState('');
-  const [scheduleTime, setScheduleTime]             = useState('');
   const [scheduleNotes, setScheduleNotes]           = useState('');
   const [scheduleOffice, setScheduleOffice]         = useState('');
   const [schedulingSession, setSchedulingSession]   = useState(false);
@@ -425,24 +423,22 @@ export default function CaseDetailPage() {
   };
 
   const handleScheduleSession = async () => {
-    if (!scheduleDate || !scheduleTime) { setScheduleMsg({ type: 'err', text: 'Please select a date and time.' }); return; }
     setSchedulingSession(true); setScheduleMsg(null);
     try {
       const token = localStorage.getItem('token');
       const lastAppt = caseAppointments[0] || (await (await fetch(api(`/api/appointments?case_id=${caseId}&limit=1&status=COMPLETED`), { headers: { Authorization: `Bearer ${token}` } })).json())?.appointments?.[0];
-      if (!lastAppt) { setScheduleMsg({ type: 'err', text: 'No appointment found for this case. Use the Appointment Requests dashboard to schedule.' }); return; }
-      const scheduled_start = `${scheduleDate}T${scheduleTime}:00`;
+      if (!lastAppt) { setScheduleMsg({ type: 'err', text: 'No completed appointment found for this case.' }); return; }
       const r = await fetch(api(`/api/appointments/${lastAppt._id}/set-follow-up`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduled_start, notes: scheduleNotes, office: scheduleOffice }),
+        body: JSON.stringify({ notes: scheduleNotes, office: scheduleOffice }),
       });
       const d = await r.json();
-      if (!r.ok) { setScheduleMsg({ type: 'err', text: d.error || 'Failed to schedule session.' }); return; }
-      setScheduleMsg({ type: 'ok', text: `Session scheduled (${d.new_counseling_id}). Student notified.` });
+      if (!r.ok) { setScheduleMsg({ type: 'err', text: d.error || 'Failed to notify student.' }); return; }
+      setScheduleMsg({ type: 'ok', text: 'Student notified to pick a time from your available slots.' });
       await loadCaseAppointments();
       await loadSessionCount();
-      setTimeout(() => { setShowScheduleModal(false); setScheduleDate(''); setScheduleTime(''); setScheduleNotes(''); setScheduleOffice(''); setScheduleMsg(null); }, 1800);
+      setTimeout(() => { setShowScheduleModal(false); setScheduleNotes(''); setScheduleOffice(''); setScheduleMsg(null); }, 1800);
     } catch (e: any) {
       setScheduleMsg({ type: 'err', text: e.message || 'Network error.' });
     } finally { setSchedulingSession(false); }
@@ -1144,7 +1140,7 @@ export default function CaseDetailPage() {
             {!['CLOSED', 'closed'].includes(caseData.case_status || caseData.client_status || '') && (
               <>
                 <button
-                  onClick={() => { setShowScheduleModal(true); setScheduleMsg(null); setScheduleDate(''); setScheduleTime(''); }}
+                  onClick={() => { setShowScheduleModal(true); setScheduleMsg(null); }}
                   className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
                   style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' }}
                 >
@@ -3111,29 +3107,12 @@ export default function CaseDetailPage() {
             </button>
           </div>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Time <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                <input type="time" step="1800" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Office / Room (optional)</label>
-              <input type="text" value={scheduleOffice} onChange={e => setScheduleOffice(e.target.value)} placeholder="e.g. Room 201, CPS Office"
-                className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
-            </div>
+            <p className="text-xs rounded-lg px-3 py-2.5" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }}>
+              The student will pick a time from your available slots. Make sure your availability is set up in your schedule settings.
+            </p>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Notes for student (optional)</label>
-              <textarea rows={2} value={scheduleNotes} onChange={e => setScheduleNotes(e.target.value)} placeholder="Anything the student should know…"
+              <textarea rows={2} value={scheduleNotes} onChange={e => setScheduleNotes(e.target.value)} placeholder="Anything the student should prepare or know…"
                 className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"
                 style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
             </div>
@@ -3147,7 +3126,7 @@ export default function CaseDetailPage() {
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-white rounded-xl transition disabled:opacity-50 hover:opacity-90"
                 style={{ background: 'var(--color-success)' }}>
                 {schedulingSession ? <Loader2 size={14} className="animate-spin" /> : <CalendarPlus size={14} />}
-                {schedulingSession ? 'Scheduling…' : 'Schedule & Notify Student'}
+                {schedulingSession ? 'Notifying…' : 'Notify Student to Pick a Time'}
               </button>
               <button onClick={() => setShowScheduleModal(false)}
                 className="px-4 py-2 text-sm rounded-xl transition border"

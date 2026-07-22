@@ -450,8 +450,13 @@ def get_calendar_appointments():
     except ValueError:
         return jsonify({'error': 'Invalid date format, use ISO 8601'}), 400
 
+    date_range = {'$gte': from_dt, '$lt': to_dt}
     query = {
-        'scheduled_start': {'$gte': from_dt, '$lt': to_dt},
+        '$or': [
+            {'scheduled_start': date_range},
+            # Fallback: appointments confirmed without scheduled_start set (uses requested time)
+            {'scheduled_start': None, 'requested_start': date_range, 'status': 'CONFIRMED'},
+        ],
         'status': {'$nin': ['CANCELLED', 'DENIED', 'CLOSED_AT_INTAKE']},
     }
 
@@ -491,8 +496,8 @@ def get_calendar_appointments():
             student   = get_user(apt.get('student_id'))
             counselor = get_user(apt.get('counselor_id'))
 
-            start = apt.get('scheduled_start')
-            end   = apt.get('scheduled_end')
+            start = apt.get('scheduled_start') or apt.get('requested_start')
+            end   = apt.get('scheduled_end')   or apt.get('requested_end')
             if not end and start:
                 end = start + timedelta(minutes=50)
 

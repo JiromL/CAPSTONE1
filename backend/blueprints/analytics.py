@@ -915,3 +915,140 @@ def get_session_outcomes():
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@analytics_bp.route('/evaluations/summary', methods=['GET'])
+@jwt_required()
+@dpo_admin_only
+def evaluations_summary():
+    """Aggregate session evaluation stats + individual list for admin analytics."""
+    try:
+        days = int(request.args.get('days', 180))
+        since = datetime.utcnow() - timedelta(days=days)
+
+        pipeline_agg = [
+            {'$match': {
+                'evaluation': {'$exists': True, '$ne': None},
+                'evaluation.submitted_at': {'$gte': since},
+            }},
+            {'$project': {
+                'evaluation': 1,
+                'counselor_id': 1,
+                'student_id': 1,
+                'scheduled_start': 1,
+                'preferred_date': 1,
+                'session_type': 1,
+            }},
+        ]
+        raw = list(db.db.appointments.aggregate(pipeline_agg))
+
+        if not raw:
+            return jsonify({
+                'total': 0, 'averages': {}, 'by_month': [], 'individual': [],
+            }), 200
+
+        cats = ['counselor_attitude', 'online_communication', 'counseling_objectives',
+                'techniques_used', 'overall_experience']
+
+        # Aggregate averages
+        totals = {c: 0 for c in cats}
+        counts = {c: 0 for c in cats}
+        for appt in raw:
+            ev = appt.get('evaluation', {})
+            for c in cats:
+                v = ev.get(c)
+                if v and isinstance(v, (int, float)) and v > 0:
+                    totals[c] += v
+                    counts[c] += 1
+
+        averages = {c: round(totals[c] / counts[c], 2) if counts[c] else 0 for c in cats}
+        overall_avg = round(sum(averages.values()) / len([v for v in averages.values() if v > 0]), 2) \
+            if any(averages.values()) else 0
+
+        # Monthly trend (overall_experience avg per month)
+        monthly: dict = {}
+        for appt in raw:
+            ev = appt.get('evaluation', {})
+            sub = ev.get('submitted_at')
+            oe = ev.get('overall_experience', 0)
+            if sub and oe:
+                key = sub.strftime('%Y-%m') if isinstance(sub, datetime) else str(sub)[:7]
+                if key not in monthly:
+                    monthly[key] = {'total': 0, 'count': 0}
+                monthly[key]['total'] += oe
+                monthly[key]['count'] += 1
+        by_month = sorted(
+            [{'month': k, 'avg': round(v['total'] / v['count'], 2), 'count': v['count']}
+             for k, v in monthly.items()],
+            key=lambda x: x['month'],
+        )
+
+        # Resolve counselor names
+        counselor_ids = list({str(a.get('counselor_id')) for a in raw if a.get('counselor_id')})
+        counselor_map = {}
+        for cid in counselor_ids:
+            try:
+                u = db.db.users.find_one({'_id': ObjectId(cid)}, {'first_name': 1, 'last_name': 1})
+                if u:
+                    counselor_map[cid] = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip()
+            except Exception:
+                pass
+
+        # Per-counselor averages
+        by_counselor: dict = {}
+        for appt in raw:
+            cid = str(appt.get('counselor_id', ''))
+            ev = appt.get('evaluation', {})
+            oe = ev.get('overall_experience', 0)
+            if cid and oe:
+                if cid not in by_counselor:
+                    by_counselor[cid] = {'name': counselor_map.get(cid, 'Unknown'), 'total': 0, 'count': 0}
+                by_counselor[cid]['total'] += oe
+                by_counselor[cid]['count'] += 1
+        counselor_ratings = sorted(
+            [{'counselor_id': cid, 'name': v['name'],
+              'avg': round(v['total'] / v['count'], 2), 'count': v['count']}
+             for cid, v in by_counselor.items()],
+            key=lambda x: x['avg'], reverse=True,
+        )
+
+        # Individual list
+        individual = []
+        for appt in raw:
+            ev = appt.get('evaluation', {})
+            cid = str(appt.get('counselor_id', ''))
+            date_raw = appt.get('scheduled_start') or appt.get('preferred_date')
+            individual.append({
+                'appointment_id': str(appt['_id']),
+                'counselor_name': counselor_map.get(cid, 'Unknown'),
+                'session_date': date_raw.isoformat() if isinstance(date_raw, datetime) else str(date_raw or ''),
+                'submitted_at': ev.get('submitted_at', '').isoformat()
+                    if isinstance(ev.get('submitted_at'), datetime) else '',
+                'counselor_attitude': ev.get('counselor_attitude', 0),
+                'online_communication': ev.get('online_communication', 0),
+                'counseling_objectives': ev.get('counseling_objectives', 0),
+                'techniques_used': ev.get('techniques_used', 0),
+                'overall_experience': ev.get('overall_experience', 0),
+                'liked_most': ev.get('liked_most', ''),
+                'to_improve': ev.get('to_improve', ''),
+            })
+        individual.sort(key=lambda x: x['submitted_at'], reverse=True)
+
+        # Completion rate: evaluations submitted vs COMPLETED appointments in period
+        total_completed = db.db.appointments.count_documents({
+            'status': 'COMPLETED',
+            'updated_at': {'$gte': since},
+        })
+
+        return jsonify({
+            'total': len(raw),
+            'total_completed': total_completed,
+            'completion_rate': round(len(raw) / total_completed * 100, 1) if total_completed else 0,
+            'overall_avg': overall_avg,
+            'averages': averages,
+            'by_month': by_month,
+            'by_counselor': counselor_ratings,
+            'individual': individual,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

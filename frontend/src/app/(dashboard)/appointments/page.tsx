@@ -127,6 +127,8 @@ export default function AppointmentsPage() {
   const [followUpTarget, setFollowUpTarget] = useState<Appointment | null>(null);
   const [followUpDate, setFollowUpDate] = useState('');
   const [followUpTime, setFollowUpTime] = useState('');
+  const [followUpSlots, setFollowUpSlots] = useState<string[]>([]);
+  const [followUpLoadingSlots, setFollowUpLoadingSlots] = useState(false);
   const [followUpOffice, setFollowUpOffice] = useState('');
   const [followUpNotes, setFollowUpNotes] = useState('');
   const [followUpMsg, setFollowUpMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -175,6 +177,21 @@ export default function AppointmentsPage() {
     const role = user.role?.toUpperCase();
     if (['STAFF', 'ADMIN', 'IC'].includes(role)) router.replace('/appointment-requests');
   }, [user]);
+
+  // Fetch counselor's own available slots when follow-up date is picked
+  useEffect(() => {
+    if (!followUpDate || !user?._id) { setFollowUpSlots([]); setFollowUpTime(''); return; }
+    setFollowUpLoadingSlots(true);
+    setFollowUpTime('');
+    const token = localStorage.getItem('token');
+    fetch(api(`/api/appointments/counselor-slots?counselor_id=${user._id}&date=${followUpDate}`), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : { slots: [] })
+      .then(d => setFollowUpSlots(d.slots || []))
+      .catch(() => setFollowUpSlots([]))
+      .finally(() => setFollowUpLoadingSlots(false));
+  }, [followUpDate, user]);
 
   useEffect(() => {
     if (!detailAppt) { setIntakeSummary(null); setIntakePacket(null); return; }
@@ -323,6 +340,51 @@ export default function AppointmentsPage() {
           </button>
         </div>
       )}
+
+      {/* Today's Sessions panel — counselors only */}
+      {(() => {
+        const todayPH = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }); // YYYY-MM-DD
+        const todaySessions = apts.filter(a => {
+          if (!['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status)) return false;
+          const d = a.preferred_date;
+          if (!d) return false;
+          const dateStr = new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+          return dateStr === todayPH;
+        });
+        if (todaySessions.length === 0) return null;
+        return (
+          <div className="rounded-xl border mb-4 overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-primary-surface)' }}>
+              <CalendarDays size={14} style={{ color: 'var(--color-primary)' }} />
+              <span className="text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>
+                Today's Sessions · {todaySessions.length} scheduled
+              </span>
+            </div>
+            <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+              {todaySessions.map(a => {
+                const style = STATUS_STYLE[a.status] ?? STATUS_STYLE.CONFIRMED;
+                return (
+                  <div key={a.appointment_id} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className="text-xs font-medium w-20 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+                      {fmtTime(a.preferred_date)}
+                    </span>
+                    <span className="text-sm font-semibold flex-1 truncate" style={{ color: 'var(--color-text-primary)' }}>
+                      {a.student_name}
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: style.bg, color: style.text }}>
+                      {style.label}
+                    </span>
+                    <span className="text-xs flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+                      {fmtMethod(a.method)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Card panel */}
       <div className="rounded-xl shadow-card border overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
@@ -872,16 +934,42 @@ export default function AppointmentsPage() {
               <p className="text-xs rounded-lg px-3 py-2 border" style={{ color: '#4F46E5', background: '#EEF2FF', borderColor: '#A5B4FC' }}>
                 A new confirmed session will be created and linked to the same case. The student will see it in their upcoming sessions.
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                  <input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Time <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                  <input type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)} className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
-                </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <input type="date" value={followUpDate} onChange={e => { setFollowUpDate(e.target.value); setFollowUpTime(''); }} className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
+              {followUpDate && (
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    Time <span style={{ color: 'var(--color-danger)' }}>*</span>
+                    {followUpLoadingSlots && <span className="font-normal normal-case ml-1" style={{ color: 'var(--color-text-muted)' }}>Loading…</span>}
+                  </label>
+                  {!followUpLoadingSlots && followUpSlots.length === 0 && (
+                    <p className="text-xs py-2" style={{ color: 'var(--color-text-muted)' }}>No available slots on this date. Check your availability settings or pick another day.</p>
+                  )}
+                  {!followUpLoadingSlots && followUpSlots.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {followUpSlots.map(t => {
+                        const [h, m] = t.split(':').map(Number);
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const hr = h % 12 || 12;
+                        const label = `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
+                        return (
+                          <button key={t} type="button" onClick={() => setFollowUpTime(t)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                            style={{
+                              background: followUpTime === t ? 'var(--color-primary)' : 'var(--color-bg)',
+                              color: followUpTime === t ? '#fff' : 'var(--color-text-primary)',
+                              border: `1px solid ${followUpTime === t ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                            }}>
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Office / Location <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
                 <input type="text" value={followUpOffice} onChange={e => setFollowUpOffice(e.target.value)}

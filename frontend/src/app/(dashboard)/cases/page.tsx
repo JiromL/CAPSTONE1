@@ -95,7 +95,13 @@ export default function CasesPage() {
 
   useEffect(() => {
     const u = localStorage.getItem('user');
-    if (u) setUser(JSON.parse(u));
+    if (u) {
+      const parsed = JSON.parse(u);
+      setUser(parsed);
+      if (['COUNSELOR', 'PSYCHOLOGIST'].includes((parsed.role || '').toUpperCase())) {
+        setMyCasesOnly(true);
+      }
+    }
   }, []);
 
   async function fetchPermaLabels(items: any[]) {

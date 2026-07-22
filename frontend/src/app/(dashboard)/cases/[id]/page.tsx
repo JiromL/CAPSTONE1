@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { ClinicalExportModal } from '@/components/ClinicalExportModal';
@@ -317,6 +317,15 @@ export default function CaseDetailPage() {
   }>>([]);
   const [completingAppt, setCompletingAppt] = useState<string | null>(null);
 
+  const [showScheduleModal, setShowScheduleModal]   = useState(false);
+  const [scheduleDate, setScheduleDate]             = useState('');
+  const [scheduleTime, setScheduleTime]             = useState('');
+  const [scheduleNotes, setScheduleNotes]           = useState('');
+  const [scheduleOffice, setScheduleOffice]         = useState('');
+  const [schedulingSession, setSchedulingSession]   = useState(false);
+  const [scheduleMsg, setScheduleMsg]               = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [sessionCount, setSessionCount]             = useState<{ completed: number; limit: number; remaining: number } | null>(null);
+
   const [treatmentPlan, setTreatmentPlan] = useState<{
     goals: Array<{ goal: string; target_date: string; status: 'not_started' | 'in_progress' | 'achieved' }>;
     interventions: string[];
@@ -376,17 +385,18 @@ export default function CaseDetailPage() {
     setNoteForm((f) => ({ ...f, session_date: now.toISOString().slice(0, 16) }));
     loadCaseData();
     loadCaseAppointments();
+    loadSessionCount();
   }, [caseId]);
 
   // Warn before leaving when a note form has unsaved content
   useEffect(() => {
     if (!showNoteForm) return;
-    const hasContent = noteForm.soap_subjective || noteForm.soap_objective || noteForm.soap_assessment || noteForm.soap_plan || noteForm.content;
+    const hasContent = noteForm.soap_subjective || noteForm.soap_objective || noteForm.soap_assessment || noteForm.soap_plan || noteForm.topics_discussed;
     if (!hasContent) return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [showNoteForm, noteForm.soap_subjective, noteForm.soap_objective, noteForm.soap_assessment, noteForm.soap_plan, noteForm.content]);
+  }, [showNoteForm, noteForm.soap_subjective, noteForm.soap_objective, noteForm.soap_assessment, noteForm.soap_plan, noteForm.topics_discussed]);
 
   const loadCaseAppointments = async () => {
     try {
@@ -404,6 +414,38 @@ export default function CaseDetailPage() {
     } catch (err) {
       console.error('Failed to load case appointments:', err);
     }
+  };
+
+  const loadSessionCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/cases/${caseId}/session-count`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setSessionCount(await r.json());
+    } catch {}
+  };
+
+  const handleScheduleSession = async () => {
+    if (!scheduleDate || !scheduleTime) { setScheduleMsg({ type: 'err', text: 'Please select a date and time.' }); return; }
+    setSchedulingSession(true); setScheduleMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const lastAppt = caseAppointments[0] || (await (await fetch(api(`/api/appointments?case_id=${caseId}&limit=1&status=COMPLETED`), { headers: { Authorization: `Bearer ${token}` } })).json())?.appointments?.[0];
+      if (!lastAppt) { setScheduleMsg({ type: 'err', text: 'No appointment found for this case. Use the Appointment Requests dashboard to schedule.' }); return; }
+      const scheduled_start = `${scheduleDate}T${scheduleTime}:00`;
+      const r = await fetch(api(`/api/appointments/${lastAppt._id}/set-follow-up`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduled_start, notes: scheduleNotes, office: scheduleOffice }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setScheduleMsg({ type: 'err', text: d.error || 'Failed to schedule session.' }); return; }
+      setScheduleMsg({ type: 'ok', text: `Session scheduled (${d.new_counseling_id}). Student notified.` });
+      await loadCaseAppointments();
+      await loadSessionCount();
+      setTimeout(() => { setShowScheduleModal(false); setScheduleDate(''); setScheduleTime(''); setScheduleNotes(''); setScheduleOffice(''); setScheduleMsg(null); }, 1800);
+    } catch (e: any) {
+      setScheduleMsg({ type: 'err', text: e.message || 'Network error.' });
+    } finally { setSchedulingSession(false); }
   };
 
   const handleCompleteAndDocument = async (appointmentId: string) => {
@@ -1100,13 +1142,28 @@ export default function CaseDetailPage() {
               <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-muted)' }}>{caseData.case_number}</span>
             )}
             {!['CLOSED', 'closed'].includes(caseData.case_status || caseData.client_status || '') && (
-              <button
-                onClick={() => setShowTerminationForm(true)}
-                className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
-                style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}
-              >
-                Terminate Case
-              </button>
+              <>
+                <button
+                  onClick={() => { setShowScheduleModal(true); setScheduleMsg(null); setScheduleDate(''); setScheduleTime(''); }}
+                  className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
+                  style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' }}
+                >
+                  <CalendarPlus size={11} /> Schedule Session
+                </button>
+                {sessionCount && sessionCount.completed > 0 && (
+                  <span className="text-[11px] px-2.5 py-1 rounded-full font-medium"
+                    style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', boxShadow: '0 0 0 1px var(--color-border)' }}>
+                    {sessionCount.completed} session{sessionCount.completed !== 1 ? 's' : ''} completed
+                  </span>
+                )}
+                <button
+                  onClick={() => setShowTerminationForm(true)}
+                  className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
+                  style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}
+                >
+                  Close Case
+                </button>
+              </>
             )}
             {['CLOSED', 'closed', 'CANCELLED', 'cancelled'].includes(caseData.case_status || caseData.client_status || '') &&
               ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(currentUser?.role || '') && (
@@ -1210,11 +1267,11 @@ export default function CaseDetailPage() {
                   {caseData.created_at ? new Date(caseData.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }) : 'N/A'}
                 </p>
               </div>
-              {caseData.target_sessions != null && (
+              {sessionCount != null && (
                 <div>
                   <p style={{ color: 'var(--color-text-secondary)' }}>Sessions</p>
                   <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>
-                    {caseData.session_count || 0} / {caseData.target_sessions}
+                    {sessionCount.completed}
                   </p>
                 </div>
               )}
@@ -3037,6 +3094,72 @@ export default function CaseDetailPage() {
         onClose={() => setShowTerminationForm(false)}
         onSubmit={handleTerminateCase}
       />
+    )}
+
+    {showScheduleModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowScheduleModal(false)} />
+        <div className="relative rounded-2xl shadow-xl w-full max-w-sm p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+              <CalendarPlus size={16} style={{ color: 'var(--color-success)' }} /> Schedule Next Session
+            </h3>
+            <button onClick={() => setShowScheduleModal(false)} className="p-1 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <XIcon size={16} />
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Time <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <input type="time" step="1800" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Office / Room (optional)</label>
+              <input type="text" value={scheduleOffice} onChange={e => setScheduleOffice(e.target.value)} placeholder="e.g. Room 201, CPS Office"
+                className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Notes for student (optional)</label>
+              <textarea rows={2} value={scheduleNotes} onChange={e => setScheduleNotes(e.target.value)} placeholder="Anything the student should know…"
+                className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+            </div>
+            {scheduleMsg && (
+              <p className="text-xs rounded-lg px-3 py-2" style={{ background: scheduleMsg.type === 'ok' ? 'var(--color-success-surface)' : 'var(--color-danger-surface)', color: scheduleMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                {scheduleMsg.text}
+              </p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button onClick={handleScheduleSession} disabled={schedulingSession}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-white rounded-xl transition disabled:opacity-50 hover:opacity-90"
+                style={{ background: 'var(--color-success)' }}>
+                {schedulingSession ? <Loader2 size={14} className="animate-spin" /> : <CalendarPlus size={14} />}
+                {schedulingSession ? 'Scheduling…' : 'Schedule & Notify Student'}
+              </button>
+              <button onClick={() => setShowScheduleModal(false)}
+                className="px-4 py-2 text-sm rounded-xl transition border"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     )}
     </>
   );

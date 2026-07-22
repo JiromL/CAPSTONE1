@@ -131,6 +131,7 @@ def create_c2c_referral():
 
 
 @c2c_referral_bp.route('/<referral_id>', methods=['GET'])
+@jwt_required()
 def get_c2c_referral(referral_id):
     """Get a specific counselor referral."""
     try:
@@ -148,6 +149,7 @@ def get_c2c_referral(referral_id):
 
 
 @c2c_referral_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_c2c_referrals():
     """
     List counselor-to-counselor referrals.
@@ -389,6 +391,7 @@ def log_follow_up(referral_id):
 # ============ ANALYTICS ============
 
 @c2c_referral_bp.route('/analytics/rare-cases', methods=['GET'])
+@jwt_required()
 def get_rare_cases_analytics():
     """
     Get analytics on rare case referrals.
@@ -435,6 +438,7 @@ def get_rare_cases_analytics():
 
 
 @c2c_referral_bp.route('/counselor/<counselor_id>/specializations', methods=['GET'])
+@jwt_required()
 def get_counselor_specializations(counselor_id):
     """
     Get specializations a counselor handles based on referrals they've accepted.

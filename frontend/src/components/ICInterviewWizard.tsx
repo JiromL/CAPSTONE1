@@ -537,6 +537,16 @@ export function ICInterviewWizard({
   const initDraft = () => {
     const base = existingForm ? { ...existingForm } : {};
     base.type_of_service = 'Intake Interview';
+    if (!base.ic_name) {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+        if (name) base.ic_name = name;
+      } catch {}
+    }
+    if (!base.ic_signature_date) {
+      base.ic_signature_date = new Date().toISOString().split('T')[0];
+    }
     if (triageScores && !base.phq9_responses) {
       base.phq9_responses = triageScores.phq9Responses;
       base.phq9_score     = triageScores.phq9Score;

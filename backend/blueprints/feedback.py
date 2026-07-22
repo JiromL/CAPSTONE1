@@ -21,6 +21,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 # ============ FEEDBACK TEMPLATE CRUD ============
 
 @feedback_bp.route('/templates', methods=['GET'])
+@jwt_required()
 def list_feedback_templates():
     """
     List available feedback templates.
@@ -39,6 +40,7 @@ def list_feedback_templates():
 
 
 @feedback_bp.route('/templates/<template_id>', methods=['GET'])
+@jwt_required()
 def get_feedback_template(template_id):
     """Get a specific feedback template."""
     try:
@@ -57,10 +59,11 @@ def get_feedback_template(template_id):
 # ============ FEEDBACK SUBMISSIONS ============
 
 @feedback_bp.route('/submit', methods=['POST'])
+@jwt_required()
 def submit_feedback():
     """
     Submit session feedback or survey.
-    
+
     Body:
     {
         "case_id": "string",
@@ -79,8 +82,7 @@ def submit_feedback():
     }
     """
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
         data = request.json
         
@@ -117,15 +119,8 @@ def submit_feedback():
         feedback_doc['case_id'] = str(feedback_doc['case_id'])
         feedback_doc['session_id'] = str(feedback_doc['session_id'])
         
-        # Log audit
-        log_audit_action(
-            collection='feedback_submissions',
-            action='CREATE',
-            case_id=data['case_id'],
-            user_id=user_id,
-            changes={'new_feedback': {'feedback_type': data['feedback_type']}},
-            reason='Feedback submitted'
-        )
+        audit_log(db.db, 'feedback', 'create', entity_id=str(result.inserted_id),
+                  new_values={'feedback_type': data['feedback_type'], 'case_id': data['case_id']})
         
         return jsonify(feedback_doc), 201
     
@@ -134,6 +129,7 @@ def submit_feedback():
 
 
 @feedback_bp.route('/<feedback_id>', methods=['GET'])
+@jwt_required()
 def get_feedback(feedback_id):
     """Get a specific feedback submission."""
     try:
@@ -152,6 +148,7 @@ def get_feedback(feedback_id):
 
 
 @feedback_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_feedback():
     """
     List feedback submissions with optional filters.
@@ -187,11 +184,11 @@ def list_feedback():
 
 
 @feedback_bp.route('/<feedback_id>', methods=['PATCH'])
+@jwt_required()
 def update_feedback(feedback_id):
     """Update a feedback submission."""
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
         feedback = db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
         if not feedback:
@@ -215,15 +212,8 @@ def update_feedback(feedback_id):
         
         db.feedback_submissions.update_one({'_id': ObjectId(feedback_id)}, {'$set': updates})
         
-        # Log audit
-        log_audit_action(
-            collection='feedback_submissions',
-            action='UPDATE',
-            case_id=str(feedback['case_id']),
-            user_id=user_id,
-            changes=updates,
-            reason='Feedback updated'
-        )
+        audit_log(db.db, 'feedback', 'update', entity_id=feedback_id,
+                  old_values={'id': feedback_id}, new_values=updates)
         
         updated_feedback = db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
         updated_feedback['_id'] = str(updated_feedback['_id'])
@@ -237,11 +227,11 @@ def update_feedback(feedback_id):
 
 
 @feedback_bp.route('/<feedback_id>', methods=['DELETE'])
+@jwt_required()
 def delete_feedback(feedback_id):
     """Delete a feedback submission."""
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
         feedback = db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
         if not feedback:
@@ -249,15 +239,8 @@ def delete_feedback(feedback_id):
         
         db.feedback_submissions.delete_one({'_id': ObjectId(feedback_id)})
         
-        # Log audit
-        log_audit_action(
-            collection='feedback_submissions',
-            action='DELETE',
-            case_id=str(feedback['case_id']),
-            user_id=user_id,
-            changes={'id': feedback_id},
-            reason='Feedback deleted'
-        )
+        audit_log(db.db, 'feedback', 'delete', entity_id=feedback_id,
+                  old_values={'case_id': str(feedback.get('case_id', ''))})
         
         return jsonify({"message": "Feedback deleted successfully"}), 200
     
@@ -268,6 +251,7 @@ def delete_feedback(feedback_id):
 # ============ FEEDBACK ANALYTICS ============
 
 @feedback_bp.route('/analytics/summary', methods=['GET'])
+@jwt_required()
 def get_feedback_summary():
     """
     Get feedback summary and analytics.
@@ -331,6 +315,7 @@ def get_feedback_summary():
 
 
 @feedback_bp.route('/counselor/<counselor_id>/performance', methods=['GET'])
+@jwt_required()
 def get_counselor_performance(counselor_id):
     """Get performance metrics for a specific counselor based on feedback."""
     try:
@@ -365,6 +350,7 @@ def get_counselor_performance(counselor_id):
 # ============ OUTCOME TRACKING ============
 
 @feedback_bp.route('/outcomes/summary', methods=['GET'])
+@jwt_required()
 def get_outcome_summary():
     """
     Get summary of treatment outcomes based on feedback.

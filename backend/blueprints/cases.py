@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from bson.objectid import ObjectId
 from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
-from utils import serialize_doc
+from utils import serialize_doc, user_has_permission
 
 cases_bp = Blueprint('cases', __name__, url_prefix='/api/cases')
 
@@ -47,8 +47,11 @@ def get_student_current_case():
     if not user or user.get('role') != 'STUDENT':
         return jsonify({'error': 'Students only'}), 403
     
-    # Find student's case
-    case = db.db.cases.find_one({'student_id': ObjectId(user_id)})
+    # Find student's most recent non-cancelled case
+    case = db.db.cases.find_one(
+        {'student_id': ObjectId(user_id), 'status': {'$nin': ['CANCELLED']}},
+        sort=[('created_at', -1)]
+    )
     
     if not case:
         return jsonify({
@@ -114,11 +117,23 @@ def get_cases():
         else:
             query.update(status_cond)
     
-    # Get cases
-    cases = [serialize_doc(case) for case in db.db.cases.find(query).sort('created_at', -1)]
+    # Pagination
+    try:
+        page     = max(1, int(request.args.get('page', 1)))
+        per_page = min(100, max(1, int(request.args.get('per_page', 50))))
+    except (ValueError, TypeError):
+        page, per_page = 1, 50
+    skip = (page - 1) * per_page
+
+    total = db.db.cases.count_documents(query)
+    cases = [serialize_doc(c) for c in db.db.cases.find(query).sort('created_at', -1).skip(skip).limit(per_page)]
 
     return jsonify({
         'count': len(cases),
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': max(1, (total + per_page - 1) // per_page),
         'role': user_role,
         'cases': cases
     }), 200
@@ -478,10 +493,22 @@ def update_case(case_id):
     
     data = request.get_json()
     
+    VALID_TRANSITIONS = {
+        'NEW': ['ACTIVE'],
+        'ACTIVE': ['PENDING_TERMINATION'],
+        'PENDING_TERMINATION': ['CLOSED', 'ACTIVE'],
+        'CLOSED': [],
+    }
+
     # Update allowed fields
     updates = {}
     if 'status' in data:
-        updates['case_status'] = data['status']
+        new_status = data['status']
+        current_status = case.get('case_status', 'NEW')
+        allowed = VALID_TRANSITIONS.get(current_status, [])
+        if new_status not in allowed:
+            return jsonify({'error': f'Cannot transition case from {current_status} to {new_status}. Allowed: {allowed}'}), 400
+        updates['case_status'] = new_status
     if 'risk_level' in data:
         updates['risk_level'] = data['risk_level']
         # Crisis notification: if escalated to CRITICAL or RED, alert psychologists immediately
@@ -653,6 +680,26 @@ def add_session(case_id):
     }), 201
 
 
+@cases_bp.route('/<case_id>/session-count', methods=['GET'])
+@jwt_required()
+def get_session_count(case_id):
+    """Return count of completed sessions for a case."""
+    try:
+        case_oid = ObjectId(case_id)
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+
+    try:
+        completed = db.db.appointments.count_documents({
+            'case_id': case_oid,
+            'status': {'$in': ['COMPLETED', 'FOLLOW_UP']},
+        })
+        limit = 10
+        return jsonify({'completed': completed, 'limit': limit, 'remaining': max(0, limit - completed)}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @cases_bp.route('/<case_id>/close', methods=['PUT'])
 @jwt_required()
 def close_case(case_id):
@@ -724,6 +771,26 @@ def close_case(case_id):
             'updated_at': datetime.utcnow()
         }}
     )
+
+    # Notify student that their case has been closed
+    try:
+        from services.email_service import send_email
+        student = db.db.users.find_one({'_id': case.get('student_id')})
+        if student and student.get('email'):
+            send_email(
+                to=student['email'],
+                subject='Your CPS case has been closed',
+                body=(
+                    f"Hi {student.get('first_name', 'Student')},\n\n"
+                    f"Your counseling case at the CPS has been formally closed.\n\n"
+                    f"If you feel you need continued support, you are always welcome to book a new appointment "
+                    f"through the CPS portal or visit the CPS office.\n\n"
+                    f"Thank you for trusting us with your wellbeing.\n\n"
+                    f"CPS Management System\nDe La Salle University"
+                ),
+            )
+    except Exception:
+        pass
 
     return jsonify({
         'success': True,
@@ -911,6 +978,13 @@ def save_intake_form(case_id):
 @jwt_required()
 def get_diagnoses(case_id):
     """Get all diagnoses for a case."""
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    user_role = user.get('role')
+    if not has_permission(user_role, PermissionType.VIEW_CASE):
+        return jsonify({'error': 'Insufficient permissions'}), 403
     try:
         cid = ObjectId(case_id)
     except Exception:
@@ -918,6 +992,9 @@ def get_diagnoses(case_id):
     case = db.db.cases.find_one({'_id': cid})
     if not case:
         return jsonify({'error': 'Case not found'}), 404
+    if user_role in [UserRole.COUNSELOR.value, UserRole.PSYCHOLOGIST.value]:
+        if str(case.get('assigned_counselor_id')) != user_id:
+            return jsonify({'error': 'Case not assigned to you'}), 403
     diagnoses = case.get('diagnoses', [])
     return jsonify({'diagnoses': diagnoses}), 200
 
@@ -1063,7 +1140,9 @@ def reopen_case(case_id):
 def reassign_case(case_id):
     """Reassign a case to a different counselor by name."""
     from utils import audit_log
-    get_jwt_identity()
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
     data = request.get_json() or {}
     counselor_name = (data.get('counselor_name') or '').strip()
     if not counselor_name:

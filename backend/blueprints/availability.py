@@ -91,6 +91,12 @@ def set_weekly_schedule():
             parts = val.split(':')
             if len(parts) != 2:
                 return jsonify({'error': f'Invalid {field}: {val}'}), 400
+            try:
+                h, m = int(parts[0]), int(parts[1])
+                if not (0 <= h <= 23 and 0 <= m <= 59):
+                    raise ValueError
+            except ValueError:
+                return jsonify({'error': f'Invalid {field}: {val}. Use HH:MM (00:00–23:59)'}), 400
         # Store per-day method, falling back to global
         day_method = entry.get('session_method', session_method)
         if day_method not in ('in-person', 'online'):
@@ -135,6 +141,17 @@ def get_free_slots():
         target_date = datetime.strptime(date_str, '%Y-%m-%d')
     except ValueError:
         return jsonify({'error': 'date must be YYYY-MM-DD'}), 400
+
+    # Holiday check
+    holiday = db.db.holidays.find_one({'date': date_str})
+    if holiday:
+        return jsonify({'slots': [], 'date': date_str,
+                        'is_holiday': True, 'holiday_name': holiday['name']}), 200
+
+    # Counselor leave check
+    leave = db.db.counselor_leaves.find_one({'counselor_id': cid, 'date': date_str})
+    if leave:
+        return jsonify({'slots': [], 'date': date_str, 'is_leave': True}), 200
 
     day_of_week = target_date.weekday()  # 0=Monday … 6=Sunday
 
@@ -220,6 +237,13 @@ def get_open_slots():
         target_date = datetime.strptime(date_str, '%Y-%m-%d')
     except ValueError:
         return jsonify({'error': 'date must be YYYY-MM-DD'}), 400
+
+    # Holiday check — no slots on declared university holidays
+    holiday = db.db.holidays.find_one({'date': date_str})
+    if holiday:
+        return jsonify({'date': date_str, 'slots': [],
+                        'is_holiday': True, 'holiday_name': holiday['name'],
+                        'next_available_date': None}), 200
 
     SLOT_DURATION = 60  # 1-hour sessions
 
@@ -320,13 +344,16 @@ def get_open_slots():
 
     slots = build_slots_for_date(target_date)
 
-    # Find next available date if today has no slots
+    # Find next available date if today has no slots (skip declared holidays)
     next_available_date = None
     if not slots:
         for delta in range(1, 15):
             candidate = target_date + timedelta(days=delta)
+            cand_str = candidate.strftime('%Y-%m-%d')
+            if db.db.holidays.find_one({'date': cand_str}):
+                continue
             if build_slots_for_date(candidate):
-                next_available_date = candidate.strftime('%Y-%m-%d')
+                next_available_date = cand_str
                 break
 
     return jsonify({
@@ -729,3 +756,121 @@ def get_my_slots():
         for s in all_slots if not is_booked(s)
     ]
     return jsonify({'slots': slots, 'date': date_str}), 200
+
+
+# ============================================================================
+# COUNSELOR LEAVE / BLOCKING  (D2)
+# Collection: counselor_leaves
+# Doc shape:  { counselor_id: ObjectId, date: "YYYY-MM-DD", reason: str, created_at }
+# ============================================================================
+
+CLINICAL_ROLES = {'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER'}
+
+
+@availability_bp.route('/leave', methods=['GET'])
+@jwt_required()
+def get_my_leaves():
+    """Return the authenticated counselor's leave blocks (upcoming by default)."""
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid user ID'}), 400
+
+    include_past = request.args.get('include_past', 'false').lower() == 'true'
+    query = {'counselor_id': uid}
+    if not include_past:
+        today = datetime.utcnow().strftime('%Y-%m-%d')
+        query['date'] = {'$gte': today}
+
+    docs = list(db.db.counselor_leaves.find(query).sort('date', 1))
+    return jsonify({
+        'leaves': [
+            {'id': str(d['_id']), 'date': d['date'], 'reason': d.get('reason', '')}
+            for d in docs
+        ]
+    }), 200
+
+
+@availability_bp.route('/leave', methods=['POST'])
+@jwt_required()
+def add_leave():
+    """Block one or more dates as leave (clinical staff only)."""
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid user ID'}), 400
+
+    user = db.db.users.find_one({'_id': uid})
+    if not user or user.get('role') not in CLINICAL_ROLES:
+        return jsonify({'error': 'Only clinical staff can block leave dates'}), 403
+
+    data = request.get_json() or {}
+    dates = data.get('dates') or ([data.get('date')] if data.get('date') else [])
+    reason = data.get('reason', '').strip()
+
+    if not dates:
+        return jsonify({'error': 'dates (array) or date is required'}), 400
+
+    created = []
+    skipped = []
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    for date_str in dates:
+        if not date_str:
+            continue
+        try:
+            datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': f'Invalid date format: {date_str}. Use YYYY-MM-DD'}), 400
+        if date_str < today:
+            skipped.append(date_str)
+            continue
+        if db.db.counselor_leaves.find_one({'counselor_id': uid, 'date': date_str}):
+            skipped.append(date_str)
+            continue
+        # Check for confirmed appointments on this date (warn but still allow)
+        day_start = datetime.strptime(date_str, '%Y-%m-%d')
+        day_end   = day_start.replace(hour=23, minute=59, second=59)
+        confirmed_count = db.db.appointments.count_documents({
+            'counselor_id': uid,
+            'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
+            '$or': [
+                {'scheduled_start': {'$gte': day_start, '$lte': day_end}},
+                {'requested_start':  {'$gte': day_start, '$lte': day_end}},
+            ],
+        })
+
+        result = db.db.counselor_leaves.insert_one({
+            'counselor_id': uid,
+            'date': date_str,
+            'reason': reason,
+            'confirmed_appointments_on_date': confirmed_count,
+            'created_at': datetime.utcnow(),
+        })
+        entry = {'id': str(result.inserted_id), 'date': date_str}
+        if confirmed_count:
+            entry['warning'] = (
+                f"You have {confirmed_count} confirmed session(s) on {date_str}. "
+                f"This leave block hides new slots but does NOT cancel existing appointments."
+            )
+        created.append(entry)
+
+    return jsonify({'created': created, 'skipped': skipped}), 201
+
+
+@availability_bp.route('/leave/<leave_id>', methods=['DELETE'])
+@jwt_required()
+def delete_leave(leave_id):
+    """Remove a leave block (owner only)."""
+    user_id = get_jwt_identity()
+    try:
+        uid = ObjectId(user_id)
+        lid = ObjectId(leave_id)
+    except Exception:
+        return jsonify({'error': 'Invalid ID'}), 400
+
+    result = db.db.counselor_leaves.delete_one({'_id': lid, 'counselor_id': uid})
+    if result.deleted_count == 0:
+        return jsonify({'error': 'Leave block not found or not yours'}), 404
+    return jsonify({'message': 'Leave block removed'}), 200

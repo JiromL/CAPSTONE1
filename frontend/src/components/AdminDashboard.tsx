@@ -215,7 +215,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
   const QUICK_ACTIONS = [
     { href: '/admin/users',         label: 'Manage Users',        icon: Users,        primary: true  },
     { href: '/announcements',       label: 'Create Announcement', icon: Megaphone,    primary: false },
-    { href: '/appointments',        label: 'Manage Schedules',    icon: CalendarDays, primary: false },
+    { href: '/admin/holidays',      label: 'Holiday Calendar',    icon: CalendarDays, primary: false },
     { href: '/admin/reports/export',label: 'View Reports',        icon: BarChart3,    primary: false },
   ];
 

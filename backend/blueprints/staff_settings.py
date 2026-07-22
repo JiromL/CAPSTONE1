@@ -346,6 +346,8 @@ DEFAULT_BOOKING_RULES = {
     'max_days_ahead': 30,
     'blackout_dates': [],
     'last_slot_start': '16:00',
+    'max_daily_walkins': 20,
+    'max_daily_appointments_per_counselor': 8,
 }
 
 
@@ -428,6 +430,11 @@ def update_booking_rules():
         except ValueError:
             return jsonify({'error': f'Invalid blackout date format: {d}. Use YYYY-MM-DD'}), 400
 
+    max_walkins = max(1, int(data.get('max_daily_walkins',
+                                       DEFAULT_BOOKING_RULES['max_daily_walkins'])))
+    max_per_counselor = max(1, int(data.get('max_daily_appointments_per_counselor',
+                                            DEFAULT_BOOKING_RULES['max_daily_appointments_per_counselor'])))
+
     rules_doc = {
         'type': 'system',
         'operating_days': operating_days,
@@ -438,6 +445,8 @@ def update_booking_rules():
         'max_days_ahead': max_ahead,
         'blackout_dates': blackout_dates,
         'last_slot_start': last_slot,
+        'max_daily_walkins': max_walkins,
+        'max_daily_appointments_per_counselor': max_per_counselor,
         'updated_at': datetime.utcnow(),
         'updated_by': str(user_id_obj),
     }

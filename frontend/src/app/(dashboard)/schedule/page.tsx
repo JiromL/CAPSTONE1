@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import CalendarWeekView, { CalAppt, PersonalEvent } from '@/components/CalendarWeekView';
 import { api } from '@/utils/api';
-import { X, Loader2, Check, Monitor, MapPin } from 'lucide-react';
+import { X, Loader2, Check, Monitor, MapPin, CalendarOff, Trash2, Plus } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -116,6 +116,13 @@ function ScheduleInner() {
   const [availLoaded, setAvailLoaded]     = useState(false);
   const [toast, setToast]                 = useState<{ msg: string; ok: boolean } | null>(null);
 
+  // ── Leave state ──
+  const [leaves, setLeaves]             = useState<{ id: string; date: string; reason: string }[]>([]);
+  const [leavesLoading, setLeavesLoading] = useState(false);
+  const [newLeaveDate, setNewLeaveDate] = useState('');
+  const [newLeaveReason, setNewLeaveReason] = useState('');
+  const [leaveSaving, setLeaveSaving]   = useState(false);
+
   // ── Role ──
   useEffect(() => {
     const raw = localStorage.getItem('user');
@@ -172,11 +179,23 @@ function ScheduleInner() {
       .finally(() => { setAvailLoading(false); setAvailLoaded(true); });
   }, [availLoaded]);
 
+  const fetchLeaves = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setLeavesLoading(true);
+    try {
+      const r = await fetch(api('/api/availability/leave'), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setLeaves(d.leaves ?? []); }
+    } catch {}
+    finally { setLeavesLoading(false); }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'availability' && AVAIL_ROLES.includes(role.toUpperCase())) {
       fetchAvail();
+      fetchLeaves();
     }
-  }, [activeTab, role, fetchAvail]);
+  }, [activeTab, role, fetchAvail, fetchLeaves]);
 
   // ── Calendar helpers ──
   function prevWeek() { setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; }); }
@@ -267,6 +286,46 @@ function ScheduleInner() {
     } finally {
       setAvailSaving(false);
     }
+  };
+
+  const addLeave = async () => {
+    if (!newLeaveDate) { showToast('Select a date first', false); return; }
+    const token = localStorage.getItem('token');
+    setLeaveSaving(true);
+    try {
+      const r = await fetch(api('/api/availability/leave'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: newLeaveDate, reason: newLeaveReason.trim() }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setNewLeaveDate(''); setNewLeaveReason('');
+        fetchLeaves();
+        // Check if any created block has a conflict warning
+        const warnings: string[] = (d.created ?? []).flatMap((c: any) => c.warning ? [c.warning] : []);
+        if (warnings.length > 0) {
+          showToast(warnings[0], false); // show as caution (non-ok toast)
+        } else {
+          showToast('Leave date blocked', true);
+        }
+      } else {
+        showToast(d.error ?? 'Failed to add leave', false);
+      }
+    } catch { showToast('Network error', false); }
+    finally { setLeaveSaving(false); }
+  };
+
+  const removeLeave = async (id: string) => {
+    const token = localStorage.getItem('token');
+    try {
+      const r = await fetch(api(`/api/availability/leave/${id}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) { setLeaves(prev => prev.filter(l => l.id !== id)); showToast('Leave removed', true); }
+      else { const d = await r.json(); showToast(d.error ?? 'Failed', false); }
+    } catch { showToast('Network error', false); }
   };
 
   // ── Derived ──
@@ -526,6 +585,66 @@ function ScheduleInner() {
                 Students see your free 1-hour slots with the method you set per day (F2F or Online). Confirmed sessions are automatically excluded.
               </p>
             </div>
+          </div>
+
+          {/* Leave / Date Blocking */}
+          <div className="rounded-2xl overflow-hidden mt-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <CalendarOff size={15} style={{ color: 'var(--color-text-muted)' }} />
+              <div>
+                <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Leave / Blocked Dates</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Students won't see slots on these dates</p>
+              </div>
+            </div>
+
+            {/* Add new leave */}
+            <div className="px-6 py-4 flex items-end gap-3 flex-wrap" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <div className="flex-1 min-w-[140px]">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Date</label>
+                <input type="date" value={newLeaveDate} onChange={e => setNewLeaveDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                  className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Reason (optional)</label>
+                <input type="text" value={newLeaveReason} onChange={e => setNewLeaveReason(e.target.value)}
+                  placeholder="e.g. Sick leave, Conference…"
+                  className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
+              </div>
+              <button onClick={addLeave} disabled={leaveSaving || !newLeaveDate}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50 transition hover:opacity-90 flex-shrink-0"
+                style={{ background: 'var(--color-primary)' }}>
+                {leaveSaving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                Block Date
+              </button>
+            </div>
+
+            {/* Leave list */}
+            {leavesLoading ? (
+              <div className="px-6 py-4 text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading…</div>
+            ) : leaves.length === 0 ? (
+              <div className="px-6 py-4 text-sm" style={{ color: 'var(--color-text-muted)' }}>No blocked dates — you're available on all scheduled days.</div>
+            ) : (
+              <div>
+                {leaves.map((l, i) => (
+                  <div key={l.id} className="px-6 py-3 flex items-center gap-3"
+                    style={{ borderBottom: i < leaves.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                      {new Date(l.date + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    {l.reason && (
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>— {l.reason}</span>
+                    )}
+                    <button onClick={() => removeLeave(l.id)} className="ml-auto p-1.5 rounded-lg transition"
+                      title="Remove block"
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      <Trash2 size={13} style={{ color: 'var(--color-danger)' }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

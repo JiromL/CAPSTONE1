@@ -1,6 +1,7 @@
 # Web Framework
 flask==3.1.2
 flask-cors==4.0.0
+flask-limiter==3.5.0
 
 # API & Authentication
 requests==2.31.0

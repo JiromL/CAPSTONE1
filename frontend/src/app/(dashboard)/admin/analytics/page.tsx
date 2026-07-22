@@ -94,6 +94,7 @@ const TAB_LIST = [
   { key: 'cases',         label: 'Cases & Students'  },
   { key: 'staff',         label: 'Staff Workload'    },
   { key: 'outcomes',      label: 'Clinical Outcomes' },
+  { key: 'ratings',       label: 'Session Ratings'   },
   { key: 'reports',       label: 'Reports & Export'  },
 ] as const;
 type TabKey = typeof TAB_LIST[number]['key'];
@@ -127,7 +128,7 @@ function CustomTooltip({ active, payload, label, isDark }: {
       {payload.map((p, i) => (
         <p key={i} style={{ color: t.text, fontSize: 12, marginBottom: 2 }}>
           <span style={{ color: p.color, fontWeight: 600 }}>{p.name}: </span>
-          {typeof p.value === 'number' ? p.value.toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : p.value}
+          {typeof p.value === 'number' ? p.value.toLocaleString('en-PH') : p.value}
         </p>
       ))}
     </div>
@@ -429,7 +430,7 @@ function AppointmentsTab({ apptStats, byDay, byHour, monthlyAppts, breakdown, is
   return (
     <div className="space-y-6">
       {apptStats && (
-        <Card title="Performance Overview" subtitle={`Last 30 days — ${apptStats.total_appointments.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} appointments total`}>
+        <Card title="Performance Overview" subtitle={`Last 30 days — ${apptStats.total_appointments.toLocaleString('en-PH')} appointments total`}>
           <MetricRow items={[
             { label: 'Completion Rate', value: `${apptStats.completion_rate}%`,  accent: apptStats.completion_rate >= 75 ? C.green : C.amber },
             { label: 'No-Show Rate',    value: `${apptStats.no_show_rate}%`,     accent: apptStats.no_show_rate > 15 ? C.red : apptStats.no_show_rate > 8 ? C.amber : C.green },
@@ -564,7 +565,7 @@ function CasesTab({ riskDist, concerns, scoreTrends, assessments, intake, demogr
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-primary-text)' }}>service utilization</p>
               </div>
               <p className="text-sm" style={{ color: 'var(--color-primary-text)' }}>
-                <strong>{demographics.students_served.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</strong> of <strong>{demographics.total_students.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</strong> registered
+                <strong>{demographics.students_served.toLocaleString('en-PH')}</strong> of <strong>{demographics.total_students.toLocaleString('en-PH')}</strong> registered
                 students have used CPS services at least once. Students not yet reached may benefit from targeted outreach.
               </p>
             </div>
@@ -764,7 +765,7 @@ function CasesTab({ riskDist, concerns, scoreTrends, assessments, intake, demogr
                   <div className="flex justify-between mb-1">
                     <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
                     <span className="text-xs font-semibold" style={{ color }}>
-                      {count.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}{pct < 100 ? ` · ${Math.round(pct)}%` : ''}
+                      {count.toLocaleString('en-PH')}{pct < 100 ? ` · ${Math.round(pct)}%` : ''}
                     </span>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
@@ -1095,6 +1096,229 @@ function OutcomesTab({ sessionOutcomes, isDark }: {
   );
 }
 
+// ── Tab: Session Ratings ──────────────────────────────────────────────────────
+
+const CAT_LABELS: Record<string, string> = {
+  counselor_attitude:     'Counselor Attitude',
+  online_communication:   'Communication',
+  counseling_objectives:  'Session Objectives',
+  techniques_used:        'Techniques Used',
+  overall_experience:     'Overall Experience',
+};
+
+function Stars({ value, max = 5 }: { value: number; max?: number }) {
+  return (
+    <span className="flex items-center gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
+        <svg key={i} width="11" height="11" viewBox="0 0 12 12" fill={i < Math.round(value) ? '#F59E0B' : 'none'}
+          stroke={i < Math.round(value) ? '#F59E0B' : 'var(--color-border)'} strokeWidth="1.2">
+          <polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" />
+        </svg>
+      ))}
+      <span className="text-xs font-semibold ml-1 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+        {value > 0 ? value.toFixed(1) : '—'}
+      </span>
+    </span>
+  );
+}
+
+function RatingsTab({ data, isDark }: { data: any; isDark: boolean }) {
+  const [view, setView] = useState<'overall' | 'individual'>('overall');
+  const [search, setSearch] = useState('');
+
+  if (!data) return (
+    <div className="flex items-center justify-center h-48 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+      No evaluation data available for this period.
+    </div>
+  );
+
+  const cats = Object.keys(CAT_LABELS);
+  const avgs = data.averages || {};
+  const individual: any[] = data.individual || [];
+
+  const filtered = individual.filter(r => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return r.counselor_name?.toLowerCase().includes(q)
+      || r.liked_most?.toLowerCase().includes(q)
+      || r.to_improve?.toLowerCase().includes(q);
+  });
+
+  return (
+    <div className="space-y-5">
+      {/* Summary chips */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Ratings', value: data.total ?? 0, sub: null },
+          { label: 'Completion Rate', value: `${data.completion_rate ?? 0}%`, sub: `${data.total_completed ?? 0} completed sessions` },
+          { label: 'Overall Avg', value: data.overall_avg > 0 ? `${data.overall_avg}/5` : '—', sub: 'across all categories' },
+          { label: 'Top Rated', value: (() => {
+              const best = cats.reduce((a, b) => (avgs[a] || 0) >= (avgs[b] || 0) ? a : b, cats[0]);
+              return avgs[best] > 0 ? CAT_LABELS[best] : '—';
+            })(), sub: avgs[cats.reduce((a, b) => (avgs[a] || 0) >= (avgs[b] || 0) ? a : b, cats[0])] > 0
+              ? `${avgs[cats.reduce((a, b) => (avgs[a] || 0) >= (avgs[b] || 0) ? a : b, cats[0])]}/5` : null },
+        ].map(({ label, value, sub }) => (
+          <div key={label} className="rounded-2xl px-4 py-4"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+            <p className="text-[11px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+            <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+            {sub && <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* View toggle */}
+      <div className="flex items-center gap-1 p-0.5 rounded-lg self-start w-fit"
+        style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+        {(['overall', 'individual'] as const).map(v => (
+          <button key={v} onClick={() => setView(v)}
+            className="px-4 py-1.5 text-xs font-medium rounded-md transition capitalize"
+            style={{
+              background: view === v ? 'var(--color-surface)' : 'transparent',
+              color: view === v ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+              boxShadow: view === v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}>
+            {v === 'overall' ? 'Overall' : 'Individual'}
+          </button>
+        ))}
+      </div>
+
+      {view === 'overall' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Category averages */}
+          <Card title="Average Scores by Category" subtitle="Across all submitted evaluations">
+            <div className="space-y-3">
+              {cats.map(cat => {
+                const val = avgs[cat] || 0;
+                const pct = (val / 5) * 100;
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{CAT_LABELS[cat]}</span>
+                      <Stars value={val} />
+                    </div>
+                    <div className="h-1.5 rounded-full" style={{ background: 'var(--color-border)' }}>
+                      <div className="h-1.5 rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: pct >= 80 ? '#22C55E' : pct >= 60 ? '#F59E0B' : '#EF4444' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Per-counselor averages */}
+          <Card title="Overall Experience by Counselor" subtitle="Avg student rating per clinician">
+            {(data.by_counselor || []).length === 0 ? (
+              <p className="text-sm text-center py-6" style={{ color: 'var(--color-text-muted)' }}>No data</p>
+            ) : (
+              <div className="space-y-2">
+                {(data.by_counselor || []).map((c: any) => (
+                  <div key={c.counselor_id} className="flex items-center justify-between py-2"
+                    style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.name}</p>
+                      <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{c.count} rating{c.count !== 1 ? 's' : ''}</p>
+                    </div>
+                    <Stars value={c.avg} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Monthly trend */}
+          {(data.by_month || []).length > 1 && (
+            <Card title="Satisfaction Trend" subtitle="Avg overall experience score per month">
+              <div className="space-y-2">
+                {(data.by_month || []).map((m: any) => {
+                  const pct = (m.avg / 5) * 100;
+                  return (
+                    <div key={m.month}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{m.month}</span>
+                        <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                          {m.avg}/5 <span style={{ color: 'var(--color-text-muted)' }}>({m.count})</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ background: 'var(--color-border)' }}>
+                        <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: '#6366F1' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {view === 'individual' && (
+        <div className="space-y-4">
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by counselor, comments…"
+            className="w-full sm:w-80 px-3 py-2 text-sm rounded-xl"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', outline: 'none' }}
+          />
+          {filtered.length === 0 ? (
+            <p className="text-sm py-8 text-center" style={{ color: 'var(--color-text-muted)' }}>No evaluations found.</p>
+          ) : (
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      {['Counselor', 'Session Date', 'Attitude', 'Communication', 'Objectives', 'Techniques', 'Overall', 'Comments'].map(h => (
+                        <th key={h} className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide"
+                          style={{ color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((r: any, i: number) => (
+                      <tr key={r.appointment_id}
+                        style={{ borderTop: i > 0 ? '1px solid var(--color-border)' : 'none' }}>
+                        <td className="px-4 py-3 font-medium whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>
+                          {r.counselor_name}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
+                          {r.session_date ? new Date(r.session_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                        </td>
+                        {['counselor_attitude', 'online_communication', 'counseling_objectives', 'techniques_used', 'overall_experience'].map(cat => (
+                          <td key={cat} className="px-4 py-3 whitespace-nowrap">
+                            <Stars value={r[cat] || 0} />
+                          </td>
+                        ))}
+                        <td className="px-4 py-3 max-w-xs">
+                          {r.liked_most && (
+                            <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                              <span className="font-medium" style={{ color: 'var(--color-success-text)' }}>+ </span>{r.liked_most}
+                            </p>
+                          )}
+                          {r.to_improve && (
+                            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                              <span className="font-medium" style={{ color: 'var(--color-warning-text)' }}>↑ </span>{r.to_improve}
+                            </p>
+                          )}
+                          {!r.liked_most && !r.to_improve && <span style={{ color: 'var(--color-text-muted)' }}>—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-2.5 text-xs" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                {filtered.length} of {individual.length} evaluations
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Tab: Reports & Export ─────────────────────────────────────────────────────
 
 function toCSV(rows: Record<string, string>[]): string {
@@ -1110,155 +1334,297 @@ function downloadCSV(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function ReportsTab({ cpsSummary }: { cpsSummary: CpsSummary | null }) {
-  const [month, setMonth]           = useState('');
-  const [downloading, setDownloading] = useState<string | null>(null);
-  const [dlMsg, setDlMsg]           = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+const REPORT_GROUPS = [
+  {
+    group: 'Appointments',
+    color: C.primary,
+    reports: [
+      {
+        id: 'service-requests',
+        label: 'Service Request Register',
+        desc: 'All incoming appointment requests — student details, source, intake counselor, action taken.',
+        cols: 'Student Name · Student ID · College · Degree Program · Year Level · Source · Service Requested · Intake Counselor · Action Taken · CC Assigned · CP Assigned · Date of Request',
+      },
+      {
+        id: 'scheduled-appointments',
+        label: 'Scheduled Appointments',
+        desc: 'Confirmed and approved upcoming appointments — counselor, session type, mode, scheduled date.',
+        cols: 'Student Name · Student ID · College · Counselor · Session Type · Mode · Scheduled Date · Scheduled Time · Concern · Status',
+      },
+      {
+        id: 'completed-sessions',
+        label: 'Completed Sessions',
+        desc: 'All sessions that have been marked completed — includes whether a post-session evaluation was submitted.',
+        cols: 'Student Name · Student ID · College · Counselor · Session Type · Mode · Date · Concern · Completed Date · Has Evaluation',
+      },
+      {
+        id: 'no-shows',
+        label: 'No-Show Report',
+        desc: 'Students who did not attend their scheduled appointment — for follow-up and attendance tracking.',
+        cols: 'Student Name · Student ID · College · Counselor · Scheduled Date · Session Mode · Concern',
+      },
+      {
+        id: 'cancellations',
+        label: 'Cancellation Report',
+        desc: 'Cancelled appointments with cancellation reason where available.',
+        cols: 'Student Name · Student ID · College · Counselor · Date · Session Mode · Concern · Cancellation Reason',
+      },
+      {
+        id: 'walk-in-sessions',
+        label: 'Walk-in Sessions',
+        desc: 'Drop-in / walk-in sessions only — excludes online and pre-booked appointments.',
+        cols: 'Student Name · Student ID · College · Counselor · Date · Time · Concern · Status',
+      },
+    ],
+  },
+  {
+    group: 'Counseling Cases',
+    color: C.green,
+    reports: [
+      {
+        id: 'active-caseload',
+        label: 'Active Counseling Caseload',
+        desc: 'All open counseling cases — counselor assignment, session count, risk level, case status.',
+        cols: 'Counselor · Case Number · Student Name · Student ID · College · Degree Program · Target Sessions · Current Sessions · Risk Level · Case Status',
+      },
+      {
+        id: 'closed-cases',
+        label: 'Closed / Terminated Cases',
+        desc: 'Cases that have been closed or terminated — opening date, closing date, sessions completed, closure reason.',
+        cols: 'Case Number · Student Name · Student ID · College · Counselor · Opening Date · Closing Date · Sessions Completed · Closure Reason · Final Risk Level',
+      },
+    ],
+  },
+  {
+    group: 'Referrals',
+    color: C.purple,
+    reports: [
+      {
+        id: 'referral-summary',
+        label: 'Referral Summary',
+        desc: 'Internal and external referrals — referring counselor, receiving counselor or role, reason, urgency, and status.',
+        cols: 'Referral Date · Student Name · Student ID · College · Case Number · Referral Type · Referred By · Referred To · Reason · Urgency · Status',
+      },
+    ],
+  },
+  {
+    group: 'Check-ins',
+    color: C.amber,
+    reports: [
+      {
+        id: 'checkin-log',
+        label: 'Check-in Client Log',
+        desc: 'Non-counseling clients under check-in monitoring — counselor, concern, check-in type, last check-in date.',
+        cols: 'Counselor · Case Number · Student Name · Student ID · College · Concern · Check-in Type · Last Check-in · Status',
+      },
+    ],
+  },
+  {
+    group: 'Counselor Reports',
+    color: C.slate,
+    reports: [
+      {
+        id: 'counselor-workload',
+        label: 'Counselor Workload Summary',
+        desc: 'Per-counselor session counts for the selected period — active cases, completed, no-shows, cancellations, pending.',
+        cols: 'Counselor Name · Role · Active Cases · Total Sessions (Period) · Completed Sessions · No-Shows · Cancellations · Pending Sessions',
+      },
+    ],
+  },
+];
 
-  const download = async (sheet: string, label: string) => {
+function ExportRow({
+  report, dateFrom, dateTo, downloading, onDownload,
+}: {
+  report: typeof REPORT_GROUPS[0]['reports'][0];
+  dateFrom: string; dateTo: string;
+  downloading: string | null;
+  onDownload: (id: string, label: string) => void;
+}) {
+  const busy = downloading === report.id;
+  return (
+    <div className="flex items-start justify-between gap-4 py-4 px-4 rounded-xl transition"
+      style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{report.label}</p>
+        <p className="text-xs mt-0.5 mb-1.5" style={{ color: 'var(--color-text-muted)' }}>{report.desc}</p>
+        <p className="text-[10px] font-mono" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>{report.cols}</p>
+      </div>
+      <button
+        onClick={() => onDownload(report.id, report.label)}
+        disabled={busy || !!downloading}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition disabled:opacity-40 flex-shrink-0 mt-0.5"
+        style={{ background: 'var(--color-primary)', color: '#fff' }}>
+        {busy ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+        {busy ? 'Exporting…' : 'Export CSV'}
+      </button>
+    </div>
+  );
+}
+
+function ReportsTab({ cpsSummary }: { cpsSummary: CpsSummary | null }) {
+  const [dateFrom, setDateFrom]       = useState('');
+  const [dateTo, setDateTo]           = useState('');
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [dlMsg, setDlMsg]             = useState<{ type: 'ok' | 'err'; id: string; text: string } | null>(null);
+
+  const rangeLabel = dateFrom && dateTo
+    ? `${dateFrom}_to_${dateTo}`
+    : dateFrom ? `from_${dateFrom}` : 'all';
+
+  const doExport = async (sheet: string, label: string) => {
     setDownloading(sheet); setDlMsg(null);
     try {
       const token = localStorage.getItem('token');
       const qs = new URLSearchParams({ sheet });
-      if (month) qs.set('month', month);
+      if (dateFrom) qs.set('from', dateFrom);
+      if (dateTo)   qs.set('to',   dateTo);
       const r = await fetch(api(`/api/reports/cps-export?${qs}`), { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Export failed'); }
       const data = await r.json();
       const rows = data.rows ?? [];
-      if (!rows.length) { setDlMsg({ type: 'err', text: `No data${month ? ` for ${month}` : ''}.` }); return; }
-      downloadCSV(toCSV(rows), `${label.replace(/\s+/g, '_')}_${month || 'all'}.csv`);
-      setDlMsg({ type: 'ok', text: `Downloaded ${rows.length} rows.` });
+      if (!rows.length) {
+        setDlMsg({ type: 'err', id: sheet, text: 'No records found for the selected date range.' });
+        return;
+      }
+      downloadCSV(toCSV(rows), `${label.replace(/\W+/g, '_')}_${rangeLabel}.csv`);
+      setDlMsg({ type: 'ok', id: sheet, text: `${rows.length.toLocaleString()} rows exported.` });
     } catch (e: unknown) {
-      setDlMsg({ type: 'err', text: (e as Error).message });
+      setDlMsg({ type: 'err', id: sheet, text: (e as Error).message });
     } finally { setDownloading(null); }
   };
 
-  const downloadAppointments = async () => {
-    setDownloading('appointments'); setDlMsg(null);
-    try {
-      const token = localStorage.getItem('token');
-      const qs = month ? `?month=${month}` : '';
-      const r = await fetch(api(`/api/reports/appointments-csv${qs}`), { headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Export failed'); }
-      const data = await r.json();
-      const rows = data.rows ?? [];
-      if (!rows.length) { setDlMsg({ type: 'err', text: `No data${month ? ` for ${month}` : ''}.` }); return; }
-      downloadCSV(toCSV(rows), `Appointments_${month || 'all'}.csv`);
-      setDlMsg({ type: 'ok', text: `Downloaded ${rows.length} rows.` });
-    } catch (e: unknown) {
-      setDlMsg({ type: 'err', text: (e as Error).message });
-    } finally { setDownloading(null); }
-  };
-
-  const exports = [
-    { id: 'new-clients',      label: 'New Clients',                       desc: 'Service requests — date, source, student details, IC, status' },
-    { id: 'counseling-cases', label: 'Existing Clients (Counseling)',     desc: 'Active counseling caseload — counselor, sessions, risk level' },
-    { id: 'checkins',         label: 'Non-Counseling Clients (Check-in)', desc: 'Check-in clients — counselor, concern, last check-in, status' },
-  ];
+  const clearRange = () => { setDateFrom(''); setDateTo(''); setDlMsg(null); };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+
+      {/* Summary strip */}
       {cpsSummary && (
-        <div>
-          <SectionLabel>CPS Client Tracking Overview</SectionLabel>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[
-              { label: 'New Client Requests',       value: cpsSummary.new_clients.total,         sub: `${cpsSummary.new_clients.this_month} this month`,        color: C.green   },
-              { label: 'Counseling Cases (Active)',  value: cpsSummary.counseling_cases.active,   sub: `${cpsSummary.counseling_cases.total} total`,             color: C.primary },
-              { label: 'Check-in Clients',          value: cpsSummary.checkins.total_clients,     sub: `${cpsSummary.checkins.checkins_this_month} this month`,  color: C.purple  },
-            ].map(({ label, value, sub, color }) => (
-              <div key={label} className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
-                <p className="text-2xl font-bold" style={{ color }}>{value.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[
+            { label: 'Total Service Requests',    value: cpsSummary.new_clients.total,          sub: `${cpsSummary.new_clients.this_month} in last 30 days`,    color: C.primary },
+            { label: 'Active Counseling Cases',   value: cpsSummary.counseling_cases.active,    sub: `${cpsSummary.counseling_cases.total} total (incl. closed)`, color: C.green   },
+            { label: 'Check-in Clients',          value: cpsSummary.checkins.total_clients,     sub: `${cpsSummary.checkins.checkins_this_month} check-ins / 30d`, color: C.purple  },
+          ].map(({ label, value, sub, color }) => (
+            <div key={label} className="rounded-2xl px-4 py-4"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+              <p className="text-[11px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+              <p className="text-2xl font-bold tabular-nums" style={{ color }}>{value.toLocaleString('en-PH')}</p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Date range filter */}
+      <div className="rounded-2xl px-5 py-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Date Range Filter</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>From</label>
+            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setDlMsg(null); }}
+              className="rounded-xl px-3 py-2 text-sm focus:outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>To</label>
+            <input type="date" value={dateTo} min={dateFrom} onChange={e => { setDateTo(e.target.value); setDlMsg(null); }}
+              className="rounded-xl px-3 py-2 text-sm focus:outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button onClick={clearRange}
+              className="px-3 py-2 text-xs rounded-xl transition"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              Clear
+            </button>
+          )}
+          {dateFrom && dateTo && (
+            <span className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
+              style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
+              {dateFrom} → {dateTo}
+            </span>
+          )}
+          {!dateFrom && !dateTo && (
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No filter — all records will be exported.</span>
+          )}
+        </div>
+      </div>
+
+      {/* Status toast */}
+      {dlMsg && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
+          style={{
+            background: dlMsg.type === 'ok' ? 'var(--color-success-surface)' : 'var(--color-danger-surface)',
+            border: `1px solid ${dlMsg.type === 'ok' ? 'rgba(5,150,105,0.25)' : 'rgba(220,38,38,0.25)'}`,
+            color: dlMsg.type === 'ok' ? 'var(--color-success-text)' : 'var(--color-danger-text)',
+          }}>
+          <span>{dlMsg.type === 'ok' ? '✓' : '✗'}</span>
+          <span className="font-medium">{dlMsg.type === 'ok' ? 'Export complete' : 'Export failed'}</span>
+          <span style={{ opacity: 0.8 }}>— {dlMsg.text}</span>
+          <button onClick={() => setDlMsg(null)} className="ml-auto text-xs opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
+
+      {/* Report groups */}
+      {REPORT_GROUPS.map(({ group, color, reports }) => (
+        <div key={group}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>{group}</p>
+          </div>
+          <div className="space-y-2">
+            {reports.map(report => (
+              <div key={report.id}>
+                <ExportRow
+                  report={report}
+                  dateFrom={dateFrom} dateTo={dateTo}
+                  downloading={downloading}
+                  onDownload={doExport}
+                />
+                {dlMsg && dlMsg.id === report.id && (
+                  <p className="text-[11px] mt-1 pl-4"
+                    style={{ color: dlMsg.type === 'ok' ? 'var(--color-success-text)' : 'var(--color-danger-text)' }}>
+                    {dlMsg.text}
+                  </p>
+                )}
               </div>
             ))}
           </div>
         </div>
-      )}
+      ))}
 
-      <div>
-        <SectionLabel>Data Export</SectionLabel>
-        <div className="rounded-xl p-5 space-y-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <div className="flex flex-wrap items-center gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Filter by month (optional)</label>
-              <input type="month" value={month} onChange={e => { setMonth(e.target.value); setDlMsg(null); }}
-                className="rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
-            </div>
-            {month && (
-              <button onClick={() => setMonth('')}
-                className="mt-5 text-xs px-2 py-1.5 rounded-lg"
-                style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {exports.map(({ id, label, desc }) => (
-              <div key={id} className="flex items-center justify-between gap-4 p-3 rounded-lg"
-                style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+      {/* Footer note + report page links */}
+      <div className="pt-2 space-y-4">
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          All exports are plain CSV — compatible with Microsoft Excel, Google Sheets, LibreOffice Calc, and SPSS.
+          Column headers match the CPS tracking template format. Leave date range empty to export all records.
+        </p>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--color-text-muted)' }}>Online Report Pages</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              { href: '/admin/reports/cases',      label: 'Case Statistics',      desc: 'Monthly case volume — new, active, closed breakdown' },
+              { href: '/admin/reports/users',      label: 'User Directory Report', desc: 'All registered users by role and account status' },
+              { href: '/admin/reports/compliance', label: 'Compliance Report',     desc: 'Audit trail, data access logs, and privacy summary' },
+              { href: '/staff/workload-report',    label: 'Staff Workload Report', desc: 'Per-counselor session schedule and productivity' },
+            ].map(({ href, label, desc }) => (
+              <Link key={href} href={href}
+                className="flex items-center justify-between p-3 rounded-xl transition"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'}>
                 <div>
                   <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{label}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{desc}</p>
                 </div>
-                <button onClick={() => download(id, label)} disabled={downloading === id}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition disabled:opacity-50 flex-shrink-0"
-                  style={{ background: 'var(--color-primary)', color: '#fff' }}>
-                  {downloading === id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                  {downloading === id ? 'Exporting…' : 'Export CSV'}
-                </button>
-              </div>
+                <ChevronRight size={15} className="flex-shrink-0 ml-3" style={{ color: 'var(--color-text-muted)' }} />
+              </Link>
             ))}
-            <div className="flex items-center justify-between gap-4 p-3 rounded-lg"
-              style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>All Appointments</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Full appointment log — date, student, counselor, type, method, status, concern</p>
-              </div>
-              <button onClick={downloadAppointments} disabled={downloading === 'appointments'}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition disabled:opacity-50 flex-shrink-0"
-                style={{ background: 'var(--color-primary)', color: '#fff' }}>
-                {downloading === 'appointments' ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                {downloading === 'appointments' ? 'Exporting…' : 'Export CSV'}
-              </button>
-            </div>
           </div>
-
-          {dlMsg && (
-            <p className="text-xs" style={{ color: dlMsg.type === 'ok' ? C.green : C.red }}>
-              {dlMsg.type === 'ok' ? '✓ ' : '✗ '}{dlMsg.text}
-            </p>
-          )}
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Plain CSV — compatible with Excel, Google Sheets, and SPSS. Leave month empty to export all records.
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <SectionLabel>Detailed Report Pages</SectionLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[
-            { href: '/admin/reports/cases',       label: 'Case Statistics',     desc: 'Monthly case volume table with new/closed breakdown' },
-            { href: '/admin/reports/users',       label: 'User Report',         desc: 'Registered users by role and account status' },
-            { href: '/admin/reports/compliance',  label: 'Compliance Report',   desc: 'Audit trail, data access, and privacy compliance summary' },
-            { href: '/staff/workload-report',     label: 'Staff Workload Report', desc: 'Per-counselor schedule and session counts' },
-          ].map(({ href, label, desc }) => (
-            <Link key={href} href={href}
-              className="flex items-center justify-between p-3 rounded-lg transition"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'}>
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{label}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{desc}</p>
-              </div>
-              <ChevronRight size={16} className="flex-shrink-0 ml-2" style={{ color: 'var(--color-text-muted)' }} />
-            </Link>
-          ))}
         </div>
       </div>
     </div>
@@ -1294,6 +1660,7 @@ export default function AnalyticsDashboardPage() {
   const [demographics, setDemographics]     = useState<StudentDemographics | null>(null);
   const [casesPipeline, setCasesPipeline]   = useState<CasesPipeline | null>(null);
   const [sessionOutcomes, setSessionOutcomes] = useState<SessionOutcomes | null>(null);
+  const [evalData, setEvalData] = useState<any>(null);
 
   const period = PERIODS[periodIdx];
 
@@ -1310,7 +1677,7 @@ export default function AnalyticsDashboardPage() {
     const [
       s, ma, mc, risk, workload, aStats, dayData,
       cData, sTrends, assess, funnel, ref, cps,
-      breakdown, demo, pipeline, outcomes,
+      breakdown, demo, pipeline, outcomes, evals,
     ] = await Promise.all([
       safe('/api/analytics/summary'),
       safe(`/api/analytics/appointments/monthly?months=${months}`),
@@ -1329,6 +1696,7 @@ export default function AnalyticsDashboardPage() {
       safe('/api/analytics/students/demographics'),
       safe('/api/analytics/cases/pipeline'),
       safe(`/api/analytics/sessions/outcomes?months=${months}`),
+      safe(`/api/analytics/evaluations/summary?days=${days}`),
     ]);
     if (s)         setSummary(s);
     if (ma)        setMonthlyAppts(ma.months ?? []);
@@ -1350,6 +1718,7 @@ export default function AnalyticsDashboardPage() {
       mood_monthly: [], risk_flagged_sessions: 0, total_sessions: 0,
       flagged_rate: 0, session_type_distribution: [], perma_label_distribution: [], noshows_at_risk: 0,
     });
+    if (evals) setEvalData(evals);
     setLoading(false);
     setRefreshing(false);
   }, [period]);
@@ -1432,6 +1801,9 @@ export default function AnalyticsDashboardPage() {
       )}
       {activeTab === 'outcomes' && (
         <OutcomesTab sessionOutcomes={sessionOutcomes} isDark={isDark} />
+      )}
+      {activeTab === 'ratings' && (
+        <RatingsTab data={evalData} isDark={isDark} />
       )}
       {activeTab === 'reports' && (
         <ReportsTab cpsSummary={cpsSummary} />

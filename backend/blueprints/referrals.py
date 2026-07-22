@@ -534,9 +534,19 @@ def upload_roi(referral_id):
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    # In production, implement secure file upload
-    file_path = f'uploads/roi/referral_{referral_id}_{datetime.utcnow().timestamp()}.pdf'
-    
+    import os
+    allowed_extensions = {'pdf', 'png', 'jpg', 'jpeg'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed_extensions:
+        return jsonify({'error': 'File must be PDF or image (png, jpg, jpeg)'}), 400
+
+    upload_dir = 'uploads/roi'
+    os.makedirs(upload_dir, exist_ok=True)
+    # Use only the hex ObjectId string (already validated above as ObjectId) to avoid path traversal
+    safe_id = str(referral['_id'])
+    file_path = os.path.join(upload_dir, f'referral_{safe_id}_{datetime.utcnow().timestamp()}.{ext}')
+    file.save(file_path)
+
     db.db.referrals.update_one(
         {"_id": referral['_id']},
         {"$set": {
@@ -981,7 +991,9 @@ def check_case_closure_eligibility(case_id):
     
     if len(active_internal_referrals) > 0:
         blockers.append(f"{len(active_internal_referrals)} internal referral(s) in progress")
-    
+
+    return jsonify({'can_close': can_close, 'blockers': blockers}), 200
+
 @referrals_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def get_referral_summary():

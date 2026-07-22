@@ -243,7 +243,7 @@ class EmailService:
           platform, counselor_name, concern, meeting_link,
           start_dt (datetime, optional), end_dt (datetime, optional)
         """
-        subject = f"Your Appointment is Confirmed — {appointment_details.get('reference_id', 'CPS')}"
+        subject = f"CPS Appointment Confirmed — {appointment_details.get('appointment_date', '')} at {appointment_details.get('appointment_time', '')}"
 
         appointment_date = appointment_details.get('appointment_date', '')
         appointment_time = appointment_details.get('appointment_time', '')

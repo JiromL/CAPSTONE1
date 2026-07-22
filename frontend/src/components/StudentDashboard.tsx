@@ -338,7 +338,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <div className="pointer-events-none absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
                 <div className="relative z-10">
                   <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Your counseling journey</p>
-                  <h3 className="text-xl font-bold mb-2">Reaching out was a brave first step, {firstName}.</h3>
+                  <h3 className="text-xl font-bold mb-2" style={{ color: 'white' }}>Reaching out was a brave first step, {firstName}.</h3>
                   <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
                     {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review. We'll be in touch within 1–2 business days.`}
                   </p>

@@ -71,10 +71,26 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/high-risk': ['PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Admin pages
-  '/admin/users': ['ADMIN', 'DPO'],
-  '/admin/analytics': ['ADMIN', 'DPO'],
-  '/admin/audit-log': ['ADMIN', 'DPO'],
-  '/availability': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/admin/users':               ['ADMIN', 'DPO'],
+  '/admin/users/create':        ['ADMIN', 'DPO'],
+  '/admin/analytics':           ['ADMIN', 'DPO'],
+  '/admin/audit-log':           ['ADMIN', 'DPO'],
+  '/admin/holidays':            ['ADMIN', 'DPO'],
+  '/admin/settings':            ['ADMIN', 'DPO'],
+  '/admin/roles':               ['ADMIN', 'DPO'],
+  '/admin/security':            ['ADMIN', 'DPO'],
+  '/admin/permissions':         ['ADMIN', 'DPO'],
+  '/admin/backup':              ['ADMIN', 'DPO'],
+  '/admin/database':            ['ADMIN', 'DPO'],
+  '/admin/health':              ['ADMIN', 'DPO'],
+  '/admin/resources':           ['ADMIN', 'DPO'],
+  '/admin/logs':                ['ADMIN', 'DPO'],
+  '/admin/alerts':              ['ADMIN', 'DPO'],
+  '/admin/reports/cases':       ['ADMIN', 'DPO'],
+  '/admin/reports/export':      ['ADMIN', 'DPO'],
+  '/admin/reports/compliance':  ['ADMIN', 'DPO'],
+  '/admin/reports/users':       ['ADMIN', 'DPO'],
+  '/availability': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Announcements
   '/announcements': ['STUDENT', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
@@ -82,8 +98,9 @@ export const pagePermissions: Record<string, UserRole[]> = {
   // Supervision
   '/supervision': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
-  // Counselor schedule
-  '/counselor/schedule': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  // Counselor schedule & emergency
+  '/counselor/schedule':   ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/counselor/emergency':  ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
   // IC sub-routes
   '/ic/intake/in-progress': ['IC', 'ADMIN', 'DPO'],
@@ -100,6 +117,19 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/walkin': ['STAFF', 'ADMIN', 'DPO'],
   '/office-assistant-settings': ['STAFF', 'ADMIN', 'DPO'],
 
+  // Schedule & leave management (counselors/IC manage their availability here)
+  '/schedule': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+
+  // Case detail pages
+  '/cases/[id]':       ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/cases/[id]/print': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+
+  // Tasks detail (tasks index is STUDENT/STAFF)
+  '/tasks/[id]': ['STUDENT', 'STAFF'],
+
+  // EMA external tool
+  '/ema': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+
   // PERMA send
   '/send-perma': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 };
@@ -111,22 +141,27 @@ export const pagePermissions: Record<string, UserRole[]> = {
  * @returns true if user can access the page, false otherwise
  */
 export function canAccessPage(pathname: string, userRole: UserRole): boolean {
-  // Extract the base path (remove query params)
   const basePath = pathname.split('?')[0];
-  
-  // Get required roles for this page
-  const requiredRoles = pagePermissions[basePath];
-  
-  // If page is not in permissions list, allow access (public)
-  if (!requiredRoles) {
-    return true;
-  }
-  
-  // Normalize user role to uppercase for comparison
   const normalizedRole = userRole?.toUpperCase() as UserRole;
-  
-  // Check if user role is in required roles
-  return requiredRoles.includes(normalizedRole);
+
+  // Exact match first
+  const exact = pagePermissions[basePath];
+  if (exact) return exact.includes(normalizedRole);
+
+  // Pattern match: replace each path segment with [id] and retry.
+  // Handles dynamic routes like /cases/abc123 → /cases/[id]
+  // and /cases/abc123/print → /cases/[id]/print
+  const segments = basePath.split('/');
+  for (let i = 1; i < segments.length; i++) {
+    const pattern = segments
+      .map((seg, idx) => (idx === i ? '[id]' : seg))
+      .join('/');
+    const patternRoles = pagePermissions[pattern];
+    if (patternRoles) return patternRoles.includes(normalizedRole);
+  }
+
+  // Not listed → allow (treated as publicly accessible to authenticated users)
+  return true;
 }
 
 /**

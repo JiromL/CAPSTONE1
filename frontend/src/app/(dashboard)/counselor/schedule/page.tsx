@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Calendar as CalendarIcon, Clock, Users, Filter, Search,
-  AlertCircle, Phone, Mail, Video, MapPin, ExternalLink, RefreshCw,
+  AlertCircle, Phone, Mail, Video, MapPin, ExternalLink, RefreshCw, CheckCircle, Loader2,
 } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -14,6 +14,7 @@ interface AppointmentDetail {
   student_name: string;
   student_email: string;
   student_id?: string;
+  case_id?: string;
   status: string;
   purpose: string;
   concern: string;
@@ -64,7 +65,12 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   );
 }
 
-function AppointmentCard({ appointment, onSelect }: { appointment: AppointmentDetail; onSelect: () => void }) {
+function AppointmentCard({ appointment, onSelect, onCompleteAndNote, completing }: {
+  appointment: AppointmentDetail;
+  onSelect: () => void;
+  onCompleteAndNote?: (apt: AppointmentDetail) => void;
+  completing?: boolean;
+}) {
   const { style: sStyle, label: sLabel } = getStatusStyle(appointment.status);
   const aptDate = new Date(appointment.preferred_date);
   const today = new Date();
@@ -73,13 +79,16 @@ function AppointmentCard({ appointment, onSelect }: { appointment: AppointmentDe
   if (aptDate.toDateString() === today.toDateString()) dateLabel = 'Today';
   else if (aptDate.toDateString() === tomorrow.toDateString()) dateLabel = 'Tomorrow';
 
+  const isPastOrToday = aptDate <= today;
+  const canComplete = ['CONFIRMED', 'CHECKED_IN', 'APPROVED', 'MATCHED'].includes(appointment.status) && isPastOrToday;
+
   return (
-    <div onClick={onSelect} className="border rounded-xl p-4 cursor-pointer transition shadow-card"
+    <div className="border rounded-xl p-4 transition shadow-card"
       style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
       onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
       onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}>
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={onSelect}>
           <div className="flex items-center gap-3 mb-2">
             <h3 className="font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{appointment.student_name}</h3>
             <span className="text-xs font-medium px-2 py-0.5 rounded whitespace-nowrap" style={sStyle}>{sLabel}</span>
@@ -88,17 +97,16 @@ function AppointmentCard({ appointment, onSelect }: { appointment: AppointmentDe
             <div className="flex items-center gap-2"><Mail className="w-4 h-4" /><span className="truncate">{appointment.student_email}</span></div>
             <div className="flex items-center gap-2"><CalendarIcon className="w-4 h-4" /><span>{dateLabel}</span></div>
             <div className="flex items-center gap-2"><Clock className="w-4 h-4" /><span>{appointment.preferred_time || 'TBD'}</span></div>
-            {appointment.purpose && <div className="text-xs"><span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Purpose:</span> {appointment.purpose}</div>}
+            {appointment.purpose && <div className="text-xs"><span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Purpose:</span> {appointment.purpose.replace(/_/g, ' ')}</div>}
           </div>
         </div>
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
             {getMethodIcon(appointment.method)}
             <span className="text-sm">{appointment.method.charAt(0).toUpperCase() + appointment.method.slice(1).replace('-', ' ')}</span>
           </div>
           {appointment.meeting_link && (
             <a href={appointment.meeting_link} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded transition"
               style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
@@ -110,6 +118,16 @@ function AppointmentCard({ appointment, onSelect }: { appointment: AppointmentDe
             <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
               Risk: {appointment.risk_level}
             </span>
+          )}
+          {canComplete && onCompleteAndNote && (
+            <button
+              onClick={e => { e.stopPropagation(); onCompleteAndNote(appointment); }}
+              disabled={completing}
+              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold text-white transition disabled:opacity-50 hover:opacity-90"
+              style={{ background: 'var(--color-success)' }}>
+              {completing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+              Complete + Note
+            </button>
           )}
         </div>
       </div>
@@ -294,6 +312,7 @@ export default function CounselorSchedulePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [focusedField, setFocusedField] = useState<string>('');
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const ud = localStorage.getItem('user'); const tok = localStorage.getItem('token');
@@ -336,6 +355,27 @@ export default function CounselorSchedulePage() {
       return a.status.localeCompare(b.status);
     });
   }, [appointments, filters, sorting]);
+
+  const handleCompleteAndNote = async (apt: AppointmentDetail) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setCompletingId(apt.appointment_id);
+    try {
+      const r = await fetch(api(`/api/appointments/${apt.appointment_id}/complete`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        if (apt.case_id) {
+          router.push(`/cases/${apt.case_id}?tab=clinical-record`);
+        } else {
+          const t = localStorage.getItem('token');
+          if (t) fetchAppointments(t);
+        }
+      }
+    } catch {}
+    finally { setCompletingId(null); }
+  };
 
   const stats = useMemo(() => ({
     total:     appointments.length,
@@ -428,7 +468,7 @@ export default function CounselorSchedulePage() {
           </div>
         ) : viewMode === 'list' ? (
           <div className="space-y-3">
-            {filtered.map(apt => <AppointmentCard key={apt.appointment_id} appointment={apt} onSelect={() => setSelected(apt)} />)}
+            {filtered.map(apt => <AppointmentCard key={apt.appointment_id} appointment={apt} onSelect={() => setSelected(apt)} onCompleteAndNote={handleCompleteAndNote} completing={completingId === apt.appointment_id} />)}
           </div>
         ) : (
           <CalendarView appointments={filtered} />

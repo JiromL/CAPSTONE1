@@ -497,6 +497,8 @@ def submit_triage(intake_id):
         return jsonify({'error': 'triage_decision is required.'}), 400
     if decision not in ('ENDORSE_CC', 'ENDORSE_CP', 'CLOSE_AT_INTAKE'):
         return jsonify({'error': 'triage_decision must be ENDORSE_CC, ENDORSE_CP, or CLOSE_AT_INTAKE.'}), 400
+    if decision == 'CLOSE_AT_INTAKE' and not notes.strip():
+        return jsonify({'error': 'Closure notes are required when closing at intake. Please document the reason, any resources provided, and follow-up plan.'}), 400
     if phq9 and len(phq9) != 9:
         return jsonify({'error': 'phq9_responses must have exactly 9 items.'}), 400
     if gad7 and len(gad7) != 7:
@@ -659,6 +661,27 @@ def submit_triage(intake_id):
 
     audit_log(db.db, 'intake', 'triage', entity_id=intake_id,
               new_values={'risk_level': risk_level, 'triage_decision': decision})
+
+    # Notify student after endorsement so they know to log in and schedule
+    if decision in ('ENDORSE_CC', 'ENDORSE_CP') and student_doc and student_doc.get('email'):
+        try:
+            from services.email_service import send_email
+            role_label = 'Counselor' if decision == 'ENDORSE_CC' else 'Psychologist'
+            student_first = student_doc.get('first_name', 'Student')
+            send_email(
+                to=student_doc['email'],
+                subject='Your intake interview is complete — schedule your session',
+                body=(
+                    f"Hi {student_first},\n\n"
+                    f"Your intake interview has been reviewed and you have been referred to a {role_label}.\n\n"
+                    f"Please log in to the CPS portal to pick a date and time for your counseling session:\n"
+                    f"https://cps.dlsu.edu.ph/login\n\n"
+                    f"If you have questions, please contact the CPS office directly.\n\n"
+                    f"CPS Management System\nDe La Salle University"
+                ),
+            )
+        except Exception as _e:
+            pass  # Email failure must not block triage submission
 
     return jsonify({
         'message': 'Triage submitted.',
@@ -1478,39 +1501,6 @@ def get_risk_level(phq9_score=None, gad7_score=None, pss_score=None, acad_score=
     
     # GREEN = Low risk (default)
     return 'GREEN'
-    """Calculate risk level based on assessment scores"""
-    if not any([phq9_score, gad7_score, acad_score, social_score]):
-        return "GREEN"
-    
-    max_score = 0
-    max_possible = 0
-    
-    if phq9_score is not None:
-        max_score += phq9_score
-        max_possible += 27
-    if gad7_score is not None:
-        max_score += gad7_score
-        max_possible += 21
-    if acad_score is not None:
-        max_score += acad_score
-        max_possible += 32
-    if social_score is not None:
-        max_score += social_score
-        max_possible += 32
-    
-    if max_possible == 0:
-        return "GREEN"
-    
-    risk_percentage = (max_score / max_possible) * 100
-    
-    if risk_percentage >= 75:
-        return "CRITICAL"
-    elif risk_percentage >= 50:
-        return "RED"
-    elif risk_percentage >= 25:
-        return "YELLOW"
-    else:
-        return "GREEN"
 
 
 @intake_bp.route('/assessments/init-indexes', methods=['POST'])

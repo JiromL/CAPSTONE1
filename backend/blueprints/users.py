@@ -4,7 +4,7 @@ Users management blueprint for profile updates and user info
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db
+from models import db, UserRole
 from bson import ObjectId
 from utils import audit_log
 from datetime import datetime
@@ -358,6 +358,28 @@ def toggle_user_status(user_id):
         # Prevent self-deactivation
         if str(target_id_obj) == str(current_user_id_obj) and not is_active:
             return jsonify({'error': 'Cannot deactivate your own account'}), 400
+
+        # When deactivating a clinical staff member, block if they have upcoming confirmed appointments
+        if not is_active:
+            target_user = db.db.users.find_one({'_id': target_id_obj})
+            if target_user:
+                target_role = target_user.get('role', '')
+                clinical_roles = [UserRole.COUNSELOR.value, UserRole.PSYCHOLOGIST.value,
+                                  UserRole.CASE_MANAGER.value]
+                if target_role in clinical_roles:
+                    upcoming = db.db.appointments.count_documents({
+                        'counselor_id': target_id_obj,
+                        'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
+                        'scheduled_start': {'$gt': datetime.utcnow()},
+                    })
+                    if upcoming > 0:
+                        return jsonify({
+                            'error': (
+                                f'Cannot deactivate: this user has {upcoming} upcoming confirmed '
+                                f'appointment(s). Reassign or cancel them first.'
+                            ),
+                            'upcoming_appointments': upcoming,
+                        }), 409
 
         result = db.db.users.update_one(
             {'_id': target_id_obj},

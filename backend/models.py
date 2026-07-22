@@ -42,7 +42,6 @@ class PermissionType(str, Enum):
 
 
 class RiskLevel(str, Enum):
-    OFFICE_ASSISTANT = "OFFICE_ASSISTANT"  # Office assistant/support staff
     GREEN = "GREEN"      # 0-25%
     YELLOW = "YELLOW"    # 25-50%
     RED = "RED"           # 50-75%
@@ -305,6 +304,32 @@ class MongoDB:
             self.db.feedback_submissions.create_index("client_id")
             self.db.feedback_submissions.create_index("feedback_type")
             self.db.feedback_submissions.create_index("status")
+
+            # Appointments: compound indexes for the hot query patterns used throughout the system
+            from pymongo import ASCENDING
+            self.db.appointments.create_index("student_id")
+            self.db.appointments.create_index([
+                ("counselor_id", ASCENDING),
+                ("status", ASCENDING),
+                ("scheduled_start", ASCENDING),
+            ], name="counselor_status_start")
+            self.db.appointments.create_index([
+                ("student_id", ASCENDING),
+                ("status", ASCENDING),
+            ], name="student_status")
+            self.db.appointments.create_index([
+                ("status", ASCENDING),
+                ("scheduled_start", ASCENDING),
+            ], name="status_start")  # used by scheduler and walkin-capacity
+
+            # New collections added for holiday calendar, leave blocking, and booking rules
+            self.db.holidays.create_index("date", unique=True)
+            self.db.counselor_leaves.create_index([
+                ("counselor_id", ASCENDING),
+                ("date", ASCENDING),
+            ], name="leave_counselor_date", unique=True)
+            self.db.booking_rules.create_index("type", unique=True)
+
         except Exception as e:
             print(f"⚠ MongoDB indexes warning: {e}")
 

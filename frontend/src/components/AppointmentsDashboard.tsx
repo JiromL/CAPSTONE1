@@ -50,8 +50,7 @@ interface DashboardData {
 const TABS = [
   { key: 'new',        label: 'New Requests' },
   { key: 'confirmed',  label: 'Confirmed' },
-  { key: 'evaluation', label: 'Post-Session' },
-  { key: 'followup',   label: 'Follow-Up' },
+  { key: 'evaluation', label: 'Needs Review' },
   { key: 'done',       label: 'Closed' },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
@@ -60,8 +59,7 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
   new:        ['REQUESTED', 'PENDING_APPROVAL'],
   confirmed:  ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'],
   evaluation: ['EVALUATION'],
-  followup:   ['FOLLOW_UP', 'REFERRAL'],
-  done:       ['COMPLETED', 'CANCELLED', 'DENIED', 'NO_SHOW', 'RESCHEDULED'],
+  done:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL', 'CANCELLED', 'DENIED', 'NO_SHOW', 'RESCHEDULED'],
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -71,8 +69,8 @@ const STATUS_LABEL: Record<string, string> = {
   APPROVED:             'Confirmed',
   MATCHED:              'Confirmed',
   CHECKED_IN:           'Checked In',
-  EVALUATION:           'For Evaluation',
-  FOLLOW_UP:            'Follow-Up',
+  EVALUATION:           'Needs Review',
+  FOLLOW_UP:            'Completed',
   REFERRAL:             'Referral',
   COMPLETED:            'Completed',
   CANCELLED:            'Cancelled',
@@ -429,8 +427,8 @@ export default function AppointmentsDashboard() {
         body: body ? JSON.stringify(body) : undefined,
       });
       const msgs: Record<string, string> = {
-        'set-evaluation': 'Marked as done — student will be prompted to evaluate.',
-        'set-follow-up':  'Marked as Follow-Up.',
+        'set-evaluation': 'Session marked complete.',
+        'set-follow-up':  'Next session scheduled.',
         'set-referral':   'Marked as Referral.',
         'complete':       'Marked as Completed.',
         'check-in':       'Student checked in successfully.',
@@ -701,9 +699,10 @@ export default function AppointmentsDashboard() {
   const isIC           = dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR';
   const isOA           = dashboard?.role === 'STAFF';
   const showActions    = canAssign || canManage || isIC;
-  const visibleTabs    = TABS.filter(t =>
-    canManage ? true : t.key !== 'evaluation' && t.key !== 'followup'
-  );
+  const visibleTabs    = TABS.filter(t => {
+    if (t.key === 'evaluation') return canManage && counts.evaluation > 0;
+    return true;
+  });
   const intakeReady    = isIC ? apts.filter(a =>
     a.purpose === 'intake_interview' &&
     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status)
@@ -788,7 +787,7 @@ export default function AppointmentsDashboard() {
         <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
           <Star size={14} className="flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
           <span style={{ color: 'var(--color-warning-text)' }}>
-            <strong>{evalCount}</strong> session{evalCount !== 1 ? 's' : ''} completed — decide next step: follow-up, referral, or close.
+            <strong>{evalCount}</strong> legacy session{evalCount !== 1 ? 's' : ''} need review — add session note or mark referral.
           </span>
           <button onClick={() => setActiveTab('evaluation')}
             className="ml-auto text-xs font-semibold underline underline-offset-2"
@@ -1071,7 +1070,7 @@ export default function AppointmentsDashboard() {
                                       onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-warning-hover, #b45309)'}
                                       onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-warning)'}>
                                       {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
-                                      Session Done
+                                      Mark Complete
                                     </button>
                                     <button onClick={() => { setReschedTarget(apt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedMsg(null); }}
                                       className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
@@ -1121,12 +1120,14 @@ export default function AppointmentsDashboard() {
                                     </div>
                                   ) : (
                                     <>
-                                      <button onClick={() => { setFollowUpTarget(apt); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(apt.office || ''); setFollowUpNotes(''); setFollowUpMsg(null); }}
-                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
-                                        style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary-muted)' }}
-                                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-muted)'}
-                                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-surface)'}>
-                                        <RefreshCw size={11} /> Follow-Up
+                                      <button onClick={() => doSessionAction(apt.appointment_id, 'complete')}
+                                        disabled={actioningId === apt.appointment_id}
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition disabled:opacity-50"
+                                        style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', border: '1px solid var(--color-success)' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-success)' }
+                                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-success-surface)'}>
+                                        {actioningId === apt.appointment_id ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
+                                        Mark Complete
                                       </button>
                                       <button onClick={() => setPendingAction({ aptId: apt.appointment_id, action: 'referral', notes: '' })}
                                         className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
@@ -1134,13 +1135,6 @@ export default function AppointmentsDashboard() {
                                         onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = '#F3E8FF'}
                                         onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = '#FAF5FF'}>
                                         <ExternalLink size={11} /> Referral
-                                      </button>
-                                      <button onClick={() => { setTerminationTarget(apt); setTerminationType('MUTUAL'); setTerminationNotes(''); }}
-                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
-                                        style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
-                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-border)'}
-                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}>
-                                        <Archive size={11} /> Complete & Close
                                       </button>
                                     </>
                                   )

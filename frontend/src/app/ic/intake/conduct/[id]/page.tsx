@@ -287,7 +287,11 @@ export default function ConductIntakePage() {
             .then((u: Record<string, unknown>) => u.case_id || null);
         })();
         const resolved = typeof newCaseId === 'string' ? newCaseId : await newCaseId;
-        if (resolved) setCaseId(String(resolved));
+        if (!resolved) {
+          setError('Triage saved but case record could not be linked. Please refresh and try again.');
+          return;
+        }
+        setCaseId(String(resolved));
         setStep('ic_doc');
       } else {
         setError(d.error || 'Failed to save scores. Please try again.');
@@ -296,7 +300,10 @@ export default function ConductIntakePage() {
   };
 
   const handleIcDocSave = async (draft: any, isFinal: boolean) => {
-    if (!caseId) return;
+    if (!caseId) {
+      setIcDocError('Session error: case record not found. Please refresh the page and try again.');
+      return;
+    }
     setIcDocSaving(true); setIcDocError(''); setIcDocSuccess(false);
     const token = localStorage.getItem('token');
     try {
@@ -334,7 +341,7 @@ export default function ConductIntakePage() {
   };
 
   const handleReferralSubmit = async () => {
-    if (!caseId) return;
+    if (!caseId) { setDone(true); return; }
     setReferralSubmitting(true);
     const token = localStorage.getItem('token');
     try {

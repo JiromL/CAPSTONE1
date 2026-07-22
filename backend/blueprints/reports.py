@@ -62,44 +62,76 @@ def _date_range(month_str):
 
 # ─── main export endpoint ─────────────────────────────────────────────────────
 
+def _date_range_explicit(date_from, date_to, month):
+    """Resolve explicit from/to dates, falling back to month, then None."""
+    if date_from and date_to:
+        try:
+            start = datetime.strptime(date_from, '%Y-%m-%d')
+            end   = datetime.strptime(date_to,   '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            return start, end
+        except Exception:
+            pass
+    return _date_range(month)
+
+
 @reports_bp.route('/cps-export', methods=['GET'])
 @jwt_required()
 @_admin_or_dpo
 def cps_export():
     """
-    GET /api/reports/cps-export?sheet=<sheet>&month=YYYY-MM
-    sheet: new-clients | counseling-cases | checkins | all
-    month: optional filter (omit for all-time)
+    GET /api/reports/cps-export?sheet=<sheet>&from=YYYY-MM-DD&to=YYYY-MM-DD
+    sheet: service-requests | scheduled-appointments | completed-sessions |
+           no-shows | cancellations | walk-in-sessions |
+           active-caseload | closed-cases |
+           checkin-log | referral-summary | counselor-workload
+    Accepts date_from / date_to (explicit range) OR legacy month=YYYY-MM.
     """
-    sheet = request.args.get('sheet', 'new-clients')
-    month = request.args.get('month', '')
-    start, end = _date_range(month)
+    sheet      = request.args.get('sheet', 'service-requests')
+    month      = request.args.get('month', '')
+    date_from  = request.args.get('from', '')
+    date_to    = request.args.get('to', '')
+    start, end = _date_range_explicit(date_from, date_to, month)
+
+    VALID = {
+        'service-requests', 'scheduled-appointments', 'completed-sessions',
+        'no-shows', 'cancellations', 'walk-in-sessions',
+        'active-caseload', 'closed-cases',
+        'checkin-log', 'referral-summary', 'counselor-workload',
+        # legacy aliases kept for backward compat
+        'new-clients', 'counseling-cases', 'checkins',
+    }
+    if sheet not in VALID:
+        return jsonify({'error': f'Invalid sheet: {sheet}'}), 400
 
     try:
-        if sheet == 'new-clients':
+        if sheet in ('service-requests', 'new-clients'):
             rows = _sheet_new_clients(start, end)
-        elif sheet == 'counseling-cases':
+        elif sheet == 'scheduled-appointments':
+            rows = _sheet_scheduled_appointments(start, end)
+        elif sheet == 'completed-sessions':
+            rows = _sheet_completed_sessions(start, end)
+        elif sheet == 'no-shows':
+            rows = _sheet_by_status(start, end, ['NO_SHOW'], 'No-Show Report')
+        elif sheet == 'cancellations':
+            rows = _sheet_by_status(start, end, ['CANCELLED'], 'Cancellation Report')
+        elif sheet == 'walk-in-sessions':
+            rows = _sheet_walkin(start, end)
+        elif sheet in ('active-caseload', 'counseling-cases'):
             rows = _sheet_counseling_cases(start, end)
-        elif sheet == 'checkins':
+        elif sheet == 'closed-cases':
+            rows = _sheet_closed_cases(start, end)
+        elif sheet in ('checkin-log', 'checkins'):
             rows = _sheet_checkins(start, end)
-        elif sheet == 'all':
-            rows = {
-                'new_clients':       _sheet_new_clients(start, end),
-                'counseling_cases':  _sheet_counseling_cases(start, end),
-                'checkins':          _sheet_checkins(start, end),
-            }
-            audit_log(db.db, 'reports', 'export_all', new_values={'month': month or 'all'})
-            return jsonify({
-                'sheet': 'all',
-                'month': month or 'all',
-                'data': rows,
-                'totals': {k: len(v) for k, v in rows.items()},
-            }), 200
+        elif sheet == 'referral-summary':
+            rows = _sheet_referrals(start, end)
+        elif sheet == 'counselor-workload':
+            rows = _sheet_counselor_workload(start, end)
         else:
-            return jsonify({'error': 'Invalid sheet. Use: new-clients, counseling-cases, checkins, all'}), 400
+            rows = []
 
-        audit_log(db.db, 'reports', f'export_{sheet}', new_values={'month': month or 'all', 'rows': len(rows)})
-        return jsonify({'sheet': sheet, 'month': month or 'all', 'rows': rows, 'total': len(rows)}), 200
+        label = f'{date_from}_to_{date_to}' if date_from and date_to else (month or 'all')
+        audit_log(db.db, 'reports', f'export_{sheet}', new_values={'range': label, 'rows': len(rows)})
+        return jsonify({'sheet': sheet, 'range': label, 'rows': rows, 'total': len(rows)}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -340,6 +372,200 @@ def _sheet_checkins(start, end):
             'Status':         _label(c.get('client_status', '')),
         })
 
+    return rows
+
+
+# ─── New sheet builders ──────────────────────────────────────────────────────
+
+def _appt_base_row(a, student, counselor):
+    """Shared columns used across appointment-based sheets."""
+    dt = a.get('scheduled_start') or a.get('preferred_date') or a.get('created_at')
+    return {
+        'Student Name':    f"{_s(student.get('last_name'))}, {_s(student.get('first_name'))}" if student else _s(a.get('student_name', '')),
+        'Student ID':      _s(student.get('id_number') or student.get('student_id', '')) if student else '',
+        'College / Unit':  _s(student.get('department') or student.get('college', ''))   if student else '',
+        'Degree Program':  _s(student.get('course') or student.get('program', ''))       if student else '',
+        'Year Level':      _s(student.get('year_level', ''))                              if student else '',
+        'Counselor':       _name(counselor),
+        'Counselor Role':  counselor.get('role', '') if counselor else '',
+        'Date':            dt.strftime('%Y-%m-%d') if isinstance(dt, datetime) else _s(dt)[:10],
+        'Time':            dt.strftime('%H:%M')    if isinstance(dt, datetime) else '',
+        'Session Type':    _s(a.get('appointment_type') or a.get('purpose', 'Initial Consultation')),
+        'Session Mode':    _s(a.get('method') or a.get('preferred_method', '')).replace('_', ' ').title(),
+        'Concern':         _s(a.get('concern') or a.get('chief_complaint', '')),
+        'Status':          _label(a.get('status', '')),
+        'Created Date':    a['created_at'].strftime('%Y-%m-%d') if isinstance(a.get('created_at'), datetime) else '',
+    }
+
+
+def _fetch_appts_with_lookups(query):
+    appts = list(db.db.appointments.find(query).sort('scheduled_start', -1).limit(2000))
+    s_ids = [a['student_id']  for a in appts if a.get('student_id')]
+    c_ids = [a['counselor_id'] for a in appts if a.get('counselor_id')]
+    students   = {u['_id']: u for u in db.db.users.find({'_id': {'$in': s_ids}})}
+    counselors = {u['_id']: u for u in db.db.users.find({'_id': {'$in': c_ids}})}
+    return appts, students, counselors
+
+
+def _sheet_scheduled_appointments(start, end):
+    """Confirmed / approved / matched appointments."""
+    q = {'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED', 'SCHEDULED']}}
+    if start and end:
+        q['$or'] = [{'scheduled_start': {'$gte': start, '$lt': end}},
+                    {'created_at': {'$gte': start, '$lt': end}}]
+    appts, students, counselors = _fetch_appts_with_lookups(q)
+    rows = []
+    for a in appts:
+        row = _appt_base_row(a, students.get(a.get('student_id')), counselors.get(a.get('counselor_id')))
+        dt_sched = a.get('scheduled_start')
+        row['Scheduled Date'] = dt_sched.strftime('%Y-%m-%d') if isinstance(dt_sched, datetime) else ''
+        row['Scheduled Time'] = dt_sched.strftime('%H:%M')    if isinstance(dt_sched, datetime) else ''
+        rows.append(row)
+    return rows
+
+
+def _sheet_completed_sessions(start, end):
+    """Sessions marked COMPLETED."""
+    q = {'status': 'COMPLETED'}
+    if start and end:
+        q['$or'] = [{'scheduled_start': {'$gte': start, '$lt': end}},
+                    {'completed_at': {'$gte': start, '$lt': end}}]
+    appts, students, counselors = _fetch_appts_with_lookups(q)
+    rows = []
+    for a in appts:
+        student   = students.get(a.get('student_id'))
+        counselor = counselors.get(a.get('counselor_id'))
+        row = _appt_base_row(a, student, counselor)
+        completed = a.get('completed_at') or a.get('updated_at')
+        row['Completed Date'] = completed.strftime('%Y-%m-%d') if isinstance(completed, datetime) else ''
+        row['Has Evaluation'] = 'Yes' if a.get('evaluation') else 'No'
+        rows.append(row)
+    return rows
+
+
+def _sheet_by_status(start, end, statuses, _label_unused):
+    """Generic attendance issue sheet (no-shows, cancellations)."""
+    q = {'status': {'$in': statuses}}
+    if start and end:
+        q['$or'] = [{'scheduled_start': {'$gte': start, '$lt': end}},
+                    {'updated_at': {'$gte': start, '$lt': end}}]
+    appts, students, counselors = _fetch_appts_with_lookups(q)
+    rows = []
+    for a in appts:
+        row = _appt_base_row(a, students.get(a.get('student_id')), counselors.get(a.get('counselor_id')))
+        row['Cancellation Reason'] = _s(a.get('cancellation_reason') or a.get('cancel_reason', ''))
+        rows.append(row)
+    return rows
+
+
+def _sheet_walkin(start, end):
+    """Walk-in sessions only."""
+    walkin_methods = ['walk-in', 'walkin', 'walk_in', 'in-person', 'face_to_face']
+    q = {'method': {'$in': walkin_methods}}
+    if start and end:
+        q['created_at'] = {'$gte': start, '$lt': end}
+    appts, students, counselors = _fetch_appts_with_lookups(q)
+    rows = []
+    for a in appts:
+        row = _appt_base_row(a, students.get(a.get('student_id')), counselors.get(a.get('counselor_id')))
+        rows.append(row)
+    return rows
+
+
+def _sheet_closed_cases(start, end):
+    """Cases with CLOSED / CANCELLED status."""
+    q = {'status': {'$in': ['CLOSED', 'CANCELLED', 'closed', 'cancelled']}}
+    if start and end:
+        q['$or'] = [{'closed_at': {'$gte': start, '$lt': end}},
+                    {'updated_at': {'$gte': start, '$lt': end}}]
+    cases = list(db.db.cases.find(q).sort('closed_at', -1).limit(1000))
+    c_ids = [c.get('counselor_id') or c.get('assigned_counselor_id') for c in cases if c.get('counselor_id') or c.get('assigned_counselor_id')]
+    s_ids = [c['student_id'] for c in cases if c.get('student_id')]
+    counselors = {u['_id']: u for u in db.db.users.find({'_id': {'$in': c_ids}})}
+    students   = {u['_id']: u for u in db.db.users.find({'_id': {'$in': s_ids}})}
+    rows = []
+    for c in cases:
+        student   = students.get(c.get('student_id'))
+        counselor = counselors.get(c.get('counselor_id') or c.get('assigned_counselor_id'))
+        closed    = c.get('closed_at') or c.get('updated_at')
+        rows.append({
+            'Case Number':       _s(c.get('case_number', '')),
+            'Student Name':      f"{_s(student.get('last_name'))}, {_s(student.get('first_name'))}" if student else '',
+            'Student ID':        _s(student.get('id_number', '')) if student else '',
+            'College / Unit':    _s(student.get('department') or student.get('college', '')) if student else '',
+            'Degree Program':    _s(student.get('course') or student.get('program', ''))    if student else '',
+            'Counselor':         _name(counselor),
+            'Opening Date':      c['created_at'].strftime('%Y-%m-%d') if isinstance(c.get('created_at'), datetime) else '',
+            'Closing Date':      closed.strftime('%Y-%m-%d')          if isinstance(closed, datetime) else '',
+            'Sessions Completed':_s(c.get('session_count', 0)),
+            'Closure Reason':    _s(c.get('closure_reason') or c.get('close_reason', '')),
+            'Final Risk Level':  _s(c.get('risk_level', 'GREEN')),
+            'Final Status':      _label(c.get('status', '')),
+        })
+    return rows
+
+
+def _sheet_referrals(start, end):
+    """Referral summary report."""
+    q = {}
+    if start and end:
+        q['created_at'] = {'$gte': start, '$lt': end}
+    refs = list(db.db.referrals.find(q).sort('created_at', -1).limit(1000))
+    u_ids = list({r.get('from_user_id') for r in refs if r.get('from_user_id')} |
+                 {r.get('to_user_id')   for r in refs if r.get('to_user_id')})
+    c_ids = [r.get('case_id') for r in refs if r.get('case_id')]
+    users  = {u['_id']: u for u in db.db.users.find({'_id': {'$in': u_ids}})}
+    cases  = {c['_id']: c for c in db.db.cases.find({'_id': {'$in': c_ids}})}
+    rows = []
+    for r in refs:
+        case    = cases.get(r.get('case_id'))
+        from_u  = users.get(r.get('from_user_id'))
+        to_u    = users.get(r.get('to_user_id'))
+        s_id    = case.get('student_id') if case else None
+        student = db.db.users.find_one({'_id': s_id}) if s_id else None
+        created = r.get('created_at')
+        rows.append({
+            'Referral Date':       created.strftime('%Y-%m-%d') if isinstance(created, datetime) else '',
+            'Student Name':        f"{_s(student.get('last_name'))}, {_s(student.get('first_name'))}" if student else '',
+            'Student ID':          _s(student.get('id_number', '')) if student else '',
+            'College / Unit':      _s(student.get('department') or student.get('college', '')) if student else '',
+            'Case Number':         _s(case.get('case_number', '')) if case else '',
+            'Referral Type':       _s(r.get('referral_type', '')).replace('_', ' ').title(),
+            'Referred By':         _name(from_u),
+            'Referred To (Name)':  _name(to_u),
+            'Referred To (Role)':  _s(r.get('assigned_to_role') or (to_u.get('role') if to_u else '')),
+            'Reason':              _s(r.get('reason', '')),
+            'Urgency':             _s(r.get('urgency', '')).title(),
+            'Status':              _label(r.get('status', '')),
+        })
+    return rows
+
+
+def _sheet_counselor_workload(start, end):
+    """Per-counselor session and caseload summary."""
+    staff = list(db.db.users.find({'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER']}}))
+    q_appt = {}
+    if start and end:
+        q_appt['scheduled_start'] = {'$gte': start, '$lt': end}
+    all_appts = list(db.db.appointments.find(q_appt, {'counselor_id': 1, 'status': 1}))
+    q_case = {'status': {'$nin': ['CLOSED', 'CANCELLED', 'closed', 'cancelled']}}
+    all_cases = list(db.db.cases.find(q_case, {'counselor_id': 1, 'assigned_counselor_id': 1, 'status': 1}))
+    rows = []
+    for u in staff:
+        uid = u['_id']
+        appts_for = [a for a in all_appts if a.get('counselor_id') == uid]
+        cases_for = [c for c in all_cases if c.get('counselor_id') == uid or c.get('assigned_counselor_id') == uid]
+        rows.append({
+            'Counselor Name':        _name(u),
+            'Role':                  u.get('role', ''),
+            'Active Cases':          str(len(cases_for)),
+            'Total Sessions (Period)': str(len(appts_for)),
+            'Completed Sessions':    str(sum(1 for a in appts_for if a.get('status') == 'COMPLETED')),
+            'No-Shows':              str(sum(1 for a in appts_for if a.get('status') == 'NO_SHOW')),
+            'Cancellations':         str(sum(1 for a in appts_for if a.get('status') == 'CANCELLED')),
+            'Pending Sessions':      str(sum(1 for a in appts_for if a.get('status') in ('CONFIRMED', 'SCHEDULED', 'APPROVED', 'MATCHED'))),
+        })
+    rows.sort(key=lambda r: int(r['Active Cases']), reverse=True)
     return rows
 
 

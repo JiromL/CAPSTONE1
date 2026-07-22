@@ -35,7 +35,7 @@ interface Appointment {
 const TABS = [
   { key: 'upcoming',   label: 'Upcoming',    icon: CalendarDays },
   { key: 'evaluation', label: 'Rate Session', icon: Star },
-  { key: 'past',       label: 'Completed',   icon: History },
+  { key: 'past',       label: 'Attended',    icon: History },
   { key: 'cancelled',  label: 'Cancelled',   icon: X },
 ] as const;
 
@@ -60,9 +60,9 @@ const STATUS_CFG: Record<string, StatusConfig> = {
   RESCHEDULE_REQUESTED:     { label: 'Reschedule pending', bg: 'var(--color-primary-surface)', text: 'var(--color-primary)',  ring: 'var(--color-primary)' },
   PENDING_STUDENT_APPROVAL: { label: 'Action required',    bg: 'var(--color-primary-surface)', text: 'var(--color-primary)',  ring: 'var(--color-primary)' },
   EVALUATION:               { label: 'Rate your session',  bg: 'var(--color-warning-surface)', text: 'var(--color-warning)',  ring: 'var(--color-warning)' },
-  FOLLOW_UP:                { label: 'Completed',          bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
-  REFERRAL:                 { label: 'Completed',          bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
-  COMPLETED:                { label: 'Completed',          bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
+  FOLLOW_UP:                { label: 'Attended',           bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
+  REFERRAL:                 { label: 'Attended',           bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
+  COMPLETED:                { label: 'Attended',           bg: 'var(--color-bg)',              text: 'var(--color-text-muted)', ring: 'var(--color-border)' },
   CANCELLED:                { label: 'Cancelled',          bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',   ring: 'var(--color-danger)' },
   DENIED:                   { label: 'Cancelled',          bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',   ring: 'var(--color-danger)' },
   NO_SHOW:                  { label: 'Missed',             bg: 'var(--color-danger-surface)',  text: 'var(--color-danger)',   ring: 'var(--color-danger)' },
@@ -72,8 +72,8 @@ const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
 
 const PURPOSE_LABEL: Record<string, string> = {
   intake_interview:       'Initial Consultation',
-  follow_up:              'Follow-up Session',
-  follow_up_counselling:  'Follow-up Session',
+  follow_up:              'Counseling Session',
+  follow_up_counselling:  'Counseling Session',
   counseling:             'Counseling Session',
   others:                 'General Session',
 };
@@ -593,6 +593,14 @@ export default function MyAppointmentsPage() {
                             style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>
                             <Eye size={11} /> View Forms
                           </button>
+                        )}
+                        {['CONFIRMED', 'APPROVED', 'MATCHED'].includes(appt.status) && (
+                          <Link href={`/appointment-slip/${appt.appointment_id || appt._id}`}>
+                            <button className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl transition border hover:opacity-90"
+                              style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)' }}>
+                              <FileText size={11} /> View Slip
+                            </button>
+                          </Link>
                         )}
                         {awaitingConfirmation && (
                           <div className="flex flex-col gap-1.5 mt-1">

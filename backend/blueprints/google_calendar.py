@@ -10,7 +10,7 @@ from integrations.token_store import get_tokens, save_tokens
 from models import db, PermissionType
 from utils import user_has_permission
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 calendar_bp = Blueprint('calendar', __name__, url_prefix='/api/calendar')
@@ -329,21 +329,25 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
             'follow_up_counselling': 'Follow-up Session',
         }.get(appointment_data.get('purpose', ''), 'Counseling Session')
 
+        def _to_pht_iso(dt):
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone(timedelta(hours=8)))
+            return dt.isoformat()
+
         event = {
             'summary': f"CPS {purpose_label} — {s_name}",
             'description': (
                 f"DLSU Counseling & Psychological Services\n\n"
                 f"Student: {s_name}\n"
                 f"Counselor: {c_name}\n"
-                f"Type: {purpose_label}\n"
-                f"Case: {str(case_id) if case_id else 'N/A'}"
+                f"Type: {purpose_label}"
             ),
             'start': {
-                'dateTime': start_time.isoformat(),
-                'timeZone': 'Asia/Manila'  # DLSU timezone
+                'dateTime': _to_pht_iso(start_time),
+                'timeZone': 'Asia/Manila'
             },
             'end': {
-                'dateTime': end_time.isoformat(),
+                'dateTime': _to_pht_iso(end_time),
                 'timeZone': 'Asia/Manila'
             },
             'attendees': [

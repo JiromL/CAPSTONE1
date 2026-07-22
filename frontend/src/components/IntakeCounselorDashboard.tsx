@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, CheckCircle, AlertCircle, ClipboardList, CalendarClock, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, ClipboardList, CalendarClock, ChevronRight } from 'lucide-react';
 import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface DashboardProps { user: any; onLogout: () => void; }
@@ -65,14 +65,11 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
       </div>
 
       {/* Quick action strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5 animate-fade-up" style={{ animationDelay: '40ms' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 animate-fade-up" style={{ animationDelay: '40ms' }}>
         {[
           { label: 'Intake Management', href: '/intake-management', icon: ClipboardList,
             count: needsAction.length,
             sublabel: needsAction.length > 0 ? `${needsAction.length} awaiting confirmation` : 'Manage your intake pipeline' },
-          { label: 'QA', href: '/ic/qa', icon: ShieldCheck,
-            count: null,
-            sublabel: 'Verify, review & follow-up' },
           { label: 'My Availability', href: '/availability', icon: CalendarClock,
             count: null,
             sublabel: 'Manage your open slots' },

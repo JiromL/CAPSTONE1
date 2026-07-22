@@ -581,10 +581,10 @@ def check_active_appointment():
                 'has_active_appointment': False,
                 'can_self_book': False,
                 'booking_gate': 'case_closed',
-                'message': 'Your previous case is closed. If you need further support, please visit the CPS office to start a new intake.',
+                'message': 'Your case is currently closed. If you need continued support, please visit or contact the CPS office and they will reactivate your record.',
             }), 200
 
-        # ACTIVE case with assigned counselor — eligible for self-booking
+        # ACTIVE case with assigned counselor — counselor owns the schedule
         counselor_name = None
         if assigned_counselor:
             try:
@@ -593,6 +593,31 @@ def check_active_appointment():
                     counselor_name = f"{c.get('first_name','')} {c.get('last_name','')}".strip()
             except Exception:
                 pass
+
+        if case_status == 'ACTIVE' and assigned_counselor:
+            return jsonify({
+                'has_active_appointment': False,
+                'can_self_book': False,
+                'booking_gate': 'counselor_owns_scheduling',
+                'case_id': str(student_case['_id']),
+                'case_status': case_status,
+                'assigned_counselor_id': str(assigned_counselor) if assigned_counselor else None,
+                'assigned_counselor_name': counselor_name,
+                'message': f'You have an active counseling relationship with {counselor_name or "your counselor"}. '
+                           'Your counselor will schedule your next session directly.',
+            }), 200
+
+        if case_status == 'ACTIVE' and not assigned_counselor:
+            # Active case but no counselor assigned yet — send to office, not self-booking
+            return jsonify({
+                'has_active_appointment': False,
+                'can_self_book': False,
+                'booking_gate': 'no_active_counselor',
+                'case_id': str(student_case['_id']),
+                'case_status': case_status,
+                'message': 'Your case is active but a counselor has not been assigned yet. '
+                           'Please contact the CPS office for assistance.',
+            }), 200
 
         return jsonify({
             'has_active_appointment': False,
@@ -663,6 +688,12 @@ def request_appointment():
         preferred_date_str = data.get('preferred_date')
         preferred_time_str = data.get('preferred_time')
         if preferred_date_str and preferred_time_str:
+            # Block booking on declared holidays
+            holiday_doc = db.db.holidays.find_one({'date': preferred_date_str})
+            if holiday_doc:
+                return jsonify({
+                    'error': f"Cannot book on {holiday_doc['name']}. This date is a declared university holiday."
+                }), 400
             try:
                 datetime_str = f"{preferred_date_str}T{preferred_time_str}:00"
                 requested_start = datetime.fromisoformat(datetime_str)
@@ -1854,6 +1885,17 @@ def get_counselor_slots():
     if not counselor:
         return jsonify({'error': 'Counselor not found'}), 404
 
+    # Early-exit: declared university holiday
+    holiday = db.db.holidays.find_one({'date': date_str})
+    if holiday:
+        return jsonify({'slots': [], 'date': date_str,
+                        'is_holiday': True, 'holiday_name': holiday['name']}), 200
+
+    # Early-exit: counselor has marked this date as leave
+    leave = db.db.counselor_leaves.find_one({'counselor_id': counselor_oid, 'date': date_str})
+    if leave:
+        return jsonify({'slots': [], 'date': date_str, 'is_leave': True}), 200
+
     SLOT_DURATION = 60  # minutes
     dow = target_date.weekday()
 
@@ -1959,8 +2001,24 @@ def student_pick_slot(appointment_id):
         if conflict:
             return jsonify({'error': 'That slot was just taken. Please pick another time.'}), 409
 
-    db.db.appointments.update_one(
-        {'_id': apt_id},
+    # Re-check conflict one final time immediately before writing (closes TOCTOU window)
+    if counselor_id:
+        conflict = db.db.appointments.find_one({
+            'counselor_id': counselor_id,
+            '_id': {'$ne': apt_id},
+            'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
+            '$or': [
+                {'scheduled_start': {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
+                {'requested_start':  {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
+            ],
+        })
+        if conflict:
+            return jsonify({'error': 'That slot was just taken. Please pick another time.'}), 409
+
+    # Conditional update — only modifies the appointment if it is still REQUESTED,
+    # acting as an optimistic lock against concurrent picks of the same appointment.
+    result = db.db.appointments.update_one(
+        {'_id': apt_id, 'status': AppointmentStatus.REQUESTED.value},
         {'$set': {
             'requested_start':  scheduled_start,
             'scheduled_start':  scheduled_start,
@@ -1970,6 +2028,8 @@ def student_pick_slot(appointment_id):
             'updated_at':       datetime.utcnow(),
         }}
     )
+    if result.matched_count == 0:
+        return jsonify({'error': 'This appointment was just claimed by another request. Please try again.'}), 409
 
     audit_log(db.db, 'appointments', 'student_scheduled', entity_id=str(apt_id),
               new_values={'scheduled_start': scheduled_start.isoformat(), 'scheduled_by': 'student'})
@@ -2129,7 +2189,7 @@ def set_evaluation(appointment_id):
     now = datetime.utcnow()
     db.db.appointments.update_one(
         {'_id': apt['_id']},
-        {'$set': {'status': AppointmentStatus.EVALUATION.value, 'updated_at': now}}
+        {'$set': {'status': AppointmentStatus.COMPLETED.value, 'updated_at': now, 'completed_at': now}}
     )
 
     # Reset consecutive no-show counter — student attended
@@ -2141,7 +2201,7 @@ def set_evaluation(appointment_id):
             upsert=False
         )
 
-    return jsonify({'message': 'Moved to evaluation', 'status': AppointmentStatus.EVALUATION.value}), 200
+    return jsonify({'message': 'Session marked complete', 'status': AppointmentStatus.COMPLETED.value}), 200
 
 
 @appointments_bp.route('/<appointment_id>/set-follow-up', methods=['POST'])
@@ -2177,13 +2237,21 @@ def set_follow_up(appointment_id):
     except Exception:
         return jsonify({'error': 'Invalid scheduled_start format. Use ISO 8601.'}), 400
 
+    # Conflict check — ensure the counselor has no overlapping appointment at the requested time
+    counselor_id = apt.get('counselor_id')
+    if counselor_id and has_conflicting_appointment(counselor_id, sched_start, sched_end):
+        return jsonify({
+            'error': 'The selected time conflicts with another appointment for this counselor. Please choose a different time.'
+        }), 409
+
     now = datetime.utcnow()
 
-    # Mark the current appointment as FOLLOW_UP (records that a follow-up was scheduled)
+    # Mark the current appointment as COMPLETED (follow-up link is carried on the new appointment)
     db.db.appointments.update_one(
         {'_id': apt['_id']},
-        {'$set': {'status': AppointmentStatus.FOLLOW_UP.value, 'updated_at': now,
-                  'follow_up_notes': data.get('notes', '')}}
+        {'$set': {'status': AppointmentStatus.COMPLETED.value, 'updated_at': now,
+                  'completed_at': now, 'follow_up_notes': data.get('notes', ''),
+                  'follow_up_scheduled_at': now}}
     )
 
     # Generate counseling_id for new appointment
@@ -4588,4 +4656,42 @@ def complete_with_termination(appointment_id):
         'message': 'Appointment completed and case closed.',
         'termination_type': termination_type,
         'status': AppointmentStatus.COMPLETED.value,
+    }), 200
+
+
+@appointments_bp.route('/walkin-capacity', methods=['GET'])
+@jwt_required()
+def walkin_capacity():
+    """Return today's walk-in capacity for a counselor (or overall CPS)."""
+    counselor_id_str = request.args.get('counselor_id')
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end   = datetime.utcnow().replace(hour=23, minute=59, second=59, microsecond=0)
+
+    query = {
+        'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
+        '$or': [
+            {'scheduled_start': {'$gte': today_start, '$lte': today_end}},
+            {'requested_start':  {'$gte': today_start, '$lte': today_end}},
+        ],
+    }
+    if counselor_id_str:
+        try:
+            query['counselor_id'] = ObjectId(counselor_id_str)
+        except Exception:
+            return jsonify({'error': 'Invalid counselor_id'}), 400
+
+    confirmed_today = db.db.appointments.count_documents(query)
+
+    # Max capacity: read from system booking_rules, fall back to defaults
+    rules = db.db.booking_rules.find_one({'type': 'system'}) or {}
+    if counselor_id_str:
+        max_capacity = int(rules.get('max_daily_appointments_per_counselor', 8))
+    else:
+        max_capacity = int(rules.get('max_daily_walkins', 20))
+
+    return jsonify({
+        'confirmed_today': confirmed_today,
+        'max_capacity': max_capacity,
+        'has_capacity': confirmed_today < max_capacity,
+        'slots_remaining': max(0, max_capacity - confirmed_today),
     }), 200

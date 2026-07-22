@@ -9,6 +9,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, UserRole, PermissionType, ROLE_PERMISSIONS
 from utils import audit_log, user_has_permission
+from limiter_instance import limiter
 from services.oauth_service import OAuthService
 from services.email_service import EmailService
 from datetime import datetime, timedelta
@@ -133,6 +134,7 @@ def google_oauth_callback():
 
 
 @auth_bp.route('/register', methods=['POST'])
+@limiter.limit("5 per minute; 20 per hour")
 def register():
     """Register a new user with email verification"""
     data = request.get_json()
@@ -199,7 +201,7 @@ def register():
         "password_hash": generate_password_hash(data['password']),
         "first_name": data['first_name'],
         "last_name": data['last_name'],
-        "role": data.get('role', UserRole.STUDENT.value),
+        "role": UserRole.STUDENT.value,
         "phone": data.get('phone'),
         "department": data.get('department'),
         "specializations": data.get('specializations', []),
@@ -379,6 +381,7 @@ def resend_code():
 
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("10 per minute; 50 per hour")
 def login():
     """Login user with email or student ID + password, return JWT token"""
     data = request.get_json()
@@ -498,8 +501,9 @@ def update_user_role(user_id):
         return jsonify({'error': 'Permission denied'}), 403
     
     data = request.get_json()
-    if not data.get('role'):
-        return jsonify({'error': 'Missing role'}), 400
+    valid_roles = [r.value for r in UserRole]
+    if data.get('role') not in valid_roles:
+        return jsonify({'error': f"Invalid role. Must be one of: {valid_roles}"}), 400
     
     try:
         target_user = db.db.users.find_one({"_id": ObjectId(user_id)})
@@ -557,6 +561,7 @@ def get_roles():
 
 
 @auth_bp.route('/forgot-password', methods=['POST'])
+@limiter.limit("3 per minute; 10 per hour")
 def forgot_password():
     """Send password reset link to email"""
     data = request.get_json() or {}

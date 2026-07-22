@@ -29,6 +29,7 @@ interface BookingRules {
   operating_hours_end: string; slot_duration_minutes: number;
   min_days_ahead: number; max_days_ahead: number;
   blackout_dates: string[]; last_slot_start: string;
+  max_daily_walkins: number; max_daily_appointments_per_counselor: number;
 }
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -63,6 +64,7 @@ export default function StaffSettingsPage() {
     operating_days: [1,2,3,4,5], operating_hours_start: '08:00',
     operating_hours_end: '17:00', slot_duration_minutes: 60,
     min_days_ahead: 1, max_days_ahead: 30, blackout_dates: [], last_slot_start: '16:00',
+    max_daily_walkins: 20, max_daily_appointments_per_counselor: 8,
   });
   const [savingRules, setSavingRules] = useState(false);
   const [newBlackout, setNewBlackout] = useState('');
@@ -557,6 +559,31 @@ export default function StaffSettingsPage() {
                     className={IC} style={ICS}>
                     {[30,45,50,60,90].map(v => <option key={v} value={v}>{v} min</option>)}
                   </select>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <SH_SM>Daily Capacity Limits</SH_SM>
+              <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
+                Controls the walk-in capacity banner shown to staff on the Appointment Requests page.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Max walk-ins per day (overall)</label>
+                  <input type="number" min="1" max="100"
+                    value={bookingRules.max_daily_walkins}
+                    onChange={e => setBookingRules({ ...bookingRules, max_daily_walkins: Number(e.target.value) })}
+                    className={IC} style={ICS} />
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>When reached, banner turns red</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Max sessions per counselor per day</label>
+                  <input type="number" min="1" max="50"
+                    value={bookingRules.max_daily_appointments_per_counselor}
+                    onChange={e => setBookingRules({ ...bookingRules, max_daily_appointments_per_counselor: Number(e.target.value) })}
+                    className={IC} style={ICS} />
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Used when checking per-counselor capacity</p>
                 </div>
               </div>
             </Card>

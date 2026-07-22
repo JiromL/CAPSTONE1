@@ -14,10 +14,8 @@ import {
 import { SignaturePad } from '@/components/SignaturePad';
 
 const PURPOSES = [
-  { value: 'intake_interview',      label: "First time — I'd like to talk to someone", desc: "We'll walk you through everything, step by step" },
-  { value: 'counseling',            label: 'Continuing Counseling',                    desc: 'A follow-on session with your counselor' },
-  { value: 'follow_up_counselling', label: 'Follow-up',                                desc: 'A scheduled follow-up with your care team' },
-  { value: 'others',                label: 'Something else',                           desc: "Tell us a bit more and we'll find the right fit" },
+  { value: 'intake_interview', label: "First time — I'd like to talk to someone", desc: "We'll walk you through everything, step by step" },
+  { value: 'others',           label: 'Something else',                           desc: "Tell us a bit more and we'll find the right fit" },
 ];
 
 const PHQ4Q = [
@@ -155,6 +153,7 @@ export default function BookAppointmentPage() {
   const [slots, setSlots]                 = useState<{ time: string; method: string; counselor_id: string; counselor_name: string; count?: number }[]>([]);
   const [slotsLoading, setSlotsLoading]   = useState(false);
   const [noSlotsNextDate, setNoSlotsNextDate] = useState<string | null>(null);
+  const [slotsBlockedMsg, setSlotsBlockedMsg] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
   const [requestAnyway, setRequestAnyway] = useState(false);
 
@@ -201,7 +200,13 @@ export default function BookAppointmentPage() {
       try { const r = await fetch(api('/api/staff/settings/booking-rules'), { headers: { Authorization: `Bearer ${token}` } }); if (r.ok) setBookingRules(await r.json()); } catch {}
       try {
         const r = await fetch(api('/api/appointments/active'), { headers: { Authorization: `Bearer ${token}` } });
-        if (r.ok) { const d = await r.json(); setBookingGate(d.booking_gate ?? (d.can_self_book ? 'eligible' : 'no_case')); setGateMessage(d.message ?? ''); if (d.has_active_appointment) setActiveAppt(d); }
+        if (r.ok) {
+          const d = await r.json();
+          const gate = d.booking_gate ?? (d.can_self_book ? 'eligible' : 'no_case');
+          setBookingGate(gate);
+          setGateMessage(d.message ?? '');
+          if (d.has_active_appointment) setActiveAppt(d);
+        }
       } catch {}
       try {
         const r = await fetch(api('/api/mhbot/my-perma'), { headers: { Authorization: `Bearer ${token}` } });
@@ -258,20 +263,37 @@ export default function BookAppointmentPage() {
   }, [purpose]);
 
   useEffect(() => {
-    if (!prefDate || purpose === 'others') { setSlots([]); setNoSlotsNextDate(null); return; }
+    if (!prefDate || purpose === 'others') {
+      setSlots([]); setNoSlotsNextDate(null); setSlotsBlockedMsg(null); return;
+    }
     const token = localStorage.getItem('token');
-    setSlotsLoading(true); setPrefTime(''); setSlotCounselorId('');
+    setSlotsLoading(true); setPrefTime(''); setSlotCounselorId(''); setSlotsBlockedMsg(null);
     if (purpose === 'intake_interview') {
       fetch(api(`/api/availability/open-slots?date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => { setSlots(d.slots || []); setNoSlotsNextDate(d.next_available_date || null); })
+        .then(r => r.json()).then(d => {
+          if (d.is_holiday) {
+            setSlotsBlockedMsg(`No sessions on ${d.holiday_name} — this is a declared university holiday.`);
+            setSlots([]); setNoSlotsNextDate(null);
+          } else {
+            setSlots(d.slots || []); setNoSlotsNextDate(d.next_available_date || null);
+          }
+        })
         .catch(() => setSlots([])).finally(() => setSlotsLoading(false));
     } else if (selectedCounselorId) {
       fetch(api(`/api/availability/free-slots?counselor_id=${selectedCounselorId}&date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => {
-          const method = d.session_method || 'in-person';
-          const name = assignedCounselor ? assignedCounselor.name : '';
-          setSlots((d.slots || []).map((t: string) => ({ time: t, method, counselor_id: selectedCounselorId, counselor_name: name })));
-          setNoSlotsNextDate(null);
+          if (d.is_holiday) {
+            setSlotsBlockedMsg(`No sessions on ${d.holiday_name} — this is a declared university holiday.`);
+            setSlots([]); setNoSlotsNextDate(null);
+          } else if (d.is_leave) {
+            setSlotsBlockedMsg('Your counselor is not available on this date. Please choose another day.');
+            setSlots([]); setNoSlotsNextDate(null);
+          } else {
+            const method = d.session_method || 'in-person';
+            const name = assignedCounselor ? assignedCounselor.name : '';
+            setSlots((d.slots || []).map((t: string) => ({ time: t, method, counselor_id: selectedCounselorId, counselor_name: name })));
+            setNoSlotsNextDate(null);
+          }
         }).catch(() => setSlots([])).finally(() => setSlotsLoading(false));
     } else { setSlots([]); setSlotsLoading(false); }
   }, [prefDate, selectedCounselorId, purpose]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -289,7 +311,7 @@ export default function BookAppointmentPage() {
     if (bookStep === 0) {
       if (!purpose) { setError('Please select a session type.'); return; }
       if (purpose !== 'others' && !slotMethod) { setError('Please select a session mode.'); return; }
-      if (['counseling','follow_up_counselling'].includes(purpose) && assignedCounselor === null && !selectedCounselorId) { setError('Please select a counselor.'); return; }
+      if (purpose === 'counseling' && assignedCounselor === null && !selectedCounselorId) { setError('Please select a counselor.'); return; }
       if (purpose === 'others') { setBookStep(2); return; }
       setBookStep(1);
     } else if (bookStep === 1) {
@@ -306,7 +328,7 @@ export default function BookAppointmentPage() {
     if (purpose !== 'others') {
       if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
       if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
-      if (['counseling','follow_up_counselling'].includes(purpose) && !selectedCounselorId && !requestAnyway) { setError('Please select a counselor.'); return; }
+      if (purpose === 'counseling' && !selectedCounselorId && !requestAnyway) { setError('Please select a counselor.'); return; }
     }
     if (referralType === 'referred' && !referredBy.trim()) { setError('Please specify who referred you.'); return; }
     if (prefDate && bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
@@ -381,11 +403,13 @@ export default function BookAppointmentPage() {
 
   // Gate
   const GATE_CFG: Record<string, { icon: string; title: string; bg: string; border: string; text: string; cta?: { label: string; href: string } }> = {
-    has_active_appointment: { icon:'📋', title:'You already have an active appointment', bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)', cta:{ label:'View Appointments', href:'/my-appointments' } },
-    no_case:                { icon:'🏥', title:'Walk-in intake required for first-time clients', bg:'var(--color-primary-surface)', border:'var(--color-primary)', text:'var(--color-primary)' },
-    awaiting_intake:        { icon:'⏳', title:'Your intake appointment is pending', bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)', cta:{ label:'View Appointments', href:'/my-appointments' } },
-    pending_termination:    { icon:'⚠️', title:'Your case is pending closure', bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
-    case_closed:            { icon:'📁', title:'Your previous case is closed', bg:'var(--color-bg)', border:'var(--color-border)', text:'var(--color-text-secondary)' },
+    has_active_appointment:    { icon:'📋', title:'You already have an active appointment',           bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)',         cta:{ label:'View Appointments', href:'/my-appointments' } },
+    no_case:                   { icon:'🏥', title:'Walk-in intake required for first-time clients',   bg:'var(--color-primary-surface)', border:'var(--color-primary)', text:'var(--color-primary)' },
+    awaiting_intake:           { icon:'⏳', title:'Your intake appointment is pending',               bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)',         cta:{ label:'View Appointments', href:'/my-appointments' } },
+    pending_termination:       { icon:'⚠️', title:'Your case is pending closure',                     bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
+    case_closed:               { icon:'📁', title:'Your case is currently closed',                    bg:'var(--color-bg)',              border:'var(--color-border)',   text:'var(--color-text-secondary)' },
+    counselor_owns_scheduling: { icon:'📅', title:'Your counselor will schedule your next session',   bg:'var(--color-success-surface)', border:'var(--color-success)', text:'var(--color-success)',         cta:{ label:'View My Appointments', href:'/my-appointments' } },
+    no_active_counselor:       { icon:'👤', title:'No counselor assigned yet',                        bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
   };
   if (bookingGate && bookingGate !== 'eligible' && !resumeId) {
     const cfg = GATE_CFG[bookingGate] ?? { icon:'🔒', title:'Booking unavailable', bg:'var(--color-bg)', border:'var(--color-border)', text:'var(--color-text-secondary)' };
@@ -833,7 +857,7 @@ export default function BookAppointmentPage() {
             <button onClick={() => router.push('/my-appointments')}
               className="px-5 py-2.5 text-white text-sm font-semibold rounded-xl transition hover:opacity-90"
               style={{ background: 'var(--color-primary)' }}>View My Appointments</button>
-            <button onClick={() => { setSuccess(false); setConcern(''); setPrefDate(''); setPrefTime(''); setPurpose('counseling'); setFormSkipped(false); setBookStep(0); }}
+            <button onClick={() => { setSuccess(false); setConcern(''); setPrefDate(''); setPrefTime(''); setPurpose('intake_interview'); setFormSkipped(false); setBookStep(0); }}
               className="px-5 py-2.5 text-sm rounded-xl transition border"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
@@ -884,7 +908,7 @@ export default function BookAppointmentPage() {
             <p className="text-xs text-center mb-5" style={{ color: 'var(--color-text-muted)' }}>Please review your appointment details before confirming.</p>
             <div className="space-y-2.5 mb-6">
               {[
-                ['Purpose', purpose==='intake_interview'?'Intake Interview':purpose==='counseling'?'Counseling':purpose==='follow_up_counselling'?'Follow-up':purpose],
+                ['Purpose', purpose==='intake_interview'?'Intake Interview':purpose==='counseling'?'Counseling Session':'Other'],
                 ['Mode', `${slotMethod==='F2F'?'Face to Face':'Online'}${slotMethod==='Online'&&prefPlatform?` · ${prefPlatform==='google-meet'?'Google Meet':'Zoom'}`:''}`],
                 ...(prefDate ? [['Date & Time', `${new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'short',month:'short',day:'numeric'})}${prefTime?` at ${fmtT(prefTime)}`:''}`]] : []),
                 ...(concern ? [['Concern', concern]] : []),
@@ -1023,6 +1047,14 @@ export default function BookAppointmentPage() {
                 </div>
                 <div className="p-5 space-y-4">
                   {/* Purpose cards */}
+                  {bookingGate === 'eligible' && (
+                    <div className="flex items-start gap-2.5 rounded-xl px-4 py-3 mb-1" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+                      <AlertCircle size={14} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />
+                      <p className="text-xs" style={{ color: 'var(--color-warning)' }}>
+                        <strong>You have an active case</strong> — your counselor will schedule your ongoing sessions. Use this form only for urgent requests or other matters.
+                      </p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
                     {PURPOSES.map(p => {
                       const sel = purpose === p.value;
@@ -1060,7 +1092,7 @@ export default function BookAppointmentPage() {
                   )}
 
                   {/* Counselor */}
-                  {['counseling','follow_up_counselling'].includes(purpose) && (
+                  {purpose === 'counseling' && (
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Counselor <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                       {assignedCounselor === undefined && (
@@ -1229,7 +1261,13 @@ export default function BookAppointmentPage() {
                   })}
                 </div>
 
-                {prefDate && !slotsLoading && filteredSlots.length === 0 && (
+                {prefDate && !slotsLoading && slotsBlockedMsg && (
+                  <div className="mt-4 rounded-xl p-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+                    <p className="text-xs font-bold" style={{ color: 'var(--color-danger)' }}>{slotsBlockedMsg}</p>
+                  </div>
+                )}
+
+                {prefDate && !slotsLoading && filteredSlots.length === 0 && !slotsBlockedMsg && (
                   <div className="mt-4 rounded-xl p-4" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
                     <p className="text-xs font-bold mb-1" style={{ color: 'var(--color-warning)' }}>No available slots on this date</p>
                     {noSlotsNextDate && (
@@ -1403,8 +1441,13 @@ export default function BookAppointmentPage() {
               )}
               {prefDate && !slotsLoading && filteredSlots.length === 0 && !requestAnyway && (
                 <div className="text-center py-6">
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{purpose === 'intake_interview' ? 'No IC slots available on this date.' : `No ${slotMethod === 'F2F' ? 'face-to-face' : 'online'} slots available.`}</p>
-                  <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>Try a different date or check below to request anyway.</p>
+                  {slotsBlockedMsg
+                    ? <p className="text-xs font-medium" style={{ color: 'var(--color-danger)' }}>{slotsBlockedMsg}</p>
+                    : <>
+                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{purpose === 'intake_interview' ? 'No IC slots available on this date.' : `No ${slotMethod === 'F2F' ? 'face-to-face' : 'online'} slots available.`}</p>
+                        <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>Try a different date or check below to request anyway.</p>
+                      </>
+                  }
                 </div>
               )}
               {requestAnyway && (

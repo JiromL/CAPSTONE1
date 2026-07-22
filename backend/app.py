@@ -16,6 +16,8 @@ load_dotenv(dotenv_path=env_path)
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from datetime import datetime
 
 from config import config
@@ -58,9 +60,8 @@ from blueprints.qr_checkin import qr_bp
 from blueprints.consent import consent_bp
 from blueprints.announcements import announcements_bp
 from blueprints.reports import reports_bp
-from blueprints.forms import forms_bp
-from blueprints.qa import qa_bp
 from blueprints.communications import communications_bp
+from blueprints.holidays import holidays_bp
 
 def create_app(config_name=None):
     """Application factory"""
@@ -83,10 +84,20 @@ def create_app(config_name=None):
     app.config['ZOOM_TOKEN_SECRET'] = os.getenv('ZOOM_TOKEN_SECRET', app.config.get('ZOOM_TOKEN_SECRET'))
     
     # Initialize extensions
-    # Allow all origins for development (CORS)
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    # CORS — restrict to configured frontend origin in production
+    allowed_origin = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+    CORS(app, resources={r"/api/*": {"origins": [allowed_origin, "http://localhost:3000"]}})
     jwt = JWTManager(app)
-    
+
+    # Rate limiter — memory storage is fine for single-process; swap to Redis in prod
+    from limiter_instance import limiter
+    from flask_limiter.errors import RateLimitExceeded
+    limiter.init_app(app)
+
+    @app.errorhandler(RateLimitExceeded)
+    def handle_rate_limit(e):
+        return jsonify({'error': 'Too many requests. Please wait and try again.', 'retry_after': str(e.retry_after)}), 429
+
     # Initialize MongoDB
     mongodb = db.init_app(app)
     # expose db on app for integrations and blueprints
@@ -128,9 +139,8 @@ def create_app(config_name=None):
     app.register_blueprint(consent_bp)
     app.register_blueprint(announcements_bp)
     app.register_blueprint(reports_bp)
-    app.register_blueprint(forms_bp)
-    app.register_blueprint(qa_bp)
     app.register_blueprint(communications_bp)
+    app.register_blueprint(holidays_bp)
 
     # Start background reminder scheduler
     from scheduler import start_scheduler

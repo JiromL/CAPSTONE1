@@ -37,7 +37,8 @@ function CasesNeedingAttention() {
           const status = (c.case_status || '').toUpperCase();
           const risk = (c.risk_level || '').toUpperCase();
           if (status === 'PENDING_TERMINATION') {
-            attention.push({ _id: c._id, student_name: c.student_name || 'Student', case_status: c.case_status, risk_level: c.risk_level, reason: '3 consecutive no-shows' });
+            const terminationType = (c.termination_type || '').replace(/_/g, ' ').toLowerCase() || 'pending closure';
+            attention.push({ _id: c._id, student_name: c.student_name || 'Student', case_status: c.case_status, risk_level: c.risk_level, reason: terminationType });
           } else if (risk === 'CRITICAL' || risk === 'RED') {
             attention.push({ _id: c._id, student_name: c.student_name || 'Student', case_status: c.case_status, risk_level: c.risk_level, reason: `${c.risk_level} risk` });
           }

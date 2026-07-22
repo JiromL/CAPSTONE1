@@ -2120,7 +2120,8 @@ export default function CaseDetailPage() {
                                   style={isEditingThis ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' } : { color: 'var(--color-text-muted)' }}
                                   onMouseEnter={e => { if (!isEditingThis) { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}}
                                   onMouseLeave={e => { if (!isEditingThis) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}}
-                                  title="Edit note"
+                                  aria-label={isEditingThis ? 'Cancel edit' : 'Edit note'}
+                                  title={isEditingThis ? 'Cancel edit' : 'Edit note'}
                                 >
                                   <Pencil size={13} />
                                 </button>
@@ -2130,6 +2131,7 @@ export default function CaseDetailPage() {
                                   style={{ color: 'var(--color-text-muted)' }}
                                   onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
                                   onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+                                  aria-label="Delete note"
                                   title="Delete note"
                                 >
                                   <Trash2 size={13} />

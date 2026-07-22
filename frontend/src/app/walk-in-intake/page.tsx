@@ -176,7 +176,7 @@ export default function WalkInIntakePage() {
                 />
                 {searching && <Loader2 size={15} className="animate-spin flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />}
                 {query && !searching && (
-                  <button onClick={() => { setQuery(''); setResults([]); setSearchDone(false); }}>
+                  <button aria-label="Clear search" onClick={() => { setQuery(''); setResults([]); setSearchDone(false); }}>
                     <X size={15} style={{ color: 'var(--color-text-muted)' }} />
                   </button>
                 )}

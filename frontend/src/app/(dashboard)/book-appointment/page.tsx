@@ -845,7 +845,7 @@ export default function BookAppointmentPage() {
       <DashboardPageWrapper title="Book Appointment" subtitle="">
         <div className="max-w-2xl mx-auto animate-fade-up">
           <div className="text-white rounded-2xl px-6 py-6 mb-5 relative" style={{ background: 'var(--color-primary)' }}>
-            <button onClick={() => router.push('/my-appointments')} className="absolute top-4 right-5 text-white/60 hover:text-white text-xl leading-none">&times;</button>
+            <button onClick={() => router.push('/my-appointments')} aria-label="Close" className="absolute top-4 right-5 text-white/60 hover:text-white text-xl leading-none">&times;</button>
             <div className="flex items-start gap-3">
               <CheckCircle size={24} className="flex-shrink-0 mt-0.5" style={{ color: '#86EFAC' }} />
               <div>

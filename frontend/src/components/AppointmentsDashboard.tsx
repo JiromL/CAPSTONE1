@@ -1250,11 +1250,11 @@ export default function AppointmentsDashboard() {
                                 <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month-1); return { year: d.getFullYear(), month: d.getMonth() }; })}
                                   className="p-1 rounded transition" style={{ color: 'var(--color-text-muted)' }}
                                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'; }}
-                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}><ChevronLeft size={13} /></button>
+                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }} aria-label="Previous month"><ChevronLeft size={13} /></button>
                                 <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month+1); return { year: d.getFullYear(), month: d.getMonth() }; })}
                                   className="p-1 rounded transition" style={{ color: 'var(--color-text-muted)' }}
                                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'; }}
-                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}><ChevronRight size={13} /></button>
+                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }} aria-label="Next month"><ChevronRight size={13} /></button>
                               </div>
                             </div>
                             <div className="grid grid-cols-7 mb-1">
@@ -1663,6 +1663,7 @@ export default function AppointmentsDashboard() {
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Student: <strong>{reschedTarget.student_name}</strong></p>
               </div>
               <button onClick={() => setReschedTarget(null)} className="p-1.5 rounded-lg" style={{ color: 'var(--color-text-muted)' }}
+                aria-label="Close reschedule dialog"
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}><X size={14} /></button>
             </div>

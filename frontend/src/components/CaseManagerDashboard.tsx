@@ -98,7 +98,7 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>EMA Well-being Distribution</p>
-              <button onClick={load} className="transition-opacity hover:opacity-75" style={{ color: 'var(--color-text-muted)' }}>
+              <button onClick={load} aria-label="Refresh data" className="transition-opacity hover:opacity-75" style={{ color: 'var(--color-text-muted)' }}>
                 <RefreshCw size={14} />
               </button>
             </div>

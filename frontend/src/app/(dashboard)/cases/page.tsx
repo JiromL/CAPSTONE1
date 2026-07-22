@@ -92,6 +92,11 @@ function StatCard({
 }
 
 /* ── Main ───────────────────────────────────────────────── */
+const SS_KEY = 'cases-list-state';
+function readSS() {
+  try { return JSON.parse(sessionStorage.getItem(SS_KEY) || '{}'); } catch { return {}; }
+}
+
 export default function CasesPage() {
   const router = useRouter();
   const [user, setUser]         = useState<any>(null);
@@ -99,26 +104,46 @@ export default function CasesPage() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [summary, setSummary]   = useState({ total: 0, active: 0, high_risk: 0, closed: 0 });
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>('all');
-  const [myCasesOnly, setMyCasesOnly] = useState(false);
+  const [searchInput, setSearchInput] = useState<string>(() => readSS().search ?? '');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>(() => readSS().search ?? '');
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>(() => readSS().tab ?? 'all');
+  const [myCasesOnly, setMyCasesOnly] = useState<boolean>(() => readSS().myCasesOnly ?? false);
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
-  const [page, setPage]         = useState(1);
+  const [page, setPage]         = useState<number>(() => readSS().page ?? 1);
   const [total, setTotal]       = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRestored = useRef(false);
 
   useEffect(() => {
     const u = localStorage.getItem('user');
     if (u) {
       const parsed = JSON.parse(u);
       setUser(parsed);
-      if (['COUNSELOR', 'PSYCHOLOGIST'].includes((parsed.role || '').toUpperCase())) {
+      // Apply role default only on fresh visits (no saved session state)
+      const hasSaved = Object.keys(readSS()).length > 0;
+      if (!hasSaved && ['COUNSELOR', 'PSYCHOLOGIST'].includes((parsed.role || '').toUpperCase())) {
         setMyCasesOnly(true);
       }
     }
   }, []);
+
+  // Persist filter state to sessionStorage
+  useEffect(() => {
+    try {
+      const saved = readSS();
+      sessionStorage.setItem(SS_KEY, JSON.stringify({ ...saved, tab: activeTab, page, search: searchInput, myCasesOnly }));
+    } catch {}
+  }, [activeTab, page, searchInput, myCasesOnly]);
+
+  // Restore scroll after first data load completes
+  useEffect(() => {
+    if (!loading && !scrollRestored.current) {
+      scrollRestored.current = true;
+      const savedScroll = readSS().scrollY;
+      if (savedScroll) requestAnimationFrame(() => window.scrollTo(0, savedScroll));
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -358,7 +383,10 @@ export default function CasesPage() {
                       <tr
                         key={c._id}
                         className={`transition-colors duration-100 animate-fade-up`}
-                        onClick={() => router.push(`/cases/${c._id}`)}
+                        onClick={() => {
+                          try { sessionStorage.setItem(SS_KEY, JSON.stringify({ ...readSS(), scrollY: window.scrollY })); } catch {}
+                          router.push(`/cases/${c._id}`);
+                        }}
                         style={{
                           borderBottom: '1px solid var(--color-border)',
                           background: isHighRisk ? 'rgba(220,38,38,0.03)' : 'transparent',
@@ -445,7 +473,7 @@ export default function CasesPage() {
 
                         {/* Link — stopPropagation prevents double-navigation with the <tr> onClick */}
                         <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                          <Link href={`/cases/${c._id}`}>
+                          <Link href={`/cases/${c._id}`} onClick={() => { try { sessionStorage.setItem(SS_KEY, JSON.stringify({ ...readSS(), scrollY: window.scrollY })); } catch {} }}>
                             <button
                               className="p-1.5 rounded-lg transition-all duration-150"
                               style={{ color: 'var(--color-text-muted)' }}

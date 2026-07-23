@@ -255,6 +255,11 @@ export default function AppointmentsDashboard() {
   // PERMA labels for appointments
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
 
+  // Calendar view
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
+  const [calSelectedDay, setCalSelectedDay] = useState<string | null>(null);
+
   // Termination modal (complete with type)
   const [terminationTarget, setTerminationTarget] = useState<Appointment | null>(null);
   const [terminationType, setTerminationType]     = useState('MUTUAL');
@@ -711,6 +716,30 @@ export default function AppointmentsDashboard() {
     a.status === 'REQUESTED' && !!a.counselor_id && !!a.preferred_time
   ) : [];
 
+  // ── Calendar helpers ─────────────────────────────────────────────────────────
+  function getApptDate(a: Appointment): string | null {
+    const raw = a.preferred_date;
+    if (!raw) return null;
+    return raw.slice(0, 10);
+  }
+  function buildCalDays(year: number, month: number): Array<number | null> {
+    const firstDay = new Date(year, month, 1).getDay();
+    const total = new Date(year, month + 1, 0).getDate();
+    const days: Array<number | null> = Array(firstDay).fill(null);
+    for (let d = 1; d <= total; d++) days.push(d);
+    return days;
+  }
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  function prevCalMonth() {
+    setCalMonth(m => m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 });
+    setCalSelectedDay(null);
+  }
+  function nextCalMonth() {
+    setCalMonth(m => m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 });
+    setCalSelectedDay(null);
+  }
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
   // ── Loading / Error ───────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -817,18 +846,33 @@ export default function AppointmentsDashboard() {
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Appointments</h2>
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search…"
-                className="pl-7 pr-3 py-1.5 text-xs rounded-lg focus:outline-none w-44"
-                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-muted)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
-              />
+            {/* List / Calendar toggle */}
+            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+              {(['list','calendar'] as const).map(mode => (
+                <button key={mode} onClick={() => { setViewMode(mode); setCalSelectedDay(null); }}
+                  className="px-3 py-1.5 text-xs font-semibold transition capitalize"
+                  style={{
+                    background: viewMode === mode ? 'var(--color-primary)' : 'transparent',
+                    color: viewMode === mode ? '#fff' : 'var(--color-text-secondary)',
+                  }}>
+                  {mode === 'list' ? 'List' : 'Calendar'}
+                </button>
+              ))}
             </div>
+            {viewMode === 'list' && (
+              <div className="relative">
+                <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search…"
+                  className="pl-7 pr-3 py-1.5 text-xs rounded-lg focus:outline-none w-44"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-muted)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                />
+              </div>
+            )}
             <button
               onClick={() => { resetScheduleForm(); setShowScheduleModal(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition"
@@ -838,6 +882,130 @@ export default function AppointmentsDashboard() {
             </button>
           </div>
         </div>
+
+        {viewMode === 'calendar' ? (
+          /* ── Calendar view ───────────────────────────────────────────────── */
+          <div className="p-5">
+            {/* Month navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={prevCalMonth}
+                className="p-1.5 rounded-lg transition hover:opacity-70"
+                style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                <ChevronLeft size={14} />
+              </button>
+              <span className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                {MONTH_NAMES[calMonth.month]} {calMonth.year}
+              </span>
+              <button onClick={nextCalMonth}
+                className="p-1.5 rounded-lg transition hover:opacity-70"
+                style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Day-of-week header */}
+            <div className="grid grid-cols-7 mb-1">
+              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                <div key={d} className="text-center text-[10px] font-semibold uppercase tracking-wide py-1"
+                  style={{ color: 'var(--color-text-muted)' }}>{d}</div>
+              ))}
+            </div>
+
+            {/* Day cells */}
+            <div className="grid grid-cols-7 gap-0.5">
+              {buildCalDays(calMonth.year, calMonth.month).map((day, i) => {
+                if (!day) return <div key={`pad-${i}`} />;
+                const ds = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const dayApts = apts.filter(a => getApptDate(a) === ds);
+                const isToday = ds === todayStr;
+                const isSel = calSelectedDay === ds;
+                const confirmed = dayApts.filter(a => ['CONFIRMED','APPROVED','MATCHED','CHECKED_IN'].includes(a.status)).length;
+                const pending   = dayApts.filter(a => ['REQUESTED','PENDING_APPROVAL','RESCHEDULE_REQUESTED'].includes(a.status)).length;
+                const closed    = dayApts.filter(a => ['CANCELLED','DENIED','NO_SHOW','COMPLETED','FOLLOW_UP','RESCHEDULED'].includes(a.status)).length;
+                return (
+                  <button key={ds} onClick={() => setCalSelectedDay(isSel ? null : ds)}
+                    className="relative rounded-xl flex flex-col items-center pt-1.5 pb-2 transition min-h-[56px]"
+                    style={{
+                      background: isSel ? 'var(--color-primary)' : isToday ? 'var(--color-primary-surface)' : 'var(--color-bg)',
+                      border: isSel ? '1.5px solid var(--color-primary)' : isToday ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+                    }}>
+                    <span className="text-xs font-bold leading-none mb-1.5"
+                      style={{ color: isSel ? '#fff' : isToday ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+                      {day}
+                    </span>
+                    {dayApts.length > 0 && (
+                      <div className="flex flex-wrap gap-0.5 justify-center px-0.5">
+                        {confirmed > 0 && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#22c55e' }} />}
+                        {pending   > 0 && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f59e0b' }} />}
+                        {closed    > 0 && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#9ca3af' }} />}
+                        <span className="text-[9px] font-bold leading-none mt-0.5 w-full text-center"
+                          style={{ color: isSel ? 'rgba(255,255,255,0.8)' : 'var(--color-text-muted)' }}>
+                          {dayApts.length}
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-4 mt-4 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#22c55e' }} /> Confirmed
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#f59e0b' }} /> Pending
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#9ca3af' }} /> Closed
+              </span>
+            </div>
+
+            {/* Selected day appointments */}
+            {calSelectedDay && (() => {
+              const dayList = apts.filter(a => getApptDate(a) === calSelectedDay).sort((a, b) => {
+                const ta = a.preferred_time || '00:00'; const tb = b.preferred_time || '00:00';
+                return ta.localeCompare(tb);
+              });
+              const label = new Date(calSelectedDay + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+              return (
+                <div className="mt-5">
+                  <p className="text-xs font-bold mb-2" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+                  {dayList.length === 0 ? (
+                    <p className="text-xs text-center py-4" style={{ color: 'var(--color-text-muted)' }}>No appointments on this day.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {dayList.map(apt => (
+                        <div key={apt.appointment_id}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs cursor-pointer transition"
+                          style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                          onClick={() => window.open(`/appointments/${apt.appointment_id}`, '_self')}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'}>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+                            <p className="mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                              {fmtPurpose(apt.purpose)}
+                              {apt.preferred_time ? ` · ${fmtTime(undefined, apt.preferred_time)}` : ''}
+                              {apt.counselor_name ? ` · ${fmtStaffName(apt.counselor_name)}` : ''}
+                            </p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0"
+                            style={STATUS_BADGE_STYLE[apt.status] ?? { background: 'var(--color-border)', color: 'var(--color-text-muted)' }}>
+                            {STATUS_LABEL[apt.status] ?? apt.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        ) : (
+        /* ── List view (existing) ────────────────────────────────────────── */
+        <>
 
         {/* Tab bar */}
         <div className="flex items-end overflow-x-auto px-2 pt-1.5 gap-0.5 scrollbar-hide" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -941,10 +1109,10 @@ export default function AppointmentsDashboard() {
                             )}
                           </div>
 
-                          {/* Purpose + concern (hidden from OA per privacy policy) */}
+                          {/* Purpose + concern (staff only sees concern for general requests) */}
                           <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                             {fmtPurpose(apt.purpose)}
-                            {apt.concern && !isOA && <span style={{ color: 'var(--color-text-muted)' }}> · &ldquo;{apt.concern}&rdquo;</span>}
+                            {apt.concern && (!isOA || apt.purpose === 'others') && <span style={{ color: 'var(--color-text-muted)' }}> · &ldquo;{apt.concern}&rdquo;</span>}
                           </p>
 
                           {/* Date + method */}
@@ -1161,6 +1329,8 @@ export default function AppointmentsDashboard() {
             </div>
           </>
         )}
+
+        </>)} {/* end list view else */}
       </div>
 
       {/* ── Assign Counselor Modal ────────────────────────────────────────── */}
@@ -1195,7 +1365,7 @@ export default function AppointmentsDashboard() {
                   <span className="w-16" style={{ color: 'var(--color-text-muted)' }}>Mode</span>
                   <span style={{ color: 'var(--color-text-primary)' }}>{fmtMethod(assignTarget.method)}</span>
                 </div>
-                {assignTarget.concern && !isOA && (
+                {assignTarget.concern && (!isOA || assignTarget.purpose === 'others') && (
                   <div className="flex gap-2">
                     <span className="w-16" style={{ color: 'var(--color-text-muted)' }}>Concern</span>
                     <span className="italic" style={{ color: 'var(--color-text-secondary)' }}>"{assignTarget.concern}"</span>

@@ -179,8 +179,12 @@ export default function CasesPage() {
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
+  const isIC = user?.role?.toUpperCase() === 'IC';
+
   const fetchCases = useCallback(async () => {
     if (!user) return;
+    // IC uses search-only mode — don't fetch until they've typed something
+    if (isIC && !debouncedSearch) { setCases([]); setLoading(false); return; }
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -189,7 +193,7 @@ export default function CasesPage() {
       if (statusFilter) params.set('status', statusFilter);
       if (activeTab === 'high-risk') params.set('risk_level', 'RED');
       if (debouncedSearch) params.set('q', debouncedSearch);
-      if (myCasesOnly && user?._id) params.set('my_cases', 'true');
+      if (myCasesOnly) params.set('my_cases', 'true');
 
       const r = await fetch(api(`/api/cases?${params}`), { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) throw new Error(`${r.status}`);
@@ -257,9 +261,9 @@ export default function CasesPage() {
       {/* Table card */}
       <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
 
-        {/* Tab bar */}
+        {/* Tab bar — hidden for IC (search-only mode) */}
         <div style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <div className="flex items-center gap-0.5 px-4 pt-3 overflow-x-auto">
+          {!isIC && <div className="flex items-center gap-0.5 px-4 pt-3 overflow-x-auto">
             {TABS.map(tab => (
               <button
                 key={tab.id}
@@ -288,7 +292,7 @@ export default function CasesPage() {
                 )}
               </button>
             ))}
-          </div>
+          </div>}
 
           {/* Search + My Cases toggle */}
           <div className="px-4 pb-3 pt-2 flex items-center gap-2">
@@ -339,6 +343,18 @@ export default function CasesPage() {
           <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             <Loader2 size={15} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
             Loading cases…
+          </div>
+        ) : isIC && !debouncedSearch ? (
+          <div className="flex flex-col items-center justify-center h-48 text-center gap-3 px-6">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-primary-surface)' }}>
+              <Search size={18} style={{ color: 'var(--color-primary)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Search for a case</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                Type a student name, email, or case number above to look up any case.
+              </p>
+            </div>
           </div>
         ) : cases.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
@@ -412,9 +428,12 @@ export default function CasesPage() {
                               {(c.student_name || 'U')[0].toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
-                                {c.student_name || 'Unknown'}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
+                                  {c.student_name || 'Unknown'}
+                                </p>
+                                {c.is_minor && <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+                              </div>
                               {c.student_email && (
                                 <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
                                   {c.student_email}

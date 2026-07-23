@@ -164,7 +164,7 @@ export function ScheduleSessionCard({ onScheduled }: Props) {
           </div>
           <div className="grid grid-cols-7 gap-1 mb-1">
             {DAYS.map(d => (
-              <div key={d} className="text-center text-[10px] font-semibold py-1" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
+              <div key={d} className="text-center text-xs font-semibold py-1" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">

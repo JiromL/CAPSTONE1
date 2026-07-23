@@ -272,7 +272,7 @@ export default function NewIntakesPage() {
                     <TH>#</TH><TH>Date</TH><TH>Student</TH><TH>Service</TH>
                     {userRole !== 'IC' && <TH>IC Assigned</TH>}
                     {CPS_ROLES.includes(userRole) && (
-                      <TH>EMA {permaError && <span className="ml-1 text-[10px] font-normal normal-case tracking-normal" style={{ color: 'var(--color-warning)' }}>⚠ unavailable</span>}</TH>
+                      <TH>EMA {permaError && <span className="ml-1 text-xs font-normal normal-case tracking-normal" style={{ color: 'var(--color-warning)' }}>⚠ unavailable</span>}</TH>
                     )}
                     <TH>Packet</TH><TH>Status</TH><TH>Action</TH>
                   </tr>

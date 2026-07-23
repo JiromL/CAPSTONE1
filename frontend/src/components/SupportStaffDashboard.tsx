@@ -87,7 +87,7 @@ function TodayScheduleTable({ appts }: { appts: any[] }) {
         <>
           <div className="grid grid-cols-[80px_1fr_100px_120px_36px] px-5 pb-2 gap-3">
             {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
-              <p key={i} className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
+              <p key={i} className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
             ))}
           </div>
           <div>
@@ -199,7 +199,7 @@ function AppointmentsCalendar({ appts }: { appts: any[] }) {
                   borderRight: i < 6 ? '1px solid var(--color-border)' : 'none',
                   background: isToday ? 'var(--color-primary-surface)' : 'transparent',
                 }}>
-                  <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{WEEKDAYS[d.getDay()]}</p>
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{WEEKDAYS[d.getDay()]}</p>
                   <p className="text-sm font-bold mt-0.5" style={{ color: isToday ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}>
                     {d.getDate()}
                   </p>
@@ -219,12 +219,12 @@ function AppointmentsCalendar({ appts }: { appts: any[] }) {
                   opacity: isToday ? 1 : 1,
                 }}>
                   {dayAppts.length === 0 ? (
-                    <p className="text-[10px] text-center pt-4" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>—</p>
+                    <p className="text-xs text-center pt-4" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>—</p>
                   ) : dayAppts.map((a, j) => {
                     const pal = counselorPalette(a.counselor_name || '');
                     return (
                       <Link key={j} href={a.case_id ? `/cases/${a.case_id}` : '/appointments'}
-                        className="block text-[10px] px-1.5 py-1 rounded-md border transition-opacity hover:opacity-80"
+                        className="block text-xs px-1.5 py-1 rounded-md border transition-opacity hover:opacity-80"
                         style={{ background: pal.bg, color: pal.text, borderColor: pal.border }}>
                         <p className="font-semibold truncate">{fmtTime(a.preferred_date || a.scheduled_start)}</p>
                         <p className="truncate opacity-80">{a.student_name || 'Student'}</p>
@@ -239,7 +239,7 @@ function AppointmentsCalendar({ appts }: { appts: any[] }) {
         </div>
       </div>
 
-      <div className="px-5 py-2.5 text-[10px]" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+      <div className="px-5 py-2.5 text-xs" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
         Each color represents a counselor/psychologist. Click any appointment to open the case.
       </div>
     </div>
@@ -348,7 +348,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
               <p className="text-xs font-bold tracking-widest uppercase flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
                 Pending Assignments
                 {pendingList.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold normal-case tracking-normal" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold normal-case tracking-normal" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
                     {pendingList.length}
                   </span>
                 )}

@@ -237,7 +237,7 @@ function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: str
         <>
           <div className="grid grid-cols-[90px_1fr_110px_130px_36px] px-5 pb-2 gap-3">
             {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
-              <p key={i} className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
+              <p key={i} className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
             ))}
           </div>
           <div>

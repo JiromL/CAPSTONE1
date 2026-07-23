@@ -96,12 +96,12 @@ export default function PendingIntakesPage() {
               <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
                 <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{intake.student_name}</span>
                 {intake.is_emergency && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                  <span className="inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
                     style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
                     <AlertTriangle size={9} /> Emergency
                   </span>
                 )}
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase"
+                <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full uppercase"
                   style={{ background: riskCfg.badgeBg, color: riskCfg.badgeColor }}>
                   {riskCfg.label}
                 </span>
@@ -117,11 +117,11 @@ export default function PendingIntakesPage() {
 
             <div className="flex-shrink-0">
               {intake.intake_packet_submitted
-                ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                ? <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-semibold"
                     style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', outline: '1px solid var(--color-success)' }}>
                     <FileCheck size={9} /> Forms ready
                   </span>
-                : <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                : <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-semibold"
                     style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', outline: '1px solid var(--color-warning)' }}>
                     <FileX size={9} /> No forms
                   </span>}

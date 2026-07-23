@@ -186,12 +186,12 @@ export default function CasePrintPage() {
               <div>
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>PHQ-2 Score (Depression)</p>
                 <p className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>{phq2} / 6</p>
-                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{phq2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{phq2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
               </div>
               <div>
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>GAD-2 Score (Anxiety)</p>
                 <p className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>{gad2} / 6</p>
-                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{gad2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{gad2! >= 3 ? 'Positive screen — follow-up indicated' : 'Below clinical threshold'}</p>
               </div>
             </div>
           </Section>
@@ -211,7 +211,7 @@ export default function CasePrintPage() {
                   <div className="space-y-2">
                     {goals && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Goals</p>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Goals</p>
                         {Array.isArray(goals) ? (
                           <ul className="space-y-1">
                             {goals.map((g, i) => (
@@ -232,7 +232,7 @@ export default function CasePrintPage() {
                     )}
                     {interventions && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Interventions</p>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Interventions</p>
                         <p className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-secondary)' }}>
                           {Array.isArray(interventions) ? interventions.join('\n') : interventions}
                         </p>
@@ -240,7 +240,7 @@ export default function CasePrintPage() {
                     )}
                     {tp.progress_summary && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Progress Summary</p>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Progress Summary</p>
                         <p className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-secondary)' }}>{tp.progress_summary}</p>
                       </div>
                     )}
@@ -248,13 +248,13 @@ export default function CasePrintPage() {
                       <div className="grid grid-cols-2 gap-4 mt-1">
                         {tp.estimated_duration && (
                           <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Est. Duration: </span>
+                            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Est. Duration: </span>
                             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{tp.estimated_duration}</span>
                           </div>
                         )}
                         {tp.next_review_date && (
                           <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Next Review: </span>
+                            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Next Review: </span>
                             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{tp.next_review_date}</span>
                           </div>
                         )}
@@ -277,16 +277,16 @@ export default function CasePrintPage() {
                     <p className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{n.date}</p>
                     <div className="flex items-center gap-2">
                       {n.note_format === 'SOAP' && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: '#EEF2FF', color: '#4F46E5' }}>SOAP</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: '#EEF2FF', color: '#4F46E5' }}>SOAP</span>
                       )}
-                      {n.author && <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{n.author}</p>}
+                      {n.author && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{n.author}</p>}
                     </div>
                   </div>
                   {n.note_format === 'SOAP' && n.soap ? (
                     <div className="space-y-1.5">
                       {(['subjective', 'objective', 'assessment', 'plan'] as const).map(k => n.soap![k] ? (
                         <div key={k}>
-                          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{k}: </span>
+                          <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{k}: </span>
                           <span className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-secondary)' }}>{n.soap![k]}</span>
                         </div>
                       ) : null)}
@@ -302,7 +302,7 @@ export default function CasePrintPage() {
 
         {/* Footer */}
         <div className="mt-10 pt-4 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
             This document is confidential and protected under RA 10173 (Data Privacy Act of 2012) and RA 11036 (Mental Health Act of 2018).
             Unauthorized disclosure is prohibited. For internal CPS use only.
           </p>
@@ -325,12 +325,12 @@ function Row2({ a, b }: { a: [string, string]; b: [string, string] }) {
   return (
     <div className="grid grid-cols-2 gap-x-6 mb-1.5">
       <div>
-        <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{a[0]}</span>
+        <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{a[0]}</span>
         <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>{a[1] || '—'}</p>
       </div>
       {b[0] && (
         <div>
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{b[0]}</span>
+          <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{b[0]}</span>
           <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>{b[1] || '—'}</p>
         </div>
       )}
@@ -341,7 +341,7 @@ function Row2({ a, b }: { a: [string, string]; b: [string, string] }) {
 function RowFull({ label, value }: { label: string; value: string }) {
   return (
     <div className="mb-1.5">
-      <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+      <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
       <p className="text-xs whitespace-pre-line" style={{ color: 'var(--color-text-primary)' }}>{value || '—'}</p>
     </div>
   );

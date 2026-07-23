@@ -26,6 +26,7 @@ interface Appointment {
   scheduled_start?: string;
   meeting_link?: string;
   risk_level?: string;
+  consecutive_no_shows?: number;
 }
 
 interface DashboardData {
@@ -154,6 +155,9 @@ export default function AppointmentsPage() {
   const [noShowReason, setNoShowReason] = useState('');
   const [submittingNoShow, setSubmittingNoShow] = useState(false);
   const [noShowTermAlert, setNoShowTermAlert] = useState<{ caseId: string | null; studentName: string } | null>(null);
+  const [noShowRebookPrompt, setNoShowRebookPrompt] = useState<{ appointmentId: string; studentName: string; consecutiveNoShows: number } | null>(null);
+  const [submittingRebook, setSubmittingRebook] = useState(false);
+  const [rebookResult, setRebookResult] = useState<{ deadline: string; days: number } | null>(null);
   const [schedTarget, setSchedTarget] = useState<Appointment | null>(null);
   const [schedDate, setSchedDate] = useState('');
   const [schedTime, setSchedTime] = useState('');
@@ -432,7 +436,7 @@ export default function AppointmentsPage() {
                     <span className="text-sm font-semibold flex-1 truncate" style={{ color: 'var(--color-text-primary)' }}>
                       {a.student_name}
                     </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                       style={{ background: style.bg, color: style.text }}>
                       {style.label}
                     </span>
@@ -465,7 +469,7 @@ export default function AppointmentsPage() {
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                 {tab.label}
                 {cnt > 0 && (
-                  <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1"
+                  <span className="text-xs font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1"
                     style={isActive
                       ? { background: 'var(--color-primary)', color: 'white' }
                       : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
@@ -498,7 +502,7 @@ export default function AppointmentsPage() {
                       onMouseEnter={e => { if (!isAct) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                       onMouseLeave={e => { if (!isAct) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                       {t}
-                      {cnt > 0 && <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1" style={isAct ? { background: 'var(--color-primary)', color: 'white' } : { background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>{cnt}</span>}
+                      {cnt > 0 && <span className="text-xs font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1" style={isAct ? { background: 'var(--color-primary)', color: 'white' } : { background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>{cnt}</span>}
                     </button>
                   );
                 })}
@@ -655,7 +659,7 @@ export default function AppointmentsPage() {
                             {cfg.label}
                           </span>
                           {apt.risk_level && apt.risk_level !== 'GREEN' && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold border"
+                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold border"
                               style={{ ...riskStyle(apt.risk_level), borderColor: 'transparent' }}>
                               ⚠ {apt.risk_level}
                             </span>
@@ -755,7 +759,7 @@ export default function AppointmentsPage() {
                               pendingAction?.aptId === aptId ? (
                                 <div className="flex items-end gap-2">
                                   <div>
-                                    <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Referral Notes</p>
+                                    <p className="text-xs font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Referral Notes</p>
                                     <textarea rows={1} value={pendingAction.notes}
                                       onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
                                       placeholder="Optional notes…"
@@ -874,7 +878,7 @@ export default function AppointmentsPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Schedule Change</p>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 rounded-lg px-3 py-2.5 border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                    <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Current</p>
+                    <p className="text-xs font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Current</p>
                     <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{reschedSelected.current_time ? new Date(reschedSelected.current_time).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</p>
                     <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{reschedSelected.current_time ? new Date(reschedSelected.current_time).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }) : ''}</p>
                   </div>
@@ -883,7 +887,7 @@ export default function AppointmentsPage() {
                     style={reschedSelected.status === 'approved' ? { background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }
                       : reschedSelected.status === 'denied' ? { background: 'var(--color-bg)', borderColor: 'var(--color-border)' }
                       : { background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
-                    <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Requested</p>
+                    <p className="text-xs font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Requested</p>
                     <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{new Date(reschedSelected.requested_start).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{new Date(reschedSelected.requested_start).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                   </div>
@@ -945,13 +949,13 @@ export default function AppointmentsPage() {
             <div className="p-6 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Student</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Student</p>
                   <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{detailAppt.student_name}</p>
                   <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{detailAppt.student_email}</p>
                   {detailAppt.student_id_number && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{detailAppt.student_id_number}</p>}
                 </div>
                 <div className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Status</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Status</p>
                   {(() => { const s = STATUS_STYLE[detailAppt.status] ?? { label: detailAppt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', border: 'var(--color-border)' }; return (
                     <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium border" style={{ background: s.bg, color: s.text, borderColor: s.border }}>{s.label}</span>
                   ); })()}
@@ -961,23 +965,23 @@ export default function AppointmentsPage() {
                 { title: 'Date & Time', content: detailAppt.scheduled_start ? `${fmtDate(detailAppt.scheduled_start)} ${fmtTime(detailAppt.scheduled_start)}` : `${fmtDate(detailAppt.preferred_date)} ${fmtTime(detailAppt.preferred_date, detailAppt.preferred_time)}` },
               ].map(({ title, content }) => (
                 <div key={title} className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{title}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{title}</p>
                   <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{content}</p>
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Session Type</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Session Type</p>
                   <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{fmtPurpose(detailAppt.purpose)}</p>
                 </div>
                 <div className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Mode</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Mode</p>
                   <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{fmtMethod(detailAppt.method)}</p>
                 </div>
               </div>
               {detailAppt.concern && (
                 <div className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
                   <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{detailAppt.concern}</p>
                 </div>
               )}
@@ -998,7 +1002,7 @@ export default function AppointmentsPage() {
               {/* IC Triage Summary */}
               {intakeSummary && (intakeSummary.phq9_score != null || intakeSummary.gad7_score != null || intakeSummary.triage_decision) && (
                 <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
-                  <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                  <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
                     IC Triage Summary
                   </p>
                   <div className="p-3 space-y-2">
@@ -1006,13 +1010,13 @@ export default function AppointmentsPage() {
                       <div className="grid grid-cols-2 gap-2">
                         {intakeSummary.phq9_score != null && (
                           <div className="rounded-lg p-2 text-center" style={{ background: 'var(--color-bg)' }}>
-                            <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-muted)' }}>PHQ-9</p>
+                            <p className="text-xs font-semibold" style={{ color: 'var(--color-text-muted)' }}>PHQ-9</p>
                             <p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{intakeSummary.phq9_score}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/27</span></p>
                           </div>
                         )}
                         {intakeSummary.gad7_score != null && (
                           <div className="rounded-lg p-2 text-center" style={{ background: 'var(--color-bg)' }}>
-                            <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-muted)' }}>GAD-7</p>
+                            <p className="text-xs font-semibold" style={{ color: 'var(--color-text-muted)' }}>GAD-7</p>
                             <p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{intakeSummary.gad7_score}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/21</span></p>
                           </div>
                         )}
@@ -1028,7 +1032,7 @@ export default function AppointmentsPage() {
                     )}
                     {intakeSummary.endorsement_notes && (
                       <div className="rounded-lg p-2" style={{ background: 'var(--color-bg)' }}>
-                        <p className="text-[10px] mb-0.5" style={{ color: 'var(--color-text-muted)' }}>IC Notes</p>
+                        <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>IC Notes</p>
                         <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{intakeSummary.endorsement_notes}</p>
                       </div>
                     )}
@@ -1039,7 +1043,7 @@ export default function AppointmentsPage() {
               {/* PHQ-4 Pre-Screen */}
               {intakePacket?.phq4_summary && (
                 <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
-                  <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                  <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
                     PHQ-4 Pre-Screen
                   </p>
                   <div className="grid grid-cols-3 gap-2 p-3">
@@ -1050,9 +1054,9 @@ export default function AppointmentsPage() {
                     ].map(x => (
                       <div key={x.l} className="rounded-lg p-2 text-center"
                         style={{ background: x.risk ? 'var(--color-danger-surface)' : 'var(--color-success-surface)' }}>
-                        <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{x.l}</p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{x.l}</p>
                         <p className="text-base font-bold" style={{ color: x.risk ? 'var(--color-danger)' : 'var(--color-primary)' }}>
-                          {x.s}<span className="text-[10px] font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span>
+                          {x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span>
                         </p>
                       </div>
                     ))}
@@ -1062,7 +1066,7 @@ export default function AppointmentsPage() {
 
               {intakePacket?.icf?.presenting_concern && (
                 <div className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
-                  <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Presenting Concern (ICF)</p>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Presenting Concern (ICF)</p>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{intakePacket.icf.presenting_concern}</p>
                 </div>
               )}
@@ -1096,6 +1100,12 @@ export default function AppointmentsPage() {
               <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                 Confirm that <strong>{noShowTarget.student_name}</strong> did not attend this session.
               </p>
+              {(noShowTarget.consecutive_no_shows ?? 0) >= 2 && (
+                <div className="rounded-xl px-3 py-2.5 text-xs leading-relaxed flex items-start gap-2" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger-text)' }}>
+                  <AlertCircle size={13} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
+                  <span><strong>This will be their 3rd consecutive no-show.</strong> Confirming will automatically terminate the case per CPS protocol.</span>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
                   Remarks <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
@@ -1127,8 +1137,19 @@ export default function AppointmentsPage() {
                       const d = await r.json();
                       setActionMsg({ id: noShowTarget.appointment_id, type: 'ok', text: 'Marked as No Show.' });
                       setPendingAction(null);
-                      if (d.auto_terminated) setNoShowTermAlert({ caseId: noShowTarget.case_id ?? null, studentName: noShowTarget.student_name ?? 'Student' });
+                      const capturedTarget = noShowTarget;
+                      setNoShowTarget(null); setNoShowReason(''); setSubmittingNoShow(false);
+                      if (d.auto_terminated) {
+                        setNoShowTermAlert({ caseId: capturedTarget.case_id ?? null, studentName: capturedTarget.student_name ?? 'Student' });
+                      } else {
+                        setNoShowRebookPrompt({
+                          appointmentId: capturedTarget.appointment_id,
+                          studentName: capturedTarget.student_name ?? 'Student',
+                          consecutiveNoShows: d.consecutive_no_shows ?? 1,
+                        });
+                      }
                       setTimeout(() => load(), 900);
+                      return;
                     } else {
                       const e = await r.json();
                       setActionMsg({ id: noShowTarget.appointment_id, type: 'err', text: e.error || 'Failed.' });
@@ -1177,6 +1198,84 @@ export default function AppointmentsPage() {
                   </a>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── No-Show Rebook Prompt ── */}
+      {noShowRebookPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <div>
+                <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Notify Student to Rebook</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{noShowRebookPrompt.studentName}</p>
+              </div>
+              <button onClick={() => { setNoShowRebookPrompt(null); setRebookResult(null); }} className="p-1.5 rounded-lg transition"
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X size={14} style={{ color: 'var(--color-text-muted)' }} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {rebookResult ? (
+                <>
+                  <div className="rounded-xl p-4 text-center" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+                    <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-success)' }}>Notification sent</p>
+                    <p className="text-xs" style={{ color: 'var(--color-success)' }}>
+                      {noShowRebookPrompt.studentName} must rebook within {rebookResult.days} day{rebookResult.days !== 1 ? 's' : ''} — by {new Date(rebookResult.deadline + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+                    </p>
+                  </div>
+                  <button onClick={() => { setNoShowRebookPrompt(null); setRebookResult(null); }}
+                    className="w-full px-4 py-2 text-sm font-medium rounded-lg transition hover:opacity-90"
+                    style={{ background: 'var(--color-primary)', color: '#fff' }}>
+                    Done
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-xl p-3 text-xs leading-relaxed" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning)' }}>
+                    {noShowRebookPrompt.consecutiveNoShows > 1
+                      ? `This is ${noShowRebookPrompt.studentName}'s ${noShowRebookPrompt.consecutiveNoShows}${noShowRebookPrompt.consecutiveNoShows === 2 ? 'nd' : 'rd'} consecutive no-show.`
+                      : `${noShowRebookPrompt.studentName} missed today's session.`}
+                    {' '}Sending a rebook notification lets them book a new slot within the allowed window.
+                  </div>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    The student will receive a notification with a deadline to rebook — <strong>7 days</strong> for HIGH/CRITICAL risk cases, <strong>14 days</strong> for all others.
+                  </p>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setNoShowRebookPrompt(null); setRebookResult(null); }}
+                      className="flex-1 px-4 py-2 border text-sm rounded-lg transition"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      Skip
+                    </button>
+                    <button disabled={submittingRebook}
+                      onClick={async () => {
+                        setSubmittingRebook(true);
+                        const token = localStorage.getItem('token');
+                        const r = await fetch(api(`/api/appointments/${noShowRebookPrompt.appointmentId}/rebook-after-noshow`), {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        });
+                        if (r.ok) {
+                          const d = await r.json();
+                          setRebookResult({ deadline: d.rebook_deadline, days: d.days });
+                        } else {
+                          setNoShowRebookPrompt(null);
+                        }
+                        setSubmittingRebook(false);
+                      }}
+                      className="flex-1 px-4 py-2 text-white text-sm font-medium rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90"
+                      style={{ background: 'var(--color-primary)' }}>
+                      {submittingRebook && <Loader2 size={13} className="animate-spin" />}
+                      Notify Student
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

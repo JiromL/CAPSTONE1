@@ -180,7 +180,7 @@ export default function CounselingHistoryPage() {
                       <p className="text-lg font-bold leading-tight" style={{ color: 'var(--color-text-primary)' }}>
                         {new Date(dt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric' })}
                       </p>
-                      <p className="text-[10px] leading-none" style={{ color: 'var(--color-text-muted)' }}>
+                      <p className="text-xs leading-none" style={{ color: 'var(--color-text-muted)' }}>
                         {new Date(dt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric' })}
                       </p>
                     </>

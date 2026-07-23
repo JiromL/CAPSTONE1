@@ -235,14 +235,9 @@ export default function AppointmentSlipPage() {
                       <p className="text-xs mt-3 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
                         Present to the CPS receptionist upon arrival
                       </p>
-                      {slip.qr_expires_at && (
-                        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                          Valid until{' '}
-                          {new Date(slip.qr_expires_at).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila',
-                            hour: 'numeric', minute: '2-digit', hour12: true,
-                          })}
-                        </p>
-                      )}
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                        Valid for today · refreshes if used
+                      </p>
                     </>
                   ) : (
                     <div className="w-36 h-36 mx-auto rounded flex flex-col items-center justify-center gap-2" style={{ background: 'var(--color-bg)', border: '1px dashed var(--color-border)' }}>

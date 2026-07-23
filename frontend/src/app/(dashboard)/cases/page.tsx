@@ -60,16 +60,18 @@ function StatCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left rounded-2xl px-4 py-4 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+      className="w-full text-left rounded-2xl px-4 py-4 transition-all duration-150"
       style={{
         background: 'var(--color-surface)',
         border: active
           ? `1.5px solid var(--color-primary)`
           : '1px solid var(--color-border)',
         boxShadow: active
-          ? 'var(--shadow-primary), var(--shadow-card)'
+          ? 'var(--shadow-primary), var(--shadow-card-md)'
           : 'var(--shadow-card)',
       }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card-md)'; }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card)'; }}
     >
       <div className="flex items-center gap-3">
         <div
@@ -279,7 +281,7 @@ export default function CasesPage() {
                 {tab.label}
                 {tab.count != null && tab.count > 0 && (
                   <span
-                    className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold"
+                    className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-xs font-bold"
                     style={
                       activeTab === tab.id
                         ? { background: 'var(--color-primary)', color: '#fff' }
@@ -421,7 +423,7 @@ export default function CasesPage() {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2.5">
                             <div
-                              className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                              className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
                               style={{ background: 'var(--color-primary)' }}
                             >
                               {(c.student_name || 'U')[0].toUpperCase()}
@@ -431,7 +433,7 @@ export default function CasesPage() {
                                 <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
                                   {c.student_name || 'Unknown'}
                                 </p>
-                                {c.is_minor && <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+                                {c.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
                               </div>
                               {c.student_email && (
                                 <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>

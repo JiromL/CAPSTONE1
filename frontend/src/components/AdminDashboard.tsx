@@ -36,7 +36,7 @@ function StatCard({ label, value, sub, highlight, action }: {
   return (
     <div className="rounded-2xl border shadow-card p-5 flex flex-col gap-2 min-h-[110px] transition-shadow hover:shadow-card-md"
       style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-      <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
       {value !== undefined && (
         <p className="text-3xl font-bold leading-none tracking-tight" style={{ color: highlight ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
           {value}
@@ -125,7 +125,7 @@ function AppointmentsCalendar({ appts }: { appts: any[] }) {
                   borderRight: i < 6 ? '1px solid var(--color-border)' : 'none',
                   background: isToday ? 'var(--color-primary-surface)' : 'transparent',
                 }}>
-                  <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{WEEKDAYS[d.getDay()]}</p>
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{WEEKDAYS[d.getDay()]}</p>
                   <p className="text-sm font-bold mt-0.5" style={{ color: isToday ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}>
                     {d.getDate()}
                   </p>
@@ -144,12 +144,12 @@ function AppointmentsCalendar({ appts }: { appts: any[] }) {
                   background: isToday ? 'var(--color-primary-surface)' : 'transparent',
                 }}>
                   {dayAppts.length === 0 ? (
-                    <p className="text-[10px] text-center pt-4" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>—</p>
+                    <p className="text-xs text-center pt-4" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }}>—</p>
                   ) : dayAppts.map((a, j) => {
                     const pal = counselorPalette(a.counselor_name || '');
                     return (
                       <Link key={j} href={a.case_id ? `/cases/${a.case_id}` : '/appointments'}
-                        className="block text-[10px] px-1.5 py-1 rounded-md border transition-opacity hover:opacity-80"
+                        className="block text-xs px-1.5 py-1 rounded-md border transition-opacity hover:opacity-80"
                         style={{ background: pal.bg, color: pal.text, borderColor: pal.border }}>
                         <p className="font-semibold truncate">{fmtTime(a.preferred_date || a.scheduled_start)}</p>
                         <p className="truncate opacity-80">{a.student_name || 'Student'}</p>
@@ -164,7 +164,7 @@ function AppointmentsCalendar({ appts }: { appts: any[] }) {
         </div>
       </div>
 
-      <div className="px-5 py-2.5 text-[10px]" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+      <div className="px-5 py-2.5 text-xs" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
         Each color represents a counselor/psychologist. Click any appointment to open the case.
       </div>
     </div>
@@ -315,7 +315,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
               <>
                 <div className="grid grid-cols-[1fr_2fr_1fr_90px] px-5 pb-2 gap-4">
                   {['ACTOR', 'ACTION', 'TARGET', 'TIME'].map(h => (
-                    <p key={h} className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
+                    <p key={h} className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
                   ))}
                 </div>
                 <div>

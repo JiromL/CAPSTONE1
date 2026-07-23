@@ -254,7 +254,7 @@ export default function WalkInSelfCheckinPage() {
                   }>
                   {done ? <CheckCircle2 size={14} /> : i + 1}
                 </div>
-                <span className="text-[10px] font-medium text-center leading-tight"
+                <span className="text-xs font-medium text-center leading-tight"
                   style={{ color: active ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>{s.label}</span>
               </div>
             );
@@ -292,7 +292,7 @@ export default function WalkInSelfCheckinPage() {
               </div>
               <F label="DLSU Email" req>
                 <input className={IC} style={ICS} type="email" value={icf.email} onChange={e => setIcf(p => ({ ...p, email: e.target.value }))} placeholder="jdelacruz@dlsu.edu.ph" inputMode="email" />
-                <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Must be a DLSU email (@dlsu.edu.ph)</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Must be a DLSU email (@dlsu.edu.ph)</p>
               </F>
               <F label="Phone Number">
                 <input className={IC} style={ICS} type="tel" value={icf.phone} onChange={e => setIcf(p => ({ ...p, phone: e.target.value }))} placeholder="09XX XXX XXXX" />

@@ -35,6 +35,7 @@ interface IntakeRecord {
   created_date: string;
   intake_packet_submitted?: boolean;
   case_id?: string;
+  is_minor?: boolean;
 }
 
 type StageKey = 'awaiting' | 'scheduled' | 'write' | 'done';
@@ -166,7 +167,10 @@ function WriteCard({ intake, onExport }: { intake: IntakeRecord; onExport: () =>
     <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
       style={{ background: 'rgba(124,58,237,0.06)', borderColor: 'rgba(124,58,237,0.25)' }}>
       <div className="min-w-0">
-        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
+          {intake.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+        </div>
         <div className="flex items-center gap-2 mt-0.5">
           {intake.client_id_number && <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>{intake.client_id_number}</span>}
           {intake.college_unit && <span className="text-xs truncate max-w-[140px]" style={{ color: 'var(--color-text-muted)' }}>{intake.college_unit}</span>}
@@ -211,7 +215,10 @@ function DoneCard({ intake, onExport }: { intake: IntakeRecord; onExport: () => 
     <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
       style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
       <div className="min-w-0">
-        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
+          {intake.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+        </div>
         <div className="flex items-center gap-2 mt-0.5">
           {intake.client_id_number && <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>{intake.client_id_number}</span>}
           {intake.college_unit && <span className="text-xs truncate max-w-[140px]" style={{ color: 'var(--color-text-muted)' }}>{intake.college_unit}</span>}
@@ -329,7 +336,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
           <CalendarDays size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
           <span className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>My Schedule This Week</span>
           {requestedSet.size > 0 && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
               style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
               {requestedSet.size} day{requestedSet.size !== 1 ? 's' : ''} requested
             </span>
@@ -357,7 +364,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
             <ChevronRight size={13} />
           </button>
           <Link href="/schedule"
-            className="text-[10px] font-semibold px-2 py-1 rounded-lg ml-1 transition"
+            className="text-xs font-semibold px-2 py-1 rounded-lg ml-1 transition"
             style={{ color: 'var(--color-primary)', background: 'var(--color-primary-surface)' }}>
             Full ↗
           </Link>
@@ -390,7 +397,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
                   {/* Column header */}
                   <div className="px-2 pt-2.5 pb-1.5 text-center"
                     style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide"
+                    <p className="text-xs font-bold uppercase tracking-wide"
                       style={{ color: isToday ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
                       {label}
                     </p>
@@ -414,14 +421,14 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
                   {/* Appointments */}
                   <div className="px-1.5 py-2 space-y-1 flex-1">
                     {dayAppts.length === 0 ? (
-                      <p className="text-[10px] text-center py-1"
+                      <p className="text-xs text-center py-1"
                         style={{ color: isRequested ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
                         {isRequested ? '✓ Free' : '—'}
                       </p>
                     ) : (
                       <>
                         {dayAppts.map(a => (
-                          <div key={a.id} className="rounded px-1.5 py-1 text-[10px] leading-tight"
+                          <div key={a.id} className="rounded px-1.5 py-1 text-xs leading-tight"
                             style={{
                               background: hasBoth ? 'var(--color-warning)' : 'var(--color-primary-surface)',
                               color: hasBoth ? 'white' : 'var(--color-primary)',
@@ -446,15 +453,15 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
           style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: 'var(--color-primary)' }} />
-            <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Existing appointment</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Existing appointment</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: 'var(--color-warning)' }} />
-            <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Conflict — student requesting this day</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Conflict — student requesting this day</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold" style={{ color: 'var(--color-success)' }}>✓ Free</span>
-            <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Student requested, you&apos;re available</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--color-success)' }}>✓ Free</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Student requested, you&apos;re available</span>
           </div>
         </div>
       )}
@@ -582,30 +589,86 @@ export default function IntakeManagementPage() {
     <>
       <DashboardPageWrapper title="Intake Management" subtitle="Track your intake interviews from booking to completion">
 
-        {/* Pipeline stage cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {/* Pipeline strip — desktop */}
+        <div className="hidden sm:flex rounded-2xl overflow-hidden mb-6"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
           {STAGES.map((s, idx) => {
             const isActive = activeStage === s.key;
             const count = stageCounts[s.key];
             const hasItems = count > 0;
             return (
               <button key={s.key} type="button" onClick={() => setActiveStage(s.key)}
-                className="relative flex flex-col rounded-xl border px-4 py-3 text-left transition w-full"
-                style={isActive
-                  ? { background: `${s.accent}15`, borderColor: s.accent, outline: `2px solid ${s.accent}`, outlineOffset: '-1px' }
-                  : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-bg)'; }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-surface)'; }}>
-                <span className="text-[10px] font-bold tracking-widest uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Step {idx + 1}</span>
-                <div className="flex items-center gap-2">
-                  <s.icon size={14} style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }} />
-                  <span className="text-xl font-bold" style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }}>{count}</span>
-                </div>
-                <p className="text-xs mt-1 font-medium leading-tight"
-                  style={{ color: isActive ? s.accent : 'var(--color-text-secondary)' }}>{s.label}</p>
-                {isActive && (
-                  <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full" style={{ background: s.accent, opacity: 0.6 }} />
+                className="relative flex-1 flex flex-col px-4 pt-4 pb-3 text-left transition"
+                style={{
+                  borderLeft: idx > 0 ? '1px solid var(--color-border)' : 'none',
+                  borderBottom: isActive ? `3px solid ${s.accent}` : '3px solid transparent',
+                  background: isActive ? `${s.accent}09` : 'transparent',
+                }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
+                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                {/* Flow connector arrow */}
+                {idx > 0 && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 flex items-center justify-center"
+                    style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--color-border)', }}>
+                    <ChevronRight size={10} style={{ color: 'var(--color-text-muted)' }} />
+                  </span>
                 )}
+                {/* Top row: step badge + count */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold tracking-widest px-1.5 py-0.5 rounded-md"
+                    style={{
+                      background: isActive ? `${s.accent}18` : 'var(--color-bg)',
+                      color: isActive ? s.accent : 'var(--color-text-muted)',
+                    }}>
+                    STEP {idx + 1}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <s.icon size={13} style={{ color: hasItems || isActive ? s.accent : 'var(--color-border-strong)' }} />
+                    <span className="text-xl font-bold tabular-nums" style={{ color: hasItems || isActive ? s.accent : 'var(--color-border-strong)' }}>
+                      {count}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs font-semibold leading-tight"
+                  style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>
+                  {s.label}
+                </p>
+                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
+                  {s.sublabel}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Pipeline strip — mobile (2-col grid) */}
+        <div className="sm:hidden grid grid-cols-2 gap-2 mb-4">
+          {STAGES.map((s, idx) => {
+            const isActive = activeStage === s.key;
+            const count = stageCounts[s.key];
+            const hasItems = count > 0;
+            return (
+              <button key={s.key} type="button" onClick={() => setActiveStage(s.key)}
+                className="flex flex-col rounded-xl border px-3 py-3 text-left transition"
+                style={isActive
+                  ? { background: `${s.accent}10`, borderColor: s.accent, borderBottomWidth: 3 }
+                  : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <span className="text-xs font-bold tracking-widest mb-1.5"
+                  style={{ color: isActive ? s.accent : 'var(--color-text-muted)' }}>
+                  STEP {idx + 1}
+                </span>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <s.icon size={13} style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }} />
+                  <span className="text-lg font-bold tabular-nums" style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }}>
+                    {count}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold leading-tight" style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>
+                  {s.label}
+                </p>
+                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
+                  {s.sublabel}
+                </p>
               </button>
             );
           })}
@@ -692,38 +755,6 @@ export default function IntakeManagementPage() {
           )}
         </div>
 
-        {/* Pipeline guide */}
-        <div className="mt-4 rounded-xl border px-5 py-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Intake Pipeline</p>
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            {STAGES.map((s, i) => {
-              const isActive = activeStage === s.key;
-              return (
-                <span key={s.key} className="flex items-center gap-2">
-                  <button onClick={() => setActiveStage(s.key)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition"
-                    style={isActive
-                      ? { background: `${s.accent}15`, color: s.accent, outline: `1px solid ${s.accent}` }
-                      : { color: 'var(--color-text-secondary)' }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-bg)'; }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
-                    <s.icon size={11} />
-                    {s.label}
-                    {stageCounts[s.key] > 0 && (
-                      <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1"
-                        style={isActive
-                          ? { background: 'rgba(255,255,255,0.4)', color: s.accent }
-                          : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
-                        {stageCounts[s.key]}
-                      </span>
-                    )}
-                  </button>
-                  {i < STAGES.length - 1 && <ChevronRight size={12} style={{ color: 'var(--color-border)' }} className="flex-shrink-0" />}
-                </span>
-              );
-            })}
-          </div>
-        </div>
 
       </DashboardPageWrapper>
 

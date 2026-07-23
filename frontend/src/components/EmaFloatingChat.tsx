@@ -123,7 +123,7 @@ export function EmaFloatingChat() {
               <div>
                 <p className="text-sm font-semibold leading-tight" style={{ color: 'white' }}>EMA Chatbot</p>
                 {!minimized && (
-                  <p className="text-[10px] leading-tight" style={{ color: 'rgba(255,255,255,0.7)' }}>DLSU Mental Health Support</p>
+                  <p className="text-xs leading-tight" style={{ color: 'rgba(255,255,255,0.7)' }}>DLSU Mental Health Support</p>
                 )}
               </div>
             </div>
@@ -225,7 +225,7 @@ export function EmaFloatingChat() {
                             onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
                             onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
                           />
-                          <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                          <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                             If you changed your EMA username, enter the original <span className="font-mono">ema_XXX</span> ID your account was created with.
                           </p>
                         </div>
@@ -249,7 +249,7 @@ export function EmaFloatingChat() {
                       </button>
                     </form>
 
-                    <p className="text-[10px] text-center mt-4" style={{ color: 'var(--color-border-strong)' }}>
+                    <p className="text-xs text-center mt-4" style={{ color: 'var(--color-border-strong)' }}>
                       These credentials are used only to sync your wellness history. You'll also sign in inside the chatbot below.
                     </p>
                   </div>

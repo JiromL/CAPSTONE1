@@ -72,8 +72,8 @@ export function AnnouncementsPanel() {
                     <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: meta.accent }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[10px] font-bold tracking-wide uppercase" style={{ color: meta.accent }}>{meta.label}</span>
-                        {a.pinned && <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
+                        <span className="text-xs font-bold tracking-wide uppercase" style={{ color: meta.accent }}>{meta.label}</span>
+                        {a.pinned && <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
                       </div>
                       <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--color-text-primary)' }}>{a.title}</p>
                       {a.event_date && (

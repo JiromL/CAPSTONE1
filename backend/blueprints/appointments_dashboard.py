@@ -345,14 +345,18 @@ def format_appointments(appointments):
                 except:
                     counselor = None
             
-            # Get case info for risk level
+            # Get case info for risk level + no-show streak
             case = None
             risk_level = None
+            consecutive_no_shows = 0
             if apt.get('case_id'):
                 try:
                     case_id = ObjectId(apt['case_id']) if isinstance(apt['case_id'], str) else apt['case_id']
                     case = db.db.cases.find_one({"_id": case_id})
                     risk_level = case.get('risk_level', 'GREEN') if case else None
+                    tracker = db.db.missed_appointment_tracker.find_one({"case_id": case_id})
+                    if tracker:
+                        consecutive_no_shows = tracker.get('consecutive_no_shows', 0)
                 except:
                     risk_level = None
             
@@ -409,7 +413,8 @@ def format_appointments(appointments):
                 'notes': apt.get('notes', ''),
                 'case_id': str(apt.get('case_id', '')) if apt.get('case_id') else None,
                 'mhbot_username': student.get('mhbot_username', '') if student else '',
-                'created_at': apt.get('created_at').isoformat() if hasattr(apt.get('created_at'), 'isoformat') else str(apt.get('created_at', ''))
+                'created_at': apt.get('created_at').isoformat() if hasattr(apt.get('created_at'), 'isoformat') else str(apt.get('created_at', '')),
+                'consecutive_no_shows': consecutive_no_shows
             })
         except Exception as e:
             print(f"Error formatting appointment: {e}")

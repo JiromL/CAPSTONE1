@@ -173,7 +173,7 @@ function DetailPopover({ appt, onClose, colorBy, counselorColor }: {
               <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
                 {appt.student_name}
               </p>
-              <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide"
+              <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide"
                 style={{ background: color.bg, color: color.text }}>
                 {fmtStatus(appt.status)}
               </span>
@@ -192,7 +192,7 @@ function DetailPopover({ appt, onClose, colorBy, counselorColor }: {
           <DRow icon={<User size={13} />} label="Counselor">
             {appt.counselor_name}
             {appt.counselor_role && (
-              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
+              <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
                 style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
                 {appt.counselor_role}
               </span>
@@ -225,7 +225,7 @@ function DRow({ icon, label, children }: { icon: React.ReactNode; label: string;
     <div className="flex items-start gap-2.5">
       <span className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{icon}</span>
       <div className="flex-1 min-w-0">
-        <span className="text-[10px] uppercase tracking-wide font-semibold block"
+        <span className="text-xs uppercase tracking-wide font-semibold block"
           style={{ color: 'var(--color-text-muted)' }}>{label}</span>
         <span className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{children}</span>
       </div>
@@ -407,7 +407,7 @@ function Legend({ colorBy, counselorColorMap, appointments }: {
           return (
             <div key={key} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: c.border }} />
-              <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
             </div>
           );
         })}
@@ -421,7 +421,7 @@ function Legend({ colorBy, counselorColorMap, appointments }: {
         return (
           <div key={id} className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: c.border }} />
-            <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{name}</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{name}</span>
           </div>
         );
       })}
@@ -651,7 +651,7 @@ export default function CalendarWeekView({
               }}
               onMouseEnter={e => { e.currentTarget.style.background = isSelected ? 'var(--color-primary-surface)' : 'var(--color-bg)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'var(--color-primary-surface)' : 'transparent'; }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider"
+              <p className="text-xs font-semibold uppercase tracking-wider"
                 style={{ color: isDayToday ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
                 {DAYS_SHORT[day.getDay()]}
               </p>
@@ -679,7 +679,7 @@ export default function CalendarWeekView({
           <div className="relative select-none">
             {hours.map(h => (
               <div key={h} style={{ position: 'absolute', top: (h - START_HOUR) * HOUR_H - 7, right: 6, lineHeight: 1 }}>
-                <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>
+                <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
                   {fmt12(h)}
                 </span>
               </div>

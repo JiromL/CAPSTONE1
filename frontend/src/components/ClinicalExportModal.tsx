@@ -95,7 +95,7 @@ export function ClinicalExportModal({ intakeId, appointmentId, onClose }: Props)
         <div className="px-6 py-4 space-y-4 max-h-72 overflow-y-auto">
           {GROUPS.map(group => (
             <div key={group.label}>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--color-text-muted)' }}>{group.label}</p>
+              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--color-text-muted)' }}>{group.label}</p>
               <div className="space-y-1.5">
                 {group.keys.map(key => (
                   <label key={key} className="flex items-center gap-3 cursor-pointer group">

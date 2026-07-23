@@ -323,7 +323,7 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
                       style={{ background: color + '20', color, border: `2px solid ${color}` }}>
                       {s.count}
                     </div>
-                    <span className="text-[10px] text-center leading-tight" style={{ color: 'var(--color-text-muted)' }}>
+                    <span className="text-xs text-center leading-tight" style={{ color: 'var(--color-text-muted)' }}>
                       {PIPELINE_LABELS[s.stage]}
                     </span>
                   </div>
@@ -385,7 +385,7 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
                 <div key={s.name} className="flex items-center gap-3">
                   <div className="flex items-center gap-2 w-40 flex-shrink-0">
                     <span className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{s.name.split(' ')[0]}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold"
+                    <span className="text-xs px-1.5 py-0.5 rounded uppercase font-semibold"
                       style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
                       {s.role === 'PSYCHOLOGIST' ? 'CP' : s.role === 'IC' ? 'IC' : 'CC'}
                     </span>
@@ -1448,7 +1448,7 @@ function ExportRow({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{report.label}</p>
         <p className="text-xs mt-0.5 mb-1.5" style={{ color: 'var(--color-text-muted)' }}>{report.desc}</p>
-        <p className="text-[10px] font-mono" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>{report.cols}</p>
+        <p className="text-xs font-mono" style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}>{report.cols}</p>
       </div>
       <button
         onClick={() => onDownload(report.id, report.label)}

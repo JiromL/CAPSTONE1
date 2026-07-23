@@ -114,7 +114,7 @@ function PermaTrendsWidget() {
                         <div className="w-24 rounded-full h-1.5 overflow-hidden flex-shrink-0" style={{ background: 'var(--color-bg)' }}>
                           <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: color }} />
                         </div>
-                        <span className="text-[10px] font-medium" style={{ color }}>{l}: {c}</span>
+                        <span className="text-xs font-medium" style={{ color }}>{l}: {c}</span>
                       </div>
                     );
                   })
@@ -189,7 +189,7 @@ function TodayScheduleTable({ appts, fmtTime }: { appts: any[]; fmtTime: (s: str
         <>
           <div className="grid grid-cols-[90px_1fr_110px_130px_36px] px-5 pb-2 gap-3">
             {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
-              <p key={i} className="text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
+              <p key={i} className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
             ))}
           </div>
           <div>
@@ -306,7 +306,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
               <p className="text-xs font-bold tracking-widest uppercase flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
                 High-Risk Alerts
                 {alerts.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold normal-case tracking-normal" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold normal-case tracking-normal" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
                     {alerts.length}
                   </span>
                 )}

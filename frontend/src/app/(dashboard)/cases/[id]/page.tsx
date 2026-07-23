@@ -6,6 +6,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
 import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus, UserPlus } from 'lucide-react';
+import { getNoteTypeBadgeStyle, getRiskBadgeStyle } from '@/utils/badges';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { ClinicalExportModal } from '@/components/ClinicalExportModal';
@@ -48,18 +49,13 @@ const IC_XS = 'w-full px-3 py-2 text-xs rounded-lg outline-none transition';
 const ICS: React.CSSProperties = { background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 function riskBadgeStyle(level: string): React.CSSProperties {
-  if (level === 'RED' || level === 'CRITICAL') return { background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' };
-  if (level === 'YELLOW') return { background: 'var(--color-warning-surface)', color: 'var(--color-warning)', boxShadow: '0 0 0 1px var(--color-warning)' };
-  return { background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' };
+  const s = getRiskBadgeStyle(level);
+  return { background: s.bg, color: s.text, boxShadow: `0 0 0 1px ${s.border}` };
 }
 
 function noteTypeStyle(type: string): React.CSSProperties {
-  switch (type) {
-    case 'CRISIS':    return { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)'  };
-    case 'FOLLOW_UP': return { background: '#F5F3FF', color: '#7C3AED' };
-    case 'INTAKE':    return { background: '#CCFBF1', color: '#0D9488' };
-    default:          return { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' };
-  }
+  const s = getNoteTypeBadgeStyle(type);
+  return { background: s.bg, color: s.text };
 }
 
 const emptyNote = {
@@ -1403,7 +1399,7 @@ export default function CaseDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <p className="text-base font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{studentName}</p>
-              {caseData?.is_minor && <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+              {caseData?.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
             </div>
             <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-secondary)' }}>{studentSchoolId}{studentEmail ? ` · ${studentEmail}` : ''}</p>
           </div>
@@ -1819,7 +1815,7 @@ export default function CaseDetailPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Triage Decision</p>
                           {decisionCfg.sub && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                            <span className="text-xs px-1.5 py-0.5 rounded font-bold"
                               style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>{decisionCfg.sub}</span>
                           )}
                         </div>
@@ -1863,7 +1859,7 @@ export default function CaseDetailPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>PHQ-9</p>
-                        <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Depression</p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Depression</p>
                       </div>
                       {phq9 != null ? (
                         <div className="text-right">
@@ -1882,7 +1878,7 @@ export default function CaseDetailPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>GAD-7</p>
-                        <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Anxiety</p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Anxiety</p>
                       </div>
                       {gad7 != null ? (
                         <div className="text-right">
@@ -1923,11 +1919,11 @@ export default function CaseDetailPage() {
                           { label: 'Total', score: totalPhq4, max: 12, threshold: 6, name: 'Combined'          },
                         ].map(({ label, score, max, threshold, name }) => (
                           <div key={label} className="text-center">
-                            <p className="text-[10px] mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</p>
+                            <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</p>
                             <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
                             <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{score ?? '—'}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{max}</span></p>
                             {score != null && (
-                              <span className="text-[10px] font-semibold mt-0.5 inline-block"
+                              <span className="text-xs font-semibold mt-0.5 inline-block"
                                 style={{ color: score >= threshold ? '#ef4444' : '#10b981' }}>
                                 {score >= threshold ? '⚑ Positive' : '✓ Negative'}
                               </span>
@@ -1979,7 +1975,7 @@ export default function CaseDetailPage() {
                           { label: 'Nationality',          val: spif.nationality },
                         ].filter(f => f.val).map(({ label, val: v }) => (
                           <div key={label}>
-                            <p className="text-[10px] font-medium uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+                            <p className="text-xs font-medium uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
                             <p className="text-sm capitalize" style={{ color: 'var(--color-text-primary)' }}>{String(v)}</p>
                           </div>
                         ))}
@@ -1993,7 +1989,7 @@ export default function CaseDetailPage() {
                         { label: 'Emergency Contact',          val: icf.emergency_contact_name ? `${icf.emergency_contact_name} (${icf.emergency_contact_relationship ?? '—'}) · ${icf.emergency_contact_phone ?? '—'}` : null },
                       ].filter(f => f.val).map(({ label, val: v }) => (
                         <div key={label} className="mt-4 pt-4 first:mt-3 first:pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-                          <p className="text-[10px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+                          <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
                           <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{String(v)}</p>
                         </div>
                       ))}
@@ -2141,7 +2137,7 @@ export default function CaseDetailPage() {
                       />
                     </AreaChart>
                   </ResponsiveContainer>
-                  <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                     Red dots indicate sessions where a risk concern was flagged.
                   </p>
                 </div>
@@ -3794,12 +3790,12 @@ export default function CaseDetailPage() {
                           <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{p.name}</span>
                           <div className="flex items-center gap-1.5">
                             {isRec && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                              <span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
                                 style={{ background: 'var(--color-primary)', color: '#fff' }}>
                                 Recommended
                               </span>
                             )}
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                               style={{ background: utilizationBg, color: utilizationColor }}>
                               {p.utilization}
                             </span>
@@ -3809,7 +3805,7 @@ export default function CaseDetailPage() {
                           <div className="flex-1 rounded-full h-1.5 overflow-hidden" style={{ background: 'var(--color-border)' }}>
                             <div className="h-full rounded-full transition-all" style={{ width: `${barPct}%`, background: utilizationColor }} />
                           </div>
-                          <span className="text-[10px] tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+                          <span className="text-xs tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
                             {p.active_cases} cases · {p.active_appointments} appts
                           </span>
                         </div>

@@ -5,36 +5,8 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle, Phone } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle } from 'lucide-react';
 
-function CrisisStrip() {
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed) return null;
-  return (
-    <div
-      role="complementary"
-      aria-label="Crisis support contact"
-      className="flex items-center gap-3 px-4 py-2.5 text-sm"
-      style={{ background: '#7F1D1D', color: '#FEE2E2', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-    >
-      <Phone size={13} className="flex-shrink-0" style={{ color: '#FCA5A5' }} />
-      <span className="flex-1">
-        <strong style={{ color: '#FCA5A5' }}>Need immediate help?</strong>
-        {' '}Call the CPS crisis line: <strong style={{ color: '#fff' }}>09XX-XXX-XXXX</strong>
-        <span style={{ opacity: 0.6 }}> · National: </span>
-        <a href="tel:1553" style={{ color: '#FCA5A5', textDecoration: 'underline' }}>1553 (Hopeline)</a>
-        <span style={{ opacity: 0.6 }}> · Emergency: </span>
-        <a href="tel:911" style={{ color: '#FCA5A5', textDecoration: 'underline' }}>911</a>
-      </span>
-      <button
-        onClick={() => setDismissed(true)}
-        aria-label="Dismiss crisis contact"
-        style={{ opacity: 0.5, lineHeight: 1 }}
-        className="hover:opacity-100 transition-opacity"
-      >✕</button>
-    </div>
-  );
-}
 import { OnboardingModal } from './OnboardingModal';
 import { ScheduleSessionCard } from './ScheduleSessionCard';
 
@@ -256,8 +228,6 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       />
     )}
     <DashboardLayout user={currentUser} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard">
-      <CrisisStrip />
-
       {loading ? (
         <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
           <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
@@ -437,8 +407,8 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                           <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: meta.accent }} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-[10px] font-bold tracking-wide uppercase" style={{ color: meta.accent }}>{meta.label}</span>
-                              {a.pinned && <span className="text-[10px] font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
+                              <span className="text-xs font-bold tracking-wide uppercase" style={{ color: meta.accent }}>{meta.label}</span>
+                              {a.pinned && <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
                             </div>
                             <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--color-text-primary)' }}>{a.title}</p>
                             <div className="flex items-center gap-2 mt-0.5">
@@ -463,7 +433,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold" style={{ color: 'var(--color-danger)' }}>Need support right now?</p>
                 <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--color-danger)' }}>
-                  24/7 Crisis Hotline:{' '}
+                  CPS:{' '}
+                  <a href="tel:09XXXXXXXXX" className="font-bold underline underline-offset-2">09XX-XXX-XXXX</a>
+                  {' '}· Hopeline:{' '}
                   <a href="tel:1553" className="font-bold underline underline-offset-2">1553</a>
                   {' '}· NCMH:{' '}
                   <a href="tel:028928922" className="font-bold underline underline-offset-2">0917-899-8727</a>
@@ -484,7 +456,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Your Case</p>
                     <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
                       style={isActive
                         ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
                         : { background: 'var(--color-border)', color: 'var(--color-text-muted)' }}
@@ -495,23 +467,23 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   <div className="space-y-2">
                     {activeCase.counselor_name ? (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Assigned Counselor</p>
+                        <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Assigned Counselor</p>
                         <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{activeCase.counselor_name}</p>
                       </div>
                     ) : (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Counselor</p>
+                        <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Counselor</p>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Not yet assigned</p>
                       </div>
                     )}
                     {activeCase.concern && (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
+                        <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
                         <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{activeCase.concern}</p>
                       </div>
                     )}
                     {activeCase.case_number && (
-                      <p className="text-[10px] font-mono pt-1" style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)' }}>
+                      <p className="text-xs font-mono pt-1" style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)' }}>
                         Case #{activeCase.case_number}
                       </p>
                     )}
@@ -557,14 +529,14 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                             ? { background: 'var(--color-primary)', color: 'white' }
                             : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}
                         >
-                          <p className="text-[10px] font-medium leading-none mb-0.5">{apptDay(appt.requested_start)}</p>
+                          <p className="text-xs font-medium leading-none mb-0.5">{apptDay(appt.requested_start)}</p>
                           <p className="text-base font-bold leading-none">{apptNum(appt.requested_start)}</p>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
                             {appt.counselor_name || 'CPS Counselor'}
                           </p>
-                          <p className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>
+                          <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
                             {fmtTime(appt.requested_start)}
                             {appt.requested_end ? ` – ${fmtTime(appt.requested_end)}` : ''}
                           </p>
@@ -577,7 +549,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   {pendingRequests.length > 0 && (
                     <>
                       {upcoming.length > 0 && <div className="h-px my-1" style={{ background: 'var(--color-border)' }} />}
-                      <p className="text-[10px] font-bold tracking-widest uppercase px-1 pt-1" style={{ color: 'var(--color-text-muted)' }}>
+                      <p className="text-xs font-bold tracking-widest uppercase px-1 pt-1" style={{ color: 'var(--color-text-muted)' }}>
                         Pending Requests
                       </p>
                       {pendingRequests.slice(0, 3).map((appt, i) => (
@@ -596,7 +568,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                                  appt.purpose === 'counseling' ? 'Counseling' :
                                  appt.purpose === 'follow_up_counselling' ? 'Follow-up' : 'Session Request'}
                               </p>
-                              <p className="text-[10px] font-medium" style={{ color: 'var(--color-warning)' }}>Pending review</p>
+                              <p className="text-xs font-medium" style={{ color: 'var(--color-warning)' }}>Pending review</p>
                             </div>
                             <ChevronRight size={13} style={{ color: 'var(--color-text-muted)' }} />
                           </div>
@@ -742,7 +714,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                             }}>
                             <Clock size={13} style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                             <span className="font-bold tabular-nums">{label}</span>
-                            {selected && <span className="ml-auto text-[10px] font-bold">✓</span>}
+                            {selected && <span className="ml-auto text-xs font-bold">✓</span>}
                           </button>
                         );
                       })}

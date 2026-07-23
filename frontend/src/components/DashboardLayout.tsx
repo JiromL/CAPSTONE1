@@ -10,11 +10,12 @@ import { EmaFloatingChat } from './EmaFloatingChat';
 import { useTheme } from '@/context/ThemeContext';
 
 interface MenuItem {
-  label: string;
+  label?: string;
   href?: string;
   id?: string;
   icon?: React.ReactNode;
   badge?: number;
+  divider?: boolean;
 }
 
 interface DashboardLayoutProps {
@@ -184,7 +185,7 @@ export function DashboardLayout({
         {/* Badge */}
         {item.badge != null && item.badge > 0 && (
           <span className={`
-            flex-shrink-0 text-[10px] min-w-[18px] h-[18px] px-1.5
+            flex-shrink-0 text-xs min-w-[18px] h-[18px] px-1.5
             flex items-center justify-center rounded-full font-bold
             transition-opacity duration-150
             ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
@@ -221,7 +222,7 @@ export function DashboardLayout({
           onClick={!mobileOpen && sidebarCollapsed ? toggleSidebar : undefined}
           className={`flex-shrink-0 w-8 h-8 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-md shadow-blue-900/30 select-none transition-opacity ${!mobileOpen && sidebarCollapsed ? 'cursor-pointer hover:opacity-80' : ''}`}
         >
-          <span className="text-[10px] font-extrabold text-white tracking-tighter">CPS</span>
+          <span className="text-xs font-extrabold text-white tracking-tighter">CPS</span>
         </div>
 
         {/* Wordmark — removed from layout flow when collapsed so toggle button stays visible */}
@@ -230,7 +231,7 @@ export function DashboardLayout({
           ${(mobileOpen || !sidebarCollapsed) ? 'max-w-[200px] opacity-100 flex-1 min-w-0' : 'max-w-0 opacity-0 flex-none w-0'}
         `}>
           <p className="text-sm font-bold text-white leading-tight">CPS Portal</p>
-          <p className="text-[10px] text-white/35 leading-tight font-medium tracking-wide uppercase">
+          <p className="text-xs text-white/35 leading-tight font-medium tracking-wide uppercase">
             De La Salle University
           </p>
         </div>
@@ -239,7 +240,7 @@ export function DashboardLayout({
         <button
           onClick={toggleSidebar}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden lg:flex ml-auto flex-shrink-0 items-center justify-center w-6 h-6 rounded-lg text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors"
+          className="hidden lg:flex ml-auto flex-shrink-0 items-center justify-center w-7 h-7 rounded-lg text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors"
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {sidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
@@ -260,9 +261,10 @@ export function DashboardLayout({
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-1 space-y-0.5">
-        {menuItems.map((item, i) => (
-          <NavItem key={i} item={item} index={i} />
-        ))}
+        {menuItems.map((item, i) => item.divider
+          ? <div key={i} className="mx-4 my-1.5 h-px bg-white/[0.06]" />
+          : <NavItem key={i} item={item} index={i} />
+        )}
       </nav>
 
       {/* Bottom section */}
@@ -310,7 +312,7 @@ export function DashboardLayout({
             ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
           `}>
             <p className="text-xs font-semibold text-white/90 truncate leading-tight">{fullName}</p>
-            <p className="text-xs text-white/40 truncate leading-tight mt-0.5">{roleLabel}</p>
+            <p className="text-[11px] text-white/40 truncate leading-tight mt-0.5">{roleLabel}</p>
           </div>
         </div>
 
@@ -389,7 +391,7 @@ export function DashboardLayout({
           <button
             onClick={() => setMobileOpen(true)}
             aria-label="Open navigation menu"
-            className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl transition-colors"
+            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
             style={{ color: 'var(--color-text-secondary)' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-border)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -422,7 +424,7 @@ export function DashboardLayout({
               <button
                 onClick={() => setBellOpen(v => { if (!v) setReminderCount(0); return !v; })}
                 aria-label={reminderCount > 0 ? `Notifications (${reminderCount} new)` : 'Notifications'}
-                className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-colors duration-150"
+                className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors duration-150"
                 style={{ color: 'var(--color-text-secondary)' }}
                 onMouseEnter={e => {
                   (e.currentTarget as HTMLElement).style.background = 'var(--color-border)';
@@ -436,8 +438,8 @@ export function DashboardLayout({
                 <Bell size={16} />
                 {reminderCount > 0 && (
                   <span
-                    className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ring-2 animate-pulse-dot"
-                    style={{ background: 'var(--color-primary)', borderColor: 'var(--color-surface)' }}
+                    className="absolute top-1 right-1 w-2 h-2 rounded-full ring-2 animate-ping-dot"
+                    style={{ background: 'var(--color-danger)', ringColor: 'var(--color-surface)', borderColor: 'var(--color-surface)' }}
                   />
                 )}
               </button>
@@ -445,7 +447,9 @@ export function DashboardLayout({
               {/* Dropdown */}
               {bellOpen && (
                 <div
-                  className="absolute right-0 top-11 w-80 rounded-2xl overflow-hidden z-50 animate-scale-in-fast"
+                  role="dialog"
+                  aria-label="Notifications"
+                  className="absolute right-0 top-12 w-80 rounded-2xl overflow-hidden z-50 animate-scale-in-fast"
                   style={{
                     background: 'var(--color-surface)',
                     border: '1px solid var(--color-border)',
@@ -533,7 +537,7 @@ export function DashboardLayout({
 
             {/* User avatar — desktop only */}
             <div
-              className="hidden lg:flex ml-1 items-center justify-center w-7 h-7 rounded-full text-white text-[10px] font-bold ring-1 ring-white/20 cursor-default select-none"
+              className="hidden lg:flex ml-1 items-center justify-center w-7 h-7 rounded-full text-white text-xs font-bold ring-1 ring-white/20 cursor-default select-none"
               style={{ background: roleColor }}
               title={`${fullName} · ${roleLabel}`}
             >

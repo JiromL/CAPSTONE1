@@ -105,7 +105,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                   style={{ background: 'var(--color-surface)' }}>
                   {c.risk_level && c.risk_level !== 'GREEN' && (
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                      className="text-xs px-1.5 py-0.5 rounded font-bold"
                       style={
                         c.risk_level === 'CRITICAL' ? { background: '#fee2e2', color: '#7f1d1d' } :
                         c.risk_level === 'RED'      ? { background: '#fef2f2', color: '#b91c1c' } :
@@ -116,7 +116,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                   )}
                   <div>
                     <p className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.student_name || 'Student'}</p>
-                    <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                       {c.created_at ? new Date(c.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }) : ''}
                     </p>
                   </div>

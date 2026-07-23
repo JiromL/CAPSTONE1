@@ -85,7 +85,7 @@ function ResetPasswordContent() {
               className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
               style={{ background: 'var(--color-primary)' }}
             >
-              <span className="text-[10px] font-extrabold text-white tracking-tighter select-none">CPS</span>
+              <span className="text-xs font-extrabold text-white tracking-tighter select-none">CPS</span>
             </div>
             <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.85)' }}>
               DLSU CPS

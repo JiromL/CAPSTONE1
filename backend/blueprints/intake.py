@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, IntakeStatus, PermissionType, AppointmentStatus
 from utils import audit_log, user_has_permission, serialize_doc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 from bson import ObjectId
 import random
 import string
@@ -567,6 +567,7 @@ def submit_triage(intake_id):
             'risk_level': risk_level,
             'concern': intake.get('concern', ''),
             'intake_id': intake['_id'],
+            'is_minor': intake.get('is_minor', False),
             'created_at': now,
             'updated_at': now,
         }
@@ -1091,12 +1092,27 @@ def student_submit_intake():
         intake_responses["social_responses"] = social_responses
         intake_responses["social_score"] = social_score
     
+    # Calculate minor status from birthday
+    def _calc_is_minor(bday_str):
+        if not bday_str:
+            return False
+        try:
+            bday = datetime.strptime(bday_str, '%Y-%m-%d').date()
+            today = date_type.today()
+            age = today.year - bday.year - ((today.month, today.day) < (bday.month, bday.day))
+            return age < 18
+        except Exception:
+            return False
+
+    is_minor = _calc_is_minor(data.get('birthday', ''))
+
     # Update intake document
     update_payload = {
         "$set": {
             "responses": intake_responses,
             "counseling_id": counseling_id,
             "is_emergency": is_emergency,
+            "is_minor": is_minor,
             "assigned_counselor_id": assigned_counselor_id,
             "status": IntakeStatus.COMPLETED.value,
             "student_submitted_at": datetime.utcnow(),

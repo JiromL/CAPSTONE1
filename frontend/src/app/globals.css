@@ -221,6 +221,12 @@ h1, h2, h3, h4, h5, h6 {
   50%       { opacity: 0.35; }
 }
 
+@keyframes ping-dot {
+  0%   { transform: scale(1);   opacity: 1; }
+  70%  { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -240,6 +246,7 @@ h1, h2, h3, h4, h5, h6 {
 .animate-slide-in-left  { animation: slide-in-left 0.25s ease-out; }
 .animate-slide-up       { animation: slide-up 0.25s ease-out both; }
 .animate-pulse-dot      { animation: pulse-dot 1.5s ease-in-out infinite; }
+.animate-ping-dot       { animation: ping-dot 1.4s cubic-bezier(0, 0, 0.2, 1) infinite; }
 .animate-shimmer        { animation: shimmer 2s linear infinite; }
 
 /* ─────────────────────────────────────────────────────────────

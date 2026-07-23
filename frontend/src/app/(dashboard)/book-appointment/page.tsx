@@ -109,7 +109,7 @@ function VerticalStepTracker({ steps, current }: { steps: { label: string; desc?
                 {step.label}
               </p>
               {step.desc && (active || done) && (
-                <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{step.desc}</p>
+                <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{step.desc}</p>
               )}
             </div>
           </div>
@@ -135,6 +135,7 @@ export default function BookAppointmentPage() {
   const [activeAppt, setActiveAppt] = useState<any>(null);
   const [bookingGate, setBookingGate] = useState<string | null>(null);
   const [gateMessage, setGateMessage] = useState('');
+  const [rebookDeadline, setRebookDeadline] = useState<string | null>(null);
   const [bypassForOthers, setBypassForOthers] = useState(false);
 
   const [bookingRules, setBookingRules] = useState({
@@ -212,6 +213,7 @@ export default function BookAppointmentPage() {
           const gate = d.booking_gate ?? (d.can_self_book ? 'eligible' : 'no_case');
           setBookingGate(gate);
           setGateMessage(d.message ?? '');
+          if (gate === 'noshow_rebook' && d.rebook_deadline) setRebookDeadline(d.rebook_deadline);
           if (d.has_active_appointment) setActiveAppt(d);
         }
       } catch {}
@@ -312,7 +314,11 @@ export default function BookAppointmentPage() {
 
   const today = new Date();
   const minDate = new Date(today); minDate.setDate(today.getDate() + bookingRules.min_days_ahead);
-  const maxDate = new Date(today); maxDate.setDate(today.getDate() + bookingRules.max_days_ahead);
+  const maxDate = (() => {
+    const d = new Date(today); d.setDate(today.getDate() + bookingRules.max_days_ahead);
+    if (rebookDeadline) { const dl = new Date(rebookDeadline + 'T23:59:59'); return dl < d ? dl : d; }
+    return d;
+  })();
   const toDS = (d: Date) => d.toISOString().split('T')[0];
 
   const handleNextBookStep = () => {
@@ -422,26 +428,12 @@ export default function BookAppointmentPage() {
     counselor_owns_scheduling: { icon:<CalendarDays size={36} />,  title:'Your counselor will schedule your next session', bg:'var(--color-success-surface)', border:'var(--color-success)', text:'var(--color-success)',         cta:{ label:'View My Appointments', href:'/my-appointments' } },
     no_active_counselor:       { icon:<UserX size={36} />,         title:'No counselor assigned yet',                      bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
   };
-  if (bookingGate && bookingGate !== 'eligible' && !resumeId && !bypassForOthers) {
+  if (bookingGate && bookingGate !== 'eligible' && bookingGate !== 'noshow_rebook' && !resumeId && !bypassForOthers) {
     const cfg = GATE_CFG[bookingGate] ?? { icon:<Lock size={36} />, title:'Booking unavailable', bg:'var(--color-bg)', border:'var(--color-border)', text:'var(--color-text-secondary)' };
     const canBypass = bookingGate === 'counselor_owns_scheduling';
     return (
       <DashboardPageWrapper title="Book Appointment" subtitle="">
-        {/* Crisis contact strip — always visible on gate screens */}
-        <div
-          className="mb-4 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm"
-          style={{ background: '#7F1D1D', color: '#FEE2E2' }}
-          role="complementary"
-          aria-label="Crisis support"
-        >
-          <span className="text-xs">🆘</span>
-          <span className="flex-1 text-xs">
-            <strong style={{ color: '#FCA5A5' }}>Need immediate help?</strong>
-            {' '}CPS crisis line: <strong style={{ color: '#fff' }}>09XX-XXX-XXXX</strong>
-            {' · '}Hopeline: <a href="tel:1553" className="underline" style={{ color: '#FCA5A5' }}>1553</a>
-            {' · '}Emergency: <a href="tel:911" className="underline" style={{ color: '#FCA5A5' }}>911</a>
-          </span>
-        </div>
+
         <div className="max-w-lg mx-auto rounded-2xl p-8 text-center"
           style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
           <div className="flex justify-center mb-4" style={{ color: cfg.text }}>{cfg.icon}</div>
@@ -499,7 +491,7 @@ export default function BookAppointmentPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Intake Forms</p>
-                  <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>CPS · DLSU</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>CPS · DLSU</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-5">
@@ -508,14 +500,14 @@ export default function BookAppointmentPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{user?.first_name} {user?.last_name}</p>
-                  <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Student</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Student</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 rounded-xl px-3 py-2 mb-5" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
                 <CheckCircle size={13} className="flex-shrink-0" style={{ color: 'var(--color-success)' }} />
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold" style={{ color: 'var(--color-success)' }}>Slot Reserved</p>
-                  <p className="text-[10px] truncate" style={{ color: 'var(--color-success)' }}>Ticket #{ticketNumber}</p>
+                  <p className="text-xs font-bold" style={{ color: 'var(--color-success)' }}>Slot Reserved</p>
+                  <p className="text-xs truncate" style={{ color: 'var(--color-success)' }}>Ticket #{ticketNumber}</p>
                 </div>
               </div>
               <VerticalStepTracker steps={INTAKE_STEPS} current={intakeStep} />
@@ -528,7 +520,7 @@ export default function BookAppointmentPage() {
             <div className="lg:hidden flex items-center gap-1 mb-2">
               {INTAKE_STEPS.map((s, i) => (
                 <div key={i} className="flex items-center gap-1">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all"
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all"
                     style={i < intakeStep
                       ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: 'white' }
                       : i === intakeStep
@@ -877,7 +869,7 @@ export default function BookAppointmentPage() {
                 { label: 'Attend your intake interview', desc: 'Bring a valid DLSU ID. The session is confidential and takes about 30–45 minutes.' },
               ]).map((s, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5"
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
                     style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)', color: 'var(--color-primary)' }}>{i+1}</span>
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{s.label}</p>
@@ -1038,7 +1030,7 @@ export default function BookAppointmentPage() {
               </div>
               <div>
                 <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Book Appointment</p>
-                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>CPS · DLSU</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>CPS · DLSU</p>
               </div>
             </div>
             <div className="flex items-center gap-2 mb-5">
@@ -1047,7 +1039,7 @@ export default function BookAppointmentPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{user?.first_name} {user?.last_name}</p>
-                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Student</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Student</p>
               </div>
             </div>
             <VerticalStepTracker steps={BOOK_STEPS} current={purpose === 'others' && bookStep === 2 ? 1 : bookStep} />
@@ -1055,14 +1047,14 @@ export default function BookAppointmentPage() {
 
           {bookStep >= 1 && (
             <div className="rounded-2xl border shadow-card p-4 space-y-3" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Your selections</p>
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Your selections</p>
               <div>
-                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Session type</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Session type</p>
                 <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{PURPOSES.find(p=>p.value===purpose)?.label || purpose}</p>
               </div>
               {purpose !== 'others' && (
                 <div>
-                  <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Mode</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Mode</p>
                   <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                     {slotMethod === 'F2F' ? 'Face to Face' : `Online · ${prefPlatform === 'google-meet' ? 'Google Meet' : 'Zoom'}`}
                   </p>
@@ -1070,7 +1062,7 @@ export default function BookAppointmentPage() {
               )}
               {bookStep >= 2 && prefDate && (
                 <div>
-                  <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Date &amp; Time</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Date &amp; Time</p>
                   <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                     {new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',month:'short',day:'numeric',weekday:'short'})}
                     {prefTime && <><br />{fmtT(prefTime)}</>}
@@ -1083,6 +1075,17 @@ export default function BookAppointmentPage() {
 
         {/* Center */}
         <div className="flex-1 min-w-0">
+
+          {/* Rebook deadline banner */}
+          {rebookDeadline && (
+            <div className="rounded-xl px-4 py-3 mb-4 flex items-start gap-3" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
+              <p className="text-sm" style={{ color: 'var(--color-warning)' }}>
+                You missed your last session. Please rebook by{' '}
+                <strong>{new Date(rebookDeadline + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.
+              </p>
+            </div>
+          )}
 
           {/* Step 0: Session Type */}
           {bookStep === 0 && (
@@ -1165,7 +1168,7 @@ export default function BookAppointmentPage() {
                             <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{assignedCounselor.name}</p>
                             <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{assignedCounselor.role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'} · Assigned to your case</p>
                           </div>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Assigned</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Assigned</span>
                         </div>
                       )}
                       {assignedCounselor === null && (
@@ -1187,7 +1190,7 @@ export default function BookAppointmentPage() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold truncate" style={{ color: sel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{c.first_name} {c.last_name}</p>
-                                    <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{c.role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'}</p>
+                                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{c.role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'}</p>
                                   </div>
                                   {sel && <Check size={14} style={{ color: 'var(--color-primary)' }} className="flex-shrink-0" />}
                                 </button>
@@ -1224,7 +1227,7 @@ export default function BookAppointmentPage() {
                               </div>
                               <div>
                                 <p className="text-sm font-semibold" style={{ color: sel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{m.label}</p>
-                                <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{m.sub}</p>
+                                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{m.sub}</p>
                               </div>
                               {sel && <Check size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--color-primary)' }} />}
                             </button>
@@ -1250,7 +1253,7 @@ export default function BookAppointmentPage() {
                               );
                             })}
                           </div>
-                          <p className="text-[10px] mt-2" style={{ color: 'var(--color-primary)' }}>Your IC will send the meeting link before the session.</p>
+                          <p className="text-xs mt-2" style={{ color: 'var(--color-primary)' }}>Your IC will send the meeting link before the session.</p>
                         </div>
                       )}
                     </div>
@@ -1450,7 +1453,7 @@ export default function BookAppointmentPage() {
               <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>
                 {prefDate ? new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'long',month:'short',day:'numeric'}) : 'Select a date'}
               </p>
-              <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                 {prefDate ? (purpose === 'intake_interview' ? 'IC available slots' : `${slotMethod === 'F2F' ? 'Face to Face' : 'Online'} slots`) : 'Available time slots will appear here'}
               </p>
             </div>
@@ -1484,13 +1487,13 @@ export default function BookAppointmentPage() {
                         <div className="min-w-0">
                           <p className="text-xs font-bold" style={{ color: sel ? 'white' : 'var(--color-text-primary)' }}>{fmtT(s.time)}</p>
                           {s.counselor_name && purpose !== 'intake_interview' && (
-                            <p className="text-[10px] mt-0.5 truncate" style={{ color: sel ? 'rgba(255,255,255,0.7)' : 'var(--color-text-muted)' }}>{s.counselor_name}</p>
+                            <p className="text-xs mt-0.5 truncate" style={{ color: sel ? 'rgba(255,255,255,0.7)' : 'var(--color-text-muted)' }}>{s.counselor_name}</p>
                           )}
                         </div>
                         {purpose === 'intake_interview' && (() => {
                           const n = s.count ?? slotCountByTime[s.time] ?? 1;
                           return (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2"
+                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2"
                               style={sel
                                 ? { background: 'rgba(255,255,255,0.2)', color: 'white' }
                                 : n === 1
@@ -1511,7 +1514,7 @@ export default function BookAppointmentPage() {
                     ? <p className="text-xs font-medium" style={{ color: 'var(--color-danger)' }}>{slotsBlockedMsg}</p>
                     : <>
                         <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{purpose === 'intake_interview' ? 'No IC slots available on this date.' : `No ${slotMethod === 'F2F' ? 'face-to-face' : 'online'} slots available.`}</p>
-                        <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>Try a different date or check below to request anyway.</p>
+                        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Try a different date or check below to request anyway.</p>
                       </>
                   }
                 </div>
@@ -1519,7 +1522,7 @@ export default function BookAppointmentPage() {
               {requestAnyway && (
                 <div className="mt-2 flex items-center gap-1.5 rounded-xl px-3 py-2" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
                   <Check size={12} style={{ color: 'var(--color-warning)' }} className="flex-shrink-0" />
-                  <p className="text-[10px] font-medium" style={{ color: 'var(--color-warning)' }}>General request — CPS will schedule you</p>
+                  <p className="text-xs font-medium" style={{ color: 'var(--color-warning)' }}>General request — CPS will schedule you</p>
                 </div>
               )}
             </div>

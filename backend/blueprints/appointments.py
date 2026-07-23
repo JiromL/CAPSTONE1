@@ -595,6 +595,21 @@ def check_active_appointment():
             except Exception:
                 pass
 
+        # Rebook override: counselor set a deadline after a no-show
+        rebook_deadline = student_case.get('rebook_deadline')
+        if rebook_deadline and rebook_deadline > datetime.utcnow():
+            return jsonify({
+                'has_active_appointment': False,
+                'can_self_book': True,
+                'booking_gate': 'noshow_rebook',
+                'rebook_deadline': rebook_deadline.date().isoformat(),
+                'case_id': str(student_case['_id']),
+                'case_status': case_status,
+                'assigned_counselor_id': str(assigned_counselor) if assigned_counselor else None,
+                'assigned_counselor_name': counselor_name,
+                'message': f'You missed your last session. Please rebook by {rebook_deadline.strftime("%B %d, %Y")}.',
+            }), 200
+
         if case_status == 'ACTIVE' and assigned_counselor:
             return jsonify({
                 'has_active_appointment': False,
@@ -888,6 +903,13 @@ def request_appointment():
 
         result = db.db.appointments.insert_one(appointment)
         appointment_id = str(result.inserted_id)
+
+        # Clear rebook_deadline on the case if the student is acting on a no-show rebook prompt
+        if case and case.get('rebook_deadline'):
+            db.db.cases.update_one(
+                {'_id': case['_id']},
+                {'$unset': {'rebook_deadline': ''}, '$set': {'updated_at': datetime.utcnow()}}
+            )
 
         # Record who booked the slot and which appointment owns it
         if booked_slot:
@@ -1806,6 +1828,76 @@ def mark_no_show(appointment_id):
         'consecutive_no_shows': consecutive,
         'auto_terminated': auto_terminated,
         'warning': '3 consecutive no-shows — case flagged for administrative termination.' if auto_terminated else None,
+    }), 200
+
+
+@appointments_bp.route('/<appointment_id>/rebook-after-noshow', methods=['POST'])
+@jwt_required()
+def rebook_after_noshow(appointment_id):
+    """After a no-show, set a risk-aware rebook deadline on the case and notify the student.
+
+    HIGH/CRITICAL risk → 7 days; all others → 14 days.
+    Does NOT modify the NO_SHOW appointment status.
+    """
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        apt_id = ObjectId(appointment_id)
+        apt = db.db.appointments.find_one({'_id': apt_id})
+    except Exception:
+        apt = db.db.appointments.find_one({'_id': appointment_id})
+
+    if not apt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    if apt.get('status') != AppointmentStatus.NO_SHOW.value:
+        return jsonify({'error': 'Appointment is not marked as no-show'}), 400
+
+    case_id = apt.get('case_id')
+    if not case_id:
+        return jsonify({'error': 'Appointment has no associated case'}), 400
+
+    try:
+        case = db.db.cases.find_one({'_id': ObjectId(str(case_id))})
+    except Exception:
+        case = db.db.cases.find_one({'_id': case_id})
+
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+
+    risk_level = (case.get('risk_level') or '').upper()
+    days = 7 if risk_level in ('HIGH', 'CRITICAL') else 14
+
+    now = datetime.utcnow()
+    deadline = now + timedelta(days=days)
+
+    db.db.cases.update_one(
+        {'_id': case['_id']},
+        {'$set': {'rebook_deadline': deadline, 'updated_at': now}}
+    )
+
+    student_id = apt.get('student_id')
+    if student_id:
+        deadline_str = deadline.strftime('%B %d, %Y')
+        db.db.notifications.insert_one({
+            'type': 'REBOOK_REMINDER',
+            'case_id': str(case_id),
+            'appointment_id': str(apt['_id']),
+            'message': f'You missed your last session. Please book your next appointment by {deadline_str}.',
+            'target_user_id': student_id,
+            'read': False,
+            'created_at': now,
+        })
+
+    audit_log(db.db, 'appointment', 'rebook_after_noshow', entity_id=str(apt['_id']),
+              new_values={'rebook_deadline': deadline.date().isoformat(), 'days': days, 'risk_level': risk_level})
+
+    return jsonify({
+        'message': 'Student notified to rebook.',
+        'rebook_deadline': deadline.date().isoformat(),
+        'days': days,
     }), 200
 
 

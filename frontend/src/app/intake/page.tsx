@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, BookOpen, CheckCircle, Heart, AlertCircle } from 'lucide-react';
+import { FileText, BookOpen, CheckCircle, Heart, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -2562,7 +2562,7 @@ export default function IntakePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderBottomColor: 'var(--color-border-strong)' }}></div>
+        <Loader2 size={32} className="animate-spin" style={{ color: 'var(--color-border-strong)' }} />
       </div>
     );
   }

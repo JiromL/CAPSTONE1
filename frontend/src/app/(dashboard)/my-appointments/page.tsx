@@ -455,7 +455,7 @@ export default function MyAppointmentsPage() {
                 <Icon size={18} style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                 <span>{tab.label}</span>
                 {cnt > 0 && !seenTabs.has(tab.key) && (
-                  <span className="absolute -top-1 -right-0.5 text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none"
+                  <span className="absolute -top-1 -right-0.5 text-xs font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none"
                     style={{ background: 'var(--color-text-primary)', color: 'white' }}>
                     {cnt}
                   </span>
@@ -560,9 +560,9 @@ export default function MyAppointmentsPage() {
                               <span className="ml-1" style={{ color: 'var(--color-text-muted)' }}>· {ROLE_LABEL[appt.counselor_role]}</span>
                             )}
                           </p>
-                        ) : (
+                        ) : !['REQUESTED', 'PENDING_APPROVAL'].includes(appt.status) ? (
                           <p className="mt-1 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Counselor not yet assigned — we'll notify you soon</p>
-                        )}
+                        ) : null}
                         {appt.office && (
                           <p className="mt-0.5 text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
                             <MapPin size={10} /> {appt.office}
@@ -583,7 +583,7 @@ export default function MyAppointmentsPage() {
                               {steps.map((s, i) => (
                                 <div key={s.label} className="flex items-center" style={{ flex: i < steps.length - 1 ? '1' : 'none' }}>
                                   <div className="flex flex-col items-center">
-                                    <div className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
+                                    <div className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
                                       style={{ background: s.done ? 'var(--color-success)' : 'var(--color-border)', color: s.done ? 'white' : 'var(--color-text-muted)' }}>
                                       {s.done ? '✓' : i + 1}
                                     </div>
@@ -1027,7 +1027,7 @@ export default function MyAppointmentsPage() {
                           }}>
                           <Clock size={13} style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                           <span className="font-bold tabular-nums">{fmtTime(s.time)}</span>
-                          {selected && <span className="ml-auto text-[10px] font-bold">✓</span>}
+                          {selected && <span className="ml-auto text-xs font-bold">✓</span>}
                         </button>
                       );
                     })}

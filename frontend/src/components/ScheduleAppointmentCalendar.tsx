@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 
@@ -226,7 +226,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
 
       {!counselorId && !loadingError && (
         <div className="mb-6 p-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 mb-3" style={{ borderColor: 'var(--color-primary)' }} />
+          <Loader2 size={24} className="animate-spin mb-3" style={{ color: 'var(--color-primary)' }} />
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading available appointment times...</p>
         </div>
       )}

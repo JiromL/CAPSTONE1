@@ -106,7 +106,7 @@ function ScoreChip({ label, score, max, sev }: {
       <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
         {score}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{max}</span>
       </p>
-      {sev && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold mt-1 inline-block" style={sev.style}>{sev.label}</span>}
+      {sev && <span className="text-xs px-1.5 py-0.5 rounded-full font-bold mt-1 inline-block" style={sev.style}>{sev.label}</span>}
     </div>
   );
 }
@@ -146,6 +146,27 @@ export default function ConductIntakePage() {
   const [referralNote, setReferralNote] = useState('');
   const [referralSubmitting, setReferralSubmitting] = useState(false);
   const [referralDone, setReferralDone] = useState(false);
+
+  type CounselorLoad = {
+    counselor_id: string;
+    name: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+    active_appointments: number;
+    this_week: number;
+    active_cases: number;
+    utilization: 'LOW' | 'MEDIUM' | 'HIGH';
+  };
+  const [workload, setWorkload] = useState<CounselorLoad[]>([]);
+  const [workloadLoading, setWorkloadLoading] = useState(false);
+  const [recommendedId, setRecommendedId] = useState<string | null>(null);
+
+  const [slotDate, setSlotDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [slots, setSlots] = useState<string[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsInfo, setSlotsInfo] = useState<{ is_holiday?: boolean; holiday_name?: string; is_leave?: boolean } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
   const [editingPacket, setEditingPacket] = useState(false);
   const [savingPacket, setSavingPacket]   = useState(false);
@@ -199,6 +220,43 @@ export default function ConductIntakePage() {
         label: `${(u.last_name || '').toUpperCase()}, ${u.first_name || ''}`,
       }))));
   }, [step, referralMode, referralRole]);
+
+  useEffect(() => {
+    if (step !== 'route' || referralMode !== 'specific') { setWorkload([]); setRecommendedId(null); return; }
+    const token = localStorage.getItem('token');
+    setWorkloadLoading(true);
+    const risk = displayRisk || '';
+    fetch(api(`/api/appointments/ic-counselor-workload?role=${referralRole}&risk_level=${risk}`), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : { counselors: [], recommended_id: null })
+      .then(d => {
+        setWorkload(d.counselors || []);
+        if (d.recommended_id && !referralUserId) {
+          setReferralUserId(d.recommended_id);
+          setRecommendedId(d.recommended_id);
+        } else {
+          setRecommendedId(d.recommended_id);
+        }
+      })
+      .catch(() => { setWorkload([]); setRecommendedId(null); })
+      .finally(() => setWorkloadLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, referralMode, referralRole]);
+
+  useEffect(() => {
+    if (!referralUserId || referralMode !== 'specific') { setSlots([]); setSlotsInfo(null); return; }
+    const token = localStorage.getItem('token');
+    setSlotsLoading(true);
+    setSelectedSlot(null);
+    fetch(api(`/api/appointments/counselor-slots?counselor_id=${referralUserId}&date=${slotDate}`), {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : { slots: [] })
+      .then(d => { setSlots(d.slots || []); setSlotsInfo(d); })
+      .catch(() => setSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, [referralUserId, slotDate, referralMode]);
 
   const phq9Score = phq9.every(v => v !== null) ? phq9.reduce((a, b) => a! + b!, 0)! : null;
   const gad7Score = gad7.every(v => v !== null) ? gad7.reduce((a, b) => a! + b!, 0)! : null;
@@ -359,6 +417,9 @@ export default function ConductIntakePage() {
             assigned_to_user: referralMode === 'specific' ? referralUserId : null,
             reason: referralNote || recs.filter(r => r.includes('Continue') || r.includes('Psychologist')).join('; '),
             urgency: displayRisk === 'CRITICAL' || displayRisk === 'RED' ? 'urgent' : 'routine',
+            ...(referralMode === 'specific' && referralUserId && selectedSlot
+              ? { booked_slot: { date: slotDate, time: selectedSlot } }
+              : {}),
           }),
         });
       }
@@ -561,15 +622,150 @@ export default function ConductIntakePage() {
               </div>
 
               {referralMode === 'specific' && (
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                    Select {referralRole === 'COUNSELOR' ? 'counselor' : 'psychologist'}
-                  </label>
-                  <select value={referralUserId} onChange={e => setReferralUserId(e.target.value)}
-                    className={IC} style={ICSSEL}>
-                    <option value="">— Select —</option>
-                    {referralUserOptions.map(u => <option key={u._id} value={u._id}>{u.label}</option>)}
-                  </select>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                      Select {referralRole === 'COUNSELOR' ? 'counselor' : 'psychologist'}
+                    </label>
+                    {workloadLoading && <Loader2 size={12} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} />}
+                  </div>
+
+                  {/* Counselor card picker with workload indicators */}
+                  {!workloadLoading && workload.length === 0 && referralUserOptions.length > 0 ? (
+                    /* Fallback: workload endpoint unavailable, show plain list */
+                    <select value={referralUserId} onChange={e => setReferralUserId(e.target.value)}
+                      className={IC} style={ICSSEL}>
+                      <option value="">— Select —</option>
+                      {referralUserOptions.map(u => <option key={u._id} value={u._id}>{u.label}</option>)}
+                    </select>
+                  ) : workload.length > 0 ? (
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                      {workload.map(c => {
+                        const isSelected = referralUserId === c.counselor_id;
+                        const isRec = recommendedId === c.counselor_id;
+                        const utilColor = c.utilization === 'LOW'
+                          ? '#16A34A' : c.utilization === 'MEDIUM' ? '#D97706' : '#DC2626';
+                        const utilBg = c.utilization === 'LOW'
+                          ? '#F0FDF4' : c.utilization === 'MEDIUM' ? '#FFFBEB' : '#FEF2F2';
+                        const barW = Math.min(100, (c.active_appointments / 12) * 100);
+                        return (
+                          <button key={c.counselor_id}
+                            onClick={() => setReferralUserId(isSelected ? '' : c.counselor_id)}
+                            className="w-full text-left rounded-xl px-3.5 py-3 transition"
+                            style={{
+                              border: isSelected
+                                ? `2px solid var(--color-primary)`
+                                : `1px solid var(--color-border)`,
+                              background: isSelected ? 'var(--color-primary-surface)' : 'var(--color-bg)',
+                            }}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
+                                    {c.last_name.toUpperCase()}, {c.first_name}
+                                  </span>
+                                  {isRec && (
+                                    <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full"
+                                      style={{ background: '#DBEAFE', color: '#1D4ED8', border: '1px solid #BFDBFE' }}>
+                                      Recommended
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                                  <span>{c.active_appointments} active session{c.active_appointments !== 1 ? 's' : ''}</span>
+                                  <span>·</span>
+                                  <span>{c.active_cases} case{c.active_cases !== 1 ? 's' : ''}</span>
+                                  <span>·</span>
+                                  <span>{c.this_week} this week</span>
+                                </div>
+                              </div>
+                              <span className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
+                                style={{ background: utilBg, color: utilColor, border: `1px solid ${utilColor}30` }}>
+                                {c.utilization}
+                              </span>
+                            </div>
+                            {/* Workload bar */}
+                            <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+                              <div className="h-full rounded-full transition-all"
+                                style={{ width: `${barW}%`, background: utilColor }} />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : !workloadLoading && (
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      No active {referralRole === 'COUNSELOR' ? 'counselors' : 'psychologists'} found.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {referralMode === 'specific' && referralUserId && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+                      Book first session <span className="font-normal" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+                    </p>
+                    {selectedSlot && (
+                      <button onClick={() => setSelectedSlot(null)}
+                        className="text-[11px] underline" style={{ color: 'var(--color-text-muted)' }}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={slotDate}
+                      min={new Date().toISOString().slice(0, 10)}
+                      max={(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10); })()}
+                      onChange={e => setSlotDate(e.target.value)}
+                      className={IC} style={{ ...ICSSEL, width: 'auto', flex: '0 0 auto' }}
+                    />
+                    {slotsLoading && <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />}
+                  </div>
+
+                  {!slotsLoading && slotsInfo?.is_holiday && (
+                    <p className="text-xs rounded-xl px-3 py-2" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
+                      {slotsInfo.holiday_name || 'University holiday'} — no sessions on this date.
+                    </p>
+                  )}
+                  {!slotsLoading && slotsInfo?.is_leave && (
+                    <p className="text-xs rounded-xl px-3 py-2" style={{ background: '#F3F4F6', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                      Clinician is on leave this day — pick another date.
+                    </p>
+                  )}
+                  {!slotsLoading && !slotsInfo?.is_holiday && !slotsInfo?.is_leave && slots.length === 0 && (
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No available slots on this date.</p>
+                  )}
+                  {!slotsLoading && slots.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {slots.map(t => {
+                        const active = selectedSlot === t;
+                        const [h, m] = t.split(':').map(Number);
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h % 12 || 12;
+                        const label = `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+                        return (
+                          <button key={t} onClick={() => setSelectedSlot(active ? null : t)}
+                            className="px-3 py-1.5 text-xs font-semibold rounded-xl transition flex items-center gap-1"
+                            style={active
+                              ? { background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)' }
+                              : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                            {active && <Check size={11} />}
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {selectedSlot && (
+                    <p className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
+                      First session will be confirmed for {selectedSlot} on {slotDate}.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -663,7 +859,7 @@ export default function ConductIntakePage() {
             <div className="px-3 py-2.5" />
             <div className="px-3 py-2.5 text-xs font-bold uppercase" style={{ color: 'var(--color-text-muted)' }}>Item</div>
             {FREQ.map(f => (
-              <div key={f.v} className="py-2.5 text-center text-[10px] font-bold uppercase leading-tight px-1" style={{ color: 'var(--color-text-muted)' }}>
+              <div key={f.v} className="py-2.5 text-center text-xs font-bold uppercase leading-tight px-1" style={{ color: 'var(--color-text-muted)' }}>
                 <span className="block text-xs font-bold">{f.v}</span>
                 {f.s}
               </div>
@@ -686,7 +882,7 @@ export default function ConductIntakePage() {
                 </div>
                 <div className="px-3 py-3">
                   <p className="text-sm leading-snug" style={{ color: 'var(--color-text-primary)' }}>{q}</p>
-                  {isLast && <p className="text-[10px] font-semibold mt-0.5" style={{ color: '#EF4444' }}>C-SSRS required if score &gt; 0</p>}
+                  {isLast && <p className="text-xs font-semibold mt-0.5" style={{ color: '#EF4444' }}>C-SSRS required if score &gt; 0</p>}
                 </div>
                 {FREQ.map(f => (
                   <div key={f.v} className="flex items-center justify-center py-2">
@@ -722,7 +918,7 @@ export default function ConductIntakePage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>{studentName}</h2>
                 {packet && (
-                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold"
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-bold"
                     style={{ background: '#DCFCE7', color: '#15803D' }}>
                     <FileText size={10} /> Intake Forms Submitted
                   </span>
@@ -766,7 +962,7 @@ export default function ConductIntakePage() {
                     : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', cursor: 'default' }}>
                 {i < stepIdx
                   ? <Check size={11} />
-                  : <span className="w-3 h-3 rounded-full border flex items-center justify-center text-[10px] font-bold" style={{ borderColor: 'currentColor' }}>{i+1}</span>}
+                  : <span className="w-3 h-3 rounded-full border flex items-center justify-center text-xs font-bold" style={{ borderColor: 'currentColor' }}>{i+1}</span>}
                 {s.label}
               </button>
               {i < allSteps.length - 1 && <ChevronRight size={13} style={{ color: 'var(--color-border-strong)' }} className="flex-shrink-0" />}
@@ -875,7 +1071,7 @@ export default function ConductIntakePage() {
                             <p className="text-xl font-bold" style={{ color: x.risk ? '#B91C1C' : 'var(--color-primary)' }}>
                               {x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span>
                             </p>
-                            <p className="text-[10px] font-semibold" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                            <p className="text-xs font-semibold" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                           </div>
                         ))}
                       </div>
@@ -1125,7 +1321,7 @@ export default function ConductIntakePage() {
                   <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                     {phq9Score}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/27</span>
                   </p>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={phq9Sev(phq9Score).style}>{phq9Sev(phq9Score).label}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={phq9Sev(phq9Score).style}>{phq9Sev(phq9Score).label}</span>
                 </div>
               )}
             </div>
@@ -1171,7 +1367,7 @@ export default function ConductIntakePage() {
               </div>
             </div>
             <div className="p-5 space-y-3">
-              <div className="grid grid-cols-3 gap-2 text-[10px] font-bold text-center uppercase mb-1 px-2" style={{ color: 'var(--color-text-muted)' }}>
+              <div className="grid grid-cols-3 gap-2 text-xs font-bold text-center uppercase mb-1 px-2" style={{ color: 'var(--color-text-muted)' }}>
                 <span className="text-left text-xs">#  Question</span>
                 <span className="col-span-2 text-right">Response</span>
               </div>
@@ -1184,10 +1380,10 @@ export default function ConductIntakePage() {
                       border: `1px solid ${cssr[i] === true ? '#FECACA' : cssr[i] === false ? '#BBF7D0' : 'var(--color-border)'}`,
                       background: cssr[i] === true ? '#FEF2F2' : cssr[i] === false ? '#F0FDF4' : 'var(--color-bg)',
                     }}>
-                    <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white mt-0.5"
+                    <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
                       style={{ background: dotBg }}>{i+1}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{q.label}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{q.label}</p>
                       <p className="text-sm leading-snug" style={{ color: 'var(--color-text-primary)' }}>{q.text}</p>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
@@ -1266,7 +1462,7 @@ export default function ConductIntakePage() {
                   <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                     {gad7Score}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/21</span>
                   </p>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={gad7Sev(gad7Score).style}>{gad7Sev(gad7Score).label}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={gad7Sev(gad7Score).style}>{gad7Sev(gad7Score).label}</span>
                 </div>
               )}
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, RefreshCw, AlertCircle, Clock, CheckCircle } from 'lucide-react';
+import { Calendar, RefreshCw, AlertCircle, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
 
 interface TimeSlot { start: string; end: string; }
@@ -128,7 +128,7 @@ export default function StaffCalendarView() {
 
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary)' }} />
+              <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
             </div>
           ) : availableSlots.length === 0 ? (
             <div className="p-4 rounded-lg text-center" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>

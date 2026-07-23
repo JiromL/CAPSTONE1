@@ -22,7 +22,13 @@ def _qr_expiry_minutes():
 @qr_bp.route('/appointment/<appointment_id>', methods=['GET'])
 @jwt_required()
 def generate_qr(appointment_id):
-    """Generate a QR code image (base64 PNG) for appointment check-in."""
+    """Return a stable QR code for appointment check-in.
+
+    Reuses the existing token if it is still valid and unused.
+    Only mints a new token when the old one is expired, used, or missing.
+    Expiry is set to the end of the appointment day so the QR stays valid
+    for the whole day rather than a rolling 30-minute window.
+    """
     user_id = get_jwt_identity()
     try:
         appt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
@@ -32,24 +38,37 @@ def generate_qr(appointment_id):
     if not appt:
         return jsonify({'error': 'Appointment not found'}), 404
 
-    # Only the student assigned to this appointment may generate a QR
     if str(appt.get('student_id')) != str(user_id):
         return jsonify({'error': 'Forbidden'}), 403
 
     if appt.get('status') not in ('CONFIRMED', 'confirmed', 'APPROVED', 'approved'):
         return jsonify({'error': 'Appointment is not confirmed'}), 400
 
-    # Upsert a check-in token (rotate each time this endpoint is called)
-    token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(minutes=_qr_expiry_minutes())
+    now = datetime.utcnow()
 
-    db.db.checkin_tokens.update_one(
-        {'appointment_id': ObjectId(appointment_id)},
-        {'$set': {'token': token, 'expires_at': expires_at, 'used': False}},
-        upsert=True,
-    )
+    # Expiry = end of the appointment's scheduled day (midnight UTC+8 → UTC)
+    scheduled = appt.get('scheduled_start') or appt.get('requested_start')
+    if scheduled and hasattr(scheduled, 'date'):
+        from datetime import timezone
+        appt_date = scheduled.date()
+        # midnight PH time (UTC+8) = 16:00 UTC previous day
+        expires_at = datetime(appt_date.year, appt_date.month, appt_date.day, 16, 0, 0) + timedelta(days=1)
+    else:
+        expires_at = now + timedelta(hours=24)
 
-    # Resolve frontend base URL: env var → request Origin → fallback
+    # Reuse existing token if still valid and unused
+    existing = db.db.checkin_tokens.find_one({'appointment_id': ObjectId(appointment_id)})
+    if existing and not existing.get('used') and existing.get('expires_at', now) > now:
+        token = existing['token']
+        expires_at = existing['expires_at']
+    else:
+        token = secrets.token_urlsafe(32)
+        db.db.checkin_tokens.update_one(
+            {'appointment_id': ObjectId(appointment_id)},
+            {'$set': {'token': token, 'expires_at': expires_at, 'used': False}},
+            upsert=True,
+        )
+
     frontend_base = (
         os.environ.get('FRONTEND_URL')
         or request.headers.get('Origin')

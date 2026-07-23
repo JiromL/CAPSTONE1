@@ -457,7 +457,7 @@ export default function CounselorSchedulePage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary)' }} />
+            <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
           </div>
         ) : error ? (
           <div className="rounded-xl border p-4 text-sm" style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>

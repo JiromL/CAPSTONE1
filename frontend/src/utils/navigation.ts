@@ -5,11 +5,14 @@
  */
 
 export interface MenuItem {
-  label: string;
-  href: string;
-  id: string;
+  label?: string;
+  href?: string;
+  id?: string;
   badge?: number;
+  divider?: boolean;
 }
+
+const DIV: MenuItem = { divider: true };
 
 export function getMenuItemsByRole(role: string): MenuItem[] {
   // ============ STUDENT ============
@@ -25,80 +28,92 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
 
   // ============ IC (Intake Counselor) ============
   const icItems: MenuItem[] = [
-    { label: 'Dashboard',          href: '/dashboard',          id: 'dashboard'         },
-    { label: 'Intake Management',  href: '/intake-management',  id: 'intake-management' },
-    { label: 'Appointments',       href: '/appointments',       id: 'appointments'      },
-    { label: 'My Schedule',        href: '/schedule',           id: 'schedule'          },
-    { label: 'EMA Bot',            href: '/mhbot',              id: 'mhbot'             },
-    { label: 'Profile',            href: '/profile',            id: 'profile'           },
+    { label: 'Dashboard',         href: '/dashboard',         id: 'dashboard'        },
+    DIV,
+    { label: 'Intake Management', href: '/intake-management', id: 'intake-management'},
+    { label: 'Cases',             href: '/cases',             id: 'cases'            },
+    { label: 'My Schedule',       href: '/schedule',          id: 'schedule'         },
+    { label: 'EMA Bot',           href: '/mhbot',             id: 'mhbot'            },
+    DIV,
+    { label: 'Profile',           href: '/profile',           id: 'profile'          },
   ];
 
   // ============ COUNSELOR ============
   const counselorItems: MenuItem[] = [
     { label: 'Dashboard',    href: '/dashboard',    id: 'dashboard'   },
+    DIV,
     { label: 'Cases',        href: '/cases',        id: 'cases'       },
     { label: 'My Referrals', href: '/my-referrals', id: 'my-referrals'},
     { label: 'Appointments', href: '/appointments', id: 'appointments'},
     { label: 'My Schedule',  href: '/schedule',     id: 'schedule'    },
     { label: 'EMA Bot',      href: '/mhbot',        id: 'mhbot'       },
+    DIV,
     { label: 'Profile',      href: '/profile',      id: 'profile'     },
   ];
 
   // ============ PSYCHOLOGIST ============
   const psychologistItems: MenuItem[] = [
-    { label: 'Dashboard',            href: '/dashboard',  id: 'dashboard'  },
-    { label: 'High-Risk Monitoring', href: '/high-risk',  id: 'high-risk'  },
-    { label: 'Cases',                href: '/cases',      id: 'cases'      },
+    { label: 'Dashboard',            href: '/dashboard',   id: 'dashboard'   },
+    DIV,
+    { label: 'High-Risk Monitoring', href: '/high-risk',   id: 'high-risk'   },
+    { label: 'Cases',                href: '/cases',       id: 'cases'       },
     { label: 'Appointments',         href: '/appointments',id: 'appointments'},
-    { label: 'My Schedule',          href: '/schedule',   id: 'schedule'   },
-    { label: 'EMA Bot',              href: '/mhbot',      id: 'mhbot'      },
-    { label: 'Profile',              href: '/profile',    id: 'profile'    },
+    { label: 'My Schedule',          href: '/schedule',    id: 'schedule'    },
+    { label: 'EMA Bot',              href: '/mhbot',       id: 'mhbot'       },
+    DIV,
+    { label: 'Profile',              href: '/profile',     id: 'profile'     },
   ];
 
   // ============ CASE MANAGER ============
-  // Most frequent: CM Queue (primary task) → Cases → High-Risk → EMA → Appointments
   const caseManagerItems: MenuItem[] = [
     { label: 'Dashboard',    href: '/dashboard',          id: 'dashboard'    },
+    DIV,
     { label: 'CM Queue',     href: '/case-manager/queue', id: 'cm-queue'     },
     { label: 'Cases',        href: '/cases',              id: 'cases'        },
     { label: 'High-Risk',    href: '/high-risk',          id: 'high-risk'    },
     { label: 'Referrals',    href: '/referrals',          id: 'referrals'    },
     { label: 'Appointments', href: '/appointments',       id: 'appointments' },
+    DIV,
     { label: 'Profile',      href: '/profile',            id: 'profile'      },
   ];
 
   // ============ STAFF (Office Assistant) ============
-  // Most frequent: Appointment Requests → Walk-In (daily) → Reschedule (occasional)
   const staffItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',             id: 'dashboard'          },
+    DIV,
     { label: 'Appointment Requests', href: '/appointment-requests',  id: 'appointments'       },
     { label: 'CPS Calendar',         href: '/schedule',              id: 'schedule'           },
     { label: 'Counselor Schedules',  href: '/counselor-schedules',   id: 'counselor-schedules'},
     { label: 'Walk-In Intake',       href: '/staff/walkin-intake',   id: 'walk-in-intake'     },
     { label: 'Appointments',         href: '/appointments',          id: 'appointments'       },
+    DIV,
     { label: 'Profile',              href: '/profile',               id: 'profile'            },
   ];
 
   // ============ ADMIN ============
-  // Most frequent: User Mgmt → Appointment Requests → Cases → Analytics
   const adminItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'       },
+    DIV,
     { label: 'User Management',      href: '/admin/users',          id: 'admin'           },
     { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'    },
     { label: 'Cases',                href: '/cases',                id: 'cases'           },
+    DIV,
     { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'       },
     { label: 'System Settings',      href: '/admin/settings',       id: 'admin-settings'  },
+    DIV,
     { label: 'Profile',              href: '/profile',              id: 'profile'         },
   ];
 
   // ============ DPO (Data Protection Officer) ============
   const dpoItems: MenuItem[] = [
-    { label: 'Dashboard',       href: '/dashboard',       id: 'dashboard'    },
-    { label: 'Audit Logs',      href: '/admin/audit-log', id: 'audit'        },
-    { label: 'User Management', href: '/admin/users',     id: 'admin'        },
-    { label: 'NC Client Tracker', href: '/new-intakes',   id: 'new-intakes'  },
-    { label: 'Cases',           href: '/cases',           id: 'cases'        },
-    { label: 'Profile',         href: '/profile',         id: 'profile'      },
+    { label: 'Dashboard',           href: '/dashboard',       id: 'dashboard'   },
+    DIV,
+    { label: 'Audit Logs',          href: '/admin/audit-log', id: 'audit'       },
+    { label: 'User Management',     href: '/admin/users',     id: 'admin'       },
+    { label: 'NC Client Tracker',   href: '/new-intakes',     id: 'new-intakes' },
+    { label: 'Cases',               href: '/cases',           id: 'cases'       },
+    DIV,
+    { label: 'Profile',             href: '/profile',         id: 'profile'     },
   ];
 
   switch (role?.toUpperCase()) {

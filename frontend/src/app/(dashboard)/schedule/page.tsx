@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import CalendarWeekView, { CalAppt, PersonalEvent } from '@/components/CalendarWeekView';
@@ -35,51 +35,70 @@ const EVENT_COLORS = [
 
 // ─── Availability helpers ────────────────────────────────────────────────────
 
-const DAYS = [
-  { label: 'Monday',    dow: 0 },
-  { label: 'Tuesday',   dow: 1 },
-  { label: 'Wednesday', dow: 2 },
-  { label: 'Thursday',  dow: 3 },
-  { label: 'Friday',    dow: 4 },
-  { label: 'Saturday',  dow: 5 },
-  { label: 'Sunday',    dow: 6 },
+const GRID_DAYS = [
+  { label: 'Mon', dow: 0 },
+  { label: 'Tue', dow: 1 },
+  { label: 'Wed', dow: 2 },
+  { label: 'Thu', dow: 3 },
+  { label: 'Fri', dow: 4 },
+  { label: 'Sat', dow: 5 },
 ];
 
-const TIME_OPTIONS: string[] = [];
-for (let h = 7; h <= 20; h++) {
-  TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:00`);
-  if (h < 20) TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:30`);
+const GRID_HOURS: string[] = [];
+for (let h = 7; h < 20; h++) {
+  GRID_HOURS.push(`${String(h).padStart(2, '0')}:00`);
 }
 
 function fmt12(t: string) {
-  const [h, m] = t.split(':').map(Number);
+  const [h] = t.split(':').map(Number);
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  return `${h12} ${ampm}`;
 }
 
-interface DayEntry {
-  enabled: boolean;
-  start_time: string;
-  end_time: string;
-  session_method: 'in-person' | 'online';
+function cellKey(dow: number, time: string) { return `${dow}-${time}`; }
+
+function nextHour(time: string): string {
+  const h = parseInt(time.split(':')[0]) + 1;
+  return `${String(h).padStart(2, '0')}:00`;
 }
 
-type WeekState = Record<number, DayEntry>;
+function scheduleToState(schedule: any[]): { cells: Set<string>; methods: Record<number, 'in-person' | 'online'> } {
+  const cells = new Set<string>();
+  const methods: Record<number, 'in-person' | 'online'> = {};
+  for (const entry of schedule) {
+    const dow = entry.day_of_week;
+    if (entry.session_method) methods[dow] = entry.session_method;
+    const sh = parseInt(entry.start_time.split(':')[0]);
+    const eh = parseInt(entry.end_time.split(':')[0]);
+    for (let h = sh; h < eh; h++) {
+      cells.add(cellKey(dow, `${String(h).padStart(2, '0')}:00`));
+    }
+  }
+  return { cells, methods };
+}
 
-const DEFAULT_WEEK: WeekState = Object.fromEntries(
-  DAYS.map(({ dow }) => [dow, { enabled: dow < 5, start_time: '09:00', end_time: '17:00', session_method: 'in-person' as const }])
-);
-
-const SEL_S: React.CSSProperties = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
-  color: 'var(--color-text-primary)',
-  borderRadius: '0.5rem',
-  padding: '0.375rem 0.625rem',
-  fontSize: '0.875rem',
-  outline: 'none',
-};
+function cellsToSchedule(cells: Set<string>, methods: Record<number, 'in-person' | 'online'>): any[] {
+  const result: any[] = [];
+  for (const dow of [0, 1, 2, 3, 4, 5]) {
+    const method = methods[dow] ?? 'in-person';
+    const indices = GRID_HOURS
+      .map((h, i) => ({ h, i }))
+      .filter(({ h }) => cells.has(cellKey(dow, h)))
+      .map(({ i }) => i);
+    if (!indices.length) continue;
+    let start = indices[0], prev = indices[0];
+    for (let k = 1; k <= indices.length; k++) {
+      if (k < indices.length && indices[k] === prev + 1) {
+        prev = indices[k];
+      } else {
+        result.push({ day_of_week: dow, start_time: GRID_HOURS[start], end_time: nextHour(GRID_HOURS[prev]), session_method: method });
+        if (k < indices.length) { start = indices[k]; prev = indices[k]; }
+      }
+    }
+  }
+  return result;
+}
 
 const AVAIL_ROLES = ['IC', 'COUNSELOR', 'PSYCHOLOGIST'];
 
@@ -109,12 +128,18 @@ function ScheduleInner() {
   const [saveErr, setSaveErr] = useState('');
 
   // ── Availability state ──
-  const [week, setWeek]                   = useState<WeekState>(DEFAULT_WEEK);
-  const [sessionMethod, setSessionMethod] = useState<'in-person' | 'online'>('in-person');
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+  const [dayMethods, setDayMethods]       = useState<Record<number, 'in-person' | 'online'>>({});
   const [availLoading, setAvailLoading]   = useState(false);
   const [availSaving, setAvailSaving]     = useState(false);
   const [availLoaded, setAvailLoaded]     = useState(false);
   const [toast, setToast]                 = useState<{ msg: string; ok: boolean } | null>(null);
+  // Drag-to-select state
+  const [dragVersion, setDragVersion]     = useState(0);
+  const isDragging   = useRef(false);
+  const dragAnchor   = useRef<{ dow: number; ti: number } | null>(null);
+  const dragCurrent  = useRef<{ dow: number; ti: number } | null>(null);
+  const dragAction   = useRef<'add' | 'remove'>('add');
 
   // ── Leave state ──
   const [leaves, setLeaves]             = useState<{ id: string; date: string; reason: string }[]>([]);
@@ -159,20 +184,10 @@ function ScheduleInner() {
     fetch(api('/api/availability/weekly'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
-        if (data.session_method) setSessionMethod(data.session_method);
         if (data.schedule?.length) {
-          const globalMethod = data.session_method || 'in-person';
-          const loaded: WeekState = { ...DEFAULT_WEEK };
-          DAYS.forEach(({ dow }) => { loaded[dow] = { ...loaded[dow], enabled: false }; });
-          data.schedule.forEach((e: any) => {
-            loaded[e.day_of_week] = {
-              enabled: true,
-              start_time: e.start_time,
-              end_time: e.end_time,
-              session_method: e.session_method || globalMethod,
-            };
-          });
-          setWeek(loaded);
+          const { cells, methods } = scheduleToState(data.schedule);
+          setSelectedCells(cells);
+          setDayMethods(methods);
         }
       })
       .catch(() => {})
@@ -266,20 +281,15 @@ function ScheduleInner() {
     const token = localStorage.getItem('token');
     if (!token) return;
     setAvailSaving(true);
-    const schedule = DAYS.filter(({ dow }) => week[dow].enabled).map(({ dow }) => ({
-      day_of_week: dow,
-      start_time: week[dow].start_time,
-      end_time: week[dow].end_time,
-      session_method: week[dow].session_method,
-    }));
+    const schedule = cellsToSchedule(selectedCells, dayMethods);
     try {
       const r = await fetch(api('/api/availability/weekly'), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schedule, session_method: sessionMethod }),
+        body: JSON.stringify({ schedule, session_method: 'in-person' }),
       });
       const d = await r.json();
-      if (r.ok) showToast(d.message ?? 'Saved', true);
+      if (r.ok) showToast(`Saved — ${schedule.length} block${schedule.length !== 1 ? 's' : ''} across ${activeDays} day${activeDays !== 1 ? 's' : ''}`, true);
       else showToast(d.error ?? 'Failed to save', false);
     } catch {
       showToast('Network error', false);
@@ -328,6 +338,48 @@ function ScheduleInner() {
     } catch { showToast('Network error', false); }
   };
 
+  // ── Drag helpers ──
+  function inDragRect(dow: number, ti: number): boolean {
+    if (!isDragging.current || !dragAnchor.current || !dragCurrent.current) return false;
+    const { dow: aDow, ti: aTi } = dragAnchor.current;
+    const { dow: cDow, ti: cTi } = dragCurrent.current;
+    return dow >= Math.min(aDow, cDow) && dow <= Math.max(aDow, cDow)
+        && ti  >= Math.min(aTi, cTi)  && ti  <= Math.max(aTi, cTi);
+  }
+
+  // Commit drag selection on mouseup anywhere
+  useEffect(() => {
+    function onUp() {
+      if (!isDragging.current) return;
+      const anchor = dragAnchor.current;
+      const current = dragCurrent.current;
+      if (anchor && current) {
+        const minDow = Math.min(anchor.dow, current.dow);
+        const maxDow = Math.max(anchor.dow, current.dow);
+        const minTi  = Math.min(anchor.ti,  current.ti);
+        const maxTi  = Math.max(anchor.ti,  current.ti);
+        const action = dragAction.current;
+        setSelectedCells(prev => {
+          const next = new Set(prev);
+          for (let d = minDow; d <= maxDow; d++) {
+            for (let t = minTi; t <= maxTi; t++) {
+              const key = cellKey(d, GRID_HOURS[t]);
+              if (action === 'add') next.add(key); else next.delete(key);
+            }
+          }
+          return next;
+        });
+      }
+      isDragging.current = false;
+      dragAnchor.current = null;
+      dragCurrent.current = null;
+      setDragVersion(v => v + 1);
+    }
+    window.addEventListener('mouseup', onUp);
+    return () => window.removeEventListener('mouseup', onUp);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Derived ──
   const upperRole = role.toUpperCase();
   const isStaff   = ['STAFF', 'ADMIN', 'DPO'].includes(upperRole);
@@ -338,7 +390,10 @@ function ScheduleInner() {
   const pageTitle   = hasAvail ? 'Schedule & Availability' : calTitle;
   const pageSubtitle = hasAvail ? 'View your calendar and manage your booking availability' : calSubtitle;
 
-  const activeDays = DAYS.filter(({ dow }) => week[dow].enabled).length;
+  const activeDays = GRID_DAYS.filter(({ dow }) => GRID_HOURS.some(h => selectedCells.has(cellKey(dow, h)))).length;
+  const totalSlots = selectedCells.size;
+  // dragVersion read to trigger re-render during drag; suppress unused lint
+  void dragVersion;
 
   function setTab(tab: 'calendar' | 'availability') {
     const params = new URLSearchParams(searchParams.toString());
@@ -505,84 +560,136 @@ function ScheduleInner() {
       {/* ── Availability Tab ── */}
       {activeTab === 'availability' && hasAvail && (
         <div className="max-w-2xl mx-auto">
-          <div className="rounded-2xl overflow-hidden shadow-card"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
 
-            <div className="px-6 py-4 flex items-center justify-between"
+            {/* Header */}
+            <div className="px-5 py-4 flex items-center justify-between"
               style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
-                <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Weekly Schedule</h2>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{activeDays} day{activeDays !== 1 ? 's' : ''} active · 1-hour slots</p>
+                <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Weekly Availability</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                  {activeDays} day{activeDays !== 1 ? 's' : ''} · {totalSlots} hour{totalSlots !== 1 ? 's' : ''} per week
+                </p>
               </div>
-              <button onClick={saveAvail} disabled={availSaving}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition hover:opacity-90"
-                style={{ background: 'var(--color-primary)' }}>
-                {availSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                {availSaving ? 'Saving…' : 'Save'}
-              </button>
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <span className="w-3 h-3 rounded" style={{ background: 'var(--color-primary)', opacity: 0.8 }} />
+                  Available
+                </span>
+                <button onClick={saveAvail} disabled={availSaving}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition hover:opacity-90"
+                  style={{ background: 'var(--color-primary)' }}>
+                  {availSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  {availSaving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
             </div>
 
+            {/* Grid */}
             {availLoading ? (
-              <div className="p-10 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading schedule…</div>
+              <div className="p-10 flex items-center justify-center gap-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+              </div>
             ) : (
-              <div>
-                {DAYS.map(({ label, dow }, idx) => {
-                  const entry = week[dow];
-                  return (
-                    <div key={dow} className={`px-6 py-4 flex items-center gap-4 transition-opacity ${entry.enabled ? '' : 'opacity-50'}`}
-                      style={{ borderBottom: idx < DAYS.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+              <div className="overflow-x-auto px-4 pt-4 pb-3"
+                style={{ WebkitUserSelect: 'none', userSelect: 'none', cursor: 'default' }}>
+                <div style={{ minWidth: 360 }}>
 
-                      <button onClick={() => setWeek(w => ({
-                        ...w,
-                        [dow]: { ...w[dow], enabled: !w[dow].enabled, session_method: w[dow].enabled ? w[dow].session_method : sessionMethod },
-                      }))}
-                        className="relative w-10 h-5 rounded-full transition-colors flex-shrink-0 overflow-hidden"
-                        style={{ background: entry.enabled ? 'var(--color-primary)' : 'var(--color-border)' }}>
-                        <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${entry.enabled ? 'translate-x-[1.375rem]' : 'translate-x-0.5'}`} />
-                      </button>
-
-                      <span className="w-24 text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{label}</span>
-
-                      {entry.enabled ? (
-                        <div className="flex items-center gap-2 flex-1 flex-wrap">
-                          <select value={entry.start_time}
-                            onChange={e => setWeek(w => ({ ...w, [dow]: { ...w[dow], start_time: e.target.value } }))}
-                            style={SEL_S}>
-                            {TIME_OPTIONS.map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
-                          </select>
-                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>to</span>
-                          <select value={entry.end_time}
-                            onChange={e => setWeek(w => ({ ...w, [dow]: { ...w[dow], end_time: e.target.value } }))}
-                            style={SEL_S}>
-                            {TIME_OPTIONS.filter(t => t > entry.start_time).map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
-                          </select>
-
-                          <div className="flex gap-1 ml-auto">
-                            {(['in-person', 'online'] as const).map(v => (
-                              <button key={v} onClick={() => setWeek(w => ({ ...w, [dow]: { ...w[dow], session_method: v } }))}
+                  {/* Column headers — day names + F2F/Online toggle */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '48px repeat(6, 1fr)', gap: 3, marginBottom: 6 }}>
+                    <div /> {/* time label column spacer */}
+                    {GRID_DAYS.map(({ label, dow }) => (
+                      <div key={dow} className="text-center">
+                        <p className="text-xs font-semibold mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+                        <div className="flex gap-0.5 justify-center">
+                          {(['in-person', 'online'] as const).map(v => {
+                            const active = (dayMethods[dow] ?? 'in-person') === v;
+                            return (
+                              <button key={v}
+                                onMouseDown={e => e.stopPropagation()}
+                                onClick={() => setDayMethods(m => ({ ...m, [dow]: v }))}
                                 title={v === 'in-person' ? 'Face to Face' : 'Online'}
-                                className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition"
-                                style={entry.session_method === v
-                                  ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }
-                                  : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
-                                {v === 'in-person' ? <MapPin size={10} /> : <Monitor size={10} />}
-                                {v === 'in-person' ? 'F2F' : 'Online'}
+                                className="flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-semibold transition-all"
+                                style={active
+                                  ? { background: 'var(--color-primary)', color: '#fff' }
+                                  : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
+                                {v === 'in-person' ? <MapPin size={8} /> : <Monitor size={8} />}
+                                {v === 'in-person' ? 'F2F' : 'Net'}
                               </button>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
-                      ) : (
-                        <span className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>Unavailable</span>
-                      )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Time rows */}
+                  {GRID_HOURS.map((time, ti) => (
+                    <div key={time} style={{ display: 'grid', gridTemplateColumns: '48px repeat(6, 1fr)', gap: 3, marginBottom: 3 }}>
+                      {/* Time label */}
+                      <div className="flex items-center justify-end pr-2.5 flex-shrink-0">
+                        <span className="text-[10px] font-medium tabular-nums leading-none" style={{ color: 'var(--color-text-muted)' }}>
+                          {fmt12(time)}
+                        </span>
+                      </div>
+                      {/* Day cells */}
+                      {GRID_DAYS.map(({ dow }) => {
+                        const key = cellKey(dow, time);
+                        const isSelected = selectedCells.has(key);
+                        const inDrag = inDragRect(dow, ti);
+                        const adding = dragAction.current === 'add';
+                        const willAdd = inDrag && adding;
+                        const willRemove = inDrag && !adding;
+                        const active = (isSelected && !willRemove) || (willAdd && !isSelected);
+                        const preview = willRemove && isSelected;
+
+                        return (
+                          <div key={dow}
+                            className="rounded transition-colors"
+                            style={{
+                              height: 26,
+                              cursor: 'pointer',
+                              background: active
+                                ? 'var(--color-primary)'
+                                : preview
+                                ? 'var(--color-danger-surface)'
+                                : isSelected
+                                ? 'var(--color-primary)'
+                                : 'var(--color-bg)',
+                              border: (active || isSelected) && !preview
+                                ? 'none'
+                                : preview
+                                ? '1px solid var(--color-danger)'
+                                : '1px solid var(--color-border)',
+                              opacity: (active || (isSelected && !preview)) ? 0.82 : 1,
+                            }}
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              isDragging.current = true;
+                              dragAnchor.current = { dow, ti };
+                              dragCurrent.current = { dow, ti };
+                              dragAction.current = !isSelected ? 'add' : 'remove';
+                              setDragVersion(v => v + 1);
+                            }}
+                            onMouseEnter={() => {
+                              if (!isDragging.current) return;
+                              dragCurrent.current = { dow, ti };
+                              setDragVersion(v => v + 1);
+                            }}
+                          />
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             )}
 
-            <div className="px-6 py-3" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+            {/* Footer */}
+            <div className="px-5 py-2.5" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                Students see your free 1-hour slots with the method you set per day (F2F or Online). Confirmed sessions are automatically excluded.
+                Click or drag to mark available hours. Each cell = 1 hour. You can leave gaps (e.g. skip lunch). Confirmed appointments are automatically blocked.
               </p>
             </div>
           </div>

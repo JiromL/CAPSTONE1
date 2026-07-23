@@ -160,25 +160,27 @@ def get_free_slots():
     if not doc or not doc.get('schedule'):
         return jsonify({'slots': [], 'note': 'No schedule set for this counselor'}), 200
 
-    working = next((e for e in doc['schedule'] if e.get('day_of_week') == day_of_week), None)
-    if not working:
+    # Support multiple blocks per day (e.g. 9-11am AND 2-4pm)
+    day_entries = [e for e in doc['schedule'] if e.get('day_of_week') == day_of_week]
+    if not day_entries:
         return jsonify({'slots': [], 'note': 'Counselor not available on this day'}), 200
 
     SLOT_DURATION = 60  # 1-hour sessions
 
-    # Per-day method takes priority over doc-level default
-    session_method = working.get('session_method') or doc.get('session_method', 'in-person')
+    # Per-day method — use first block's method (all blocks on a day share the same method)
+    session_method = day_entries[0].get('session_method') or doc.get('session_method', 'in-person')
 
-    # 2. Generate 1-hour slots
-    sh, sm = map(int, working['start_time'].split(':'))
-    eh, em = map(int, working['end_time'].split(':'))
-    cursor = target_date.replace(hour=sh, minute=sm, second=0, microsecond=0)
-    day_end = target_date.replace(hour=eh, minute=em, second=0, microsecond=0)
-
-    all_slots = []
-    while cursor + timedelta(minutes=SLOT_DURATION) <= day_end:
-        all_slots.append(cursor)
-        cursor += timedelta(minutes=SLOT_DURATION)
+    # 2. Generate 1-hour slots across all blocks for this day, dedup, then sort
+    all_slots_set = set()
+    for block in day_entries:
+        sh, sm = map(int, block['start_time'].split(':'))
+        eh, em = map(int, block['end_time'].split(':'))
+        cursor = target_date.replace(hour=sh, minute=sm, second=0, microsecond=0)
+        day_end = target_date.replace(hour=eh, minute=em, second=0, microsecond=0)
+        while cursor + timedelta(minutes=SLOT_DURATION) <= day_end:
+            all_slots_set.add(cursor)
+            cursor += timedelta(minutes=SLOT_DURATION)
+    all_slots = sorted(all_slots_set)
 
     # 3. Remove booked slots
     day_start_dt = target_date.replace(hour=0, minute=0, second=0)
@@ -212,7 +214,7 @@ def get_free_slots():
     return jsonify({
         'slots': free,
         'session_method': session_method,
-        'working_hours': f"{working['start_time']}–{working['end_time']}",
+        'working_hours': f"{day_entries[0]['start_time']}–{day_entries[-1]['end_time']}",
     }), 200
 
 

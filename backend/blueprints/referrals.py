@@ -178,21 +178,56 @@ def initiate_referral():
             )
 
     result = db.db.referrals.insert_one(referral)
-    
+
+    # If IC booked a first-session slot during the intake, create the CONFIRMED appointment now.
+    booked_slot_data = data.get('booked_slot') if referral_type == 'INTERNAL' else None
+    first_appt_id = None
+    if booked_slot_data and provider:
+        slot_date = booked_slot_data.get('date')
+        slot_time = booked_slot_data.get('time')
+        if slot_date and slot_time:
+            try:
+                slot_dt = datetime.strptime(f"{slot_date} {slot_time}", "%Y-%m-%d %H:%M")
+                slot_end = slot_dt + timedelta(minutes=60)
+                student_id = case.get('student_id')
+                appt_doc = {
+                    "student_id": student_id,
+                    "case_id": case['_id'],
+                    "counselor_id": provider['_id'],
+                    "counselor_name": f"{provider.get('first_name', '')} {provider.get('last_name', '')}".strip(),
+                    "appointment_type": "counseling",
+                    "scheduled_start": slot_dt,
+                    "scheduled_end": slot_end,
+                    "requested_start": slot_dt,
+                    "requested_end": slot_end,
+                    "status": "CONFIRMED",
+                    "purpose": "endorsed_counseling",
+                    "booked_by_ic": True,
+                    "referral_id": result.inserted_id,
+                    "created_at": datetime.utcnow(),
+                }
+                appt_result = db.db.appointments.insert_one(appt_doc)
+                first_appt_id = str(appt_result.inserted_id)
+            except Exception:
+                pass
+
     audit_log(db.db, 'referral', 'initiate', entity_id=str(result.inserted_id), new_values={
         'case_id': str(case['_id']),
         'referral_type': referral_type,
         'reason': data.get('reason'),
         'status': referral.get('status')
     })
-    
-    return jsonify({
+
+    resp = {
         'referral_id': str(result.inserted_id),
         'case_id': str(case['_id']),
         'referral_type': referral_type,
         'status': referral.get('status'),
         'created_at': referral['created_at'].isoformat()
-    }), 201
+    }
+    if first_appt_id:
+        resp['first_appointment_id'] = first_appt_id
+    return jsonify(resp), 201
 
 
 

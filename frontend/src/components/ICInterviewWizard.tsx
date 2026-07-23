@@ -232,7 +232,7 @@ function PsychometricQuestionList({ questions, responses, maxScore, getSeverity,
                 return (
                   <button key={o.val} disabled={readOnly}
                     onClick={() => setResponse(i, o.val)}
-                    className="px-1.5 py-2 rounded-lg text-[10px] font-semibold border transition text-center leading-tight"
+                    className="px-1.5 py-2 rounded-lg text-xs font-semibold border transition text-center leading-tight"
                     style={
                       selected
                         ? { background: 'var(--color-primary)', color: 'white', borderColor: 'var(--color-primary)' }

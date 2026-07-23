@@ -84,7 +84,7 @@ function StepWizard({ current }: { current: number }) {
                 style={{ color: active ? 'var(--color-primary)' : done ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}>
                 {s.label}
               </p>
-              <span className="text-[10px] uppercase tracking-wide font-bold mt-0.5"
+              <span className="text-xs uppercase tracking-wide font-bold mt-0.5"
                 style={{ color: active ? 'var(--color-primary-text)' : 'var(--color-text-muted)' }}>{s.sub}</span>
             </div>
             {i < STEP_LABELS.length - 1 && (
@@ -853,7 +853,7 @@ export default function WalkinIntakePage() {
                         <div key={x.l} className="rounded-xl py-3 px-2" style={x.risk ? { background: '#FEF2F2', border: '1px solid #FECACA' } : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
                           <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.desc}</p>
                           <p className="text-2xl font-bold" style={{ color: x.risk ? '#DC2626' : '#1D4ED8' }}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
-                          <p className="text-[10px] font-semibold mt-0.5" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.l}: {x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                          <p className="text-xs font-semibold mt-0.5" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.l}: {x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                         </div>
                       ))}
                     </div>
@@ -916,7 +916,7 @@ export default function WalkinIntakePage() {
                                   onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; }}>
                                   <span className="text-base font-bold">{h12}:{String(m).padStart(2,'0')}</span>
                                   <span className="opacity-75">{ampm}</span>
-                                  <span className="mt-0.5 text-[10px]" style={{ opacity: 0.7 }}>{slot.method}</span>
+                                  <span className="mt-0.5 text-xs" style={{ opacity: 0.7 }}>{slot.method}</span>
                                 </button>
                               );
                             })}

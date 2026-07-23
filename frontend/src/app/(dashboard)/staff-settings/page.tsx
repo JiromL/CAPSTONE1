@@ -564,31 +564,6 @@ export default function StaffSettingsPage() {
             </Card>
 
             <Card>
-              <SH_SM>Daily Capacity Limits</SH_SM>
-              <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
-                Controls the walk-in capacity banner shown to staff on the Appointment Requests page.
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Max walk-ins per day (overall)</label>
-                  <input type="number" min="1" max="100"
-                    value={bookingRules.max_daily_walkins}
-                    onChange={e => setBookingRules({ ...bookingRules, max_daily_walkins: Number(e.target.value) })}
-                    className={IC} style={ICS} />
-                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>When reached, banner turns red</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Max sessions per counselor per day</label>
-                  <input type="number" min="1" max="50"
-                    value={bookingRules.max_daily_appointments_per_counselor}
-                    onChange={e => setBookingRules({ ...bookingRules, max_daily_appointments_per_counselor: Number(e.target.value) })}
-                    className={IC} style={ICS} />
-                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Used when checking per-counselor capacity</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
               <SH_SM>Blackout Dates</SH_SM>
               <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>Dates when CPS is closed — students cannot book these days (holidays, school breaks, etc.)</p>
               <div className="flex gap-2 mb-3">

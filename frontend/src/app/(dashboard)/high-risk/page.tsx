@@ -128,7 +128,7 @@ export default function HighRiskPage() {
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                 {t.label}
                 {t.count > 0 && (
-                  <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 leading-none"
+                  <span className="text-xs font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 leading-none"
                     style={isActive
                       ? { background: 'var(--color-primary)', color: 'white' }
                       : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>

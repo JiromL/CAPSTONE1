@@ -35,6 +35,7 @@ interface Appointment {
   intake_source?: string;
   mhbot_username?: string;
   case_id?: string;
+  consecutive_no_shows?: number;
 }
 
 interface DashboardData {
@@ -906,7 +907,7 @@ export default function AppointmentsDashboard() {
             {/* Day-of-week header */}
             <div className="grid grid-cols-7 mb-1">
               {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                <div key={d} className="text-center text-[10px] font-semibold uppercase tracking-wide py-1"
+                <div key={d} className="text-center text-xs font-semibold uppercase tracking-wide py-1"
                   style={{ color: 'var(--color-text-muted)' }}>{d}</div>
               ))}
             </div>
@@ -991,7 +992,7 @@ export default function AppointmentsDashboard() {
                               {apt.counselor_name ? ` · ${fmtStaffName(apt.counselor_name)}` : ''}
                             </p>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0"
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
                             style={STATUS_BADGE_STYLE[apt.status] ?? { background: 'var(--color-border)', color: 'var(--color-text-muted)' }}>
                             {STATUS_LABEL[apt.status] ?? apt.status}
                           </span>
@@ -1022,7 +1023,7 @@ export default function AppointmentsDashboard() {
                 onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; (e.currentTarget as HTMLElement).style.background = ''; } }}>
                 {tab.label}
                 {cnt > 0 && (
-                  <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1"
+                  <span className="text-xs font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1"
                     style={isActive
                       ? { background: 'var(--color-primary)', color: '#fff' }
                       : { background: 'var(--color-border-strong)', color: 'var(--color-text-secondary)' }}>
@@ -1078,13 +1079,23 @@ export default function AppointmentsDashboard() {
                               {STATUS_LABEL[apt.status] ?? apt.status.replace(/_/g, ' ')}
                             </span>
                             {apt.risk_level && apt.risk_level !== 'GREEN' && (
-                              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold" style={RISK_BADGE_STYLE[apt.risk_level.toUpperCase()] ?? {}}>
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold" style={RISK_BADGE_STYLE[apt.risk_level.toUpperCase()] ?? {}}>
                                 <AlertCircle size={9} /> {apt.risk_level}
                               </span>
                             )}
                             {apt.status === 'RESCHEDULE_REQUESTED' && apt.reschedule_requested_by_role !== 'STUDENT' && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ color: 'var(--color-info-text)', background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ color: 'var(--color-info-text)', background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
                                 <Clock size={9} /> Awaiting student
+                              </span>
+                            )}
+                            {(apt.consecutive_no_shows ?? 0) >= 1 && (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={
+                                (apt.consecutive_no_shows ?? 0) >= 2
+                                  ? { color: 'var(--color-danger-text)', background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }
+                                  : { color: 'var(--color-warning-text)', background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }
+                              }>
+                                <AlertCircle size={9} />
+                                {apt.consecutive_no_shows === 2 ? '2 no-shows — 1 more = termination' : `${apt.consecutive_no_shows} consecutive no-show`}
                               </span>
                             )}
                           </div>
@@ -1094,12 +1105,12 @@ export default function AppointmentsDashboard() {
                             <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
                             {apt.mhbot_username && permaLabels[apt.mhbot_username] !== undefined && (
                               isInCrisis ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}>
+                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}>
                                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--color-danger)' }} />
                                   In Crisis
                                 </span>
                               ) : permaLabel === 'Struggling' ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' }}>
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' }}>
                                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--color-warning)' }} />
                                   Struggling
                                 </span>
@@ -1263,7 +1274,7 @@ export default function AppointmentsDashboard() {
                                   pendingAction?.aptId === apt.appointment_id ? (
                                     <div className="flex items-end gap-2">
                                       <div>
-                                        <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Referral Notes</p>
+                                        <p className="text-xs font-semibold uppercase mb-1" style={{ color: 'var(--color-text-secondary)' }}>Referral Notes</p>
                                         <textarea rows={1} value={pendingAction.notes}
                                           onChange={e => setPendingAction(p => p ? { ...p, notes: e.target.value } : p)}
                                           placeholder="Optional notes…"
@@ -1429,7 +1440,7 @@ export default function AppointmentsDashboard() {
                             </div>
                             <div className="grid grid-cols-7 mb-1">
                               {['M','T','W','T','F','S','S'].map((d, i) => (
-                                <div key={i} className="text-center text-[10px] font-semibold py-0.5" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
+                                <div key={i} className="text-center text-xs font-semibold py-0.5" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
                               ))}
                             </div>
                             <div className="grid grid-cols-7 gap-y-0.5">
@@ -1473,7 +1484,7 @@ export default function AppointmentsDashboard() {
                                   {selectedSlot && (
                                     <div className="mt-1.5 flex items-center gap-1.5">
                                       <span className="px-2 py-0.5 rounded-lg text-white text-[11px] font-bold" style={{ background: 'var(--color-primary)' }}>{fmtSlotTime(selectedSlot.time)}</span>
-                                      <span className="text-[10px] truncate" style={{ color: 'var(--color-text-secondary)' }}>{selectedSlot.counselor_name?.split(' ')[0]}</span>
+                                      <span className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{selectedSlot.counselor_name?.split(' ')[0]}</span>
                                     </div>
                                   )}
                                 </div>
@@ -1503,11 +1514,11 @@ export default function AppointmentsDashboard() {
                                         onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'; } }}>
                                         <div className="flex-1 min-w-0">
                                           <p className="text-xs font-bold" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{fmtSlotTime(s.time)}</p>
-                                          <p className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>{s.counselor_name}</p>
+                                          <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>{s.counselor_name}</p>
                                         </div>
-                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
                                           style={isOnline ? { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' } : { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>{isOnline ? 'Online' : 'F2F'}</span>
-                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-[10px] flex-shrink-0">✓</span>}
+                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-xs flex-shrink-0">✓</span>}
                                       </button>
                                     );
                                   })}
@@ -1585,7 +1596,7 @@ export default function AppointmentsDashboard() {
                             className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                             style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                           {assignForm.counselorId && assignForm.date && !loadingSlots && (
-                            <p className="text-[10px]" style={{ color: 'var(--color-warning)' }}>No availability set — entering manually</p>
+                            <p className="text-xs" style={{ color: 'var(--color-warning)' }}>No availability set — entering manually</p>
                           )}
                         </div>
                       )}
@@ -2234,7 +2245,7 @@ export default function AppointmentsDashboard() {
                             <div key={x.l} className="rounded-xl p-3 text-center" style={x.risk ? { background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' } : { background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
                               <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.l}</p>
                               <p className="text-xl font-bold" style={{ color: x.risk ? 'var(--color-danger-text)' : 'var(--color-primary)' }}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
-                              <p className="text-[10px] font-semibold" style={{ color: x.risk ? 'var(--color-danger)' : 'var(--color-success)' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                              <p className="text-xs font-semibold" style={{ color: x.risk ? 'var(--color-danger)' : 'var(--color-success)' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                             </div>
                           ))}
                         </div>
@@ -2245,8 +2256,8 @@ export default function AppointmentsDashboard() {
                       <div className="rounded-xl p-4" style={{ border: '1px solid #FDE68A', background: 'var(--color-warning-surface)' }}>
                         <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-warning-text)' }}>Triage Results</p>
                         <div className="grid grid-cols-2 gap-3">
-                          {formsIntake.phq9_score != null && <div className="text-center rounded-lg p-2" style={{ background: 'var(--color-surface)' }}><p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>PHQ-9</p><p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{formsIntake.phq9_score}/27</p></div>}
-                          {formsIntake.gad7_score != null && <div className="text-center rounded-lg p-2" style={{ background: 'var(--color-surface)' }}><p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>GAD-7</p><p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{formsIntake.gad7_score}/21</p></div>}
+                          {formsIntake.phq9_score != null && <div className="text-center rounded-lg p-2" style={{ background: 'var(--color-surface)' }}><p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>PHQ-9</p><p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{formsIntake.phq9_score}/27</p></div>}
+                          {formsIntake.gad7_score != null && <div className="text-center rounded-lg p-2" style={{ background: 'var(--color-surface)' }}><p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>GAD-7</p><p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{formsIntake.gad7_score}/21</p></div>}
                         </div>
                         {formsIntake.triage_decision && (
                           <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}><span className="font-semibold">Decision:</span> {formsIntake.triage_decision === 'ENDORSE_CC' ? 'Endorsed to Counselor (CC)' : formsIntake.triage_decision === 'ENDORSE_CP' ? 'Endorsed to Psychologist (CP)' : 'Closed at Intake'}</p>

@@ -85,9 +85,9 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>{label}</p>
               {count != null && count > 0 ? (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>{count} pending</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>{count} pending</span>
               ) : (
-                <p className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>{sublabel}</p>
+                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>{sublabel}</p>
               )}
             </div>
             <ChevronRight size={13} className="flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
@@ -108,7 +108,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
               <div className="flex items-center gap-2">
                 <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Pending Confirmation</p>
                 {needsAction.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
                     {needsAction.length}
                   </span>
                 )}

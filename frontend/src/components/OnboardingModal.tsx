@@ -143,7 +143,7 @@ export function OnboardingModal({ user, onComplete }: Props) {
                   >
                     <s.icon size={14} style={{ color: done || active ? '#fff' : 'var(--color-text-muted)' }} />
                   </div>
-                  <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: active ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
+                  <span className="text-xs font-medium whitespace-nowrap" style={{ color: active ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
                     {s.label}
                   </span>
                 </div>

@@ -388,15 +388,16 @@ export default function CaseDetailPage() {
   const [savingAssessment, setSavingAssessment] = useState(false);
   const [assessmentResult, setAssessmentResult] = useState<{ score: number; max: number; severity: string; risk: string | null } | null>(null);
 
-  type PsychLoad = { counselor_id: string; name: string; utilization: 'LOW' | 'MEDIUM' | 'HIGH'; active_cases: number; active_appointments: number; this_week: number; };
+  type ReferralLoad = { counselor_id: string; name: string; utilization: 'LOW' | 'MEDIUM' | 'HIGH'; active_cases: number; active_appointments: number; this_week: number; };
   const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralRole, setReferralRole] = useState<'PSYCHOLOGIST' | 'COUNSELOR'>('PSYCHOLOGIST');
   const [referralTargetId, setReferralTargetId] = useState('');
   const [referralReason, setReferralReason] = useState('');
   const [referralSubmitting, setReferralSubmitting] = useState(false);
   const [referralMsg, setReferralMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
-  const [psychologistWorkload, setPsychologistWorkload] = useState<PsychLoad[]>([]);
-  const [psychologistWorkloadLoading, setPsychologistWorkloadLoading] = useState(false);
-  const [recommendedPsychId, setRecommendedPsychId] = useState<string | null>(null);
+  const [referralWorkload, setReferralWorkload] = useState<ReferralLoad[]>([]);
+  const [referralWorkloadLoading, setReferralWorkloadLoading] = useState(false);
+  const [recommendedReferralId, setRecommendedReferralId] = useState<string | null>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -443,23 +444,26 @@ export default function CaseDetailPage() {
     } catch {}
   };
 
-  const loadPsychologistWorkload = async () => {
-    setPsychologistWorkloadLoading(true);
+  const loadReferralWorkload = async (role: 'PSYCHOLOGIST' | 'COUNSELOR') => {
+    setReferralWorkloadLoading(true);
+    setReferralWorkload([]);
+    setReferralTargetId('');
+    setRecommendedReferralId(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(api('/api/appointments/ic-counselor-workload?role=PSYCHOLOGIST'), {
+      const res = await fetch(api(`/api/appointments/ic-counselor-workload?role=${role}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const d = await res.json();
-        const list: PsychLoad[] = d.counselors || [];
-        setPsychologistWorkload(list);
+        const list: ReferralLoad[] = d.counselors || [];
+        setReferralWorkload(list);
         const rec = d.recommended_id || null;
-        setRecommendedPsychId(rec);
+        setRecommendedReferralId(rec);
         if (rec) setReferralTargetId(rec);
       }
     } catch {}
-    finally { setPsychologistWorkloadLoading(false); }
+    finally { setReferralWorkloadLoading(false); }
   };
 
   const handleReferToPs = async () => {
@@ -1257,11 +1261,11 @@ export default function CaseDetailPage() {
                 )}
                 {currentUser?.role?.toUpperCase() === 'COUNSELOR' && (
                   <button
-                    onClick={() => { setShowReferralModal(true); setReferralMsg(null); setReferralReason(''); setReferralTargetId(''); setPsychologistWorkload([]); loadPsychologistWorkload(); }}
+                    onClick={() => { setShowReferralModal(true); setReferralMsg(null); setReferralReason(''); setReferralRole('PSYCHOLOGIST'); loadReferralWorkload('PSYCHOLOGIST'); }}
                     className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
                     style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', boxShadow: '0 0 0 1px var(--color-warning)' }}
                   >
-                    <UserPlus size={11} /> Refer to Psychologist
+                    <UserPlus size={11} /> Internal Referral
                   </button>
                 )}
                 <button
@@ -3457,9 +3461,9 @@ export default function CaseDetailPage() {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowReferralModal(false)} />
         <div className="relative rounded-2xl shadow-xl w-full max-w-md p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
-              <UserPlus size={16} style={{ color: 'var(--color-warning)' }} /> Refer to Psychologist
+              <UserPlus size={16} style={{ color: 'var(--color-warning)' }} /> Internal Referral
             </h3>
             <button onClick={() => setShowReferralModal(false)} className="p-1 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
@@ -3468,22 +3472,38 @@ export default function CaseDetailPage() {
             </button>
           </div>
 
+          {/* Role toggle */}
+          <div className="flex rounded-xl overflow-hidden mb-4" style={{ border: '1px solid var(--color-border)' }}>
+            {(['COUNSELOR', 'PSYCHOLOGIST'] as const).map(r => (
+              <button key={r} onClick={() => { setReferralRole(r); loadReferralWorkload(r); }}
+                className="flex-1 py-2 text-xs font-semibold transition"
+                style={{
+                  background: referralRole === r ? 'var(--color-primary)' : 'transparent',
+                  color: referralRole === r ? '#fff' : 'var(--color-text-secondary)',
+                }}>
+                {r === 'COUNSELOR' ? 'Another Counselor' : 'Psychologist'}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Select Psychologist</label>
-              {psychologistWorkloadLoading ? (
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                Select {referralRole === 'COUNSELOR' ? 'Counselor' : 'Psychologist'}
+              </label>
+              {referralWorkloadLoading ? (
                 <div className="flex items-center gap-2 text-xs py-3" style={{ color: 'var(--color-text-muted)' }}>
-                  <Loader2 size={13} className="animate-spin" /> Loading psychologists…
+                  <Loader2 size={13} className="animate-spin" /> Loading…
                 </div>
-              ) : psychologistWorkload.length === 0 ? (
+              ) : referralWorkload.length === 0 ? (
                 <p className="text-xs py-2 px-3 rounded-lg" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
-                  No active psychologists found.
+                  No active {referralRole === 'COUNSELOR' ? 'counselors' : 'psychologists'} found.
                 </p>
               ) : (
-                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                  {psychologistWorkload.map(p => {
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {referralWorkload.map(p => {
                     const isSelected = referralTargetId === p.counselor_id;
-                    const isRec = recommendedPsychId === p.counselor_id;
+                    const isRec = recommendedReferralId === p.counselor_id;
                     const utilizationColor = p.utilization === 'LOW' ? 'var(--color-success)' : p.utilization === 'HIGH' ? 'var(--color-danger)' : 'var(--color-warning)';
                     const utilizationBg = p.utilization === 'LOW' ? 'var(--color-success-surface)' : p.utilization === 'HIGH' ? 'var(--color-danger-surface)' : 'var(--color-warning-surface)';
                     const score = (p.active_cases * 2) + p.active_appointments;
@@ -3528,7 +3548,7 @@ export default function CaseDetailPage() {
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Reason for Referral</label>
               <textarea rows={3} value={referralReason} onChange={e => setReferralReason(e.target.value)}
-                placeholder="Clinical rationale, specific concerns, or context for the psychologist…"
+                placeholder="Clinical rationale, specific concerns, or context for the receiving provider…"
                 className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"
                 style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
             </div>

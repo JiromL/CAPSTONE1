@@ -498,89 +498,129 @@ export default function CaseDetailPage() {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>External Referral Letter — ${studentName}</title>
+<title>Referral Letter – ${studentName}</title>
 <style>
-  @page { size: letter; margin: 1.2in 1in; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #111; line-height: 1.6; }
-  .header { display: flex; align-items: flex-start; gap: 18px; border-bottom: 2.5px solid #004B8D; padding-bottom: 14px; margin-bottom: 20px; }
-  .header-text { flex: 1; }
-  .dept { font-size: 13pt; font-weight: bold; color: #004B8D; letter-spacing: 0.5px; }
-  .univ { font-size: 10.5pt; color: #444; margin-top: 1px; }
-  .contact-info { font-size: 9pt; color: #666; margin-top: 4px; }
-  .meta { font-size: 10.5pt; margin-bottom: 18px; }
-  .meta table { border-collapse: collapse; }
-  .meta td { padding: 1px 0; vertical-align: top; }
-  .meta td:first-child { width: 110px; font-weight: bold; color: #333; }
-  .subject-block { background: #f0f5fb; border-left: 4px solid #004B8D; padding: 10px 14px; margin: 18px 0; font-size: 11pt; }
-  .subject-block strong { display: block; font-size: 10pt; text-transform: uppercase; letter-spacing: 0.5px; color: #555; margin-bottom: 4px; }
-  .body-text { font-size: 11.5pt; line-height: 1.75; margin-bottom: 14px; text-align: justify; }
-  .section-label { font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #004B8D; letter-spacing: 0.5px; margin: 18px 0 4px; }
-  .blockquote { border-left: 3px solid #ccc; padding-left: 12px; color: #333; font-style: italic; margin: 6px 0 14px; }
-  .sig-block { margin-top: 50px; }
-  .sig-line { border-top: 1px solid #111; width: 260px; margin-top: 42px; padding-top: 4px; font-size: 11pt; }
-  .sig-sub { font-size: 10pt; color: #444; }
-  .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #ccc; font-size: 8.5pt; color: #888; font-style: italic; }
-  .print-btn { position: fixed; top: 16px; right: 16px; background: #004B8D; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-size: 13px; cursor: pointer; font-family: sans-serif; }
-  @media print { .print-btn { display: none; } }
+  @page { size: letter portrait; margin: 0.85in 1in 1in; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, 'Helvetica Neue', sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.6; background: #fff; }
+
+  .letterhead { border-bottom: 3px solid #004B8D; padding-bottom: 12px; margin-bottom: 22px; }
+  .lh-dept { font-size: 12.5pt; font-weight: 700; color: #004B8D; text-transform: uppercase; letter-spacing: 0.5px; }
+  .lh-univ { font-size: 10pt; color: #333; margin-top: 2px; }
+  .lh-contact { font-size: 8.5pt; color: #777; margin-top: 3px; }
+
+  .doc-meta { margin-bottom: 20px; font-size: 10.5pt; }
+  .doc-meta table { border-collapse: collapse; }
+  .doc-meta td { padding: 2px 0; vertical-align: top; }
+  .doc-meta td:first-child { width: 120px; color: #555; }
+
+  .memo-header { border: 1px solid #c5d8ed; border-radius: 4px; overflow: hidden; margin-bottom: 22px; }
+  .memo-row { display: flex; padding: 8px 14px; font-size: 10.5pt; border-bottom: 1px solid #ddeaf5; }
+  .memo-row:last-child { border-bottom: none; background: #f0f5fb; }
+  .memo-label { width: 76px; font-weight: 700; color: #004B8D; flex-shrink: 0; letter-spacing: 0.3px; }
+  .memo-value { color: #1a1a1a; }
+  .memo-value strong { font-weight: 700; }
+
+  .student-table { width: 100%; border-collapse: collapse; margin: 0 0 22px; font-size: 10pt; }
+  .student-table caption { font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #004B8D; text-align: left; caption-side: top; padding-bottom: 5px; }
+  .student-table th, .student-table td { border: 1px solid #c5d8ed; padding: 6px 10px; text-align: left; }
+  .student-table th { background: #f0f5fb; color: #555; font-weight: 600; width: 150px; font-size: 9.5pt; }
+  .student-table td { color: #1a1a1a; font-weight: 500; }
+
+  .body { font-size: 11pt; line-height: 1.72; margin-bottom: 14px; text-align: justify; }
+
+  .section-head { font-size: 9.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #004B8D; margin: 20px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #c5d8ed; }
+  .indented { padding: 8px 12px; border-left: 3px solid #c5d8ed; background: #f8fafc; color: #333; font-size: 10.5pt; line-height: 1.65; margin-bottom: 14px; }
+
+  .sig-block { margin-top: 32px; }
+  .sig-line { margin-top: 48px; border-top: 1.5px solid #1a1a1a; display: inline-block; min-width: 230px; padding-top: 5px; }
+  .sig-line strong { font-size: 11pt; display: block; }
+  .sig-line span { font-size: 9.5pt; color: #555; display: block; line-height: 1.55; }
+
+  .footer { margin-top: 36px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 8pt; color: #999; line-height: 1.55; }
+
+  .toolbar { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: #004B8D; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-family: Arial, sans-serif; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+  .toolbar-title { font-weight: 600; opacity: 0.9; }
+  .toolbar-btn { background: #fff; color: #004B8D; border: none; padding: 6px 18px; border-radius: 4px; font-size: 12.5px; font-weight: 700; cursor: pointer; letter-spacing: 0.2px; }
+  .page-wrap { max-width: 7.5in; margin: 0 auto; padding: 68px 0.5in 0.5in; }
+  @media print {
+    .toolbar { display: none; }
+    .page-wrap { max-width: none; margin: 0; padding: 0; }
+  }
 </style>
 </head>
 <body>
-<button class="print-btn" onclick="window.print()">Print / Save PDF</button>
 
-<div class="header">
-  <div class="header-text">
-    <div class="dept">COUNSELING AND PSYCHOLOGICAL SERVICES</div>
-    <div class="univ">De La Salle University – Manila</div>
-    <div class="contact-info">2401 Taft Avenue, Malate, Manila 1004 &nbsp;|&nbsp; cps@dlsu.edu.ph</div>
-  </div>
+<div class="toolbar">
+  <span class="toolbar-title">Referral Letter &mdash; ${studentName}</span>
+  <button class="toolbar-btn" onclick="window.print()">Print / Save as PDF</button>
 </div>
 
-<div class="meta">
-  <table>
-    <tr><td>Date:</td><td>${today}</td></tr>
-    <tr><td>Reference No.:</td><td>${refNum}</td></tr>
+<div class="page-wrap">
+
+  <div class="letterhead">
+    <div class="lh-dept">Counseling and Psychological Services</div>
+    <div class="lh-univ">De La Salle University &ndash; Manila</div>
+    <div class="lh-contact">2401 Taft Avenue, Malate, Manila 1004 &nbsp;&middot;&nbsp; cps@dlsu.edu.ph</div>
+  </div>
+
+  <div class="doc-meta">
+    <table>
+      <tr><td>Date:</td><td>${today}</td></tr>
+      <tr><td>Reference No.:</td><td>${refNum}</td></tr>
+    </table>
+  </div>
+
+  <div class="memo-header">
+    <div class="memo-row">
+      <span class="memo-label">TO</span>
+      <span class="memo-value">The Head / Designate, <strong>${officeName}</strong><br>De La Salle University &ndash; Manila</span>
+    </div>
+    <div class="memo-row">
+      <span class="memo-label">FROM</span>
+      <span class="memo-value"><strong>${counselorName}</strong><br>Counselor, Counseling and Psychological Services</span>
+    </div>
+    <div class="memo-row">
+      <span class="memo-label">RE</span>
+      <span class="memo-value"><strong>Student Referral</strong></span>
+    </div>
+  </div>
+
+  <table class="student-table">
+    <caption>Student Information</caption>
+    <tr><th>Full Name</th><td>${studentName}</td></tr>
+    ${schoolId !== '—' ? `<tr><th>ID Number</th><td>${schoolId}</td></tr>` : ''}
+    ${college !== '—' ? `<tr><th>College</th><td>${college}</td></tr>` : ''}
+    ${course !== '—' ? `<tr><th>Program / Course</th><td>${course}</td></tr>` : ''}
+    ${yearLevel ? `<tr><th>Year Level</th><td>${yearLevel}</td></tr>` : ''}
   </table>
-</div>
 
-<p class="body-text">
-  <strong>TO:</strong> &nbsp; The Head / Designate<br>
-  <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong>${officeName}<br>
-  <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong>De La Salle University – Manila
-</p>
+  <p class="body">This is to formally refer the above-named student to your office for appropriate assistance and support.</p>
 
-<div class="subject-block">
-  <strong>Re: Student Referral</strong>
-  ${studentName}${schoolId !== '—' ? ` &nbsp;|&nbsp; ID No. ${schoolId}` : ''}${college !== '—' ? ` &nbsp;|&nbsp; ${college}` : ''}${course !== '—' ? ` – ${course}` : ''}${yearLevel ? ` &nbsp;|&nbsp; ${yearLevel}` : ''}
-</div>
+  ${extReferralConcern.trim() ? `
+  <div class="section-head">Nature of Concern</div>
+  <div class="indented">${extReferralConcern.trim().replace(/\n/g, '<br>')}</div>` : ''}
 
-<p class="body-text">
-  This is to formally refer the above-named student to your office for appropriate assistance and support.
-</p>
+  ${extReferralRequest.trim() ? `
+  <div class="section-head">Specific Request / Recommendation</div>
+  <div class="indented">${extReferralRequest.trim().replace(/\n/g, '<br>')}</div>` : ''}
 
-${extReferralConcern.trim() ? `<div class="section-label">Nature of Concern</div>
-<div class="blockquote">${extReferralConcern.trim().replace(/\n/g, '<br>')}</div>` : ''}
+  <p class="body">Your assistance and coordination on this matter are greatly appreciated. Should you require further information, please do not hesitate to contact the Counseling and Psychological Services at <em>cps@dlsu.edu.ph</em>.</p>
 
-${extReferralRequest.trim() ? `<div class="section-label">Specific Request / Recommendation</div>
-<p class="body-text">${extReferralRequest.trim().replace(/\n/g, '<br>')}</p>` : ''}
-
-<p class="body-text">
-  We appreciate your office's assistance and coordination on this matter. Should you need further information, please do not hesitate to reach out to us at <em>cps@dlsu.edu.ph</em>.
-</p>
-
-<div class="sig-block">
-  <p class="body-text">Sincerely,</p>
-  <div class="sig-line">
-    <strong>${counselorName}</strong><br>
-    <span class="sig-sub">Counselor, Counseling and Psychological Services</span><br>
-    <span class="sig-sub">De La Salle University – Manila</span>
+  <div class="sig-block">
+    <p class="body">Respectfully,</p>
+    <div class="sig-line">
+      <strong>${counselorName}</strong>
+      <span>Counselor</span>
+      <span>Counseling and Psychological Services</span>
+      <span>De La Salle University &ndash; Manila</span>
+    </div>
   </div>
-</div>
 
-<div class="footer">
-  CONFIDENTIALITY NOTICE: This referral letter contains privileged and confidential information intended solely for the
-  use of the individual or office named above. Any disclosure, reproduction, or distribution is strictly prohibited.
-  If received in error, please notify CPS immediately.
+  <div class="footer">
+    <strong>CONFIDENTIALITY NOTICE:</strong> This referral letter contains privileged and confidential information intended solely for the use of the addressee named above. Any unauthorized disclosure, copying, distribution, or action taken in reliance on its contents is strictly prohibited. If you have received this document in error, please notify the Counseling and Psychological Services immediately.
+  </div>
+
 </div>
 </body>
 </html>`;

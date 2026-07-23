@@ -7,7 +7,7 @@ import { api } from '@/utils/api';
 import {
   Loader2, Eye, Video, RotateCcw, Star, ExternalLink, RefreshCw,
   Archive, CheckCircle, History, X, AlertCircle, AlertTriangle, CalendarDays,
-  Search, ArrowUpDown, NotebookPen, ChevronLeft, ChevronRight,
+  Search, ArrowUpDown, NotebookPen, ChevronLeft, ChevronRight, ArrowRight, Check,
 } from 'lucide-react';
 
 interface Appointment {
@@ -35,6 +35,19 @@ interface DashboardData {
   summary?: Record<string, number>;
   can_manage_sessions?: boolean;
   can_assign_counselor?: boolean;
+}
+
+interface ReschedRequest {
+  _id: string;
+  appointment_id: string;
+  student_name?: string;
+  current_time?: string;
+  requested_start: string;
+  requested_end?: string;
+  reason?: string;
+  status: 'pending' | 'approved' | 'denied';
+  created_at: string;
+  appointment_type?: string;
 }
 
 const TABS = [
@@ -158,6 +171,12 @@ export default function AppointmentsPage() {
   const [riskFilter, setRiskFilter] = useState<'all' | 'high'>('all');
   const [mineOnly, setMineOnly] = useState(false);
   const [apptPage, setApptPage] = useState(1);
+  const [reschedReqs, setReschedReqs] = useState<ReschedRequest[]>([]);
+  const [reschedLoading, setReschedLoading] = useState(false);
+  const [reschedTab, setReschedTab] = useState<'pending' | 'approved' | 'denied'>('pending');
+  const [reschedSelected, setReschedSelected] = useState<ReschedRequest | null>(null);
+  const [reschedActioning, setReschedActioning] = useState(false);
+  const [reschedActionMsg, setReschedActionMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   useEffect(() => { setApptPage(1); }, [activeTab, search, riskFilter, mineOnly, sortBy]);
 
@@ -169,6 +188,30 @@ export default function AppointmentsPage() {
       if (r.status === 401) { router.replace('/login'); return; }
       if (r.ok) setDashboard(await r.json());
     } finally { setLoading(false); }
+  };
+
+  const loadReschedReqs = async () => {
+    setReschedLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api('/api/appointments/reschedule-requests'), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setReschedReqs((await r.json()).requests ?? []);
+    } catch {} finally { setReschedLoading(false); }
+  };
+
+  const doReschedAction = async (id: string, action: 'approve' | 'deny') => {
+    setReschedActioning(true); setReschedActionMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/appointments/reschedule-requests/${id}/${action}`), {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error(`Failed to ${action}`);
+      setReschedActionMsg({ type: 'ok', text: action === 'approve' ? 'Request approved.' : 'Request denied.' });
+      setTimeout(() => { setReschedSelected(null); setReschedActionMsg(null); loadReschedReqs(); load(); }, 900);
+    } catch (e: any) {
+      setReschedActionMsg({ type: 'err', text: e.message ?? 'Action failed.' });
+    } finally { setReschedActioning(false); }
   };
 
   useEffect(() => {
@@ -183,7 +226,14 @@ export default function AppointmentsPage() {
     if (!user) return;
     const role = user.role?.toUpperCase();
     if (['STAFF', 'ADMIN', 'IC'].includes(role)) router.replace('/appointment-requests');
+    // CASE_MANAGER defaults to the reschedule tab
+    if (role === 'CASE_MANAGER') setActiveTab('reschedule');
   }, [user]);
+
+  // Load reschedule requests whenever the reschedule tab is active
+  useEffect(() => {
+    if (activeTab === 'reschedule') loadReschedReqs();
+  }, [activeTab]);
 
   // Fetch counselor's own available slots when follow-up date is picked
   useEffect(() => {
@@ -427,8 +477,100 @@ export default function AppointmentsPage() {
           })}
         </div>
 
-        {/* Filter bar */}
-        <div className="flex items-center gap-2 px-3 py-2.5 flex-wrap" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+        {/* ── Reschedule Requests panel (replaces card list when on reschedule tab) ── */}
+        {displayTab === 'reschedule' && (() => {
+          const reschedCounts = { pending: reschedReqs.filter(r => r.status === 'pending').length, approved: reschedReqs.filter(r => r.status === 'approved').length, denied: reschedReqs.filter(r => r.status === 'denied').length };
+          const reschedFiltered = reschedReqs.filter(r => r.status === reschedTab);
+          function fmtRD(s?: string) { if (!s) return '—'; try { return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }); } catch { return '—'; } }
+          function fmtRT(s?: string) { if (!s) return ''; try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return ''; } }
+          function fmtAgo(s?: string) { if (!s) return ''; try { const h = Math.floor((Date.now() - new Date(s).getTime()) / 3600000); if (h < 1) return 'just now'; if (h < 24) return `${h}h ago`; return `${Math.floor(h/24)}d ago`; } catch { return ''; } }
+          return (
+            <div>
+              {/* Sub-tabs: Pending / Approved / Denied */}
+              <div className="flex items-end px-2 pt-1 gap-0.5" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                {(['pending', 'approved', 'denied'] as const).map(t => {
+                  const isAct = reschedTab === t;
+                  const cnt = reschedCounts[t];
+                  return (
+                    <button key={t} onClick={() => setReschedTab(t)}
+                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition whitespace-nowrap capitalize"
+                      style={isAct ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderBottom: '2px solid var(--color-primary)' } : { color: 'var(--color-text-muted)' }}
+                      onMouseEnter={e => { if (!isAct) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                      onMouseLeave={e => { if (!isAct) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                      {t}
+                      {cnt > 0 && <span className="text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1" style={isAct ? { background: 'var(--color-primary)', color: 'white' } : { background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>{cnt}</span>}
+                    </button>
+                  );
+                })}
+                <button onClick={loadReschedReqs} aria-label="Refresh" className="ml-auto mr-2 mb-1.5 flex items-center gap-1 text-xs transition" style={{ color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
+                  <RefreshCw size={12} /> Refresh
+                </button>
+              </div>
+              {reschedLoading ? (
+                <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+                </div>
+              ) : reschedFiltered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-44 text-center">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}><CalendarDays size={18} style={{ color: 'var(--color-text-muted)' }} /></div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{reschedTab === 'pending' ? 'No pending requests' : `No ${reschedTab} requests`}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>All caught up!</p>
+                </div>
+              ) : (
+                <div>
+                  {reschedFiltered.map((req, i) => (
+                    <button key={req._id} onClick={() => { setReschedSelected(req); setReschedActionMsg(null); }}
+                      className="w-full text-left px-5 py-4 transition"
+                      style={{ borderBottom: i < reschedFiltered.length - 1 ? '1px solid var(--color-border)' : 'none' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      <div className="flex items-start gap-4">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold mt-0.5" style={{ background: 'var(--color-primary)' }}>
+                          {(req.student_name || 'S').charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>{req.student_name || 'Unknown Student'}</p>
+                          <div className="flex items-center gap-2 text-xs flex-wrap">
+                            <span className="px-2 py-1 rounded-lg" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                              {fmtRD(req.current_time)} {fmtRT(req.current_time)}
+                            </span>
+                            <ArrowRight size={12} style={{ color: 'var(--color-border)' }} />
+                            <span className="px-2 py-1 rounded-lg font-medium"
+                              style={req.status === 'pending' ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }
+                                : req.status === 'approved' ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
+                                : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>
+                              {fmtRD(req.requested_start)} {fmtRT(req.requested_start)}
+                            </span>
+                          </div>
+                          {req.reason && <p className="text-xs mt-1.5 truncate max-w-xs" style={{ color: 'var(--color-text-muted)' }}>"{req.reason}"</p>}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border capitalize"
+                            style={req.status === 'pending' ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }
+                              : req.status === 'approved' ? { background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }
+                              : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                            {req.status}
+                          </span>
+                          <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{fmtAgo(req.created_at)}</span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  <div className="px-5 py-3" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      <strong style={{ color: 'var(--color-text-secondary)' }}>{reschedFiltered.length}</strong> {reschedTab} request{reschedFiltered.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Filter bar — hidden on reschedule tab */}
+        {displayTab !== 'reschedule' && <div className="flex items-center gap-2 px-3 py-2.5 flex-wrap" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
           <div className="relative flex-1 min-w-[140px]">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
             <input
@@ -465,9 +607,9 @@ export default function AppointmentsPage() {
               : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
             Mine only
           </button>
-        </div>
+        </div>}
 
-        {displayed.length === 0 ? (
+        {displayTab !== 'reschedule' && (displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
               <CalendarDays size={18} style={{ color: 'var(--color-text-muted)' }} />
@@ -698,8 +840,95 @@ export default function AppointmentsPage() {
               )}
             </div>
           </>
-        )}
+        ))}
       </div>
+
+      {/* ── Reschedule detail modal ── */}
+      {reschedSelected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setReschedSelected(null)} />
+          <div className="relative rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="h-1.5 w-full" style={{ background: reschedSelected.status === 'pending' ? 'var(--color-warning)' : reschedSelected.status === 'approved' ? 'var(--color-success)' : 'var(--color-border)' }} />
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-3 mb-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-text-muted)' }}>Reschedule Request</p>
+                  <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>{reschedSelected.student_name || 'Unknown Student'}</h3>
+                  {reschedSelected.appointment_type && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{reschedSelected.appointment_type.replace(/_/g, ' ')}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border capitalize"
+                    style={reschedSelected.status === 'pending' ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }
+                      : reschedSelected.status === 'approved' ? { background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }
+                      : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                    {reschedSelected.status}
+                  </span>
+                  <button onClick={() => setReschedSelected(null)} aria-label="Close" className="p-1.5 rounded-lg transition"
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <X size={16} style={{ color: 'var(--color-text-muted)' }} />
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl p-4 mb-5" style={{ background: 'var(--color-bg)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Schedule Change</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 rounded-lg px-3 py-2.5 border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                    <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Current</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{reschedSelected.current_time ? new Date(reschedSelected.current_time).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{reschedSelected.current_time ? new Date(reschedSelected.current_time).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }) : ''}</p>
+                  </div>
+                  <ArrowRight size={16} style={{ color: 'var(--color-border)', flexShrink: 0 }} />
+                  <div className="flex-1 rounded-lg px-3 py-2.5 border"
+                    style={reschedSelected.status === 'approved' ? { background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }
+                      : reschedSelected.status === 'denied' ? { background: 'var(--color-bg)', borderColor: 'var(--color-border)' }
+                      : { background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
+                    <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Requested</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{new Date(reschedSelected.requested_start).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{new Date(reschedSelected.requested_start).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                  </div>
+                </div>
+              </div>
+              {reschedSelected.reason && (
+                <div className="mb-5">
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Reason</p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>"{reschedSelected.reason}"</p>
+                </div>
+              )}
+              {reschedActionMsg && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm mb-4 border"
+                  style={reschedActionMsg.type === 'ok' ? { background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' } : { background: 'var(--color-danger-surface)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>
+                  {reschedActionMsg.type === 'ok' ? <Check size={14} /> : <X size={14} />} {reschedActionMsg.text}
+                </div>
+              )}
+              {reschedSelected.status === 'pending' ? (
+                <div className="flex gap-2">
+                  <button onClick={() => doReschedAction(reschedSelected._id, 'deny')} disabled={reschedActioning}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-xl transition disabled:opacity-40 border"
+                    style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    {reschedActioning ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />} Deny
+                  </button>
+                  <button onClick={() => doReschedAction(reschedSelected._id, 'approve')} disabled={reschedActioning}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-40 hover:opacity-90"
+                    style={{ background: 'var(--color-primary)' }}>
+                    {reschedActioning ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Approve
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setReschedSelected(null)}
+                  className="w-full px-4 py-2.5 text-sm font-medium rounded-xl transition border"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  Close
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Detail Modal ── */}
       {detailAppt && (

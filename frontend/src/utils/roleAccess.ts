@@ -49,14 +49,14 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/walk-in-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/staff/walkin-intake': ['STAFF', 'ADMIN', 'DPO'],
   '/check-in-tracking': ['STAFF', 'ADMIN', 'DPO'],
-  '/reschedule-requests': ['STAFF', 'ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER'],
+  '/reschedule-requests': ['STAFF', 'ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER'], // kept for redirect compatibility
   '/staff-settings': ['STAFF', 'ADMIN', 'DPO'],
   '/waitlist': ['STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/recurring-appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN'],
   '/mhbot': ['STUDENT', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Counselor/Psychologist pages
-  '/appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/appointments': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/assessments': ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/cases': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/counseling-cases': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],

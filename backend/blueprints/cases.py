@@ -93,8 +93,15 @@ def get_cases():
         return jsonify({'error': 'User not found'}), 401
     
     user_role = user.get('role')
-    query = get_cases_for_user(user_id, user_role)
-    
+    search_term = request.args.get('q', '').strip()
+
+    # IC: when searching, allow cross-case lookup (any status); without a search they
+    # only see their own intake pipeline (NEW / INTAKE_SCHEDULED).
+    if user_role == UserRole.IC and search_term:
+        query = {}
+    else:
+        query = get_cases_for_user(user_id, user_role)
+
     if query is None:
         return jsonify({'error': 'Insufficient permissions'}), 403
     
@@ -428,6 +435,7 @@ def get_case(case_id):
                 'mhbot_username': student_doc.get('mhbot_username', ''),
                 'college': student_doc.get('college', ''),
                 'course': student_doc.get('course', '') or student_doc.get('program', ''),
+                'year_level': student_doc.get('year_level', ''),
             }
 
     # Embed assigned counselor name

@@ -265,7 +265,7 @@ export default function CaseDetailPage() {
   const { getCase, updateCaseStatus, loading: intakeLoading } = useIntakeApi();
   const { createCheckIn, getCheckInHistory, loading: checkInLoading } = useCheckInApi();
 
-  const [currentUser, setCurrentUser] = useState<{ role?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ role?: string; first_name?: string; last_name?: string; email?: string } | null>(null);
   const [caseData, setCaseData] = useState<any>(null);
   const [checkInHistory, setCheckInHistory] = useState<any[]>([]);
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
@@ -399,6 +399,22 @@ export default function CaseDetailPage() {
   const [referralWorkloadLoading, setReferralWorkloadLoading] = useState(false);
   const [recommendedReferralId, setRecommendedReferralId] = useState<string | null>(null);
 
+  const EXT_OFFICES = [
+    'Health Services Office (HSO)',
+    'Student Discipline and Formation Office (SDFO)',
+    'Office for Academic Services (OAS)',
+    'Office of the Registrar',
+    'Office of Student Affairs and Services',
+    'Career and Placement Office',
+    'Financial Assistance Office',
+    'Other',
+  ];
+  const [showExtReferralModal, setShowExtReferralModal] = useState(false);
+  const [extReferralOffice, setExtReferralOffice] = useState('');
+  const [extReferralCustomOffice, setExtReferralCustomOffice] = useState('');
+  const [extReferralConcern, setExtReferralConcern] = useState('');
+  const [extReferralRequest, setExtReferralRequest] = useState('');
+
   useEffect(() => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -464,6 +480,113 @@ export default function CaseDetailPage() {
       }
     } catch {}
     finally { setReferralWorkloadLoading(false); }
+  };
+
+  const generateExternalReferralLetter = () => {
+    const student = caseData?.student || {};
+    const studentName = student.name || caseData?.student_name || '—';
+    const schoolId = student.school_id || '—';
+    const college = student.college || '—';
+    const course = student.course || '—';
+    const yearLevel = student.year_level ? `${student.year_level} Year` : '';
+    const counselorName = `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || caseData?.counselor_name || '—';
+    const officeName = extReferralOffice === 'Other' ? extReferralCustomOffice : extReferralOffice;
+    const today = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const refNum = `CPS-${new Date().getFullYear()}-${(caseData?.case_number || Math.random().toString(36).slice(2, 6)).toString().toUpperCase()}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>External Referral Letter — ${studentName}</title>
+<style>
+  @page { size: letter; margin: 1.2in 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #111; line-height: 1.6; }
+  .header { display: flex; align-items: flex-start; gap: 18px; border-bottom: 2.5px solid #004B8D; padding-bottom: 14px; margin-bottom: 20px; }
+  .header-text { flex: 1; }
+  .dept { font-size: 13pt; font-weight: bold; color: #004B8D; letter-spacing: 0.5px; }
+  .univ { font-size: 10.5pt; color: #444; margin-top: 1px; }
+  .contact-info { font-size: 9pt; color: #666; margin-top: 4px; }
+  .meta { font-size: 10.5pt; margin-bottom: 18px; }
+  .meta table { border-collapse: collapse; }
+  .meta td { padding: 1px 0; vertical-align: top; }
+  .meta td:first-child { width: 110px; font-weight: bold; color: #333; }
+  .subject-block { background: #f0f5fb; border-left: 4px solid #004B8D; padding: 10px 14px; margin: 18px 0; font-size: 11pt; }
+  .subject-block strong { display: block; font-size: 10pt; text-transform: uppercase; letter-spacing: 0.5px; color: #555; margin-bottom: 4px; }
+  .body-text { font-size: 11.5pt; line-height: 1.75; margin-bottom: 14px; text-align: justify; }
+  .section-label { font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #004B8D; letter-spacing: 0.5px; margin: 18px 0 4px; }
+  .blockquote { border-left: 3px solid #ccc; padding-left: 12px; color: #333; font-style: italic; margin: 6px 0 14px; }
+  .sig-block { margin-top: 50px; }
+  .sig-line { border-top: 1px solid #111; width: 260px; margin-top: 42px; padding-top: 4px; font-size: 11pt; }
+  .sig-sub { font-size: 10pt; color: #444; }
+  .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #ccc; font-size: 8.5pt; color: #888; font-style: italic; }
+  .print-btn { position: fixed; top: 16px; right: 16px; background: #004B8D; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-size: 13px; cursor: pointer; font-family: sans-serif; }
+  @media print { .print-btn { display: none; } }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+
+<div class="header">
+  <div class="header-text">
+    <div class="dept">COUNSELING AND PSYCHOLOGICAL SERVICES</div>
+    <div class="univ">De La Salle University – Manila</div>
+    <div class="contact-info">2401 Taft Avenue, Malate, Manila 1004 &nbsp;|&nbsp; cps@dlsu.edu.ph</div>
+  </div>
+</div>
+
+<div class="meta">
+  <table>
+    <tr><td>Date:</td><td>${today}</td></tr>
+    <tr><td>Reference No.:</td><td>${refNum}</td></tr>
+  </table>
+</div>
+
+<p class="body-text">
+  <strong>TO:</strong> &nbsp; The Head / Designate<br>
+  <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong>${officeName}<br>
+  <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong>De La Salle University – Manila
+</p>
+
+<div class="subject-block">
+  <strong>Re: Student Referral</strong>
+  ${studentName}${schoolId !== '—' ? ` &nbsp;|&nbsp; ID No. ${schoolId}` : ''}${college !== '—' ? ` &nbsp;|&nbsp; ${college}` : ''}${course !== '—' ? ` – ${course}` : ''}${yearLevel ? ` &nbsp;|&nbsp; ${yearLevel}` : ''}
+</div>
+
+<p class="body-text">
+  This is to formally refer the above-named student to your office for appropriate assistance and support.
+</p>
+
+${extReferralConcern.trim() ? `<div class="section-label">Nature of Concern</div>
+<div class="blockquote">${extReferralConcern.trim().replace(/\n/g, '<br>')}</div>` : ''}
+
+${extReferralRequest.trim() ? `<div class="section-label">Specific Request / Recommendation</div>
+<p class="body-text">${extReferralRequest.trim().replace(/\n/g, '<br>')}</p>` : ''}
+
+<p class="body-text">
+  We appreciate your office's assistance and coordination on this matter. Should you need further information, please do not hesitate to reach out to us at <em>cps@dlsu.edu.ph</em>.
+</p>
+
+<div class="sig-block">
+  <p class="body-text">Sincerely,</p>
+  <div class="sig-line">
+    <strong>${counselorName}</strong><br>
+    <span class="sig-sub">Counselor, Counseling and Psychological Services</span><br>
+    <span class="sig-sub">De La Salle University – Manila</span>
+  </div>
+</div>
+
+<div class="footer">
+  CONFIDENTIALITY NOTICE: This referral letter contains privileged and confidential information intended solely for the
+  use of the individual or office named above. Any disclosure, reproduction, or distribution is strictly prohibited.
+  If received in error, please notify CPS immediately.
+</div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (win) { win.document.write(html); win.document.close(); }
   };
 
   const handleReferToPs = async () => {
@@ -1199,6 +1322,17 @@ export default function CaseDetailPage() {
           >
             <FileText size={13} /> Print Case Summary
           </a>
+        )}
+        {caseData && ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(currentUser?.role?.toUpperCase() || '') && (
+          <button
+            onClick={() => { setShowExtReferralModal(true); setExtReferralOffice(''); setExtReferralCustomOffice(''); setExtReferralConcern(''); setExtReferralRequest(''); }}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition"
+            style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Download size={13} /> External Referral Letter
+          </button>
         )}
       </div>
 
@@ -3445,6 +3579,107 @@ export default function CaseDetailPage() {
                 {schedulingSession ? 'Notifying…' : 'Notify Student to Pick a Time'}
               </button>
               <button onClick={() => setShowScheduleModal(false)}
+                className="px-4 py-2 text-sm rounded-xl transition border"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {showExtReferralModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowExtReferralModal(false)} />
+        <div className="relative rounded-2xl shadow-xl w-full max-w-lg p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+                <Download size={16} style={{ color: 'var(--color-primary)' }} /> External Referral Letter
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                Generates a printable letter for HSO, SDFO, OAS, and other university offices.
+              </p>
+            </div>
+            <button onClick={() => setShowExtReferralModal(false)} className="p-1 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <XIcon size={16} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {/* Student summary strip */}
+            <div className="rounded-xl px-3 py-2.5 text-xs flex flex-wrap gap-x-4 gap-y-1"
+              style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+              <span><span style={{ color: 'var(--color-text-muted)' }}>Student: </span><strong style={{ color: 'var(--color-text-primary)' }}>{caseData?.student?.name || caseData?.student_name || '—'}</strong></span>
+              {caseData?.student?.school_id && <span><span style={{ color: 'var(--color-text-muted)' }}>ID: </span>{caseData.student.school_id}</span>}
+              {caseData?.student?.college && <span><span style={{ color: 'var(--color-text-muted)' }}>College: </span>{caseData.student.college}</span>}
+              {caseData?.student?.year_level && <span><span style={{ color: 'var(--color-text-muted)' }}>Year: </span>{caseData.student.year_level}</span>}
+            </div>
+
+            {/* Destination office */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Referring To</label>
+              <div className="grid grid-cols-2 gap-2">
+                {EXT_OFFICES.map(o => (
+                  <button key={o} onClick={() => setExtReferralOffice(o)}
+                    className="text-left text-xs px-3 py-2 rounded-lg transition"
+                    style={{
+                      border: extReferralOffice === o ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                      background: extReferralOffice === o ? 'var(--color-primary-surface)' : 'var(--color-bg)',
+                      color: extReferralOffice === o ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                      fontWeight: extReferralOffice === o ? 600 : 400,
+                    }}>
+                    {o}
+                  </button>
+                ))}
+              </div>
+              {extReferralOffice === 'Other' && (
+                <input
+                  className="mt-2 w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                  placeholder="Specify office name…"
+                  value={extReferralCustomOffice}
+                  onChange={e => setExtReferralCustomOffice(e.target.value)}
+                />
+              )}
+            </div>
+
+            {/* Nature of concern */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                Nature of Concern <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(brief, will appear on letter)</span>
+              </label>
+              <textarea rows={2} value={extReferralConcern} onChange={e => setExtReferralConcern(e.target.value)}
+                placeholder="e.g., Student is experiencing academic stress and financial difficulties requiring office support."
+                className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+            </div>
+
+            {/* Specific request */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                Specific Request to Office <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(optional)</span>
+              </label>
+              <textarea rows={2} value={extReferralRequest} onChange={e => setExtReferralRequest(e.target.value)}
+                placeholder="e.g., Kindly provide information on available financial assistance programs for the student."
+                className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => { generateExternalReferralLetter(); setShowExtReferralModal(false); }}
+                disabled={!extReferralOffice || (extReferralOffice === 'Other' && !extReferralCustomOffice.trim())}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-white rounded-xl transition disabled:opacity-50 hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}>
+                <Download size={14} /> Generate &amp; Print Letter
+              </button>
+              <button onClick={() => setShowExtReferralModal(false)}
                 className="px-4 py-2 text-sm rounded-xl transition border"
                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}

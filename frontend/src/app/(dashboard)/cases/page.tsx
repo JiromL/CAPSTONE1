@@ -107,7 +107,14 @@ export default function CasesPage() {
   const [searchInput, setSearchInput] = useState<string>(() => readSS().search ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState<string>(() => readSS().search ?? '');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>(() => readSS().tab ?? 'all');
-  const [myCasesOnly, setMyCasesOnly] = useState<boolean>(() => readSS().myCasesOnly ?? false);
+  const [myCasesOnly, setMyCasesOnly] = useState<boolean>(() => {
+    const saved = readSS();
+    if (Object.prototype.hasOwnProperty.call(saved, 'myCasesOnly')) return saved.myCasesOnly;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return ['COUNSELOR', 'PSYCHOLOGIST'].includes((u.role || '').toUpperCase());
+    } catch { return false; }
+  });
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
   const [page, setPage]         = useState<number>(() => readSS().page ?? 1);
   const [total, setTotal]       = useState(0);
@@ -117,15 +124,7 @@ export default function CasesPage() {
 
   useEffect(() => {
     const u = localStorage.getItem('user');
-    if (u) {
-      const parsed = JSON.parse(u);
-      setUser(parsed);
-      // Apply role default only on fresh visits (no saved session state)
-      const hasSaved = Object.keys(readSS()).length > 0;
-      if (!hasSaved && ['COUNSELOR', 'PSYCHOLOGIST'].includes((parsed.role || '').toUpperCase())) {
-        setMyCasesOnly(true);
-      }
-    }
+    if (u) setUser(JSON.parse(u));
   }, []);
 
   // Persist filter state to sessionStorage

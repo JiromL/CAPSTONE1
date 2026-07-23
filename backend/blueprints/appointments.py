@@ -3172,6 +3172,80 @@ def get_workload_report():
         return jsonify({'error': f'Failed to generate report: {str(e)}'}), 500
 
 
+@appointments_bp.route('/ic-counselor-workload', methods=['GET'])
+@jwt_required()
+def ic_counselor_workload():
+    """Return counselor/psychologist workload for IC routing, with a recommendation."""
+    user_id = get_jwt_identity()
+    caller = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
+    if not caller or caller.get('role') not in ('IC', 'ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST'):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    role = request.args.get('role', 'COUNSELOR').upper()
+    risk_level = (request.args.get('risk_level') or '').upper()  # CRITICAL / RED / YELLOW / GREEN
+
+    counselors = list(db.db.users.find({
+        'role': role,
+        'is_active': {'$ne': False},
+    }))
+
+    now = datetime.utcnow()
+    week_start = now - timedelta(days=now.weekday())
+    week_end = week_start + timedelta(days=7)
+
+    result = []
+    for c in counselors:
+        cid = c['_id']
+        active_appts = db.db.appointments.count_documents({
+            'counselor_id': cid,
+            'status': {'$in': ['CONFIRMED', 'MATCHED', 'SCHEDULED', 'REQUESTED']},
+        })
+        this_week = db.db.appointments.count_documents({
+            'counselor_id': cid,
+            'status': {'$in': ['CONFIRMED', 'MATCHED', 'SCHEDULED']},
+            'scheduled_start': {'$gte': week_start, '$lt': week_end},
+        })
+        active_cases = db.db.cases.count_documents({
+            'assigned_counselor_id': cid,
+            'status': {'$nin': ['CLOSED', 'ARCHIVED']},
+        })
+        # Lower score = more available; weight cases heavier than appointment count
+        score = (active_cases * 2) + active_appts
+        utilization = 'HIGH' if active_appts >= 8 else 'MEDIUM' if active_appts >= 4 else 'LOW'
+        result.append({
+            'counselor_id': str(cid),
+            'name': f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
+            'last_name': c.get('last_name', ''),
+            'first_name': c.get('first_name', ''),
+            'role': c.get('role'),
+            'active_appointments': active_appts,
+            'this_week': this_week,
+            'active_cases': active_cases,
+            'utilization': utilization,
+            '_score': score,
+        })
+
+    # Sort: lowest score first (most available), then alphabetically
+    result.sort(key=lambda x: (x['_score'], x['last_name']))
+
+    # Recommend the counselor with the lowest score, or prefer
+    # very low utilization for high-risk cases
+    recommended_id = None
+    if result:
+        if risk_level in ('CRITICAL', 'RED'):
+            # For urgent cases: prefer LOW utilization over everything else
+            low = [r for r in result if r['utilization'] == 'LOW']
+            recommended_id = (low[0] if low else result[0])['counselor_id']
+        else:
+            recommended_id = result[0]['counselor_id']
+
+    # Strip internal score from response
+    for r in result:
+        del r['_score']
+
+    return jsonify({'counselors': result, 'recommended_id': recommended_id}), 200
+
+
 @appointments_bp.route('/staff/reassignment-suggestions', methods=['GET'])
 @jwt_required()
 def get_reassignment_suggestions():

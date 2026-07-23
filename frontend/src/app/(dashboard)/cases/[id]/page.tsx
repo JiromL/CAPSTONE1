@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { ClinicalExportModal } from '@/components/ClinicalExportModal';
@@ -388,6 +388,16 @@ export default function CaseDetailPage() {
   const [savingAssessment, setSavingAssessment] = useState(false);
   const [assessmentResult, setAssessmentResult] = useState<{ score: number; max: number; severity: string; risk: string | null } | null>(null);
 
+  type PsychLoad = { counselor_id: string; name: string; utilization: 'LOW' | 'MEDIUM' | 'HIGH'; active_cases: number; active_appointments: number; this_week: number; };
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralTargetId, setReferralTargetId] = useState('');
+  const [referralReason, setReferralReason] = useState('');
+  const [referralSubmitting, setReferralSubmitting] = useState(false);
+  const [referralMsg, setReferralMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [psychologistWorkload, setPsychologistWorkload] = useState<PsychLoad[]>([]);
+  const [psychologistWorkloadLoading, setPsychologistWorkloadLoading] = useState(false);
+  const [recommendedPsychId, setRecommendedPsychId] = useState<string | null>(null);
+
   useEffect(() => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -431,6 +441,49 @@ export default function CaseDetailPage() {
       const r = await fetch(api(`/api/cases/${caseId}/session-count`), { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setSessionCount(await r.json());
     } catch {}
+  };
+
+  const loadPsychologistWorkload = async () => {
+    setPsychologistWorkloadLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api('/api/appointments/ic-counselor-workload?role=PSYCHOLOGIST'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const d = await res.json();
+        const list: PsychLoad[] = d.counselors || [];
+        setPsychologistWorkload(list);
+        const rec = d.recommended_id || null;
+        setRecommendedPsychId(rec);
+        if (rec) setReferralTargetId(rec);
+      }
+    } catch {}
+    finally { setPsychologistWorkloadLoading(false); }
+  };
+
+  const handleReferToPs = async () => {
+    if (!referralTargetId) return;
+    setReferralSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api('/api/referrals/initiate'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referral_type: 'INTERNAL',
+          case_id: caseId,
+          assigned_to_user: referralTargetId,
+          notes: referralReason,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setReferralMsg({ type: 'err', text: d.error || 'Failed to initiate referral.' }); return; }
+      setReferralMsg({ type: 'ok', text: 'Referral to psychologist submitted successfully.' });
+      setTimeout(() => { setShowReferralModal(false); setReferralMsg(null); }, 2000);
+    } catch (e: any) {
+      setReferralMsg({ type: 'err', text: e.message || 'Network error.' });
+    } finally { setReferralSubmitting(false); }
   };
 
   const handleScheduleSession = async () => {
@@ -1170,7 +1223,10 @@ export default function CaseDetailPage() {
             {studentName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-base font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{studentName}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-base font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{studentName}</p>
+              {caseData?.is_minor && <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+            </div>
             <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-secondary)' }}>{studentSchoolId}{studentEmail ? ` · ${studentEmail}` : ''}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -1198,6 +1254,15 @@ export default function CaseDetailPage() {
                     style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', boxShadow: '0 0 0 1px var(--color-border)' }}>
                     {sessionCount.completed} session{sessionCount.completed !== 1 ? 's' : ''} completed
                   </span>
+                )}
+                {currentUser?.role?.toUpperCase() === 'COUNSELOR' && (
+                  <button
+                    onClick={() => { setShowReferralModal(true); setReferralMsg(null); setReferralReason(''); setReferralTargetId(''); setPsychologistWorkload([]); loadPsychologistWorkload(); }}
+                    className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
+                    style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', boxShadow: '0 0 0 1px var(--color-warning)' }}
+                  >
+                    <UserPlus size={11} /> Refer to Psychologist
+                  </button>
                 )}
                 <button
                   onClick={() => { setClosureChecks({ notes: false, referrals: false, notified: false }); setShowClosureChecklist(true); }}
@@ -3387,6 +3452,116 @@ export default function CaseDetailPage() {
         </div>
       </div>
     )}
+
+    {showReferralModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowReferralModal(false)} />
+        <div className="relative rounded-2xl shadow-xl w-full max-w-md p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+              <UserPlus size={16} style={{ color: 'var(--color-warning)' }} /> Refer to Psychologist
+            </h3>
+            <button onClick={() => setShowReferralModal(false)} className="p-1 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <XIcon size={16} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Select Psychologist</label>
+              {psychologistWorkloadLoading ? (
+                <div className="flex items-center gap-2 text-xs py-3" style={{ color: 'var(--color-text-muted)' }}>
+                  <Loader2 size={13} className="animate-spin" /> Loading psychologists…
+                </div>
+              ) : psychologistWorkload.length === 0 ? (
+                <p className="text-xs py-2 px-3 rounded-lg" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
+                  No active psychologists found.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {psychologistWorkload.map(p => {
+                    const isSelected = referralTargetId === p.counselor_id;
+                    const isRec = recommendedPsychId === p.counselor_id;
+                    const utilizationColor = p.utilization === 'LOW' ? 'var(--color-success)' : p.utilization === 'HIGH' ? 'var(--color-danger)' : 'var(--color-warning)';
+                    const utilizationBg = p.utilization === 'LOW' ? 'var(--color-success-surface)' : p.utilization === 'HIGH' ? 'var(--color-danger-surface)' : 'var(--color-warning-surface)';
+                    const score = (p.active_cases * 2) + p.active_appointments;
+                    const barPct = Math.min(100, Math.round((score / 12) * 100));
+                    return (
+                      <button key={p.counselor_id} onClick={() => setReferralTargetId(p.counselor_id)}
+                        className="w-full text-left rounded-xl px-3 py-2.5 transition"
+                        style={{
+                          border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                          background: isSelected ? 'var(--color-primary-surface)' : 'var(--color-bg)',
+                        }}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{p.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            {isRec && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                                style={{ background: 'var(--color-primary)', color: '#fff' }}>
+                                Recommended
+                              </span>
+                            )}
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                              style={{ background: utilizationBg, color: utilizationColor }}>
+                              {p.utilization}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 rounded-full h-1.5 overflow-hidden" style={{ background: 'var(--color-border)' }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${barPct}%`, background: utilizationColor }} />
+                          </div>
+                          <span className="text-[10px] tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+                            {p.active_cases} cases · {p.active_appointments} appts
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Reason for Referral</label>
+              <textarea rows={3} value={referralReason} onChange={e => setReferralReason(e.target.value)}
+                placeholder="Clinical rationale, specific concerns, or context for the psychologist…"
+                className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+            </div>
+
+            {referralMsg && (
+              <p className="text-xs rounded-lg px-3 py-2" style={{
+                background: referralMsg.type === 'ok' ? 'var(--color-success-surface)' : 'var(--color-danger-surface)',
+                color: referralMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)',
+              }}>
+                {referralMsg.text}
+              </p>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={handleReferToPs} disabled={referralSubmitting || !referralTargetId}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-white rounded-xl transition disabled:opacity-50 hover:opacity-90"
+                style={{ background: 'var(--color-warning)' }}>
+                {referralSubmitting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                {referralSubmitting ? 'Submitting…' : 'Submit Referral'}
+              </button>
+              <button onClick={() => setShowReferralModal(false)}
+                className="px-4 py-2 text-sm rounded-xl transition border"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     </>
   );
 }

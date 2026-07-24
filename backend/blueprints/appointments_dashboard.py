@@ -163,23 +163,38 @@ def get_admin_dashboard(user_id_obj, user_name):
         return jsonify({'error': str(e)}), 500
 
 def get_intake_coordinator_requests(user_id_obj, user_name):
-    """IC: Only sees appointments assigned to them — OA handles unassigned requests."""
+    """IC: Sees their own assigned appointments + any unassigned REQUESTED intake appointments."""
     try:
+        active_statuses = [
+            AppointmentStatus.REQUESTED.value,
+            AppointmentStatus.PENDING_APPROVAL.value,
+            AppointmentStatus.CONFIRMED.value,
+            AppointmentStatus.APPROVED.value,
+            AppointmentStatus.MATCHED.value,
+            AppointmentStatus.EVALUATION.value,
+            AppointmentStatus.FOLLOW_UP.value,
+            AppointmentStatus.REFERRAL.value,
+            "RESCHEDULE_REQUESTED",
+            "CHECKED_IN",
+        ]
+
+        # Appointments assigned to this IC
         own_appointments = list(db.db.appointments.find({
             "counselor_id": user_id_obj,
-            "status": {"$in": [
-                AppointmentStatus.REQUESTED.value,
-                AppointmentStatus.PENDING_APPROVAL.value,
-                AppointmentStatus.CONFIRMED.value,
-                AppointmentStatus.APPROVED.value,
-                AppointmentStatus.MATCHED.value,
-                AppointmentStatus.EVALUATION.value,
-                AppointmentStatus.FOLLOW_UP.value,
-                AppointmentStatus.REFERRAL.value,
-                "RESCHEDULE_REQUESTED",
-                "CHECKED_IN",
-            ]}
+            "status": {"$in": active_statuses},
         }).sort("created_at", -1))
+
+        # Unassigned REQUESTED intake appointments — no IC claimed them yet
+        own_ids = {a['_id'] for a in own_appointments}
+        unassigned_intakes = list(db.db.appointments.find({
+            "counselor_id": {"$in": [None, ""]},
+            "status": AppointmentStatus.REQUESTED.value,
+            "purpose": "intake_interview",
+        }).sort("created_at", -1))
+        # Exclude any that also exist in own_appointments (shouldn't happen, but be safe)
+        unassigned_intakes = [a for a in unassigned_intakes if a['_id'] not in own_ids]
+
+        all_appointments = own_appointments + unassigned_intakes
 
         reschedule_count = db.db.appointments.count_documents({
             "counselor_id": user_id_obj,
@@ -193,13 +208,13 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
             'role': 'IC',
             'user_name': user_name,
             'view_type': 'own_appointments',
-            'appointments': format_appointments(own_appointments),
+            'appointments': format_appointments(all_appointments),
             'pending_requests': format_appointments(slot_pending),
             'pending_approval': format_appointments(pending_approval),
             'summary': {
-                'unassigned_requests': len(slot_pending),
+                'unassigned_requests': len(slot_pending) + len(unassigned_intakes),
                 'awaiting_approval': len(pending_approval),
-                'action_required': len(slot_pending) + len(pending_approval),
+                'action_required': len(slot_pending) + len(pending_approval) + len(unassigned_intakes),
                 'pending_reschedules': reschedule_count,
                 'awaiting_evaluation': evaluation_count,
             },

@@ -60,7 +60,7 @@ export function OnboardingModal({ user, onComplete }: Props) {
   const selectedCollege = DLSU_COLLEGES.find(c => c.abbr === form.college);
 
   function canAdvance() {
-    if (step === 0) return form.college && form.course && form.year;
+    if (step === 0) return form.college && form.course;
     if (step === 1) return form.phone.trim().length >= 7;
     if (step === 2) return form.ec_name.trim() && form.ec_phone.trim().length >= 7;
     return true;
@@ -189,15 +189,6 @@ export function OnboardingModal({ user, onComplete }: Props) {
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                  Year Level <span style={{ color: 'var(--color-danger)' }}>*</span>
-                </label>
-                <select className={IC} style={ICS} value={form.year} onChange={set('year')}>
-                  <option value="">— Select year level —</option>
-                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                   Student ID <span className="font-normal" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                 </label>
                 <input
@@ -260,9 +251,19 @@ export function OnboardingModal({ user, onComplete }: Props) {
 
         {/* Footer */}
         <div className="flex items-center justify-between">
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Step {step + 1} of {STEPS.length}
-          </p>
+          {step > 0 ? (
+            <button
+              onClick={() => { setStep(s => s - 1); setError(''); }}
+              className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+              style={{ color: 'var(--color-text-secondary)', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+            >
+              ← Back
+            </button>
+          ) : (
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Step {step + 1} of {STEPS.length}
+            </p>
+          )}
           <button
             onClick={handleNext}
             disabled={!canAdvance() || saving}

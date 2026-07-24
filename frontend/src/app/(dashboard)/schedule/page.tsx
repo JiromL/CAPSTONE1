@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import CalendarWeekView, { CalAppt, PersonalEvent } from '@/components/CalendarWeekView';
@@ -35,66 +35,57 @@ const EVENT_COLORS = [
 
 // ─── Availability helpers ────────────────────────────────────────────────────
 
-const GRID_DAYS = [
-  { label: 'Mon', dow: 0 },
-  { label: 'Tue', dow: 1 },
-  { label: 'Wed', dow: 2 },
-  { label: 'Thu', dow: 3 },
-  { label: 'Fri', dow: 4 },
-  { label: 'Sat', dow: 5 },
+const DAYS = [
+  { label: 'Monday',    short: 'Mon', dow: 0 },
+  { label: 'Tuesday',   short: 'Tue', dow: 1 },
+  { label: 'Wednesday', short: 'Wed', dow: 2 },
+  { label: 'Thursday',  short: 'Thu', dow: 3 },
+  { label: 'Friday',    short: 'Fri', dow: 4 },
+  { label: 'Saturday',  short: 'Sat', dow: 5 },
 ];
 
-const GRID_HOURS: string[] = [];
-for (let h = 7; h < 20; h++) {
-  GRID_HOURS.push(`${String(h).padStart(2, '0')}:00`);
+const TIME_OPTIONS: string[] = [];
+for (let h = 7; h <= 20; h++) {
+  TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:00`);
+  if (h < 20) TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:30`);
 }
 
 function fmt12(t: string) {
-  const [h] = t.split(':').map(Number);
+  const [hStr, mStr] = t.split(':');
+  const h = parseInt(hStr), m = parseInt(mStr);
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12 = h % 12 || 12;
-  return `${h12} ${ampm}`;
+  return m === 0 ? `${h12} ${ampm}` : `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-function cellKey(dow: number, time: string) { return `${dow}-${time}`; }
+type Block = { start: string; end: string };
+type DayConfig = { enabled: boolean; blocks: Block[]; method: 'in-person' | 'online' };
+type WeekState = Record<number, DayConfig>;
 
-function nextHour(time: string): string {
-  const h = parseInt(time.split(':')[0]) + 1;
-  return `${String(h).padStart(2, '0')}:00`;
+function makeDefaultWeek(): WeekState {
+  const w: WeekState = {};
+  for (let d = 0; d <= 5; d++) w[d] = { enabled: false, blocks: [{ start: '09:00', end: '17:00' }], method: 'in-person' };
+  return w;
 }
 
-function scheduleToState(schedule: any[]): { cells: Set<string>; methods: Record<number, 'in-person' | 'online'> } {
-  const cells = new Set<string>();
-  const methods: Record<number, 'in-person' | 'online'> = {};
-  for (const entry of schedule) {
-    const dow = entry.day_of_week;
-    if (entry.session_method) methods[dow] = entry.session_method;
-    const sh = parseInt(entry.start_time.split(':')[0]);
-    const eh = parseInt(entry.end_time.split(':')[0]);
-    for (let h = sh; h < eh; h++) {
-      cells.add(cellKey(dow, `${String(h).padStart(2, '0')}:00`));
-    }
+function scheduleToWeek(schedule: any[]): WeekState {
+  const w = makeDefaultWeek();
+  for (const e of schedule) {
+    const dow = e.day_of_week;
+    if (dow < 0 || dow > 5) continue;
+    if (!w[dow].enabled) { w[dow].enabled = true; w[dow].blocks = []; }
+    w[dow].blocks.push({ start: e.start_time, end: e.end_time });
+    if (e.session_method) w[dow].method = e.session_method;
   }
-  return { cells, methods };
+  return w;
 }
 
-function cellsToSchedule(cells: Set<string>, methods: Record<number, 'in-person' | 'online'>): any[] {
+function weekToSchedule(w: WeekState): any[] {
   const result: any[] = [];
-  for (const dow of [0, 1, 2, 3, 4, 5]) {
-    const method = methods[dow] ?? 'in-person';
-    const indices = GRID_HOURS
-      .map((h, i) => ({ h, i }))
-      .filter(({ h }) => cells.has(cellKey(dow, h)))
-      .map(({ i }) => i);
-    if (!indices.length) continue;
-    let start = indices[0], prev = indices[0];
-    for (let k = 1; k <= indices.length; k++) {
-      if (k < indices.length && indices[k] === prev + 1) {
-        prev = indices[k];
-      } else {
-        result.push({ day_of_week: dow, start_time: GRID_HOURS[start], end_time: nextHour(GRID_HOURS[prev]), session_method: method });
-        if (k < indices.length) { start = indices[k]; prev = indices[k]; }
-      }
+  for (let dow = 0; dow <= 5; dow++) {
+    if (!w[dow].enabled) continue;
+    for (const b of w[dow].blocks) {
+      result.push({ day_of_week: dow, start_time: b.start, end_time: b.end, session_method: w[dow].method });
     }
   }
   return result;
@@ -128,18 +119,11 @@ function ScheduleInner() {
   const [saveErr, setSaveErr] = useState('');
 
   // ── Availability state ──
-  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
-  const [dayMethods, setDayMethods]       = useState<Record<number, 'in-person' | 'online'>>({});
-  const [availLoading, setAvailLoading]   = useState(false);
-  const [availSaving, setAvailSaving]     = useState(false);
-  const [availLoaded, setAvailLoaded]     = useState(false);
-  const [toast, setToast]                 = useState<{ msg: string; ok: boolean } | null>(null);
-  // Drag-to-select state
-  const [dragVersion, setDragVersion]     = useState(0);
-  const isDragging   = useRef(false);
-  const dragAnchor   = useRef<{ dow: number; ti: number } | null>(null);
-  const dragCurrent  = useRef<{ dow: number; ti: number } | null>(null);
-  const dragAction   = useRef<'add' | 'remove'>('add');
+  const [week, setWeek]               = useState<WeekState>(() => makeDefaultWeek());
+  const [availLoading, setAvailLoading] = useState(false);
+  const [availSaving, setAvailSaving]   = useState(false);
+  const [availLoaded, setAvailLoaded]   = useState(false);
+  const [toast, setToast]               = useState<{ msg: string; ok: boolean } | null>(null);
 
   // ── Leave state ──
   const [leaves, setLeaves]             = useState<{ id: string; date: string; reason: string }[]>([]);
@@ -184,11 +168,7 @@ function ScheduleInner() {
     fetch(api('/api/availability/weekly'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
-        if (data.schedule?.length) {
-          const { cells, methods } = scheduleToState(data.schedule);
-          setSelectedCells(cells);
-          setDayMethods(methods);
-        }
+        if (data.schedule?.length) setWeek(scheduleToWeek(data.schedule));
       })
       .catch(() => {})
       .finally(() => { setAvailLoading(false); setAvailLoaded(true); });
@@ -281,7 +261,8 @@ function ScheduleInner() {
     const token = localStorage.getItem('token');
     if (!token) return;
     setAvailSaving(true);
-    const schedule = cellsToSchedule(selectedCells, dayMethods);
+    const schedule = weekToSchedule(week);
+    const enabledDays = Object.values(week).filter(d => d.enabled).length;
     try {
       const r = await fetch(api('/api/availability/weekly'), {
         method: 'PUT',
@@ -289,7 +270,7 @@ function ScheduleInner() {
         body: JSON.stringify({ schedule, session_method: 'in-person' }),
       });
       const d = await r.json();
-      if (r.ok) showToast(`Saved — ${schedule.length} block${schedule.length !== 1 ? 's' : ''} across ${activeDays} day${activeDays !== 1 ? 's' : ''}`, true);
+      if (r.ok) showToast(`Saved — ${schedule.length} block${schedule.length !== 1 ? 's' : ''} across ${enabledDays} day${enabledDays !== 1 ? 's' : ''}`, true);
       else showToast(d.error ?? 'Failed to save', false);
     } catch {
       showToast('Network error', false);
@@ -297,6 +278,47 @@ function ScheduleInner() {
       setAvailSaving(false);
     }
   };
+
+  // ── Week state helpers ──
+  function toggleDay(dow: number) {
+    setWeek(w => ({ ...w, [dow]: { ...w[dow], enabled: !w[dow].enabled } }));
+  }
+  function setBlock(dow: number, bi: number, field: 'start' | 'end', val: string) {
+    setWeek(w => {
+      const blocks = w[dow].blocks.map((b, i) => i === bi ? { ...b, [field]: val } : b);
+      return { ...w, [dow]: { ...w[dow], blocks } };
+    });
+  }
+  function addBlock(dow: number) {
+    setWeek(w => {
+      const last = w[dow].blocks[w[dow].blocks.length - 1];
+      const [h] = (last?.end ?? '14:00').split(':').map(Number);
+      const newStart = last?.end ?? '14:00';
+      const newEnd = `${String(Math.min(h + 1, 20)).padStart(2, '0')}:00`;
+      return { ...w, [dow]: { ...w[dow], blocks: [...w[dow].blocks, { start: newStart, end: newEnd }] } };
+    });
+  }
+  function removeBlock(dow: number, bi: number) {
+    setWeek(w => {
+      const blocks = w[dow].blocks.filter((_, i) => i !== bi);
+      // removing the last block disables the day (keeps default for next enable)
+      if (!blocks.length) return { ...w, [dow]: { ...w[dow], enabled: false, blocks: [{ start: '09:00', end: '17:00' }] } };
+      return { ...w, [dow]: { ...w[dow], blocks } };
+    });
+  }
+  function copyDay(dow: number) {
+    setWeek(w => {
+      const src = w[dow].blocks;
+      const next = { ...w };
+      for (let d = 0; d <= 5; d++) {
+        if (d !== dow && next[d].enabled) next[d] = { ...next[d], blocks: src.map(b => ({ ...b })) };
+      }
+      return next;
+    });
+  }
+  function setMethod(dow: number, method: 'in-person' | 'online') {
+    setWeek(w => ({ ...w, [dow]: { ...w[dow], method } }));
+  }
 
   const addLeave = async () => {
     if (!newLeaveDate) { showToast('Select a date first', false); return; }
@@ -338,48 +360,6 @@ function ScheduleInner() {
     } catch { showToast('Network error', false); }
   };
 
-  // ── Drag helpers ──
-  function inDragRect(dow: number, ti: number): boolean {
-    if (!isDragging.current || !dragAnchor.current || !dragCurrent.current) return false;
-    const { dow: aDow, ti: aTi } = dragAnchor.current;
-    const { dow: cDow, ti: cTi } = dragCurrent.current;
-    return dow >= Math.min(aDow, cDow) && dow <= Math.max(aDow, cDow)
-        && ti  >= Math.min(aTi, cTi)  && ti  <= Math.max(aTi, cTi);
-  }
-
-  // Commit drag selection on mouseup anywhere
-  useEffect(() => {
-    function onUp() {
-      if (!isDragging.current) return;
-      const anchor = dragAnchor.current;
-      const current = dragCurrent.current;
-      if (anchor && current) {
-        const minDow = Math.min(anchor.dow, current.dow);
-        const maxDow = Math.max(anchor.dow, current.dow);
-        const minTi  = Math.min(anchor.ti,  current.ti);
-        const maxTi  = Math.max(anchor.ti,  current.ti);
-        const action = dragAction.current;
-        setSelectedCells(prev => {
-          const next = new Set(prev);
-          for (let d = minDow; d <= maxDow; d++) {
-            for (let t = minTi; t <= maxTi; t++) {
-              const key = cellKey(d, GRID_HOURS[t]);
-              if (action === 'add') next.add(key); else next.delete(key);
-            }
-          }
-          return next;
-        });
-      }
-      isDragging.current = false;
-      dragAnchor.current = null;
-      dragCurrent.current = null;
-      setDragVersion(v => v + 1);
-    }
-    window.addEventListener('mouseup', onUp);
-    return () => window.removeEventListener('mouseup', onUp);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // ── Derived ──
   const upperRole = role.toUpperCase();
   const isStaff   = ['STAFF', 'ADMIN', 'DPO'].includes(upperRole);
@@ -390,10 +370,7 @@ function ScheduleInner() {
   const pageTitle   = hasAvail ? 'Schedule & Availability' : calTitle;
   const pageSubtitle = hasAvail ? 'View your calendar and manage your booking availability' : calSubtitle;
 
-  const activeDays = GRID_DAYS.filter(({ dow }) => GRID_HOURS.some(h => selectedCells.has(cellKey(dow, h)))).length;
-  const totalSlots = selectedCells.size;
-  // dragVersion read to trigger re-render during drag; suppress unused lint
-  void dragVersion;
+  const enabledDays = Object.values(week).filter(d => d.enabled).length;
 
   function setTab(tab: 'calendar' | 'availability') {
     const params = new URLSearchParams(searchParams.toString());
@@ -564,134 +541,155 @@ function ScheduleInner() {
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
 
             {/* Header */}
-            <div className="px-5 py-4 flex items-center justify-between"
+            <div className="px-6 py-4 flex items-center justify-between"
               style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
-                <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Weekly Availability</h2>
+                <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Weekly hours</h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                  {activeDays} day{activeDays !== 1 ? 's' : ''} · {totalSlots} hour{totalSlots !== 1 ? 's' : ''} per week
+                  Set when you are typically available for sessions
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="hidden sm:flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  <span className="w-3 h-3 rounded" style={{ background: 'var(--color-primary)', opacity: 0.8 }} />
-                  Available
-                </span>
-                <button onClick={saveAvail} disabled={availSaving}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition hover:opacity-90"
-                  style={{ background: 'var(--color-primary)' }}>
-                  {availSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  {availSaving ? 'Saving…' : 'Save'}
-                </button>
-              </div>
+              <button onClick={saveAvail} disabled={availSaving}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}>
+                {availSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {availSaving ? 'Saving…' : 'Save'}
+              </button>
             </div>
 
-            {/* Grid */}
+            {/* Day rows */}
             {availLoading ? (
               <div className="p-10 flex items-center justify-center gap-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
               </div>
             ) : (
-              <div className="overflow-x-auto px-4 pt-4 pb-3"
-                style={{ WebkitUserSelect: 'none', userSelect: 'none', cursor: 'default' }}>
-                <div style={{ minWidth: 360 }}>
+              <div>
+                {DAYS.map(({ short, label, dow }, di) => {
+                  const day = week[dow];
+                  return (
+                    <div key={dow} className="px-6 py-4 flex items-start gap-5"
+                      style={{ borderTop: di > 0 ? '1px solid var(--color-border)' : 'none' }}>
 
-                  {/* Column headers — day names + F2F/Online toggle */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '48px repeat(6, 1fr)', gap: 3, marginBottom: 6 }}>
-                    <div /> {/* time label column spacer */}
-                    {GRID_DAYS.map(({ label, dow }) => (
-                      <div key={dow} className="text-center">
-                        <p className="text-xs font-semibold mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
-                        <div className="flex gap-0.5 justify-center">
-                          {(['in-person', 'online'] as const).map(v => {
-                            const active = (dayMethods[dow] ?? 'in-person') === v;
-                            return (
-                              <button key={v}
-                                onMouseDown={e => e.stopPropagation()}
-                                onClick={() => setDayMethods(m => ({ ...m, [dow]: v }))}
-                                title={v === 'in-person' ? 'Face to Face' : 'Online'}
-                                className="flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-semibold transition-all"
-                                style={active
-                                  ? { background: 'var(--color-primary)', color: '#fff' }
-                                  : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
-                                {v === 'in-person' ? <MapPin size={8} /> : <Monitor size={8} />}
-                                {v === 'in-person' ? 'F2F' : 'Net'}
+                      {/* Day circle — acts as enable/disable toggle */}
+                      <button
+                        onClick={() => toggleDay(dow)}
+                        aria-label={`${day.enabled ? 'Disable' : 'Enable'} ${label}`}
+                        aria-pressed={day.enabled}
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold transition-all"
+                        style={{
+                          cursor: 'pointer',
+                          marginTop: 2,
+                          ...(day.enabled
+                            ? { background: 'var(--color-primary)', color: '#fff' }
+                            : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1.5px solid var(--color-border)' }),
+                        }}>
+                        {short[0]}
+                      </button>
+
+                      {/* Content */}
+                      {day.enabled ? (
+                        <div className="flex-1 space-y-2.5 min-w-0">
+                          {day.blocks.map((block, bi) => (
+                            <div key={bi} className="flex items-center gap-2 flex-wrap">
+
+                              {/* Start time */}
+                              <select
+                                aria-label={`${label} start time, block ${bi + 1}`}
+                                value={block.start}
+                                onChange={e => setBlock(dow, bi, 'start', e.target.value)}
+                                className="h-9 px-3 text-sm rounded-lg outline-none transition"
+                                style={{ cursor: 'pointer', minWidth: 110, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
+                                {TIME_OPTIONS.map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
+                              </select>
+
+                              <span className="text-sm select-none" style={{ color: 'var(--color-text-muted)' }}>–</span>
+
+                              {/* End time */}
+                              <select
+                                aria-label={`${label} end time, block ${bi + 1}`}
+                                value={block.end}
+                                onChange={e => setBlock(dow, bi, 'end', e.target.value)}
+                                className="h-9 px-3 text-sm rounded-lg outline-none transition"
+                                style={{ cursor: 'pointer', minWidth: 110, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
+                                {TIME_OPTIONS.map(t => <option key={t} value={t}>{fmt12(t)}</option>)}
+                              </select>
+
+                              {/* Remove block — removing last block disables the day */}
+                              <button
+                                onClick={() => removeBlock(dow, bi)}
+                                aria-label={`Remove ${label} time block ${bi + 1}`}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0"
+                                style={{ cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-danger)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                                <X size={15} />
                               </button>
-                            );
-                          })}
+
+                              {/* Add block + Copy — first row only */}
+                              {bi === 0 && (
+                                <>
+                                  <button
+                                    onClick={() => addBlock(dow)}
+                                    aria-label={`Add another time block for ${label}`}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0"
+                                    style={{ cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                    <Plus size={16} />
+                                  </button>
+                                  {enabledDays > 1 && (
+                                    <button
+                                      onClick={() => copyDay(dow)}
+                                      aria-label={`Copy ${label} schedule to all other active days`}
+                                      className="w-8 h-8 flex items-center justify-center rounded-lg transition flex-shrink-0"
+                                      style={{ cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                      </svg>
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Session type toggle */}
+                          <div className="flex gap-1.5 pt-0.5">
+                            {(['in-person', 'online'] as const).map(v => {
+                              const isActive = day.method === v;
+                              return (
+                                <button key={v}
+                                  onClick={() => setMethod(dow, v)}
+                                  aria-label={v === 'in-person' ? 'Face to face sessions' : 'Online sessions'}
+                                  aria-pressed={isActive}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition"
+                                  style={{
+                                    cursor: 'pointer',
+                                    ...(isActive
+                                      ? { background: 'var(--color-primary)', color: '#fff' }
+                                      : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }),
+                                  }}>
+                                  {v === 'in-person' ? <MapPin size={11} /> : <Monitor size={11} />}
+                                  {v === 'in-person' ? 'Face to face' : 'Online'}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Time rows */}
-                  {GRID_HOURS.map((time, ti) => (
-                    <div key={time} style={{ display: 'grid', gridTemplateColumns: '48px repeat(6, 1fr)', gap: 3, marginBottom: 3 }}>
-                      {/* Time label */}
-                      <div className="flex items-center justify-end pr-2.5 flex-shrink-0">
-                        <span className="text-[10px] font-medium tabular-nums leading-none" style={{ color: 'var(--color-text-muted)' }}>
-                          {fmt12(time)}
-                        </span>
-                      </div>
-                      {/* Day cells */}
-                      {GRID_DAYS.map(({ dow }) => {
-                        const key = cellKey(dow, time);
-                        const isSelected = selectedCells.has(key);
-                        const inDrag = inDragRect(dow, ti);
-                        const adding = dragAction.current === 'add';
-                        const willAdd = inDrag && adding;
-                        const willRemove = inDrag && !adding;
-                        const active = (isSelected && !willRemove) || (willAdd && !isSelected);
-                        const preview = willRemove && isSelected;
-
-                        return (
-                          <div key={dow}
-                            className="rounded transition-colors"
-                            style={{
-                              height: 26,
-                              cursor: 'pointer',
-                              background: active
-                                ? 'var(--color-primary)'
-                                : preview
-                                ? 'var(--color-danger-surface)'
-                                : isSelected
-                                ? 'var(--color-primary)'
-                                : 'var(--color-bg)',
-                              border: (active || isSelected) && !preview
-                                ? 'none'
-                                : preview
-                                ? '1px solid var(--color-danger)'
-                                : '1px solid var(--color-border)',
-                              opacity: (active || (isSelected && !preview)) ? 0.82 : 1,
-                            }}
-                            onMouseDown={e => {
-                              e.preventDefault();
-                              isDragging.current = true;
-                              dragAnchor.current = { dow, ti };
-                              dragCurrent.current = { dow, ti };
-                              dragAction.current = !isSelected ? 'add' : 'remove';
-                              setDragVersion(v => v + 1);
-                            }}
-                            onMouseEnter={() => {
-                              if (!isDragging.current) return;
-                              dragCurrent.current = { dow, ti };
-                              setDragVersion(v => v + 1);
-                            }}
-                          />
-                        );
-                      })}
+                      ) : (
+                        /* Unavailable — clicking the circle (above) enables; row just shows label */
+                        <div className="flex-1 flex items-center" style={{ minHeight: 40 }}>
+                          <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Unavailable</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             )}
-
-            {/* Footer */}
-            <div className="px-5 py-2.5" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
-              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                Click or drag to mark available hours. Each cell = 1 hour. You can leave gaps (e.g. skip lunch). Confirmed appointments are automatically blocked.
-              </p>
-            </div>
           </div>
 
           {/* Leave / Date Blocking */}

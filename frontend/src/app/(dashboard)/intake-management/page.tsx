@@ -103,12 +103,23 @@ function AwaitingCard({ apt, onConfirm, confirming, msg }: {
   confirming: boolean;
   msg: { type: 'ok' | 'err'; text: string } | null;
 }) {
-  const canConfirm = !!(apt.counselor_id && apt.preferred_time);
+  const hasTime      = !!apt.preferred_time;
+  const hasAssigned  = !!apt.counselor_id;
+  const canConfirm   = hasTime;
+  const isClaim      = hasTime && !hasAssigned;
   return (
     <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
       style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
       <div className="min-w-0">
-        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+          {isClaim && (
+            <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full"
+              style={{ background: 'var(--color-warning)', color: 'white' }}>
+              Unassigned
+            </span>
+          )}
+        </div>
         <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
         {apt.preferred_date && (
           <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
@@ -126,9 +137,9 @@ function AwaitingCard({ apt, onConfirm, confirming, msg }: {
         {canConfirm ? (
           <button onClick={onConfirm} disabled={confirming || !!msg}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg disabled:opacity-50 transition hover:opacity-90 whitespace-nowrap"
-            style={{ background: 'var(--color-primary)' }}>
+            style={{ background: isClaim ? 'var(--color-warning)' : 'var(--color-primary)' }}>
             {confirming ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
-            Confirm Slot
+            {isClaim ? 'Claim & Confirm' : 'Confirm Slot'}
           </button>
         ) : (
           <span className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--color-warning)' }}>No slot selected</span>
@@ -481,6 +492,10 @@ function EmptyState({ msg, icon: Icon }: { msg: string; icon: React.ElementType 
   );
 }
 
+function getCurrentUserId(): string {
+  try { return JSON.parse(localStorage.getItem('user') || '{}').user_id || ''; }
+  catch { return ''; }
+}
 export default function IntakeManagementPage() {
   const [appointments, setAppointments] = useState<IntakeAppointment[]>([]);
   const [intakes, setIntakes]           = useState<IntakeRecord[]>([]);
@@ -488,6 +503,7 @@ export default function IntakeManagementPage() {
   const [error, setError]               = useState<string | null>(null);
   const [activeStage, setActiveStage]   = useState<StageKey>('awaiting');
   const [search, setSearch]             = useState('');
+  const [myOnly, setMyOnly]             = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [actionMsg, setActionMsg]       = useState<{ id: string; type: 'ok' | 'err'; text: string } | null>(null);
   const [exportTarget, setExportTarget] = useState<{ intakeId: string; appointmentId: string | null } | null>(null);
@@ -511,7 +527,7 @@ export default function IntakeManagementPage() {
       if (!aptRes.ok) throw new Error('Failed to load appointments');
       const aptData = await aptRes.json();
       const intakeData = intakeRes.ok ? await intakeRes.json() : { data: [] };
-      const intakeApts = (aptData.appointments || []).filter((a: IntakeAppointment) => a.purpose === 'intake_interview');
+      const intakeApts: IntakeAppointment[] = (aptData.appointments || []).filter((a: IntakeAppointment) => a.purpose === 'intake_interview');
       setAppointments(intakeApts);
       setIntakes(intakeData.data || []);
     } catch (e) {
@@ -537,19 +553,26 @@ export default function IntakeManagementPage() {
     } finally { setConfirmingId(null); }
   }
 
+  const currentUserId = getCurrentUserId();
+
   const awaiting  = appointments.filter(a => ['REQUESTED', 'PENDING_APPROVAL'].includes(a.status));
   const scheduled = appointments.filter(a => ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(a.status));
   const write     = intakes.filter(i => i.case_id && i.status !== 'COMPLETED');
   const done      = intakes.filter(i => i.status === 'COMPLETED');
 
+  // My Cases filter: only show appointments assigned to the current IC
+  const myCases = (list: IntakeAppointment[]) =>
+    myOnly && currentUserId ? list.filter(a => a.counselor_id === currentUserId) : list;
+
   const stageCounts: Record<StageKey, number> = {
-    awaiting: awaiting.length, scheduled: scheduled.length, write: write.length, done: done.length,
+    awaiting: myCases(awaiting).length, scheduled: myCases(scheduled).length, write: write.length, done: done.length,
   };
 
   const q = search.toLowerCase();
   function filterApts(list: IntakeAppointment[]) {
-    if (!q) return list;
-    return list.filter(a => a.student_name?.toLowerCase().includes(q) || a.student_email?.toLowerCase().includes(q));
+    const base = myCases(list);
+    if (!q) return base;
+    return base.filter(a => a.student_name?.toLowerCase().includes(q) || a.student_email?.toLowerCase().includes(q));
   }
   function filterIntakes(list: IntakeRecord[]) {
     if (!q) return list;
@@ -687,6 +710,29 @@ export default function IntakeManagementPage() {
               <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{currentStage.sublabel}</p>
             </div>
             <div className="flex items-center gap-2">
+              {/* My Cases / All toggle — only relevant for awaiting + scheduled */}
+              {(activeStage === 'awaiting' || activeStage === 'scheduled') && (
+                <div className="flex rounded-lg overflow-hidden text-xs font-semibold"
+                  style={{ border: '1px solid var(--color-border)' }}>
+                  <button onClick={() => setMyOnly(true)}
+                    className="px-2.5 py-1.5 transition"
+                    style={{
+                      background: myOnly ? 'var(--color-primary)' : 'var(--color-bg)',
+                      color: myOnly ? 'white' : 'var(--color-text-muted)',
+                    }}>
+                    My Cases
+                  </button>
+                  <button onClick={() => setMyOnly(false)}
+                    className="px-2.5 py-1.5 transition"
+                    style={{
+                      background: !myOnly ? 'var(--color-primary)' : 'var(--color-bg)',
+                      color: !myOnly ? 'white' : 'var(--color-text-muted)',
+                      borderLeft: '1px solid var(--color-border)',
+                    }}>
+                    All
+                  </button>
+                </div>
+              )}
               <div className="relative">
                 <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
                 <input

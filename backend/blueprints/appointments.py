@@ -561,6 +561,22 @@ def check_active_appointment():
         assigned_counselor = student_case.get('assigned_counselor_id')
 
         if case_status in ('NEW', 'INTAKE_SCHEDULED'):
+            # Check for any still-pending intake appointment (including past-date REQUESTED ones
+            # not caught by the future-only active_appointment check above).
+            pending_intake = db.db.appointments.find_one({
+                'student_id': user_id_obj,
+                'purpose': 'intake_interview',
+                'status': {'$in': ['REQUESTED', 'PENDING_APPROVAL', 'APPROVED', 'MATCHED', 'CONFIRMED']},
+            })
+            if not pending_intake:
+                # No live intake appointment — previous one likely lapsed or was cancelled.
+                # Allow the student to re-book rather than leaving them permanently stuck.
+                return jsonify({
+                    'has_active_appointment': False,
+                    'can_self_book': True,
+                    'booking_gate': 'eligible',
+                    'message': 'Please book a new intake appointment to continue.',
+                }), 200
             return jsonify({
                 'has_active_appointment': False,
                 'can_self_book': False,
@@ -862,20 +878,17 @@ def request_appointment():
             except Exception:
                 pass
 
-        # When a specific IC/counselor is pre-selected (either via a reserved slot or the
-        # open-slots picker), the time is committed — set it confirmed immediately.
-        has_committed_slot = bool(booked_slot or weekly_slot_counselor_id)
-        initial_status = AppointmentStatus.CONFIRMED.value if has_committed_slot else AppointmentStatus.REQUESTED.value
-
+        # All bookings start as REQUESTED so the IC can review before confirming.
+        # The counselor_id and requested time are pre-filled, so the IC can confirm in one click.
         appointment = {
             "student_id": user_id_obj,
             "case_id": case_id,
             "appointment_type": data.get('appointment_type', 'initial'),
             "requested_start": requested_start,
             "requested_end": requested_end,
-            "scheduled_start": requested_start if has_committed_slot else None,
-            "scheduled_end":   requested_end   if has_committed_slot else None,
-            "status": initial_status,
+            "scheduled_start": None,
+            "scheduled_end":   None,
+            "status": AppointmentStatus.REQUESTED.value,
             "reference_id": reference_id,
             "purpose": data.get('purpose'),
             "concern": data.get('concern'),
@@ -4533,7 +4546,8 @@ def confirm_intake_slot(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
     if apt.get('status') != AppointmentStatus.REQUESTED.value:
         return jsonify({'error': 'Appointment is not in REQUESTED status'}), 400
-    if str(apt.get('counselor_id', '')) != str(uid_obj) and user.get('role') != 'ADMIN':
+    existing_counselor = apt.get('counselor_id')
+    if existing_counselor and str(existing_counselor) != str(uid_obj) and user.get('role') != 'ADMIN':
         return jsonify({'error': 'This slot booking is not assigned to you'}), 403
 
     now = datetime.utcnow()
@@ -4551,6 +4565,10 @@ def confirm_intake_slot(appointment_id):
         confirm_fields['scheduled_start'] = scheduled_start
     if not apt.get('preferred_method'):
         confirm_fields['preferred_method'] = preferred_method
+    # Auto-assign this IC as the counselor if the appointment had no counselor yet
+    if not existing_counselor:
+        confirm_fields['counselor_id'] = uid_obj
+        confirm_fields['counselor_name'] = f"{user.get('first_name','')} {user.get('last_name','')}".strip()
 
     # Auto-create Google Meet link only for Google Meet appointments
     meeting_link = apt.get('meeting_link')

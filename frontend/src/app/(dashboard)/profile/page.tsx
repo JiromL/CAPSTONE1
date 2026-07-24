@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -47,6 +48,7 @@ export default function ProfilePage() {
   // PERMA / MHBot state
   const [permaData, setPermaData]         = useState<any>(null);
   const [loadingPerma, setLoadingPerma]   = useState(false);
+  const [emaLiveConnected, setEmaLiveConnected] = useState(false);
   const [mhbotLogging, setMhbotLogging]   = useState(false);
   const [mhbotError, setMhbotError]       = useState('');
   const [emaConsentGiven, setEmaConsentGiven] = useState(false);
@@ -60,15 +62,22 @@ export default function ProfilePage() {
   async function fetchMyPerma() {
     setLoadingPerma(true);
     try {
-      const r = await fetch(api('/api/mhbot/my-snapshots'), { headers: { Authorization: `Bearer ${cpsToken()}` } });
-      const d = await r.json();
-      setPermaData((prev: any) => ({
-        connected: prev?.connected ?? false,
-        mhbot_username: prev?.mhbot_username || '',
-        latest_label: d.latest_label,
-        latest_date: d.latest_date,
-        history: (d.snapshots || []).map((s: any) => ({ perma_label: s.perma_label, date: s.raw_date || s.entry_date })),
-      }));
+      const hdrs = { Authorization: `Bearer ${cpsToken()}` };
+      const [snapRes, statusRes] = await Promise.all([
+        fetch(api('/api/mhbot/my-snapshots'), { headers: hdrs }),
+        fetch(api('/api/mhbot/auth/status'),  { headers: hdrs }),
+      ]);
+      const [snap, status] = await Promise.all([snapRes.json(), statusRes.json()]);
+      const history = (snap.snapshots || []).map((s: any) => ({ perma_label: s.perma_label, date: s.raw_date || s.entry_date }));
+      const hasData = !!(snap.latest_label || history.length > 0);
+      setEmaLiveConnected(status.connected ?? false);
+      setPermaData({
+        connected: hasData,
+        mhbot_username: status.mhbot_username || '',
+        latest_label: snap.latest_label,
+        latest_date: snap.latest_date,
+        history,
+      });
     } catch {} finally { setLoadingPerma(false); }
   }
 
@@ -88,7 +97,8 @@ export default function ProfilePage() {
 
   async function handleMhbotLogout() {
     await fetch(api('/api/mhbot/auth/logout'), { method: 'POST', headers: { Authorization: `Bearer ${cpsToken()}` } });
-    setPermaData(null);
+    setEmaLiveConnected(false);
+    fetchMyPerma();
   }
 
   // Change password
@@ -215,21 +225,9 @@ export default function ProfilePage() {
 
   const initials = `${profile.firstName?.charAt(0).toUpperCase() ?? ''}${profile.lastName?.charAt(0).toUpperCase() ?? ''}`;
 
-  // PERMA chart constants (semantic wellness colors — keep fixed)
-  const LABEL_SCORE: Record<string, number> = {
-    'In Crisis': 1, 'Struggling': 2, 'Surviving': 3, 'Thriving': 4, 'Excelling': 5,
-  };
-  const LABEL_COLOR: Record<string, string> = {
-    'In Crisis': '#ef4444', 'Struggling': '#f97316', 'Surviving': '#eab308',
-    'Thriving': '#22c55e', 'Excelling': '#16a34a',
-  };
-  const ZONE_BG = [
-    { y: 0,  h: 20, color: '#fef2f2', label: 'In Crisis' },
-    { y: 20, h: 20, color: '#fff7ed', label: 'Struggling' },
-    { y: 40, h: 20, color: '#fefce8', label: 'Surviving' },
-    { y: 60, h: 20, color: '#f0fdf4', label: 'Thriving' },
-    { y: 80, h: 20, color: '#dcfce7', label: 'Excelling' },
-  ];
+  const LABEL_TO_SCORE: Record<string, number> = { 'Excelling': 5, 'Thriving': 4, 'Surviving': 3, 'Struggling': 2, 'In Crisis': 1 };
+  const SCORE_TO_LABEL: Record<number, string> = { 5: 'Excelling', 4: 'Thriving', 3: 'Surviving', 2: 'Struggling', 1: 'In Crisis' };
+  const SCORE_COLOR: Record<number, string>    = { 5: '#10b981', 4: '#22c55e', 3: '#f59e0b', 2: '#f97316', 1: '#ef4444' };
 
   return (
     <>
@@ -368,7 +366,7 @@ export default function ProfilePage() {
                 <Activity size={15} style={{ color: 'var(--color-success)' }} />
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>My Wellbeing (PERMA)</h3>
               </div>
-              {permaData?.connected && (
+              {emaLiveConnected && (
                 <button onClick={handleMhbotLogout}
                   className="flex items-center gap-1.5 text-xs transition"
                   style={{ color: 'var(--color-text-muted)' }}
@@ -385,123 +383,116 @@ export default function ProfilePage() {
               </div>
             ) : !permaData?.connected ? (
               <div className="flex flex-col items-start gap-1.5 py-2">
-                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Not connected to EMA yet.</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No wellbeing data yet.</p>
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   Open the <span className="font-medium" style={{ color: 'var(--color-primary)' }}>EMA chatbot</span> using the button at the bottom-right of the screen and sign in — your wellbeing history will appear here automatically.
                 </p>
               </div>
             ) : (() => {
-              const history = [...(permaData.history || [])].reverse();
-              const points = history
-                .map((e: any) => ({ label: e.perma_label, date: e.date, score: LABEL_SCORE[e.perma_label] }))
-                .filter((p: any) => p.score !== undefined);
+              const chartData = [...(permaData.history || [])]
+                .filter((h: any) => h.perma_label && LABEL_TO_SCORE[h.perma_label])
+                .reverse()
+                .map((h: any) => ({
+                  dateRaw: h.date,
+                  date: new Date(h.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }),
+                  score: LABEL_TO_SCORE[h.perma_label],
+                  label: h.perma_label,
+                }));
 
-              const W = 540, H = 160, PAD_L = 72, PAD_R = 16, PAD_T = 12, PAD_B = 28;
-              const chartW = W - PAD_L - PAD_R;
-              const chartH = H - PAD_T - PAD_B;
-              const xOf = (i: number) => PAD_L + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2);
-              const yOf = (score: number) => PAD_T + chartH - ((score - 1) / 4) * chartH;
-              const pathD = points.length > 1
-                ? points.reduce((d: string, p: any, i: number) => {
-                    const x = xOf(i); const y = yOf(p.score);
-                    if (i === 0) return `M${x},${y}`;
-                    const px = xOf(i - 1); const py = yOf(points[i - 1].score);
-                    const cpx = (px + x) / 2;
-                    return `${d} C${cpx},${py} ${cpx},${y} ${x},${y}`;
-                  }, '')
-                : '';
+              const latestScore = chartData.length ? chartData[chartData.length - 1].score : null;
+              const prevScore   = chartData.length >= 2 ? chartData[chartData.length - 2].score : null;
+              const latestColor = latestScore ? SCORE_COLOR[latestScore] : '#6b7280';
+              const trend = !prevScore || !latestScore ? null
+                : latestScore > prevScore ? 'up' : latestScore < prevScore ? 'down' : 'same';
 
-              const latest = permaData.latest_label;
-              const prev   = points.length >= 2 ? points[points.length - 2]?.label : null;
-              const latestScore = LABEL_SCORE[latest] ?? 0;
-              const prevScore   = LABEL_SCORE[prev] ?? 0;
-              const trend = !prev ? null : latestScore > prevScore ? 'up' : latestScore < prevScore ? 'down' : 'same';
-              const latestColor = LABEL_COLOR[latest] ?? '#6b7280';
+              const CustomTooltip = ({ active, payload }: any) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="shadow-lg rounded-lg px-3 py-2 text-xs"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <p className="mb-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                      {new Date(d.dateRaw).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                    <p className="font-semibold" style={{ color: SCORE_COLOR[d.score] }}>{d.label}</p>
+                  </div>
+                );
+              };
 
               return (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <PermaBadge label={latest} />
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <PermaBadge label={permaData.latest_label} />
                     {trend === 'up'   && <span className="text-xs font-semibold" style={{ color: 'var(--color-success)' }}>↑ Improving</span>}
                     {trend === 'down' && <span className="text-xs font-semibold" style={{ color: 'var(--color-danger)' }}>↓ Declining</span>}
                     {trend === 'same' && <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>→ Stable</span>}
                     {permaData.latest_date && (
                       <span className="text-xs ml-auto" style={{ color: 'var(--color-text-muted)' }}>
-                        Last assessed {new Date(permaData.latest_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
+                        Last check-in {new Date(permaData.latest_date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     )}
                   </div>
 
-                  {points.length === 0 ? (
+                  {chartData.length === 0 ? (
                     <div className="py-6 flex flex-col items-center gap-2 text-center rounded-2xl"
                       style={{ border: '1px dashed var(--color-border)' }}>
                       <Activity size={22} style={{ color: 'var(--color-border)' }} />
                       <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No assessments recorded yet</p>
-                      <p className="text-xs max-w-xs" style={{ color: 'var(--color-text-muted)' }}>
-                        Complete a conversation in the EMA chatbot to generate your first PERMA wellness label.
-                      </p>
-                      <p className="text-xs font-medium mt-1" style={{ color: 'var(--color-primary)' }}>→ Use the chat button at the bottom-right</p>
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Complete a conversation in the EMA chatbot to generate your first wellbeing label.</p>
                     </div>
                   ) : (
-                    <div className="rounded-2xl overflow-hidden shadow-card" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 180 }}>
-                        {ZONE_BG.map(z => (
-                          <rect key={z.label} x={PAD_L} y={PAD_T + chartH - (z.y / 100) * chartH - (z.h / 100) * chartH}
-                            width={chartW} height={(z.h / 100) * chartH} fill={z.color} />
+                    <>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="profilePermaGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%"  stopColor={latestColor} stopOpacity={0.15} />
+                              <stop offset="95%" stopColor={latestColor} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.06} />
+                          <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                          <YAxis
+                            domain={[1, 5]} ticks={[1, 2, 3, 4, 5]}
+                            tickFormatter={(v: number) => SCORE_TO_LABEL[v] || ''}
+                            tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false}
+                            width={62}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          <ReferenceLine y={3} stroke="#f59e0b" strokeDasharray="4 4" strokeOpacity={0.4} />
+                          <Area
+                            type="monotone" dataKey="score"
+                            stroke={latestColor} strokeWidth={2.5}
+                            fill="url(#profilePermaGrad)"
+                            dot={{ r: 4, fill: latestColor, strokeWidth: 2, stroke: '#fff' }}
+                            activeDot={{ r: 6, fill: latestColor, stroke: '#fff', strokeWidth: 2 }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+
+                      <div className="pt-3 space-y-1.5" style={{ borderTop: '1px solid var(--color-border)' }}>
+                        {[...(permaData.history || [])].slice(0, 6).map((h: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                              {new Date(h.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            <PermaBadge label={h.perma_label} />
+                          </div>
                         ))}
-                        {[1,2,3,4,5].map(score => (
-                          <text key={score} x={PAD_L - 8} y={yOf(score) + 4}
-                            textAnchor="end" fontSize={8.5}
-                            fill={LABEL_COLOR[['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]] ?? '#9ca3af'}
-                            fontWeight="500">
-                            {['','In Crisis','Struggling','Surviving','Thriving','Excelling'][score]}
-                          </text>
-                        ))}
-                        {[1,2,3,4,5].map(score => (
-                          <line key={score} x1={PAD_L} x2={PAD_L + chartW} y1={yOf(score)} y2={yOf(score)}
-                            stroke="#e5e7eb" strokeWidth={0.75} strokeDasharray="4,3" />
-                        ))}
-                        {pathD && points.length > 1 && (
-                          <>
-                            <defs>
-                              <linearGradient id="permaGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={latestColor} stopOpacity="0.18" />
-                                <stop offset="100%" stopColor={latestColor} stopOpacity="0.01" />
-                              </linearGradient>
-                            </defs>
-                            <path d={`${pathD} L${xOf(points.length - 1)},${PAD_T + chartH} L${xOf(0)},${PAD_T + chartH} Z`}
-                              fill="url(#permaGrad)" />
-                          </>
+                        {(permaData.history?.length ?? 0) > 6 && (
+                          <p className="text-xs text-center pt-1" style={{ color: 'var(--color-text-muted)' }}>
+                            +{permaData.history.length - 6} earlier entries
+                          </p>
                         )}
-                        {pathD && (
-                          <path d={pathD} fill="none" stroke={latestColor} strokeWidth={2.5}
-                            strokeLinecap="round" strokeLinejoin="round" />
-                        )}
-                        {points.map((p: any, i: number) => {
-                          const isLast  = i === points.length - 1;
-                          const showDate = i === 0 || isLast || points.length <= 7;
-                          return (
-                            <g key={i}>
-                              {isLast && <circle cx={xOf(i)} cy={yOf(p.score)} r={9}
-                                fill={LABEL_COLOR[p.label] ?? '#6b7280'} fillOpacity={0.15} />}
-                              <circle cx={xOf(i)} cy={yOf(p.score)} r={isLast ? 5 : 4}
-                                fill={LABEL_COLOR[p.label] ?? '#6b7280'} stroke="white" strokeWidth={2} />
-                              {showDate && (
-                                <text x={xOf(i)} y={H - 6} textAnchor="middle" fontSize={7.5} fill="#9ca3af">
-                                  {new Date(p.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}
-                                </text>
-                              )}
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    </div>
+                      </div>
+                    </>
                   )}
 
                   <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    Connected as <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>{permaData.mhbot_username || '—'}</span>
-                    <span className="mx-1.5">·</span>
-                    {points.length} assessment{points.length !== 1 ? 's' : ''} recorded
+                    {chartData.length} assessment{chartData.length !== 1 ? 's' : ''} recorded
+                    {emaLiveConnected && permaData.mhbot_username && (
+                      <span> · connected as <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>{permaData.mhbot_username}</span></span>
+                    )}
                   </p>
                 </div>
               );
@@ -567,12 +558,17 @@ export default function ProfilePage() {
 
             <div className="rounded-xl p-4 mb-4 text-xs leading-relaxed"
               style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
-              <p className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>What this consent allows:</p>
-              <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--color-primary)' }}>
-                <li>CPS will access your EMA wellbeing labels (e.g. Thriving, Surviving)</li>
-                <li>Your counselor may use this to suggest relevant pre-session assessments</li>
-                <li>Only your assigned counselor or psychologist can view this data</li>
-                <li>You can disconnect EMA at any time from this page</li>
+              <p className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Data Privacy Notice — EMA Wellness Data</p>
+              <p className="mb-2" style={{ color: 'var(--color-primary)' }}>
+                In accordance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, your EMA wellness data will be handled as follows:
+              </p>
+              <ul className="list-disc list-inside space-y-1.5" style={{ color: 'var(--color-primary)' }}>
+                <li>Your EMA wellbeing labels (e.g. Thriving, Surviving) will be accessible to CPS to support your counseling sessions</li>
+                <li>Data is stored securely on university servers with password-protected access</li>
+                <li>Only your assigned counselor or psychologist may view your individual wellness data</li>
+                <li>All CPS staff with data access are bound by confidentiality agreements</li>
+                <li>Any aggregate or summary reports will use anonymized data only</li>
+                <li>You may withdraw this consent and disconnect EMA at any time from this page</li>
               </ul>
             </div>
 
@@ -582,7 +578,7 @@ export default function ProfilePage() {
               <input type="checkbox" checked={emaConsentChecked} onChange={e => setEmaConsentChecked(e.target.checked)}
                 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ accentColor: 'var(--color-primary)' }} />
               <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                I consent to CPS accessing my EMA wellness data to support my counseling sessions, in accordance with the Data Privacy Act of 2012 (RA 10173).
+                I have read and understood the above Data Privacy Notice. I consent to CPS accessing my EMA wellness data to support my counseling sessions, in accordance with the Data Privacy Act of 2012 (RA 10173).
               </span>
             </label>
 

@@ -79,50 +79,50 @@ p_csp   = make_user('csp@university.edu','csp123','Carl','de Guzman','PSYCHOLOGI
 
 # Original 9 students
 s1 = make_user('student1@university.edu','student123','Emma','Johnson','STUDENT',
-               college='Engineering',course='BS Computer Science',year_level='3rd Year',student_id='2021-00001')
+               college='Engineering',course='BS Computer Science',year_level='3rd Year',student_id='12162950')
 s2 = make_user('student2@university.edu','student456','Mark','Smith','STUDENT',
-               college='Business',course='BS Accountancy',year_level='2nd Year',student_id='2022-00002')
+               college='Business',course='BS Accountancy',year_level='2nd Year',student_id='12259906')
 s3 = make_user('student3@university.edu','student789','Jessica','Davis','STUDENT',
-               college='Arts',course='BA Psychology',year_level='4th Year',student_id='2020-00003')
+               college='Arts',course='BA Psychology',year_level='4th Year',student_id='12036224')
 s4 = make_user('student4@university.edu','student101','Alex','Chen','STUDENT',
-               college='Science',course='BS Biology',year_level='1st Year',student_id='2025-00004')
+               college='Science',course='BS Biology',year_level='1st Year',student_id='12588569')
 s5 = make_user('student5@university.edu','student202','Sofia','Martinez','STUDENT',
                college='Nursing',course='BS Nursing',year_level='3rd Year',
-               student_id='2021-00005',mhbot_username='sofia.martinez')
+               student_id='12133435',mhbot_username='sofia.martinez')
 s6 = make_user('student6@university.edu','student303','James','Wilson','STUDENT',
-               college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='2023-00006')
+               college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='12340180')
 s7 = make_user('student7@university.edu','student404','Priya','Desai','STUDENT',
-               college='Education',course='BEEd',year_level='3rd Year',student_id='2021-00007')
+               college='Education',course='BEEd',year_level='3rd Year',student_id='12142562')
 s8 = make_user('student8@university.edu','student505','Sam','Rivera','STUDENT',
-               college='Law',course='JD',year_level='1st Year',student_id='2025-00008')
+               college='Law',course='JD',year_level='1st Year',student_id='12527464')
 s9 = make_user('student9@university.edu','student606','Maria','Santos','STUDENT',
-               college='Business',course='BS Tourism',year_level='4th Year',student_id='2020-00009')
+               college='Business',course='BS Tourism',year_level='4th Year',student_id='12021348')
 
 # New students with full cases (s10–s21)
 s10 = make_user('student10@university.edu','student10','Lena','Park','STUDENT',
-                college='Engineering',course='BS Computer Science',year_level='2nd Year',student_id='2023-00010')
+                college='Engineering',course='BS Computer Science',year_level='2nd Year',student_id='12342918')
 s11 = make_user('student11@university.edu','student11','Carlos','Diaz','STUDENT',
-                college='Business',course='BS Accountancy',year_level='3rd Year',student_id='2022-00011')
+                college='Business',course='BS Accountancy',year_level='3rd Year',student_id='12260209')
 s12 = make_user('student12@university.edu','student12','Amy','Torres','STUDENT',
-                college='Nursing',course='BS Nursing',year_level='4th Year',student_id='2021-00012')
+                college='Nursing',course='BS Nursing',year_level='4th Year',student_id='12179574')
 s13 = make_user('student13@university.edu','student13','Miguel','Santos','STUDENT',
-                college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='2023-00013')
+                college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='12399693')
 s14 = make_user('student14@university.edu','student14','Rachel','Kim','STUDENT',
-                college='Arts',course='BA Psychology',year_level='3rd Year',student_id='2022-00014')
+                college='Arts',course='BA Psychology',year_level='3rd Year',student_id='12280599')
 s15 = make_user('student15@university.edu','student15','David','Tan','STUDENT',
-                college='Law',course='JD',year_level='2nd Year',student_id='2023-00015')
+                college='Law',course='JD',year_level='2nd Year',student_id='12321775')
 s16 = make_user('student16@university.edu','student16','Nina','Cruz','STUDENT',
-                college='Nursing',course='BS Nursing',year_level='1st Year',student_id='2025-00016')
+                college='Nursing',course='BS Nursing',year_level='1st Year',student_id='12591778')
 s17 = make_user('student17@university.edu','student17','Ethan','Lee','STUDENT',
-                college='Engineering',course='BS Computer Science',year_level='4th Year',student_id='2021-00017')
+                college='Engineering',course='BS Computer Science',year_level='4th Year',student_id='12174130')
 s18 = make_user('student18@university.edu','student18','Grace','Aquino','STUDENT',
-                college='Science',course='BS Biology',year_level='3rd Year',student_id='2022-00018')
+                college='Science',course='BS Biology',year_level='3rd Year',student_id='12236144')
 s19 = make_user('student19@university.edu','student19','Leo','Reyes','STUDENT',
-                college='Business',course='BS Marketing',year_level='2nd Year',student_id='2023-00019')
+                college='Business',course='BS Marketing',year_level='2nd Year',student_id='12365265')
 s20 = make_user('student20@university.edu','student20','Kevin','Lim','STUDENT',
-                college='Science',course='BS Chemistry',year_level='3rd Year',student_id='2022-00020')
+                college='Science',course='BS Chemistry',year_level='3rd Year',student_id='12290375')
 s21 = make_user('student21@university.edu','student21','Diana','Santos','STUDENT',
-                college='Education',course='BEEd Elementary',year_level='4th Year',student_id='2021-00021')
+                college='Education',course='BEEd Elementary',year_level='4th Year',student_id='12187123')
 
 # IC queue students (s22–s79): intake appointments only, 7 per IC
 _Q_NAMES = [

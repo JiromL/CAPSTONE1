@@ -838,6 +838,215 @@ def ema_webhook():
     return jsonify({'received': True, 'label': perma_label, 'student_found': student is not None}), 200
 
 
+# ── Analytics endpoints (DB-backed, no live EMA API calls) ──────────────────
+
+@mhbot_bp.route('/analytics/summary', methods=['GET'])
+@jwt_required()
+def get_ema_analytics_summary():
+    """Key EMA metrics from DB — total tracked, active, at-risk, completion rate."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    now = datetime.utcnow()
+    cutoff_30d = now - timedelta(days=30)
+    cutoff_14d = now - timedelta(days=14)
+
+    labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
+    students = list(db.db.users.find(
+        {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
+        {'_id': 1, 'perma_latest_label': 1, 'perma_latest_date': 1}
+    ))
+
+    total = len(students)
+    by_label = {l: 0 for l in labels}
+    by_label['No Data'] = 0
+    active_30d = 0
+    inactive_14d = 0
+
+    for s in students:
+        label = s.get('perma_latest_label')
+        date_str = s.get('perma_latest_date')
+
+        if label in by_label:
+            by_label[label] += 1
+        else:
+            by_label['No Data'] += 1
+
+        if date_str:
+            try:
+                d = datetime.fromisoformat(str(date_str).replace('Z', ''))
+                if d > cutoff_30d:
+                    active_30d += 1
+                if d < cutoff_14d:
+                    inactive_14d += 1
+            except Exception:
+                inactive_14d += 1
+        else:
+            inactive_14d += 1
+
+    at_risk = by_label.get('Struggling', 0) + by_label.get('In Crisis', 0)
+    completion_rate = round(active_30d / total * 100, 1) if total > 0 else 0
+
+    return jsonify({
+        'total_tracked': total,
+        'active_last_30d': active_30d,
+        'inactive_14d': inactive_14d,
+        'at_risk_count': at_risk,
+        'completion_rate': completion_rate,
+        'by_label': by_label,
+    }), 200
+
+
+@mhbot_bp.route('/analytics/trend', methods=['GET'])
+@jwt_required()
+def get_ema_analytics_trend():
+    """Monthly PERMA check-in counts from DB snapshots (last N months)."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    months_back = min(request.args.get('months', 6, type=int), 12)
+    now = datetime.utcnow()
+    labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
+
+    months = []
+    for i in range(months_back - 1, -1, -1):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        months.append(f"{y}-{str(m).zfill(2)}")
+
+    result = {key: {l: 0 for l in labels} for key in months}
+
+    start_dt = datetime(now.year - 1, now.month, 1) if months_back > 1 else datetime(now.year, now.month, 1)
+
+    pipeline = [
+        {'$match': {'entry_date': {'$gte': start_dt}}},
+        {'$group': {
+            '_id': {
+                'year': {'$year': '$entry_date'},
+                'month': {'$month': '$entry_date'},
+                'label': '$perma_label',
+            },
+            'count': {'$sum': 1},
+        }},
+    ]
+
+    for row in db.db.perma_snapshots.aggregate(pipeline):
+        y = row['_id']['year']
+        m = row['_id']['month']
+        label = row['_id'].get('label')
+        key = f"{y}-{str(m).zfill(2)}"
+        if key in result and label in labels:
+            result[key][label] += row['count']
+
+    return jsonify({'months': months, 'data': result}), 200
+
+
+@mhbot_bp.route('/analytics/college', methods=['GET'])
+@jwt_required()
+def get_ema_analytics_college():
+    """EMA label distribution grouped by student college."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
+    students = list(db.db.users.find(
+        {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
+        {'college': 1, 'perma_latest_label': 1}
+    ))
+
+    college_data: dict = {}
+    for s in students:
+        college = (s.get('college') or 'Unknown').strip() or 'Unknown'
+        label = s.get('perma_latest_label') or 'No Data'
+        if college not in college_data:
+            college_data[college] = {l: 0 for l in labels}
+            college_data[college]['No Data'] = 0
+        target = label if label in college_data[college] else 'No Data'
+        college_data[college][target] += 1
+
+    result = []
+    for college, counts in sorted(college_data.items(), key=lambda x: -sum(x[1].values())):
+        total_c = sum(counts.values())
+        at_risk_c = counts.get('Struggling', 0) + counts.get('In Crisis', 0)
+        result.append({'college': college, 'total': total_c, 'at_risk': at_risk_c, **counts})
+
+    return jsonify({'colleges': result}), 200
+
+
+@mhbot_bp.route('/analytics/attention', methods=['GET'])
+@jwt_required()
+def get_ema_analytics_attention():
+    """Students needing EMA attention: at-risk labels + long-inactive check-ins."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    inactive_days = request.args.get('inactive_days', 14, type=int)
+    now = datetime.utcnow()
+    inactive_cutoff = now - timedelta(days=inactive_days)
+
+    students = list(db.db.users.find(
+        {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
+        {'_id': 1, 'name': 1, 'email': 1, 'student_id': 1, 'college': 1,
+         'year_level': 1, 'perma_latest_label': 1, 'perma_latest_date': 1}
+    ))
+
+    attention = []
+    for s in students:
+        label = s.get('perma_latest_label')
+        date_str = s.get('perma_latest_date')
+
+        reason = None
+        if label in ['Struggling', 'In Crisis']:
+            reason = 'at_risk'
+        elif not date_str:
+            reason = 'no_checkin'
+        else:
+            try:
+                d = datetime.fromisoformat(str(date_str).replace('Z', ''))
+                if d < inactive_cutoff:
+                    reason = 'inactive'
+            except Exception:
+                reason = 'inactive'
+
+        if not reason:
+            continue
+
+        case = db.db.cases.find_one(
+            {'student_id': s['_id']},
+            sort=[('created_at', -1)],
+            projection={'status': 1},
+        )
+        attention.append({
+            'student_id': str(s['_id']),
+            'name': s.get('name', ''),
+            'email': s.get('email', ''),
+            'school_id': str(s.get('student_id', '')),
+            'college': s.get('college', ''),
+            'year_level': str(s.get('year_level', '')),
+            'label': label,
+            'last_checkin': date_str,
+            'reason': reason,
+            'case_id': str(case['_id']) if case else None,
+            'case_status': case.get('status') if case else None,
+        })
+
+    priority_map = {'at_risk': 0, 'inactive': 1, 'no_checkin': 2}
+    label_map = {'In Crisis': 0, 'Struggling': 1}
+    attention.sort(key=lambda x: (
+        priority_map.get(x['reason'], 99),
+        label_map.get(x['label'] or '', 99),
+    ))
+
+    return jsonify({'students': attention, 'total': len(attention)}), 200
+
+
 @mhbot_bp.route('/health', methods=['GET'])
 def check_mhbot_health():
     """Ping MHBot server — no auth required."""

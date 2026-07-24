@@ -504,10 +504,10 @@ export default function ConductIntakePage() {
 
   // ── IC Documentation step ─────────────────────────────────────────────────
   if (step === 'ic_doc') {
-    const sessionDate = intake?.scheduled_start || intake?.preferred_date || intake?.created_at;
+    const conductedAt = new Date();
     const sessionInfo = {
-      date: sessionDate ? new Date(sessionDate).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' }) : undefined,
-      time: sessionDate ? new Date(sessionDate).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }) : undefined,
+      date: conductedAt.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' }),
+      time: conductedAt.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }),
       mode: (() => {
         const raw = intake?.method || intake?.preferred_method || intake?.session_type || '';
         const map: Record<string, string> = {

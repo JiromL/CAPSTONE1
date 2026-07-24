@@ -15,8 +15,10 @@ import {
 import { SignaturePad } from '@/components/SignaturePad';
 
 const PURPOSES = [
-  { value: 'intake_interview', label: "First time — I'd like to talk to someone", desc: "We'll walk you through everything, step by step" },
-  { value: 'others',           label: 'Something else',                           desc: "Tell us a bit more and we'll find the right fit" },
+  { value: 'intake_interview', label: "First Time",           desc: "I'd like to talk to someone for the first time" },
+  { value: 'counseling',       label: 'Continuing Sessions',  desc: 'Schedule your next counseling session' },
+  { value: 'follow_up',        label: 'Follow-Up Session',    desc: 'Book a follow-up with your counselor' },
+  { value: 'others',           label: 'Something else',       desc: "Tell us a bit more and we'll find the right fit" },
 ];
 
 const PHQ4Q = [
@@ -214,6 +216,7 @@ export default function BookAppointmentPage() {
           setBookingGate(gate);
           setGateMessage(d.message ?? '');
           if (gate === 'noshow_rebook' && d.rebook_deadline) setRebookDeadline(d.rebook_deadline);
+          if (d.case_id || gate === 'counselor_owns_scheduling' || gate === 'noshow_rebook') setPurpose('counseling');
           if (d.has_active_appointment) setActiveAppt(d);
         }
       } catch {}
@@ -326,7 +329,7 @@ export default function BookAppointmentPage() {
     if (bookStep === 0) {
       if (!purpose) { setError('Please select a session type.'); return; }
       if (purpose !== 'others' && !slotMethod) { setError('Please select a session mode.'); return; }
-      if (purpose === 'counseling' && assignedCounselor === null && !selectedCounselorId) { setError('Please select a counselor.'); return; }
+      if (purpose === 'counseling' || purpose === 'follow_up' && assignedCounselor === null && !selectedCounselorId) { setError('Please select a counselor.'); return; }
       if (purpose === 'others') { setBookStep(2); return; }
       setBookStep(1);
     } else if (bookStep === 1) {
@@ -343,7 +346,7 @@ export default function BookAppointmentPage() {
     if (purpose !== 'others') {
       if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
       if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
-      if (purpose === 'counseling' && !selectedCounselorId && !requestAnyway) { setError('Please select a counselor.'); return; }
+      if (purpose === 'counseling' || purpose === 'follow_up' && !selectedCounselorId && !requestAnyway) { setError('Please select a counselor.'); return; }
     }
     if (referralType === 'referred' && !referredBy.trim()) { setError('Please specify who referred you.'); return; }
     if (prefDate && bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
@@ -428,7 +431,7 @@ export default function BookAppointmentPage() {
     counselor_owns_scheduling: { icon:<CalendarDays size={36} />,  title:'Your counselor will schedule your next session', bg:'var(--color-success-surface)', border:'var(--color-success)', text:'var(--color-success)',         cta:{ label:'View My Appointments', href:'/my-appointments' } },
     no_active_counselor:       { icon:<UserX size={36} />,         title:'No counselor assigned yet',                      bg:'var(--color-warning-surface)', border:'var(--color-warning)', text:'var(--color-warning)' },
   };
-  if (bookingGate && bookingGate !== 'eligible' && bookingGate !== 'noshow_rebook' && !resumeId && !bypassForOthers) {
+  if (bookingGate && bookingGate !== 'eligible' && bookingGate !== 'noshow_rebook' && bookingGate !== 'counselor_owns_scheduling' && !resumeId && !bypassForOthers) {
     const cfg = GATE_CFG[bookingGate] ?? { icon:<Lock size={36} />, title:'Booking unavailable', bg:'var(--color-bg)', border:'var(--color-border)', text:'var(--color-text-secondary)' };
     const canBypass = bookingGate === 'counselor_owns_scheduling';
     return (
@@ -1097,15 +1100,16 @@ export default function BookAppointmentPage() {
                 </div>
                 <div className="p-5 space-y-4">
                   {/* Purpose cards */}
-                  {bookingGate === 'eligible' && (
+                  {rebookDeadline && (
                     <div className="flex items-start gap-2.5 rounded-xl px-4 py-3 mb-1" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
                       <AlertCircle size={14} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />
                       <p className="text-xs" style={{ color: 'var(--color-warning)' }}>
-                        <strong>You have an active case</strong> — your counselor will schedule your ongoing sessions. Use this form only for urgent requests or other matters.
+                        You missed your last session. Please rebook by <strong>{new Date(rebookDeadline + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.
                       </p>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-2">
+                  {(() => { return (
+                  <div className="grid gap-2 grid-cols-2">
                     {PURPOSES.map(p => {
                       const sel = purpose === p.value;
                       return (
@@ -1124,7 +1128,7 @@ export default function BookAppointmentPage() {
                         </label>
                       );
                     })}
-                  </div>
+                  </div>); })()}
 
                   {purpose === 'others' && (
                     <div className="space-y-3">
@@ -1151,7 +1155,7 @@ export default function BookAppointmentPage() {
                   )}
 
                   {/* Counselor */}
-                  {purpose === 'counseling' && (
+                  {purpose === 'counseling' || purpose === 'follow_up' && (
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Counselor <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                       {assignedCounselor === undefined && (

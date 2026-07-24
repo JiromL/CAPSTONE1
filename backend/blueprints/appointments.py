@@ -575,6 +575,8 @@ def check_active_appointment():
                     'has_active_appointment': False,
                     'can_self_book': True,
                     'booking_gate': 'eligible',
+                    'case_id': str(student_case['_id']),
+                    'case_status': case_status,
                     'message': 'Please book a new intake appointment to continue.',
                 }), 200
             return jsonify({
@@ -2485,6 +2487,7 @@ def submit_evaluation(appointment_id):
         }}
     )
     return jsonify({'message': 'Evaluation submitted. Thank you!', 'status': AppointmentStatus.COMPLETED.value}), 200
+
 
 
 @appointments_bp.route('/<appointment_id>/evaluation', methods=['GET'])

@@ -36,8 +36,8 @@ interface Appointment {
 
 const TABS = [
   { key: 'upcoming',   label: 'Upcoming',    icon: CalendarDays },
-  { key: 'evaluation', label: 'Rate Session', icon: Star },
   { key: 'past',       label: 'Attended',    icon: History },
+  { key: 'evaluation', label: 'Rate Session', icon: Star },
   { key: 'cancelled',  label: 'Cancelled',   icon: X },
 ] as const;
 
@@ -127,6 +127,7 @@ function fmtTime(t: string) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
+
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div className="flex gap-1">
@@ -186,6 +187,7 @@ export default function MyAppointmentsPage() {
   const [submittingEval, setSubmittingEval] = useState(false);
   const [evalError, setEvalError]         = useState('');
   const [evalSuccess, setEvalSuccess]     = useState(false);
+
 
   const load = async () => {
     setLoading(true);
@@ -433,7 +435,7 @@ export default function MyAppointmentsPage() {
 
         {/* Tabs */}
         <div className="flex items-end overflow-x-auto px-2 pt-2 gap-0.5 scrollbar-hide" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          {TABS.filter(tab => tab.key !== 'evaluation' || counts.evaluation > 0).map(tab => {
+          {TABS.map(tab => {
             const isActive = activeTab === tab.key;
             const cnt = counts[tab.key];
             const Icon = tab.icon;
@@ -479,27 +481,36 @@ export default function MyAppointmentsPage() {
         ) : error ? (
           <div className="flex items-center justify-center h-44 text-sm" style={{ color: 'var(--color-danger)' }}>{error}</div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-52 text-center px-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
-              <Clock size={22} style={{ color: 'var(--color-text-muted)' }} />
+          activeTab === 'evaluation' ? (
+            <div className="flex flex-col items-center justify-center h-52 text-center px-4">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
+                <Star size={22} style={{ color: 'var(--color-text-muted)' }} />
+              </div>
+              <p className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>No sessions to rate yet.</p>
+              <p className="text-sm mt-1 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>After each completed session, you'll be able to rate your experience here.</p>
             </div>
-            <p className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>
-              {activeTab === 'upcoming' ? 'No sessions yet.' : 'Nothing here.'}
-            </p>
-            <p className="text-sm mt-1 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>
-              {activeTab === 'upcoming'
-                ? 'When you book a session, it will appear here. Everything you share stays private.'
-                : activeTab === 'evaluation' ? 'No sessions waiting for your feedback right now.'
-                : `You have no ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
-            </p>
-            {activeTab === 'upcoming' && (
-              <Link href="/book-appointment"
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition hover:opacity-90"
-                style={{ background: 'var(--color-primary)' }}>
-                <Plus size={14} /> Talk to Someone
-              </Link>
-            )}
-          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-52 text-center px-4">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
+                <Clock size={22} style={{ color: 'var(--color-text-muted)' }} />
+              </div>
+              <p className="text-base font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                {activeTab === 'upcoming' ? 'No sessions yet.' : 'Nothing here.'}
+              </p>
+              <p className="text-sm mt-1 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>
+                {activeTab === 'upcoming'
+                  ? 'When you book a session, it will appear here. Everything you share stays private.'
+                  : `You have no ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`}
+              </p>
+              {activeTab === 'upcoming' && (
+                <Link href="/book-appointment"
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition hover:opacity-90"
+                  style={{ background: 'var(--color-primary)' }}>
+                  <Plus size={14} /> Talk to Someone
+                </Link>
+              )}
+            </div>
+          )
         ) : (
           <>
             <div className="p-4 space-y-3">
@@ -745,7 +756,7 @@ export default function MyAppointmentsPage() {
                 );
               })}
             </div>
-            <div className="px-5 py-3" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
+            <div className="px-5 py-3 flex items-center justify-between" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}>
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 Showing {filtered.length} {filtered.length === 1 ? 'record' : 'records'}
               </p>
@@ -1175,6 +1186,7 @@ export default function MyAppointmentsPage() {
           </div>
         </div>
       )}
+
 
     </DashboardPageWrapper>
   );

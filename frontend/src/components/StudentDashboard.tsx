@@ -476,12 +476,6 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                         <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Not yet assigned</p>
                       </div>
                     )}
-                    {activeCase.concern && (
-                      <div>
-                        <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Concern</p>
-                        <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{activeCase.concern}</p>
-                      </div>
-                    )}
                     {activeCase.case_number && (
                       <p className="text-xs font-mono pt-1" style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)' }}>
                         Case #{activeCase.case_number}

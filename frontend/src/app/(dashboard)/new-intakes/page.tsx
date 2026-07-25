@@ -64,6 +64,7 @@ export default function NewIntakesPage() {
   const [month, setMonth]         = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage]           = useState(1);
+  const [pageInput, setPageInput] = useState('1');
   const [total, setTotal]         = useState(0);
   const [totals, setTotals]       = useState({ total: 0, new: 0, inProgress: 0, completed: 0 });
   const [exporting, setExporting] = useState(false);
@@ -78,6 +79,7 @@ export default function NewIntakesPage() {
   const [mineOnly, setMineOnly] = useState(true);
 
   useEffect(() => { fetchIntakes(); }, [search, month, statusFilter, page, mineOnly]);
+  useEffect(() => { setPageInput(String(page)); }, [page]);
   useEffect(() => { fetchTotals(); }, [search, month, mineOnly]);
 
   async function fetchPermaLabels(items: NewClientIntake[]) {
@@ -156,6 +158,12 @@ export default function NewIntakesPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const start = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end   = Math.min(page * PAGE_SIZE, total);
+
+  const goToPage = (val: string) => {
+    const n = parseInt(val, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) setPage(n);
+    else setPageInput(String(page));
+  };
 
   const STAT_CARDS = [
     { label: 'Total',       value: totals.total,      icon: ClipboardList, filter: '' },
@@ -380,7 +388,20 @@ export default function NewIntakesPage() {
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <ChevronLeft size={14} />
                 </button>
-                <span className="text-xs px-2" style={{ color: 'var(--color-text-muted)' }}>Page {page} of {totalPages}</span>
+                <div className="flex items-center gap-1 text-xs tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                  <input
+                    type="number" min={1} max={totalPages}
+                    value={pageInput}
+                    onChange={e => setPageInput(e.target.value)}
+                    onBlur={() => goToPage(pageInput)}
+                    onKeyDown={e => { if (e.key === 'Enter') goToPage(pageInput); }}
+                    className="text-center rounded-lg outline-none tabular-nums"
+                    style={{ width: '2.5rem', padding: '2px 4px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', fontSize: '0.75rem' }}
+                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                    onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                  />
+                  <span style={{ color: 'var(--color-text-muted)' }}>/ {totalPages}</span>
+                </div>
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
                   className="p-1.5 rounded-lg border transition disabled:opacity-40"
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}

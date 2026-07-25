@@ -329,7 +329,7 @@ export default function BookAppointmentPage() {
     if (bookStep === 0) {
       if (!purpose) { setError('Please select a session type.'); return; }
       if (purpose !== 'others' && !slotMethod) { setError('Please select a session mode.'); return; }
-      if (purpose === 'counseling' || purpose === 'follow_up' && assignedCounselor === null && !selectedCounselorId) { setError('Please select a counselor.'); return; }
+      if ((purpose === 'counseling' || purpose === 'follow_up') && assignedCounselor === null && !selectedCounselorId) { setError('Please select a counselor.'); return; }
       if (purpose === 'others') { setBookStep(2); return; }
       setBookStep(1);
     } else if (bookStep === 1) {
@@ -346,7 +346,7 @@ export default function BookAppointmentPage() {
     if (purpose !== 'others') {
       if (!prefDate && !requestAnyway) { setError('Please select a date.'); return; }
       if (!requestAnyway && !prefTime) { setError('Please select an available time slot.'); return; }
-      if (purpose === 'counseling' || purpose === 'follow_up' && !selectedCounselorId && !requestAnyway) { setError('Please select a counselor.'); return; }
+      if ((purpose === 'counseling' || purpose === 'follow_up') && !selectedCounselorId && !requestAnyway) { setError('Please select a counselor.'); return; }
     }
     if (referralType === 'referred' && !referredBy.trim()) { setError('Please specify who referred you.'); return; }
     if (prefDate && bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
@@ -1155,7 +1155,7 @@ export default function BookAppointmentPage() {
                   )}
 
                   {/* Counselor */}
-                  {purpose === 'counseling' || purpose === 'follow_up' && (
+                  {(purpose === 'counseling' || purpose === 'follow_up') && (
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Counselor <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                       {assignedCounselor === undefined && (

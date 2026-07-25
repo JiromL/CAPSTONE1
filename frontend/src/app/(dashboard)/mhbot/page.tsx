@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   Activity, Wifi, WifiOff, RefreshCw, Loader2, Users,
-  LogIn, LogOut, Eye, EyeOff, TrendingUp, AlertTriangle,
+  LogIn, LogOut, TrendingUp, AlertTriangle,
   ExternalLink, MessageSquare, Download, ChevronRight,
   CheckCircle2, Clock, XCircle, Building2, Brain,
 } from 'lucide-react';
@@ -568,16 +568,14 @@ const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', bac
 const onFIn  = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
 const onFOut = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; };
 
-function ConnectCard({ expired, onLogin }: { expired?: boolean; onLogin: (u: string, p: string) => Promise<string | null> }) {
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
-  const [show, setShow] = useState(false);
+function ConnectCard({ onLink }: { onLink: (username: string) => Promise<string | null> }) {
+  const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setErr('');
-    const error = await onLogin(user, pass);
+    const error = await onLink(username.trim());
     if (error) setErr(error);
     setBusy(false);
   };
@@ -589,38 +587,25 @@ function ConnectCard({ expired, onLogin }: { expired?: boolean; onLogin: (u: str
           <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-success-surface)' }}>
             <Activity size={22} style={{ color: 'var(--color-success)' }} />
           </div>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Connect to EMA</h2>
-          <p className="text-xs text-center mt-1" style={{ color: 'var(--color-text-muted)' }}>Sign in with your EMA account to continue</p>
-          {expired && <p className="text-xs mt-2 text-center" style={{ color: 'var(--color-warning)' }}>Your previous session expired. Please log in again.</p>}
+          <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Link EMA Account</h2>
+          <p className="text-xs text-center mt-1" style={{ color: 'var(--color-text-muted)' }}>Enter your EMA username to link your wellbeing data</p>
         </div>
         <form onSubmit={submit} className="space-y-3">
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-secondary)' }}>EMA Username</label>
-            <input type="text" value={user} onChange={e => setUser(e.target.value)}
-              placeholder="e.g. ema_lVk" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
-          </div>
-          <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-secondary)' }}>Password</label>
-            <div className="relative">
-              <input type={show ? 'text' : 'password'} value={pass} onChange={e => setPass(e.target.value)}
-                placeholder="••••••••" required className={`${IC} pr-9`} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
-              <button type="button" onClick={() => setShow(s => !s)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 transition"
-                style={{ color: 'var(--color-text-muted)' }}>
-                {show ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
+            <input type="text" value={username} onChange={e => setUsername(e.target.value)}
+              placeholder="e.g. JeromeJLS" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
           </div>
           {err && <p className="text-xs rounded-lg px-3 py-2 border" style={{ color: 'var(--color-danger)', background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)' }}>{err}</p>}
-          <button type="submit" disabled={busy}
+          <button type="submit" disabled={busy || !username.trim()}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 hover:opacity-90"
             style={{ background: 'var(--color-primary)' }}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
-            {busy ? 'Connecting…' : 'Connect'}
+            {busy ? 'Linking…' : 'Link Account'}
           </button>
         </form>
         <p className="text-xs text-center mt-4" style={{ color: 'var(--color-text-muted)' }}>
-          Your credentials are only used to obtain a session token and are not stored.
+          Your EMA username is your display name on the EMA app (not your email address).
         </p>
       </div>
     </div>
@@ -918,16 +903,16 @@ export default function EMAPage() {
     checkAuth();
   }, []);
 
-  const handleLogin = async (username: string, password: string): Promise<string | null> => {
+  const handleLink = async (username: string): Promise<string | null> => {
     try {
-      const r = await fetch(api('/api/mhbot/auth/login'), {
+      const r = await fetch(api('/api/mhbot/link-username'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username }),
       });
       const d = await r.json();
       if (r.ok) { setAuthStatus({ connected: true, mhbot_username: d.mhbot_username }); return null; }
-      return d.error || 'Login failed';
+      return d.error || 'Failed to link account';
     } catch { return 'Network error'; }
   };
 
@@ -952,9 +937,9 @@ export default function EMAPage() {
     return (
       <DashboardPageWrapper
         title="EMA"
-        subtitle={isStudent ? 'Connect your EMA account to track your well-being' : 'Connect to EMA to access analytics and student PERMA data'}
+        subtitle={isStudent ? 'Link your EMA username to track your well-being' : 'Connect to EMA to access analytics and student PERMA data'}
       >
-        <ConnectCard expired={authStatus?.expired} onLogin={handleLogin} />
+        <ConnectCard onLink={handleLink} />
       </DashboardPageWrapper>
     );
   }

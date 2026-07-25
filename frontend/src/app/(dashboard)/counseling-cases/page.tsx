@@ -44,8 +44,10 @@ export default function CounselingCasesPage() {
   const [page, setPage]     = useState(1);
   const [total, setTotal]   = useState(0);
   const [fSearch, setFSearch] = useState(false);
+  const [pageInput, setPageInput] = useState('1');
 
   useEffect(() => { fetchCounselingCases(); }, [search, month, status, page]);
+  useEffect(() => { setPageInput(String(page)); }, [page]);
 
   const fetchCounselingCases = async () => {
     setLoading(true);
@@ -85,6 +87,12 @@ export default function CounselingCasesPage() {
   const totalPages = Math.max(1, Math.ceil(total / 10));
   const start = total === 0 ? 0 : (page - 1) * 10 + 1;
   const end   = Math.min(page * 10, total);
+
+  const goToPage = (val: string) => {
+    const n = parseInt(val, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) setPage(n);
+    else setPageInput(String(page));
+  };
 
   return (
     <DashboardPageWrapper title="Counseling Cases" subtitle="Track existing clients for ongoing counseling with session metrics">
@@ -192,20 +200,34 @@ export default function CounselingCasesPage() {
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 {total === 0 ? 'No records' : `Showing ${start}–${end} of ${total}`}
               </p>
-              <div className="flex gap-2">
-                <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition disabled:opacity-50"
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+                  className="p-1.5 rounded-lg border transition disabled:opacity-50"
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
                   onMouseEnter={e => { if (page > 1) e.currentTarget.style.background = 'var(--color-bg)'; }}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <ChevronLeft size={14} /> Previous
+                  <ChevronLeft size={14} />
                 </button>
-                <button onClick={() => setPage(page + 1)} disabled={page * 10 >= total}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition disabled:opacity-50"
+                <div className="flex items-center gap-1 text-xs tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                  <input
+                    type="number" min={1} max={totalPages}
+                    value={pageInput}
+                    onChange={e => setPageInput(e.target.value)}
+                    onBlur={() => goToPage(pageInput)}
+                    onKeyDown={e => { if (e.key === 'Enter') goToPage(pageInput); }}
+                    className="text-center rounded-lg outline-none tabular-nums"
+                    style={{ width: '2.5rem', padding: '2px 4px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', fontSize: '0.75rem' }}
+                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                    onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                  />
+                  <span style={{ color: 'var(--color-text-muted)' }}>/ {totalPages}</span>
+                </div>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                  className="p-1.5 rounded-lg border transition disabled:opacity-50"
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-                  onMouseEnter={e => { if (page * 10 < total) e.currentTarget.style.background = 'var(--color-bg)'; }}
+                  onMouseEnter={e => { if (page < totalPages) e.currentTarget.style.background = 'var(--color-bg)'; }}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  Next <ChevronRight size={14} />
+                  <ChevronRight size={14} />
                 </button>
               </div>
             </div>

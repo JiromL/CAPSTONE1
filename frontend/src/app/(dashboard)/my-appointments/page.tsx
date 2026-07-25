@@ -6,7 +6,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Loader2, Plus, Video, X, RotateCcw, Clock, Eye,
-  CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin, QrCode,
+  CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -81,10 +81,15 @@ const INACTIVE = new Set(['CANCELLED', 'DENIED', 'COMPLETED', 'NO_SHOW']);
 
 const PURPOSE_LABEL: Record<string, string> = {
   intake_interview:       'Initial Consultation',
+  INTAKE_INTERVIEW:       'Initial Consultation',
   follow_up:              'Counseling Session',
+  FOLLOW_UP:              'Counseling Session',
   follow_up_counselling:  'Counseling Session',
+  FOLLOW_UP_COUNSELLING:  'Counseling Session',
   counseling:             'Counseling Session',
+  COUNSELING:             'Counseling Session',
   others:                 'General Session',
+  OTHERS:                 'General Session',
 };
 
 const EVAL_QUESTIONS = [
@@ -562,7 +567,9 @@ export default function MyAppointmentsPage() {
                               <CalendarDays size={11} />{fmtDateTime(dt)}
                             </span>
                           )}
-                          <span>{fmtPlatform(appt.preferred_method, appt.preferred_platform)}</span>
+                          {fmtPlatform(appt.preferred_method, appt.preferred_platform) !== '—' && (
+                            <span>{fmtPlatform(appt.preferred_method, appt.preferred_platform)}</span>
+                          )}
                         </div>
                         {appt.counselor_name ? (
                           <p className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -614,14 +621,6 @@ export default function MyAppointmentsPage() {
                         )}
 
                         {/* QR check-in hint for confirmed in-person sessions */}
-                        {['CONFIRMED', 'APPROVED'].includes(appt.status) && upcoming &&
-                         (appt.preferred_method === 'in-person' || appt.preferred_method === 'in_person') && (
-                          <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg px-2.5 py-2"
-                            style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
-                            <QrCode size={12} className="mt-px flex-shrink-0" />
-                            <span>When you arrive, scan the <strong>QR code</strong> at the CPS reception desk to check in.</span>
-                          </div>
-                        )}
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                         {canJoin && (
@@ -653,14 +652,6 @@ export default function MyAppointmentsPage() {
                             style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>
                             <Eye size={11} /> View Forms
                           </button>
-                        )}
-                        {['CONFIRMED', 'APPROVED', 'MATCHED'].includes(appt.status) && (
-                          <Link href={`/appointment-slip/${appt.appointment_id || appt._id}`}>
-                            <button className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl transition border hover:opacity-90"
-                              style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)' }}>
-                              <FileText size={11} /> View Slip
-                            </button>
-                          </Link>
                         )}
                         {awaitingConfirmation && (
                           <div className="flex flex-col gap-1.5 mt-1">
@@ -715,7 +706,7 @@ export default function MyAppointmentsPage() {
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                             <Eye size={14} />
                           </button>
-                          {active && !needsEval && !awaitingConfirmation && appt.status !== 'RESCHEDULE_REQUESTED' && (
+                          {active && !needsEval && !awaitingConfirmation && !['RESCHEDULE_REQUESTED', 'REQUESTED', 'PENDING_APPROVAL', 'MATCHED'].includes(appt.status) && (
                             <button
                               onClick={() => { setReschedTarget(appt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); }}
                               title="Request reschedule"

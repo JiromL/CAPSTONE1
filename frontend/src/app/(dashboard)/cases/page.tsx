@@ -8,7 +8,7 @@ import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import { Search, Loader2, AlertCircle, ChevronRight, ChevronLeft, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
 
-const PER_PAGE = 20;
+const PER_PAGE = 10;
 
 const TAB_STATUS: Record<string, string | null> = {
   all:        null,
@@ -114,13 +114,14 @@ export default function CasesPage() {
     if (Object.prototype.hasOwnProperty.call(saved, 'myCasesOnly')) return saved.myCasesOnly;
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
-      return ['COUNSELOR', 'PSYCHOLOGIST'].includes((u.role || '').toUpperCase());
+      return ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes((u.role || '').toUpperCase());
     } catch { return false; }
   });
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
   const [page, setPage]         = useState<number>(() => readSS().page ?? 1);
   const [total, setTotal]       = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageInput, setPageInput] = useState<string>(() => String(readSS().page ?? 1));
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRestored = useRef(false);
 
@@ -155,6 +156,18 @@ export default function CasesPage() {
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, [searchInput]);
 
+  // Keep page input in sync when page changes via prev/next buttons or tab resets
+  useEffect(() => { setPageInput(String(page)); }, [page]);
+
+  const goToPage = (val: string) => {
+    const n = parseInt(val, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) {
+      setPage(n);
+    } else {
+      setPageInput(String(page));
+    }
+  };
+
   async function fetchPermaLabels(items: any[]) {
     const usernames = items.map((c: any) => c.mhbot_username).filter(Boolean) as string[];
     if (!usernames.length) return;
@@ -180,12 +193,8 @@ export default function CasesPage() {
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
-  const isIC = user?.role?.toUpperCase() === 'IC';
-
   const fetchCases = useCallback(async () => {
     if (!user) return;
-    // IC uses search-only mode — don't fetch until they've typed something
-    if (isIC && !debouncedSearch) { setCases([]); setLoading(false); return; }
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -262,9 +271,9 @@ export default function CasesPage() {
       {/* Table card */}
       <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
 
-        {/* Tab bar — hidden for IC (search-only mode) */}
+        {/* Tab bar */}
         <div style={{ borderBottom: '1px solid var(--color-border)' }}>
-          {!isIC && <div className="flex items-center gap-0.5 px-4 pt-3 overflow-x-auto">
+          <div className="flex items-center gap-0.5 px-4 pt-3 overflow-x-auto">
             {TABS.map(tab => (
               <button
                 key={tab.id}
@@ -293,7 +302,7 @@ export default function CasesPage() {
                 )}
               </button>
             ))}
-          </div>}
+          </div>
 
           {/* Search + My Cases toggle */}
           <div className="px-4 pb-3 pt-2 flex items-center gap-2">
@@ -319,7 +328,7 @@ export default function CasesPage() {
                 }}
               />
             </div>
-            {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
+            {['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(user?.role?.toUpperCase()) && (
               <button
                 onClick={() => { setMyCasesOnly(v => !v); setPage(1); }}
                 className="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-all duration-150"
@@ -344,18 +353,6 @@ export default function CasesPage() {
           <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             <Loader2 size={15} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
             Loading cases…
-          </div>
-        ) : isIC && !debouncedSearch ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center gap-3 px-6">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--color-primary-surface)' }}>
-              <Search size={18} style={{ color: 'var(--color-primary)' }} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Search for a case</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                Type a student name, email, or case number above to look up any case.
-              </p>
-            </div>
           </div>
         ) : cases.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
@@ -535,9 +532,29 @@ export default function CasesPage() {
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     <ChevronLeft size={15} />
                   </button>
-                  <span className="text-xs px-2 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
-                    {page} / {totalPages}
-                  </span>
+                  <div className="flex items-center gap-1 text-xs tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalPages}
+                      value={pageInput}
+                      onChange={e => setPageInput(e.target.value)}
+                      onBlur={() => goToPage(pageInput)}
+                      onKeyDown={e => { if (e.key === 'Enter') goToPage(pageInput); }}
+                      className="text-center rounded-lg outline-none tabular-nums"
+                      style={{
+                        width: '2.5rem',
+                        padding: '2px 4px',
+                        background: 'var(--color-bg)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text-primary)',
+                        fontSize: '0.75rem',
+                      }}
+                      onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                      onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                    />
+                    <span style={{ color: 'var(--color-text-muted)' }}>/ {totalPages}</span>
+                  </div>
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading}
                     className="p-1.5 rounded-lg transition disabled:opacity-40"
                     style={{ color: 'var(--color-text-secondary)' }}

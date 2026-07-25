@@ -49,9 +49,6 @@ export default function ProfilePage() {
   const [permaData, setPermaData]         = useState<any>(null);
   const [loadingPerma, setLoadingPerma]   = useState(false);
   const [emaLiveConnected, setEmaLiveConnected] = useState(false);
-  const [mhbotLogging, setMhbotLogging]   = useState(false);
-  const [mhbotError, setMhbotError]       = useState('');
-  const [emaConsentGiven, setEmaConsentGiven] = useState(false);
   const [showEmaConsent, setShowEmaConsent]   = useState(false);
   const [emaConsentChecked, setEmaConsentChecked] = useState(false);
   const [emaConsentSaving, setEmaConsentSaving]   = useState(false);
@@ -89,7 +86,7 @@ export default function ProfilePage() {
         headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ consent_types: ['ema_data_linking'] }),
       });
-      if (r.ok) { setEmaConsentGiven(true); setShowEmaConsent(false); }
+      if (r.ok) { setShowEmaConsent(false); window.location.href = '/mhbot'; }
       else setEmaConsentError('Failed to record consent. Please try again.');
     } catch { setEmaConsentError('Network error.'); }
     finally { setEmaConsentSaving(false); }
@@ -179,7 +176,6 @@ export default function ProfilePage() {
           emergencyPhone: user.emergency_phone || '',
         };
         setProfile(fresh); setFormData(fresh); setUserRole(user.role || null);
-        setEmaConsentGiven(user.ema_consent_given || false);
         localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...user }));
         if (user.role === 'STUDENT') fetchMyPerma();
       })
@@ -382,11 +378,28 @@ export default function ProfilePage() {
                 <Loader2 size={14} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
               </div>
             ) : !permaData?.connected ? (
-              <div className="flex flex-col items-start gap-1.5 py-2">
-                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No wellbeing data yet.</p>
-                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  Open the <span className="font-medium" style={{ color: 'var(--color-primary)' }}>EMA chatbot</span> using the button at the bottom-right of the screen and sign in — your wellbeing history will appear here automatically.
-                </p>
+              <div className="flex flex-col items-start gap-2 py-2">
+                {!emaLiveConnected ? (
+                  <>
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No wellbeing data yet.</p>
+                    <p className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                      Link your EMA username to display your wellbeing history here.
+                    </p>
+                    <button
+                      onClick={() => setShowEmaConsent(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg transition hover:opacity-90"
+                      style={{ background: 'var(--color-primary)' }}>
+                      <Activity size={12} /> Link EMA Account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No check-ins yet.</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      Complete an assessment on the EMA app — your wellbeing labels will appear here automatically.
+                    </p>
+                  </>
+                )}
               </div>
             ) : (() => {
               const chartData = [...(permaData.history || [])]

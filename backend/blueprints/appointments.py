@@ -595,12 +595,14 @@ def check_active_appointment():
             }), 200
 
         if case_status == 'CLOSED':
-            # Returning client whose case was closed — they can open a new one via walk-in
+            # Returning client — allow them to book a new intake or follow-up session
             return jsonify({
                 'has_active_appointment': False,
-                'can_self_book': False,
-                'booking_gate': 'case_closed',
-                'message': 'Your case is currently closed. If you need continued support, please visit or contact the CPS office and they will reactivate your record.',
+                'can_self_book': True,
+                'booking_gate': 'eligible',
+                'case_id': str(student_case['_id']),
+                'case_status': case_status,
+                'message': 'Welcome back. You can book a new appointment and our team will assist you.',
             }), 200
 
         # ACTIVE case with assigned counselor — counselor owns the schedule
@@ -642,15 +644,14 @@ def check_active_appointment():
             }), 200
 
         if case_status == 'ACTIVE' and not assigned_counselor:
-            # Active case but no counselor assigned yet — send to office, not self-booking
+            # Active case but no counselor assigned yet — still allow booking so staff can assign
             return jsonify({
                 'has_active_appointment': False,
-                'can_self_book': False,
-                'booking_gate': 'no_active_counselor',
+                'can_self_book': True,
+                'booking_gate': 'eligible',
                 'case_id': str(student_case['_id']),
                 'case_status': case_status,
-                'message': 'Your case is active but a counselor has not been assigned yet. '
-                           'Please contact the CPS office for assistance.',
+                'message': 'Please request a session and our team will assign a counselor.',
             }), 200
 
         return jsonify({
@@ -1141,6 +1142,7 @@ def match_counselor(appointment_id):
         # Build update fields
         update_fields = {
             "counselor_id": counselor['_id'],
+            "counselor_name": f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}".strip(),
             "status": AppointmentStatus.CONFIRMED.value,
             "confirmation_sent": True,
             "updated_at": datetime.utcnow()
@@ -1539,14 +1541,22 @@ def confirm_appointment(appointment_id):
     
     if not appointment.get('counselor_id'):
         return jsonify({'error': 'Counselor must be assigned before confirmation'}), 400
-    
+
+    update_fields = {
+        "status": AppointmentStatus.CONFIRMED.value,
+        "confirmation_sent": True,
+        "updated_at": datetime.utcnow()
+    }
+
+    # If the student already picked a time slot, lock it in as the confirmed schedule
+    if not appointment.get('scheduled_start') and appointment.get('requested_start'):
+        update_fields['scheduled_start'] = appointment['requested_start']
+        if appointment.get('requested_end'):
+            update_fields['scheduled_end'] = appointment['requested_end']
+
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
-        {"$set": {
-            "status": AppointmentStatus.CONFIRMED.value,
-            "confirmation_sent": True,
-            "updated_at": datetime.utcnow()
-        }}
+        {"$set": update_fields}
     )
 
     # Auto-create 24h and 1h reminder records on confirmation
@@ -2291,14 +2301,14 @@ def set_evaluation(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
 
     allowed = {AppointmentStatus.CONFIRMED.value, AppointmentStatus.APPROVED.value,
-               AppointmentStatus.MATCHED.value}
+               AppointmentStatus.MATCHED.value, AppointmentStatus.CHECKED_IN.value}
     if apt.get('status') not in allowed:
         return jsonify({'error': f"Cannot move to evaluation from status {apt.get('status')}"}), 400
 
     now = datetime.utcnow()
     db.db.appointments.update_one(
         {'_id': apt['_id']},
-        {'$set': {'status': AppointmentStatus.COMPLETED.value, 'updated_at': now, 'completed_at': now}}
+        {'$set': {'status': AppointmentStatus.EVALUATION.value, 'updated_at': now, 'session_done_at': now}}
     )
 
     # Reset consecutive no-show counter — student attended
@@ -2310,7 +2320,7 @@ def set_evaluation(appointment_id):
             upsert=False
         )
 
-    return jsonify({'message': 'Session marked complete', 'status': AppointmentStatus.COMPLETED.value}), 200
+    return jsonify({'message': 'Session marked for evaluation', 'status': AppointmentStatus.EVALUATION.value}), 200
 
 
 @appointments_bp.route('/<appointment_id>/set-follow-up', methods=['POST'])

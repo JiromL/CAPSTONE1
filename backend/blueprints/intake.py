@@ -553,27 +553,38 @@ def submit_triage(intake_id):
         try: student_id = ObjectId(student_id)
         except Exception: pass
 
+    student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
+
     if not case_id:
-        student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
-        student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
-        student_email = student_doc.get('email', '') if student_doc else ''
-        new_case = {
+        # Reuse any existing open case for this student to prevent duplicates
+        existing_student_case = db.db.cases.find_one({
             'student_id': student_id,
-            'student_name': student_name,
-            'student_email': student_email,
-            'intake_counselor_id': ObjectId(user_id),
-            'assigned_counselor_id': None,
-            'status': CaseStatus.NEW.value,
-            'risk_level': risk_level,
-            'concern': intake.get('concern', ''),
-            'intake_id': intake['_id'],
-            'is_minor': intake.get('is_minor', False),
-            'created_at': now,
-            'updated_at': now,
-        }
-        case_result = db.db.cases.insert_one(new_case)
-        case_id = case_result.inserted_id
-        db.db.intakes.update_one({'_id': intake['_id']}, {'$set': {'case_id': case_id}})
+            'status': {'$nin': ['CLOSED', 'CANCELLED']},
+        }) if student_id else None
+
+        if existing_student_case:
+            case_id = existing_student_case['_id']
+            db.db.intakes.update_one({'_id': intake['_id']}, {'$set': {'case_id': case_id}})
+        else:
+            student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
+            student_email = student_doc.get('email', '') if student_doc else ''
+            new_case = {
+                'student_id': student_id,
+                'student_name': student_name,
+                'student_email': student_email,
+                'intake_counselor_id': ObjectId(user_id),
+                'assigned_counselor_id': None,
+                'status': CaseStatus.NEW.value,
+                'risk_level': risk_level,
+                'concern': intake.get('concern', ''),
+                'intake_id': intake['_id'],
+                'is_minor': intake.get('is_minor', False),
+                'created_at': now,
+                'updated_at': now,
+            }
+            case_result = db.db.cases.insert_one(new_case)
+            case_id = case_result.inserted_id
+            db.db.intakes.update_one({'_id': intake['_id']}, {'$set': {'case_id': case_id}})
 
     if decision == 'CLOSE_AT_INTAKE':
         db.db.cases.update_one(
@@ -634,7 +645,6 @@ def submit_triage(intake_id):
             'status': {'$ne': AppointmentStatus.CANCELLED.value},
         })
         if not existing_followup:
-            student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
             student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
 
             follow_up_appt = {

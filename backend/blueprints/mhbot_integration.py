@@ -1,7 +1,7 @@
 """
 MHBot Integration Blueprint
-Per-user authentication — each counselor logs in with their own MHBot account.
-Token is stored in the user's MongoDB record and used for all MHBot API calls.
+Shared admin account — one EMA staff account authenticates on behalf of all users.
+Token is cached in memory and auto-refreshed. Students only need to supply their EMA username once.
 """
 
 from flask import Blueprint, request, jsonify, current_app
@@ -9,6 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import requests
 import hmac
 import hashlib
+import threading
 from datetime import datetime, timedelta
 from bson import ObjectId
 from models import db, PermissionType
@@ -23,7 +24,41 @@ mhbot_bp = Blueprint('mhbot', __name__, url_prefix='/api/mhbot')
 MHBOT_BASE_URL = os.getenv('MHBOT_BASE_URL', 'https://pchrd-ema.dlsu.edu.ph/backend')
 
 
-# ── Per-user token helpers ────────────────────────────────────────────────────
+# ── Shared admin token (cached in memory) ─────────────────────────────────────
+
+_token_cache = {'token': '', 'expires_at': None}
+_token_lock  = threading.Lock()
+
+def _get_shared_ema_token() -> str:
+    """Return a valid shared EMA admin token, logging in / refreshing as needed."""
+    with _token_lock:
+        cache = _token_cache
+        if cache['token'] and cache['expires_at'] and datetime.utcnow() < cache['expires_at']:
+            return cache['token']
+        username = os.getenv('EMA_ADMIN_USERNAME', '')
+        password = os.getenv('EMA_ADMIN_PASSWORD', '')
+        if not username or not password:
+            logger.warning('EMA_ADMIN_USERNAME / EMA_ADMIN_PASSWORD not set')
+            return ''
+        try:
+            resp = requests.post(
+                f"{MHBOT_BASE_URL}/api/v1/auth/login",
+                data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'dashboard'},
+                headers={'accept': 'application/json'},
+                timeout=10,
+            )
+            if resp.ok:
+                payload = resp.json()
+                token = payload.get('access_token', '')
+                expires_in = int(payload.get('expires_in', 1800))
+                cache['token'] = token
+                cache['expires_at'] = datetime.utcnow() + timedelta(seconds=expires_in - 120)
+                return token
+            logger.warning('EMA admin login failed: %s', resp.text[:200])
+        except Exception as e:
+            logger.warning('EMA admin token refresh error: %s', e)
+        return ''
+
 
 def _resolve_user_id(user_id):
     """Convert JWT identity string to ObjectId for MongoDB lookups."""
@@ -31,20 +66,6 @@ def _resolve_user_id(user_id):
         return ObjectId(user_id)
     except Exception:
         return user_id
-
-
-def _get_user_token(user_id) -> str:
-    """Return stored MHBot token for the CPS user, or '' if missing/expired."""
-    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
-    if not user:
-        return ''
-    token = user.get('mhbot_token', '')
-    expires_at = user.get('mhbot_token_expires_at')
-    if not token:
-        return ''
-    if expires_at and datetime.utcnow() > expires_at:
-        return ''
-    return token
 
 
 def _auth_headers(token: str) -> dict:
@@ -92,9 +113,11 @@ def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=No
         )
 
 
-def get_perma_history(username: str, token: str, limit: int = 5, save: bool = False, student_user_id=None) -> dict:
+def get_perma_history(username: str, token: str = None, limit: int = 5, save: bool = False, student_user_id=None) -> dict:
     if not token:
-        return {'success': False, 'error': 'Not connected to MHBot. Please log in first.', 'data': []}
+        token = _get_shared_ema_token()
+    if not token:
+        return {'success': False, 'error': 'EMA service unavailable', 'data': []}
 
     url = f"{MHBOT_BASE_URL}/api/v1/dashboard/user_perma_history/{username}"
     try:
@@ -120,70 +143,38 @@ def get_perma_history(username: str, token: str, limit: int = 5, save: bool = Fa
 
 # ── Auth endpoints ─────────────────────────────────────────────────────────────
 
-@mhbot_bp.route('/auth/login', methods=['POST'])
+@mhbot_bp.route('/link-username', methods=['POST'])
 @jwt_required()
-def mhbot_login():
-    """Exchange MHBot username/password for a token and store it on the user record."""
+def link_ema_username():
+    """Student provides their EMA username; system verifies it exists and stores it."""
     user_id = get_jwt_identity()
     data = request.get_json() or {}
-    username = data.get('username', '').strip()
-    password = data.get('password', '').strip()
-    ema_identifier = data.get('ema_identifier', '').strip() or None
+    ema_username = data.get('username', '').strip()
+    if not ema_username:
+        return jsonify({'error': 'EMA username is required'}), 400
 
-    if not username or not password:
-        return jsonify({'error': 'Username and password are required'}), 400
+    token = _get_shared_ema_token()
+    if not token:
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
-    url = f"{MHBOT_BASE_URL}/api/v1/auth/login"
-    try:
-        resp = requests.post(url, data={
-            'grant_type': 'password',
-            'username': username,
-            'password': password,
-            'scope': 'dashboard',
-        }, headers={'accept': 'application/json'}, timeout=10)
-    except requests.exceptions.Timeout:
-        return jsonify({'error': 'MHBot server not responding'}), 504
-    except requests.exceptions.ConnectionError:
-        return jsonify({'error': 'Cannot connect to MHBot server'}), 503
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-    if resp.status_code != 200:
-        try:
-            detail = resp.json().get('detail', resp.text[:100])
-        except Exception:
-            detail = resp.text[:100]
-        return jsonify({'error': f'MHBot login failed: {detail}'}), 401
-
-    payload = resp.json()
-    token = payload.get('access_token', '')
-    expires_in = int(payload.get('expires_in', 1800))
-    expires_at = datetime.utcnow() + timedelta(seconds=expires_in - 60)
+    result = get_perma_history(ema_username, token, limit=1)
+    if not result['success']:
+        return jsonify({'error': 'EMA username not found. Please check your username and try again.'}), 400
 
     uid = _resolve_user_id(user_id)
-    # Use ema_identifier for history if provided, otherwise fall back to login username
-    history_username = ema_identifier or username
     db.db.users.update_one(
         {'_id': uid},
-        {'$set': {
-            'mhbot_token': token,
-            'mhbot_token_expires_at': expires_at,
-            'mhbot_username': history_username,
-            'mhbot_login_username': username,
-            'mhbot_linked_at': datetime.utcnow(),
-        }}
+        {'$set': {'mhbot_username': ema_username, 'mhbot_linked_at': datetime.utcnow()}}
     )
 
-    # Immediately recover all past PERMA history and save to DB
-    history_result = get_perma_history(history_username, token, limit=200, save=True, student_user_id=uid)
-    recovered = len(history_result.get('data', []))
-    latest_label = history_result.get('latest_label')
+    # Recover full history in background
+    full = get_perma_history(ema_username, token, limit=200, save=True, student_user_id=uid)
 
     return jsonify({
         'success': True,
-        'mhbot_username': username,
-        'recovered': recovered,
-        'latest_label': latest_label,
+        'mhbot_username': ema_username,
+        'latest_label': full.get('latest_label'),
+        'latest_date': full.get('latest_date'),
     }), 200
 
 
@@ -207,11 +198,11 @@ def set_ema_identifier():
 @mhbot_bp.route('/auth/logout', methods=['POST'])
 @jwt_required()
 def mhbot_logout():
-    """Clear the stored MHBot token for the current user."""
+    """Unlink the student's EMA username from their CPS account."""
     user_id = get_jwt_identity()
     db.db.users.update_one(
         {'_id': _resolve_user_id(user_id)},
-        {'$unset': {'mhbot_token': '', 'mhbot_token_expires_at': ''}}
+        {'$unset': {'mhbot_username': '', 'mhbot_linked_at': ''}}
     )
     return jsonify({'success': True}), 200
 
@@ -219,23 +210,20 @@ def mhbot_logout():
 @mhbot_bp.route('/auth/status', methods=['GET'])
 @jwt_required()
 def mhbot_auth_status():
-    """Return whether the current user has a valid MHBot session."""
+    """Return whether the current user has EMA access.
+    Students: must have mhbot_username linked.
+    Staff/admin: always connected (use shared admin token for analytics).
+    """
     user_id = get_jwt_identity()
     user = db.db.users.find_one({'_id': _resolve_user_id(user_id)})
     if not user:
         return jsonify({'connected': False}), 200
-
-    token = user.get('mhbot_token', '')
-    expires_at = user.get('mhbot_token_expires_at')
-
-    if not token:
-        return jsonify({'connected': False}), 200
-    if expires_at and datetime.utcnow() > expires_at:
-        return jsonify({'connected': False, 'expired': True}), 200
-
+    role = user.get('role', '')
+    mhbot_username = user.get('mhbot_username', '')
+    is_student = role == 'STUDENT'
     return jsonify({
-        'connected': True,
-        'mhbot_username': user.get('mhbot_username', ''),
+        'connected': bool(mhbot_username) if is_student else True,
+        'mhbot_username': mhbot_username,
     }), 200
 
 
@@ -248,9 +236,9 @@ def get_user_perma(username):
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     limit = min(request.args.get('limit', 5, type=int), 100)
     # Resolve student user_id for denormalized save
@@ -275,9 +263,9 @@ def lookup_perma_by_username():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     data = request.get_json() or {}
     username = data.get('username', '').strip()
@@ -305,9 +293,9 @@ def batch_perma_labels():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
-        return jsonify({'error': 'Not connected to MHBot'}), 503
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     data = request.get_json() or {}
     usernames = data.get('usernames', [])
@@ -331,9 +319,9 @@ def get_pending_students_with_perma():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     try:
         pending = db.db.appointments.find({'status': {'$in': ['REQUESTED', 'PENDING_APPROVAL']}}).sort('requested_start', -1)
@@ -379,9 +367,9 @@ def link_case_to_mhbot(case_id):
     if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     data = request.get_json() or {}
     mhbot_username = data.get('mhbot_username', '').strip()
@@ -446,7 +434,7 @@ def get_cm_queue():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
         return jsonify({'error': 'Not connected to EMA. Please log in via the EMA page.'}), 503
 
@@ -492,9 +480,9 @@ def get_perma_distribution():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
-        return jsonify({'error': 'Not connected to MHBot. Please log in via the MHBot page.'}), 503
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     try:
         labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
@@ -525,19 +513,12 @@ def get_my_perma():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    token = user.get('mhbot_token', '')
-    expires_at = user.get('mhbot_token_expires_at')
     mhbot_username = user.get('mhbot_username', '')
-
-    if not token:
-        return jsonify({'connected': False, 'error': 'Not connected to MHBot'}), 200
-    if expires_at and datetime.utcnow() > expires_at:
-        return jsonify({'connected': False, 'expired': True, 'error': 'MHBot session expired'}), 200
     if not mhbot_username:
-        return jsonify({'connected': False, 'error': 'No MHBot username on record'}), 200
+        return jsonify({'connected': False, 'mhbot_username': ''}), 200
 
     limit = min(request.args.get('limit', 10, type=int), 100)
-    result = get_perma_history(mhbot_username, token, limit, save=True, student_user_id=_resolve_user_id(user_id))
+    result = get_perma_history(mhbot_username, limit=limit, save=True, student_user_id=_resolve_user_id(user_id))
 
     return jsonify({
         'connected': True,
@@ -550,34 +531,6 @@ def get_my_perma():
 
 
 
-@mhbot_bp.route('/my-snapshots', methods=['GET'])
-@jwt_required()
-def get_my_snapshots():
-    """Return saved PERMA snapshots for the logged-in student."""
-    user_id = get_jwt_identity()
-    uid = _resolve_user_id(user_id)
-    user = db.db.users.find_one({'_id': uid})
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    limit = min(request.args.get('limit', 50, type=int), 200)
-    snapshots = list(db.db.perma_snapshots.find(
-        {'student_user_id': uid},
-        {'_id': 0, 'student_user_id': 0}
-    ).sort('entry_date', -1).limit(limit))
-
-    for s in snapshots:
-        if 'entry_date' in s and hasattr(s['entry_date'], 'isoformat'):
-            s['entry_date'] = s['entry_date'].isoformat()
-        if 'saved_at' in s and hasattr(s['saved_at'], 'isoformat'):
-            s['saved_at'] = s['saved_at'].isoformat()
-
-    return jsonify({
-        'latest_label': user.get('perma_latest_label'),
-        'latest_date': user.get('perma_latest_date'),
-        'snapshots': snapshots,
-        'total': len(snapshots),
-    }), 200
 
 
 @mhbot_bp.route('/stats/perma-trends', methods=['GET'])
@@ -588,9 +541,9 @@ def get_perma_trends():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
-        return jsonify({'error': 'Not connected to MHBot'}), 503
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     from datetime import datetime as dt
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
@@ -649,7 +602,7 @@ def sync_all_perma():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_user_token(user_id)
+    token = _get_shared_ema_token()
     if not token:
         return jsonify({'error': 'Not connected to EMA. Please log in first.'}), 503
 

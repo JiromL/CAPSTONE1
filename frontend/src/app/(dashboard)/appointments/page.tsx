@@ -1,14 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
+import CalendarWeekView, { CalAppt } from '@/components/CalendarWeekView';
 import { api } from '@/utils/api';
 import {
   Loader2, Eye, Video, RotateCcw, Star, ExternalLink, RefreshCw,
   Archive, CheckCircle, History, X, AlertCircle, AlertTriangle, CalendarDays,
-  Search, ArrowUpDown, NotebookPen, ChevronLeft, ChevronRight, ArrowRight, Check,
+  Search, ArrowUpDown, NotebookPen, ChevronLeft, ChevronRight, ArrowRight, Check, Clock,
+  LayoutList, CalendarRange, ChevronUp, ChevronDown,
 } from 'lucide-react';
+
+function getMondayOf(d: Date): Date {
+  const r = new Date(d);
+  const day = r.getDay();
+  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day));
+  r.setHours(0, 0, 0, 0);
+  return r;
+}
 
 interface Appointment {
   appointment_id: string;
@@ -52,6 +62,7 @@ interface ReschedRequest {
 }
 
 const TABS = [
+  { key: 'requests',   label: 'Requests',     icon: Clock },
   { key: 'active',     label: 'Active',       icon: CheckCircle },
   { key: 'reschedule', label: 'Reschedule',   icon: RotateCcw },
   { key: 'evaluation', label: 'Post-Session', icon: Star },
@@ -61,6 +72,7 @@ const TABS = [
 type TabKey = typeof TABS[number]['key'];
 
 const TAB_STATUSES: Record<TabKey, string[]> = {
+  requests:   ['REQUESTED'],
   active:     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL'],
   reschedule: ['RESCHEDULE_REQUESTED', 'PENDING_STUDENT_APPROVAL'],
   evaluation: ['EVALUATION'],
@@ -74,6 +86,7 @@ const PURPOSE_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  REQUESTED:                { label: 'New Request',           bg: 'var(--color-primary-surface)', text: 'var(--color-primary)', border: 'var(--color-primary)' },
   PENDING_APPROVAL:         { label: 'Under Review',          bg: 'var(--color-warning-surface)', text: 'var(--color-warning)',  border: 'var(--color-warning)' },
   APPROVED:                 { label: 'Confirmed',              bg: 'var(--color-success-surface)', text: 'var(--color-success)',  border: 'var(--color-success)' },
   MATCHED:                  { label: 'Confirmed',              bg: 'var(--color-success-surface)', text: 'var(--color-success)',  border: 'var(--color-success)' },
@@ -127,6 +140,164 @@ function fmtMethod(m?: string) {
   return m.charAt(0).toUpperCase() + m.slice(1);
 }
 
+// ─── Mini Schedule Panel ──────────────────────────────────────────────────────
+
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+interface MiniAppt {
+  id: string;
+  student_name: string;
+  scheduled_start: string;
+  status: string;
+}
+
+function apptPillStyle(status: string): React.CSSProperties {
+  switch (status) {
+    case 'CONFIRMED':
+    case 'APPROVED':
+    case 'MATCHED':
+    case 'CHECKED_IN':  return { background: '#dbeafe', color: '#1e40af' };
+    case 'EVALUATION':  return { background: '#ede9fe', color: '#4c1d95' };
+    case 'FOLLOW_UP':   return { background: '#d1fae5', color: '#065f46' };
+    case 'REFERRAL':    return { background: '#f3e8ff', color: '#581c87' };
+    case 'REQUESTED':
+    case 'PENDING_APPROVAL': return { background: '#fef3c7', color: '#92400e' };
+    default:            return { background: 'var(--color-bg)', color: 'var(--color-text-muted)' };
+  }
+}
+
+function MiniSchedulePanel() {
+  const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
+  const [appts, setAppts]         = useState<MiniAppt[]>([]);
+  const [loading, setLoading]     = useState(false);
+  const [open, setOpen]           = useState(true);
+
+  const fetchWeek = useCallback(async (start: Date) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setLoading(true);
+    try {
+      const from = start.toISOString();
+      const to   = new Date(new Date(start).setDate(start.getDate() + 7)).toISOString();
+      const r    = await fetch(api(`/api/appointments/dashboard/calendar?from=${from}&to=${to}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setAppts(d.appointments ?? []); }
+      else setAppts([]);
+    } catch { setAppts([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchWeek(weekStart); }, [weekStart, fetchWeek]);
+
+  function prevWeek() { setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; }); }
+  function nextWeek() { setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; }); }
+
+  // Group by day index (Mon=0)
+  const byDay: MiniAppt[][] = Array.from({ length: 7 }, () => []);
+  appts.forEach(a => {
+    const diff = Math.floor((new Date(a.scheduled_start).getTime() - weekStart.getTime()) / 86400000);
+    if (diff >= 0 && diff < 7) byDay[diff].push(a);
+  });
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const endDate  = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
+  const weekLabel = `${weekStart.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })} – ${endDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}`;
+  const totalThisWeek = appts.filter(a => ['CONFIRMED','APPROVED','MATCHED','CHECKED_IN'].includes(a.status)).length;
+
+  return (
+    <div className="rounded-xl border overflow-hidden mb-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: open ? '1px solid var(--color-border)' : 'none', background: 'var(--color-primary-surface)' }}>
+        <button onClick={() => setOpen(o => !o)} className="flex items-center gap-2 flex-1 text-left min-w-0" title={open ? 'Hide' : 'Show'}>
+          <CalendarDays size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>My Week</span>
+          {totalThisWeek > 0 && (
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+              style={{ background: 'var(--color-primary)', color: '#fff' }}>
+              {totalThisWeek} confirmed
+            </span>
+          )}
+          {open
+            ? <ChevronUp size={13} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+            : <ChevronDown size={13} className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />}
+        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={prevWeek} title="Previous week"
+            className="w-6 h-6 flex items-center justify-center rounded transition"
+            style={{ color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <ChevronLeft size={13} />
+          </button>
+          <span className="text-xs px-1 font-medium" style={{ color: 'var(--color-text-secondary)', minWidth: 120, textAlign: 'center' }}>{weekLabel}</span>
+          <button onClick={nextWeek} title="Next week"
+            className="w-6 h-6 flex items-center justify-center rounded transition"
+            style={{ color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <ChevronRight size={13} />
+          </button>
+          <a href="/schedule"
+            className="text-xs font-semibold px-2 py-1 rounded-lg ml-1 transition"
+            style={{ color: 'var(--color-primary)', background: 'var(--color-bg)' }}>
+            Full ↗
+          </a>
+        </div>
+      </div>
+
+      {/* Grid body */}
+      {open && (
+        loading ? (
+          <div className="flex items-center justify-center py-5 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            <Loader2 size={13} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+          </div>
+        ) : (
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
+            {WEEK_DAYS.map((label, idx) => {
+              const dayDate = new Date(weekStart); dayDate.setDate(dayDate.getDate() + idx);
+              const dateKey = dayDate.toISOString().slice(0, 10);
+              const isToday = dateKey === todayKey;
+              const dayAppts = byDay[idx];
+
+              return (
+                <div key={idx} className="flex flex-col" style={{ borderRight: idx < 6 ? '1px solid var(--color-border)' : 'none', background: isToday ? 'var(--color-primary-surface)' : 'transparent' }}>
+                  {/* Day header */}
+                  <div className="px-1.5 pt-2.5 pb-1.5 text-center" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: isToday ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>{label}</p>
+                    <span className="text-xs font-semibold mt-0.5 inline-flex items-center justify-center"
+                      style={{
+                        color: isToday ? '#fff' : 'var(--color-text-secondary)',
+                        background: isToday ? 'var(--color-primary)' : 'transparent',
+                        borderRadius: '50%', width: 22, height: 22,
+                      }}>
+                      {dayDate.getDate()}
+                    </span>
+                  </div>
+
+                  {/* Appointments */}
+                  <div className="px-1 py-1.5 space-y-1 flex-1 min-h-[56px]">
+                    {dayAppts.length === 0 ? (
+                      <p className="text-xs text-center pt-1" style={{ color: 'var(--color-text-muted)' }}>—</p>
+                    ) : (
+                      dayAppts.map(a => (
+                        <div key={a.id} className="rounded px-1.5 py-1 text-xs leading-tight" style={apptPillStyle(a.status)}>
+                          <p className="font-semibold">
+                            {new Date(a.scheduled_start).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </p>
+                          <p className="truncate opacity-80">{a.student_name.split(' ')[0]}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
 const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' };
 const onFIn  = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
@@ -175,6 +346,7 @@ export default function AppointmentsPage() {
   const [riskFilter, setRiskFilter] = useState<'all' | 'high'>('all');
   const [mineOnly, setMineOnly] = useState(false);
   const [apptPage, setApptPage] = useState(1);
+  const [apptPageInput, setApptPageInput] = useState('1');
   const [reschedReqs, setReschedReqs] = useState<ReschedRequest[]>([]);
   const [reschedLoading, setReschedLoading] = useState(false);
   const [reschedTab, setReschedTab] = useState<'pending' | 'approved' | 'denied'>('pending');
@@ -182,7 +354,33 @@ export default function AppointmentsPage() {
   const [reschedActioning, setReschedActioning] = useState(false);
   const [reschedActionMsg, setReschedActionMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
+  // ── Calendar view state ────────────────────────────────────────────────────
+  const [viewMode, setViewMode]     = useState<'list' | 'calendar'>('list');
+  const [calWeekStart, setCalWeekStart] = useState<Date>(() => getMondayOf(new Date()));
+  const [calAppts, setCalAppts]     = useState<CalAppt[]>([]);
+  const [calLoading, setCalLoading] = useState(false);
+
+  const fetchCalAppts = useCallback(async (start: Date) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setCalLoading(true);
+    try {
+      const from = start.toISOString();
+      const to   = new Date(new Date(start).setDate(start.getDate() + 7)).toISOString();
+      const r = await fetch(api(`/api/appointments/dashboard/calendar?from=${from}&to=${to}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setCalAppts(d.appointments ?? []); }
+    } catch { setCalAppts([]); }
+    finally { setCalLoading(false); }
+  }, []);
+
+  useEffect(() => { if (viewMode === 'calendar') fetchCalAppts(calWeekStart); }, [viewMode, calWeekStart, fetchCalAppts]);
+
+  function calPrevWeek() { setCalWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; }); }
+  function calNextWeek() { setCalWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; }); }
+  function calToday()    { setCalWeekStart(getMondayOf(new Date())); }
+
   useEffect(() => { setApptPage(1); }, [activeTab, search, riskFilter, mineOnly, sortBy]);
+  useEffect(() => { setApptPageInput(String(apptPage)); }, [apptPage]);
 
   const load = async () => {
     setLoading(true);
@@ -265,7 +463,7 @@ export default function AppointmentsPage() {
     ]).then(([s, p]) => { setIntakeSummary(s); setIntakePacket(p); });
   }, [detailAppt]);
 
-  const APPT_PER_PAGE = 25;
+  const APPT_PER_PAGE = 10;
   const apts = Array.isArray(dashboard?.appointments) ? dashboard!.appointments! : [];
   const counts = Object.fromEntries(TABS.map(t => [t.key, apts.filter(a => TAB_STATUSES[t.key as TabKey].includes(a.status)).length])) as Record<TabKey, number>;
   const visibleTabs = TABS.filter(tab => tab.key !== 'reschedule' || counts.reschedule > 0);
@@ -294,6 +492,12 @@ export default function AppointmentsPage() {
 
   const totalApptPages = Math.ceil(displayed.length / APPT_PER_PAGE);
   const paginatedApts = displayed.slice((apptPage - 1) * APPT_PER_PAGE, apptPage * APPT_PER_PAGE);
+
+  const goToApptPage = (val: string) => {
+    const n = parseInt(val, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalApptPages) setApptPage(n);
+    else setApptPageInput(String(apptPage));
+  };
 
   const doAction = async (aptId: string, endpoint: string, body?: object) => {
     setActioningId(aptId); setActionMsg(null);
@@ -388,6 +592,11 @@ export default function AppointmentsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Mini week schedule — COUNSELOR / PSYCHOLOGIST only */}
+      {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
+        <MiniSchedulePanel />
       )}
 
       {/* Post-session banner */}
@@ -611,9 +820,42 @@ export default function AppointmentsPage() {
               : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
             Mine only
           </button>
+          {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
+            <div className="flex items-center rounded-lg border overflow-hidden ml-1" style={{ borderColor: 'var(--color-border)' }}>
+              <button onClick={() => setViewMode('list')} title="List view"
+                className="flex items-center justify-center w-7 h-7 transition"
+                style={viewMode === 'list'
+                  ? { background: 'var(--color-primary)', color: '#fff' }
+                  : { background: 'var(--color-surface)', color: 'var(--color-text-muted)' }}>
+                <LayoutList size={13} />
+              </button>
+              <button onClick={() => setViewMode('calendar')} title="Calendar view"
+                className="flex items-center justify-center w-7 h-7 transition"
+                style={viewMode === 'calendar'
+                  ? { background: 'var(--color-primary)', color: '#fff' }
+                  : { background: 'var(--color-surface)', color: 'var(--color-text-muted)' }}>
+                <CalendarRange size={13} />
+              </button>
+            </div>
+          )}
         </div>}
 
-        {displayTab !== 'reschedule' && (displayed.length === 0 ? (
+        {/* ── Calendar view ───────────────────────────────────────────────── */}
+        {viewMode === 'calendar' && displayTab !== 'reschedule' && (
+          <div className="p-4">
+            <CalendarWeekView
+              appointments={calAppts}
+              loading={calLoading}
+              colorBy="status"
+              weekStart={calWeekStart}
+              onPrevWeek={calPrevWeek}
+              onNextWeek={calNextWeek}
+              onToday={calToday}
+            />
+          </div>
+        )}
+
+        {viewMode === 'list' && displayTab !== 'reschedule' && (displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
               <CalendarDays size={18} style={{ color: 'var(--color-text-muted)' }} />
@@ -623,7 +865,7 @@ export default function AppointmentsPage() {
             </p>
             <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
               {filtered.length === 0
-                ? (activeTab === 'active' ? 'No confirmed sessions at the moment.' : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`)
+                ? (activeTab === 'active' ? 'No confirmed sessions at the moment.' : activeTab === 'requests' ? 'No pending appointment requests.' : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} sessions.`)
                 : 'Try adjusting your search or filters.'}
             </p>
           </div>
@@ -700,6 +942,25 @@ export default function AppointmentsPage() {
                               <Eye size={11} /> View
                             </button>
 
+                            {apt.status === 'REQUESTED' && (
+                              <>
+                                <button onClick={() => doAction(aptId, 'confirm')} disabled={actioningId === aptId}
+                                  className="flex items-center gap-1 px-2.5 py-1 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 hover:opacity-90"
+                                  style={{ background: 'var(--color-success)' }}>
+                                  {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                                  Accept
+                                </button>
+                                <button onClick={() => doAction(aptId, 'deny')} disabled={actioningId === aptId}
+                                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border transition disabled:opacity-50"
+                                  style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                  {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
+                                  Decline
+                                </button>
+                              </>
+                            )}
+
                             {isConfirmed && !effDate(apt) && (
                               <button onClick={() => { setSchedTarget(apt); setSchedDate(''); setSchedTime(''); setSchedOffice(''); setSchedMethod('in_person'); setSchedMsg(null); setSchedMode('slots'); setSchedMySlots([]); }}
                                 className="flex items-center gap-1 px-2.5 py-1 text-white text-xs font-semibold rounded-lg transition hover:opacity-90"
@@ -724,19 +985,28 @@ export default function AppointmentsPage() {
 
                             {isConfirmed && !isPendingStudentApproval && (
                               <>
-                                {apt.case_id && (
+                                {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
+                                  <a href={`/counselor/session/${aptId}`}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-white text-xs font-semibold rounded-lg transition hover:opacity-90"
+                                    style={{ background: 'var(--color-primary)' }}>
+                                    <NotebookPen size={11} /> Conduct Session
+                                  </a>
+                                )}
+                                {apt.case_id && !['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
                                   <a href={`/cases/${apt.case_id}?tab=session-notes`}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border transition"
                                     style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>
                                     <NotebookPen size={11} /> Session Notes
                                   </a>
                                 )}
+                                {!['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
                                 <button onClick={() => doAction(aptId, 'set-evaluation')} disabled={actioningId === aptId}
                                   className="flex items-center gap-1 px-2.5 py-1 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 hover:opacity-90"
                                   style={{ background: 'var(--color-warning)' }}>
                                   {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} />}
                                   Session Done
                                 </button>
+                                )}
                                 <button onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
                                   className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border transition"
                                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
@@ -829,9 +1099,20 @@ export default function AppointmentsPage() {
                     aria-label="Previous page">
                     <ChevronLeft size={14} />
                   </button>
-                  <span className="text-xs px-2" style={{ color: 'var(--color-text-secondary)' }}>
-                    {apptPage} / {totalApptPages}
-                  </span>
+                  <div className="flex items-center gap-1 text-xs tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                    <input
+                      type="number" min={1} max={totalApptPages}
+                      value={apptPageInput}
+                      onChange={e => setApptPageInput(e.target.value)}
+                      onBlur={() => goToApptPage(apptPageInput)}
+                      onKeyDown={e => { if (e.key === 'Enter') goToApptPage(apptPageInput); }}
+                      className="text-center rounded-lg outline-none tabular-nums"
+                      style={{ width: '2.5rem', padding: '2px 4px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', fontSize: '0.75rem' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                      onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                    />
+                    <span style={{ color: 'var(--color-text-muted)' }}>/ {totalApptPages}</span>
+                  </div>
                   <button
                     disabled={apptPage >= totalApptPages}
                     onClick={() => setApptPage(p => p + 1)}

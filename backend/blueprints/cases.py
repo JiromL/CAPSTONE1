@@ -21,15 +21,9 @@ def has_permission(user_role, permission):
 
 def get_cases_for_user(user_id, user_role):
     """Get cases filtered by role"""
-    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER, UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
-        # These roles see all cases
+    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER, UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.IC]:
+        # These roles see all cases (further scoped by my_cases param if needed)
         return {}
-    elif user_role == UserRole.IC:
-        # IC sees new/pending intake cases (query both field names for compatibility)
-        return {'$or': [
-            {'case_status': {'$in': [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]}},
-            {'status': {'$in': [CaseStatus.NEW.value, CaseStatus.INTAKE_SCHEDULED.value]}},
-        ]}
     elif user_role == UserRole.STUDENT:
         # STUDENT sees only their own case
         return {'student_id': ObjectId(user_id)}
@@ -93,14 +87,8 @@ def get_cases():
         return jsonify({'error': 'User not found'}), 401
     
     user_role = user.get('role')
-    search_term = request.args.get('q', '').strip()
 
-    # IC: when searching, allow cross-case lookup (any status); without a search they
-    # only see their own intake pipeline (NEW / INTAKE_SCHEDULED).
-    if user_role == UserRole.IC and search_term:
-        query = {}
-    else:
-        query = get_cases_for_user(user_id, user_role)
+    query = get_cases_for_user(user_id, user_role)
 
     if query is None:
         return jsonify({'error': 'Insufficient permissions'}), 403
@@ -111,9 +99,12 @@ def get_cases():
     if request.args.get('risk_level'):
         query['risk_level'] = request.args.get('risk_level')
 
-    # My Cases: filter to only cases assigned to the current user (server-side)
+    # My Cases: IC filters by intake_counselor_id; other roles by assigned_counselor_id
     if request.args.get('my_cases') == 'true':
-        query['assigned_counselor_id'] = ObjectId(user_id)
+        if user_role == UserRole.IC:
+            query['intake_counselor_id'] = ObjectId(user_id)
+        else:
+            query['assigned_counselor_id'] = ObjectId(user_id)
 
     # Full-text search across student name/email/case number
     q = request.args.get('q', '').strip()

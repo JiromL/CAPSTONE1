@@ -98,9 +98,10 @@ export const pagePermissions: Record<string, UserRole[]> = {
   // Supervision
   '/supervision': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
-  // Counselor schedule & emergency
-  '/counselor/schedule':   ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
-  '/counselor/emergency':  ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  // Counselor schedule, emergency & session wizard
+  '/counselor/schedule':        ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/counselor/emergency':       ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+  '/counselor/session/[id]':    ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
   // IC sub-routes
   '/ic/intake/in-progress':   ['IC', 'ADMIN', 'DPO'],

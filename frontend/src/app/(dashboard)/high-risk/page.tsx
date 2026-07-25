@@ -44,8 +44,10 @@ export default function HighRiskPage() {
   const [search, setSearch]         = useState('');
   const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all');
   const [hrPage, setHrPage] = useState(1);
+  const [hrPageInput, setHrPageInput] = useState('1');
 
   useEffect(() => { setHrPage(1); }, [search, riskFilter]);
+  useEffect(() => { setHrPageInput(String(hrPage)); }, [hrPage]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -77,9 +79,15 @@ export default function HighRiskPage() {
     });
   }, [cases, search, riskFilter]);
 
-  const HR_PER_PAGE = 30;
+  const HR_PER_PAGE = 10;
   const totalHrPages = Math.ceil(filtered.length / HR_PER_PAGE);
   const paginatedHr = filtered.slice((hrPage - 1) * HR_PER_PAGE, hrPage * HR_PER_PAGE);
+
+  const goToHrPage = (val: string) => {
+    const n = parseInt(val, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalHrPages) setHrPage(n);
+    else setHrPageInput(String(hrPage));
+  };
 
   const TABS = [
     { key: 'cases' as const,  label: 'Active Cases',  count: cases.length },
@@ -237,7 +245,20 @@ export default function HighRiskPage() {
                       aria-label="Previous page">
                       <ChevronLeft size={14} />
                     </button>
-                    <span className="text-xs px-2" style={{ color: 'var(--color-text-secondary)' }}>{hrPage} / {totalHrPages}</span>
+                    <div className="flex items-center gap-1 text-xs tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                      <input
+                        type="number" min={1} max={totalHrPages}
+                        value={hrPageInput}
+                        onChange={e => setHrPageInput(e.target.value)}
+                        onBlur={() => goToHrPage(hrPageInput)}
+                        onKeyDown={e => { if (e.key === 'Enter') goToHrPage(hrPageInput); }}
+                        className="text-center rounded-lg outline-none tabular-nums"
+                        style={{ width: '2.5rem', padding: '2px 4px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', fontSize: '0.75rem' }}
+                        onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                        onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                      />
+                      <span style={{ color: 'var(--color-text-muted)' }}>/ {totalHrPages}</span>
+                    </div>
                     <button disabled={hrPage >= totalHrPages} onClick={() => setHrPage(p => p + 1)}
                       className="p-1.5 rounded-lg transition"
                       style={{ color: hrPage >= totalHrPages ? 'var(--color-text-muted)' : 'var(--color-text-primary)', cursor: hrPage >= totalHrPages ? 'not-allowed' : 'pointer' }}

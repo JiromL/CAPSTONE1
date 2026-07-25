@@ -13,7 +13,7 @@ interface AuditLog {
 const IC = 'outline-none transition';
 const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
-const PER_PAGE = 50;
+const PER_PAGE = 10;
 
 function actionBadgeStyle(action: string): React.CSSProperties {
   if (action?.includes('delete') || action?.includes('fail'))
@@ -36,6 +36,7 @@ export default function AuditLogPage() {
   const [page, setPage]           = useState(1);
   const [total, setTotal]         = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageInput, setPageInput] = useState('1');
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -43,6 +44,14 @@ export default function AuditLogPage() {
     debounceTimer.current = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, [search]);
+
+  useEffect(() => { setPageInput(String(page)); }, [page]);
+
+  const goToPage = (val: string) => {
+    const n = parseInt(val, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) setPage(n);
+    else setPageInput(String(page));
+  };
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -178,9 +187,20 @@ export default function AuditLogPage() {
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <ChevronLeft size={15} />
               </button>
-              <span className="text-xs px-2 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
-                {page} / {totalPages}
-              </span>
+              <div className="flex items-center gap-1 text-xs tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+                <input
+                  type="number" min={1} max={totalPages}
+                  value={pageInput}
+                  onChange={e => setPageInput(e.target.value)}
+                  onBlur={() => goToPage(pageInput)}
+                  onKeyDown={e => { if (e.key === 'Enter') goToPage(pageInput); }}
+                  className="text-center rounded-lg outline-none tabular-nums"
+                  style={{ width: '2.5rem', padding: '2px 4px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', fontSize: '0.75rem' }}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                  onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+                />
+                <span style={{ color: 'var(--color-text-muted)' }}>/ {totalPages}</span>
+              </div>
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading}
                 className="p-1.5 rounded-lg transition disabled:opacity-40"
                 style={{ color: 'var(--color-text-secondary)' }}

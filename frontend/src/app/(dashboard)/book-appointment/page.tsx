@@ -177,6 +177,7 @@ export default function BookAppointmentPage() {
   const [formSkipped, setFormSkipped]           = useState(false);
   const [showConfirm, setShowConfirm]           = useState(false);
   const [showFormsChoice, setShowFormsChoice]   = useState(false);
+  const [agreedToTerms, setAgreedToTerms]       = useState(false);
 
   const [bookStep, setBookStep] = useState(0);
 
@@ -350,6 +351,7 @@ export default function BookAppointmentPage() {
     }
     if (referralType === 'referred' && !referredBy.trim()) { setError('Please specify who referred you.'); return; }
     if (prefDate && bookingRules.blackout_dates.includes(prefDate)) { setError('Selected date is a CPS holiday.'); return; }
+    if (!agreedToTerms) { setError('Please agree to the informed consent and data privacy terms to continue.'); return; }
     setShowConfirm(true);
   };
 
@@ -362,7 +364,7 @@ export default function BookAppointmentPage() {
         purpose: fp, concern, preferred_method: slotMethod === 'F2F' ? 'in-person' : 'online',
         preferred_platform: slotMethod?.toLowerCase() === 'online' ? prefPlatform : null,
         referral_type: referralType, referred_by: referralType === 'referred' ? referredBy : null,
-        agreed_to_terms: true,
+        agreed_to_terms: agreedToTerms,
       };
       if (!requestAnyway && prefDate && prefTime) { body.preferred_date = prefDate; body.preferred_time = prefTime; if (slotCounselorId) body.counselor_id = slotCounselorId; }
       if (requestAnyway && selectedCounselorId && purpose !== 'intake_interview') body.counselor_id = selectedCounselorId;
@@ -1403,6 +1405,18 @@ export default function BookAppointmentPage() {
                       className={`${IC} mt-2`} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} />
                   )}
                 </div>
+
+                {/* Informed consent — required before booking (RA 10173) */}
+                <label className="flex items-start gap-2.5 cursor-pointer rounded-xl px-4 py-3"
+                  style={{ background: 'var(--color-bg)', border: `1px solid ${agreedToTerms ? 'var(--color-primary)' : 'var(--color-border)'}` }}>
+                  <input type="checkbox" checked={agreedToTerms}
+                    onChange={e => { setAgreedToTerms(e.target.checked); if (e.target.checked) setError(null); }}
+                    className="mt-0.5 w-4 h-4 flex-shrink-0" style={{ accentColor: 'var(--color-primary)' }} />
+                  <span className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                    I consent to receiving counseling services and to the collection and processing of my
+                    personal information by DLSU CPS in accordance with <strong>RA 10173 (Data Privacy Act of 2012)</strong>.
+                  </span>
+                </label>
               </div>
             </div>
           )}
@@ -1440,7 +1454,7 @@ export default function BookAppointmentPage() {
                 Continue <ChevronRight size={14} />
               </button>
             ) : (
-              <button onClick={handleSubmit} disabled={submitting}
+              <button onClick={handleSubmit} disabled={submitting || !agreedToTerms}
                 className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition disabled:opacity-50 hover:opacity-90"
                 style={{ background: 'var(--color-primary)' }}>
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}

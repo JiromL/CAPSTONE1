@@ -133,34 +133,46 @@ def get_reminder(reminder_id):
 @reminders_bp.route('/', methods=['GET'])
 @jwt_required()
 def list_reminders():
-    """
-    List reminders with optional filters.
-    Query params: case_id, status, recipient_id, reminder_type, priority
+    """List the current user's own reminders (powers the notification bell).
+
+    Always scoped to the requesting user so no one sees another person's
+    notifications. Matches on either recipient_id or student_id, since reminders
+    are written with different recipient keys across the system.
     """
     try:
-        query = {}
-        
-        if request.args.get('case_id'):
-            query['case_id'] = ObjectId(request.args.get('case_id'))
-        if request.args.get('status'):
-            query['status'] = request.args.get('status')
-        if request.args.get('recipient_id'):
-            query['recipient_id'] = request.args.get('recipient_id')
-        if request.args.get('reminder_type'):
-            query['reminder_type'] = request.args.get('reminder_type')
-        if request.args.get('priority'):
-            query['priority'] = request.args.get('priority')
-        
-        reminders = list(db.reminders.find(query).sort('scheduled_for', -1).limit(100))
-        
-        for reminder in reminders:
-            reminder['_id'] = str(reminder['_id'])
-            reminder['case_id'] = str(reminder['case_id'])
-        
-        return jsonify(reminders), 200
-    
+        user_id = get_jwt_identity()
+        try:
+            uid = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        except Exception:
+            uid = user_id
+        recipient_values = [v for v in {uid, str(user_id)} if v is not None]
+
+        query = {
+            'status': {'$ne': 'deleted'},
+            '$or': [
+                {'recipient_id': {'$in': recipient_values}},
+                {'student_id': {'$in': recipient_values}},
+            ],
+        }
+        docs = list(db.db.reminders.find(query).sort('created_at', -1).limit(50))
+
+        reminders = []
+        for r in docs:
+            item = {}
+            for k, v in r.items():
+                if isinstance(v, ObjectId):
+                    item[k] = str(v)
+                elif isinstance(v, datetime):
+                    item[k] = v.isoformat()
+                else:
+                    item[k] = v
+            reminders.append(item)
+
+        return jsonify({'reminders': reminders}), 200
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"⚠ list_reminders error: {e}")
+        return jsonify({'reminders': []}), 200
 
 
 @reminders_bp.route('/<reminder_id>', methods=['PATCH'])
@@ -393,7 +405,8 @@ def mark_all_reminders_read():
         from bson import ObjectId
         uid = ObjectId(user_id) if isinstance(user_id, str) else user_id
         result = db.db.reminders.update_many(
-            {'recipient_id': uid, '$or': [{'is_read': {'$ne': True}}, {'acknowledged': {'$ne': True}}]},
+            {'$or': [{'recipient_id': {'$in': [uid, str(user_id)]}},
+                     {'student_id': {'$in': [uid, str(user_id)]}}]},
             {'$set': {'is_read': True, 'acknowledged': True}},
         )
         return jsonify({'updated': result.modified_count}), 200

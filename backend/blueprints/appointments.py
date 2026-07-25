@@ -14,6 +14,7 @@ import random
 import string
 from services.pdf_service import generate_appointment_confirmation_pdf
 from services.email_service import EmailService
+from blueprints.availability import free_slots_for_counselor, date_block_reason
 
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/appointments')
 
@@ -28,6 +29,69 @@ def _email_footer():
     uni = _cfg('ORG_UNIVERSITY', 'De La Salle University')
     org = _cfg('ORG_NAME', 'Counseling &amp; Psychological Services')
     return f"{uni} &mdash; {org}"
+
+
+# Version stamped on consent captured during booking (server-controlled).
+BOOKING_CONSENT_VERSION = '2025-AY'
+
+# Appointment event times are stored as naive Philippine wall-clock (UTC+8).
+# Compare them against this, never datetime.utcnow(), so past/future checks are
+# correct regardless of the server's own timezone.
+PH_OFFSET = timedelta(hours=8)
+
+
+def _ph_now():
+    """Current Philippine wall-clock time, host-timezone independent."""
+    return datetime.utcnow() + PH_OFFSET
+
+
+def _claim_booking_lock(counselor_id, start):
+    """Atomically reserve a counselor's time slot.
+
+    Returns the lock's ObjectId, or None if the slot is already held. Backed by a
+    unique index on (counselor_id, start), so this is race-safe across concurrent
+    requests and processes.
+    """
+    if not counselor_id or not start:
+        return None
+    from pymongo.errors import DuplicateKeyError
+    try:
+        res = db.db.booking_locks.insert_one({
+            'counselor_id': counselor_id,
+            'start': start,
+            'created_at': datetime.utcnow(),
+        })
+        return res.inserted_id
+    except DuplicateKeyError:
+        return None
+
+
+def _release_booking_lock(appt):
+    """Free the counselor slot held by an appointment once it leaves an active state."""
+    if not appt:
+        return
+    try:
+        lock_id = appt.get('booking_lock_id')
+        if lock_id:
+            db.db.booking_locks.delete_one({'_id': lock_id})
+            return
+        counselor_id = appt.get('counselor_id')
+        start = appt.get('scheduled_start') or appt.get('requested_start')
+        if counselor_id and start:
+            db.db.booking_locks.delete_one({'counselor_id': counselor_id, 'start': start})
+    except Exception as e:
+        print(f"⚠ Could not release booking lock: {e}")
+
+
+def _release_availability_slot(slot_oid):
+    """Return a legacy counselor_availability slot to the pool after a failed booking."""
+    try:
+        db.db.counselor_availability.update_one(
+            {'_id': slot_oid},
+            {'$set': {'is_available': True}, '$unset': {'booked_by': '', 'appointment_id': ''}}
+        )
+    except Exception as e:
+        print(f"⚠ Could not release availability slot: {e}")
 
 
 # ============================================================================
@@ -518,7 +582,7 @@ def check_active_appointment():
             "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
             "$or": [
                 {"scheduled_start": {"$exists": False}},
-                {"scheduled_start": {"$gt": datetime.utcnow()}}
+                {"scheduled_start": {"$gt": _ph_now()}}
             ]
         })
 
@@ -557,7 +621,9 @@ def check_active_appointment():
                 'message': 'Welcome! Please book an Intake Interview as your first appointment.',
             }), 200
 
-        case_status = student_case.get('status', '')
+        # Read the effective status from either field — some flows write case_status,
+        # others write status; the booking gate must respect whichever is set.
+        case_status = student_case.get('case_status') or student_case.get('status', '')
         assigned_counselor = student_case.get('assigned_counselor_id')
 
         if case_status in ('NEW', 'INTAKE_SCHEDULED'):
@@ -691,6 +757,20 @@ def request_appointment():
     if data.get('referral_type') == 'referred' and not data.get('referred_by'):
         return jsonify({'error': 'Please specify who referred you'}), 400
 
+    # Informed consent (RA 10173) must be explicitly agreed for this booking.
+    if not data.get('agreed_to_terms'):
+        return jsonify({'error': 'Please agree to the informed consent and data privacy terms to continue.'}), 400
+
+    # Validate free-text lengths and enumerated fields (server-side, not just the UI).
+    if len((data.get('concern') or '')) > 2000:
+        return jsonify({'error': 'Your concern is too long (2000 characters max).'}), 400
+    if len((data.get('purpose') or '')) > 200:
+        return jsonify({'error': 'Purpose is too long.'}), 400
+    if data.get('preferred_method') not in ('in-person', 'online'):
+        return jsonify({'error': 'Please choose a valid session mode.'}), 400
+    if data.get('preferred_platform') not in (None, '', 'google-meet', 'zoom'):
+        return jsonify({'error': 'Please choose a valid meeting platform.'}), 400
+
     # Load user early (needed for email notifications)
     try:
         user_id_obj = ObjectId(user_id) if isinstance(user_id, str) else user_id
@@ -701,6 +781,20 @@ def request_appointment():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
+    # Record the consent given for this booking with a server-controlled version.
+    try:
+        db.db.consent_records.insert_one({
+            'user_id': user_id_obj,
+            'consent_types': ['counseling_services', 'data_privacy'],
+            'context': 'appointment_booking',
+            'consented_at': datetime.utcnow(),
+            'ip_address': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent', ''),
+            'version': BOOKING_CONSENT_VERSION,
+        })
+    except Exception as e:
+        print(f"⚠ Could not record booking consent: {e}")
+
     # --- Slot-based booking (preferred) ---
     booked_slot = None
     slot_counselor_id = None
@@ -709,9 +803,10 @@ def request_appointment():
             slot_oid = ObjectId(slot_id)
         except Exception:
             return jsonify({'error': 'Invalid slot_id'}), 400
-        booked_slot = db.db.counselor_availability.find_one_and_update(
-            {'_id': slot_oid, 'is_available': True},
-            {'$set': {'is_available': False}}
+        # Read-only lookup here; the slot is atomically claimed just before insert
+        # so a validation failure never leaves it stranded as unavailable.
+        booked_slot = db.db.counselor_availability.find_one(
+            {'_id': slot_oid, 'is_available': True}
         )
         if not booked_slot:
             return jsonify({'error': 'Slot not found or already booked. Please choose another slot.'}), 409
@@ -742,11 +837,24 @@ def request_appointment():
 
     # BUSINESS RULE: Prevent booking appointments in the past (only when a specific time is given)
     if requested_start:
-        current_time = datetime.now()
-        if requested_start < current_time:
+        if requested_start < _ph_now():
             return jsonify({
                 'error': 'Cannot book appointments for dates and times in the past. Please select a future date and time.'
             }), 400
+
+        # Enforce the configured booking window on the server (the UI enforces it too).
+        rules = db.db.booking_rules.find_one({'type': 'system'}) or {}
+        try:
+            min_ahead = int(rules.get('min_days_ahead', 1))
+            max_ahead = int(rules.get('max_days_ahead', 30))
+        except (TypeError, ValueError):
+            min_ahead, max_ahead = 1, 30
+        today_ph = _ph_now().date()
+        req_date = requested_start.date()
+        if req_date < today_ph + timedelta(days=min_ahead):
+            return jsonify({'error': f'Please book at least {min_ahead} day(s) in advance.'}), 400
+        if req_date > today_ph + timedelta(days=max_ahead):
+            return jsonify({'error': f'Please choose a date within {max_ahead} days from today.'}), 400
     
     # RESCHEDULE HANDLING: If rescheduling, cancel the old appointment
     reschedule_appointment_id = data.get('reschedule_appointment_id')
@@ -865,6 +973,7 @@ def request_appointment():
     
     reference_id = _cfg('REFERENCE_ID_PREFIX', 'CPS-') + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
+    booking_lock_id = None
     try:
         preferred_counselor_id = None
         if data.get('preferred_counselor_id'):
@@ -917,8 +1026,40 @@ def request_appointment():
             if counselor_doc:
                 appointment["counselor_name"] = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip()
 
+        # ── Concurrency guard: never let two students take the same counselor slot ──
+        lock_counselor_id = slot_counselor_id if booked_slot else weekly_slot_counselor_id
+        booking_lock_id = None
+        if requested_start and lock_counselor_id:
+            # Defense-in-depth: reject an obvious clash before the atomic reservation.
+            if has_conflicting_appointment(lock_counselor_id, requested_start, requested_end):
+                return jsonify({'error': 'That time is no longer available. Please choose another slot.'}), 409
+            # Authoritative atomic reservation (unique index on counselor + start).
+            booking_lock_id = _claim_booking_lock(lock_counselor_id, requested_start)
+            if not booking_lock_id:
+                return jsonify({'error': 'That time was just taken. Please choose another slot.'}), 409
+
+        # Atomically claim the legacy availability slot at the last moment (no leak on failure).
+        if booked_slot:
+            claimed = db.db.counselor_availability.find_one_and_update(
+                {'_id': booked_slot['_id'], 'is_available': True},
+                {'$set': {'is_available': False}}
+            )
+            if not claimed:
+                if booking_lock_id:
+                    db.db.booking_locks.delete_one({'_id': booking_lock_id})
+                return jsonify({'error': 'Slot was just taken. Please choose another slot.'}), 409
+
+        if booking_lock_id:
+            appointment['booking_lock_id'] = booking_lock_id
+
         result = db.db.appointments.insert_one(appointment)
         appointment_id = str(result.inserted_id)
+
+        if booking_lock_id:
+            db.db.booking_locks.update_one(
+                {'_id': booking_lock_id},
+                {'$set': {'appointment_id': result.inserted_id}}
+            )
 
         # Clear rebook_deadline on the case if the student is acting on a no-show rebook prompt
         if case and case.get('rebook_deadline'):
@@ -943,9 +1084,17 @@ def request_appointment():
         updated_appointment = db.db.appointments.find_one({"_id": result.inserted_id})
         
     except Exception as e:
+        # Roll back any reservation we took so the slot doesn't leak on failure.
+        try:
+            if booking_lock_id:
+                db.db.booking_locks.delete_one({'_id': booking_lock_id})
+        except Exception:
+            pass
+        if booked_slot:
+            _release_availability_slot(booked_slot['_id'])
         print(f"Error creating appointment: {str(e)}")
-        return jsonify({'error': f'Error creating appointment: {str(e)}'}), 500
-    
+        return jsonify({'error': 'Could not create the appointment. Please try again.'}), 500
+
     # Send appointment request receipt email
     try:
         student_email = case.get('student_email', '') if case else user.get('email', '')
@@ -2004,72 +2153,14 @@ def get_counselor_slots():
     if not counselor:
         return jsonify({'error': 'Counselor not found'}), 404
 
-    # Early-exit: declared university holiday
-    holiday = db.db.holidays.find_one({'date': date_str})
-    if holiday:
-        return jsonify({'slots': [], 'date': date_str,
-                        'is_holiday': True, 'holiday_name': holiday['name']}), 200
+    # Holiday / counselor-leave check
+    blocked, payload = date_block_reason(counselor_oid, date_str)
+    if blocked:
+        return jsonify(payload), 200
 
-    # Early-exit: counselor has marked this date as leave
-    leave = db.db.counselor_leaves.find_one({'counselor_id': counselor_oid, 'date': date_str})
-    if leave:
-        return jsonify({'slots': [], 'date': date_str, 'is_leave': True}), 200
-
-    SLOT_DURATION = 60  # minutes
-    dow = target_date.weekday()
-
-    doc = db.db.counselor_availability.find_one({'counselor_id': counselor_oid})
-    if not doc or not doc.get('schedule'):
-        return jsonify({'slots': [], 'date': date_str}), 200
-
-    working = next((e for e in doc['schedule'] if e.get('day_of_week') == dow), None)
-    if not working:
-        return jsonify({'slots': [], 'date': date_str}), 200
-
-    sh, sm = map(int, working['start_time'].split(':'))
-    eh, em = map(int, working['end_time'].split(':'))
-    cursor = target_date.replace(hour=sh, minute=sm, second=0, microsecond=0)
-    day_end = target_date.replace(hour=eh, minute=em, second=0, microsecond=0)
-
-    all_slots = []
-    while cursor + timedelta(minutes=SLOT_DURATION) <= day_end:
-        all_slots.append(cursor)
-        cursor += timedelta(minutes=SLOT_DURATION)
-
-    # Exclude slots in the past
-    now = datetime.utcnow()
-    all_slots = [s for s in all_slots if s > now]
-
-    # Exclude already-booked slots
-    day_start_dt = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
-    day_end_dt   = target_date.replace(hour=23, minute=59, second=59)
-    booked = list(db.db.appointments.find({
-        'counselor_id': counselor_oid,
-        'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'PENDING_STUDENT_APPROVAL', 'CHECKED_IN']},
-        '$or': [
-            {'scheduled_start': {'$gte': day_start_dt, '$lte': day_end_dt}},
-            {'requested_start':  {'$gte': day_start_dt, '$lte': day_end_dt}},
-        ],
-    }))
-
-    def is_booked(slot_dt):
-        slot_end = slot_dt + timedelta(minutes=SLOT_DURATION)
-        for apt in booked:
-            apt_start = apt.get('scheduled_start') or apt.get('requested_start')
-            if not apt_start:
-                continue
-            if isinstance(apt_start, str):
-                try:
-                    apt_start = datetime.fromisoformat(apt_start)
-                except Exception:
-                    continue
-            apt_end = apt_start + timedelta(minutes=SLOT_DURATION)
-            if slot_dt < apt_end and slot_end > apt_start:
-                return True
-        return False
-
-    free_slots = [s.strftime('%H:%M') for s in all_slots if not is_booked(s)]
-    return jsonify({'slots': free_slots, 'date': date_str}), 200
+    # Free slots from the counselor's weekly schedule, future only
+    slots = free_slots_for_counselor(counselor_oid, target_date, exclude_past=True)
+    return jsonify({'slots': [s['time'] for s in slots], 'date': date_str}), 200
 
 
 @appointments_bp.route('/<appointment_id>/student-pick-slot', methods=['POST'])
@@ -2356,6 +2447,30 @@ def set_follow_up(appointment_id):
     if existing_pending:
         return jsonify({'error': 'Student already has a pending session to schedule. Wait for them to pick a time first.'}), 409
 
+    # Optional: the counselor sets the follow-up time now. Otherwise it stays a
+    # pick-later request and the student chooses a slot from availability.
+    fu_start = fu_end = None
+    fu_lock_id = None
+    counselor_id = apt.get('counselor_id')
+    try:
+        if data.get('scheduled_start'):
+            fu_start = datetime.fromisoformat(str(data['scheduled_start']).replace('Z', ''))
+        elif data.get('preferred_date') and data.get('preferred_time'):
+            fu_start = datetime.fromisoformat(f"{data['preferred_date']}T{data['preferred_time']}:00")
+    except Exception:
+        fu_start = None
+
+    if fu_start:
+        fu_end = fu_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
+        if fu_start < _ph_now():
+            return jsonify({'error': 'Cannot schedule a follow-up in the past.'}), 400
+        if counselor_id:
+            if has_conflicting_appointment(counselor_id, fu_start, fu_end):
+                return jsonify({'error': 'That time conflicts with another appointment. Please choose another.'}), 409
+            fu_lock_id = _claim_booking_lock(counselor_id, fu_start)
+            if not fu_lock_id:
+                return jsonify({'error': 'That time was just taken. Please choose another.'}), 409
+
     # Mark the current appointment as COMPLETED
     db.db.appointments.update_one(
         {'_id': apt['_id']},
@@ -2376,25 +2491,31 @@ def set_follow_up(appointment_id):
         'student_email': apt.get('student_email', ''),
         'counselor_id': apt.get('counselor_id'),
         'counselor_name': apt.get('counselor_name', ''),
-        'status': AppointmentStatus.REQUESTED.value,
-        'source': 'follow_up_pending',
+        'status': AppointmentStatus.CONFIRMED.value if fu_start else AppointmentStatus.REQUESTED.value,
+        'source': 'follow_up_scheduled' if fu_start else 'follow_up_pending',
         'purpose': 'follow_up_counselling',
         'concern': data.get('notes', apt.get('concern', '')),
         'preferred_method': apt.get('preferred_method', 'in-person'),
         'preferred_platform': apt.get('preferred_platform'),
         'method': apt.get('preferred_method', 'in-person'),
         'office': data.get('office', apt.get('office', '')),
-        'scheduled_start': None,
-        'scheduled_end': None,
+        'requested_start': fu_start,
+        'requested_end': fu_end,
+        'scheduled_start': fu_start,
+        'scheduled_end': fu_end,
         'is_follow_up': True,
         'parent_appointment_id': apt['_id'],
         'created_at': now,
         'updated_at': now,
     }
+    if fu_lock_id:
+        new_apt['booking_lock_id'] = fu_lock_id
     result = db.db.appointments.insert_one(new_apt)
     new_apt['_id'] = result.inserted_id
+    if fu_lock_id:
+        db.db.booking_locks.update_one({'_id': fu_lock_id}, {'$set': {'appointment_id': result.inserted_id}})
 
-    # Notify student to log in and pick a time
+    # Notify the student — either their session is booked, or they need to pick a time.
     try:
         student_doc  = db.db.users.find_one({'_id': apt.get('student_id')})
         counselor_doc = db.db.users.find_one({'_id': apt.get('counselor_id')}) if apt.get('counselor_id') else None
@@ -2402,25 +2523,35 @@ def set_follow_up(appointment_id):
             from services.email_service import send_email
             c_name = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip() if counselor_doc else 'your counselor'
             s_name = student_doc.get('first_name', 'Student')
-            send_email(
-                to=student_doc['email'],
-                subject='Schedule your next counseling session',
-                body=(
+            if fu_start:
+                slot_str = fu_start.strftime('%B %d, %Y at %I:%M %p')
+                subject = 'Your next counseling session is scheduled'
+                body = (
+                    f"Hi {s_name},\n\n"
+                    f"{c_name} has scheduled your next counseling session for {slot_str}.\n\n"
+                    f"Please log in to the CPS portal to view the details.\n\n"
+                    f"CPS Management System\nDe La Salle University"
+                )
+            else:
+                subject = 'Schedule your next counseling session'
+                body = (
                     f"Hi {s_name},\n\n"
                     f"{c_name} has arranged your next counseling session.\n\n"
                     f"Please log in to the CPS portal and pick a date and time that works for you.\n\n"
                     f"Your counselor's available slots will be shown for you to choose from.\n\n"
                     f"CPS Management System\nDe La Salle University"
-                ),
-            )
+                )
+            send_email(to=student_doc['email'], subject=subject, body=body)
     except Exception as email_err:
         print(f"⚠ Follow-up notification email failed: {email_err}")
 
     return jsonify({
-        'message': 'Student notified to pick a time for their next session.',
+        'message': ('Follow-up session scheduled.' if fu_start
+                    else 'Student notified to pick a time for their next session.'),
         'new_appointment_id': str(result.inserted_id),
         'new_counseling_id': new_counseling_id,
-        'status': AppointmentStatus.REQUESTED.value,
+        'scheduled_start': fu_start.isoformat() if fu_start else None,
+        'status': (AppointmentStatus.CONFIRMED.value if fu_start else AppointmentStatus.REQUESTED.value),
     }), 200
 
 
@@ -3536,6 +3667,9 @@ def cancel_appointment(appointment_id):
         except Exception:
             pass
 
+        # Free the counselor's time so the slot can be booked again
+        _release_booking_lock(appointment)
+
         # Remove from Google Calendar
         try:
             cal_event_id = appointment.get('calendar_event_id')
@@ -3734,6 +3868,9 @@ def deny_appointment(appointment_id):
         
         if result.modified_count == 0:
             return jsonify({'error': 'Failed to deny appointment'}), 500
+
+        # Free the counselor's time so the slot can be booked again
+        _release_booking_lock(appointment)
 
         # Notify the student their request was not approved
         try:
@@ -4090,6 +4227,22 @@ def approve_reschedule_request(request_id):
         }
     )
     audit_log(db.db, 'appointments', 'reschedule_approved', entity_id=str(apt_id))
+
+    # Move the counselor time-lock to the new time so the old slot frees up.
+    try:
+        lock_counselor = apt.get('counselor_id')
+        if lock_counselor and new_start:
+            lock_id = apt.get('booking_lock_id')
+            if lock_id:
+                db.db.booking_locks.update_one(
+                    {'_id': lock_id},
+                    {'$set': {'counselor_id': lock_counselor, 'start': new_start}})
+            else:
+                db.db.booking_locks.update_one(
+                    {'counselor_id': lock_counselor, 'start': apt.get('requested_start')},
+                    {'$set': {'start': new_start}})
+    except Exception as e:
+        print(f"⚠ Could not move booking lock on reschedule: {e}")
 
     # Update Google Calendar: delete old event, create new one with the updated time
     try:

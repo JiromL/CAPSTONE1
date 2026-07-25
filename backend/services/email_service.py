@@ -487,3 +487,30 @@ class EmailService:
 def create_email_service():
     """Factory function to create email service"""
     return EmailService()
+
+
+def send_email(to, subject, body):
+    """Send a plain-text notification email.
+
+    Convenience wrapper used by workflow notifications (intake endorsement,
+    session scheduling, follow-up, case closure). Accepts a plain-text body and
+    renders it as simple HTML. Returns True on success or in dev mode, False on
+    failure — callers treat delivery as best-effort and never block on it.
+    """
+    if not to:
+        return False
+    safe = (body or '').replace('\r\n', '\n')
+    paragraphs = ''.join(
+        f'<p style="margin:0 0 12px;">{para.strip().replace(chr(10), "<br>")}</p>'
+        for para in safe.split('\n\n') if para.strip()
+    )
+    html_body = (
+        '<html><body style="font-family: Arial, sans-serif; color:#333; line-height:1.6;">'
+        f'<div style="max-width:600px; margin:0 auto; padding:20px;">{paragraphs}</div>'
+        '</body></html>'
+    )
+    try:
+        return create_email_service()._send_email(to, subject, html_body)
+    except Exception as e:
+        print(f"✗ send_email failed: {e}")
+        return False

@@ -330,6 +330,14 @@ class MongoDB:
             ], name="leave_counselor_date", unique=True)
             self.db.booking_rules.create_index("type", unique=True)
 
+            # Booking mutex: guarantees at most one active appointment per
+            # counselor+start-time, preventing two students from taking the
+            # same slot even under concurrent requests.
+            self.db.booking_locks.create_index([
+                ("counselor_id", ASCENDING),
+                ("start", ASCENDING),
+            ], name="booking_lock_counselor_start", unique=True)
+
         except Exception as e:
             print(f"⚠ MongoDB indexes warning: {e}")
 

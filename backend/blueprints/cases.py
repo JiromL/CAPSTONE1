@@ -574,7 +574,9 @@ def update_case(case_id):
         allowed = VALID_TRANSITIONS.get(current_status, [])
         if new_status not in allowed:
             return jsonify({'error': f'Cannot transition case from {current_status} to {new_status}. Allowed: {allowed}'}), 400
+        # Keep both status fields in sync so every consumer (incl. the booking gate) agrees.
         updates['case_status'] = new_status
+        updates['status'] = new_status
     if 'risk_level' in data:
         updates['risk_level'] = data['risk_level']
         # Crisis notification: if escalated to CRITICAL or RED, alert psychologists immediately
@@ -652,6 +654,7 @@ def assign_case(case_id):
             'assigned_counselor_id': ObjectId(counselor_id),
             'case_type': case_type,
             'case_status': CaseStatus.ACTIVE.value,
+            'status': CaseStatus.ACTIVE.value,
             'updated_at': datetime.utcnow()
         }}
     )
@@ -830,6 +833,7 @@ def close_case(case_id):
         {'_id': ObjectId(case_id)},
         {'$set': {
             'case_status': CaseStatus.CLOSED.value,
+            'status': CaseStatus.CLOSED.value,
             'termination_reason': data.get('termination_reason') or (', '.join(data.get('reasons', [])) if data.get('reasons') else None),
             'termination_date': datetime.utcnow(),
             'final_notes': data.get('final_notes') or data.get('summary'),
@@ -899,6 +903,7 @@ def confirm_no_show_termination(case_id):
         {'_id': ObjectId(case_id)},
         {'$set': {
             'case_status': CaseStatus.CLOSED.value,
+            'status': CaseStatus.CLOSED.value,
             'termination_type': TerminationType.ADMINISTRATIVE.value,
             'termination_reason': 'Administrative termination: 3 consecutive no-shows per CPS protocol.',
             'termination_date': now,

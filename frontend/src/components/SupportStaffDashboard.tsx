@@ -33,16 +33,10 @@ function counselorPalette(name: string) {
   return COUNSELOR_PALETTES[Math.abs(h) % COUNSELOR_PALETTES.length];
 }
 
-function getSessionType(a: any): string {
-  const ref = (a.referral_type || '').toUpperCase();
-  if (ref === 'WALKIN') return 'Walk-in';
-  if (ref.includes('EMERGENCY') || ref.includes('CRISIS')) return 'Crisis';
-  if (ref.includes('FOLLOW')) return 'Follow-up';
-  if (ref === 'INTAKE' || ref === 'EVALUATION') return 'Intake';
-  const status = (a.status || '').toUpperCase();
-  if (status === 'FOLLOW_UP') return 'Follow-up';
-  if (status === 'EVALUATION') return 'Intake';
-  return 'Individual';
+function getSessionMode(a: any): string {
+  const method = (a.method || a.session_method || '').toLowerCase();
+  if (/online|zoom|meet|virtual/i.test(method)) return 'Online';
+  return 'In-Person';
 }
 
 function SessionStatusBadge({ status }: { status: string }) {
@@ -57,7 +51,7 @@ function SessionStatusBadge({ status }: { status: string }) {
     <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>Cancelled</span>
   );
   return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Upcoming</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Confirmed</span>
   );
 }
 
@@ -86,7 +80,7 @@ function TodayScheduleTable({ appts }: { appts: any[] }) {
       ) : (
         <>
           <div className="grid grid-cols-[80px_1fr_100px_120px_36px] px-5 pb-2 gap-3">
-            {['TIME', 'STUDENT', 'TYPE', 'STATUS', ''].map((h, i) => (
+            {['TIME', 'STUDENT', 'MODE', 'STATUS', ''].map((h, i) => (
               <p key={i} className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{h}</p>
             ))}
           </div>
@@ -104,7 +98,7 @@ function TodayScheduleTable({ appts }: { appts: any[] }) {
                     <p className="text-xs truncate" style={{ color: 'var(--color-primary)' }}>{a.counselor_name}</p>
                   )}
                 </div>
-                <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{getSessionType(a)}</span>
+                <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{getSessionMode(a)}</span>
                 <SessionStatusBadge status={a.status} />
                 <Link href={a.case_id ? `/cases/${a.case_id}` : '/appointments'}
                   className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors"

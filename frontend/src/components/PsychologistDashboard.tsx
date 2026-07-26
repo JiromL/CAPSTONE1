@@ -312,7 +312,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
                 )}
               </p>
               {alerts.length > 0 && (
-                <Link href="/high-risk" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
+                <Link href="/cases?risk_level=RED" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
               )}
             </div>
             {alerts.length === 0 ? (

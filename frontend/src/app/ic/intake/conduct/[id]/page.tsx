@@ -1059,8 +1059,8 @@ export default function ConductIntakePage() {
                       <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>PHQ-4 Pre-Screen</p>
                       <div className="grid grid-cols-3 gap-3 mb-2">
                         {[
-                          { l: 'PHQ-2 (Depression)', s: packet.phq4_summary.phq2_score, max: 6, risk: packet.phq4_summary.phq2_at_risk },
-                          { l: 'GAD-2 (Anxiety)',    s: packet.phq4_summary.gad2_score, max: 6, risk: packet.phq4_summary.gad2_at_risk },
+                          { l: 'PHQ-2 (Depression)', s: packet.phq4_summary.phq2_score, max: 6, risk: packet.phq4_summary.depression_risk ?? (packet.phq4_summary.phq2_score >= 3) },
+                          { l: 'GAD-2 (Anxiety)',    s: packet.phq4_summary.gad2_score, max: 6, risk: packet.phq4_summary.anxiety_risk    ?? (packet.phq4_summary.gad2_score  >= 3) },
                           { l: 'PHQ-4 Total',         s: packet.phq4_summary.total_score, max: 12, risk: packet.phq4_summary.total_score >= 6 },
                         ].map(x => (
                           <div key={x.l} className="rounded-xl p-3 text-center"

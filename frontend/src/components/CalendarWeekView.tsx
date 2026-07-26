@@ -319,10 +319,16 @@ function ApptColumn({
                 {dayView && ` – ${fmtTime(apt.scheduled_end)}`}
               </p>
             )}
-            {dayView && height >= 52 && colorBy === 'counselor' && (
+            {height >= 44 && colorBy === 'counselor' && apt.counselor_name && (
               <p className="leading-tight truncate mt-0.5"
-                style={{ color: color.text, opacity: 0.75, fontSize: 10 }}>
+                style={{ color: color.text, opacity: 0.75, fontSize: dayView ? 10 : 9 }}>
                 {apt.counselor_name}
+              </p>
+            )}
+            {height >= 56 && colorBy === 'counselor' && apt.counselor_role && (
+              <p className="leading-tight truncate mt-0.5"
+                style={{ color: color.border, fontSize: 8, fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase', opacity: 0.85 }}>
+                {apt.counselor_role === 'PSYCHOLOGIST' ? 'Psychologist' : 'Counselor'}
               </p>
             )}
             {dayView && height >= 72 && (

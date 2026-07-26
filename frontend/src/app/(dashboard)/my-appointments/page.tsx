@@ -620,6 +620,7 @@ export default function MyAppointmentsPage() {
                           <p className="mt-1 text-xs" style={{ color: 'var(--color-primary)' }}>Proposed new time: {fmtDateTime(appt.reschedule_requested_start)}</p>
                         )}
 
+
                         {/* QR check-in hint for confirmed in-person sessions */}
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">

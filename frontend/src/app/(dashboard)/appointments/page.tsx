@@ -71,6 +71,22 @@ const TABS = [
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
+const COUNSELOR_STAGES: {
+  key: TabKey;
+  label: string;
+  sublabel: string;
+  icon: React.ElementType;
+  accent: string;
+  emptyMsg: string;
+}[] = [
+  { key: 'requests',   label: 'Requests',     sublabel: 'New session requests',     icon: Clock,       accent: 'var(--color-primary)',        emptyMsg: 'No new session requests. Students who book appointments will appear here.' },
+  { key: 'active',     label: 'Active',       sublabel: 'Confirmed sessions',        icon: CheckCircle, accent: 'var(--color-success)',        emptyMsg: 'No confirmed sessions yet.' },
+  { key: 'reschedule', label: 'Reschedule',   sublabel: 'Reschedule requests',       icon: RotateCcw,   accent: 'var(--color-warning)',        emptyMsg: 'No reschedule requests pending.' },
+  { key: 'evaluation', label: 'Post-Session', sublabel: 'Follow-up or close',        icon: Star,        accent: '#F59E0B',                     emptyMsg: 'No sessions awaiting a follow-up decision.' },
+  { key: 'past',       label: 'Completed',    sublabel: 'Past session records',      icon: History,     accent: 'var(--color-text-secondary)', emptyMsg: 'No completed sessions yet.' },
+  { key: 'cancelled',  label: 'Cancelled',    sublabel: 'Cancelled & no-shows',      icon: X,           accent: 'var(--color-danger)',         emptyMsg: 'No cancelled sessions.' },
+];
+
 const TAB_STATUSES: Record<TabKey, string[]> = {
   requests:   ['REQUESTED'],
   active:     ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_APPROVAL'],
@@ -138,6 +154,300 @@ function fmtMethod(m?: string) {
   if (m === 'in-person' || m === 'in_person') return 'Face to Face';
   if (m === 'google-meet' || m === 'google_meet') return 'Google Meet';
   return m.charAt(0).toUpperCase() + m.slice(1);
+}
+
+// ─── Counselor Stage Cards ────────────────────────────────────────────────────
+
+function EmptyStageMsg({ msg, icon: Icon }: { msg: string; icon: React.ElementType }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}>
+        <Icon size={18} style={{ color: 'var(--color-text-muted)' }} />
+      </div>
+      <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>All clear</p>
+      <p className="text-xs mt-1 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>{msg}</p>
+    </div>
+  );
+}
+
+function RequestCard({ apt, actioningId, actionMsg, onView, onAction }: {
+  apt: Appointment; actioningId: string | null;
+  actionMsg: { id: string; type: 'ok' | 'err'; text: string } | null;
+  onView: () => void; onAction: (id: string, ep: string, b?: object) => void;
+}) {
+  const aptId = apt.appointment_id;
+  return (
+    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+      style={{ background: 'var(--color-primary-surface)', borderColor: 'var(--color-primary)' }}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+          {apt.risk_level && !['GREEN', ''].includes(apt.risk_level.toUpperCase()) && (
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ ...riskStyle(apt.risk_level), border: 'none' }}>⚠ {apt.risk_level}</span>
+          )}
+        </div>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
+        {apt.concern && <p className="text-xs mt-1.5 italic" style={{ color: 'var(--color-text-secondary)' }}>"{apt.concern}"</p>}
+        {effDate(apt) && (
+          <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
+            <CalendarDays size={11} />
+            Requested: {fmtDate(effDate(apt))} {fmtTime(effDate(apt))} · {fmtMethod(apt.method)}
+          </p>
+        )}
+        {actionMsg?.id === aptId && (
+          <p className="text-xs mt-1.5 font-medium" style={{ color: actionMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>{actionMsg.text}</p>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 flex-shrink-0">
+        <button onClick={() => onAction(aptId, 'confirm')} disabled={actioningId === aptId}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition hover:opacity-90 whitespace-nowrap"
+          style={{ background: 'var(--color-success)' }}>
+          {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Accept
+        </button>
+        <button onClick={() => onAction(aptId, 'deny')} disabled={actioningId === aptId}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-50 transition whitespace-nowrap"
+          style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-surface)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+          {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />} Decline
+        </button>
+        <button onClick={onView}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+          <Eye size={11} /> Details
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActiveCard({ apt, actioningId, actionMsg, onView, onAction, onNoShow, onSchedule }: {
+  apt: Appointment; actioningId: string | null;
+  actionMsg: { id: string; type: 'ok' | 'err'; text: string } | null;
+  onView: () => void; onAction: (id: string, ep: string, b?: object) => void;
+  onNoShow: () => void; onSchedule: () => void;
+}) {
+  const aptId = apt.appointment_id;
+  const isPending = apt.status === 'PENDING_STUDENT_APPROVAL';
+  const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
+  return (
+    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+      style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+          {apt.risk_level && !['GREEN', ''].includes(apt.risk_level.toUpperCase()) && (
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ ...riskStyle(apt.risk_level), border: 'none' }}>⚠ {apt.risk_level}</span>
+          )}
+        </div>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
+        {effDate(apt) ? (
+          <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
+            <CalendarDays size={11} /> {fmtDate(effDate(apt))} {fmtTime(effDate(apt))} · {fmtMethod(apt.method)}
+          </p>
+        ) : (
+          <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-warning)' }}>No time scheduled yet</p>
+        )}
+        {apt.concern && <p className="text-xs mt-1 italic" style={{ color: 'var(--color-text-muted)' }}>"{apt.concern}"</p>}
+        {actionMsg?.id === aptId && (
+          <p className="text-xs mt-1.5 font-medium" style={{ color: actionMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>{actionMsg.text}</p>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 flex-shrink-0 items-end">
+        {isPending ? (
+          <span className="text-xs font-medium flex items-center gap-1 whitespace-nowrap" style={{ color: 'var(--color-primary)' }}>
+            <CheckCircle size={11} /> Awaiting student
+          </span>
+        ) : isConfirmed && !effDate(apt) ? (
+          <button onClick={onSchedule}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition hover:opacity-90 whitespace-nowrap"
+            style={{ background: 'var(--color-primary)' }}>
+            <CalendarDays size={11} /> Set Schedule
+          </button>
+        ) : (
+          <a href={`/counselor/session/${aptId}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition hover:opacity-90 whitespace-nowrap"
+            style={{ background: 'var(--color-primary)' }}>
+            <NotebookPen size={11} /> Conduct Session
+          </a>
+        )}
+        {apt.meeting_link && isConfirmed && (
+          <a href={apt.meeting_link} target="_blank" rel="noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition font-semibold whitespace-nowrap"
+            style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>
+            <Video size={11} /> Join
+          </a>
+        )}
+        {isConfirmed && !isPending && (
+          <button onClick={onNoShow}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border transition whitespace-nowrap"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-danger)'; e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}>
+            No Show
+          </button>
+        )}
+        <button onClick={onView}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+          <Eye size={11} /> View
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PostSessionCard({ apt, actioningId, actionMsg, pendingAction, setPendingAction, onView, onAction, onFollowUp }: {
+  apt: Appointment; actioningId: string | null;
+  actionMsg: { id: string; type: 'ok' | 'err'; text: string } | null;
+  pendingAction: { aptId: string; action: 'referral'; notes: string } | null;
+  setPendingAction: (v: any) => void;
+  onView: () => void; onAction: (id: string, ep: string, b?: object) => void; onFollowUp: () => void;
+}) {
+  const aptId = apt.appointment_id;
+  return (
+    <div className="rounded-xl border p-4" style={{ background: '#FFFBEB', borderColor: '#F59E0B' }}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+            {apt.risk_level && !['GREEN', ''].includes(apt.risk_level.toUpperCase()) && (
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ ...riskStyle(apt.risk_level), border: 'none' }}>⚠ {apt.risk_level}</span>
+            )}
+          </div>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
+          {effDate(apt) && (
+            <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
+              <CalendarDays size={11} /> Session held: {fmtDate(effDate(apt))} · {fmtMethod(apt.method)}
+            </p>
+          )}
+          {actionMsg?.id === aptId && !pendingAction && (
+            <p className="text-xs mt-1.5 font-medium" style={{ color: actionMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>{actionMsg.text}</p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 flex-shrink-0 items-end">
+          {apt.case_id && (
+            <a href={`/cases/${apt.case_id}?tab=session-notes`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap"
+              style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>
+              <NotebookPen size={11} /> Write Note
+            </a>
+          )}
+          <button onClick={onView}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <Eye size={11} /> View
+          </button>
+        </div>
+      </div>
+      <div className="mt-3 pt-3 flex items-center gap-2 flex-wrap" style={{ borderTop: '1px solid rgba(245,158,11,0.25)' }}>
+        {pendingAction?.aptId === aptId ? (
+          <>
+            <div className="flex-1 min-w-[160px]">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Referral Notes</p>
+              <textarea rows={1} value={pendingAction.notes}
+                onChange={e => setPendingAction({ ...pendingAction, notes: e.target.value })}
+                placeholder="Optional notes…"
+                className="w-full rounded-lg px-2 py-1 text-xs resize-none outline-none"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+            </div>
+            <button onClick={() => onAction(aptId, 'set-referral', { notes: pendingAction.notes })} disabled={actioningId === aptId}
+              className="px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 hover:opacity-90 whitespace-nowrap"
+              style={{ background: 'var(--color-primary)' }}>
+              {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : 'Confirm Referral'}
+            </button>
+            <button onClick={() => setPendingAction(null)}
+              className="px-2.5 py-1.5 border text-xs rounded-lg transition"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>Cancel</button>
+          </>
+        ) : (
+          <>
+            <button onClick={onFollowUp}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition"
+              style={{ background: '#EEF2FF', color: '#4F46E5', borderColor: '#A5B4FC' }}>
+              <RefreshCw size={11} /> Schedule Follow-Up
+            </button>
+            <button onClick={() => setPendingAction({ aptId, action: 'referral', notes: '' })}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition"
+              style={{ background: '#F5F3FF', color: '#7C3AED', borderColor: '#C4B5FD' }}>
+              <ExternalLink size={11} /> Referral
+            </button>
+            <button onClick={() => onAction(aptId, 'complete')} disabled={actioningId === aptId}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition disabled:opacity-50"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <Archive size={11} />}
+              Complete & Close
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CompletedCard({ apt, onView }: { apt: Appointment; onView: () => void }) {
+  const cfg = STATUS_STYLE[apt.status] ?? STATUS_STYLE.COMPLETED;
+  return (
+    <div className="rounded-xl border p-4 flex items-center gap-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full border" style={{ background: cfg.bg, color: cfg.text, borderColor: cfg.border }}>{cfg.label}</span>
+        </div>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
+        {effDate(apt) && <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}><CalendarDays size={11} /> {fmtDate(effDate(apt))}</p>}
+      </div>
+      <div className="flex gap-2 flex-shrink-0">
+        {apt.case_id && (
+          <a href={`/cases/${apt.case_id}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap"
+            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-surface)')}>
+            View Case
+          </a>
+        )}
+        <button onClick={onView}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+          <Eye size={11} /> View
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CancelledCard({ apt, onView }: { apt: Appointment; onView: () => void }) {
+  const cfg = STATUS_STYLE[apt.status] ?? STATUS_STYLE.CANCELLED;
+  return (
+    <div className="rounded-xl border p-4 flex items-center gap-4" style={{ background: 'var(--color-danger-surface)', borderColor: 'rgba(239,68,68,0.25)' }}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{apt.student_name}</p>
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full border" style={{ background: cfg.bg, color: cfg.text, borderColor: cfg.border }}>{cfg.label}</span>
+        </div>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{apt.student_email}</p>
+        {effDate(apt) && <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}><CalendarDays size={11} /> {fmtDate(effDate(apt))}</p>}
+      </div>
+      <button onClick={onView}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition flex-shrink-0 whitespace-nowrap"
+        style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+        <Eye size={11} /> View
+      </button>
+    </div>
+  );
 }
 
 // ─── Mini Schedule Panel ──────────────────────────────────────────────────────
@@ -470,6 +780,7 @@ export default function AppointmentsPage() {
   const displayTab = (activeTab === 'reschedule' && counts.reschedule === 0) ? 'active' : activeTab;
   const filtered = apts.filter(a => TAB_STATUSES[displayTab].includes(a.status));
   const canManage = dashboard?.can_manage_sessions ?? false;
+  const isCounselorView = ['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase() ?? '');
 
   const RISK_ORDER: Record<string, number> = { CRITICAL: 0, RED: 1, YELLOW: 2, GREEN: 3 };
   const displayed = filtered
@@ -577,8 +888,8 @@ export default function AppointmentsPage() {
   return (
     <DashboardPageWrapper title="My Appointments" subtitle="Sessions assigned to you">
 
-      {/* Summary strip */}
-      {dashboard?.summary && (
+      {/* Summary strip — non-counselor only */}
+      {!isCounselorView && dashboard?.summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             { label: 'Total',        value: dashboard.summary.total_appointments ?? apts.length, color: 'var(--color-text-primary)' },
@@ -594,13 +905,80 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {/* Mini week schedule — COUNSELOR / PSYCHOLOGIST only */}
-      {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
-        <MiniSchedulePanel />
+      {/* Stage pipeline strip — counselor view */}
+      {isCounselorView && (
+        <>
+          {/* Desktop: horizontal strip */}
+          <div className="hidden sm:flex rounded-2xl overflow-hidden mb-6"
+            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+            {COUNSELOR_STAGES.map((s, idx) => {
+              const isActive = activeTab === s.key;
+              const stageCount = s.key === 'reschedule' ? reschedReqs.filter(r => r.status === 'pending').length : counts[s.key];
+              const hasItems = stageCount > 0;
+              return (
+                <button key={s.key} type="button" onClick={() => setActiveTab(s.key)}
+                  className="relative flex-1 flex flex-col px-4 pt-4 pb-3 text-left transition"
+                  style={{
+                    borderLeft: idx > 0 ? '1px solid var(--color-border)' : 'none',
+                    borderBottom: isActive ? `3px solid ${s.accent}` : '3px solid transparent',
+                    background: isActive ? `${s.accent}09` : 'transparent',
+                  }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                  {idx > 0 && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 flex items-center justify-center"
+                      style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--color-border)' }}>
+                      <ChevronRight size={10} style={{ color: 'var(--color-text-muted)' }} />
+                    </span>
+                  )}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold tracking-widest px-1.5 py-0.5 rounded-md"
+                      style={{ background: isActive ? `${s.accent}18` : 'var(--color-bg)', color: isActive ? s.accent : 'var(--color-text-muted)' }}>
+                      STEP {idx + 1}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <s.icon size={13} style={{ color: hasItems || isActive ? s.accent : 'var(--color-border-strong)' }} />
+                      <span className="text-xl font-bold tabular-nums" style={{ color: hasItems || isActive ? s.accent : 'var(--color-border-strong)' }}>
+                        {stageCount}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold leading-tight" style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>{s.label}</p>
+                  <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{s.sublabel}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Mobile: 2-col grid */}
+          <div className="sm:hidden grid grid-cols-2 gap-2 mb-4">
+            {COUNSELOR_STAGES.map((s, idx) => {
+              const isActive = activeTab === s.key;
+              const stageCount = s.key === 'reschedule' ? reschedReqs.filter(r => r.status === 'pending').length : counts[s.key];
+              const hasItems = stageCount > 0;
+              return (
+                <button key={s.key} type="button" onClick={() => setActiveTab(s.key)}
+                  className="flex flex-col rounded-xl border px-3 py-3 text-left transition"
+                  style={isActive ? { background: `${s.accent}10`, borderColor: s.accent, borderBottomWidth: 3 } : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                  <span className="text-xs font-bold tracking-widest mb-1.5" style={{ color: isActive ? s.accent : 'var(--color-text-muted)' }}>STEP {idx + 1}</span>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <s.icon size={13} style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }} />
+                    <span className="text-lg font-bold tabular-nums" style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }}>{stageCount}</span>
+                  </div>
+                  <p className="text-xs font-semibold leading-tight" style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>{s.label}</p>
+                  <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{s.sublabel}</p>
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {/* Post-session banner */}
-      {counts.evaluation > 0 && (
+      {/* Mini week schedule — COUNSELOR / PSYCHOLOGIST only */}
+      {isCounselorView && <MiniSchedulePanel />}
+
+      {/* Post-session banner — non-counselor view only */}
+      {!isCounselorView && counts.evaluation > 0 && (
         <div className="flex items-center gap-3 rounded-xl px-4 py-3 mb-4 text-sm border"
           style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
           <Star size={15} className="flex-shrink-0" style={{ color: 'var(--color-warning)' }} />
@@ -660,8 +1038,186 @@ export default function AppointmentsPage() {
         );
       })()}
 
-      {/* Card panel */}
-      <div className="rounded-xl shadow-card border overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      {/* ── Counselor Stage Card ── */}
+      {isCounselorView && (() => {
+        const currentStage = COUNSELOR_STAGES.find(s => s.key === activeTab)!;
+        const stageFiltered = apts
+          .filter(a => TAB_STATUSES[activeTab as TabKey].includes(a.status))
+          .filter(a => !search || a.student_name.toLowerCase().includes(search.toLowerCase()))
+          .sort((a, b) => {
+            const da = effDate(a) ? new Date(effDate(a)!).getTime() : Infinity;
+            const db = effDate(b) ? new Date(effDate(b)!).getTime() : Infinity;
+            return da - db;
+          });
+        function fmtRD(s?: string) { if (!s) return '—'; try { return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }); } catch { return '—'; } }
+        function fmtRT(s?: string) { if (!s) return ''; try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return ''; } }
+        function fmtAgo(s?: string) { if (!s) return ''; try { const h = Math.floor((Date.now() - new Date(s).getTime()) / 3600000); if (h < 1) return 'just now'; if (h < 24) return `${h}h ago`; return `${Math.floor(h/24)}d ago`; } catch { return ''; } }
+        return (
+          <div className="rounded-2xl border shadow-card overflow-hidden animate-fade-up" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            {/* Card header */}
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <div>
+                <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>{currentStage.label}</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{currentStage.sublabel}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {activeTab !== 'reschedule' && (
+                  <div className="relative">
+                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student…"
+                      className="pl-7 pr-3 py-1.5 text-xs rounded-lg outline-none transition w-40"
+                      style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                      onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }} />
+                  </div>
+                )}
+                <button onClick={load} title="Refresh" className="p-1.5 rounded-lg transition border"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                  <RefreshCw size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Stage content */}
+            <div className="p-4 space-y-3">
+              {activeTab === 'requests' && (
+                stageFiltered.length === 0
+                  ? <EmptyStageMsg msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                  : stageFiltered.map(apt => (
+                      <RequestCard key={apt.appointment_id} apt={apt}
+                        actioningId={actioningId} actionMsg={actionMsg}
+                        onView={() => apt.case_id && router.push(`/cases/${apt.case_id}`)}
+                        onAction={doAction} />
+                    ))
+              )}
+              {activeTab === 'active' && (
+                stageFiltered.length === 0
+                  ? <EmptyStageMsg msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                  : stageFiltered.map(apt => (
+                      <ActiveCard key={apt.appointment_id} apt={apt}
+                        actioningId={actioningId} actionMsg={actionMsg}
+                        onView={() => apt.case_id && router.push(`/cases/${apt.case_id}`)}
+                        onAction={doAction}
+                        onNoShow={() => { setNoShowTarget(apt); setNoShowReason(''); }}
+                        onSchedule={() => { setSchedTarget(apt); setSchedDate(''); setSchedTime(''); setSchedOffice(''); setSchedMethod('in_person'); setSchedMsg(null); setSchedMode('slots'); setSchedMySlots([]); }} />
+                    ))
+              )}
+              {activeTab === 'reschedule' && (() => {
+                const reschedCounts = { pending: reschedReqs.filter(r => r.status === 'pending').length, approved: reschedReqs.filter(r => r.status === 'approved').length, denied: reschedReqs.filter(r => r.status === 'denied').length };
+                const reschedFiltered = reschedReqs.filter(r => r.status === reschedTab);
+                return (
+                  <div className="-mx-4 -my-3">
+                    <div className="flex items-center px-2 pt-1 gap-0.5" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                      {(['pending', 'approved', 'denied'] as const).map(t => {
+                        const isAct = reschedTab === t;
+                        const cnt = reschedCounts[t];
+                        return (
+                          <button key={t} onClick={() => setReschedTab(t)}
+                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg transition whitespace-nowrap capitalize"
+                            style={isAct ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderBottom: '2px solid var(--color-primary)' } : { color: 'var(--color-text-muted)' }}
+                            onMouseEnter={e => { if (!isAct) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                            onMouseLeave={e => { if (!isAct) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                            {t}
+                            {cnt > 0 && <span className="text-xs font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1" style={isAct ? { background: 'var(--color-primary)', color: 'white' } : { background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>{cnt}</span>}
+                          </button>
+                        );
+                      })}
+                      <button onClick={loadReschedReqs} className="ml-auto mr-2 mb-1.5 flex items-center gap-1 text-xs transition" style={{ color: 'var(--color-text-muted)' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
+                        <RefreshCw size={12} /> Refresh
+                      </button>
+                    </div>
+                    {reschedLoading ? (
+                      <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                        <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
+                      </div>
+                    ) : reschedFiltered.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-bg)' }}><RotateCcw size={18} style={{ color: 'var(--color-text-muted)' }} /></div>
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>All clear</p>
+                        <p className="text-xs mt-1 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>{reschedTab === 'pending' ? 'No pending reschedule requests.' : `No ${reschedTab} reschedule requests.`}</p>
+                      </div>
+                    ) : (
+                      reschedFiltered.map((req, i) => (
+                        <button key={req._id} onClick={() => { setReschedSelected(req); setReschedActionMsg(null); }}
+                          className="w-full text-left px-5 py-4 transition"
+                          style={{ borderBottom: i < reschedFiltered.length - 1 ? '1px solid var(--color-border)' : 'none' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <div className="flex items-start gap-4">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold mt-0.5" style={{ background: 'var(--color-primary)' }}>
+                              {(req.student_name || 'S').charAt(0)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>{req.student_name || 'Unknown Student'}</p>
+                              <div className="flex items-center gap-2 text-xs flex-wrap">
+                                <span className="px-2 py-1 rounded-lg" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                                  {fmtRD(req.current_time)} {fmtRT(req.current_time)}
+                                </span>
+                                <ArrowRight size={12} style={{ color: 'var(--color-border)' }} />
+                                <span className="px-2 py-1 rounded-lg font-medium"
+                                  style={req.status === 'pending' ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }
+                                    : req.status === 'approved' ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
+                                    : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>
+                                  {fmtRD(req.requested_start)} {fmtRT(req.requested_start)}
+                                </span>
+                              </div>
+                              {req.reason && <p className="text-xs mt-1.5 truncate max-w-xs" style={{ color: 'var(--color-text-muted)' }}>"{req.reason}"</p>}
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border capitalize"
+                                style={req.status === 'pending' ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }
+                                  : req.status === 'approved' ? { background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }
+                                  : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                                {req.status}
+                              </span>
+                              <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{fmtAgo(req.created_at)}</span>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                );
+              })()}
+              {activeTab === 'evaluation' && (
+                stageFiltered.length === 0
+                  ? <EmptyStageMsg msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                  : stageFiltered.map(apt => (
+                      <PostSessionCard key={apt.appointment_id} apt={apt}
+                        actioningId={actioningId} actionMsg={actionMsg}
+                        pendingAction={pendingAction} setPendingAction={setPendingAction}
+                        onView={() => apt.case_id && router.push(`/cases/${apt.case_id}`)}
+                        onAction={doAction}
+                        onFollowUp={() => { setFollowUpTarget(apt); setFollowUpDate(''); setFollowUpTime(''); setFollowUpOffice(''); setFollowUpNotes(''); setFollowUpMsg(null); }} />
+                    ))
+              )}
+              {activeTab === 'past' && (
+                stageFiltered.length === 0
+                  ? <EmptyStageMsg msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                  : stageFiltered.map(apt => (
+                      <CompletedCard key={apt.appointment_id} apt={apt}
+                        onView={() => apt.case_id && router.push(`/cases/${apt.case_id}`)} />
+                    ))
+              )}
+              {activeTab === 'cancelled' && (
+                stageFiltered.length === 0
+                  ? <EmptyStageMsg msg={currentStage.emptyMsg} icon={currentStage.icon} />
+                  : stageFiltered.map(apt => (
+                      <CancelledCard key={apt.appointment_id} apt={apt}
+                        onView={() => apt.case_id && router.push(`/cases/${apt.case_id}`)} />
+                    ))
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Card panel — non-counselor view */}
+      {!isCounselorView && <div className="rounded-xl shadow-card border overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
 
         {/* Tabs */}
         <div className="flex items-end overflow-x-auto px-2 pt-1.5 gap-0.5 scrollbar-hide" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -812,14 +1368,16 @@ export default function AppointmentsPage() {
               : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
             <AlertTriangle size={11} /> High Risk
           </button>
-          <button onClick={() => setMineOnly(v => !v)}
-            aria-label={mineOnly ? 'Show all appointments' : 'Show only my appointments'}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition whitespace-nowrap"
-            style={mineOnly
-              ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }
-              : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
-            Mine only
-          </button>
+          {!['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
+            <button onClick={() => setMineOnly(v => !v)}
+              aria-label={mineOnly ? 'Show all appointments' : 'Show only my appointments'}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition whitespace-nowrap"
+              style={mineOnly
+                ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }
+                : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+              Mine only
+            </button>
+          )}
           {['COUNSELOR', 'PSYCHOLOGIST'].includes(user?.role?.toUpperCase()) && (
             <div className="flex items-center rounded-lg border overflow-hidden ml-1" style={{ borderColor: 'var(--color-border)' }}>
               <button onClick={() => setViewMode('list')} title="List view"
@@ -1126,7 +1684,7 @@ export default function AppointmentsPage() {
             </div>
           </>
         ))}
-      </div>
+      </div>}
 
       {/* ── Reschedule detail modal ── */}
       {reschedSelected && (

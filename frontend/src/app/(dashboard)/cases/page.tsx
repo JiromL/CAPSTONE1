@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
-import { Search, Loader2, AlertCircle, ChevronRight, ChevronLeft, Users, FolderOpen, ShieldAlert, FolderX } from 'lucide-react';
+import { Search, Loader2, AlertCircle, ChevronRight, ChevronLeft, FolderOpen } from 'lucide-react';
 
 const PER_PAGE = 10;
 
@@ -51,47 +51,6 @@ function fmtLabel(s?: string) {
 }
 
 /* ── Stat card ──────────────────────────────────────────── */
-function StatCard({
-  label, value, icon: Icon, active, onClick, accent, dimmed,
-}: {
-  label: string; value: number; icon: any; active: boolean;
-  onClick: () => void; accent?: string; dimmed?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left rounded-2xl px-4 py-4 transition-all duration-150"
-      style={{
-        background: 'var(--color-surface)',
-        border: active
-          ? `1.5px solid var(--color-primary)`
-          : '1px solid var(--color-border)',
-        boxShadow: active
-          ? 'var(--shadow-primary), var(--shadow-card-md)'
-          : 'var(--shadow-card)',
-      }}
-      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card-md)'; }}
-      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card)'; }}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: accent ? `${accent}15` : 'var(--color-border)' }}
-        >
-          <Icon size={16} style={{ color: dimmed ? 'var(--color-text-muted)' : (accent || 'var(--color-primary)') }} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
-            {label}
-          </p>
-          <p className="text-xl font-bold tabular-nums leading-tight" style={{ color: dimmed ? 'var(--color-text-muted)' : 'var(--color-text-primary)' }}>
-            {value}
-          </p>
-        </div>
-      </div>
-    </button>
-  );
-}
 
 /* ── Main ───────────────────────────────────────────────── */
 const SS_KEY = 'cases-list-state';
@@ -105,18 +64,9 @@ export default function CasesPage() {
   const [cases, setCases]       = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
-  const [summary, setSummary]   = useState({ total: 0, active: 0, high_risk: 0, closed: 0 });
   const [searchInput, setSearchInput] = useState<string>(() => readSS().search ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState<string>(() => readSS().search ?? '');
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>(() => readSS().tab ?? 'all');
-  const [myCasesOnly, setMyCasesOnly] = useState<boolean>(() => {
-    const saved = readSS();
-    if (Object.prototype.hasOwnProperty.call(saved, 'myCasesOnly')) return saved.myCasesOnly;
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || '{}');
-      return ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes((u.role || '').toUpperCase());
-    } catch { return false; }
-  });
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>(() => readSS().tab ?? 'active');
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
   const [page, setPage]         = useState<number>(() => readSS().page ?? 1);
   const [total, setTotal]       = useState(0);
@@ -134,9 +84,9 @@ export default function CasesPage() {
   useEffect(() => {
     try {
       const saved = readSS();
-      sessionStorage.setItem(SS_KEY, JSON.stringify({ ...saved, tab: activeTab, page, search: searchInput, myCasesOnly }));
+      sessionStorage.setItem(SS_KEY, JSON.stringify({ ...saved, tab: activeTab, page, search: searchInput }));
     } catch {}
-  }, [activeTab, page, searchInput, myCasesOnly]);
+  }, [activeTab, page, searchInput]);
 
   // Restore scroll after first data load completes
   useEffect(() => {
@@ -182,17 +132,6 @@ export default function CasesPage() {
     } catch {}
   }
 
-  const fetchSummary = useCallback(async () => {
-    if (!user) return;
-    const token = localStorage.getItem('token');
-    try {
-      const r = await fetch(api('/api/cases/summary'), { headers: { Authorization: `Bearer ${token}` } });
-      if (r.ok) setSummary(await r.json());
-    } catch {}
-  }, [user]);
-
-  useEffect(() => { fetchSummary(); }, [fetchSummary]);
-
   const fetchCases = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -203,7 +142,7 @@ export default function CasesPage() {
       if (statusFilter) params.set('status', statusFilter);
       if (activeTab === 'high-risk') params.set('risk_level', 'RED');
       if (debouncedSearch) params.set('q', debouncedSearch);
-      if (myCasesOnly) params.set('my_cases', 'true');
+      if (activeTab !== 'all') params.set('my_cases', 'true');
 
       const r = await fetch(api(`/api/cases?${params}`), { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) throw new Error(`${r.status}`);
@@ -217,7 +156,7 @@ export default function CasesPage() {
     } catch {
       setError('Failed to load cases.');
     } finally { setLoading(false); }
-  }, [user, page, activeTab, debouncedSearch, myCasesOnly]);
+  }, [user, page, activeTab, debouncedSearch]);
 
   useEffect(() => { fetchCases(); }, [fetchCases]);
 
@@ -238,11 +177,11 @@ export default function CasesPage() {
   })();
 
   const TABS = [
-    { id: 'all'       as const, label: 'All',            count: activeTab === 'all'        ? total : null },
     { id: 'active'    as const, label: 'Active',          count: activeTab === 'active'     ? total : null },
     { id: 'attention' as const, label: 'Needs Attention', count: activeTab === 'attention'  ? total : null },
     { id: 'high-risk' as const, label: 'High Risk',       count: activeTab === 'high-risk'  ? total : null },
     { id: 'closed'    as const, label: 'Closed',          count: activeTab === 'closed'     ? total : null },
+    { id: 'all'       as const, label: 'All',             count: activeTab === 'all'        ? total : null },
   ];
 
   const showWellbeing = !['STAFF'].includes(user?.role?.toUpperCase());
@@ -250,13 +189,6 @@ export default function CasesPage() {
   return (
     <DashboardPageWrapper title={pageTitle} subtitle="Manage and track student cases">
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <StatCard label="Total Cases" value={summary.total}     icon={Users}       active={activeTab === 'all'}       onClick={() => handleTabChange('all')}       accent="var(--color-primary)" />
-        <StatCard label="Open"        value={summary.active}    icon={FolderOpen}  active={activeTab === 'active'}    onClick={() => handleTabChange('active')}    accent="var(--color-primary)" />
-        <StatCard label="High Risk"   value={summary.high_risk} icon={ShieldAlert} active={activeTab === 'high-risk'} onClick={() => handleTabChange('high-risk')} accent="var(--color-danger)" dimmed={activeTab !== 'high-risk'} />
-        <StatCard label="Closed"      value={summary.closed}    icon={FolderX}     active={activeTab === 'closed'}    onClick={() => handleTabChange('closed')}    dimmed />
-      </div>
 
       {/* Error */}
       {error && (
@@ -328,23 +260,6 @@ export default function CasesPage() {
                 }}
               />
             </div>
-            {['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(user?.role?.toUpperCase()) && (
-              <button
-                onClick={() => { setMyCasesOnly(v => !v); setPage(1); }}
-                className="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-all duration-150"
-                style={myCasesOnly ? {
-                  background: 'var(--color-primary)',
-                  color: '#fff',
-                  border: '1px solid var(--color-primary)',
-                } : {
-                  background: 'var(--color-bg)',
-                  color: 'var(--color-text-secondary)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                My Cases
-              </button>
-            )}
           </div>
         </div>
 

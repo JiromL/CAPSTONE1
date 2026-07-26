@@ -60,14 +60,14 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/cases': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/counseling-cases': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/check-ins': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
-  '/referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
-  '/my-referrals': ['COUNSELOR', 'PSYCHOLOGIST'],
+  '/referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
+
   '/c2c-referrals': ['COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
   '/counselor': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
   '/video-links': ['COUNSELOR', 'PSYCHOLOGIST', 'ADMIN', 'DPO'],
 
   // Psychologist pages
-  '/high-risk': ['PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/high-risk': ['ADMIN', 'DPO'],
 
   // Admin pages
   '/admin/users':               ['ADMIN', 'DPO'],
@@ -131,7 +131,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/admin/availability': ['ADMIN', 'DPO'],
 
   // Schedule & leave management (counselors/IC manage their availability here)
-  '/schedule': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],
+  '/schedule': ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'STAFF', 'CASE_MANAGER', 'ADMIN', 'DPO'],
 
   // Case detail pages
   '/cases/[id]':       ['IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'],

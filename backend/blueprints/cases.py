@@ -9,8 +9,20 @@ from datetime import datetime
 from bson.objectid import ObjectId
 from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
 from utils import serialize_doc, user_has_permission
+import uuid
 
 cases_bp = Blueprint('cases', __name__, url_prefix='/api/cases')
+
+
+def _ensure_case_number(case):
+    """Lazily assign a case_number to cases created before the field existed."""
+    if case.get('case_number'):
+        return case
+    now = datetime.utcnow()
+    num = f"CPS-{now.year}-{uuid.uuid4().hex[:3].upper()}"
+    db.db.cases.update_one({'_id': case['_id']}, {'$set': {'case_number': num}})
+    case['case_number'] = num
+    return case
 
 
 def has_permission(user_role, permission):
@@ -397,7 +409,9 @@ def get_case(case_id):
     
     if not case:
         return jsonify({'error': 'Case not found'}), 404
-    
+
+    case = _ensure_case_number(case)
+
     # Check access
     user_role = user.get('role')
     if user_role == UserRole.STUDENT and str(case['student_id']) != user_id:

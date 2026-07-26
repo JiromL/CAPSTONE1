@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from './DashboardPageWrapper';
 import { api } from '@/utils/api';
-import { AlertTriangle, Users, ClipboardList, ArrowRight, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ClipboardList, ArrowRight, RefreshCw } from 'lucide-react';
 import { AnnouncementsPanel } from './AnnouncementsPanel';
 
 interface DashboardProps { user: any; onLogout: () => void; }
@@ -127,7 +127,6 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
             {[
               { href: '/case-manager/queue', label: 'CM Queue', icon: AlertTriangle, note: 'Struggling & In Crisis students' },
               { href: '/cases',              label: 'All Cases',  icon: ClipboardList, note: 'View and manage cases' },
-              { href: '/high-risk',          label: 'High-Risk',  icon: Users, note: 'Escalated cases' },
             ].map(({ href, label, icon: Icon, note }, i) => (
               <Link key={href} href={href}
                 className="flex items-center justify-between py-3 text-sm transition-colors group"

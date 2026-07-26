@@ -17,6 +17,11 @@ from integrations import EmailIntegration, ZoomIntegration, GoogleMeetIntegratio
 intake_bp = Blueprint('intake', __name__, url_prefix='/api/intake')
 
 
+def generate_case_number():
+    now = datetime.utcnow()
+    return f"CPS-{now.year}-{uuid.uuid4().hex[:3].upper()}"
+
+
 def generate_counseling_id():
     """Generate a unique counseling ID in format CPS-XXXXXXXX"""
     random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
@@ -574,6 +579,7 @@ def submit_triage(intake_id):
                 'student_email': student_email,
                 'intake_counselor_id': ObjectId(user_id),
                 'assigned_counselor_id': None,
+                'case_number': generate_case_number(),
                 'status': CaseStatus.NEW.value,
                 'risk_level': risk_level,
                 'concern': intake.get('concern', ''),
@@ -636,104 +642,47 @@ def submit_triage(intake_id):
             }}
         )
 
-        # Create follow-up appointment. Always create it so the case is never
-        # left in limbo — counselor_id may be None if IC didn't assign one yet,
-        # in which case admin/staff can assign via Reassignment Suggestions.
-        # Guard: only create one per intake to prevent duplicate re-triages.
-        existing_followup = db.db.appointments.find_one({
-            'endorsed_from_intake': intake['_id'],
-            'status': {'$ne': AppointmentStatus.CANCELLED.value},
-        })
-        if not existing_followup:
-            student_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}" if student_doc else ''
-
-            follow_up_appt = {
-                'student_id': student_id,
-                'student_name': student_name,
-                'counselor_id': counselor_obj_id,
-                'counselor_name': counselor_name if counselor_obj_id else None,
-                'purpose': 'FOLLOW_UP',
-                'status': AppointmentStatus.REQUESTED.value,
-                'concern': intake.get('concern', ''),
-                'risk_level': risk_level,
-                'case_id': case_id,
-                'source': 'endorsed',
-                'endorsed_from_intake': intake['_id'],
-                'method': 'in_person',
-                'preferred_date': None,
-                'preferred_time': None,
+        # Notify student via in-app reminder to book their first session
+        try:
+            role_label = 'counselor' if decision == 'ENDORSE_CC' else 'psychologist'
+            counselor_display = counselor_name if counselor_name else f'a {role_label}'
+            db.db.reminders.insert_one({
+                'user_id': student_id,
+                'title': 'Intake Complete — Book Your First Session',
+                'message': (
+                    f'Your intake interview is complete. '
+                    f'You have been assigned to {counselor_display}. '
+                    'Please log in and book your first counseling session.'
+                ),
+                'type': 'triage_complete',
+                'acknowledged': False,
+                'is_read': False,
                 'created_at': now,
-                'updated_at': now,
-            }
-            db.db.appointments.insert_one(follow_up_appt)
-            # Notify student that intake is complete and they can now schedule
-            try:
-                role_label = 'counselor' if decision == 'ENDORSE_CC' else 'psychologist'
-                counselor_display = counselor_name if counselor_name else f'a {role_label}'
-                db.db.reminders.insert_one({
-                    'user_id': student_id,
-                    'title': 'Intake Complete — Schedule Your First Session',
-                    'message': (
-                        f'Your intake interview is complete. '
-                        f'You have been referred to {counselor_display}. '
-                        'Please log in to schedule your first counseling session.'
-                    ),
-                    'type': 'triage_complete',
-                    'acknowledged': False,
-                    'is_read': False,
-                    'created_at': now,
-                })
-            except Exception:
-                pass
-        else:
-            # Re-triage: update the existing follow-up to reflect the new counselor
-            db.db.appointments.update_one(
-                {'_id': existing_followup['_id']},
-                {'$set': {
-                    'counselor_id': counselor_obj_id,
-                    'counselor_name': counselor_name if counselor_obj_id else None,
-                    'risk_level': risk_level,
-                    'updated_at': now,
-                }}
-            )
-            # Also notify on re-triage (counselor may have changed)
-            try:
-                role_label = 'counselor' if decision == 'ENDORSE_CC' else 'psychologist'
-                counselor_display = counselor_name if counselor_name else f'a {role_label}'
-                db.db.reminders.insert_one({
-                    'user_id': student_id,
-                    'title': 'Your Referral Has Been Updated',
-                    'message': (
-                        f'Your referral has been updated. '
-                        f'You are now assigned to {counselor_display}. '
-                        'Please log in to schedule your counseling session.'
-                    ),
-                    'type': 'triage_updated',
-                    'acknowledged': False,
-                    'is_read': False,
-                    'created_at': now,
-                })
-            except Exception:
-                pass
+            })
+        except Exception:
+            pass
 
     audit_log(db.db, 'intake', 'triage', entity_id=intake_id,
               new_values={'risk_level': risk_level, 'triage_decision': decision})
 
-    # Notify student after endorsement so they know to log in and schedule
+    # Email student: intake done, counselor assigned, book your session
     if decision in ('ENDORSE_CC', 'ENDORSE_CP') and student_doc and student_doc.get('email'):
         try:
             from services.email_service import send_email
-            role_label = 'Counselor' if decision == 'ENDORSE_CC' else 'Psychologist'
+            role_label   = 'Counselor' if decision == 'ENDORSE_CC' else 'Psychologist'
             student_first = student_doc.get('first_name', 'Student')
+            counselor_display = counselor_name if counselor_name else f'a {role_label}'
             send_email(
                 to=student_doc['email'],
-                subject='Your intake interview is complete — schedule your session',
+                subject='Your intake is complete — book your first counseling session',
                 body=(
                     f"Hi {student_first},\n\n"
-                    f"Your intake interview has been reviewed and you have been referred to a {role_label}.\n\n"
-                    f"Please log in to the CPS portal to pick a date and time for your counseling session:\n"
-                    f"https://cps.dlsu.edu.ph/login\n\n"
-                    f"If you have questions, please contact the CPS office directly.\n\n"
+                    f"Your intake interview has been completed and you have been assigned to "
+                    f"{counselor_display}.\n\n"
+                    f"Your next step is to book your first counseling session. "
+                    f"Please log in to the CPS portal and go to Book a Session:\n"
+                    f"https://cps.dlsu.edu.ph/book-appointment\n\n"
+                    f"If you have any questions, please contact the CPS office directly.\n\n"
                     f"CPS Management System\nDe La Salle University"
                 ),
             )

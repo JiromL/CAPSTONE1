@@ -172,6 +172,8 @@ export default function AppointmentsDashboard() {
   const [assignForm, setAssignForm]     = useState({ counselorId: '', date: '', time: '', office: '' });
   const [assigningId, setAssigningId]   = useState<string | null>(null);
   const [assignMsg, setAssignMsg]       = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [workloadMap, setWorkloadMap]   = useState<Record<string, { utilization: string; active_cases: number; active_appointments: number }>>({});
+  const [workloadRec, setWorkloadRec]   = useState<string>('');
   const [freeSlots, setFreeSlots]       = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [assignMode, setAssignMode]     = useState<'slots' | 'manual'>('slots');
@@ -293,6 +295,7 @@ export default function AppointmentsDashboard() {
       const data = await r.json();
       setDashboard(data);
       if (data.can_assign_counselor) fetchCounselors(token!);
+      if (data.role === 'STAFF') fetchWorkload(token!);
       fetchPermaLabels(data.appointments ?? []);
       setError(null);
     } catch (e) {
@@ -315,6 +318,21 @@ export default function AppointmentsDashboard() {
       const all = [...(di.users || []), ...(dc.users || []), ...(dp.users || [])];
       const seen = new Set<string>();
       setCounselors(all.filter(c => { if (seen.has(c._id)) return false; seen.add(c._id); return true; }));
+    } catch {}
+  };
+
+  const fetchWorkload = async (token: string) => {
+    try {
+      const [rc, rp] = await Promise.all([
+        fetch(api('/api/appointments/ic-counselor-workload?role=COUNSELOR'),    { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(api('/api/appointments/ic-counselor-workload?role=PSYCHOLOGIST'), { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const map: Record<string, any> = {};
+      let recId = '';
+      if (rc.ok) { const d = await rc.json(); (d.counselors ?? []).forEach((c: any) => { map[c.counselor_id] = c; }); if (d.recommended_id) recId = d.recommended_id; }
+      if (rp.ok) { const d = await rp.json(); (d.counselors ?? []).forEach((c: any) => { map[c.counselor_id] = c; }); }
+      setWorkloadMap(map);
+      setWorkloadRec(recId);
     } catch {}
   };
 
@@ -762,14 +780,16 @@ export default function AppointmentsDashboard() {
     <div className="space-y-4">
 
       {/* ── Summary strip ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard icon={CalendarDays} label="Total" value={dashboard.summary?.total_appointments ?? apts.length} color="var(--color-text-primary)" />
-        <SummaryCard icon={AlertCircle}  label="New Requests" value={newCount}
-          color={newCount > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)'} highlight={newCount > 0} />
-        <SummaryCard icon={CheckCircle}  label="Confirmed" value={confirmedCount} color="var(--color-primary)" />
-        <SummaryCard icon={Star}         label="Post-Session" value={evalCount}
-          color={evalCount > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)'} highlight={evalCount > 0} />
-      </div>
+      {!isOA && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <SummaryCard icon={CalendarDays} label="Total" value={dashboard.summary?.total_appointments ?? apts.length} color="var(--color-text-primary)" />
+          <SummaryCard icon={AlertCircle}  label="New Requests" value={newCount}
+            color={newCount > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)'} highlight={newCount > 0} />
+          <SummaryCard icon={CheckCircle}  label="Confirmed" value={confirmedCount} color="var(--color-primary)" />
+          <SummaryCard icon={Star}         label="Post-Session" value={evalCount}
+            color={evalCount > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)'} highlight={evalCount > 0} />
+        </div>
+      )}
 
       {/* ── Action banners ────────────────────────────────────────────────── */}
       {isIC && slotsPendingConfirm.length > 0 && (
@@ -1165,6 +1185,9 @@ export default function AppointmentsDashboard() {
                                     setEditTime(apt.preferred_time || '');
                                     setEditOffice(apt.office || '');
                                     setEditMsg(null);
+                                    setFreeSlots([]);
+                                    const t = localStorage.getItem('token');
+                                    if (t && isOA) fetchWorkload(t);
                                   }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg transition"
                                     style={{ color: 'var(--color-text-secondary)', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
@@ -1187,14 +1210,14 @@ export default function AppointmentsDashboard() {
                                   </button>
                                 )}
                                 {canAssign && isNew && !apt.counselor_id && (
-                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); }}
+                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); const t = localStorage.getItem('token'); if (t && isOA) fetchWorkload(t); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#2563eb' }}>
                                     <UserCheck size={12} /> Assign Counselor
                                   </button>
                                 )}
                                 {canAssign && isNew && apt.counselor_id && !isIC && (
-                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); }}
+                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); const t = localStorage.getItem('token'); if (t && isOA) fetchWorkload(t); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#2563eb' }}>
                                     <UserCheck size={12} /> Assign Counselor
@@ -1545,63 +1568,205 @@ export default function AppointmentsDashboard() {
                 </>
               ) : (
                 <>
-                  {/* Manual: counselor dropdown */}
+                  {/* Manual: counselor — workload-aware list for OA, plain select otherwise */}
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                       Counselor <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span>
                     </label>
-                    <select value={assignForm.counselorId}
-                      onChange={e => { const cid = e.target.value; setAssignForm(f => ({ ...f, counselorId: cid })); fetchFreeSlots(cid, assignForm.date); }}
-                      className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
-                      style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
-                      <option value="">Select…</option>
-                      {counselors
-                        .filter(c => {
-                          const isIntake = assignTarget?.purpose === 'intake_interview' || assignTarget?.purpose === 'initial' || assignTarget?.purpose === 'triage_interview';
-                          if (isIntake) return c.role === 'IC';
-                          return c.role === 'COUNSELOR' || c.role === 'PSYCHOLOGIST';
-                        })
-                        .map(c => (
-                          <option key={c._id} value={c._id}>
-                            {`${c.first_name} ${c.last_name || ''}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  {/* Manual: date + time */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Date <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span></label>
-                      <input type="date" value={assignForm.date}
-                        onChange={e => { const d = e.target.value; setAssignForm(f => ({ ...f, date: d })); fetchFreeSlots(assignForm.counselorId, d); }}
-                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
-                        style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                        Time <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span>
-                        {loadingSlots && <span className="ml-1 font-normal normal-case" style={{ color: 'var(--color-border-strong)' }}>loading…</span>}
-                      </label>
-                      {freeSlots.length > 0 ? (
-                        <select value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
+                    {(() => {
+                      const isIntake = assignTarget?.purpose === 'intake_interview' || assignTarget?.purpose === 'initial' || assignTarget?.purpose === 'triage_interview';
+                      const filtered = counselors.filter(c => isIntake ? c.role === 'IC' : c.role === 'COUNSELOR' || c.role === 'PSYCHOLOGIST');
+                      const utilOrder: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2 };
+                      const sorted = [...filtered].sort((a, b) => {
+                        if (a._id === workloadRec) return -1;
+                        if (b._id === workloadRec) return 1;
+                        return (utilOrder[workloadMap[a._id]?.utilization ?? 'HIGH'] ?? 2) - (utilOrder[workloadMap[b._id]?.utilization ?? 'HIGH'] ?? 2);
+                      });
+                      if (isOA && Object.keys(workloadMap).length > 0) {
+                        return (
+                          <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-xl" style={{ border: '1px solid var(--color-border)' }}>
+                            {sorted.map(c => {
+                              const wl = workloadMap[c._id];
+                              const isRec = c._id === workloadRec;
+                              const isSel = assignForm.counselorId === c._id;
+                              const utilColor = wl?.utilization === 'LOW' ? 'var(--color-success)' : wl?.utilization === 'MEDIUM' ? 'var(--color-warning)' : 'var(--color-danger)';
+                              const utilBg   = wl?.utilization === 'LOW' ? 'var(--color-success-surface)' : wl?.utilization === 'MEDIUM' ? 'var(--color-warning-surface)' : 'var(--color-danger-surface)';
+                              return (
+                                <button key={c._id} type="button"
+                                  onClick={() => { setAssignForm(f => ({ ...f, counselorId: c._id })); fetchFreeSlots(c._id, assignForm.date); }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition"
+                                  style={isSel
+                                    ? { background: 'var(--color-primary-surface)', borderBottom: '1px solid var(--color-border)' }
+                                    : { background: 'transparent', borderBottom: '1px solid var(--color-border)' }}
+                                  onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
+                                  onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-sm font-semibold" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+                                        {c.first_name} {c.last_name || ''}
+                                      </span>
+                                      {isRec && (
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                          style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
+                                          ★ Recommended
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                                      {ROLE_LABEL[c.role] ?? c.role}
+                                      {wl && ` · ${wl.active_cases} active cases · ${wl.active_appointments} sessions`}
+                                    </p>
+                                  </div>
+                                  {wl && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                      style={{ background: utilBg, color: utilColor }}>
+                                      {wl.utilization}
+                                    </span>
+                                  )}
+                                  {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      }
+                      return (
+                        <select value={assignForm.counselorId}
+                          onChange={e => { const cid = e.target.value; setAssignForm(f => ({ ...f, counselorId: cid })); fetchFreeSlots(cid, assignForm.date); }}
                           className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                           style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
-                          <option value="">Pick a free slot…</option>
-                          {freeSlots.map(t => { const [h, m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12=h%12||12; return <option key={t} value={t}>{h12}:{String(m).padStart(2,'0')} {ap}</option>; })}
+                          <option value="">Select…</option>
+                          {sorted.map(c => (
+                            <option key={c._id} value={c._id}>
+                              {`${c.first_name} ${c.last_name || ''}`}{c.role ? ` — ${ROLE_LABEL[c.role] ?? c.role}` : ''}
+                            </option>
+                          ))}
                         </select>
-                      ) : (
-                        <div className="space-y-1">
-                          <input type="time" step="1800" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
-                            className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
-                            style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                          {assignForm.counselorId && assignForm.date && !loadingSlots && (
-                            <p className="text-xs" style={{ color: 'var(--color-warning)' }}>No availability set — entering manually</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                      );
+                    })()}
                   </div>
+
+                  {/* Manual: date (mini-calendar) + time (free slots) */}
+                  {(() => {
+                    const { year, month } = assignCalMonth;
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const blanks = (firstDay + 6) % 7;
+                    const cells: (number | null)[] = [...Array(blanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+                    while (cells.length % 7 !== 0) cells.push(null);
+                    const monthLabel = new Date(year, month).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
+                    const toDS = (d: number) => `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const fmtSlotTime = (t: string) => { const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ap}`; };
+                    const selectedDayLabel = assignForm.date ? new Date(assignForm.date + 'T12:00:00').toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric' }) : null;
+                    return (
+                      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                        <div className="flex">
+                          {/* Mini calendar */}
+                          <div className="flex-1 p-3 min-w-0" style={{ borderRight: '1px solid var(--color-border)' }}>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{monthLabel}</p>
+                              <div className="flex gap-0.5">
+                                <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month-1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                                  className="p-1 rounded transition" style={{ color: 'var(--color-text-muted)' }}
+                                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'; }}
+                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}><ChevronLeft size={13} /></button>
+                                <button type="button" onClick={() => setAssignCalMonth(m => { const d = new Date(m.year, m.month+1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                                  className="p-1 rounded transition" style={{ color: 'var(--color-text-muted)' }}
+                                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'; }}
+                                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}><ChevronRight size={13} /></button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-7 mb-1">
+                              {['M','T','W','T','F','S','S'].map((d, i) => (
+                                <div key={i} className="text-center text-xs font-semibold py-0.5" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-7 gap-y-0.5">
+                              {cells.map((day, i) => {
+                                if (!day) return <div key={i} />;
+                                const ds = toDS(day);
+                                const d = new Date(ds + 'T12:00:00'); d.setHours(0,0,0,0);
+                                const selectable = d >= today;
+                                const isSelected = assignForm.date === ds;
+                                const isTodayCell = ds === `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                                return (
+                                  <button key={i} type="button" disabled={!selectable}
+                                    onClick={() => { setAssignForm(f => ({ ...f, date: ds, time: '' })); setFreeSlots([]); fetchFreeSlots(assignForm.counselorId, ds); }}
+                                    className="mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-medium transition"
+                                    style={isSelected
+                                      ? { background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }
+                                      : isTodayCell && selectable
+                                      ? { boxShadow: '0 0 0 2px var(--color-primary)', color: 'var(--color-primary)', fontWeight: 700 }
+                                      : selectable
+                                      ? { color: 'var(--color-text-primary)' }
+                                      : { color: 'var(--color-border-strong)', cursor: 'not-allowed' }}
+                                    onMouseEnter={e => { if (selectable && !isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
+                                    onMouseLeave={e => { if (selectable && !isSelected) (e.currentTarget as HTMLElement).style.background = ''; }}>
+                                    {day}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {/* Slots panel */}
+                          <div className="flex-1 flex flex-col min-w-0">
+                            {!assignForm.date ? (
+                              <div className="flex-1 flex items-center justify-center p-4">
+                                <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+                                  {assignForm.counselorId ? 'Select a date to see availability' : 'Select a counselor then a date'}
+                                </p>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="px-3 pt-3 pb-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                  <p className="text-xs font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{selectedDayLabel}</p>
+                                  {assignForm.time && (
+                                    <div className="mt-1.5">
+                                      <span className="px-2 py-0.5 rounded-lg text-white text-[11px] font-bold" style={{ background: 'var(--color-primary)' }}>{fmtSlotTime(assignForm.time)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 overflow-y-auto max-h-48 p-2 space-y-1.5">
+                                  {loadingSlots && (
+                                    <div className="flex items-center justify-center py-5 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                      <Loader2 size={12} className="animate-spin" /> Loading…
+                                    </div>
+                                  )}
+                                  {!loadingSlots && freeSlots.length === 0 && assignForm.counselorId && (
+                                    <div className="py-3 space-y-2">
+                                      <p className="text-xs px-1" style={{ color: 'var(--color-warning-text)' }}>No slots set — enter time manually:</p>
+                                      <input type="time" step="1800" value={assignForm.time} onChange={e => setAssignForm(f => ({ ...f, time: e.target.value }))}
+                                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                                        style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+                                    </div>
+                                  )}
+                                  {!loadingSlots && !assignForm.counselorId && (
+                                    <p className="text-xs py-4 text-center" style={{ color: 'var(--color-text-muted)' }}>Select a counselor first</p>
+                                  )}
+                                  {!loadingSlots && freeSlots.map(t => {
+                                    const isSel = assignForm.time === t;
+                                    return (
+                                      <button key={t} type="button" onClick={() => setAssignForm(f => ({ ...f, time: t }))}
+                                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition"
+                                        style={isSel
+                                          ? { borderColor: 'var(--color-primary)', background: 'var(--color-primary-surface)' }
+                                          : { borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+                                        onMouseEnter={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; } }}
+                                        onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'; } }}>
+                                        <p className="text-xs font-bold flex-1" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{fmtSlotTime(t)}</p>
+                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px]" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Manual: office */}
                   {(assignTarget?.method === 'in-person' || assignTarget?.method === 'in_person') && (
@@ -2086,31 +2251,121 @@ export default function AppointmentsDashboard() {
               {/* Reassign counselor */}
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                  Reassign Counselor <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(leave blank to keep current)</span>
+                  Counselor <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(leave blank to keep current)</span>
                 </label>
-                <select value={editCounselor} onChange={e => setEditCounselor(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
-                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
-                  <option value="">— Keep: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'} —</option>
-                  {counselors.map((c: any) => (
-                    <option key={c._id} value={c._id}>{c.first_name} {c.last_name || ''} — {ROLE_LABEL[c.role] ?? c.role}</option>
-                  ))}
-                </select>
+                {(() => {
+                  const isIntake = editTarget.purpose === 'intake_interview' || editTarget.purpose === 'initial' || editTarget.purpose === 'triage_interview';
+                  const filtered = counselors.filter((c: any) => isIntake ? c.role === 'IC' : c.role === 'COUNSELOR' || c.role === 'PSYCHOLOGIST');
+                  const utilOrder: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2 };
+                  const sorted = [...filtered].sort((a: any, b: any) => {
+                    if (a._id === workloadRec) return -1;
+                    if (b._id === workloadRec) return 1;
+                    return (utilOrder[workloadMap[a._id]?.utilization ?? 'HIGH'] ?? 2) - (utilOrder[workloadMap[b._id]?.utilization ?? 'HIGH'] ?? 2);
+                  });
+                  if (isOA && Object.keys(workloadMap).length > 0) {
+                    return (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto rounded-xl" style={{ border: '1px solid var(--color-border)' }}>
+                        <button type="button"
+                          onClick={() => { setEditCounselor(''); setFreeSlots([]); }}
+                          className="w-full flex items-center px-3 py-2.5 text-left transition text-sm"
+                          style={editCounselor === ''
+                            ? { background: 'var(--color-primary-surface)', borderBottom: '1px solid var(--color-border)', color: 'var(--color-primary)', fontWeight: 600 }
+                            : { background: 'transparent', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+                          onMouseEnter={e => { if (editCounselor !== '') (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
+                          onMouseLeave={e => { if (editCounselor !== '') (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                          Keep current: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'}
+                          {editCounselor === '' && <span className="ml-auto w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px]" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                        </button>
+                        {sorted.map((c: any) => {
+                          const wl = workloadMap[c._id];
+                          const isRec = c._id === workloadRec;
+                          const isSel = editCounselor === c._id;
+                          const utilColor = wl?.utilization === 'LOW' ? 'var(--color-success)' : wl?.utilization === 'MEDIUM' ? 'var(--color-warning)' : 'var(--color-danger)';
+                          const utilBg   = wl?.utilization === 'LOW' ? 'var(--color-success-surface)' : wl?.utilization === 'MEDIUM' ? 'var(--color-warning-surface)' : 'var(--color-danger-surface)';
+                          return (
+                            <button key={c._id} type="button"
+                              onClick={() => { setEditCounselor(c._id); fetchFreeSlots(c._id, editDate); }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition"
+                              style={isSel
+                                ? { background: 'var(--color-primary-surface)', borderBottom: '1px solid var(--color-border)' }
+                                : { background: 'transparent', borderBottom: '1px solid var(--color-border)' }}
+                              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
+                              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-sm font-semibold" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+                                    {c.first_name} {c.last_name || ''}
+                                  </span>
+                                  {isRec && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                      style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
+                                      ★ Recommended
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                                  {ROLE_LABEL[c.role] ?? c.role}
+                                  {wl && ` · ${wl.active_cases} active cases · ${wl.active_appointments} sessions`}
+                                </p>
+                              </div>
+                              {wl && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                  style={{ background: utilBg, color: utilColor }}>
+                                  {wl.utilization}
+                                </span>
+                              )}
+                              {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+                  return (
+                    <select value={editCounselor}
+                      onChange={e => { setEditCounselor(e.target.value); fetchFreeSlots(e.target.value, editDate); }}
+                      className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                      style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
+                      <option value="">— Keep: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'} —</option>
+                      {sorted.map((c: any) => (
+                        <option key={c._id} value={c._id}>{c.first_name} {c.last_name || ''} — {ROLE_LABEL[c.role] ?? c.role}</option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </div>
 
               {/* Date + time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Date</label>
-                  <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                  <input type="date" value={editDate}
+                    onChange={e => { setEditDate(e.target.value); fetchFreeSlots(editCounselor, e.target.value); }}
                     className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                     style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Time</label>
-                  <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
-                    style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    Time
+                    {loadingSlots && <span className="ml-1 font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>loading…</span>}
+                  </label>
+                  {freeSlots.length > 0 ? (
+                    <select value={editTime} onChange={e => setEditTime(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                      style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
+                      <option value="">Pick a free slot…</option>
+                      {freeSlots.map(t => { const [h, m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12=h%12||12; return <option key={t} value={t}>{h12}:{String(m).padStart(2,'0')} {ap}</option>; })}
+                    </select>
+                  ) : (
+                    <div className="space-y-1">
+                      <input type="time" step="1800" value={editTime} onChange={e => setEditTime(e.target.value)}
+                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
+                        style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+                      {editCounselor && editDate && !loadingSlots && (
+                        <p className="text-xs" style={{ color: 'var(--color-warning)' }}>No availability set — entering manually</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2118,7 +2373,7 @@ export default function AppointmentsDashboard() {
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
                 <input type="text" value={editOffice} onChange={e => setEditOffice(e.target.value)}
-                  placeholder="e.g. Room 203, CPS Office"
+                  placeholder="e.g. Room 203, CPS Office, Bldg. A"
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
               </div>
@@ -2129,19 +2384,18 @@ export default function AppointmentsDashboard() {
                 </p>
               )}
 
-              <div className="flex gap-2">
-                <button onClick={() => setEditTarget(null)}
-                  className="flex-1 px-4 py-2 text-sm rounded-lg transition"
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setEditTarget(null); setFreeSlots([]); }}
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl transition"
                   style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
                   Cancel
                 </button>
                 <button onClick={doEdit} disabled={submittingEdit}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-40"
                   style={{ backgroundColor: '#2563eb' }}>
-                  {submittingEdit && <Loader2 size={13} className="animate-spin" />}
-                  Save Changes
+                  {submittingEdit ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save Changes'}
                 </button>
               </div>
             </div>

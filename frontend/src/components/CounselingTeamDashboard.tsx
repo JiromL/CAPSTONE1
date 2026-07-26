@@ -56,10 +56,8 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 
-  const isPsych = user.role?.toUpperCase() === 'PSYCHOLOGIST';
   const LINKS = [
     { href: '/cases',        label: 'My Cases' },
-    ...(isPsych ? [{ href: '/high-risk', label: 'High-Risk Monitoring' }] : []),
     { href: '/appointments', label: 'My Schedule' },
     { href: '/mhbot',        label: 'MHBot / PERMA' },
   ];

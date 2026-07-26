@@ -1526,8 +1526,8 @@ export default function CaseDetailPage() {
             <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Case Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p style={{ color: 'var(--color-text-secondary)' }}>Student ID</p>
-                <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{caseData.student_id}</p>
+                <p style={{ color: 'var(--color-text-secondary)' }}>Student No.</p>
+                <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{studentSchoolId}</p>
               </div>
               <div>
                 <p style={{ color: 'var(--color-text-secondary)' }}>Client Status</p>

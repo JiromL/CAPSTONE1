@@ -3089,69 +3089,65 @@ def get_appointment_details(appointment_id):
         counselor = None
         if counselor_id:
             counselor = db.db.users.find_one({"_id": counselor_id})
-        
+
         # Get case info
         case = None
         if appointment.get('case_id'):
             case = db.db.cases.find_one({"_id": appointment.get('case_id')})
-        
-        # Helper function to convert ObjectIds to strings recursively
-        def convert_objectids(obj):
-            if isinstance(obj, dict):
-                for key, value in obj.items():
-                    if isinstance(value, ObjectId):
-                        obj[key] = str(value)
-                    elif isinstance(value, (dict, list)):
-                        obj[key] = convert_objectids(value)
-                    elif hasattr(value, 'isoformat'):
-                        try:
-                            obj[key] = value.isoformat() if not isinstance(value, str) else value
-                        except:
-                            pass
-            elif isinstance(obj, list):
-                for i, item in enumerate(obj):
-                    if isinstance(item, ObjectId):
-                        obj[i] = str(item)
-                    elif isinstance(item, (dict, list)):
-                        obj[i] = convert_objectids(item)
-                    elif hasattr(item, 'isoformat'):
-                        try:
-                            obj[i] = item.isoformat() if not isinstance(item, str) else item
-                        except:
-                            pass
-            return obj
-        
-        # Format response
+
+        # Get student info
+        student = None
+        student_id_field = appointment.get('student_id')
+        if student_id_field:
+            student = db.db.users.find_one({"_id": student_id_field})
+        if not student and case and case.get('student_id'):
+            student = db.db.users.find_one({"_id": case.get('student_id')})
+
+        def fmt_dt(v):
+            if v is None:
+                return None
+            return v.isoformat() if hasattr(v, 'isoformat') and not isinstance(v, str) else v
+
+        method = appointment.get('method') or appointment.get('preferred_method') or appointment.get('preferred_platform', '')
+
         response = {
-            'id': str(appointment['_id']),
-            'type': appointment.get('appointment_type', 'followup'),
+            # Both _id and id so frontend works regardless of which field it reads
+            '_id': str(appointment['_id']),
+            'id':  str(appointment['_id']),
+            'case_id': str(case['_id']) if case else None,
             'status': appointment.get('status', 'pending'),
-            'preferred_platform': appointment.get('preferred_platform', 'in-person'),
+            'appointment_type': appointment.get('appointment_type', 'followup'),
+            'method': method,
+            'preferred_method': method,
+            'preferred_platform': method,
             'meeting_link': appointment.get('meeting_link'),
-            'requested_start': appointment.get('requested_start').isoformat() if appointment.get('requested_start') and hasattr(appointment.get('requested_start'), 'isoformat') else appointment.get('requested_start'),
-            'requested_end': appointment.get('requested_end').isoformat() if appointment.get('requested_end') and hasattr(appointment.get('requested_end'), 'isoformat') else appointment.get('requested_end'),
-            'scheduled_start': appointment.get('scheduled_start').isoformat() if appointment.get('scheduled_start') and hasattr(appointment.get('scheduled_start'), 'isoformat') else appointment.get('scheduled_start'),
-            'scheduled_end': appointment.get('scheduled_end').isoformat() if appointment.get('scheduled_end') and hasattr(appointment.get('scheduled_end'), 'isoformat') else appointment.get('scheduled_end'),
             'meeting_id': appointment.get('meeting_id'),
             'meeting_passcode': appointment.get('meeting_passcode'),
+            'requested_start':  fmt_dt(appointment.get('requested_start')),
+            'requested_end':    fmt_dt(appointment.get('requested_end')),
+            'scheduled_start':  fmt_dt(appointment.get('scheduled_start')),
+            'scheduled_end':    fmt_dt(appointment.get('scheduled_end')),
+            'preferred_date':   fmt_dt(appointment.get('preferred_date') or appointment.get('requested_start')),
+            'student_name':  appointment.get('student_name') or (f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else ''),
+            'student_email': appointment.get('student_email') or (student.get('email', '') if student else ''),
+            'student_id_number': appointment.get('student_id_number') or (student.get('student_id') or student.get('id_number', '') if student else ''),
+            'concern': appointment.get('concern') or appointment.get('purpose') or (case.get('concern') or case.get('presenting_concern', '') if case else ''),
+            'risk_level': appointment.get('risk_level') or (case.get('risk_level', '') if case else ''),
             'counselor': {
                 'id': str(counselor['_id']),
                 'name': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}",
                 'email': counselor.get('email'),
-                'role': counselor.get('role')
+                'role': counselor.get('role'),
             } if counselor else None,
             'case': {
                 'id': str(case['_id']),
                 'student_id': str(case.get('student_id')),
                 'status': case.get('status'),
-                'risk_level': case.get('risk_level')
+                'risk_level': case.get('risk_level'),
             } if case else None,
-            'created_at': appointment.get('created_at').isoformat() if appointment.get('created_at') and hasattr(appointment.get('created_at'), 'isoformat') else appointment.get('created_at')
+            'created_at': fmt_dt(appointment.get('created_at')),
         }
-        
-        # Convert all remaining ObjectIds
-        convert_objectids(response)
-        
+
         return jsonify(response), 200
     
     except Exception as e:
@@ -3427,7 +3423,7 @@ def ic_counselor_workload():
     """Return counselor/psychologist workload for IC routing, with a recommendation."""
     user_id = get_jwt_identity()
     caller = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
-    if not caller or caller.get('role') not in ('IC', 'ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST'):
+    if not caller or caller.get('role') not in ('IC', 'STAFF', 'ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST'):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     role = request.args.get('role', 'COUNSELOR').upper()

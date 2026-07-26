@@ -43,7 +43,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Dashboard',    href: '/dashboard',    id: 'dashboard'   },
     DIV,
     { label: 'Cases',        href: '/cases',        id: 'cases'       },
-    { label: 'My Referrals', href: '/my-referrals', id: 'my-referrals'},
     { label: 'Appointments', href: '/appointments', id: 'appointments'},
     { label: 'My Schedule',  href: '/schedule',     id: 'schedule'    },
     { label: 'EMA Bot',      href: '/mhbot',        id: 'mhbot'       },
@@ -55,7 +54,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const psychologistItems: MenuItem[] = [
     { label: 'Dashboard',            href: '/dashboard',   id: 'dashboard'   },
     DIV,
-    { label: 'High-Risk Monitoring', href: '/high-risk',   id: 'high-risk'   },
     { label: 'Cases',                href: '/cases',       id: 'cases'       },
     { label: 'Appointments',         href: '/appointments',id: 'appointments'},
     { label: 'My Schedule',          href: '/schedule',    id: 'schedule'    },
@@ -70,8 +68,6 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     DIV,
     { label: 'CM Queue',     href: '/case-manager/queue', id: 'cm-queue'     },
     { label: 'Cases',        href: '/cases',              id: 'cases'        },
-    { label: 'High-Risk',    href: '/high-risk',          id: 'high-risk'    },
-    { label: 'Referrals',    href: '/referrals',          id: 'referrals'    },
     { label: 'Appointments', href: '/appointments',       id: 'appointments' },
     DIV,
     { label: 'Profile',      href: '/profile',            id: 'profile'      },
@@ -83,9 +79,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     DIV,
     { label: 'Appointment Requests', href: '/appointment-requests',  id: 'appointments'       },
     { label: 'CPS Calendar',         href: '/schedule',              id: 'schedule'           },
-    { label: 'Counselor Schedules',  href: '/counselor-schedules',   id: 'counselor-schedules'},
     { label: 'Walk-In Intake',       href: '/staff/walkin-intake',   id: 'walk-in-intake'     },
-    { label: 'Appointments',         href: '/appointments',          id: 'appointments'       },
     DIV,
     { label: 'Profile',              href: '/profile',               id: 'profile'            },
   ];
@@ -161,7 +155,6 @@ export function getActiveSectionFromPath(pathname: string): string {
     'appointments':         'appointments',
     'appointment-requests': 'appointments',
     'reschedule-requests':  'appointments',
-    'my-referrals':         'my-referrals',
     'walk-in-intake':       'walk-in-intake',
     'walkin-intake':        'walk-in-intake',
 

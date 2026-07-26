@@ -694,10 +694,6 @@ export default function WalkinIntakePage() {
                     </F>
                     <F label="Currently Living With"><input className={IC} style={ICS} value={spif.living_with} onChange={e => setS('living_with', e.target.value)} placeholder="e.g. Parents, Alone, Dorm" /></F>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <F label="Birth Order"><input className={IC} style={ICS} value={spif.birth_order} onChange={e => setS('birth_order', e.target.value)} placeholder="e.g. 1st of 3" /></F>
-                    <F label="Number of Siblings"><input type="number" min="0" className={IC} style={ICS} value={spif.number_of_siblings} onChange={e => setS('number_of_siblings', e.target.value)} /></F>
-                  </div>
                 </SectionCard>
 
                 <SectionCard icon={Heart} title="Physical Health History" headerStyle={violetHeader}>
@@ -733,34 +729,6 @@ export default function WalkinIntakePage() {
                         <input className={IC} style={ICS} value={spif.previous_psychiatric_details} onChange={e => setS('previous_psychiatric_details', e.target.value)} placeholder="Diagnosis, medications, when" />
                       </F>
                     )}
-                    <F label="Family Mental Health History">
-                      <input className={IC} style={ICS} value={spif.family_mental_health_history} onChange={e => setS('family_mental_health_history', e.target.value)} placeholder="Any known mental health conditions in the family (optional)" />
-                    </F>
-                  </div>
-                </SectionCard>
-
-                <SectionCard icon={Heart} title="Lifestyle" headerStyle={violetHeader}>
-                  <div className="grid grid-cols-3 gap-2">
-                    <F label="Avg. Sleep per Night"><input className={IC} style={ICS} value={spif.sleep_hours} onChange={e => setS('sleep_hours', e.target.value)} placeholder="e.g. 5–6 hrs" /></F>
-                    <F label="Exercise Frequency">
-                      <select className={IC} style={ICS} value={spif.exercise_frequency} onChange={e => setS('exercise_frequency', e.target.value)}>
-                        <option value="daily">Daily</option>
-                        <option value="3-4x_week">3–4× a week</option>
-                        <option value="1-2x_week">1–2× a week</option>
-                        <option value="rarely">Rarely</option>
-                        <option value="never">Never</option>
-                      </select>
-                    </F>
-                    <F label="Substance Use">
-                      <select className={IC} style={ICS} value={spif.substance_use} onChange={e => setS('substance_use', e.target.value)}>
-                        <option value="none">None</option>
-                        <option value="alcohol_occasional">Alcohol (occasional)</option>
-                        <option value="alcohol_regular">Alcohol (regular)</option>
-                        <option value="tobacco">Tobacco / Vaping</option>
-                        <option value="recreational_drugs">Recreational drugs</option>
-                        <option value="multiple">Multiple substances</option>
-                      </select>
-                    </F>
                   </div>
                 </SectionCard>
               </div>

@@ -37,7 +37,7 @@ def get_analytics_summary():
     try:
         # Total cases
         total_cases = db.db.cases.count_documents({})
-        active_cases = db.db.cases.count_documents({'case_status': {'$in': ['ACTIVE', 'active']}})
+        active_cases = db.db.cases.count_documents({'$or': [{'case_status': {'$in': ['ACTIVE', 'active']}}, {'status': {'$in': ['ACTIVE', 'active']}}]})
         closed_cases = db.db.cases.count_documents({'case_status': {'$in': ['CLOSED', 'closed']}})
 
         # High-risk cases
@@ -214,7 +214,7 @@ def get_staff_workload():
                     {'counselor_id': staff_id},
                     {'assigned_counselor_id': staff_id},
                 ],
-                'case_status': {'$in': ['active', 'ACTIVE']}
+                '$or': [{'case_status': {'$in': ['ACTIVE', 'active']}}, {'status': {'$in': ['ACTIVE', 'active']}}]
             })
 
             # Total appointments
@@ -377,7 +377,7 @@ def get_risk_trends():
         # Current risk distribution
         current_distribution = {}
         for item in db.db.cases.aggregate([
-            {'$match': {'case_status': {'$in': ['ACTIVE', 'active']}}},
+            {'$match': {'$or': [{'case_status': {'$in': ['ACTIVE', 'active']}}, {'status': {'$in': ['ACTIVE', 'active']}}]}},
             {'$group': {'_id': '$risk_level', 'count': {'$sum': 1}}}
         ]):
             current_distribution[item['_id']] = item['count']

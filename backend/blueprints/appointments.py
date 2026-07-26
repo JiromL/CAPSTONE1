@@ -104,8 +104,7 @@ def has_conflicting_appointment(counselor_id, start_time, end_time):
         AppointmentStatus.CONFIRMED.value,
         AppointmentStatus.MATCHED.value,
         AppointmentStatus.APPROVED.value,
-        AppointmentStatus.CHECKED_IN.value,
-    ]
+        AppointmentStatus.CHECKED_IN.value]
     try:
         # Check both requested_start (for unscheduled) and scheduled_start (for confirmed slots)
         conflict = db.db.appointments.find_one({
@@ -113,8 +112,7 @@ def has_conflicting_appointment(counselor_id, start_time, end_time):
             'status': {'$in': active_statuses},
             '$or': [
                 {'requested_start':  {'$lt': end_time}, 'requested_end':  {'$gt': start_time}},
-                {'scheduled_start':  {'$lt': end_time}, 'scheduled_end':  {'$gt': start_time}},
-            ]
+                {'scheduled_start':  {'$lt': end_time}, 'scheduled_end':  {'$gt': start_time}}]
         })
         return conflict is not None
     except Exception as e:
@@ -129,9 +127,7 @@ def get_counselor_workload(counselor_id):
             'counselor_id': counselor_id,
             'status': {'$in': [
                 AppointmentStatus.CONFIRMED.value,
-                AppointmentStatus.MATCHED.value,
-                'SCHEDULED'
-            ]}
+                AppointmentStatus.MATCHED.value]}
         })
     except Exception as e:
         print(f"Error getting workload: {str(e)}")
@@ -598,7 +594,7 @@ def check_active_appointment():
                 'appointment_id': str(active_appointment['_id']),
                 'status': active_appointment.get('status'),
                 'appointment_time': appointment_time,
-                'appointment_type': active_appointment.get('appointment_type', 'unknown'),
+                'purpose': active_appointment.get('purpose') or active_appointment.get('appointment_type', 'unknown'),
                 'counselor_id': str(active_appointment.get('counselor_id', '')) if active_appointment.get('counselor_id') else None,
                 'message': 'You already have an active appointment. Please complete or cancel it before booking a new one.',
                 'can_self_book': False,
@@ -924,8 +920,7 @@ def request_appointment():
                 AppointmentStatus.PENDING_APPROVAL.value,
                 AppointmentStatus.APPROVED.value,
                 AppointmentStatus.CONFIRMED.value,
-                AppointmentStatus.MATCHED.value,
-            ]},
+                AppointmentStatus.MATCHED.value]},
         })
         if existing_open:
             return jsonify({
@@ -1655,16 +1650,13 @@ def validate_slot():
         'status': {'$in': [AppointmentStatus.CONFIRMED.value, AppointmentStatus.MATCHED.value]}
     }
 
-    appointments = list(db.db.appointments.find(overlap_q))
-    conflict = False
-    for a in appointments:
-        a_start = a.get('requested_start')
-        a_end = a.get('requested_end')
-        if isinstance(a_start, datetime) and isinstance(a_end, datetime):
-            # overlap if start < a_end and end > a_start
-            if start_dt < a_end and end_dt > a_start:
-                conflict = True
-                break
+    # Check using scheduled_start/end (confirmed apts) OR requested_start/end (pending)
+    conflict = db.db.appointments.find_one({
+        **overlap_q,
+        '$or': [
+            {'$and': [{'scheduled_start': {'$lt': end_dt}}, {'scheduled_end': {'$gt': start_dt}}]},
+            {'$and': [{'requested_start': {'$lt': end_dt}}, {'requested_end': {'$gt': start_dt}}]}]
+    }) is not None
 
     return jsonify({'available': not conflict}), 200
 
@@ -2105,8 +2097,7 @@ def get_pending_session():
         'status': AppointmentStatus.REQUESTED.value,
         '$or': [
             {'scheduled_start': None},
-            {'scheduled_start': {'$exists': False}},
-        ],
+            {'scheduled_start': {'$exists': False}}],
         'counselor_id': {'$exists': True, '$ne': None},
     })
 
@@ -2205,8 +2196,7 @@ def student_pick_slot(appointment_id):
             'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
             '$or': [
                 {'scheduled_start': {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
-                {'requested_start':  {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
-            ],
+                {'requested_start':  {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}}],
         })
         if conflict:
             return jsonify({'error': 'That slot was just taken. Please pick another time.'}), 409
@@ -2219,8 +2209,7 @@ def student_pick_slot(appointment_id):
             'status': {'$in': ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
             '$or': [
                 {'scheduled_start': {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
-                {'requested_start':  {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}},
-            ],
+                {'requested_start':  {'$lt': scheduled_end, '$gt': scheduled_start - timedelta(minutes=60)}}],
         })
         if conflict:
             return jsonify({'error': 'That slot was just taken. Please pick another time.'}), 409
@@ -3374,7 +3363,7 @@ def get_workload_report():
             # Count by appointment status
             confirmed_count = db.db.appointments.count_documents({
                 'counselor_id': counselor['_id'],
-                'status': {'$in': [AppointmentStatus.CONFIRMED.value, AppointmentStatus.MATCHED.value, 'SCHEDULED']}
+                'status': {'$in': [AppointmentStatus.CONFIRMED.value, AppointmentStatus.MATCHED.value]}
             })
             
             pending_count = db.db.appointments.count_documents({
@@ -3443,11 +3432,11 @@ def ic_counselor_workload():
         cid = c['_id']
         active_appts = db.db.appointments.count_documents({
             'counselor_id': cid,
-            'status': {'$in': ['CONFIRMED', 'MATCHED', 'SCHEDULED', 'REQUESTED']},
+            'status': {'$in': ['CONFIRMED', 'MATCHED', 'REQUESTED']},
         })
         this_week = db.db.appointments.count_documents({
             'counselor_id': cid,
-            'status': {'$in': ['CONFIRMED', 'MATCHED', 'SCHEDULED']},
+            'status': {'$in': ['CONFIRMED', 'MATCHED']},
             'scheduled_start': {'$gte': week_start, '$lt': week_end},
         })
         active_cases = db.db.cases.count_documents({
@@ -3506,8 +3495,7 @@ def get_reassignment_suggestions():
             {
                 '$or': [
                     {'case_status': {'$in': active_statuses}},
-                    {'status': {'$in': active_statuses}},
-                ],
+                    {'status': {'$in': active_statuses}}],
                 'assigned_counselor_id': {'$exists': True, '$ne': None},
             },
             {'_id': 1, 'assigned_counselor_id': 1, 'student_id': 1}
@@ -4982,8 +4970,7 @@ def walkin_capacity():
         'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
         '$or': [
             {'scheduled_start': {'$gte': today_start, '$lte': today_end}},
-            {'requested_start':  {'$gte': today_start, '$lte': today_end}},
-        ],
+            {'requested_start':  {'$gte': today_start, '$lte': today_end}}],
     }
     if counselor_id_str:
         try:

@@ -60,7 +60,7 @@ const TAB_STATUSES: Record<TabKey, string[]> = {
   new:        ['REQUESTED', 'PENDING_APPROVAL'],
   confirmed:  ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'RESCHEDULE_REQUESTED'],
   evaluation: ['EVALUATION'],
-  done:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL', 'CANCELLED', 'DENIED', 'NO_SHOW', 'RESCHEDULED'],
+  done:       ['COMPLETED', 'FOLLOW_UP', 'REFERRAL', 'CANCELLED', 'DENIED', 'NO_SHOW', 'RESCHEDULED', 'CLOSED_AT_INTAKE'],
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -79,6 +79,7 @@ const STATUS_LABEL: Record<string, string> = {
   NO_SHOW:              'No Show',
   RESCHEDULE_REQUESTED: 'Reschedule Pending',
   RESCHEDULED:          'Rescheduled',
+  CLOSED_AT_INTAKE:     'Closed at Intake',
 };
 
 const STATUS_BADGE_STYLE: Record<string, React.CSSProperties> = {
@@ -96,6 +97,7 @@ const STATUS_BADGE_STYLE: Record<string, React.CSSProperties> = {
   CANCELLED:            { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
   DENIED:               { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
   NO_SHOW:              { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)', boxShadow: '0 0 0 1px #fecaca' },
+  CLOSED_AT_INTAKE:     { background: 'var(--color-bg)', color: 'var(--color-text-muted)', boxShadow: '0 0 0 1px var(--color-border)' },
 };
 
 const RISK_BADGE_STYLE: Record<string, React.CSSProperties> = {

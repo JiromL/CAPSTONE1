@@ -581,9 +581,17 @@ print(f"✅ Intakes created\n")
 
 # ── APPOINTMENTS ──────────────────────────────────────────────────────────────
 def appt(sid, cid, case_id, status, atype, method, start, mins=50, **kw):
+    purpose = kw.pop('purpose', None)
+    if purpose is None:
+        if atype.upper() == 'INTAKE':
+            purpose = 'intake_interview'
+        elif status.upper() == 'FOLLOW_UP':
+            purpose = 'follow_up'
+        else:
+            purpose = 'counseling'
     return db.appointments.insert_one({
         'student_id':sid,'counselor_id':cid,'case_id':case_id,'status':status,
-        'appointment_type':atype,'method':method,
+        'appointment_type':atype,'purpose':purpose,'method':method,
         'scheduled_start':start,'scheduled_end':start+timedelta(minutes=mins),
         'created_at':start-timedelta(days=7),'updated_at':now,**kw
     }).inserted_id
@@ -920,6 +928,292 @@ for ic_idx, ic_id in enumerate(ICS):
             kw['completed_at'] = start + timedelta(hours=1)
         appt(sid, ic_id, None, status, 'INTAKE', method, start, mins=60, **kw)
     print(f"  ✓ {ic_name}: 7 intake queue appointments")
+
+print(f"\n✅ All IC queue appointments seeded\n")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FUTURE APPOINTMENT CHAINS — proper business flow seeds
+# Each chain: REQUESTED intake_interview → (after intake) counselor assigned → future sessions
+# ══════════════════════════════════════════════════════════════════════════════
+print("Seeding future appointment chains (proper business flow)...")
+
+# ── Chain A: Brand-new student, just submitted intake request (not yet processed) ──
+# s4 (Alex Chen) already has two REQUESTED intake appointments from the unassigned block.
+# Add 2 more fresh REQUESTED intake_interview appointments from other students.
+# Using IC_Q students beyond the 56 pattern ones (indices 57–59 if they exist, else reuse)
+
+# Chain B: Student just completed intake yesterday → case INTAKE_SCHEDULED → first counseling CONFIRMED ahead
+# Create a mini case to represent a student who went through intake and is waiting for first counselor session.
+# We'll use s4 (Alex Chen) — they had a REQUESTED intake; suppose it was processed and a counselor was just assigned.
+chain_b_case = db.cases.insert_one({
+    'student_id': s4, 'student_name': 'Alex Chen', 'student_email': 'student4@university.edu',
+    'assigned_counselor_id': c_chelly, 'intake_counselor_id': ic_gracie,
+    'case_status': 'INTAKE_SCHEDULED', 'status': 'INTAKE_SCHEDULED',
+    'risk_level': 'GREEN',
+    'concern': 'First year transition anxiety and adjustment difficulty',
+    'presenting_issue': 'Adjustment disorder, first year',
+    'case_number': 'CPS-2025-021',
+    'check_ins': [],
+    'intake_interview_form': {
+        'type_of_service': 'Intake Interview',
+        'presenting_concern': 'First year transition anxiety, feeling overwhelmed by academic workload',
+        'phq9_responses': [1,1,0,1,0,0,0,1,0], 'phq9_score': 4,
+        'gad7_responses': [2,1,1,1,0,0,1], 'gad7_score': 6,
+        'triage_decision': 'ENDORSE_CC', 'risk_level': 'GREEN',
+        'endorsed_to': 'COUNSELOR',
+        'endorsement_notes': 'Mild anxiety, first-year adjustment. Appropriate for counseling-level care.',
+        'session_date': dago(2).isoformat(), 'session_method': 'Online',
+        'ic_name': 'Gracie Mendoza', 'student_name': 'Alex Chen',
+    },
+    'endorsed_to_role': 'COUNSELOR', 'endorsed_at': dago(2),
+    'endorsed_by': str(ic_gracie), 'source': 'online',
+    'created_at': dago(3), 'updated_at': now,
+}).inserted_id
+# Intake completed 2 days ago
+appt(s4, ic_gracie, chain_b_case, 'COMPLETED', 'INTAKE', 'Online', H(2, 10), purpose='intake_interview', completed_at=H(2, 11))
+# First counselor session confirmed next week
+appt(s4, c_chelly, chain_b_case, 'CONFIRMED', 'COUNSELING', 'Online', F(5, 14), purpose='counseling')
+# Second session tentatively scheduled
+appt(s4, c_chelly, chain_b_case, 'CONFIRMED', 'COUNSELING', 'Online', F(12, 14), purpose='counseling')
+print("  ✓ Chain B: Alex Chen — intake done, counselor assigned (c_chelly), 2 future sessions CONFIRMED")
+
+# Chain C: Student mid-treatment — 3 sessions done, 2 future follow-ups scheduled
+# Create a new student (reuse s4's data template pattern — pick from IC_Q tail if available)
+# Use IC_Q[55] and IC_Q[56] if they exist (names: 'Abel', 'Bea'), else create fresh
+try:
+    chain_c_sid = IC_Q[55]  # Abel
+    chain_c_student = db.users.find_one({'_id': chain_c_sid})
+    chain_c_name = chain_c_student.get('name', 'Abel Reyes') if chain_c_student else 'Abel Reyes'
+    chain_c_email = chain_c_student.get('email', '') if chain_c_student else ''
+except IndexError:
+    chain_c_sid = s10
+    chain_c_name = 'Lena Park'
+    chain_c_email = 'student10@university.edu'
+
+chain_c_case = db.cases.insert_one({
+    'student_id': chain_c_sid, 'student_name': chain_c_name, 'student_email': chain_c_email,
+    'assigned_counselor_id': c_daye, 'intake_counselor_id': ic_wil,
+    'case_status': 'ACTIVE', 'status': 'ACTIVE',
+    'risk_level': 'GREEN',
+    'concern': 'Test anxiety and mild perfectionism affecting coursework',
+    'presenting_issue': 'Test anxiety, perfectionism',
+    'case_number': 'CPS-2025-022',
+    'check_ins': [],
+    'intake_interview_form': {
+        'type_of_service': 'Intake Interview',
+        'presenting_concern': 'Persistent test anxiety; catastrophizes exam results',
+        'phq9_responses': [1,0,1,1,0,0,0,1,0], 'phq9_score': 4,
+        'gad7_responses': [2,2,1,1,1,0,1], 'gad7_score': 8,
+        'triage_decision': 'ENDORSE_CC', 'risk_level': 'GREEN',
+        'endorsed_to': 'COUNSELOR',
+        'endorsement_notes': 'Moderate test anxiety. Short-term counseling appropriate.',
+        'session_date': dago(28).isoformat(), 'session_method': 'Online',
+        'ic_name': 'Wil Santos', 'student_name': chain_c_name,
+    },
+    'endorsed_to_role': 'COUNSELOR', 'endorsed_at': dago(28),
+    'endorsed_by': str(ic_wil), 'source': 'online',
+    'treatment_plan': {
+        'goals': [
+            {'goal': 'Reduce test anxiety using CBT techniques', 'target_date': ymd(dfrom(14)), 'status': 'in_progress'},
+            {'goal': 'Build confidence in academic performance', 'target_date': ymd(dfrom(28)), 'status': 'not_started'},
+        ],
+        'interventions': ['CBT for test anxiety', 'Systematic desensitization', 'Self-compassion exercises'],
+        'progress_summary': 'Client is making steady progress. Catastrophic thinking around exams has reduced noticeably after 3 sessions.',
+        'estimated_duration': '6–8 sessions', 'next_review_date': ymd(dfrom(14)),
+    },
+    'created_at': dago(30), 'updated_at': now,
+}).inserted_id
+# Intake (past)
+appt(chain_c_sid, ic_wil, chain_c_case, 'COMPLETED', 'INTAKE', 'Online', H(28, 11), purpose='intake_interview', completed_at=H(28, 12))
+# 3 completed counseling sessions
+appt(chain_c_sid, c_daye, chain_c_case, 'COMPLETED', 'COUNSELING', 'Online', H(21, 14), purpose='counseling', completed_at=H(21, 15))
+appt(chain_c_sid, c_daye, chain_c_case, 'COMPLETED', 'COUNSELING', 'Online', H(14, 14), purpose='counseling', completed_at=H(14, 15))
+appt(chain_c_sid, c_daye, chain_c_case, 'COMPLETED', 'COUNSELING', 'Online', H(7, 14), purpose='counseling', completed_at=H(7, 15))
+# 2 future sessions
+appt(chain_c_sid, c_daye, chain_c_case, 'CONFIRMED', 'COUNSELING', 'Online', F(3, 14), purpose='counseling')
+appt(chain_c_sid, c_daye, chain_c_case, 'CONFIRMED', 'COUNSELING', 'Online', F(10, 14), purpose='follow_up')
+# Session notes for completed sessions
+db.session_notes.insert_one({
+    'case_id': chain_c_case, 'counselor_id': c_daye, 'session_date': H(21, 14),
+    'session_type': 'INDIVIDUAL', 'note_format': 'SOAP',
+    'soap': {
+        'subjective': 'Client describes intense worry before quizzes — "my mind goes blank." Has been avoiding study sessions to prevent anxiety.',
+        'objective': 'Client appeared anxious, fidgety. Avoidance behavior clearly established.',
+        'assessment': 'Test anxiety with avoidance pattern. CBT conceptualization introduced and accepted.',
+        'plan': 'Introduce thought records for pre-exam spiraling. Assign 20-minute study exposure sessions.',
+    },
+    'mood_rating': 5, 'risk_flagged': False, 'is_deleted': False, 'current_version': 1, 'edit_history': [],
+    'created_at': H(21, 14), 'updated_at': H(21, 14),
+})
+db.session_notes.insert_one({
+    'case_id': chain_c_case, 'counselor_id': c_daye, 'session_date': H(14, 14),
+    'session_type': 'INDIVIDUAL', 'note_format': 'SOAP',
+    'soap': {
+        'subjective': 'Completed thought records. Reports the catastrophizing was "obviously exaggerated" in hindsight. Did 3 study exposure sessions.',
+        'objective': 'Noticeably less physical tension. Initiated discussion. Mood 6/10.',
+        'assessment': 'CBT gaining traction. Avoidance breaking. Cognitive restructuring effective.',
+        'plan': 'Continue exposure. Introduce exam simulation exercise. Begin confidence journaling.',
+    },
+    'mood_rating': 6, 'risk_flagged': False, 'is_deleted': False, 'current_version': 1, 'edit_history': [],
+    'created_at': H(14, 14), 'updated_at': H(14, 14),
+})
+db.session_notes.insert_one({
+    'case_id': chain_c_case, 'counselor_id': c_daye, 'session_date': H(7, 14),
+    'session_type': 'INDIVIDUAL', 'note_format': 'SOAP',
+    'soap': {
+        'subjective': 'Took an actual quiz this week. Felt anxious but did not blank out. Passed the quiz.',
+        'objective': 'Client appeared proud. Some relief. Mood 7/10. Good eye contact.',
+        'assessment': 'Significant behavioral progress. Test anxiety reducing with real-world success experience.',
+        'plan': 'Continue building success evidence. Discuss performance separate from self-worth. Plan 2 more sessions.',
+    },
+    'mood_rating': 7, 'risk_flagged': False, 'is_deleted': False, 'current_version': 1, 'edit_history': [],
+    'created_at': H(7, 14), 'updated_at': H(7, 14),
+})
+print(f"  ✓ Chain C: {chain_c_name} — 3 sessions done, 2 future sessions, 3 session notes")
+
+# Chain D: Psychologist case — intake done, 2 completed sessions, 1 upcoming follow-up
+try:
+    chain_d_sid = IC_Q[56]  # Bea
+    chain_d_student = db.users.find_one({'_id': chain_d_sid})
+    chain_d_name = chain_d_student.get('name', 'Bea Santos') if chain_d_student else 'Bea Santos'
+    chain_d_email = chain_d_student.get('email', '') if chain_d_student else ''
+except IndexError:
+    chain_d_sid = s11
+    chain_d_name = 'Carlos Diaz'
+    chain_d_email = 'student11@university.edu'
+
+chain_d_case = db.cases.insert_one({
+    'student_id': chain_d_sid, 'student_name': chain_d_name, 'student_email': chain_d_email,
+    'assigned_counselor_id': p_shel, 'intake_counselor_id': ic_ria,
+    'case_status': 'ACTIVE', 'status': 'ACTIVE',
+    'risk_level': 'YELLOW',
+    'concern': 'Chronic worry and sleep disturbance affecting academic performance',
+    'presenting_issue': 'GAD, insomnia',
+    'case_number': 'CPS-2025-023',
+    'check_ins': [],
+    'intake_interview_form': {
+        'type_of_service': 'Intake Interview',
+        'presenting_concern': 'Cannot stop worrying; disrupted sleep for 6 weeks',
+        'phq9_responses': [2,2,1,2,1,0,1,2,0], 'phq9_score': 11,
+        'gad7_responses': [3,2,2,2,1,1,2], 'gad7_score': 13,
+        'triage_decision': 'ENDORSE_CP', 'risk_level': 'YELLOW',
+        'endorsed_to': 'PSYCHOLOGIST',
+        'endorsement_notes': 'GAD-7=13 indicates moderate-severe anxiety. Sleep impairment. Psychologist-level care appropriate.',
+        'session_date': dago(20).isoformat(), 'session_method': 'F2F',
+        'ic_name': 'Ria Ocampo', 'student_name': chain_d_name,
+    },
+    'endorsed_to_role': 'PSYCHOLOGIST', 'endorsed_at': dago(20),
+    'endorsed_by': str(ic_ria), 'source': 'walk_in',
+    'treatment_plan': {
+        'goals': [
+            {'goal': 'Reduce GAD-7 score below 8', 'target_date': ymd(dfrom(30)), 'status': 'in_progress'},
+            {'goal': 'Establish consistent sleep schedule', 'target_date': ymd(dfrom(21)), 'status': 'in_progress'},
+        ],
+        'interventions': ['GAD-focused CBT', 'Sleep restriction therapy', 'Worry time scheduling'],
+        'progress_summary': 'Client engaged well in first two sessions. Worry journaling initiated. Sleep improving from 4 to 5.5 hours.',
+        'estimated_duration': '8–10 sessions', 'next_review_date': ymd(dfrom(7)),
+    },
+    'diagnoses': [{'code': 'F41.1', 'name': 'Generalized Anxiety Disorder', 'system': 'ICD-10',
+                   'notes': 'Chronic worry >6 weeks, sleep impairment', 'added_at': dago(13), 'added_by': str(p_shel)}],
+    'created_at': dago(22), 'updated_at': now,
+}).inserted_id
+# Intake (past)
+appt(chain_d_sid, ic_ria, chain_d_case, 'COMPLETED', 'INTAKE', 'F2F', H(20, 9), purpose='intake_interview', completed_at=H(20, 10))
+# 2 completed psychologist sessions
+appt(chain_d_sid, p_shel, chain_d_case, 'COMPLETED', 'COUNSELING', 'F2F', H(13, 11), purpose='counseling', completed_at=H(13, 12))
+appt(chain_d_sid, p_shel, chain_d_case, 'COMPLETED', 'COUNSELING', 'F2F', H(6, 11), purpose='counseling', completed_at=H(6, 12))
+# 1 future session confirmed + 1 follow-up
+appt(chain_d_sid, p_shel, chain_d_case, 'CONFIRMED', 'COUNSELING', 'F2F', F(1, 11), purpose='counseling')
+appt(chain_d_sid, p_shel, chain_d_case, 'CONFIRMED', 'COUNSELING', 'F2F', F(8, 11), purpose='follow_up')
+# Session notes
+db.session_notes.insert_one({
+    'case_id': chain_d_case, 'counselor_id': p_shel, 'session_date': H(13, 11),
+    'session_type': 'INDIVIDUAL', 'note_format': 'SOAP',
+    'soap': {
+        'subjective': 'Client describes worrying as constant background noise. Sleeps only 4 hours per night. Cannot identify a single worry-free day in the last month.',
+        'objective': 'Client appeared tired, restless. Dark circles. GAD-7=13 confirmed by self-report.',
+        'assessment': 'Generalized Anxiety Disorder (F41.1) with secondary insomnia. Chronic worry dominant feature.',
+        'plan': 'Introduce worry time scheduling (30 min daily). Sleep hygiene education. Assign worry journal.',
+    },
+    'mood_rating': 4, 'risk_flagged': False, 'is_deleted': False, 'current_version': 1, 'edit_history': [],
+    'created_at': H(13, 11), 'updated_at': H(13, 11),
+})
+db.session_notes.insert_one({
+    'case_id': chain_d_case, 'counselor_id': p_shel, 'session_date': H(6, 11),
+    'session_type': 'INDIVIDUAL', 'note_format': 'SOAP',
+    'soap': {
+        'subjective': 'Used worry journal 5 of 7 days. Noticed that most worries did not materialize. Sleeping 5.5 hours — improvement from 4.',
+        'objective': 'Slightly more relaxed posture. Spoke faster and with more affect. Mood 5/10.',
+        'assessment': 'Early engagement with CBT techniques. Worry time working partially. Sleep improving.',
+        'plan': 'Introduce sleep restriction protocol. Continue worry time. Add cognitive challenging of catastrophic predictions.',
+    },
+    'mood_rating': 5, 'risk_flagged': False, 'is_deleted': False, 'current_version': 1, 'edit_history': [],
+    'created_at': H(6, 11), 'updated_at': H(6, 11),
+})
+print(f"  ✓ Chain D: {chain_d_name} — psychologist case (p_shel), 2 sessions done, 2 future, GAD diagnosis")
+
+# Chain E: CLOSED case with full termination — student completed 6 sessions and graduated successfully
+try:
+    chain_e_sid = IC_Q[57]  # Cruz
+    chain_e_student = db.users.find_one({'_id': chain_e_sid})
+    chain_e_name = chain_e_student.get('name', 'Cruz Reyes') if chain_e_student else 'Cruz Reyes'
+    chain_e_email = chain_e_student.get('email', '') if chain_e_student else ''
+except IndexError:
+    chain_e_sid = s16
+    chain_e_name = 'Nina Cruz'
+    chain_e_email = 'student16@university.edu'
+
+chain_e_case = db.cases.insert_one({
+    'student_id': chain_e_sid, 'student_name': chain_e_name, 'student_email': chain_e_email,
+    'assigned_counselor_id': c_rose_t, 'intake_counselor_id': ic_mars,
+    'case_status': 'CLOSED', 'status': 'CLOSED',
+    'risk_level': 'GREEN',
+    'concern': 'Academic performance anxiety following a failed subject',
+    'presenting_issue': 'Failure anxiety, academic confidence',
+    'case_number': 'CPS-2025-024',
+    'check_ins': [],
+    'intake_interview_form': {
+        'type_of_service': 'Intake Interview',
+        'presenting_concern': 'Failed a major subject for the first time; catastrophizing future failure',
+        'phq9_responses': [2,1,1,1,1,0,0,1,0], 'phq9_score': 7,
+        'gad7_responses': [2,2,1,1,1,0,1], 'gad7_score': 8,
+        'triage_decision': 'ENDORSE_CC', 'risk_level': 'GREEN',
+        'endorsed_to': 'COUNSELOR',
+        'endorsement_notes': 'Situational anxiety following academic failure. Counselor level appropriate.',
+        'session_date': dago(75).isoformat(), 'session_method': 'F2F',
+        'ic_name': 'Mars Dela Cruz', 'student_name': chain_e_name,
+    },
+    'endorsed_to_role': 'COUNSELOR', 'endorsed_at': dago(75),
+    'endorsed_by': str(ic_mars), 'source': 'walk_in',
+    'treatment_plan': {
+        'goals': [
+            {'goal': 'Reframe failure as learning opportunity', 'target_date': ymd(dago(30)), 'status': 'completed'},
+            {'goal': 'Build academic resilience strategies', 'target_date': ymd(dago(14)), 'status': 'completed'},
+        ],
+        'interventions': ['Cognitive restructuring', 'Growth mindset development', 'Study skills coaching'],
+        'progress_summary': 'Client successfully completed all treatment goals. Academic confidence restored. PHQ-9 at intake 7, at closure 2. Case closed with excellent outcomes.',
+        'estimated_duration': '6 sessions', 'next_review_date': None,
+    },
+    'termination_reason': 'Goals achieved — academic resilience restored, PHQ-9 score normalized to 2',
+    'termination_date': dago(15),
+    'termination_form': {
+        'goals_met': True,
+        'progress_summary': 'Client demonstrated significant growth from a fearful, avoidant state to a confident, proactive approach to academics.',
+        'referral_to': [],
+    },
+    'final_notes': f'{chain_e_name} showed remarkable resilience. All 6 sessions attended on time. Final PHQ-9=2, GAD-7=3. No further counseling needed at this time.',
+    'created_at': dago(77), 'updated_at': dago(15),
+}).inserted_id
+# Full session history (6 sessions, all COMPLETED)
+chain_e_apts = [H(70,10), H(63,10), H(56,10), H(49,10), H(42,10), H(30,10)]
+for i, session_dt in enumerate(chain_e_apts):
+    st = 'COMPLETED'
+    appt(chain_e_sid, c_rose_t, chain_e_case, st, 'INTAKE' if i==0 else 'COUNSELING', 'F2F', session_dt,
+         purpose='intake_interview' if i==0 else ('follow_up' if i==5 else 'counseling'),
+         completed_at=session_dt+timedelta(hours=1))
+print(f"  ✓ Chain E: {chain_e_name} — CLOSED case, 6 sessions all COMPLETED, termination form")
+
+print(f"\n✅ Future appointment chains seeded\n")
 
 print(f"\n✅ All appointments seeded\n")
 
@@ -1302,13 +1596,121 @@ print(f"✅ {len(notifs)} notifications seeded\n")
 
 # ── ANNOUNCEMENTS ─────────────────────────────────────────────────────────────
 for a in [
-    {'title':'Mental Health Awareness Week — Schedule of Activities','body':'Join us this week for free mindfulness sessions, art therapy workshops, and a panel discussion on student wellbeing.','event_type':'event','pinned':True,'is_active':True,'created_by':admin_id,'created_at':dago(3)},
-    {'title':'New Online Booking System — Now Available','body':'Students may now book intake appointments online through the CPS portal. Walk-in services remain available Monday–Friday, 8 AM–5 PM.','event_type':'info','pinned':False,'is_active':True,'created_by':admin_id,'created_at':dago(10)},
-    {'title':'Clinic Hours Extended for Midterm Season','body':'The CPS counseling clinic will extend operating hours to 7 PM on weekdays from now until the end of the midterm examination period.','event_type':'notice','pinned':False,'is_active':True,'created_by':dpo_id,'created_at':dago(5)},
-    {'title':'Upcoming: Psychoeducation on Anxiety Management','body':'A free psychoeducation session on managing academic anxiety will be held next Friday at the Main Hall. Open to all students — no appointment needed.','event_type':'event','pinned':False,'is_active':True,'created_by':p_daryl,'created_at':dago(2)},
+    # Pinned event — Mental Health Week
+    {
+        'title': 'Mental Health Awareness Week 2026 — Full Schedule',
+        'body': (
+            'Join CPS this week for a series of free activities celebrating student wellbeing:\n\n'
+            '• Monday 9 AM — Mindfulness & Breathwork Workshop (Yuchengco Hall, Rm 301)\n'
+            '• Tuesday 2 PM — Art Therapy Drop-In Session (Student Lounge, Br. Andrew Hall)\n'
+            '• Wednesday 12 PM — Panel: "Real Talk: Mental Health in University Life" (Henry Sy Sr. Hall Auditorium)\n'
+            '• Thursday 10 AM — Free Anonymous Stress Screening (CPS Office, Rm 112)\n'
+            '• Friday 3 PM — Closing Program with Games, Raffle, and Gratitude Wall\n\n'
+            'All events are free and open to all DLSU students, faculty, and staff. No registration required.'
+        ),
+        'event_type': 'event', 'pinned': True, 'is_active': True,
+        'created_by': admin_id, 'created_at': dago(3),
+    },
+    # Webinar — upcoming
+    {
+        'title': 'Webinar: Understanding Burnout and Recovering Your Energy',
+        'body': (
+            'CPS invites all students to an interactive online webinar on academic burnout.\n\n'
+            'Date: ' + dfrom(10).strftime('%B %d, %Y') + ' | 2:00 PM – 4:00 PM\n'
+            'Platform: Zoom (link will be sent via your university email upon registration)\n\n'
+            'Topics covered:\n'
+            '• What burnout actually is (and what it isn\'t)\n'
+            '• Early warning signs in students\n'
+            '• Evidence-based recovery strategies\n'
+            '• Q&A with licensed psychologists\n\n'
+            'Register at the CPS portal under "Upcoming Events." Slots are limited to 80 participants.'
+        ),
+        'event_type': 'webinar', 'pinned': False, 'is_active': True,
+        'created_by': p_daryl, 'created_at': dago(4),
+    },
+    # Webinar — past (still active/visible)
+    {
+        'title': 'Recording Available: Webinar on Managing Exam Anxiety',
+        'body': (
+            'Missed our exam anxiety webinar last month? The full recording is now available!\n\n'
+            'The session covered:\n'
+            '• The neuroscience of test anxiety\n'
+            '• Cognitive strategies to manage pre-exam spiraling\n'
+            '• Day-of-exam grounding techniques\n'
+            '• When to seek professional support\n\n'
+            'Access the recording through the CPS Resources section in the student portal. '
+            'A written summary and self-help worksheet are also attached.'
+        ),
+        'event_type': 'webinar', 'pinned': False, 'is_active': True,
+        'created_by': p_bon, 'created_at': dago(18),
+    },
+    # Notice — clinic hours
+    {
+        'title': 'Notice: Extended Clinic Hours During Finals Season',
+        'body': (
+            'Effective immediately through the end of the final examination period, the CPS counseling clinic '
+            'will operate on extended hours:\n\n'
+            '• Monday–Friday: 8:00 AM – 7:00 PM (regular hours: 8 AM – 5 PM)\n'
+            '• Saturday: 9:00 AM – 12:00 PM (new)\n\n'
+            'Walk-in intake sessions are available during all hours on a first-come, first-served basis. '
+            'Online appointment booking through the portal remains available 24/7.\n\n'
+            'Students experiencing acute distress may approach the reception desk for immediate triage.'
+        ),
+        'event_type': 'notice', 'pinned': False, 'is_active': True,
+        'created_by': dpo_id, 'created_at': dago(5),
+    },
+    # Notice — data privacy
+    {
+        'title': 'Important: Updated Data Privacy Policy for Counseling Records',
+        'body': (
+            'In compliance with the Data Privacy Act of 2012 (RA 10173) and the updated university data governance '
+            'framework, CPS has revised its data retention and access policy for counseling records.\n\n'
+            'Key changes effective this semester:\n'
+            '• Session notes are retained for a minimum of 7 years from case closure\n'
+            '• Students may request a summary of their own records at any time through the portal\n'
+            '• Third-party access (including parents and faculty) requires written consent from the student, '
+            'except in medical emergencies\n\n'
+            'For questions or consent requests, contact the Data Privacy Officer at dpo@university.edu '
+            'or visit the DPO office at Admin Bldg Room 201.'
+        ),
+        'event_type': 'notice', 'pinned': False, 'is_active': True,
+        'created_by': dpo_id, 'created_at': dago(12),
+    },
+    # Info — new portal feature
+    {
+        'title': 'New: Online Appointment Booking Now Available in the Student Portal',
+        'body': (
+            'Students can now book intake appointments directly through the CPS portal — no need to visit the '
+            'office or call in.\n\n'
+            'How to book:\n'
+            '1. Log in to the student portal and navigate to "Book Appointment"\n'
+            '2. Select your preferred date, time, and session method (F2F or Online)\n'
+            '3. Submit your request — an Intake Counselor will confirm within 1–2 business days\n\n'
+            'Walk-in services remain available Monday–Friday, 8 AM–5 PM for students who prefer in-person intake. '
+            'Questions? Email cps@university.edu or call local 312.'
+        ),
+        'event_type': 'info', 'pinned': False, 'is_active': True,
+        'created_by': admin_id, 'created_at': dago(21),
+    },
+    # Event — psychoeducation session
+    {
+        'title': 'Free Drop-In: Coping with Academic Pressure — Psychoeducation Session',
+        'body': (
+            'A free, non-clinical psychoeducation session on managing academic pressure will be held at the '
+            'Main Hall next week.\n\n'
+            'When: ' + dfrom(7).strftime('%A, %B %d, %Y') + ' | 11:00 AM – 12:30 PM\n'
+            'Where: Henry Sy Sr. Hall Lobby (ground floor)\n'
+            'Who: Open to ALL students — no appointment, no registration needed\n\n'
+            'Facilitated by CPS licensed counselors and psychologists. Topics include: deadline management, '
+            'imposter syndrome, and building a personal support system during high-stress periods.\n\n'
+            'Light snacks will be provided. Bring a friend!'
+        ),
+        'event_type': 'event', 'pinned': False, 'is_active': True,
+        'created_by': c_rose_t, 'created_at': dago(2),
+    },
 ]:
     db.announcements.insert_one(a)
-print("✅ Announcements seeded\n")
+print("✅ Announcements seeded (webinar × 2, event × 2, notice × 2, info × 1)\n")
 
 # ── RESOURCES ─────────────────────────────────────────────────────────────────
 for r in [

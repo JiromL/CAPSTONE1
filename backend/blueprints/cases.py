@@ -33,7 +33,7 @@ def has_permission(user_role, permission):
 
 def get_cases_for_user(user_id, user_role):
     """Get cases filtered by role"""
-    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER, UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.IC]:
+    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER, UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.IC, UserRole.STAFF]:
         # These roles see all cases (further scoped by my_cases param if needed)
         return {}
     elif user_role == UserRole.STUDENT:
@@ -68,8 +68,12 @@ def get_student_current_case():
     # Get assigned counselor name if any
     counselor_name = None
     if case.get('assigned_counselor_id'):
-        counselor = db.db.users.find_one({'_id': ObjectId(case['assigned_counselor_id'])})
-        counselor_name = counselor.get('name') if counselor else None
+        counselor = db.db.users.find_one({'_id': ObjectId(case['assigned_counselor_id'])}, {'first_name': 1, 'last_name': 1, 'name': 1})
+        if counselor:
+            counselor_name = (
+                f"{counselor.get('last_name','').upper()}, {counselor.get('first_name','')}"
+                if counselor.get('last_name') else counselor.get('name', '')
+            )
     
     return jsonify({
         'case': {
@@ -574,8 +578,9 @@ def update_case(case_id):
     data = request.get_json()
     
     VALID_TRANSITIONS = {
-        'NEW': ['ACTIVE'],
-        'ACTIVE': ['PENDING_TERMINATION'],
+        'NEW': ['ACTIVE', 'INTAKE_SCHEDULED', 'CLOSED'],
+        'INTAKE_SCHEDULED': ['ACTIVE', 'CLOSED', 'NEW'],
+        'ACTIVE': ['PENDING_TERMINATION', 'CLOSED'],
         'PENDING_TERMINATION': ['CLOSED', 'ACTIVE'],
         'CLOSED': [],
     }
@@ -1229,9 +1234,10 @@ def reassign_case(case_id):
     if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     data = request.get_json() or {}
+    counselor_id_param = (data.get('counselor_id') or '').strip()
     counselor_name = (data.get('counselor_name') or '').strip()
-    if not counselor_name:
-        return jsonify({'error': 'counselor_name required'}), 400
+    if not counselor_id_param and not counselor_name:
+        return jsonify({'error': 'counselor_id or counselor_name required'}), 400
 
     try:
         case_obj_id = ObjectId(case_id)
@@ -1242,21 +1248,29 @@ def reassign_case(case_id):
     if not case:
         return jsonify({'error': 'Case not found'}), 404
 
-    # Find counselor by full name (first + last)
-    parts = counselor_name.split()
-    if len(parts) >= 2:
-        counselor = db.db.users.find_one({
-            'first_name': parts[0], 'last_name': ' '.join(parts[1:]),
-            'role': {'$in': ['COUNSELOR', 'GUIDANCE_COUNSELOR', 'PSYCHOLOGIST']}
-        })
+    # Prefer counselor_id lookup; fall back to name
+    if counselor_id_param:
+        try:
+            counselor = db.db.users.find_one({'_id': ObjectId(counselor_id_param), 'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}})
+        except Exception:
+            counselor = None
     else:
-        counselor = db.db.users.find_one({
-            '$or': [{'first_name': counselor_name}, {'last_name': counselor_name}],
-            'role': {'$in': ['COUNSELOR', 'GUIDANCE_COUNSELOR', 'PSYCHOLOGIST']}
-        })
+        parts = counselor_name.split()
+        if len(parts) >= 2:
+            counselor = db.db.users.find_one({
+                'first_name': {'$regex': f'^{parts[0]}$', '$options': 'i'},
+                'last_name': {'$regex': f'^{" ".join(parts[1:])}$', '$options': 'i'},
+                'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}
+            })
+        else:
+            counselor = db.db.users.find_one({
+                '$or': [{'first_name': {'$regex': f'^{counselor_name}$', '$options': 'i'}}, {'last_name': {'$regex': f'^{counselor_name}$', '$options': 'i'}}],
+                'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}
+            })
 
     if not counselor:
-        return jsonify({'error': f'Counselor "{counselor_name}" not found'}), 404
+        return jsonify({'error': f'Counselor not found'}), 404
+    counselor_name = f"{counselor.get('last_name','').upper()}, {counselor.get('first_name','')}"
 
     old_cid = case.get('assigned_counselor_id')
     db.db.cases.update_one({'_id': case_obj_id}, {'$set': {'assigned_counselor_id': counselor['_id']}})

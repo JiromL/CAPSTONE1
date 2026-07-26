@@ -41,6 +41,8 @@ def get_role_based_dashboard():
             return get_intake_coordinator_requests(user_id_obj, user_name)
         elif role == 'STAFF':
             return get_staff_dashboard(user_id_obj, user_name)
+        elif role == 'CASE_MANAGER':
+            return get_case_manager_dashboard(user_id_obj, user_name)
         else:
             return get_generic_dashboard(user_id_obj, user_name)
     
@@ -315,6 +317,35 @@ def get_staff_dashboard(user_id_obj, user_name):
             },
             'can_assign_counselor': True,
             'can_cancel': True,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def get_case_manager_dashboard(user_id_obj, user_name):
+    """CASE_MANAGER: View all active/confirmed appointments for cases they oversee."""
+    try:
+        apts = list(db.db.appointments.find({
+            'status': {'$nin': ['CANCELLED', 'DENIED', 'CLOSED_AT_INTAKE']},
+        }).sort('scheduled_start', 1).limit(200))
+
+        confirmed = sum(1 for a in apts if a.get('status') in ('CONFIRMED', 'MATCHED', 'APPROVED', 'CHECKED_IN'))
+        evaluation = sum(1 for a in apts if a.get('status') == 'EVALUATION')
+        follow_up  = sum(1 for a in apts if a.get('status') == 'FOLLOW_UP')
+
+        return jsonify({
+            'role': 'CASE_MANAGER',
+            'user_name': user_name,
+            'view_type': 'case_manager_view',
+            'appointments': format_appointments(apts),
+            'summary': {
+                'total_appointments': len(apts),
+                'confirmed': confirmed,
+                'awaiting_evaluation': evaluation,
+                'follow_up': follow_up,
+            },
+            'can_manage_sessions': False,
+            'can_reschedule': False,
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -192,6 +192,32 @@ def get_new_intakes_counts():
     }), 200
 
 
+@client_tracking_bp.route('/walk-in-intakes', methods=['GET'])
+@jwt_required()
+def get_walk_in_intakes():
+    """Get manually created walk-in intake records (new_client_intakes collection)."""
+    user = get_user_from_token()
+    if user['role'] == UserRole.STUDENT:
+        return jsonify({"error": "Access denied"}), 403
+    page  = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 50, type=int)
+    search = request.args.get('search', '')
+    query = {}
+    if search:
+        query['$or'] = [
+            {'client_name': {'$regex': search, '$options': 'i'}},
+            {'client_id_number': {'$regex': search, '$options': 'i'}},
+        ]
+    total = db.db.new_client_intakes.count_documents(query)
+    records = list(db.db.new_client_intakes.find(query).sort('created_date', -1).skip((page-1)*limit).limit(limit))
+    for r in records:
+        r['_id'] = str(r['_id'])
+        for f in ('created_date', 'updated_date'):
+            if r.get(f):
+                r[f] = r[f].isoformat() + 'Z'
+    return jsonify({'total': total, 'page': page, 'records': records}), 200
+
+
 @client_tracking_bp.route('/new-intakes', methods=['POST'])
 @jwt_required()
 def create_new_intake():
@@ -232,9 +258,9 @@ def create_new_intake():
     
     # Audit log
     audit_log(
-        user_id=user['_id'],
-        action='CREATE_NEW_INTAKE',
-        entity_type='NewClientIntake',
+        db.db,
+        'NewClientIntake',
+        'CREATE_NEW_INTAKE',
         entity_id=result.inserted_id,
         old_values={},
         new_values=intake
@@ -278,9 +304,9 @@ def update_new_intake(intake_id):
     
     # Audit log
     audit_log(
-        user_id=user['_id'],
-        action='UPDATE_NEW_INTAKE',
-        entity_type='NewClientIntake',
+        db.db,
+        'NewClientIntake',
+        'UPDATE_NEW_INTAKE',
         entity_id=intake_obj_id,
         old_values=old_values,
         new_values=intake
@@ -376,9 +402,9 @@ def create_check_in_client():
     check_in['_id'] = str(check_in['_id'])
     
     audit_log(
-        user_id=user['_id'],
-        action='CREATE_CHECK_IN_CLIENT',
-        entity_type='NonCounselingClient',
+        db.db,
+        'NonCounselingClient',
+        'CREATE_CHECK_IN_CLIENT',
         entity_id=result.inserted_id,
         old_values={},
         new_values=check_in
@@ -418,9 +444,9 @@ def update_check_in_client(client_id):
     db.db.non_counseling_clients.update_one({"_id": client_obj_id}, {"$set": client})
     
     audit_log(
-        user_id=user['_id'],
-        action='UPDATE_CHECK_IN_CLIENT',
-        entity_type='NonCounselingClient',
+        db.db,
+        'NonCounselingClient',
+        'UPDATE_CHECK_IN_CLIENT',
         entity_id=client_obj_id,
         old_values=old_values,
         new_values=client
@@ -514,9 +540,9 @@ def create_counseling_case():
     counseling_case['_id'] = str(counseling_case['_id'])
     
     audit_log(
-        user_id=user['_id'],
-        action='CREATE_COUNSELING_CASE',
-        entity_type='CounselingCase',
+        db.db,
+        'CounselingCase',
+        'CREATE_COUNSELING_CASE',
         entity_id=result.inserted_id,
         old_values={},
         new_values=counseling_case
@@ -559,9 +585,9 @@ def update_counseling_case(case_id):
     db.db.counseling_cases.update_one({"_id": case_obj_id}, {"$set": case})
     
     audit_log(
-        user_id=user['_id'],
-        action='UPDATE_COUNSELING_CASE',
-        entity_type='CounselingCase',
+        db.db,
+        'CounselingCase',
+        'UPDATE_COUNSELING_CASE',
         entity_id=case_obj_id,
         old_values=old_values,
         new_values=case

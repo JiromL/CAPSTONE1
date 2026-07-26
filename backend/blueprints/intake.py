@@ -581,6 +581,7 @@ def submit_triage(intake_id):
                 'assigned_counselor_id': None,
                 'case_number': generate_case_number(),
                 'status': CaseStatus.NEW.value,
+                'case_status': CaseStatus.NEW.value,
                 'risk_level': risk_level,
                 'concern': intake.get('concern', ''),
                 'intake_id': intake['_id'],
@@ -597,6 +598,7 @@ def submit_triage(intake_id):
             {'_id': case_id},
             {'$set': {
                 'status': CaseStatus.CLOSED.value,
+                'case_status': CaseStatus.CLOSED.value,
                 'termination_type': TerminationType.CLOSED_AT_INTAKE.value,
                 'risk_level': risk_level,
                 'closed_at': now,
@@ -632,6 +634,7 @@ def submit_triage(intake_id):
             {'_id': case_id},
             {'$set': {
                 'status': CaseStatus.ACTIVE.value,
+                'case_status': CaseStatus.ACTIVE.value,
                 'risk_level': risk_level,
                 'endorsed_to_role': endorsed_role,
                 'endorsed_at': now,
@@ -641,6 +644,20 @@ def submit_triage(intake_id):
                 'updated_at': now,
             }}
         )
+
+        # Notify assigned counselor of new case
+        if counselor_obj_id:
+            try:
+                db.db.reminders.insert_one({
+                    'user_id': counselor_obj_id,
+                    'title': 'New Case Assigned',
+                    'message': f'A new student ({student_name}) has been endorsed to you. Please review their intake and await their session booking.',
+                    'type': 'case_assigned',
+                    'acknowledged': False,
+                    'created_at': now,
+                })
+            except Exception:
+                pass
 
         # Notify student via in-app reminder to book their first session
         try:

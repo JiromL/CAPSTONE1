@@ -131,6 +131,11 @@ function PermaTrendsWidget() {
 interface DashboardProps { user: any; onLogout: () => void; }
 
 function getSessionType(a: any): string {
+  const purpose = (a.purpose || '').toLowerCase();
+  if (purpose === 'intake_interview') return 'Intake';
+  if (purpose === 'follow_up') return 'Follow-up';
+  if (purpose === 'counseling') return 'Counseling';
+  if (purpose === 'others') return 'General';
   const ref = (a.referral_type || '').toUpperCase();
   if (ref === 'WALKIN') return 'Walk-in';
   if (ref.includes('EMERGENCY') || ref.includes('CRISIS')) return 'Crisis';
@@ -139,13 +144,12 @@ function getSessionType(a: any): string {
   const status = (a.status || '').toUpperCase();
   if (status === 'FOLLOW_UP') return 'Follow-up';
   if (status === 'EVALUATION') return 'Intake';
-  if (status === 'REFERRAL') return 'Referral';
-  return 'Individual';
+  return 'Counseling';
 }
 
 const SESSION_TYPE_COLORS: Record<string, string> = {
-  'Individual': '#3B82F6', 'Follow-up': '#8B5CF6', 'Intake': '#14B8A6',
-  'Crisis': '#EF4444', 'Walk-in': '#F97316', 'Referral': '#6366F1',
+  'Counseling': '#3B82F6', 'Follow-up': '#8B5CF6', 'Intake': '#14B8A6',
+  'Crisis': '#EF4444', 'Walk-in': '#F97316', 'General': '#6366F1',
 };
 
 function SessionStatusBadge({ status }: { status: string }) {
@@ -156,11 +160,20 @@ function SessionStatusBadge({ status }: { status: string }) {
   if (s === 'CHECKED_IN') return (
     <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}>In Session</span>
   );
-  if (s === 'CANCELLED' || s === 'NO_SHOW') return (
+  if (s === 'CANCELLED') return (
     <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>Cancelled</span>
   );
+  if (s === 'NO_SHOW') return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>No-show</span>
+  );
+  if (s === 'CONFIRMED') return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>Confirmed</span>
+  );
+  if (s === 'SCHEDULED') return (
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Scheduled</span>
+  );
   return (
-    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>Upcoming</span>
+    <span className="text-xs font-semibold px-3 py-1 rounded-full border" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}>{status}</span>
   );
 }
 

@@ -69,7 +69,7 @@ export default function CasesPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'attention' | 'high-risk' | 'closed'>(() => {
     const saved = readSS().tab;
     if (saved) return saved;
-    try { const role = JSON.parse(localStorage.getItem('user') || '{}').role?.toUpperCase(); if (role === 'ADMIN' || role === 'DPO') return 'all'; } catch {}
+    try { const role = JSON.parse(localStorage.getItem('user') || '{}').role?.toUpperCase(); if (role === 'ADMIN' || role === 'DPO' || role === 'CASE_MANAGER') return 'all'; } catch {}
     return 'active';
   });
   const [permaLabels, setPermaLabels] = useState<Record<string, string | null>>({});
@@ -148,7 +148,7 @@ export default function CasesPage() {
       if (activeTab === 'high-risk') params.set('risk_level', 'RED');
       if (debouncedSearch) params.set('q', debouncedSearch);
       const role = user?.role?.toUpperCase();
-      if (activeTab !== 'all' && role !== 'ADMIN' && role !== 'DPO') params.set('my_cases', 'true');
+      if (activeTab !== 'all' && role !== 'ADMIN' && role !== 'DPO' && role !== 'CASE_MANAGER') params.set('my_cases', 'true');
 
       const r = await fetch(api(`/api/cases?${params}`), { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) throw new Error(`${r.status}`);

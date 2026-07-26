@@ -79,50 +79,92 @@ p_csp   = make_user('csp@university.edu','csp123','Carl','de Guzman','PSYCHOLOGI
 
 # Original 9 students
 s1 = make_user('student1@university.edu','student123','Emma','Johnson','STUDENT',
-               college='Engineering',course='BS Computer Science',year_level='3rd Year',student_id='12162950')
+               college='Engineering',course='BS Computer Science',year_level='3rd Year',student_id='12262950',
+               contact_number='09171000001',date_of_birth='2001-03-15',
+               emergency_contact={'name':'Johnson Parent','relationship':'Parent','phone':'09181000001'})
 s2 = make_user('student2@university.edu','student456','Mark','Smith','STUDENT',
-               college='Business',course='BS Accountancy',year_level='2nd Year',student_id='12259906')
+               college='Business',course='BS Accountancy',year_level='2nd Year',student_id='12359906',
+               contact_number='09171000002',date_of_birth='2002-07-22',
+               emergency_contact={'name':'Smith Parent','relationship':'Parent','phone':'09181000002'})
 s3 = make_user('student3@university.edu','student789','Jessica','Davis','STUDENT',
-               college='Arts',course='BA Psychology',year_level='4th Year',student_id='12036224')
+               college='Arts',course='BA Psychology',year_level='4th Year',student_id='12136224',
+               contact_number='09171000003',date_of_birth='2000-11-08',
+               emergency_contact={'name':'Davis Parent','relationship':'Parent','phone':'09181000003'})
 s4 = make_user('student4@university.edu','student101','Alex','Chen','STUDENT',
-               college='Science',course='BS Biology',year_level='1st Year',student_id='12588569')
+               college='Science',course='BS Biology',year_level='1st Year',student_id='12488569',
+               contact_number='09171000004',date_of_birth='2004-05-30',
+               emergency_contact={'name':'Chen Parent','relationship':'Parent','phone':'09181000004'})
 s5 = make_user('student5@university.edu','student202','Sofia','Martinez','STUDENT',
                college='Nursing',course='BS Nursing',year_level='3rd Year',
-               student_id='12133435',mhbot_username='sofia.martinez')
+               student_id='12233435',mhbot_username='sofia.martinez',
+               contact_number='09171000005',date_of_birth='2001-09-12',
+               emergency_contact={'name':'Martinez Parent','relationship':'Parent','phone':'09181000005'})
 s6 = make_user('student6@university.edu','student303','James','Wilson','STUDENT',
-               college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='12340180')
+               college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='12340180',
+               contact_number='09171000006',date_of_birth='2002-02-18',
+               emergency_contact={'name':'Wilson Parent','relationship':'Parent','phone':'09181000006'})
 s7 = make_user('student7@university.edu','student404','Priya','Desai','STUDENT',
-               college='Education',course='BEEd',year_level='3rd Year',student_id='12142562')
+               college='Education',course='BEEd',year_level='3rd Year',student_id='12242562',
+               contact_number='09171000007',date_of_birth='2001-06-25',
+               emergency_contact={'name':'Desai Parent','relationship':'Parent','phone':'09181000007'})
 s8 = make_user('student8@university.edu','student505','Sam','Rivera','STUDENT',
-               college='Law',course='JD',year_level='1st Year',student_id='12527464')
+               college='Law',course='JD',year_level='1st Year',student_id='12427464',
+               contact_number='09171000008',date_of_birth='2003-12-01',
+               emergency_contact={'name':'Rivera Parent','relationship':'Parent','phone':'09181000008'})
 s9 = make_user('student9@university.edu','student606','Maria','Santos','STUDENT',
-               college='Business',course='BS Tourism',year_level='4th Year',student_id='12021348')
+               college='Business',course='BS Tourism',year_level='4th Year',student_id='12121348',
+               contact_number='09171000009',date_of_birth='2000-04-07',
+               emergency_contact={'name':'Santos Parent','relationship':'Parent','phone':'09181000009'})
 
 # New students with full cases (s10–s21)
 s10 = make_user('student10@university.edu','student10','Lena','Park','STUDENT',
-                college='Engineering',course='BS Computer Science',year_level='2nd Year',student_id='12342918')
+                college='Engineering',course='BS Computer Science',year_level='2nd Year',student_id='12342918',
+                contact_number='09171000010',date_of_birth='2002-08-14',
+                emergency_contact={'name':'Park Parent','relationship':'Parent','phone':'09181000010'})
 s11 = make_user('student11@university.edu','student11','Carlos','Diaz','STUDENT',
-                college='Business',course='BS Accountancy',year_level='3rd Year',student_id='12260209')
+                college='Business',course='BS Accountancy',year_level='3rd Year',student_id='12260209',
+                contact_number='09171000011',date_of_birth='2001-01-27',
+                emergency_contact={'name':'Diaz Parent','relationship':'Parent','phone':'09181000011'})
 s12 = make_user('student12@university.edu','student12','Amy','Torres','STUDENT',
-                college='Nursing',course='BS Nursing',year_level='4th Year',student_id='12179574')
+                college='Nursing',course='BS Nursing',year_level='4th Year',student_id='12179574',
+                contact_number='09171000012',date_of_birth='2000-10-03',
+                emergency_contact={'name':'Torres Parent','relationship':'Parent','phone':'09181000012'})
 s13 = make_user('student13@university.edu','student13','Miguel','Santos','STUDENT',
-                college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='12399693')
+                college='Engineering',course='BS Civil Engineering',year_level='2nd Year',student_id='12399693',
+                contact_number='09171000013',date_of_birth='2002-05-19',
+                emergency_contact={'name':'Santos Parent','relationship':'Parent','phone':'09181000013'})
 s14 = make_user('student14@university.edu','student14','Rachel','Kim','STUDENT',
-                college='Arts',course='BA Psychology',year_level='3rd Year',student_id='12280599')
+                college='Arts',course='BA Psychology',year_level='3rd Year',student_id='12280599',
+                contact_number='09171000014',date_of_birth='2001-07-11',
+                emergency_contact={'name':'Kim Parent','relationship':'Parent','phone':'09181000014'})
 s15 = make_user('student15@university.edu','student15','David','Tan','STUDENT',
-                college='Law',course='JD',year_level='2nd Year',student_id='12321775')
+                college='Law',course='JD',year_level='2nd Year',student_id='12321775',
+                contact_number='09171000015',date_of_birth='2001-03-28',
+                emergency_contact={'name':'Tan Parent','relationship':'Parent','phone':'09181000015'})
 s16 = make_user('student16@university.edu','student16','Nina','Cruz','STUDENT',
-                college='Nursing',course='BS Nursing',year_level='1st Year',student_id='12591778')
+                college='Nursing',course='BS Nursing',year_level='1st Year',student_id='12491778',
+                contact_number='09171000016',date_of_birth='2004-09-06',
+                emergency_contact={'name':'Cruz Parent','relationship':'Parent','phone':'09181000016'})
 s17 = make_user('student17@university.edu','student17','Ethan','Lee','STUDENT',
-                college='Engineering',course='BS Computer Science',year_level='4th Year',student_id='12174130')
+                college='Engineering',course='BS Computer Science',year_level='4th Year',student_id='12174130',
+                contact_number='09171000017',date_of_birth='2000-12-22',
+                emergency_contact={'name':'Lee Parent','relationship':'Parent','phone':'09181000017'})
 s18 = make_user('student18@university.edu','student18','Grace','Aquino','STUDENT',
-                college='Science',course='BS Biology',year_level='3rd Year',student_id='12236144')
+                college='Science',course='BS Biology',year_level='3rd Year',student_id='12236144',
+                contact_number='09171000018',date_of_birth='2001-02-14',
+                emergency_contact={'name':'Aquino Parent','relationship':'Parent','phone':'09181000018'})
 s19 = make_user('student19@university.edu','student19','Leo','Reyes','STUDENT',
-                college='Business',course='BS Marketing',year_level='2nd Year',student_id='12365265')
+                college='Business',course='BS Marketing',year_level='2nd Year',student_id='12365265',
+                contact_number='09171000019',date_of_birth='2002-11-09',
+                emergency_contact={'name':'Reyes Parent','relationship':'Parent','phone':'09181000019'})
 s20 = make_user('student20@university.edu','student20','Kevin','Lim','STUDENT',
-                college='Science',course='BS Chemistry',year_level='3rd Year',student_id='12290375')
+                college='Science',course='BS Chemistry',year_level='3rd Year',student_id='12290375',
+                contact_number='09171000020',date_of_birth='2001-08-31',
+                emergency_contact={'name':'Lim Parent','relationship':'Parent','phone':'09181000020'})
 s21 = make_user('student21@university.edu','student21','Diana','Santos','STUDENT',
-                college='Education',course='BEEd Elementary',year_level='4th Year',student_id='12187123')
+                college='Education',course='BEEd Elementary',year_level='4th Year',student_id='12187123',
+                contact_number='09171000021',date_of_birth='2000-06-17',
+                emergency_contact={'name':'Santos Parent','relationship':'Parent','phone':'09181000021'})
 
 # IC queue students (s22–s79): intake appointments only, 7 per IC
 _Q_NAMES = [
@@ -162,17 +204,23 @@ _Q_COURSES = [
     'Juris Doctor','BS Architecture',
 ]
 _Q_YEARS = ['1st Year','2nd Year','3rd Year','4th Year']
+_YR_TO_PFX = {'1st Year': 124, '2nd Year': 123, '3rd Year': 122, '4th Year': 121}
 
 IC_Q = []
 for idx, fname in enumerate(_Q_NAMES):
     n = 22 + idx
+    yr_lvl = _Q_YEARS[(idx * 3) % len(_Q_YEARS)]
+    pfx    = _YR_TO_PFX[yr_lvl]
     IC_Q.append(make_user(
         f'student{n}@university.edu', f'student{n}',
         fname, _Q_SURNAMES[idx % len(_Q_SURNAMES)], 'STUDENT',
         college=_Q_COLLEGES[idx % len(_Q_COLLEGES)],
         course=_Q_COURSES[idx % len(_Q_COURSES)],
-        year_level=_Q_YEARS[(idx * 3) % len(_Q_YEARS)],
-        student_id=f'2024-{n:05d}'
+        year_level=yr_lvl,
+        student_id=f'{pfx}{n:05d}',
+        contact_number=f'0917{n:07d}',
+        date_of_birth=f'200{(idx%5)+0}-{(idx%12)+1:02d}-{(idx%28)+1:02d}',
+        emergency_contact={'name': f'{_Q_SURNAMES[idx % len(_Q_SURNAMES)]} Parent', 'relationship': 'Parent', 'phone': f'0918{n:07d}'},
     ))
 
 print(f"✅ {len(IC_Q)+21} students created\n")

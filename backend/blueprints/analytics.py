@@ -37,8 +37,8 @@ def get_analytics_summary():
     try:
         # Total cases
         total_cases = db.db.cases.count_documents({})
-        active_cases = db.db.cases.count_documents({'status': {'$in': ['ACTIVE', 'active']}})
-        closed_cases = db.db.cases.count_documents({'status': {'$in': ['CLOSED', 'closed']}})
+        active_cases = db.db.cases.count_documents({'case_status': {'$in': ['ACTIVE', 'active']}})
+        closed_cases = db.db.cases.count_documents({'case_status': {'$in': ['CLOSED', 'closed']}})
 
         # High-risk cases
         high_risk_cases = db.db.cases.count_documents({'risk_level': {'$in': ['RED', 'CRITICAL']}})
@@ -53,10 +53,7 @@ def get_analytics_summary():
         # Appointments this week (confirmed or completed)
         week_start = datetime.utcnow() - timedelta(days=7)
         week_appointments = db.db.appointments.count_documents({
-            '$or': [
-                {'scheduled_start': {'$gte': week_start}},
-                {'requested_start': {'$gte': week_start}},
-            ],
+            'scheduled_start': {'$gte': week_start},
             'status': {'$in': ['COMPLETED', 'completed', 'CONFIRMED', 'confirmed']}
         })
 
@@ -217,7 +214,7 @@ def get_staff_workload():
                     {'counselor_id': staff_id},
                     {'assigned_counselor_id': staff_id},
                 ],
-                'status': {'$in': ['active', 'ACTIVE']}
+                'case_status': {'$in': ['active', 'ACTIVE']}
             })
 
             # Total appointments
@@ -231,7 +228,7 @@ def get_staff_workload():
             week_completed = db.db.appointments.count_documents({
                 'counselor_id': staff_id,
                 'status': {'$in': ['COMPLETED', 'completed']},
-                'requested_start': {'$gte': week_start}
+                'scheduled_start': {'$gte': week_start}
             })
 
             workload_data.append({
@@ -282,11 +279,11 @@ def get_appointment_statistics():
         for item in db.db.appointments.aggregate(pipeline):
             status_counts[item['_id']] = item['count']
         
-        # No-show rate
+        # No-show rate — DB stores uppercase statuses
         total = sum(status_counts.values())
-        no_show_count = status_counts.get('no_show', 0)
-        cancelled_count = status_counts.get('cancelled', 0)
-        completed_count = status_counts.get('completed', 0)
+        no_show_count  = status_counts.get('NO_SHOW',   0) + status_counts.get('no_show',   0)
+        cancelled_count= status_counts.get('CANCELLED', 0) + status_counts.get('cancelled', 0)
+        completed_count= status_counts.get('COMPLETED', 0) + status_counts.get('completed', 0)
         
         no_show_rate = (no_show_count / total * 100) if total > 0 else 0
         completion_rate = (completed_count / total * 100) if total > 0 else 0
@@ -299,19 +296,20 @@ def get_appointment_statistics():
                 'foreignField': '_id',
                 'as': 'case_info'
             }},
-            {'$match': {'case_info': {'$ne': []}, 'requested_start': {'$exists': True}}},
+            {'$match': {'case_info': {'$ne': []}, 'scheduled_start': {'$exists': True}}},
             {'$project': {
                 'case_created': {'$arrayElemAt': ['$case_info.created_at', 0]},
-                'requested_start': 1
+                'scheduled_start': 1
             }},
             {'$project': {
                 'wait_days': {
                     '$divide': [
-                        {'$subtract': ['$requested_start', '$case_created']},
+                        {'$subtract': ['$scheduled_start', '$case_created']},
                         86400000
                     ]
                 }
             }},
+            {'$match': {'wait_days': {'$gte': 0}}},
             {'$group': {
                 '_id': None,
                 'avg_wait_days': {'$avg': '$wait_days'},
@@ -379,7 +377,7 @@ def get_risk_trends():
         # Current risk distribution
         current_distribution = {}
         for item in db.db.cases.aggregate([
-            {'$match': {'status': {'$in': ['ACTIVE', 'active']}}},
+            {'$match': {'case_status': {'$in': ['ACTIVE', 'active']}}},
             {'$group': {'_id': '$risk_level', 'count': {'$sum': 1}}}
         ]):
             current_distribution[item['_id']] = item['count']
@@ -439,8 +437,8 @@ def get_referral_summary():
             'status_breakdown': status_counts,
             'referral_types': type_counts,
             'total_referrals': total,
-            'pending': status_counts.get('pending', 0),
-            'completed': status_counts.get('completed', 0)
+            'pending':   status_counts.get('PENDING',   0) + status_counts.get('pending',   0),
+            'completed': status_counts.get('COMPLETED', 0) + status_counts.get('completed', 0)
         }), 200
     
     except Exception as e:
@@ -552,7 +550,7 @@ def get_cases_monthly():
             new_cases = db.db.cases.count_documents({'created_at': {'$gte': month_start, '$lt': month_end}})
             closed_cases = db.db.cases.count_documents({
                 'updated_at': {'$gte': month_start, '$lt': month_end},
-                'status': {'$in': ['closed', 'CLOSED']}
+                'case_status': {'$in': ['closed', 'CLOSED']}
             })
             high_risk = db.db.cases.count_documents({
                 'created_at': {'$gte': month_start, '$lt': month_end},
@@ -667,9 +665,9 @@ def get_appointments_by_day():
 
         # By day of week (0=Sunday in $dayOfWeek)
         day_pipeline = [
-            {'$match': {'requested_start': {'$gte': start_date, '$exists': True}}},
+            {'$match': {'scheduled_start': {'$gte': start_date}}},
             {'$group': {
-                '_id': {'$dayOfWeek': '$requested_start'},
+                '_id': {'$dayOfWeek': '$scheduled_start'},
                 'count': {'$sum': 1}
             }},
             {'$sort': {'_id': 1}}
@@ -680,9 +678,9 @@ def get_appointments_by_day():
 
         # By hour
         hour_pipeline = [
-            {'$match': {'requested_start': {'$gte': start_date, '$exists': True}}},
+            {'$match': {'scheduled_start': {'$gte': start_date}}},
             {'$group': {
-                '_id': {'$hour': '$requested_start'},
+                '_id': {'$hour': '$scheduled_start'},
                 'count': {'$sum': 1}
             }},
             {'$sort': {'_id': 1}}
@@ -719,13 +717,22 @@ def get_appointments_breakdown():
         ]))
         method_dist = {item['_id']: item['count'] for item in method_agg if item['_id']}
 
-        # Type distribution (all-time)
-        type_agg = list(db.db.appointments.aggregate([
-            {'$group': {'_id': '$appointment_type', 'count': {'$sum': 1}}}
+        # Purpose distribution (all-time) — use canonical 4 types
+        PURPOSE_LABELS = {
+            'intake_interview': 'Intake Interview',
+            'counseling':       'Continuing Counseling',
+            'follow_up':        'Follow-Up Session',
+            'others':           'Other / Specified',
+        }
+        purpose_agg = list(db.db.appointments.aggregate([
+            {'$group': {'_id': '$purpose', 'count': {'$sum': 1}}}
         ]))
-        type_dist = {item['_id']: item['count'] for item in type_agg if item['_id']}
+        type_dist = {
+            PURPOSE_LABELS.get(item['_id'], item['_id'] or 'Unspecified'): item['count']
+            for item in purpose_agg if item['_id']
+        }
 
-        # Monthly method breakdown (period)
+        # Monthly breakdown (period)
         now = datetime.utcnow()
         num_months = min(int(request.args.get('months', 6)), 12)
         monthly = []
@@ -738,8 +745,8 @@ def get_appointments_breakdown():
             qr = {'created_at': {'$gte': ms, '$lt': me}}
             f2f    = db.db.appointments.count_documents({**qr, 'method': {'$in': ['F2F', 'f2f', 'face-to-face']}})
             online = db.db.appointments.count_documents({**qr, 'method': {'$in': ['Online', 'online', 'ONLINE', 'virtual', 'VIRTUAL']}})
-            intake  = db.db.appointments.count_documents({**qr, 'appointment_type': {'$in': ['INTAKE', 'intake']}})
-            counsel = db.db.appointments.count_documents({**qr, 'appointment_type': {'$in': ['COUNSELING', 'counseling']}})
+            intake  = db.db.appointments.count_documents({**qr, 'purpose': 'intake_interview'})
+            counsel = db.db.appointments.count_documents({**qr, 'purpose': 'counseling'})
             monthly.append({
                 'short': ms.strftime('%b'), 'label': ms.strftime('%b %Y'),
                 'f2f': f2f, 'online': online, 'intake': intake, 'counseling': counsel,

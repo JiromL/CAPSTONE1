@@ -722,6 +722,7 @@ export default function AppointmentsDashboard() {
   const canManage      = dashboard?.can_manage_sessions ?? false;
   const isIC           = dashboard?.role === 'IC' || dashboard?.role === 'INTAKE_COUNSELOR';
   const isOA           = dashboard?.role === 'STAFF';
+  const isCM           = dashboard?.role === 'CASE_MANAGER';
   const showActions    = canAssign || canManage || isIC;
   const visibleTabs    = TABS.filter(t => {
     if (t.key === 'evaluation') return canManage && counts.evaluation > 0;
@@ -780,7 +781,7 @@ export default function AppointmentsDashboard() {
     <div className="space-y-4">
 
       {/* ── Summary strip ─────────────────────────────────────────────────── */}
-      {!isOA && (
+      {!isOA && !isCM && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <SummaryCard icon={CalendarDays} label="Total" value={dashboard.summary?.total_appointments ?? apts.length} color="var(--color-text-primary)" />
           <SummaryCard icon={AlertCircle}  label="New Requests" value={newCount}
@@ -1291,6 +1292,17 @@ export default function AppointmentsDashboard() {
                                     onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
                                     <XCircle size={11} /> Cancel
                                   </button>
+                                )}
+
+                                {isCM && apt.case_id && (
+                                  <Link href={`/cases/${apt.case_id}`}>
+                                    <button className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                      style={{ border: '1px solid var(--color-primary)', color: 'var(--color-primary)', background: 'transparent' }}
+                                      onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-surface, color-mix(in srgb, var(--color-primary) 10%, transparent))'}
+                                      onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
+                                      <FileText size={11} /> View Case
+                                    </button>
+                                  </Link>
                                 )}
 
                                 {isEval && canManage && (

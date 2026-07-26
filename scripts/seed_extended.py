@@ -116,7 +116,7 @@ for i, (first, last, prog, yr, pw, dob) in enumerate(_student_specs):
         'role': 'STUDENT',
         'first_name': first, 'last_name': last,
         'name': f'{first} {last}',
-        'student_id': f'1{26 - yr:02d}{rng.randint(10000, 99999)}',
+        'student_id': f'{125 - yr}{rng.randint(10000, 99999)}',
         'program': prog, 'year_level': yr,
         'date_of_birth': dob,
         'contact_number': f'0917{n:07d}',

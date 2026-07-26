@@ -139,7 +139,7 @@ export default function ConductIntakePage() {
   const [icDocSuccess, setIcDocSuccess] = useState(false);
   const [icDocDraft, setIcDocDraft] = useState<any>(null);
 
-  const [referralMode, setReferralMode] = useState<'specific' | 'pool'>('pool');
+  const [referralMode] = useState<'specific' | 'pool'>('specific');
   const [referralRole, setReferralRole] = useState<'COUNSELOR' | 'PSYCHOLOGIST'>('COUNSELOR');
   const [referralUserId, setReferralUserId] = useState('');
   const [referralUserOptions, setReferralUserOptions] = useState<{ _id: string; label: string }[]>([]);
@@ -589,7 +589,7 @@ export default function ConductIntakePage() {
                   <Users size={15} style={{ color: 'var(--color-primary)' }} /> Internal CPS Referral
                 </p>
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  Assign to a specific clinician, or broadcast to the role pool for any available clinician to accept.
+                  Select a clinician to assign this student to.
                 </p>
               </div>
 
@@ -607,22 +607,7 @@ export default function ConductIntakePage() {
                 </div>
               </div>
 
-              {/* Specific vs Pool */}
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Assignment method</label>
-                <div className="flex gap-2">
-                  {[{ key: 'pool', label: 'Open pool — anyone can accept' }, { key: 'specific', label: 'Assign to specific person' }].map(opt => (
-                    <button key={opt.key} onClick={() => setReferralMode(opt.key as any)}
-                      className="flex-1 py-2 text-xs font-semibold rounded-xl transition"
-                      style={toggleBtnStyle(referralMode === opt.key)}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {referralMode === 'specific' && (
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                       Select {referralRole === 'COUNSELOR' ? 'counselor' : 'psychologist'}
@@ -698,10 +683,9 @@ export default function ConductIntakePage() {
                       No active {referralRole === 'COUNSELOR' ? 'counselors' : 'psychologists'} found.
                     </p>
                   )}
-                </div>
-              )}
+              </div>
 
-              {referralMode === 'specific' && referralUserId && (
+              {referralUserId && (
                 <div className="space-y-3 pt-1">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>

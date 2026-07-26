@@ -3,9 +3,8 @@
 CPS Counseling System — single consolidated seed entry point.
 
 Runs all seed data in one command:
-  1. Main comprehensive seed  (users, IC schedules, cases, intakes,
-     appointments, session notes, check-ins, safety plans,
-     PERMA snapshots, notifications, announcements, resources)
+  1. Unified seed  (users, schedules, cases, appointments, session
+     notes, safety plans, PERMA snapshots, announcements, resources)
   2. Staff sample data  (reschedule-request appointments,
      non_counseling_clients collection, check-in-only cases)
 
@@ -23,19 +22,19 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo import MongoClient
 
-# ── Step 1: main comprehensive seed ──────────────────────────────────────────
+# ── Step 1: unified seed ──────────────────────────────────────────────────────
 HERE = os.path.dirname(os.path.abspath(__file__))
-MAIN_SEED = os.path.join(HERE, '..', 'scripts', 'seed_database.py')
+MAIN_SEED = os.path.join(HERE, '..', 'scripts', 'seed.py')
 
 print("=" * 60)
-print("STEP 1 / 2 — Main seed")
-print("  users · IC schedules · cases · intakes · appointments")
-print("  session notes · PERMA snapshots · announcements · resources")
+print("STEP 1 / 2 — Unified seed")
+print("  users · schedules · cases · appointments · session notes")
+print("  safety plans · PERMA snapshots · announcements · resources")
 print("=" * 60)
 
 result = subprocess.run([sys.executable, MAIN_SEED], check=False)
 if result.returncode != 0:
-    print(f"\n❌  Main seed failed (exit {result.returncode}). Aborting.")
+    print(f"\n❌  Seed failed (exit {result.returncode}). Aborting.")
     sys.exit(result.returncode)
 
 # ── Connect ───────────────────────────────────────────────────────────────────

@@ -20,28 +20,28 @@ now = datetime.utcnow()
 
 SAMPLES = [
     {
-        'title':      'Mental Health Awareness Week — June 9–13',
-        'body':       'CPS will be holding a series of drop-in sessions, relaxation booths, and resource fairs across campus. All students are welcome.',
-        'event_type': 'event',
-        'event_date': now + timedelta(days=2),
+        'title':      'Walk-In Consultation Hours — No Appointment Needed',
+        'body':       'Students may drop by the CPS office (Room 101, Henry Sy Sr. Hall) from Monday to Friday, 8:00 AM – 12:00 NN for a brief initial consultation with an available IC. No prior booking required.',
+        'event_type': 'notice',
+        'event_date': None,
         'link':       '',
         'pinned':     True,
         'is_active':  True,
         'created_at': now,
     },
     {
-        'title':      'Free Webinar: Managing Academic Stress',
-        'body':       'Join our psychologist, Dr. Santos, for a live session on practical techniques for managing exam pressure and burnout. Registration link below.',
-        'event_type': 'webinar',
-        'event_date': now + timedelta(days=7),
-        'link':       'https://meet.google.com/example-link',
+        'title':      'Wellness Wednesday: Stress Relief Art Session',
+        'body':       'Take a break from the academic grind! Join us every Wednesday, 2:00–4:00 PM at the CPS Wellness Room for a free guided art journaling session. No art experience needed — just bring yourself.',
+        'event_type': 'event',
+        'event_date': now + timedelta(days=3),
+        'link':       '',
         'pinned':     False,
         'is_active':  True,
-        'created_at': now - timedelta(hours=3),
+        'created_at': now - timedelta(hours=5),
     },
     {
-        'title':      'CPS Office Hours Update — June',
-        'body':       'Our walk-in hours are Mon–Fri, 8AM–5PM. No appointment needed for initial consultations. Closed on June 12 (Independence Day).',
+        'title':      'Online Booking Now Open for 2nd Semester',
+        'body':       'Students can now schedule their intake appointments directly through the CPS portal. Click "Request a Session" on your dashboard to get started. Slots fill up fast — book early!',
         'event_type': 'notice',
         'event_date': None,
         'link':       '',
@@ -50,34 +50,39 @@ SAMPLES = [
         'created_at': now - timedelta(days=1),
     },
     {
-        'title':      'Peer Support Circle — Every Wednesday, 3PM',
-        'body':       'A safe, student-led space to share experiences and support one another. Facilitated by a CPS counselor. Room 205, Br. Andrew Gonzalez Hall.',
+        'title':      'Talk Series: "You Are Not Alone" — Anxiety & College Life',
+        'body':       'CPS psychologist Ms. Jenny Soriano will lead an open talk on managing anxiety in university. Open to all DLSU students. Attendance is free. Light refreshments will be served.',
         'event_type': 'event',
-        'event_date': now + timedelta(days=3),
+        'event_date': now + timedelta(days=10),
         'link':       '',
         'pinned':     False,
         'is_active':  True,
         'created_at': now - timedelta(days=2),
     },
     {
-        'title':      'Grief & Loss Support Group — New Cycle Starting',
-        'body':       'A 6-week closed support group for students experiencing grief or loss. Limited slots. Contact CPS to register.',
+        'title':      'Reminder: CPS Services are Strictly Confidential',
+        'body':       'All consultations and records at the Center for Psychological Services are protected under professional confidentiality. Your information will never be shared without your written consent, except in situations involving risk to life.',
         'event_type': 'info',
-        'event_date': now + timedelta(days=14),
+        'event_date': None,
         'link':       '',
         'pinned':     False,
         'is_active':  True,
-        'created_at': now - timedelta(days=3),
+        'created_at': now - timedelta(days=4),
+    },
+    {
+        'title':      'Mindfulness for Finals: Free 3-Day Workshop',
+        'body':       'Feeling overwhelmed as finals approach? Join our 3-day mindfulness workshop designed for students. Sessions run Aug 5–7, 5:00–6:00 PM via Zoom. Register through the CPS portal.',
+        'event_type': 'webinar',
+        'event_date': now + timedelta(days=12),
+        'link':       '',
+        'pinned':     False,
+        'is_active':  True,
+        'created_at': now - timedelta(days=5),
     },
 ]
 
-# Avoid duplicate seeding
-existing = db.announcements.count_documents({'is_active': True})
-if existing >= len(SAMPLES):
-    print(f'Skipped: {existing} announcements already exist in {DB_NAME}.')
-else:
-    db.announcements.delete_many({})   # clear old seeds
-    result = db.announcements.insert_many(SAMPLES)
-    print(f'✓ Inserted {len(result.inserted_ids)} sample announcements into {DB_NAME}.announcements')
+db.announcements.delete_many({})
+result = db.announcements.insert_many(SAMPLES)
+print(f'✓ Inserted {len(result.inserted_ids)} announcements into {DB_NAME}.announcements')
 
 client.close()

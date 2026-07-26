@@ -87,13 +87,25 @@ def get_new_intakes():
         for p in db.db.intake_packets.find({'appointment_id': {'$in': appt_ids}}, {'appointment_id': 1})
     )
 
-    # Look up case_id per student
-    case_map = {
-        str(c['student_id']): str(c['_id'])
-        for c in db.db.cases.find(
-            {'student_id': {'$in': student_ids}},
-            {'_id': 1, 'student_id': 1}
-        )
+    # Look up case_id + assigned counselor per student
+    _cases = list(db.db.cases.find(
+        {'student_id': {'$in': student_ids}},
+        {'_id': 1, 'student_id': 1, 'assigned_counselor_id': 1, 'endorsed_to_role': 1}
+    ))
+    case_map = {str(c['student_id']): str(c['_id']) for c in _cases}
+    _referred_ids = [c['assigned_counselor_id'] for c in _cases if c.get('assigned_counselor_id')]
+    _referred_users = {u['_id']: u for u in db.db.users.find(
+        {'_id': {'$in': _referred_ids}},
+        {'first_name': 1, 'last_name': 1, 'name': 1, 'role': 1}
+    )}
+    _referred_map = {
+        str(c['student_id']): {
+            'name': (lambda u: f"{u.get('first_name','')} {u.get('last_name','')}".strip() or u.get('name',''))(
+                _referred_users[c['assigned_counselor_id']]
+            ) if c.get('assigned_counselor_id') and c['assigned_counselor_id'] in _referred_users else None,
+            'role': _referred_users[c['assigned_counselor_id']].get('role') if c.get('assigned_counselor_id') and c['assigned_counselor_id'] in _referred_users else c.get('endorsed_to_role'),
+        }
+        for c in _cases
     }
 
     data = []
@@ -120,6 +132,8 @@ def get_new_intakes():
             'intake_packet_submitted': str(r.get('appointment_id','')) in packets_submitted,
             'mhbot_username': s.get('mhbot_username') if s else None,
             'case_id': case_map.get(str(r.get('student_id', '')), None),
+            'referred_to_name': _referred_map.get(str(r.get('student_id', '')), {}).get('name'),
+            'referred_to_role': _referred_map.get(str(r.get('student_id', '')), {}).get('role'),
         })
 
     return jsonify({

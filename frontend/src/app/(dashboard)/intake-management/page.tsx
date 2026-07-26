@@ -8,7 +8,7 @@ import { ClinicalExportModal } from '@/components/ClinicalExportModal';
 import {
   Loader2, AlertCircle, RefreshCw, Search, CheckCircle2,
   ClipboardList, CalendarDays, FileCheck, PenLine, Clock,
-  FileText, ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
+  FileText, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, UserCheck,
 } from 'lucide-react';
 
 interface IntakeAppointment {
@@ -36,6 +36,8 @@ interface IntakeRecord {
   intake_packet_submitted?: boolean;
   case_id?: string;
   is_minor?: boolean;
+  referred_to_name?: string;
+  referred_to_role?: string;
 }
 
 type StageKey = 'awaiting' | 'scheduled' | 'write' | 'done';
@@ -235,6 +237,17 @@ function DoneCard({ intake, onExport }: { intake: IntakeRecord; onExport: () => 
           {intake.college_unit && <span className="text-xs truncate max-w-[140px]" style={{ color: 'var(--color-text-muted)' }}>{intake.college_unit}</span>}
         </div>
         <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>{fmtService(intake.service_requested)}</p>
+        {intake.referred_to_name && (
+          <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
+            <UserCheck size={10} />
+            Referred to: {intake.referred_to_name}
+            {intake.referred_to_role && (
+              <span style={{ color: 'var(--color-text-muted)' }}>
+                ({intake.referred_to_role === 'COUNSELOR' ? 'Counselor' : intake.referred_to_role === 'PSYCHOLOGIST' ? 'Psychologist' : intake.referred_to_role})
+              </span>
+            )}
+          </p>
+        )}
         <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Completed: {fmtDate(intake.created_date)}</p>
       </div>
       <div className="flex flex-col items-end gap-2 flex-shrink-0">

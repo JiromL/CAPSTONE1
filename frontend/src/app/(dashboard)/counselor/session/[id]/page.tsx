@@ -608,11 +608,19 @@ export default function CounselorSessionPage() {
       const isHighRisk  = siShi === 'active' || riskLevel === 'high';
       const shouldClose = ['terminated', 'no_further'].includes(caseStatus);
 
+      const purposeToSessionType = (p?: string) => {
+        if (p === 'intake_interview') return 'INTAKE';
+        if (p === 'follow_up') return 'FOLLOW_UP';
+        if (p === 'others') return 'INDIVIDUAL';
+        return 'INDIVIDUAL';
+      };
+      const derivedSessionType = purposeToSessionType(appt.purpose);
+
       // 1. Save session note
       if (appt.case_id) {
         const notePayload = {
           session_date: new Date().toISOString(),
-          session_type: 'Individual',
+          session_type: derivedSessionType,
           appointment_id: appt._id,
           note_format: 'SOAP',
           soap_subjective: subjectiveText,
@@ -628,7 +636,7 @@ export default function CounselorSessionPage() {
           structured_soap: {
             session_context: {
               session_date:   new Date().toISOString(),
-              session_type:   'Individual',
+              session_type:   derivedSessionType,
               mode:           sessionMode,
               session_number: sessionNo === 'other' ? sessionNoOther : sessionNo,
               mood_rating:    moodRating,

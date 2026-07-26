@@ -2267,7 +2267,7 @@ export default function CaseDetailPage() {
                 {sessionNotes.map((note, idx) => {
                   const num = idx + 1;
                   const isExpanded = expandedNotes.has(note.note_id);
-                  const stype = note.session_type || 'INDIVIDUAL';
+                  const stype = (note.session_type || 'INDIVIDUAL').toUpperCase().replace(/-/g, '_').replace(/ /g, '_');
                   const isRisk = note.risk_flagged;
                   const accentColor = isRisk ? 'var(--color-danger)'
                     : stype === 'CRISIS' ? 'var(--color-danger)'

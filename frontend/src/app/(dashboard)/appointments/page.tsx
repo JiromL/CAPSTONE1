@@ -281,6 +281,15 @@ function ActiveCard({ apt, actioningId, actionMsg, onView, onAction, onNoShow, o
           </a>
         )}
         {isConfirmed && !isPending && (
+          <button onClick={() => onAction(aptId, 'complete')} disabled={actioningId === aptId}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border transition whitespace-nowrap disabled:opacity-50"
+            style={{ borderColor: 'var(--color-success)', color: 'var(--color-success)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-success-surface)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+            {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />} Session Done
+          </button>
+        )}
+        {isConfirmed && !isPending && (
           <button onClick={onNoShow}
             className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border transition whitespace-nowrap"
             style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}

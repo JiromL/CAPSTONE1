@@ -370,7 +370,11 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
             })
 
         # Create Meet link for online appointments
-        is_online = appointment_data.get('preferred_method', '') in ('google_meet', 'google-meet', 'online', 'video')
+        _online_vals = ('google_meet', 'google-meet', 'online', 'video', 'Online')
+        is_online = (
+            appointment_data.get('preferred_method', '') in _online_vals
+            or appointment_data.get('method', '') in _online_vals
+        )
         result = google.create_calendar_event(access_token, event, create_meet_link=is_online)
 
         meet_link = None

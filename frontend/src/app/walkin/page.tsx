@@ -47,7 +47,7 @@ const REFERRAL_SOURCES = [
   'University Health Service', 'Other',
 ];
 const SERVICES = [
-  'Individual Counseling', 'Psychological Assessment', 'Group Counseling',
+  'Individual Counseling', 'Psychological Assessment',
   'Crisis Intervention', 'Consultation', 'Other',
 ];
 

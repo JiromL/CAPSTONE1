@@ -589,7 +589,6 @@ export default function WalkinIntakePage() {
                         <option value="">— Select service —</option>
                         <option value="Individual Counseling">Individual Counseling</option>
                         <option value="Psychological Assessment">Psychological Assessment</option>
-                        <option value="Group Counseling">Group Counseling</option>
                         <option value="Crisis Intervention">Crisis Intervention</option>
                         <option value="Consultation">Consultation</option>
                         <option value="Other">Other</option>

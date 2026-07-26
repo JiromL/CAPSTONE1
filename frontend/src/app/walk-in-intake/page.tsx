@@ -344,7 +344,7 @@ export default function WalkInIntakePage() {
 }
 
 const SERVICES_LIST = [
-  'Individual Counseling', 'Psychological Assessment', 'Group Counseling',
+  'Individual Counseling', 'Psychological Assessment',
   'Crisis Intervention', 'Consultation', 'Other',
 ];
 const REFERRAL_LIST = [

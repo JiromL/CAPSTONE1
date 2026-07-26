@@ -80,7 +80,8 @@ def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=No
         return
     now = datetime.utcnow()
     for entry in history:
-        label = entry.get('perma_label')
+        _norm = {'Flourishing': 'Excelling'}
+        label = _norm.get(entry.get('perma_label'), entry.get('perma_label'))
         date_str = entry.get('date')
         if not label or not date_str:
             continue

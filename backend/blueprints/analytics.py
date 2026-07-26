@@ -890,13 +890,19 @@ def get_session_outcomes():
         session_types = [{'type': item['_id'] or 'Unspecified', 'count': item['count']} for item in stype_agg]
 
         # PERMA label distribution (from perma_snapshots, latest per student)
+        _label_norm = {'Flourishing': 'Excelling'}
         perma_agg = list(db.db.perma_snapshots.aggregate([
             {'$sort': {'saved_at': -1}},
             {'$group': {'_id': '$student_user_id', 'perma_label': {'$first': '$perma_label'}}},
             {'$group': {'_id': '$perma_label', 'count': {'$sum': 1}}},
             {'$sort': {'count': -1}},
         ]))
-        perma_dist = [{'label': item['_id'] or 'Unknown', 'count': item['count']} for item in perma_agg]
+        # merge legacy labels into canonical ones
+        merged: dict = {}
+        for item in perma_agg:
+            lbl = _label_norm.get(item['_id'], item['_id']) or 'Unknown'
+            merged[lbl] = merged.get(lbl, 0) + item['count']
+        perma_dist = [{'label': lbl, 'count': cnt} for lbl, cnt in sorted(merged.items(), key=lambda x: -x[1])]
 
         # No-show risk: students with ≥2 consecutive no-shows
         noshows_at_risk = db.db.missed_appointment_tracker.count_documents({

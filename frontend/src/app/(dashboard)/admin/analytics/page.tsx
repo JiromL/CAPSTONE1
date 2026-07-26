@@ -74,8 +74,10 @@ const RISK_COLORS: Record<string, string> = {
   CRITICAL: '#7F1D1D', LOW: C.teal, MODERATE: C.blue, HIGH: C.red,
 };
 const PERMA_COLORS: Record<string, string> = {
-  Thriving: C.green, Flourishing: '#16A34A', Doing_Well: C.teal,
-  Managing: C.blue, Struggling: C.amber, 'At Risk': C.orange,
+  Excelling:   '#16A34A',
+  Thriving:    C.green,
+  Surviving:   C.blue,
+  Struggling:  C.amber,
   'In Crisis': C.red,
 };
 const PIPELINE_ORDER = ['NEW', 'INTAKE_SCHEDULED', 'ACTIVE', 'PENDING_TERMINATION', 'CLOSED', 'CANCELLED'];
@@ -384,7 +386,7 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
               return (
                 <div key={s.name} className="flex items-center gap-3">
                   <div className="flex items-center gap-2 w-40 flex-shrink-0">
-                    <span className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{s.name.split(' ')[0]}</span>
+                    <span className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{s.name}</span>
                     <span className="text-xs px-1.5 py-0.5 rounded uppercase font-semibold"
                       style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
                       {s.role === 'PSYCHOLOGIST' ? 'CP' : s.role === 'IC' ? 'IC' : 'CC'}
@@ -895,11 +897,11 @@ function StaffTab({ staff, referrals, isDark }: {
         <Card title="Caseload Distribution" subtitle="Comparative view across clinical staff">
           {staff.length === 0 ? <Empty /> : (
             <ResponsiveContainer width="100%" height={Math.max(180, sorted.slice(0, 8).length * 32)}>
-              <BarChart data={sorted.slice(0, 8).map(s => ({ name: s.name.split(' ')[0], cases: s.active_cases, sessions: s.week_completed }))}
+              <BarChart data={sorted.slice(0, 8).map(s => ({ name: s.name, cases: s.active_cases, sessions: s.week_completed }))}
                 layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} horizontal={false} />
                 <XAxis type="number" tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fill: ct.text, fontSize: 11 }} axisLine={false} tickLine={false} width={60} />
+                <YAxis type="category" dataKey="name" tick={{ fill: ct.text, fontSize: 10 }} axisLine={false} tickLine={false} width={100} />
                 <Tooltip content={<CustomTooltip isDark={isDark} />} />
                 <Legend wrapperStyle={{ fontSize: 11, color: ct.text }} />
                 <Bar dataKey="cases"    name="Active Cases"  fill={C.primary} radius={[0,3,3,0]} barSize={10} />
@@ -1638,7 +1640,8 @@ export default function AnalyticsDashboardPage() {
   const isDark = theme === 'dark';
 
   const [activeTab, setActiveTab]           = useState<TabKey>('overview');
-  const [periodIdx, setPeriodIdx]           = useState(2);
+  const [dateFrom, setDateFrom]             = useState('');
+  const [dateTo, setDateTo]                 = useState('');
   const [loading, setLoading]               = useState(true);
   const [refreshing, setRefreshing]         = useState(false);
 
@@ -1662,8 +1665,6 @@ export default function AnalyticsDashboardPage() {
   const [sessionOutcomes, setSessionOutcomes] = useState<SessionOutcomes | null>(null);
   const [evalData, setEvalData] = useState<any>(null);
 
-  const period = PERIODS[periodIdx];
-
   const fetchAll = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     const token = localStorage.getItem('token');
@@ -1673,7 +1674,11 @@ export default function AnalyticsDashboardPage() {
       try { const r = await fetch(api(url), { headers: h }); return r.ok ? r.json() : null; }
       catch { return null; }
     };
-    const { days, months } = period;
+    const now = new Date();
+    const fromMs = dateFrom ? new Date(dateFrom).getTime() : now.getTime() - 180 * 24 * 60 * 60 * 1000;
+    const toMs   = dateTo   ? new Date(dateTo).getTime()   : now.getTime();
+    const days   = Math.max(1, Math.ceil((toMs - fromMs) / (1000 * 60 * 60 * 24)));
+    const months = Math.max(1, Math.ceil(days / 30));
     const [
       s, ma, mc, risk, workload, aStats, dayData,
       cData, sTrends, assess, funnel, ref, cps,
@@ -1721,7 +1726,7 @@ export default function AnalyticsDashboardPage() {
     if (evals) setEvalData(evals);
     setLoading(false);
     setRefreshing(false);
-  }, [period]);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -1739,18 +1744,24 @@ export default function AnalyticsDashboardPage() {
     <DashboardPageWrapper title="Analytics & Reports" subtitle="System-wide metrics and data exports">
       {/* ── Toolbar ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-          {PERIODS.map((p, i) => (
-            <button key={p.label} onClick={() => setPeriodIdx(i)}
-              className="px-3 py-1.5 text-xs font-medium rounded-md transition"
-              style={{
-                background: periodIdx === i ? 'var(--color-surface)' : 'transparent',
-                color:      periodIdx === i ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                boxShadow:  periodIdx === i ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}>
-              {p.label}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>From</span>
+          <input type="date" value={dateFrom} max={dateTo || undefined}
+            onChange={e => setDateFrom(e.target.value)}
+            className="text-xs rounded-lg px-2 py-1.5 transition"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', outline: 'none' }} />
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>To</span>
+          <input type="date" value={dateTo} min={dateFrom || undefined}
+            onChange={e => setDateTo(e.target.value)}
+            className="text-xs rounded-lg px-2 py-1.5 transition"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', outline: 'none' }} />
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="text-xs px-2 py-1.5 rounded-lg transition"
+              style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
+              Clear
             </button>
-          ))}
+          )}
         </div>
         <button onClick={() => fetchAll(true)} disabled={refreshing}
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-50"

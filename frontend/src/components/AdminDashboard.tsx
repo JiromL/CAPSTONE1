@@ -194,7 +194,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
         fetch(api('/api/appointments/dashboard/role-view'), { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       if (sumRes.ok)  setSummary(await sumRes.json());
-      if (logsRes.ok) setAuditLogs((await logsRes.json()).slice(0, 8));
+      if (logsRes.ok) { const d = await logsRes.json(); setAuditLogs((d.logs ?? d).slice(0, 8)); }
       if (annRes.ok)  setAnnouncements((await annRes.json()).announcements || []);
       if (apptRes.ok) { const d = await apptRes.json(); setAppts(d.appointments || []); }
     } finally { setLoading(false); }

@@ -11,6 +11,13 @@ import {
 } from 'lucide-react';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
+const PURPOSES = [
+  { value: 'intake_interview', label: 'First Time',          desc: 'New student — full intake required',        color: 'var(--color-primary)' },
+  { value: 'counseling',       label: 'Continuing Sessions', desc: 'Returning student, ongoing counseling',     color: '#7C3AED' },
+  { value: 'follow_up',        label: 'Follow-Up Session',   desc: 'Scheduled follow-up with their counselor', color: '#0891B2' },
+  { value: 'others',           label: 'Something Else',      desc: 'Consultation, assessment, or other',       color: '#059669' },
+];
+
 const PHQ4_QUESTIONS = [
   { id: 'q1', text: 'Little interest or pleasure in doing things', idx: 0 },
   { id: 'q2', text: 'Feeling down, depressed, or hopeless',        idx: 1 },
@@ -26,11 +33,16 @@ const FREQ = [
   { v: 3, s: 'Nearly every day',        col: '#DC2626', sel: { background: '#EF4444', color: '#fff', border: '2px solid #EF4444' } },
 ];
 
-const STEP_LABELS = [
+const STEP_LABELS_FULL = [
   { num: 1, label: 'Contact Form',        sub: 'ICF'     },
   { num: 2, label: 'Personal Background', sub: 'SPIF-IF' },
   { num: 3, label: 'Mental Health Screen',sub: 'PHQ-4'   },
   { num: 4, label: 'Assign IC',           sub: 'Session' },
+];
+const STEP_LABELS_SHORT = [
+  { num: 1, label: 'Contact Form',        sub: 'ICF'   },
+  { num: 2, label: 'Mental Health Screen',sub: 'PHQ-4' },
+  { num: 3, label: 'Assign IC',           sub: 'Session' },
 ];
 
 const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
@@ -63,10 +75,10 @@ function F({ label, req, children, span }: { label: string; req?: boolean; child
 }
 
 // ── Step wizard ───────────────────────────────────────────────────────────────
-function StepWizard({ current }: { current: number }) {
+function StepWizard({ current, labels }: { current: number; labels: { num: number; label: string; sub: string }[] }) {
   return (
     <div className="flex items-start justify-center gap-0 mb-8">
-      {STEP_LABELS.map((s, i) => {
+      {labels.map((s, i) => {
         const done   = i < current;
         const active = i === current;
         return (
@@ -87,7 +99,7 @@ function StepWizard({ current }: { current: number }) {
               <span className="text-xs uppercase tracking-wide font-bold mt-0.5"
                 style={{ color: active ? 'var(--color-primary-text)' : 'var(--color-text-muted)' }}>{s.sub}</span>
             </div>
-            {i < STEP_LABELS.length - 1 && (
+            {i < labels.length - 1 && (
               <div className="mt-4 h-0.5 w-8 mx-1" style={{ background: i < current ? 'var(--color-primary)' : 'var(--color-border)' }} />
             )}
           </div>
@@ -122,6 +134,7 @@ export default function WalkinIntakePage() {
     referral_source: 'self-referred', referred_by: '',
     emergency_contact_name: '', emergency_contact_relationship: '', emergency_contact_phone: '',
     presenting_concern: '', crisis_type: '', service_requested: '',
+    purpose: 'intake_interview',
     consent_to_service: false, consent_to_data: false,
   });
 
@@ -196,8 +209,21 @@ export default function WalkinIntakePage() {
     } finally { setLoadingSlots(false); }
   };
 
-  const next = () => { if (!validate()) return; if (step === 2) loadIcSlots(); setStep(s => s + 1); };
-  const back = () => { setError(''); setStep(s => s - 1); };
+  const isFirstTime = icf.purpose === 'intake_interview';
+  const STEP_LABELS = isFirstTime ? STEP_LABELS_FULL : STEP_LABELS_SHORT;
+
+  // For non-first-time visits, skip SPIF (step 1); PHQ-4 is step 2→logical step 1, Assign IC is step 3→logical step 2
+  const next = () => {
+    if (!validate()) return;
+    const nextStep = (!isFirstTime && step === 0) ? 2 : step + 1;
+    if (nextStep === 3) loadIcSlots();
+    setStep(nextStep);
+  };
+  const back = () => {
+    setError('');
+    const prevStep = (!isFirstTime && step === 2) ? 0 : step - 1;
+    setStep(prevStep);
+  };
 
   const handleCrisisSubmit = async () => {
     if (!validateCrisis()) return;
@@ -247,6 +273,7 @@ export default function WalkinIntakePage() {
         body: JSON.stringify({
           first_name: icf.first_name, last_name: icf.last_name,
           email: icf.email, student_id: icf.student_id, phone: icf.phone,
+          purpose: icf.purpose,
           is_urgent: false, notes: '',
           ...(selectedSlot ? {
             counselor_id: selectedSlot.counselor_id,
@@ -260,7 +287,7 @@ export default function WalkinIntakePage() {
       const pr = await fetch(api('/api/intake/packet'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ source: 'walkin', submitted_by_role: 'oa', appointment_id: wd.appointment_id || null, icf, spif, phq4_responses: phq4 }),
+        body: JSON.stringify({ source: 'walkin', submitted_by_role: 'oa', appointment_id: wd.appointment_id || null, icf, spif: isFirstTime ? spif : null, phq4_responses: phq4 }),
       });
       const pd = await pr.json();
       if (!pr.ok) throw new Error(pd.error || 'Failed to submit intake packet');
@@ -277,7 +304,7 @@ export default function WalkinIntakePage() {
 
   const resetForm = () => {
     setSuccess(''); setStep(0); setIsCrisis(false); setIntakeId('');
-    setIcf({ first_name:'',last_name:'',middle_name:'',email:'',student_id:'',phone:'',college:'',program:'',year_level:'',referral_source:'self-referred',referred_by:'',emergency_contact_name:'',emergency_contact_relationship:'',emergency_contact_phone:'',presenting_concern:'',crisis_type:'',service_requested:'',consent_to_service:false,consent_to_data:false });
+    setIcf({ first_name:'',last_name:'',middle_name:'',email:'',student_id:'',phone:'',college:'',program:'',year_level:'',referral_source:'self-referred',referred_by:'',emergency_contact_name:'',emergency_contact_relationship:'',emergency_contact_phone:'',presenting_concern:'',crisis_type:'',service_requested:'',purpose:'intake_interview',consent_to_service:false,consent_to_data:false });
     setSpif({ birthdate:'',gender:'',religion:'',nationality:'Filipino',address:'',family_composition:'complete',living_with:'',birth_order:'',number_of_siblings:'',existing_medical_conditions:'',current_medications:'',previous_counseling:false,previous_counseling_details:'',previous_psychiatric:false,previous_psychiatric_details:'',family_mental_health_history:'',sleep_hours:'',exercise_frequency:'rarely',substance_use:'none' });
     setPhq4([null,null,null,null]);
   };
@@ -540,7 +567,7 @@ export default function WalkinIntakePage() {
         {/* ── NORMAL FLOW ──────────────────────────────────────────────────── */}
         {!isCrisis && (
           <>
-            <StepWizard current={step} />
+            <StepWizard current={isFirstTime ? step : step === 0 ? 0 : step - 1} labels={STEP_LABELS} />
 
             {error && (
               <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-sm mb-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger-text)' }}>
@@ -551,6 +578,32 @@ export default function WalkinIntakePage() {
             {/* ── STEP 0: ICF ─────────────────────────────────────────────────── */}
             {step === 0 && (
               <div className="space-y-3">
+                {/* Purpose / visit type selection */}
+                <div className="mb-1">
+                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>What brings the student in today?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {PURPOSES.map(p => {
+                      const sel = icf.purpose === p.value;
+                      return (
+                        <button key={p.value} type="button"
+                          onClick={() => setI('purpose', p.value)}
+                          className="rounded-xl px-3 py-2.5 text-left transition"
+                          style={sel
+                            ? { background: p.color, border: `2px solid ${p.color}`, color: '#fff' }
+                            : { background: 'var(--color-surface)', border: '2px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
+                          <p className="text-sm font-bold">{p.label}</p>
+                          <p className="text-xs mt-0.5" style={{ opacity: sel ? 0.85 : undefined, color: sel ? undefined : 'var(--color-text-muted)' }}>{p.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {icf.purpose !== 'intake_interview' && (
+                    <p className="text-xs mt-2 px-3 py-2 rounded-lg" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)', border: '1px solid var(--color-primary-muted)' }}>
+                      Returning student — SPIF-IF will be skipped. PHQ-4 screener still required.
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-2 mb-1">
                   <ClipboardList size={16} style={{ color: 'var(--color-primary)' }} />
                   <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Initial Contact Form <span className="text-xs font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>(ICF)</span></h2>

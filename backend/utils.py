@@ -14,7 +14,8 @@ def serialize_doc(v):
     if isinstance(v, ObjectId):
         return str(v)
     if isinstance(v, datetime):
-        return v.isoformat()
+        # Append Z so JavaScript parses as UTC, not local time
+        return v.isoformat() + 'Z' if not v.isoformat().endswith('+00:00') else v.isoformat()
     if isinstance(v, dict):
         return {k: serialize_doc(val) for k, val in v.items()}
     if isinstance(v, list):

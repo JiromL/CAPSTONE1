@@ -46,10 +46,10 @@ export function OnboardingModal({ user, onComplete }: Props) {
     course:     user?.course      || '',
     year:       user?.year        || '',
     student_id: user?.id_number   || '',
-    phone:      user?.phone       || '',
-    ec_name:    user?.emergency_contact || '',
-    ec_rel:     user?.emergency_contact_relationship || '',
-    ec_phone:   user?.emergency_phone   || '',
+    phone:      typeof user?.phone === 'string' ? user.phone : '',
+    ec_name:    typeof user?.emergency_contact === 'string' ? user.emergency_contact : '',
+    ec_rel:     typeof user?.emergency_contact_relationship === 'string' ? user.emergency_contact_relationship : '',
+    ec_phone:   typeof user?.emergency_phone === 'string' ? user.emergency_phone : '',
   });
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -61,8 +61,8 @@ export function OnboardingModal({ user, onComplete }: Props) {
 
   function canAdvance() {
     if (step === 0) return form.college && form.course;
-    if (step === 1) return form.phone.trim().length >= 7;
-    if (step === 2) return form.ec_name.trim() && form.ec_phone.trim().length >= 7;
+    if (step === 1) return String(form.phone ?? '').trim().length >= 7;
+    if (step === 2) return String(form.ec_name ?? '').trim() && String(form.ec_phone ?? '').trim().length >= 7;
     return true;
   }
 

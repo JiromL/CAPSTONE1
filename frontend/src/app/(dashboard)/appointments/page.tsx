@@ -898,7 +898,7 @@ export default function AppointmentsPage() {
     <DashboardPageWrapper title="My Appointments" subtitle="Sessions assigned to you">
 
       {/* Summary strip — non-counselor only */}
-      {!isCounselorView && dashboard?.summary && (
+      {!isCounselorView && user?.role?.toUpperCase() !== 'CASE_MANAGER' && dashboard?.summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             { label: 'Total',        value: dashboard.summary.total_appointments ?? apts.length, color: 'var(--color-text-primary)' },
@@ -1347,8 +1347,8 @@ export default function AppointmentsPage() {
           );
         })()}
 
-        {/* Filter bar — hidden on reschedule tab */}
-        {displayTab !== 'reschedule' && <div className="flex items-center gap-2 px-3 py-2.5 flex-wrap" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+        {/* Filter bar — hidden on reschedule tab and for CASE_MANAGER */}
+        {displayTab !== 'reschedule' && user?.role?.toUpperCase() !== 'CASE_MANAGER' && <div className="flex items-center gap-2 px-3 py-2.5 flex-wrap" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
           <div className="relative flex-1 min-w-[140px]">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} />
             <input
@@ -1499,7 +1499,7 @@ export default function AppointmentsPage() {
                           {apt.student_id_number && <span className="ml-2">· {apt.student_id_number}</span>}
                         </p>
 
-                        {canManage && (
+                        {(canManage || user?.role?.toUpperCase() === 'CASE_MANAGER') && (
                           <div className="flex items-center gap-2 mt-3 flex-wrap">
                             <button onClick={() => setDetailAppt(apt)}
                               className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border transition"

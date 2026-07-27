@@ -1,6 +1,6 @@
 """
 Seed sample CPS announcements into MongoDB.
-Run from the backend directory:  python seed_announcements.py
+Run from repo root:  python scripts/seed_announcements.py
 """
 import os
 from datetime import datetime, timedelta

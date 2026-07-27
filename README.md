@@ -28,7 +28,9 @@ CAPSTONE1/
     ├── seed.py                  # Main seed (run first)
     ├── enrich_ic_forms.py       # IC interview form data for all 35 cases
     ├── seed_bookings.py         # REQUESTED + PENDING_APPROVAL appointments
-    └── seed_structured_soap.py  # Structured SOAP session notes
+    ├── seed_structured_soap.py  # Structured SOAP session notes
+    ├── seed_all.py              # Single-command seed runner (calls all scripts)
+    └── seed_announcements.py    # Standalone announcements seed
 ```
 
 ## Getting Started

@@ -9,9 +9,7 @@ Runs all seed data in one command:
      non_counseling_clients collection, check-in-only cases)
 
 Usage (from repo root):
-    python backend/seed_all.py
-or:
-    cd backend && python seed_all.py
+    python scripts/seed_all.py
 """
 import os
 import sys
@@ -24,7 +22,7 @@ from pymongo import MongoClient
 
 # ── Step 1: unified seed ──────────────────────────────────────────────────────
 HERE = os.path.dirname(os.path.abspath(__file__))
-MAIN_SEED = os.path.join(HERE, '..', 'scripts', 'seed.py')
+MAIN_SEED = os.path.join(HERE, 'seed.py')
 
 print("=" * 60)
 print("STEP 1 / 2 — Unified seed")

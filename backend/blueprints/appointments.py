@@ -1098,44 +1098,15 @@ def request_appointment():
     # Send appointment request receipt email
     try:
         student_email = case.get('student_email', '') if case else user.get('email', '')
-        student_name = case.get('student_name', 'Student') if case else f"{user.get('first_name', '')} {user.get('last_name', '')}"
-        
-        email_service = EmailService()
-        
-        receipt_subject = "Appointment Request Received"
-        receipt_html = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #1B5E20;">Appointment Request Received</h2>
-                    
-                    <p>Dear {student_name},</p>
-                    
-                    <p>Thank you for submitting your appointment request with the Counseling and Psychological Services (CPS). We have received your submission and will process it shortly.</p>
-                    
-                    <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #1B5E20;">
-                        <h3 style="color: #1B5E20; margin-top: 0;">Request Details</h3>
-                        <p style="margin: 8px 0;"><strong>Request ID:</strong> {appointment_id}</p>
-                        <p style="margin: 8px 0;"><strong>Preferred Date:</strong> {data.get('preferred_date')}</p>
-                        <p style="margin: 8px 0;"><strong>Purpose:</strong> {data.get('purpose')}</p>
-                        <p style="margin: 8px 0;"><strong>Status:</strong> {updated_appointment.get('status', AppointmentStatus.REQUESTED.value)}</p>
-                    </div>
-                    
-                    <p>Our counseling team will review your request and match you with an appropriate counselor. You will receive a confirmation email once your appointment has been scheduled.</p>
-                    
-                    <p style="color: #666; font-size: 12px;">If you have any questions, please don't hesitate to contact our support team.</p>
-                    
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    
-                    <p style="color: #999; font-size: 12px; text-align: center;">
-                        {_email_footer()}
-                    </p>
-                </div>
-            </body>
-        </html>
-        """
-        
-        email_service._send_email(student_email, receipt_subject, receipt_html)
+        student_name  = (case.get('student_name', 'Student') if case
+                         else f"{user.get('first_name', '')} {user.get('last_name', '')}".strip())
+        EmailService().send_appointment_request_receipt(
+            recipient_email=student_email,
+            student_name=student_name,
+            request_id=str(appointment_id),
+            preferred_date=str(data.get('preferred_date', '')),
+            purpose=str(data.get('purpose', '')),
+        )
         print(f"✓ Appointment request receipt sent to {student_email}")
     except Exception as e:
         print(f"⚠ Could not send request receipt email: {e}")
@@ -1391,57 +1362,33 @@ def match_counselor(appointment_id):
                     if meeting_passcode:
                         meeting_section += f'<p style="margin:8px 0;"><strong>Passcode:</strong> {meeting_passcode}</p>'
 
-                confirmation_html = f"""
-                <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
-                  <div style="max-width:600px;margin:0 auto;padding:20px;">
-                    <h2 style="color:#1B5E20;">Your Appointment is Confirmed</h2>
-                    <p>Dear {s_name},</p>
-                    <p>Your counseling appointment has been confirmed.</p>
-                    <div style="background:#f5f5f5;padding:15px;margin:20px 0;border-radius:5px;border-left:4px solid #1B5E20;">
-                      <h3 style="color:#1B5E20;margin-top:0;">Appointment Details</h3>
-                      <p style="margin:8px 0;"><strong>Date:</strong> {date_str}</p>
-                      <p style="margin:8px 0;"><strong>Time:</strong> {time_str}</p>
-                      <p style="margin:8px 0;"><strong>Counselor:</strong> {c_name}</p>
-                      <p style="margin:8px 0;"><strong>Format:</strong> {platform_label}</p>
-                      {meeting_section}
-                    </div>
-                    <p>Please log in to the CPS portal to view your appointment details.</p>
-                    <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
-                    <p style="color:#999;font-size:12px;text-align:center;">
-                      {_email_footer()}
-                    </p>
-                  </div>
-                </body></html>"""
-
                 email_svc = EmailService()
-                email_svc._send_email(s_email, f"CPS Appointment Confirmed — {date_str} at {time_str}", confirmation_html)
+                email_svc.send_appointment_confirmation_email(
+                    recipient_email=s_email,
+                    student_name=s_name,
+                    appointment_details={
+                        'appointment_date': date_str,
+                        'appointment_time': time_str,
+                        'platform':         platform_label,
+                        'counselor_name':   c_name,
+                        'meeting_link':     meeting_link or '',
+                        'start_dt':         appt_display_time,
+                    },
+                )
                 print(f"✓ Confirmation email sent to {s_email}")
 
                 # Notify counselor of new assignment
                 c_email = counselor.get('email', '')
                 if c_email:
-                    counselor_html = f"""
-                    <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
-                      <div style="max-width:600px;margin:0 auto;padding:20px;">
-                        <h2 style="color:#1B5E20;">New Appointment Assigned</h2>
-                        <p>Dear {c_name},</p>
-                        <p>A new counseling appointment has been assigned to you.</p>
-                        <div style="background:#f5f5f5;padding:15px;margin:20px 0;border-radius:5px;border-left:4px solid #1B5E20;">
-                          <h3 style="color:#1B5E20;margin-top:0;">Appointment Details</h3>
-                          <p style="margin:8px 0;"><strong>Student:</strong> {s_name}</p>
-                          <p style="margin:8px 0;"><strong>Date:</strong> {date_str}</p>
-                          <p style="margin:8px 0;"><strong>Time:</strong> {time_str}</p>
-                          <p style="margin:8px 0;"><strong>Format:</strong> {platform_label}</p>
-                          {meeting_section}
-                        </div>
-                        <p>Please log in to the CPS portal to view full details.</p>
-                        <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
-                        <p style="color:#999;font-size:12px;text-align:center;">
-                          {_email_footer()}
-                        </p>
-                      </div>
-                    </body></html>"""
-                    email_svc._send_email(c_email, f"New Appointment — {s_name} on {date_str} at {time_str}", counselor_html)
+                    email_svc.send_counselor_notification(
+                        recipient_email=c_email,
+                        counselor_name=c_name,
+                        student_name=s_name,
+                        date_str=date_str,
+                        time_str=time_str,
+                        platform=platform_label,
+                        meeting_link=meeting_link or '',
+                    )
                     print(f"✓ Counselor notification sent to {c_email}")
         except Exception as e:
             print(f"⚠ Could not send confirmation email: {e}")
@@ -3688,31 +3635,27 @@ def cancel_appointment(appointment_id):
             canceller_role = 'student' if str(user_id_obj) == str(student_id) else 'counselor/staff'
             apt_date = appointment.get('scheduled_start') or appointment.get('requested_start')
             date_str = apt_date.strftime('%B %d, %Y at %I:%M %p') if apt_date else 'the scheduled date'
-            cancel_subject = 'CPS Appointment Cancelled'
-            cancel_body_tpl = (
-                '<html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px">'
-                '<h2 style="color:#B91C1C;">Appointment Cancelled</h2>'
-                '<p>Dear {name},</p>'
-                '<p>Your counseling appointment on <strong>{date}</strong> has been cancelled by the {by}.</p>'
-                '<p><strong>Reason:</strong> {reason}</p>'
-                '<p>If you have questions, please contact the CPS office.</p>'
-                '</body></html>'
-            )
             # Notify student
             student_doc = db.db.users.find_one({'_id': student_id}) if student_id else None
             if student_doc and student_doc.get('email'):
                 sname = f"{student_doc.get('first_name', '')} {student_doc.get('last_name', '')}".strip() or 'Student'
-                email_svc._send_email(
-                    student_doc['email'], cancel_subject,
-                    cancel_body_tpl.format(name=sname, date=date_str, by=canceller_role, reason=reason)
+                email_svc.send_cancellation_email(
+                    recipient_email=student_doc['email'],
+                    recipient_name=sname,
+                    appointment_date=date_str,
+                    cancelled_by=canceller_role,
+                    reason=reason,
                 )
             # Notify counselor
             counselor_doc = db.db.users.find_one({'_id': counselor_id}) if counselor_id else None
             if counselor_doc and counselor_doc.get('email'):
                 cname = f"{counselor_doc.get('first_name', '')} {counselor_doc.get('last_name', '')}".strip() or 'Counselor'
-                email_svc._send_email(
-                    counselor_doc['email'], cancel_subject,
-                    cancel_body_tpl.format(name=cname, date=date_str, by=canceller_role, reason=reason)
+                email_svc.send_cancellation_email(
+                    recipient_email=counselor_doc['email'],
+                    recipient_name=cname,
+                    appointment_date=date_str,
+                    cancelled_by=canceller_role,
+                    reason=reason,
                 )
         except Exception as email_err:
             print(f"⚠ Cancellation email failed: {email_err}")
@@ -3866,19 +3809,11 @@ def deny_appointment(appointment_id):
             student_doc = db.db.users.find_one({'_id': appointment.get('student_id')})
             if student_doc and student_doc.get('email'):
                 sname = f"{student_doc.get('first_name', '')} {student_doc.get('last_name', '')}".strip() or 'Student'
-                email_svc = EmailService()
-                email_svc._send_email(
-                    student_doc['email'],
-                    'CPS Appointment Request Not Approved',
-                    f"""<html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px">
-                    <h2 style="color:#B91C1C;">Appointment Request Not Approved</h2>
-                    <p>Dear {sname},</p>
-                    <p>We regret to inform you that your appointment request (ID: {apt_id}) could not be approved at this time.</p>
-                    <p><strong>Reason:</strong> {denial_reason}</p>
-                    <p>You are welcome to submit a new appointment request. If you have urgent concerns,
-                    please contact the CPS office directly.</p>
-                    <p style="color:#666;font-size:12px;">{_email_footer()}</p>
-                    </body></html>"""
+                EmailService().send_denial_email(
+                    recipient_email=student_doc['email'],
+                    student_name=sname,
+                    appointment_id=str(apt_id),
+                    reason=denial_reason,
                 )
         except Exception as email_err:
             print(f"⚠ Denial email failed: {email_err}")
@@ -4044,25 +3979,13 @@ def reschedule_appointment(appointment_id):
                 old_time  = (appointment.get('scheduled_start') or appointment.get('requested_start'))
                 old_str   = old_time.strftime('%B %d, %Y at %I:%M %p PHT') if old_time else 'TBD'
                 new_str   = new_start.strftime('%B %d, %Y at %I:%M %p PHT')
-                html = f"""<html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
-                  <div style="max-width:600px;margin:0 auto;padding:20px;">
-                    <h2 style="color:#1B5E20;">Reschedule Request</h2>
-                    <p>Dear {c_name},</p>
-                    <p><strong>{s_name}</strong> has requested to reschedule their appointment.</p>
-                    <div style="background:#f5f5f5;padding:15px;margin:20px 0;border-radius:5px;border-left:4px solid #1B5E20;">
-                      <p style="margin:8px 0;"><strong>Current time:</strong> {old_str}</p>
-                      <p style="margin:8px 0;"><strong>Requested new time:</strong> {new_str}</p>
-                      {'<p style="margin:8px 0;"><strong>Reason:</strong> ' + reason + '</p>' if reason else ''}
-                    </div>
-                    <p>Please log in to the CPS portal to approve or deny this request.</p>
-                    <hr style="border:none;border-top:1px solid #ddd;margin:20px 0;">
-                    <p style="color:#999;font-size:12px;text-align:center;">{_email_footer()}</p>
-                  </div>
-                </body></html>"""
-                EmailService()._send_email(
-                    counselor_doc['email'],
-                    f"Reschedule Request — {s_name}",
-                    html,
+                EmailService().send_reschedule_notification(
+                    recipient_email=counselor_doc['email'],
+                    counselor_name=c_name,
+                    student_name=s_name,
+                    old_time=old_str,
+                    new_time=new_str,
+                    reason=reason or '',
                 )
                 print(f"✓ Reschedule notification sent to {counselor_doc['email']}")
         except Exception as notify_err:
@@ -4480,23 +4403,13 @@ def set_meeting_link(appointment_id):
                 appt_time = appt.get('scheduled_start') or appt.get('requested_start')
                 time_str = appt_time.strftime('%B %d, %Y at %I:%M %p') if isinstance(appt_time, datetime) else 'your scheduled time'
                 platform = appt.get('preferred_method', 'online').replace('_', ' ').title()
-                email_svc = EmailService()
-                html = f"""
-                <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;">
-                  <div style="max-width:560px;margin:0 auto;padding:20px;">
-                    <h2 style="color:#1B5E20;">Your Meeting Link is Ready</h2>
-                    <p>Dear {s_name},</p>
-                    <p>Your {platform} link for the counseling session on <strong>{time_str}</strong> is now available:</p>
-                    <div style="text-align:center;margin:24px 0;">
-                      <a href="{meeting_link}" style="display:inline-block;background:#1B5E20;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Join Session</a>
-                    </div>
-                    <p style="font-size:13px;color:#6b7280;">If the button doesn't work, copy and paste this link into your browser:<br>
-                    <a href="{meeting_link}" style="color:#1B5E20;">{meeting_link}</a></p>
-                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
-                    <p style="color:#999;font-size:12px;text-align:center;">{_email_footer()}</p>
-                  </div>
-                </body></html>"""
-                email_svc._send_email(s_email, f"Meeting Link Ready — {time_str}", html)
+                EmailService().send_meeting_link_email(
+                    recipient_email=s_email,
+                    student_name=s_name,
+                    meeting_link=meeting_link,
+                    appointment_time=time_str,
+                    platform=platform,
+                )
         except Exception as e:
             print(f"⚠ Could not send meeting link email: {e}")
 

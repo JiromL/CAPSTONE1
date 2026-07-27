@@ -1716,6 +1716,54 @@ export default function CaseDetailPage() {
             </div>
           </div>
 
+          {/* Student Information card */}
+          {(() => {
+            const s = caseData.student || {};
+            const icf = caseData.intake_interview_form || {};
+            const college = s.college || icf.college || '';
+            const program = s.course || icf.program || icf.degree_program || '';
+            const yearLevel = s.year_level || icf.year_level || '';
+            const phone = s.phone || '';
+            const middleName = s.middle_name || '';
+            const emergencyName = icf.emergency_contact_name || '';
+            const emergencyRel = icf.emergency_contact_relationship || '';
+            const emergencyPhone = icf.emergency_contact_phone || '';
+            const presentingConcern = icf.presenting_concern || caseData.presenting_issue || '';
+            const serviceRequested = icf.service_requested || '';
+            const rows: { label: string; value: string | null }[] = [
+              { label: 'Full Name',          value: studentName !== '—' ? studentName : null },
+              { label: 'Middle Name',        value: middleName || null },
+              { label: 'Student No.',        value: studentSchoolId !== '—' ? studentSchoolId : null },
+              { label: 'Email',              value: studentEmail || null },
+              { label: 'Phone',              value: phone || null },
+              { label: 'College / Unit',     value: college || null },
+              { label: 'Program',            value: program || null },
+              { label: 'Year Level',         value: yearLevel || null },
+              { label: 'Service Requested',  value: serviceRequested ? serviceRequested.replace(/_/g, ' ') : null },
+              { label: 'Emergency Contact',  value: emergencyName ? `${emergencyName}${emergencyRel ? ` (${emergencyRel})` : ''}${emergencyPhone ? ` · ${emergencyPhone}` : ''}` : null },
+            ].filter(r => r.value);
+            if (rows.length === 0 && !presentingConcern) return null;
+            return (
+              <div className="rounded-2xl shadow-card p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Student Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {rows.map(({ label, value }) => (
+                    <div key={label}>
+                      <p style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+                      <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+                {presentingConcern && (
+                  <div className="mt-4 pt-4 text-sm" style={{ borderTop: '1px solid var(--color-border)' }}>
+                    <p className="mb-1" style={{ color: 'var(--color-text-secondary)' }}>Presenting Concern</p>
+                    <p className="leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>{presentingConcern}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* IC Referral card — shown whenever endorsement data is present */}
           {(caseData.endorsed_to_role || caseData.counselor_name || caseData.intake_counselor_name) && (
             <div className="rounded-2xl shadow-card p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>

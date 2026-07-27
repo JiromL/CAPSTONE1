@@ -46,7 +46,7 @@ _case_seq = [0]
 
 def ph(pw):    return generate_password_hash(pw)
 def H(d, h=9, m=0):  return (now - timedelta(days=d)).replace(hour=h, minute=m, second=0, microsecond=0)
-def F(d, h=9, m=0):  return (now + timedelta(days=d)).replace(hour=h, minute=m, second=0, microsecond=0)
+def F(d, h=9, m=0):  return (now + timedelta(days=abs(d))).replace(hour=h, minute=m, second=0, microsecond=0)
 def ymd(d):   return d.strftime('%Y-%m-%d')
 def cnum():
     _case_seq[0] += 1
@@ -251,7 +251,7 @@ def mk_case(sid, counselor_id, ic_id, ic_name_str, status, risk, concern, issue,
         'endorsed_to': endorsed_to,
         'endorsement_notes': f'Endorsed for {endorsed_to.lower()} services.',
         'session_date': H(days_ago).isoformat(),
-        'session_method': 'F2F',
+        'session_method': 'in_person',
         'ic_name': ic_name_str, 'student_name': sname,
     }
     doc = {
@@ -320,11 +320,11 @@ c5  = mk_case(s5,  c_clara,  ic_cris,   IC_NAMES[4], 'ACTIVE',   'GREEN',  'Care
               'COUNSELOR', 6, 4, 'COUNSELING', 28,
               goals=_g(('Clarify career values and goals','in_progress'),('Reduce decision-making anxiety','not_started')))
 
-c6  = mk_case(s6,  p_daryl,  ic_julse,  IC_NAMES[0], 'ACTIVE',   'CRITICAL','Severe depression, SI with plan',
+c6  = mk_case(s6,  p_daryl,  ic_julse,  IC_NAMES[0], 'ACTIVE',   'RED',    'Severe depression, SI with plan',
               'Student presents with SI with a plan. Reports hopelessness, social isolation, and inability to function.',
               'PSYCHOLOGIST', 27, 18, 'PSYCHOLOGIST', 14,
               goals=_g(('Immediate safety — daily check-ins','in_progress'),('Address suicidal cognitions','not_started'),('Family engagement','not_started')),
-              diagnoses=['Major Depressive Disorder, Severe with Psychotic Features'])
+              diagnoses=['Major Depressive Disorder, Severe'])
 
 c7  = mk_case(s7,  p_niko,   ic_archie, IC_NAMES[1], 'ACTIVE',   'RED',    'Trauma, PTSD symptoms',
               'Student reports flashbacks and nightmares following a motor accident. Avoids driving and public transport.',
@@ -397,13 +397,13 @@ c18 = mk_case(s18, p_chona,  ic_cris,   IC_NAMES[4], 'ACTIVE',   'YELLOW', 'Subs
 c19 = mk_case(s19, c_rose,   ic_wil,    IC_NAMES[5], 'PENDING_TERMINATION', 'GREEN', 'Academic stress, mild anxiety',
               'Student reported improvement and expressed readiness to terminate. Goals largely met.',
               'COUNSELOR', 5, 3, 'COUNSELING', 90,
-              client_status='PENDING_DISCHARGE',
+              client_status='PENDING_TERMINATION',
               goals=_g(('Maintain gains post-therapy','completed'),('Develop relapse prevention plan','completed')))
 
 c20 = mk_case(s20, c_chelly, ic_rose_c, IC_NAMES[6], 'PENDING_TERMINATION', 'GREEN', 'Grief, loss of pet/relationship',
               'Student has processed grief. Functioning has returned to baseline.',
               'COUNSELOR', 4, 3, 'COUNSELING', 75,
-              client_status='PENDING_DISCHARGE')
+              client_status='PENDING_TERMINATION')
 
 c21 = mk_case(s21, p_daryl,  ic_gracie, IC_NAMES[7], 'PENDING_TERMINATION', 'YELLOW', 'Depression, mild-moderate',
               'Student shows significant improvement on PHQ-9. Agreed to step down to self-monitoring.',
@@ -492,7 +492,7 @@ print(f"✅ {_case_seq[0]} cases created")
 # ── APPOINTMENTS ───────────────────────────────────────────────────────────────
 _apts = []
 
-def apt(sid, cid, case_id, start, status, purpose='counseling', method='F2F', mins=50, note=None):
+def apt(sid, cid, case_id, start, status, purpose='counseling', method='in_person', mins=50, note=None):
     end = start + timedelta(minutes=mins)
     doc = {
         'student_id': sid, 'counselor_id': cid, 'case_id': case_id,
@@ -542,13 +542,16 @@ apt(s18, p_chona,  c18, H(6,  10), 'NO_SHOW', 'counseling')
 apt(s3,  c_chelly, c3,  H(21, 9),  'CANCELLED', 'counseling')
 apt(s9,  c_bia,    c9,  H(21, 13), 'CANCELLED', 'follow_up')
 
-# Today's appointments
-apt(s1,  c_rose,   c1,  now.replace(hour=9,  minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
-apt(s2,  c_bia,    c2,  now.replace(hour=10, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
-apt(s6,  p_daryl,  c6,  now.replace(hour=11, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
-apt(s7,  p_niko,   c7,  now.replace(hour=13, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'follow_up')
-apt(s11, p_bon,    c11, now.replace(hour=14, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
-apt(s14, p_shel,   c14, now.replace(hour=15, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
+# Currently IN SESSION — started 25 minutes ago (CONFIRMED + start in past + end in future)
+_in_session_start = now - timedelta(minutes=25)
+apt(s6, p_daryl, c6, _in_session_start, 'CONFIRMED', 'counseling')
+
+# Today's upcoming confirmed appointments (start in future)
+apt(s1,  c_rose,  c1,  now.replace(hour=14, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
+apt(s2,  c_bia,   c2,  now.replace(hour=15, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
+apt(s7,  p_niko,  c7,  now.replace(hour=16, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'follow_up')
+apt(s11, p_bon,   c11, now.replace(hour=17, minute=0,  second=0, microsecond=0), 'CONFIRMED', 'counseling')
+apt(s14, p_shel,  c14, now.replace(hour=17, minute=30, second=0, microsecond=0), 'CONFIRMED', 'counseling')
 
 # Upcoming appointments
 _upcoming = [
@@ -560,7 +563,7 @@ _upcoming = [
     (s18, p_chona,  c18, 10, 'counseling'), (s5,  c_clara,  c5,  11, 'follow_up'),
 ]
 for days_ahead, (sv, cov, casev, hr, purp) in enumerate(_upcoming, start=1):
-    apt(sv, cov, casev, F(days_ahead, hr), 'SCHEDULED', purp)
+    apt(sv, cov, casev, F(days_ahead, hr), 'CONFIRMED', purp)
 
 # Walk-in intake appointments
 apt(s36, ic_julse,  None, now.replace(hour=10, minute=30, second=0, microsecond=0), 'CONFIRMED', 'intake_interview')
@@ -572,34 +575,148 @@ apt(s40, ic_cris,   None, F(4, 11), 'SCHEDULED', 'intake_interview')
 print(f"✅ {len(_apts)} appointments created")
 
 # ── SESSION NOTES ──────────────────────────────────────────────────────────────
-_soap_active = [
-    (s1, c1, c_rose,   'Student reports moderate improvement in managing thesis-related anxiety. Practiced breathing exercises. Mood: 6/10.',
-     'Anxiety related to academic performance and upcoming deadlines.', 'Used CBT thought-challenging techniques. Reviewed homework on thought records.', 'Continue CBT for anxiety management. Explore time-management strategies next session.'),
-    (s2, c2, c_bia,    'Student denies active SI this session. Reports mood has stabilized slightly with support from roommate. PHQ-9: 18.',
-     'Passive SI (no plan/intent), social isolation, hopelessness.', 'Reviewed safety plan. Explored social support options. Provided psychoeducation on depression.', 'Monitor SI closely. Schedule more frequent check-ins. Consider referral to psychiatry for medication evaluation.'),
-    (s3, c3, c_chelly, 'Student processing breakup. Identifies progress in reducing rumination. Sleep still disrupted.',
-     'Adjustment disorder following relationship ending. Sleep disturbance, concentration difficulty.', 'Applied CBT for rumination. Sleep hygiene psychoeducation.', 'Continue grief processing. Follow up on sleep hygiene implementation.'),
-    (s6, c6, p_daryl,  'Student in acute distress. SI with plan disclosed (overdose). Safety plan activated. Emergency contact notified.',
-     'Active SI with plan. Severe hopelessness. Social isolation.', 'Crisis intervention protocol initiated. Safety plan updated. Family contacted.', 'Daily monitoring. Coordinate with psychiatry for emergency consult.'),
-    (s7, c7, p_niko,   'Student reports 3 nightmares this week. Avoidance behaviors still present. Grounding techniques practiced.',
-     'PTSD — flashbacks, nightmares, hypervigilance following road accident.', 'Grounding techniques (5-4-3-2-1). Psychoeducation on trauma response.', 'Begin EMDR preparation phase next session.'),
-    (s11, c11, p_bon,  'Student reports restricting to 600 kcal/day. BMI: 17.2. Denies SI. Body dysmorphia significant.',
-     'Anorexia Nervosa — restrictive eating, excessive exercise, body image disturbance.', 'Motivational interviewing. Nutritional psychoeducation. Meal plan review.', 'Coordinate with physician. Consider higher level of care if BMI continues to drop.'),
-    (s16, c16, p_jenny,'Student presents in depressive phase. Reports sleeping 14+ hours daily. Missed 3 classes this week.',
-     'Bipolar Disorder Type I — current depressive episode.', 'Mood monitoring, behavioral activation. Reviewed medication adherence.', 'Behavioral activation homework. Coordinate with psychiatrist.'),
-]
-for sv, casev, cov, s_note, o_note, a_note, p_note in _soap_active:
+def soap(case_id, cid, sid, dt, subj, obj, asmt, plan, mood=5, risk=False):
     db.session_notes.insert_one({
-        'case_id': casev, 'counselor_id': cov, 'student_id': sv,
-        'student_name': _names[sv],
-        'session_date': H(rng.randint(1, 7)),
-        'session_type': 'INDIVIDUAL',
-        'method': 'F2F',
-        'subjective': s_note, 'objective': o_note,
-        'assessment': a_note, 'plan': p_note,
-        'mood_rating': rng.randint(3, 7),
-        'created_at': H(rng.randint(1, 7)), 'updated_at': now,
+        'case_id': case_id, 'counselor_id': cid, 'student_id': sid,
+        'student_name': _names[sid],
+        'session_date': dt, 'session_type': 'INDIVIDUAL',
+        'note_format': 'SOAP',
+        'soap': {'subjective': subj, 'objective': obj, 'assessment': asmt, 'plan': plan},
+        'structured_soap': None,
+        'mood_rating': mood, 'risk_flagged': risk,
+        'risk_notes': 'Monitor closely — elevated risk' if risk else None,
+        'is_deleted': False, 'current_version': 1, 'edit_history': [],
+        'created_at': dt, 'updated_at': dt,
     })
+
+def narrative(case_id, cid, sid, dt, content, mood=5):
+    db.session_notes.insert_one({
+        'case_id': case_id, 'counselor_id': cid, 'student_id': sid,
+        'student_name': _names[sid],
+        'session_date': dt, 'session_type': 'INDIVIDUAL',
+        'note_format': 'NARRATIVE', 'note_content': content,
+        'mood_rating': mood, 'risk_flagged': False,
+        'is_deleted': False, 'current_version': 1, 'edit_history': [],
+        'created_at': dt, 'updated_at': dt,
+    })
+
+# Emma (c1) — ACTIVE GREEN, counseling sessions
+soap(c1, c_rose, s1, H(28,9),
+    'Client reports academic stress is still significant. Difficulty sleeping before deadlines. Tried the thought records but found them challenging.',
+    'Client appeared tense, fidgety. Engaged well once rapport established. Mood described as 5/10.',
+    'Generalized anxiety related to academic performance. Avoidance pattern identified around thesis submission.',
+    'Continue thought records. Assign 10-min daily journaling. Explore procrastination triggers next session.', mood=5)
+soap(c1, c_rose, s1, H(21,9),
+    'Client tried journaling — found it helpful. Submitted thesis draft on time. Reports feeling "less catastrophic" about grades.',
+    'Noticeably calmer. Made eye contact throughout. Brought journal to session. Mood 6/10.',
+    'Anxiety improving with behavioral strategies. Cognitive restructuring taking hold.',
+    'Continue journaling. Introduce progressive muscle relaxation for exam nights. Plan 2 more sessions then review.', mood=6)
+soap(c1, c_rose, s1, H(14,9),
+    'Client passed midterms. Mood significantly improved. Reports using thought records independently.',
+    'Client smiling, engaged. Spontaneous humor. Mood 7/10. Less tension in posture.',
+    'Good progress on anxiety management goals. Academic performance stabilizing.',
+    'Begin tapering plan. Assign independent stress management protocol. Discuss potential closure in 2 sessions.', mood=7)
+
+# Mark (c2) — ACTIVE RED, depression/SI
+soap(c2, c_bia, s2, H(25,10),
+    'Client presents with passive SI — "I sometimes wish I wouldn\'t wake up." No plan, no intent. Reports complete social withdrawal.',
+    'Client appeared flat, poorly groomed. Spoke in monotone. PHQ-9 administered: score 22.',
+    'Major Depressive Disorder, Moderate-Severe (F32.1). Passive SI without plan. High risk of escalation.',
+    'Update safety plan. Increase session frequency to twice weekly. Coordinate with psychiatry for medication evaluation.', mood=2, risk=True)
+soap(c2, c_bia, s2, H(18,10),
+    'Client engaged with safety plan. Has been texting trusted friend daily as agreed. SI thoughts less frequent.',
+    'Client slightly more alert. Some affect returning. PHQ-9: 19 — minimal improvement.',
+    'Depression remains severe. Safety plan compliance is protective. Medication referral pending.',
+    'Follow up on psychiatry referral. Continue safety monitoring. Introduce behavioral activation (2 tasks/day).', mood=3, risk=True)
+soap(c2, c_bia, s2, H(11,10),
+    'Client started antidepressant 5 days ago. Reports mild nausea but tolerating. Completed 3 behavioral activation tasks.',
+    'Client more animated than previous sessions. Some return of affect. PHQ-9: 17.',
+    'Depression responding to combined psychotherapy + medication. Behavioral activation showing early results.',
+    'Continue behavioral activation. Monitor medication side effects. Explore interpersonal triggers for low mood.', mood=4)
+soap(c2, c_bia, s2, H(4,10),
+    'Client reports first week in a month without passive SI thoughts. Slept 7 hours two nights in a row.',
+    'Client made a joke during session for the first time. Mood 5/10. Posture more open.',
+    'Significant improvement. SI remitted. PHQ-9: 14 — moderate range. Medication appears effective.',
+    'Continue current treatment plan. Begin cognitive restructuring for hopeless cognitions. Plan for relapse prevention.', mood=5)
+
+# Alex (c6) — ACTIVE RED, SI with plan — CRISIS notes
+soap(c6, p_daryl, s6, H(10,11),
+    'Client disclosed having a specific plan for suicide (medication overdose). Stated method and identified access. Distressed and tearful.',
+    'Client highly distressed. Crying throughout. SI with plan confirmed. Emergency contact notified during session.',
+    'ACTIVE SUICIDAL IDEATION WITH PLAN — Crisis level. Mandatory reporting initiated.',
+    'Safety plan activated. All medications removed from room. Family briefed. Daily welfare calls initiated. Referred to psychiatric emergency consult.', mood=1, risk=True)
+soap(c6, p_daryl, s6, H(7,11),
+    'Client reports SI thoughts reduced after family intervention and medication removal. Denies current active planning.',
+    'Client calmer than crisis session. Still very low mood. Eye contact maintained. Safety plan reviewed.',
+    'Post-crisis stabilization. Acute SI reduced. Passive ideation persists. Requires continued close monitoring.',
+    'Continue daily welfare checks. Start pharmacotherapy for depression (coordinated with psychiatry). Next session in 2 days.', mood=2, risk=True)
+soap(c6, p_daryl, s6, H(4,11),
+    'Client engaged with psychiatrist. Antidepressant started. Reports sleeping better. No active SI thoughts for 48 hours.',
+    'Less distressed. Made brief eye contact. Reports feeling "a tiny bit less hopeless."',
+    'Post-crisis — significant improvement. Active SI resolved. Passive ideation present but manageable.',
+    'Weekly sessions for now. Continue safety monitoring. Work on cognitive distortions around hopelessness.', mood=3, risk=True)
+
+# James/Miguel (c7) — PTSD
+soap(c7, p_niko, s7, H(45,13),
+    'Client describes recurring nightmares about the accident 3–4 nights per week. Avoids all forms of transport.',
+    'Client appeared hypervigilant — sat near door, scanned room on entry. Startled by phone notification.',
+    'PTSD (F43.1) — avoidance and hyperarousal clusters prominent.',
+    'Psychoeducation on trauma response. Introduce grounding techniques (5-4-3-2-1). No exposure work yet.', mood=3)
+soap(c7, p_niko, s7, H(38,13),
+    'Client used grounding during a flashback at school. Reports it "stopped the spiral." Still avoiding transport.',
+    'Slightly less hypervigilant than intake. Sustained eye contact for longer periods.',
+    'PTSD stabilizing. Grounding techniques effective. Avoidance still primary impairment.',
+    'Introduce trauma narrative — written format. Begin imaginal exposure preparation.', mood=4)
+soap(c7, p_niko, s7, H(31,13),
+    'Client began written trauma narrative. Highly distressing but completed. Reports dream frequency reduced to 1–2/week.',
+    'Client tearful during narrative review. Contained within session. Mood 5/10 by end of session.',
+    'PTSD processing initiated. Good tolerance of distress. Avoidance behaviors beginning to reduce.',
+    'Continue trauma narrative processing. Gradual in-vivo exposure to public transport (bus stop only).', mood=5)
+
+# Carlos (c9) — burnout
+soap(c9, c_bia, s9, H(15,14),
+    'Client reports feeling "empty" and exhausted despite adequate sleep. Dropped extracurricular activities.',
+    'Client appeared withdrawn, flat affect. Spoke slowly. Did not initiate any topics.',
+    'Academic burnout with early depressive features. No SI. GAD-7: 9.',
+    'Validate burnout experience. Introduce behavioral activation log. Reduce demands temporarily.', mood=3)
+soap(c9, c_bia, s9, H(8,14),
+    'Client completed behavioral activation log. Identified 3 enjoyable activities. Re-engaged with cooking.',
+    'Noticeably more animated. Shared photo of a dish they cooked. Mood 6/10.',
+    'Burnout recovery initiated. Behavioral activation effective. Academic re-engagement gradual.',
+    'Continue activation. Introduce value-based activity scheduling. Discuss academic load redistribution.', mood=6)
+
+# Amy (c11) — eating disorder
+soap(c11, p_bon, s11, H(35,9),
+    'Client minimizes severity — "I eat when I\'m hungry." BMI: 17.0. Amenorrhea for 2 months. Exercises 3 hours daily.',
+    'Client thin, pale. Defensive when nutrition discussed. Denies problem.',
+    'Anorexia Nervosa, Restrictive Type (F50.0). Medical risk increasing. Insight poor.',
+    'Motivational interviewing approach. Nutritional psychoeducation. Coordinate with physician for medical monitoring.', mood=4)
+soap(c11, p_bon, s11, H(28,9),
+    'Client admits eating is "controlled." Identifies fear of weight gain. Reluctant but willing to try meal plan.',
+    'Slightly more engaged. Acknowledged that fatigue is affecting academics — leverage point identified.',
+    'Anorexia — minimal insight but emerging ambivalence. Academic impact may be motivator for change.',
+    'Introduce meal plan (1200 kcal minimum). Monitor weight weekly with physician. Target academic functioning as motivator.', mood=4)
+soap(c11, p_bon, s11, H(21,9),
+    'Client followed meal plan 4 of 7 days. Weight: 45 kg (stable). Reports less fatigue.',
+    'Client appeared slightly more energized. Volunteered information without prompting.',
+    'Anorexia — early recovery stage. Meal adherence 57%. Medical stability maintained.',
+    'Continue meal plan. Address cognitive distortions about food and body. Family session to be scheduled.', mood=5)
+
+# Sofia (c5) — career anxiety
+narrative(c5, c_clara, s5, H(20,11),
+    'Session focused on career exploration. Sofia identified her core values: creativity, helping others, and financial stability. Acknowledged conflict between expected career path (nursing) and personal interest in arts therapy. No crisis concerns. Mood: 5/10.', mood=5)
+narrative(c5, c_clara, s5, H(13,11),
+    'Sofia researched arts therapy as a career and brought printed materials. Significantly more animated than previous sessions. Began drafting personal mission statement. Explored family expectations around career. Mood: 7/10.', mood=7)
+
+# Closed cases — historical notes
+for i, (casev, cov, sv, dt, content) in enumerate([
+    (c22, c_daye,   s22, H(100,9), 'Session 6/6 (Final). Client has successfully adjusted to university. Academic performance improved. Social connections established. Goals fully met. Discharged with follow-up self-monitoring plan. Mood: 8/10.'),
+    (c25, c_rose,   s25, H(80,10), 'Termination session. PHQ-9: 4 (was 14 at intake). Client demonstrates consistent use of CBT strategies. Strong support system in place. Excellent treatment outcomes. Mood: 9/10.'),
+    (c27, p_shel,   s27, H(120,11),'Final session — PTSD in remission. PCL-5 score: 12 (was 52 at intake). Client has returned to full functioning. No avoidance behaviors. Safety established. Referral to community support group provided. Mood: 8/10.'),
+    (c30, c_rose,   s30, H(70,9),  'Termination session for grief counseling. Client successfully processed loss of grandparent. Academic attendance and GPA restored. Has established new routines honoring memory. Mood: 8/10.'),
+]):
+    narrative(casev, cov, sv, dt, content, mood=8)
+
 print("✅ Session notes seeded")
 
 # ── SAFETY PLANS ───────────────────────────────────────────────────────────────
@@ -665,6 +782,95 @@ db.notifications.insert_many([
     {'user_id': admin_id, 'type': 'HIGH_RISK_ALERT', 'title': 'High Risk Alert', 'message': 'A student has been flagged as CRITICAL risk. Please review.', 'is_read': False, 'created_at': H(1)},
 ])
 print("✅ Notifications seeded")
+
+# ── CHECK-INS ──────────────────────────────────────────────────────────────────
+_checkins = [
+    (c2, s2, c_bia,   'WELFARE_CHECK',   'STABLE',     H(3,10),  'Phone welfare check. Student confirms following safety plan. SI thoughts absent for past 48 hours. Emergency contact engaged.'),
+    (c6, s6, p_daryl, 'WELFARE_CHECK',   'STABILIZING',H(5,11),  'Daily welfare check. Student responded promptly. Denies SI. Family support active. Medication started.'),
+    (c6, s6, p_daryl, 'WELFARE_CHECK',   'STABLE',     H(3,11),  'Daily check. Student engaged with behavioral activation. Expressed hope about upcoming session.'),
+    (c7, s7, p_niko,  'STATUS_UPDATE',   'IMPROVING',  H(10,13), 'Email check-in. Student reports nightmares reduced. Completed grounding exercise log. Attending classes again.'),
+    (c1, s1, c_rose,  'STATUS_UPDATE',   'IMPROVING',  H(7,9),   'Brief email follow-up. Emma confirms journaling consistently. Passed midterms. Less anxious than last session.'),
+    (c11, s11, p_bon, 'WELFARE_CHECK',   'STABLE',     H(14,9),  'Phone check-in. Student completed 4/7 meal plan days. Weight stable. Physician cleared no immediate medical emergency.'),
+    (c19, s19, c_rose,'STATUS_UPDATE',   'STABLE',     H(5,9),   'Pre-termination check. Student confirms maintaining gains. No relapse. Ready for discharge.'),
+    (c21, s21, p_daryl,'STATUS_UPDATE',  'STABLE',     H(7,9),   'Pre-termination check. PHQ-9 administered: score 7 (was 22). Student confident in self-monitoring.'),
+]
+for casev, sv, cov, ctype, cstatus, dt, note in _checkins:
+    ci_id = db.check_ins.insert_one({
+        'case_id': casev, 'student_id': sv, 'counselor_id': cov,
+        'check_in_type': ctype, 'client_status': cstatus,
+        'notes': note, 'contact_method': 'PHONE' if 'Phone' in note else 'EMAIL',
+        'created_at': dt, 'updated_at': dt,
+    }).inserted_id
+    db.cases.update_one({'_id': casev}, {'$push': {'check_ins': {'check_in_id': ci_id, 'date': dt, 'type': ctype}}})
+print("✅ Check-ins seeded")
+
+# ── IC INTERVIEW FORM ENRICHMENT ───────────────────────────────────────────────
+# Add full 11-section IC documentation to key active cases
+_ic_enrichments = {
+    c1: {
+        'general_appearance': ['Neat and well-groomed – organized, clean, and appropriately dressed', 'Relaxed and open body language – comfortable, natural posture'],
+        'communication_style': ['Clear and articulate – expresses thoughts clearly and fluently', 'Emotionally expressive – regularly shows emotion in speech'],
+        'general_disposition': ['Cooperative and engaged – participates actively in the session', 'Anxious or apprehensive – visibly nervous or worried during the session'],
+        'brief_description_remarks': 'Student presented punctually and was cooperative throughout intake. Visible tension in shoulders. Well-dressed, appropriate for the setting.',
+        'presenting_problem': ['Anxiety / worry – persistent anxiety, nervousness, or excessive worry', 'Academic concern – stress, poor performance, or difficulty managing academic load'],
+        'presenting_problem_remarks': 'Student reports significant anxiety around thesis submission and upcoming oral defense. Has been experiencing anticipatory dread for approximately 3 weeks.',
+        'psychosocial_history': ['Academic or work functioning – level of motivation, performance, or adjustment', 'Coping styles and strategies – ways the client typically manages stress', 'Peer and social relationships – quality of friendships or social supports'],
+        'psychosocial_remarks': 'Student has strong academic history. First time seeking counseling. Support from close friend group. No prior mental health history. Coping through avoidance currently.',
+        'interaction_relationship': ['Engaged and cooperative – open, responsive, and actively participated', 'Warm and receptive – friendly and comfortable engaging in dialogue'],
+        'affect_expression': ['Appropriate to content – emotion matches the topic being discussed', 'Anxious / tense – fidgety, restless, or visibly nervous'],
+        'interaction_remarks': 'Student was open and forthcoming. Rapport established quickly. Responded well to normalization of anxiety.',
+        'maladaptive_patterns': ['Avoidance behaviors – Tendency to avoid situations, tasks, or conversations that cause discomfort', 'Excessive worry or rumination – Repetitive overthinking, difficulty letting go'],
+        'counseling_goal': 'Within 8 sessions, the student will demonstrate consistent use of at least two adaptive coping strategies (thought records, scheduled worry time) to reduce anxiety episodes from daily to 2–3×/week, as measured by weekly GAD-7 reassessment.',
+        'predisposing_factors': ['Personality traits (e.g., perfectionism, dependency, impulsivity)'],
+        'precipitating_factors': ['Academic or work stress / overload'],
+        'perpetuating_factors': ['Maladaptive coping (avoidance, withdrawal, substance use)', 'Negative thinking patterns or self-criticism'],
+        'protective_factors': ['Supportive relationships or social network', 'Motivation to improve / willingness to seek help', 'Academic or work engagement'],
+        'recommendation': ['Continue Counseling / Psychotherapy – client to engage in ongoing sessions with same counselor/psychologist or team', 'Follow-up Session Scheduled – next session date or frequency confirmed'],
+    },
+    c2: {
+        'general_appearance': ['Disheveled or unkempt – noticeably disorganized or poorly maintained appearance', 'Tired or fatigued – appears sleep-deprived or low energy'],
+        'communication_style': ['Hesitant or guarded – pauses frequently or appears reluctant to share', 'Minimal responder – gives short, one-word, or limited responses'],
+        'general_disposition': ['Sad or tearful – displays sadness; may cry during session', 'Withdrawn or avoidant – quiet, minimal eye contact, or reluctant to engage'],
+        'brief_description_remarks': 'Student appeared visibly fatigued and under-groomed. Slow gait. Sat hunched. Cried briefly when asked about academic performance.',
+        'presenting_problem': ['Depression / low mood – persistent sadness, low energy, or hopelessness', 'Self-esteem concern – low confidence, self-doubt, or negative self-image'],
+        'presenting_problem_remarks': 'Student reports persistent low mood for 6 weeks, passive suicidal ideation (no plan), social isolation, and inability to experience pleasure. PHQ-9: 22 (Severe).',
+        'psychosocial_history': ['Significant past experiences – history of trauma, loss, illness, or major life transitions', 'Family background – quality of family relationships, support, or sources of conflict', 'Coping styles and strategies – ways the client typically manages stress'],
+        'psychosocial_remarks': 'Parental divorce during high school. Strained relationship with father. Historically used exercise and social activities as coping — both now abandoned. No prior counseling.',
+        'interaction_relationship': ['Guarded or hesitant – cautious, reserved, or limited in responses', 'Calm and composed – steady demeanor and appropriate behavior'],
+        'affect_expression': ['Depressed / sad – flat affect, tearful, or downcast tone', 'Flat / restricted – limited range of emotion or monotone tone'],
+        'interaction_remarks': 'Student was difficult to engage initially. Opened up gradually when depression was normalized. Expressed relief at being heard.',
+        'maladaptive_patterns': ['Avoidance behaviors – Tendency to avoid situations, tasks, or conversations that cause discomfort', 'Negative self-talk or self-criticism – Persistent self-blame, harsh internal dialogue, or low self-worth', 'Emotional suppression – Difficulty expressing or acknowledging emotions'],
+        'counseling_goal': 'Within 12 sessions, the student will reduce PHQ-9 score from 22 to below 10, demonstrate active engagement with behavioral activation, and maintain a robust safety plan, with no SI episodes requiring crisis intervention.',
+        'predisposing_factors': ['Family history of mental health or relational problems', 'Limited early emotional support or attachment disruption'],
+        'precipitating_factors': ['Academic or work stress / overload', 'Traumatic or critical incident'],
+        'perpetuating_factors': ['Ongoing stressors (family, financial, workload)', 'Poor self-care or sleep habits', 'Negative thinking patterns or self-criticism'],
+        'protective_factors': ['Motivation to improve / willingness to seek help', 'Access to mental health and community resources'],
+        'recommendation': ['Crisis Intervention / Safety Plan Initiated – immediate response to safety or suicide risk concerns', 'Referral to Psychiatrist / Physician – for medication evaluation or medical management', 'Continue Counseling / Psychotherapy – client to engage in ongoing sessions with same counselor/psychologist or team'],
+    },
+    c6: {
+        'general_appearance': ['Disheveled or unkempt – noticeably disorganized or poorly maintained appearance', 'Notable physical signs of distress – shaking, nail-biting, or visible signs of anxiety', 'Tired or fatigued – appears sleep-deprived or low energy'],
+        'communication_style': ['Minimal responder – gives short, one-word, or limited responses'],
+        'general_disposition': ['Sad or tearful – displays sadness; may cry during session', 'Resistant or avoidant – reluctant to engage or discuss certain topics'],
+        'brief_description_remarks': 'Student appeared highly distressed. Shaking hands. Spoke barely above a whisper. Admitted to active suicidal ideation with a specific plan — emergency protocol activated mid-session.',
+        'presenting_problem': ['Depression / low mood – persistent sadness, low energy, or hopelessness', 'Trauma – distressing experiences affecting daily life'],
+        'presenting_problem_remarks': 'Student disclosed SI with a concrete plan (medication overdose). Expressed hopelessness and feeling like a burden. PHQ-9: 27 (Severe). Immediate crisis response initiated.',
+        'psychosocial_history': ['Significant past experiences – history of trauma, loss, illness, or major life transitions', 'Family background – quality of family relationships, support, or sources of conflict'],
+        'psychosocial_remarks': 'History of depressive episodes. Family conflict ongoing. Lost close friend to suicide one year ago. No prior counseling engagement.',
+        'interaction_relationship': ['Withdrawn or avoidant – quiet, minimal eye contact, or reluctant to engage'],
+        'affect_expression': ['Depressed / sad – flat affect, tearful, or downcast tone', 'Flat / restricted – limited range of emotion or monotone tone'],
+        'interaction_remarks': 'Student was minimally responsive. Disclosure of SI required multiple gentle prompts. Once disclosed, became tearful and expressed relief.',
+        'maladaptive_patterns': ['Avoidance behaviors – Tendency to avoid situations, tasks, or conversations that cause discomfort', 'Negative self-talk or self-criticism – Persistent self-blame, harsh internal dialogue, or low self-worth', 'Trauma-related responses – Hypervigilance, emotional numbing, or heightened reactivity'],
+        'counseling_goal': 'Immediate safety stabilization. Within 4 sessions: student will demonstrate consistent safety plan adherence, deny active SI, and engage with psychiatric evaluation and medication management.',
+        'predisposing_factors': ['Family history of mental health or relational problems', 'Significant past experiences – history of trauma, loss, illness, or major life transitions'],
+        'precipitating_factors': ['Recent loss or separation', 'Academic or work stress / overload'],
+        'perpetuating_factors': ['Negative thinking patterns or self-criticism', 'Lack of insight or resistance to change', 'Environmental barriers (limited support, unsafe environment)'],
+        'protective_factors': ['Motivation to improve / willingness to seek help', 'Access to mental health and community resources'],
+        'recommendation': ['Crisis Intervention / Safety Plan Initiated – immediate response to safety or suicide risk concerns', 'Referral to Psychiatrist / Physician – for medication evaluation or medical management'],
+    },
+}
+for case_id, fields in _ic_enrichments.items():
+    db.cases.update_one({'_id': case_id}, {'$set': {f'intake_interview_form.{k}': v for k, v in fields.items()}})
+print("✅ IC interview forms enriched")
 
 # ── SUMMARY ────────────────────────────────────────────────────────────────────
 print()

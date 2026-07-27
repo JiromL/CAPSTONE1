@@ -1938,17 +1938,21 @@ def create_walkin_intake():
         risk_level = 'RED' if is_urgent else 'GREEN'
         urgency_level = 'emergency' if is_urgent else 'normal'
 
-        # OA-assigned IC and time slot (walk-in manual assignment)
+        # OA-assigned counselor/IC and optional time slot (walk-in manual assignment)
         assigned_ic_id = None
         assigned_ic_obj = None
+        if data.get('counselor_id'):
+            try:
+                assigned_ic_id = ObjectId(data['counselor_id'])
+                assigned_ic_obj = db.db.users.find_one({'_id': assigned_ic_id})
+            except Exception:
+                pass
         if data.get('counselor_id') and data.get('scheduled_time'):
             try:
                 h, m = map(int, data['scheduled_time'].split(':'))
                 appointment_date = datetime.utcnow().replace(hour=h, minute=m, second=0, microsecond=0)
                 days_string = 'today'
                 appointment_time = data['scheduled_time']
-                assigned_ic_id = ObjectId(data['counselor_id'])
-                assigned_ic_obj = db.db.users.find_one({'_id': assigned_ic_id})
             except Exception:
                 appointment_date, days_string, appointment_time = calculate_appointment_date(is_urgent, urgency_level, risk_level)
         else:
@@ -1982,23 +1986,39 @@ def create_walkin_intake():
                 print(f"Warning: Could not validate student_id for walk-in: {str(id_error)}")
                 # Continue anyway - walk-in might be for non-enrolled student
         
-        # Create case record
-        case_id = ObjectId()
-        case_data = {
-            '_id': case_id,
-            'counseling_id': counseling_id,
-            'student_id': data.get('student_id', ''),
-            'student_email': data.get('email'),
-            'student_name': f"{data.get('first_name')} {data.get('last_name')}",
-            'phone': data.get('phone', ''),
-            'status': 'ACTIVE',
-            'risk_level': risk_level,
-            'created_at': datetime.utcnow(),
-            'created_by': user_id,
-            'intake_source': 'WALKIN',
-            'notes': data.get('notes', ''),
-        }
-        db.db.cases.insert_one(case_data)
+        # Reuse existing open case for this student — prevents duplicate case records
+        walkin_student_id = data.get('student_id', '')
+        existing_walkin_case = None
+        if walkin_student_id:
+            try:
+                _wid = ObjectId(walkin_student_id) if isinstance(walkin_student_id, str) else walkin_student_id
+                existing_walkin_case = db.db.cases.find_one({
+                    'student_id': _wid,
+                    'status': {'$nin': ['CLOSED', 'CANCELLED']},
+                })
+            except Exception:
+                pass
+
+        if existing_walkin_case:
+            case_id = existing_walkin_case['_id']
+            db.db.cases.update_one({'_id': case_id}, {'$set': {'updated_at': datetime.utcnow()}})
+        else:
+            case_id = ObjectId()
+            case_data = {
+                '_id': case_id,
+                'counseling_id': counseling_id,
+                'student_id': walkin_student_id,
+                'student_email': data.get('email'),
+                'student_name': f"{data.get('first_name')} {data.get('last_name')}",
+                'phone': data.get('phone', ''),
+                'status': 'ACTIVE',
+                'risk_level': risk_level,
+                'created_at': datetime.utcnow(),
+                'created_by': user_id,
+                'intake_source': 'WALKIN',
+                'notes': data.get('notes', ''),
+            }
+            db.db.cases.insert_one(case_data)
         
         # Create intake record
         concern = data.get('concern', 'other')
@@ -2031,6 +2051,13 @@ def create_walkin_intake():
         result = db.db.intakes.insert_one(intake_data)
         
         # Create initial appointment record
+        purpose = data.get('purpose', 'intake_interview')
+        _type_map = {
+            'intake_interview': 'INTAKE',
+            'counseling':       'COUNSELING',
+            'follow_up':        'FOLLOW_UP',
+            'others':           'OTHER',
+        }
         appointment_data = {
             '_id': ObjectId(),
             'counseling_id': counseling_id,
@@ -2038,7 +2065,8 @@ def create_walkin_intake():
             'student_name': f"{data.get('first_name')} {data.get('last_name')}",
             'student_email': data.get('email'),
             'status': AppointmentStatus.CONFIRMED if assigned_ic_id else AppointmentStatus.REQUESTED,
-            'appointment_type': 'INITIAL_CONSULTATION',
+            'appointment_type': _type_map.get(purpose, 'INTAKE'),
+            'purpose': purpose,
             'scheduled_date': appointment_date,
             'scheduled_start': appointment_date,
             'appointment_time': appointment_time,

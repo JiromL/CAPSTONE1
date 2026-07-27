@@ -41,10 +41,27 @@ const empty: TerminationFormData = {
   follow_up_recommendations: '', follow_up_schedule: '',
 };
 
+interface Prefill {
+  sessionCount?: string;
+  presentingProblem?: string;
+  modeOfSession?: string;
+  crisisContact?: string;
+}
+
 interface Props {
   studentName: string;
+  prefill?: Prefill;
   onClose: () => void;
   onSubmit: (data: TerminationFormData) => Promise<void>;
+}
+
+function AutoBadge() {
+  return (
+    <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded font-medium"
+      style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', border: '1px solid var(--color-success)', opacity: 0.85 }}>
+      auto-filled
+    </span>
+  );
 }
 
 function SectionLabel({ label }: { label: string }) {
@@ -56,10 +73,10 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: React.ReactNode; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="mb-4">
-      <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+      <label className="flex items-center text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>
         {label}{required && <span className="ml-0.5" style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
       {children}
@@ -120,10 +137,22 @@ function Textarea({ value, onChange, placeholder, rows = 2 }: {
   );
 }
 
-export function TerminationFormModal({ studentName, onClose, onSubmit }: Props) {
-  const [form, setForm] = useState<TerminationFormData>({ ...empty });
+export function TerminationFormModal({ studentName, prefill, onClose, onSubmit }: Props) {
+  const [form, setForm] = useState<TerminationFormData>(() => ({
+    ...empty,
+    session_count:      prefill?.sessionCount      || '',
+    presenting_problem: prefill?.presentingProblem || '',
+    mode_of_session:    prefill?.modeOfSession     || '',
+    crisis_contact:     prefill?.crisisContact     || 'National Crisis Hotline: 1553\nIn Touch: 893-7603',
+  }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const autoFilled = {
+    sessionCount:      !!(prefill?.sessionCount),
+    presentingProblem: !!(prefill?.presentingProblem),
+    modeOfSession:     !!(prefill?.modeOfSession),
+  };
 
   const set = (patch: Partial<TerminationFormData>) => setForm(f => ({ ...f, ...patch }));
 
@@ -175,14 +204,14 @@ export function TerminationFormModal({ studentName, onClose, onSubmit }: Props) 
           <div>
             <SectionLabel label="Session Information" />
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Mode of Session" required>
+              <Field label={<>Mode of Session{autoFilled.modeOfSession && <AutoBadge />}</>} required>
                 <RadioList
                   options={['Onsite (Face-to-Face)', 'Online (Zoom, Google Meet, etc.)']}
                   selected={form.mode_of_session}
                   onSelect={v => set({ mode_of_session: v })}
                 />
               </Field>
-              <Field label="Total Number of Sessions">
+              <Field label={<>Total Number of Sessions{autoFilled.sessionCount && <AutoBadge />}</>}>
                 <input type="number" min="1" value={form.session_count}
                   onChange={e => set({ session_count: e.target.value })}
                   placeholder="e.g. 8"
@@ -223,7 +252,7 @@ export function TerminationFormModal({ studentName, onClose, onSubmit }: Props) 
               <Textarea rows={3} value={form.summary} onChange={v => set({ summary: v })}
                 placeholder="Briefly describe what was worked on throughout the counseling relationship…" />
             </Field>
-            <Field label="Presenting Problem (at start of counseling)">
+            <Field label={<>Presenting Problem (at start of counseling){autoFilled.presentingProblem && <AutoBadge />}</>}>
               <Textarea value={form.presenting_problem} onChange={v => set({ presenting_problem: v })}
                 placeholder="Main concern(s) the client initially presented with…" />
             </Field>

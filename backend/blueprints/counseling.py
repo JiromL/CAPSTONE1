@@ -265,9 +265,9 @@ def get_case_session_history(case_id):
         # Resolve counselor name
         counselor_name = ''
         if n.get('counselor_id'):
-            c = db.db.users.find_one({'_id': n['counselor_id']}, {'name': 1})
+            c = db.db.users.find_one({'_id': n['counselor_id']}, {'first_name': 1, 'last_name': 1, 'name': 1})
             if c:
-                counselor_name = c.get('name', '')
+                counselor_name = c.get('name') or f"{c.get('first_name','')} {c.get('last_name','')}".strip()
 
         # Resolve deleted-by name
         deleted_by_name = ''

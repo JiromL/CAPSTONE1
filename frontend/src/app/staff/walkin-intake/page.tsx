@@ -42,7 +42,7 @@ const STEP_LABELS_FULL = [
 const STEP_LABELS_SHORT = [
   { num: 1, label: 'Contact Form',        sub: 'ICF'   },
   { num: 2, label: 'Mental Health Screen',sub: 'PHQ-4' },
-  { num: 3, label: 'Assign IC',           sub: 'Session' },
+  { num: 3, label: 'Assign Counselor',    sub: 'Session' },
 ];
 
 const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
@@ -127,6 +127,12 @@ export default function WalkinIntakePage() {
   const [slotsError, setSlotsError]       = useState('');
   const [selectedSlot, setSelectedSlot]   = useState<{time:string;method:string;counselor_id:string;counselor_name:string}|null>(null);
 
+  // Non-intake counselor assignment
+  const [counselors, setCounselors]               = useState<{_id:string;name:string;role:string}[]>([]);
+  const [loadingCounselors, setLoadingCounselors] = useState(false);
+  const [selectedCounselorId, setSelectedCounselorId] = useState('');
+  const [selectedCounselorTime, setSelectedCounselorTime] = useState('');
+
   const [icf, setIcf] = useState({
     first_name: '', last_name: '', middle_name: '',
     email: '', student_id: '', phone: '',
@@ -209,6 +215,26 @@ export default function WalkinIntakePage() {
     } finally { setLoadingSlots(false); }
   };
 
+  const loadNonIntakeCounselors = async () => {
+    if (counselors.length > 0) return;
+    setLoadingCounselors(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api('/api/users?roles=COUNSELOR,PSYCHOLOGIST'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (d?.users) {
+        setCounselors(d.users.map((u: any) => ({
+          _id: u._id || u.id,
+          name: `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+          role: u.role,
+        })));
+      }
+    } catch {}
+    finally { setLoadingCounselors(false); }
+  };
+
   const isFirstTime = icf.purpose === 'intake_interview';
   const STEP_LABELS = isFirstTime ? STEP_LABELS_FULL : STEP_LABELS_SHORT;
 
@@ -216,7 +242,10 @@ export default function WalkinIntakePage() {
   const next = () => {
     if (!validate()) return;
     const nextStep = (!isFirstTime && step === 0) ? 2 : step + 1;
-    if (nextStep === 3) loadIcSlots();
+    if (nextStep === 3) {
+      if (isFirstTime) loadIcSlots();
+      else loadNonIntakeCounselors();
+    }
     setStep(nextStep);
   };
   const back = () => {
@@ -267,6 +296,9 @@ export default function WalkinIntakePage() {
     setLoading(true); setError('');
     try {
       const token = localStorage.getItem('token');
+      const assignedCounselorId = isFirstTime ? selectedSlot?.counselor_id : selectedCounselorId;
+      const assignedTime        = isFirstTime ? selectedSlot?.time         : selectedCounselorTime;
+      const assignedMethod      = isFirstTime ? (selectedSlot?.method ?? 'in-person') : 'in-person';
       const wr = await fetch(api('/api/intake/walkin'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -275,10 +307,10 @@ export default function WalkinIntakePage() {
           email: icf.email, student_id: icf.student_id, phone: icf.phone,
           purpose: icf.purpose,
           is_urgent: false, notes: '',
-          ...(selectedSlot ? {
-            counselor_id: selectedSlot.counselor_id,
-            scheduled_time: selectedSlot.time,
-            scheduled_method: selectedSlot.method,
+          ...(assignedCounselorId ? { counselor_id: assignedCounselorId } : {}),
+          ...(assignedCounselorId && assignedTime ? {
+            scheduled_time: assignedTime,
+            scheduled_method: assignedMethod,
           } : {}),
         }),
       });
@@ -304,6 +336,7 @@ export default function WalkinIntakePage() {
 
   const resetForm = () => {
     setSuccess(''); setStep(0); setIsCrisis(false); setIntakeId('');
+    setSelectedSlot(null); setSelectedCounselorId(''); setSelectedCounselorTime('');
     setIcf({ first_name:'',last_name:'',middle_name:'',email:'',student_id:'',phone:'',college:'',program:'',year_level:'',referral_source:'self-referred',referred_by:'',emergency_contact_name:'',emergency_contact_relationship:'',emergency_contact_phone:'',presenting_concern:'',crisis_type:'',service_requested:'',purpose:'intake_interview',consent_to_service:false,consent_to_data:false });
     setSpif({ birthdate:'',gender:'',religion:'',nationality:'Filipino',address:'',family_composition:'complete',living_with:'',birth_order:'',number_of_siblings:'',existing_medical_conditions:'',current_medications:'',previous_counseling:false,previous_counseling_details:'',previous_psychiatric:false,previous_psychiatric_details:'',family_mental_health_history:'',sleep_hours:'',exercise_frequency:'rarely',substance_use:'none' });
     setPhq4([null,null,null,null]);
@@ -883,87 +916,163 @@ export default function WalkinIntakePage() {
               </div>
             )}
 
-            {/* ── STEP 3: Assign IC ────────────────────────────────────────────── */}
+            {/* ── STEP 3: Assign IC / Counselor ───────────────────────────────── */}
             {step === 3 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <CalendarCheck size={16} style={{ color: 'var(--color-primary)' }} />
-                  <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Assign Intake Counselor</h2>
+                  <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                    {isFirstTime ? 'Assign Intake Counselor' : 'Assign Counselor'}
+                  </h2>
                 </div>
-                <p className="text-xs rounded-lg px-3 py-2" style={{ color: 'var(--color-success-text)', background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
-                  Select an available IC and time slot for this walk-in student. The appointment will be confirmed immediately.
-                </p>
 
-                {loadingSlots && (
-                  <div className="flex items-center justify-center py-10 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                    <Clock size={16} className="animate-spin" /> Loading IC availability for today…
-                  </div>
-                )}
-
-                {slotsError && !loadingSlots && (
-                  <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-sm" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning-text)' }}>
-                    <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />{slotsError}
-                  </div>
-                )}
-
-                {!loadingSlots && icSlots.length > 0 && (() => {
-                  const byIc: Record<string, typeof icSlots> = {};
-                  icSlots.forEach(s => { if (!byIc[s.counselor_id]) byIc[s.counselor_id] = []; byIc[s.counselor_id].push(s); });
-                  return (
-                    <div className="space-y-3">
-                      {Object.entries(byIc).map(([icId, slots]) => (
-                        <div key={icId} className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-                          <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
-                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: 'var(--color-primary)' }}>
-                              {slots[0].counselor_name.charAt(0)}
+                {/* ── Intake: IC slot picker ─────────────────────────────────────── */}
+                {isFirstTime && (
+                  <>
+                    <p className="text-xs rounded-lg px-3 py-2" style={{ color: 'var(--color-success-text)', background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
+                      Select an available IC and time slot for this walk-in student. The appointment will be confirmed immediately.
+                    </p>
+                    {loadingSlots && (
+                      <div className="flex items-center justify-center py-10 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                        <Clock size={16} className="animate-spin" /> Loading IC availability for today…
+                      </div>
+                    )}
+                    {slotsError && !loadingSlots && (
+                      <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-sm" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning-text)' }}>
+                        <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />{slotsError}
+                      </div>
+                    )}
+                    {!loadingSlots && icSlots.length > 0 && (() => {
+                      const byIc: Record<string, typeof icSlots> = {};
+                      icSlots.forEach(s => { if (!byIc[s.counselor_id]) byIc[s.counselor_id] = []; byIc[s.counselor_id].push(s); });
+                      return (
+                        <div className="space-y-3">
+                          {Object.entries(byIc).map(([icId, slots]) => (
+                            <div key={icId} className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+                              <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: 'var(--color-primary)' }}>
+                                  {slots[0].counselor_name.charAt(0)}
+                                </div>
+                                <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{slots[0].counselor_name}</span>
+                                <span className="ml-auto text-xs" style={{ color: 'var(--color-text-muted)' }}>{slots.length} slot{slots.length !== 1 ? 's' : ''} available</span>
+                              </div>
+                              <div className="p-3 flex flex-wrap gap-2">
+                                {slots.map(slot => {
+                                  const isSelected = selectedSlot?.counselor_id === icId && selectedSlot?.time === slot.time;
+                                  const [h, m] = slot.time.split(':').map(Number);
+                                  const ampm = h >= 12 ? 'PM' : 'AM';
+                                  const h12 = h % 12 || 12;
+                                  return (
+                                    <button key={slot.time} onClick={() => setSelectedSlot(slot)}
+                                      className="flex flex-col items-center px-3 py-2 rounded-xl text-xs font-semibold transition"
+                                      style={isSelected
+                                        ? { background: 'var(--color-primary)', border: '2px solid var(--color-primary)', color: '#fff' }
+                                        : { background: 'var(--color-surface)', border: '2px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-primary-muted)'; }}
+                                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; }}>
+                                      <span className="text-base font-bold">{h12}:{String(m).padStart(2,'0')}</span>
+                                      <span className="opacity-75">{ampm}</span>
+                                      <span className="mt-0.5 text-xs" style={{ opacity: 0.7 }}>{slot.method}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
-                            <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{slots[0].counselor_name}</span>
-                            <span className="ml-auto text-xs" style={{ color: 'var(--color-text-muted)' }}>{slots.length} slot{slots.length !== 1 ? 's' : ''} available</span>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    {selectedSlot && (
+                      <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+                        <CheckCircle2 size={18} className="flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
+                        <div>
+                          <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{selectedSlot.counselor_name}</p>
+                          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                            {(() => { const [h,m]=selectedSlot.time.split(':').map(Number); const ampm=h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ampm}`; })()} · {selectedSlot.method} · Today
+                          </p>
+                        </div>
+                        <button onClick={() => setSelectedSlot(null)} className="ml-auto text-xs transition" style={{ color: 'var(--color-text-muted)' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>Change</button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ── Non-intake: counselor + time picker ────────────────────────── */}
+                {!isFirstTime && (
+                  <>
+                    <p className="text-xs rounded-lg px-3 py-2" style={{ color: 'var(--color-primary-text)', background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+                      Assign the student to an available counselor or psychologist. You can also set a time for today&apos;s session.
+                    </p>
+                    {loadingCounselors ? (
+                      <div className="flex items-center justify-center py-8 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                        <Clock size={14} className="animate-spin" /> Loading counselors…
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                          <div className="px-4 py-2.5" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Select Counselor / Psychologist</p>
                           </div>
-                          <div className="p-3 flex flex-wrap gap-2">
-                            {slots.map(slot => {
-                              const isSelected = selectedSlot?.counselor_id === icId && selectedSlot?.time === slot.time;
-                              const [h, m] = slot.time.split(':').map(Number);
-                              const ampm = h >= 12 ? 'PM' : 'AM';
-                              const h12 = h % 12 || 12;
-                              return (
-                                <button key={slot.time} onClick={() => setSelectedSlot(slot)}
-                                  className="flex flex-col items-center px-3 py-2 rounded-xl text-xs font-semibold transition"
-                                  style={isSelected
-                                    ? { background: 'var(--color-primary)', border: '2px solid var(--color-primary)', color: '#fff' }
-                                    : { background: 'var(--color-surface)', border: '2px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-                                  onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-primary-muted)'; }}
-                                  onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; }}>
-                                  <span className="text-base font-bold">{h12}:{String(m).padStart(2,'0')}</span>
-                                  <span className="opacity-75">{ampm}</span>
-                                  <span className="mt-0.5 text-xs" style={{ opacity: 0.7 }}>{slot.method}</span>
-                                </button>
-                              );
-                            })}
+                          <div className="p-3">
+                            <select value={selectedCounselorId} onChange={e => setSelectedCounselorId(e.target.value)}
+                              className={IC} style={ICS}>
+                              <option value="">— Leave unassigned (goes to Appointment Requests) —</option>
+                              {counselors.filter(c => c.role === 'COUNSELOR').length > 0 && (
+                                <optgroup label="Counselors">
+                                  {counselors.filter(c => c.role === 'COUNSELOR').map(c => (
+                                    <option key={c._id} value={c._id}>{c.name}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              {counselors.filter(c => c.role === 'PSYCHOLOGIST').length > 0 && (
+                                <optgroup label="Psychologists">
+                                  {counselors.filter(c => c.role === 'PSYCHOLOGIST').map(c => (
+                                    <option key={c._id} value={c._id}>{c.name}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-
-                {selectedSlot && (
-                  <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
-                    <CheckCircle2 size={18} className="flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{selectedSlot.counselor_name}</p>
-                      <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                        {(() => { const [h,m]=selectedSlot.time.split(':').map(Number); const ampm=h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ampm}`; })()} · {selectedSlot.method} · Today
-                      </p>
-                    </div>
-                    <button onClick={() => setSelectedSlot(null)} className="ml-auto text-xs transition" style={{ color: 'var(--color-text-muted)' }}
-                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
-                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>Change</button>
-                  </div>
+                        {selectedCounselorId && (
+                          <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                            <div className="px-4 py-2.5" style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
+                                Session Time <span className="normal-case font-normal" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+                              </p>
+                            </div>
+                            <div className="p-3">
+                              <input type="time" step="1800" value={selectedCounselorTime}
+                                onChange={e => setSelectedCounselorTime(e.target.value)}
+                                className={IC} style={ICS} />
+                            </div>
+                          </div>
+                        )}
+                        {selectedCounselorId && (
+                          <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+                            <CheckCircle2 size={18} className="flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
+                            <div>
+                              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                                {counselors.find(c => c._id === selectedCounselorId)?.name}
+                              </p>
+                              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                {selectedCounselorTime ? (() => { const [h,m]=selectedCounselorTime.split(':').map(Number); const ampm=h>=12?'PM':'AM'; return `${h%12||12}:${String(m).padStart(2,'0')} ${ampm} · Today`; })() : 'Time TBD — will appear in Appointment Requests'}
+                              </p>
+                            </div>
+                            <button onClick={() => { setSelectedCounselorId(''); setSelectedCounselorTime(''); }} className="ml-auto text-xs transition" style={{ color: 'var(--color-text-muted)' }}
+                              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
+                              onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>Change</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)', color: 'var(--color-primary-text)' }}>
-                  <strong>Assign now</strong> to confirm the appointment immediately. If no IC is selected, the intake goes to <strong>Appointment Requests</strong> for the OA to assign later.
+                  <strong>Assign now</strong> to confirm the appointment immediately. If no counselor is selected, the intake goes to <strong>Appointment Requests</strong> for the OA to assign later.
                 </div>
               </div>
             )}

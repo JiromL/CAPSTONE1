@@ -9,7 +9,7 @@ Exportable spreadsheet data matching the three CPS tracking templates:
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db
 from utils import audit_log
 
@@ -697,7 +697,7 @@ def case_summary(case_id):
             return v.strftime('%B %d, %Y') if isinstance(v, datetime) else _s(v)[:10]
 
         result = {
-            'generated_at': datetime.utcnow().strftime('%B %d, %Y %I:%M %p UTC'),
+            'generated_at': (datetime.utcnow() + timedelta(hours=8)).strftime('%B %d, %Y %I:%M %p PHT'),
             'case': {
                 'case_number':     case.get('case_number', ''),
                 'status':          case.get('status', ''),

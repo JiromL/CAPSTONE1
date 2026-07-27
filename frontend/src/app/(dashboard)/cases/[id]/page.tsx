@@ -44,6 +44,19 @@ interface SessionNote {
   deleted_at?: string;
 }
 
+const CLIENT_STATUS_LABEL: Record<string, string> = {
+  ACTIVE:               'Active',
+  NEW:                  'New',
+  INTAKE_SCHEDULED:     'Intake Scheduled',
+  PENDING_TERMINATION:  'Pending Termination',
+  PENDING_DISCHARGE:    'Pending Termination',
+  CLOSED:               'Closed',
+  CANCELLED:            'Cancelled',
+  CHECK_IN_ONLY:        'Check-In Only',
+  WITH_MH_CHECK_IN:     'With MH Check-In',
+};
+const fmtClientStatus = (s: string) => CLIENT_STATUS_LABEL[s] ?? s.replace(/_/g, ' ');
+
 const IC    = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
 const IC_XS = 'w-full px-3 py-2 text-xs rounded-lg outline-none transition';
 const ICS: React.CSSProperties = { background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
@@ -304,6 +317,10 @@ export default function CaseDetailPage() {
   const [editTriageNotes, setEditTriageNotes] = useState('');
   const [savingEditTriage, setSavingEditTriage] = useState(false);
   const [editTriageError, setEditTriageError] = useState('');
+  const [showRiskEdit, setShowRiskEdit]     = useState(false);
+  const [riskEditVal, setRiskEditVal]       = useState('');
+  const [riskEditNote, setRiskEditNote]     = useState('');
+  const [savingRisk, setSavingRisk]         = useState(false);
   const [showTerminationForm, setShowTerminationForm] = useState(false);
   const [showClosureChecklist, setShowClosureChecklist] = useState(false);
   const [closureChecks, setClosureChecks] = useState({ notes: false, referrals: false, notified: false });
@@ -399,10 +416,7 @@ export default function CaseDetailPage() {
     'Health Services Office (HSO)',
     'Student Discipline and Formation Office (SDFO)',
     'Office for Academic Services (OAS)',
-    'Office of the Registrar',
     'Office of Student Affairs and Services',
-    'Career and Placement Office',
-    'Financial Assistance Office',
     'Other',
   ];
   const [showExtReferralModal, setShowExtReferralModal] = useState(false);
@@ -1143,6 +1157,27 @@ export default function CaseDetailPage() {
     }
   };
 
+  const handleUpdateRiskLevel = async () => {
+    if (!riskEditVal) return;
+    setSavingRisk(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api(`/api/cases/${caseId}`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ risk_level: riskEditVal, ...(riskEditNote.trim() ? { notes: riskEditNote.trim() } : {}) }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed to update risk level'); }
+      setShowRiskEdit(false);
+      setRiskEditNote('');
+      await loadCaseData();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSavingRisk(false);
+    }
+  };
+
   const handleTerminateCase = async (formData: TerminationFormData) => {
     const token = localStorage.getItem('token');
     const res = await fetch(api(`/api/cases/${caseId}/close`), {
@@ -1404,12 +1439,78 @@ export default function CaseDetailPage() {
             <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-secondary)' }}>{studentSchoolId}{studentEmail ? ` · ${studentEmail}` : ''}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium" style={riskBadgeStyle(riskLevel)}>
-              {riskLevel === 'GREEN' ? 'Low Risk' : riskLevel === 'YELLOW' ? 'Moderate' : riskLevel === 'RED' ? 'High Risk' : 'Critical'}
-            </span>
+            {/* Risk badge + inline edit for counselors */}
+            <div className="relative">
+              <div className="flex items-center gap-1">
+                <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium" style={riskBadgeStyle(riskLevel)}>
+                  {riskLevel === 'GREEN' ? 'Low Risk' : riskLevel === 'YELLOW' ? 'Moderate' : riskLevel === 'RED' ? 'High Risk' : 'Critical'}
+                </span>
+                {['COUNSELOR','PSYCHOLOGIST','CASE_MANAGER','IC','ADMIN'].includes(currentUser?.role || '') &&
+                 !['CLOSED','CANCELLED'].includes(caseData.case_status || caseData.client_status || '') && (
+                  <button
+                    onClick={() => { setRiskEditVal(riskLevel); setRiskEditNote(''); setShowRiskEdit(v => !v); }}
+                    title="Update risk level"
+                    className="p-1 rounded-md transition"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}
+                  >
+                    <Pencil size={11} />
+                  </button>
+                )}
+              </div>
+
+              {/* Inline risk-level popover */}
+              {showRiskEdit && (
+                <div className="absolute left-0 top-full mt-1.5 z-30 rounded-xl shadow-lg w-56 overflow-hidden"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>Update Risk Level</p>
+                  </div>
+                  <div className="p-3 space-y-1.5">
+                    {[
+                      { val: 'GREEN',  label: 'Low Risk',  color: '#16a34a' },
+                      { val: 'YELLOW', label: 'Moderate',  color: '#d97706' },
+                      { val: 'RED',    label: 'High Risk', color: '#dc2626' },
+                    ].map(opt => (
+                      <button key={opt.val} onClick={() => setRiskEditVal(opt.val)}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition text-left"
+                        style={riskEditVal === opt.val
+                          ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }
+                          : { border: '1px solid transparent', color: 'var(--color-text-secondary)' }}
+                        onMouseEnter={e => { if (riskEditVal !== opt.val) e.currentTarget.style.background = 'var(--color-bg)'; }}
+                        onMouseLeave={e => { if (riskEditVal !== opt.val) e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: opt.color }} />
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="px-3 pb-3 space-y-2">
+                    <textarea value={riskEditNote} onChange={e => setRiskEditNote(e.target.value)}
+                      rows={2} placeholder="Reason for change (optional)…"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg resize-none outline-none"
+                      style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+                    <div className="flex gap-2">
+                      <button onClick={handleUpdateRiskLevel} disabled={savingRisk || !riskEditVal}
+                        className="flex-1 py-1.5 text-xs font-semibold rounded-lg text-white transition disabled:opacity-50"
+                        style={{ background: 'var(--color-primary)' }}>
+                        {savingRisk ? 'Saving…' : 'Save'}
+                      </button>
+                      <button onClick={() => setShowRiskEdit(false)}
+                        className="px-3 py-1.5 text-xs rounded-lg transition"
+                        style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium"
               style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
-              {(caseData.client_status || caseData.case_status || 'ACTIVE').replace(/_/g, ' ')}
+              {fmtClientStatus(caseData.client_status || caseData.case_status || 'ACTIVE')}
             </span>
             {caseData.case_number && (
               <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-muted)' }}>{caseData.case_number}</span>
@@ -1533,7 +1634,7 @@ export default function CaseDetailPage() {
                 <p style={{ color: 'var(--color-text-secondary)' }}>Client Status</p>
                 <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
                   style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
-                  {caseData.client_status || 'N/A'}
+                  {caseData.client_status ? fmtClientStatus(caseData.client_status) : 'N/A'}
                 </span>
               </div>
               <div>
@@ -2464,23 +2565,44 @@ export default function CaseDetailPage() {
                             </div>
                           )}
                           {/* Freeform */}
-                          {note.note_format !== 'SOAP' && (
-                            <div className="p-5 space-y-3">
-                              {[
-                                { key: 'topics_discussed', label: 'Topics Discussed' },
-                                { key: 'interventions', label: 'Interventions' },
-                                { key: 'client_response', label: 'Client Response' },
-                                { key: 'progress_on_goals', label: 'Progress on Goals' },
-                                { key: 'homework_assigned', label: 'Homework / Tasks' },
-                              ].map(({ key, label }) => {
-                                const v = (note as any)[key]; if (!v) return null;
-                                return (
+                          {note.note_format !== 'SOAP' && (() => {
+                            const freeformFields = [
+                              { key: 'topics_discussed',  label: 'Topics Discussed'  },
+                              { key: 'interventions',     label: 'Interventions'      },
+                              { key: 'client_response',   label: 'Client Response'   },
+                              { key: 'progress_on_goals', label: 'Progress on Goals' },
+                              { key: 'homework_assigned', label: 'Homework / Tasks'  },
+                            ].filter(({ key }) => !!(note as any)[key]);
+                            const noteContent = (note as any).note_content;
+                            if (!freeformFields.length && !noteContent) {
+                              return (
+                                <div className="px-5 py-4">
+                                  <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No note content recorded.</p>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="p-5 space-y-3">
+                                {noteContent && (
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-text-muted)' }}>Note</p>
+                                    <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--color-text-primary)' }}>{noteContent}</p>
+                                  </div>
+                                )}
+                                {freeformFields.map(({ key, label }) => (
                                   <div key={key}>
                                     <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
-                                    <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{v}</p>
+                                    <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{(note as any)[key]}</p>
                                   </div>
-                                );
-                              })}
+                                ))}
+                              </div>
+                            );
+                          })()}
+
+                          {/* SOAP with no content fallback */}
+                          {note.note_format === 'SOAP' && !note.structured_soap && !note.soap && (
+                            <div className="px-5 py-4">
+                              <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No SOAP content recorded.</p>
                             </div>
                           )}
 
@@ -3508,6 +3630,20 @@ export default function CaseDetailPage() {
     {showTerminationForm && (
       <TerminationFormModal
         studentName={studentName}
+        prefill={{
+          sessionCount: sessionNotes.length > 0 ? String(sessionNotes.length) : '',
+          presentingProblem:
+            intakeForm?.presenting_problem_remarks ||
+            caseData?.presenting_issue ||
+            caseData?.concern ||
+            '',
+          modeOfSession: (() => {
+            const m = (caseData?.appointment_info?.method || caseData?.method || '').toLowerCase();
+            if (['in-person', 'in_person', 'face_to_face', 'f2f', 'onsite'].includes(m)) return 'Onsite (Face-to-Face)';
+            if (['online', 'zoom', 'google_meet', 'google-meet', 'telehealth'].includes(m)) return 'Online (Zoom, Google Meet, etc.)';
+            return '';
+          })(),
+        }}
         onClose={() => setShowTerminationForm(false)}
         onSubmit={handleTerminateCase}
       />

@@ -103,27 +103,39 @@ function TextareaField({ label, value, onChange, placeholder, helperText, requir
 
 export function ReadBadge({ value }: { value: string }) {
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-1.5 mb-1.5" style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary-text)' }}>
+    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium mr-1.5 mb-1.5"
+      style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
       {value}
     </span>
   );
 }
 
-export function ReadSection({ title, children }: { title: string; children: React.ReactNode }) {
+export function ReadSection({ title, children, accent }: { title: string; children: React.ReactNode; accent?: string }) {
   return (
-    <div className="rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-      <div className="px-5 py-3 text-white" style={{ background: 'var(--color-primary)' }}>
-        <h3 className="text-sm font-semibold" style={{ color: 'white' }}>{title}</h3>
+    <div className="rounded-xl mb-4 overflow-hidden"
+      style={{ border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,.04)' }}>
+      <div className="px-5 py-2.5 flex items-center gap-2"
+        style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)', borderLeft: `3px solid ${accent || 'var(--color-primary)'}` }}>
+        <h3 className="text-xs font-semibold uppercase tracking-widest"
+          style={{ color: 'var(--color-text-secondary)' }}>{title}</h3>
       </div>
-      <div className="p-5 space-y-3">{children}</div>
+      <div className="p-5 space-y-4" style={{ background: 'var(--color-surface)' }}>{children}</div>
     </div>
   );
 }
 
-export function ReadRow({ label, children }: { label: string; children: React.ReactNode }) {
+export function ReadRow({ label, children, inline }: { label: string; children: React.ReactNode; inline?: boolean }) {
+  if (inline) {
+    return (
+      <div className="flex items-start gap-3">
+        <p className="text-xs font-medium shrink-0 pt-0.5 w-32" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+        <div className="text-sm flex-1" style={{ color: 'var(--color-text-primary)' }}>{children}</div>
+      </div>
+    );
+  }
   return (
     <div>
-      <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+      <p className="text-xs font-medium mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
       <div className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{children}</div>
     </div>
   );
@@ -404,19 +416,57 @@ function validateStep(step: number, draft: any): string[] {
 
 // ── Read-only view ───────────────────────────────────────────────────────────
 
+function ScoreCard({ label, sublabel, score, max, getSeverity, color }: {
+  label: string; sublabel: string; score: number | null; max: number;
+  getSeverity: (s: number) => string; color: string;
+}) {
+  const sev = score != null ? getSeverity(score) : null;
+  const sevStyle = sev ? getSeverityStyle(sev) : {};
+  const pct = score != null ? (score / max) * 100 : 0;
+  return (
+    <div className="rounded-xl p-4 flex flex-col gap-2" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sublabel}</p>
+        </div>
+        {sev && <span className="text-xs px-2.5 py-1 rounded-full font-semibold shrink-0" style={sevStyle}>{sev}</span>}
+      </div>
+      {score != null ? (
+        <>
+          <p className="text-2xl font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
+            {score}<span className="text-sm font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>/ {max}</span>
+          </p>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+          </div>
+        </>
+      ) : (
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Not administered</p>
+      )}
+    </div>
+  );
+}
+
 export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
   form: any;
   sessionInfo?: { date?: string; time?: string; mode?: string; studentId?: string; college?: string };
   updatedAt?: string;
 }) {
   return (
-    <div>
+    <div className="space-y-0">
+      {/* Meta header */}
       {updatedAt && (
-        <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>Last updated: {new Date(updatedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</p>
+        <p className="text-xs mb-5 flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}>
+          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />
+          Last saved {new Date(updatedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
+        </p>
       )}
-      <ReadSection title="Section 1: Session Information">
+
+      {/* Section 1: Session Info */}
+      <ReadSection title="Session Information">
         {sessionInfo && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-lg mb-2" style={{ background: 'var(--color-bg)' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-3 pb-3 mb-1" style={{ borderBottom: '1px solid var(--color-border)' }}>
             {[
               { label: 'Date', value: sessionInfo.date },
               { label: 'Time', value: sessionInfo.time },
@@ -425,8 +475,8 @@ export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
               { label: 'College', value: sessionInfo.college },
             ].map(item => (
               <div key={item.label}>
-                <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{item.label}</p>
-                <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.value || '—'}</p>
+                <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{item.label}</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{item.value || '—'}</p>
               </div>
             ))}
           </div>
@@ -440,70 +490,108 @@ export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
         </ReadRow>
       </ReadSection>
 
-      <ReadSection title="Section 2: Clinical Diagnosis">
-        <ReadRow label="Clinical Diagnosis"><p>{form.clinical_diagnosis || '—'}</p></ReadRow>
+      {/* Section 2: Clinical Diagnosis */}
+      <ReadSection title="Clinical Diagnosis" accent="#7c3aed">
+        <ReadRow label="Diagnosis"><p>{form.clinical_diagnosis || '—'}</p></ReadRow>
       </ReadSection>
 
-      <ReadSection title="Section 2A: Psychometric Screening">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-secondary)' }}>PHQ-9 — Depression Screen</p>
-          {form.phq9_score != null ? (
-            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--color-bg)' }}>
-              <span className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{form.phq9_score}<span className="text-xs font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>/ 27</span></span>
-              <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={getSeverityStyle(getPHQ9Severity(form.phq9_score))}>{form.phq9_severity || getPHQ9Severity(form.phq9_score)}</span>
-            </div>
-          ) : <p className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>Not completed</p>}
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-secondary)' }}>GAD-7 — Anxiety Screen</p>
-          {form.gad7_score != null ? (
-            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--color-bg)' }}>
-              <span className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{form.gad7_score}<span className="text-xs font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>/ 21</span></span>
-              <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={getSeverityStyle(getGAD7Severity(form.gad7_score))}>{form.gad7_severity || getGAD7Severity(form.gad7_score)}</span>
-            </div>
-          ) : <p className="text-sm italic" style={{ color: 'var(--color-text-muted)' }}>Not completed</p>}
+      {/* Section 2A: Psychometric Screening */}
+      <ReadSection title="Psychometric Screening" accent="#0d9488">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ScoreCard label="PHQ-9" sublabel="Depression" score={form.phq9_score ?? null} max={27}
+            getSeverity={getPHQ9Severity} color="#3b82f6" />
+          <ScoreCard label="GAD-7" sublabel="Anxiety" score={form.gad7_score ?? null} max={21}
+            getSeverity={getGAD7Severity} color="#8b5cf6" />
         </div>
       </ReadSection>
 
-      <ReadSection title="Section 3: Brief Description">
-        <ReadRow label="General Appearance"><div className="flex flex-wrap mt-1">{(form.general_appearance || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.general_appearance_other && <ReadBadge value={`Other: ${form.general_appearance_other}`} />}</div></ReadRow>
-        <ReadRow label="Communication Style"><div className="flex flex-wrap mt-1">{(form.communication_style || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.communication_style_other && <ReadBadge value={`Other: ${form.communication_style_other}`} />}</div></ReadRow>
-        <ReadRow label="General Disposition"><div className="flex flex-wrap mt-1">{(form.general_disposition || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.general_disposition_other && <ReadBadge value={`Other: ${form.general_disposition_other}`} />}</div></ReadRow>
-        <ReadRow label="Remarks"><p>{form.brief_description_remarks || '—'}</p></ReadRow>
+      {/* Section 3: Brief Description */}
+      <ReadSection title="Brief Description of the Client">
+        <ReadRow label="General Appearance">
+          <div className="flex flex-wrap mt-1">{(form.general_appearance || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.general_appearance_other && <ReadBadge value={`Other: ${form.general_appearance_other}`} />}</div>
+        </ReadRow>
+        <ReadRow label="Communication Style">
+          <div className="flex flex-wrap mt-1">{(form.communication_style || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.communication_style_other && <ReadBadge value={`Other: ${form.communication_style_other}`} />}</div>
+        </ReadRow>
+        <ReadRow label="General Disposition">
+          <div className="flex flex-wrap mt-1">{(form.general_disposition || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.general_disposition_other && <ReadBadge value={`Other: ${form.general_disposition_other}`} />}</div>
+        </ReadRow>
+        <ReadRow label="Remarks">
+          <p className="leading-relaxed">{form.brief_description_remarks || '—'}</p>
+        </ReadRow>
       </ReadSection>
 
-      <ReadSection title="Section 4: Presenting Problem">
-        <ReadRow label="Presenting Problem"><div className="flex flex-wrap mt-1">{(form.presenting_problem || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.presenting_problem_other && <ReadBadge value={`Other: ${form.presenting_problem_other}`} />}</div></ReadRow>
-        <ReadRow label="Remarks"><p>{form.presenting_problem_remarks || '—'}</p></ReadRow>
+      {/* Section 4: Presenting Problem */}
+      <ReadSection title="Presenting Problem" accent="#d97706">
+        <ReadRow label="Problems Identified">
+          <div className="flex flex-wrap mt-1">{(form.presenting_problem || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.presenting_problem_other && <ReadBadge value={`Other: ${form.presenting_problem_other}`} />}</div>
+        </ReadRow>
+        <ReadRow label="Remarks">
+          <p className="leading-relaxed">{form.presenting_problem_remarks || '—'}</p>
+        </ReadRow>
       </ReadSection>
 
-      <ReadSection title="Section 5: Psychosocial History">
-        <ReadRow label="Psychosocial History"><div className="flex flex-wrap mt-1">{(form.psychosocial_history || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.psychosocial_other && <ReadBadge value={`Other: ${form.psychosocial_other}`} />}</div></ReadRow>
-        <ReadRow label="Remarks"><p>{form.psychosocial_remarks || '—'}</p></ReadRow>
+      {/* Section 5: Psychosocial History */}
+      <ReadSection title="Psychosocial History">
+        <ReadRow label="History Areas">
+          <div className="flex flex-wrap mt-1">{(form.psychosocial_history || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.psychosocial_other && <ReadBadge value={`Other: ${form.psychosocial_other}`} />}</div>
+        </ReadRow>
+        <ReadRow label="Remarks">
+          <p className="leading-relaxed">{form.psychosocial_remarks || '—'}</p>
+        </ReadRow>
       </ReadSection>
 
-      <ReadSection title="Section 6: Interaction & Affect">
-        <ReadRow label="Interaction with Counselor"><div className="flex flex-wrap mt-1">{(form.interaction_relationship || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.interaction_relationship_other && <ReadBadge value={`Other: ${form.interaction_relationship_other}`} />}</div></ReadRow>
-        <ReadRow label="Affect / Emotional Expression"><div className="flex flex-wrap mt-1">{(form.affect_expression || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.affect_expression_other && <ReadBadge value={`Other: ${form.affect_expression_other}`} />}</div></ReadRow>
-        <ReadRow label="Remarks"><p>{form.interaction_remarks || '—'}</p></ReadRow>
+      {/* Section 6: Interaction & Affect */}
+      <ReadSection title="Interaction & Affect">
+        <ReadRow label="Interaction with Counselor">
+          <div className="flex flex-wrap mt-1">{(form.interaction_relationship || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.interaction_relationship_other && <ReadBadge value={`Other: ${form.interaction_relationship_other}`} />}</div>
+        </ReadRow>
+        <ReadRow label="Affect / Emotional Expression">
+          <div className="flex flex-wrap mt-1">{(form.affect_expression || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.affect_expression_other && <ReadBadge value={`Other: ${form.affect_expression_other}`} />}</div>
+        </ReadRow>
+        <ReadRow label="Remarks">
+          <p className="leading-relaxed">{form.interaction_remarks || '—'}</p>
+        </ReadRow>
       </ReadSection>
 
-      <ReadSection title="Section 7: Maladaptive Patterns">
-        <ReadRow label="Patterns Observed"><div className="flex flex-wrap mt-1">{(form.maladaptive_patterns || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.maladaptive_patterns_other && <ReadBadge value={`Other: ${form.maladaptive_patterns_other}`} />}</div></ReadRow>
+      {/* Section 7: Maladaptive Patterns */}
+      <ReadSection title="Maladaptive Patterns">
+        <ReadRow label="Patterns Observed">
+          <div className="flex flex-wrap mt-1">{(form.maladaptive_patterns || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.maladaptive_patterns_other && <ReadBadge value={`Other: ${form.maladaptive_patterns_other}`} />}</div>
+        </ReadRow>
       </ReadSection>
 
-      <ReadSection title="Section 8: Counseling Goal">
-        <ReadRow label="Goal"><p>{form.counseling_goal || '—'}</p></ReadRow>
+      {/* Section 8: Counseling Goal */}
+      <ReadSection title="Counseling / Psychotherapy Goal" accent="#059669">
+        <div className="rounded-lg p-4" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>{form.counseling_goal || '—'}</p>
+        </div>
       </ReadSection>
 
-      <ReadSection title="Section 9: 4 P's Formulation">
-        <ReadRow label="Predisposing Factors"><div className="flex flex-wrap mt-1">{(form.predisposing_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.predisposing_other && <ReadBadge value={`Other: ${form.predisposing_other}`} />}</div></ReadRow>
-        <ReadRow label="Precipitating Factors"><div className="flex flex-wrap mt-1">{(form.precipitating_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.precipitating_other && <ReadBadge value={`Other: ${form.precipitating_other}`} />}</div></ReadRow>
-        <ReadRow label="Perpetuating Factors"><div className="flex flex-wrap mt-1">{(form.perpetuating_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.perpetuating_other && <ReadBadge value={`Other: ${form.perpetuating_other}`} />}</div></ReadRow>
-        <ReadRow label="Protective Factors"><div className="flex flex-wrap mt-1">{(form.protective_factors || []).map((v: string) => <ReadBadge key={v} value={v} />)}{form.protective_other && <ReadBadge value={`Other: ${form.protective_other}`} />}</div></ReadRow>
+      {/* Section 9: 4P's Formulation */}
+      <ReadSection title="4 P's Formulation">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[
+            { label: 'Predisposing', vals: form.predisposing_factors, other: form.predisposing_other, accent: '#ef4444' },
+            { label: 'Precipitating', vals: form.precipitating_factors, other: form.precipitating_other, accent: '#f97316' },
+            { label: 'Perpetuating', vals: form.perpetuating_factors, other: form.perpetuating_other, accent: '#a855f7' },
+            { label: 'Protective', vals: form.protective_factors, other: form.protective_other, accent: '#22c55e' },
+          ].map(({ label, vals, other, accent }) => (
+            <div key={label} className="rounded-lg p-3" style={{ border: '1px solid var(--color-border)', borderLeft: `3px solid ${accent}` }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>{label} Factors</p>
+              {(vals || []).length > 0 || other ? (
+                <div className="flex flex-wrap">
+                  {(vals || []).map((v: string) => <ReadBadge key={v} value={v} />)}
+                  {other && <ReadBadge value={`Other: ${other}`} />}
+                </div>
+              ) : <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>None indicated</p>}
+            </div>
+          ))}
+        </div>
       </ReadSection>
 
-      <ReadSection title="Section 10: Recommendation for Treatment or Disposition">
+      {/* Section 10: Recommendation */}
+      <ReadSection title="Recommendation for Treatment or Disposition" accent="#dc2626">
         <ReadRow label="Recommendation">
           <div className="flex flex-wrap mt-1">
             {(form.recommendation || []).map((v: string) => <ReadBadge key={v} value={v} />)}

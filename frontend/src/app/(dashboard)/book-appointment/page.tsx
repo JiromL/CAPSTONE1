@@ -1102,14 +1102,6 @@ export default function BookAppointmentPage() {
                 </div>
                 <div className="p-5 space-y-4">
                   {/* Purpose cards */}
-                  {rebookDeadline && (
-                    <div className="flex items-start gap-2.5 rounded-xl px-4 py-3 mb-1" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)' }}>
-                      <AlertCircle size={14} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />
-                      <p className="text-xs" style={{ color: 'var(--color-warning)' }}>
-                        You missed your last session. Please rebook by <strong>{new Date(rebookDeadline + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.
-                      </p>
-                    </div>
-                  )}
                   {(() => { return (
                   <div className="grid gap-2 grid-cols-2">
                     {PURPOSES.map(p => {
@@ -1259,7 +1251,7 @@ export default function BookAppointmentPage() {
                               );
                             })}
                           </div>
-                          <p className="text-xs mt-2" style={{ color: 'var(--color-primary)' }}>Your IC will send the meeting link before the session.</p>
+
                         </div>
                       )}
                     </div>

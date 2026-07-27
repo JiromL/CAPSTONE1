@@ -870,33 +870,18 @@ export default function AppointmentsDashboard() {
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <h2 className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Appointments</h2>
           <div className="flex items-center gap-2">
-            {/* List / Calendar toggle */}
-            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
-              {(['list','calendar'] as const).map(mode => (
-                <button key={mode} onClick={() => { setViewMode(mode); setCalSelectedDay(null); }}
-                  className="px-3 py-1.5 text-xs font-semibold transition capitalize"
-                  style={{
-                    background: viewMode === mode ? 'var(--color-primary)' : 'transparent',
-                    color: viewMode === mode ? '#fff' : 'var(--color-text-secondary)',
-                  }}>
-                  {mode === 'list' ? 'List' : 'Calendar'}
-                </button>
-              ))}
+            <div className="relative">
+              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search…"
+                className="pl-7 pr-3 py-1.5 text-xs rounded-lg focus:outline-none w-44"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-muted)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+              />
             </div>
-            {viewMode === 'list' && (
-              <div className="relative">
-                <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search…"
-                  className="pl-7 pr-3 py-1.5 text-xs rounded-lg focus:outline-none w-44"
-                  style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-muted)'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
-                />
-              </div>
-            )}
             <button
               onClick={() => { resetScheduleForm(); setShowScheduleModal(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition"
@@ -1213,17 +1198,27 @@ export default function AppointmentsDashboard() {
                                   </button>
                                 )}
                                 {canAssign && isNew && !apt.counselor_id && (
-                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); const t = localStorage.getItem('token'); if (t && isOA) fetchWorkload(t); }}
+                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; const isIntake = apt.purpose === 'intake_interview' || apt.purpose === 'initial' || apt.purpose === 'triage_interview'; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode(isIntake ? 'slots' : 'manual'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d && isIntake) fetchOpenSlots(d); const t = localStorage.getItem('token'); if (t && isOA) fetchWorkload(t); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#2563eb' }}>
                                     <UserCheck size={12} /> Assign Counselor
                                   </button>
                                 )}
                                 {canAssign && isNew && apt.counselor_id && !isIC && (
-                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode('slots'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d) fetchOpenSlots(d); const t = localStorage.getItem('token'); if (t && isOA) fetchWorkload(t); }}
+                                  <button onClick={() => { const d = apt.preferred_date ? apt.preferred_date.split('T')[0] : ''; const isIntake = apt.purpose === 'intake_interview' || apt.purpose === 'initial' || apt.purpose === 'triage_interview'; setAssignTarget(apt); setFreeSlots([]); setOpenSlots([]); setSelectedSlot(null); setAssignMode(isIntake ? 'slots' : 'manual'); setAssignForm({ counselorId: '', date: d, time: apt.preferred_time || '', office: '' }); setAssignMsg(null); if (d && isIntake) fetchOpenSlots(d); const t = localStorage.getItem('token'); if (t && isOA) fetchWorkload(t); }}
                                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white rounded-lg transition"
                                     style={{ backgroundColor: '#2563eb' }}>
                                     <UserCheck size={12} /> Assign Counselor
+                                  </button>
+                                )}
+
+                                {isNew && isOA && (
+                                  <button onClick={() => { setCancelTarget(apt); setCancelReason(''); setCancelMsg(null); }}
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition"
+                                    style={{ border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}
+                                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-surface)'}
+                                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}>
+                                    <XCircle size={11} /> Cancel Request
                                   </button>
                                 )}
 
@@ -1421,23 +1416,29 @@ export default function AppointmentsDashboard() {
                 )}
               </div>
 
-              {/* Mode toggle */}
-              <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--color-bg)' }}>
-                {(['slots', 'manual'] as const).map(m => (
-                  <button key={m} type="button"
-                    onClick={() => { setAssignMode(m); setSelectedSlot(null); setAssignMsg(null); }}
-                    className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition"
-                    style={assignMode === m
-                      ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
-                      : { color: 'var(--color-text-muted)' }}
-                    onMouseEnter={e => { if (assignMode !== m) (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'; }}
-                    onMouseLeave={e => { if (assignMode !== m) (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}>
-                    {m === 'slots'
-                      ? <span className="flex items-center justify-center gap-1.5"><CalendarDays size={13} /> Available Slots</span>
-                      : <span className="flex items-center justify-center gap-1.5"><Pencil size={12} /> Manual Entry</span>}
-                  </button>
-                ))}
-              </div>
+              {/* Mode toggle — Slots view only for intake; counseling/etc always use manual */}
+              {(() => {
+                const isIntakePurpose = assignTarget?.purpose === 'intake_interview' || assignTarget?.purpose === 'initial' || assignTarget?.purpose === 'triage_interview';
+                if (!isIntakePurpose) return null;
+                return (
+                  <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--color-bg)' }}>
+                    {(['slots', 'manual'] as const).map(m => (
+                      <button key={m} type="button"
+                        onClick={() => { setAssignMode(m); setSelectedSlot(null); setAssignMsg(null); }}
+                        className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition"
+                        style={assignMode === m
+                          ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                          : { color: 'var(--color-text-muted)' }}
+                        onMouseEnter={e => { if (assignMode !== m) (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'; }}
+                        onMouseLeave={e => { if (assignMode !== m) (e.currentTarget as HTMLElement).style.color = 'var(--color-text-muted)'; }}>
+                        {m === 'slots'
+                          ? <span className="flex items-center justify-center gap-1.5"><CalendarDays size={13} /> Available Slots</span>
+                          : <span className="flex items-center justify-center gap-1.5"><Pencil size={12} /> Manual Entry</span>}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {assignMode === 'slots' ? (
                 <>

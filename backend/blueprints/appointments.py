@@ -945,18 +945,23 @@ def request_appointment():
                 return jsonify({'error': 'Case not found'}), 404
     else:
         # Auto-create case for student if needed
-        # Check if student already has a case
-        existing_case = db.db.cases.find_one({"student_id": user_id_obj})
+        # Reuse existing open case; don't link a new appointment to a closed/cancelled case
+        existing_case = db.db.cases.find_one({
+            "student_id": user_id_obj,
+            "status": {"$nin": ["CLOSED", "CANCELLED"]},
+        })
         if existing_case:
             case_id = existing_case['_id']
             case = existing_case
         else:
             # Create new case
+            from blueprints.intake import generate_case_number
             case_doc = {
                 "_id": ObjectId(),
                 "student_id": user_id_obj,
                 "student_name": f"{user.get('first_name', '')} {user.get('last_name', '')}",
                 "student_email": user.get('email', ''),
+                "case_number": generate_case_number(),
                 "status": CaseStatus.ACTIVE.value,
                 "case_status": CaseStatus.ACTIVE.value,
                 "created_at": datetime.utcnow(),

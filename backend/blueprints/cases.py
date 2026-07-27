@@ -1273,7 +1273,24 @@ def reassign_case(case_id):
     counselor_name = f"{counselor.get('last_name','').upper()}, {counselor.get('first_name','')}"
 
     old_cid = case.get('assigned_counselor_id')
+    new_counselor_display = f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
+
     db.db.cases.update_one({'_id': case_obj_id}, {'$set': {'assigned_counselor_id': counselor['_id']}})
+
+    # Also update upcoming (non-completed) appointments for this case so they
+    # point to the new counselor rather than the old one.
+    from datetime import datetime
+    db.db.appointments.update_many(
+        {
+            'case_id': case_obj_id,
+            'status': {'$in': ['REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'SCHEDULED']},
+        },
+        {'$set': {
+            'counselor_id':   counselor['_id'],
+            'counselor_name': new_counselor_display,
+            'updated_at':     datetime.utcnow(),
+        }}
+    )
 
     audit_log(db.db, 'case', 'reassign', entity_id=case_id,
               old_values={'assigned_counselor_id': str(old_cid) if old_cid else None},

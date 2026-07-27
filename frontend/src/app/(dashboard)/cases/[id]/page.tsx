@@ -375,6 +375,13 @@ export default function CaseDetailPage() {
   const [savingSafetyPlan, setSavingSafetyPlan] = useState(false);
   const [safetyPlanLoaded, setSafetyPlanLoaded] = useState(false);
 
+  // Reassign counselor modal state
+  const [showReassign, setShowReassign]       = useState(false);
+  const [reassignProviders, setReassignProviders] = useState<Array<{ _id: string; name: string; role: string }>>([]);
+  const [reassignTarget, setReassignTarget]   = useState('');
+  const [reassigning, setReassigning]         = useState(false);
+  const [reassignMsg, setReassignMsg]         = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
   const [assessmentSchedules, setAssessmentSchedules] = useState<Array<{
     schedule_id: string; assessment_type: string; interval_days: number; next_due: string; active: boolean;
   }>>([]);
@@ -1219,6 +1226,48 @@ export default function CaseDetailPage() {
     }
   };
 
+  const openReassignModal = async () => {
+    setReassignMsg(null);
+    setReassignTarget('');
+    const token = localStorage.getItem('token');
+    const [cr, pr] = await Promise.all([
+      fetch(api('/api/users?role=COUNSELOR&limit=100'), { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(api('/api/users?role=PSYCHOLOGIST&limit=100'), { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const [cd, pd] = await Promise.all([cr.json(), pr.json()]);
+    const all = [
+      ...(cd.users ?? []).map((u: { _id: string; first_name: string; last_name: string }) => ({ _id: u._id, name: `${u.first_name} ${u.last_name}`, role: 'COUNSELOR' })),
+      ...(pd.users ?? []).map((u: { _id: string; first_name: string; last_name: string }) => ({ _id: u._id, name: `${u.first_name} ${u.last_name}`, role: 'PSYCHOLOGIST' })),
+    ];
+    setReassignProviders(all);
+    setShowReassign(true);
+  };
+
+  const handleReassign = async () => {
+    if (!reassignTarget) return;
+    setReassigning(true);
+    setReassignMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api(`/api/cases/${caseId}/reassign`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ counselor_id: reassignTarget }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reassign');
+      setReassignMsg({ type: 'ok', text: data.message });
+      // Refresh case data so the new counselor name shows immediately
+      const cr = await fetch(api(`/api/cases/${caseId}`), { headers: { Authorization: `Bearer ${token}` } });
+      const cd = await cr.json();
+      if (cd.case) setCaseData(cd.case);
+    } catch (e) {
+      setReassignMsg({ type: 'err', text: e instanceof Error ? e.message : 'Failed to reassign' });
+    } finally {
+      setReassigning(false);
+    }
+  };
+
   const handleReopenCase = async () => {
     setReopeningCase(true);
     try {
@@ -1690,7 +1739,19 @@ export default function CaseDetailPage() {
                 )}
                 {caseData.endorsed_to_role && (
                   <div>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>Assigned Counselor</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p style={{ color: 'var(--color-text-secondary)' }}>Assigned Counselor</p>
+                      {['ADMIN', 'CASE_MANAGER'].includes(currentUser?.role || '') && (
+                        <button
+                          onClick={openReassignModal}
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-lg transition-colors"
+                          style={{ color: 'var(--color-primary)', background: 'var(--color-primary-muted)', border: '1px solid var(--color-primary-muted)' }}
+                          title="Reassign counselor or psychologist"
+                        >
+                          <UserPlus size={11} /> Reassign
+                        </button>
+                      )}
+                    </div>
                     {caseData.counselor_name ? (
                       <p className="font-medium mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{caseData.counselor_name}</p>
                     ) : (
@@ -3622,6 +3683,79 @@ export default function CaseDetailPage() {
             >
               Continue to Close
             </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Reassign Counselor Modal ──────────────────────────────── */}
+    {showReassign && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="rounded-2xl shadow-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Reassign Counselor / Psychologist</h3>
+            <button onClick={() => { setShowReassign(false); setReassignMsg(null); }} style={{ color: 'var(--color-text-muted)' }}>
+              <XIcon size={18} />
+            </button>
+          </div>
+
+          <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+            Currently assigned: <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{caseData?.counselor_name || '—'}</span>
+          </p>
+
+          <div className="mb-4">
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+              Select new counselor or psychologist
+            </label>
+            <select
+              value={reassignTarget}
+              onChange={e => setReassignTarget(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
+            >
+              <option value="">— Select provider —</option>
+              {['COUNSELOR', 'PSYCHOLOGIST'].map(role => {
+                const group = reassignProviders.filter(p => p.role === role);
+                if (!group.length) return null;
+                return (
+                  <optgroup key={role} label={role === 'COUNSELOR' ? 'Counselors' : 'Psychologists'}>
+                    {group.map(p => (
+                      <option key={p._id} value={p._id}>{p.name}</option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </select>
+          </div>
+
+          {reassignMsg && (
+            <p className="text-xs mb-3 px-3 py-2 rounded-lg"
+              style={{
+                background: reassignMsg.type === 'ok' ? 'var(--color-success-surface)' : 'var(--color-danger-surface)',
+                color: reassignMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)',
+              }}>
+              {reassignMsg.text}
+            </p>
+          )}
+
+          <div className="flex gap-2 justify-end mt-2">
+            <button
+              onClick={() => { setShowReassign(false); setReassignMsg(null); }}
+              className="px-4 py-2 text-sm rounded-xl"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-bg)' }}
+            >
+              {reassignMsg?.type === 'ok' ? 'Close' : 'Cancel'}
+            </button>
+            {reassignMsg?.type !== 'ok' && (
+              <button
+                onClick={handleReassign}
+                disabled={!reassignTarget || reassigning}
+                className="px-4 py-2 text-sm font-medium rounded-xl disabled:opacity-50"
+                style={{ background: 'var(--color-primary)', color: '#fff' }}
+              >
+                {reassigning ? 'Reassigning…' : 'Confirm Reassignment'}
+              </button>
+            )}
           </div>
         </div>
       </div>

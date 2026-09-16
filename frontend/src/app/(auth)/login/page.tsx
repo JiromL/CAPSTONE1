@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/utils/api';
 import { useTheme } from '@/context/ThemeContext';
 
-export default function LoginPage() {
+function LoginContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const sessionExpired = searchParams.get('expired') === 'true';
@@ -461,5 +461,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <div className="w-8 h-8 rounded-full animate-spin"
+          style={{ border: '3px solid var(--color-border)', borderTopColor: 'var(--color-primary)' }} />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

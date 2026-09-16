@@ -38,10 +38,10 @@ export default function PageShell({ title, subtitle, actions, children, hideNav 
             </Link>
             {!hideNav && mounted && (
               <nav className="flex items-center gap-5 text-sm overflow-x-auto">
-                {menuItems.map(item => (
+                {menuItems.filter(item => item.href).map(item => (
                   <Link
                     key={item.id}
-                    href={item.href}
+                    href={item.href!}
                     className="whitespace-nowrap transition-colors hover:opacity-80"
                     style={{ color: 'var(--color-text-secondary)' }}
                   >

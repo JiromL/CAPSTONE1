@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
@@ -266,7 +266,7 @@ function ProfessionalContactSection({ items, onAdd, onRemove }: {
   );
 }
 
-export default function CaseDetailPage() {
+function CaseDetailContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const caseId = params.id as string;
@@ -4175,3 +4175,10 @@ export default function CaseDetailPage() {
   );
 }
 
+export default function CaseDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <CaseDetailContent />
+    </Suspense>
+  );
+}

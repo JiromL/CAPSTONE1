@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
 import { EmaFloatingChat } from './EmaFloatingChat';
@@ -439,7 +440,7 @@ export function DashboardLayout({
                 {reminderCount > 0 && (
                   <span
                     className="absolute top-1 right-1 w-2 h-2 rounded-full ring-2 animate-ping-dot"
-                    style={{ background: 'var(--color-danger)', ringColor: 'var(--color-surface)', borderColor: 'var(--color-surface)' }}
+                    style={{ background: 'var(--color-danger)', borderColor: 'var(--color-surface)', '--tw-ring-color': 'var(--color-surface)' } as CSSProperties}
                   />
                 )}
               </button>

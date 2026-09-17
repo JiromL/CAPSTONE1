@@ -550,7 +550,7 @@ function ScheduleInner() {
                 </p>
               </div>
               <button onClick={saveAvail} disabled={availSaving}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 transition hover:opacity-90"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50 transition hover:opacity-90"
                 style={{ background: 'var(--color-primary)' }}>
                 {availSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 {availSaving ? 'Saving…' : 'Save'}

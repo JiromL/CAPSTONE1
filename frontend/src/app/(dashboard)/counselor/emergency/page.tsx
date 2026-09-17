@@ -21,7 +21,7 @@ function scoreSeverityStyle(score: number, max: number): { bg: string; color: st
   const pct = (score / max) * 100;
   if (pct >= 80) return { bg: 'var(--color-danger-surface)',  color: 'var(--color-danger)'  };
   if (pct >= 60) return { bg: 'var(--color-warning-surface)', color: 'var(--color-warning)' };
-  if (pct >= 40) return { bg: '#FFFBEB',                      color: '#B45309'              };
+  if (pct >= 40) return { bg: 'var(--color-warning-surface)',                      color: '#B45309'              };
   return             { bg: 'var(--color-success-surface)',     color: 'var(--color-success)' };
 }
 

@@ -76,10 +76,11 @@ def create_session_note(case_id):
     result = db.db.session_notes.insert_one(note)
     
     # Update case risk if flagged (EPIC 6: High-Risk Flagging on Counselor Dashboard)
-    if note['risk_flagged']:
+    # Never downgrade an already-higher risk level (RED/CRITICAL) to YELLOW.
+    if note['risk_flagged'] and case.get('risk_level') not in (RiskLevel.RED.value, RiskLevel.CRITICAL.value):
         db.db.cases.update_one(
             {"_id": case['_id']},
-            {"$set": {"current_risk_level": RiskLevel.YELLOW.value}}
+            {"$set": {"risk_level": RiskLevel.YELLOW.value}}
         )
     
     audit_log(db.db, 'session_note', 'create', entity_id=str(result.inserted_id), new_values={

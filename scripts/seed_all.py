@@ -20,20 +20,26 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo import MongoClient
 
-# ── Step 1: unified seed ──────────────────────────────────────────────────────
+# ── Step 1: unified seed + enrichment scripts ─────────────────────────────────
 HERE = os.path.dirname(os.path.abspath(__file__))
-MAIN_SEED = os.path.join(HERE, 'seed.py')
 
-print("=" * 60)
-print("STEP 1 / 2 — Unified seed")
-print("  users · schedules · cases · appointments · session notes")
-print("  safety plans · PERMA snapshots · announcements · resources")
-print("=" * 60)
+STEPS = [
+    ('seed.py',                 'Unified seed — users · schedules · cases · appointments\n'
+                                 '  session notes · safety plans · PERMA snapshots · announcements · resources'),
+    ('enrich_ic_forms.py',      'IC interview form enrichment for all cases'),
+    ('seed_bookings.py',        'Booking-workflow appointments (REQUESTED / PENDING_APPROVAL)'),
+    ('seed_structured_soap.py', 'Structured SOAP session notes'),
+]
 
-result = subprocess.run([sys.executable, MAIN_SEED], check=False)
-if result.returncode != 0:
-    print(f"\n❌  Seed failed (exit {result.returncode}). Aborting.")
-    sys.exit(result.returncode)
+for i, (script, desc) in enumerate(STEPS, start=1):
+    print("=" * 60)
+    print(f"STEP {i} / {len(STEPS) + 1} — {desc}")
+    print("=" * 60)
+    result = subprocess.run([sys.executable, os.path.join(HERE, script)], check=False)
+    if result.returncode != 0:
+        print(f"\n❌  {script} failed (exit {result.returncode}). Aborting.")
+        sys.exit(result.returncode)
+    print()
 
 # ── Connect ───────────────────────────────────────────────────────────────────
 MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
@@ -44,7 +50,7 @@ now = datetime.utcnow()
 
 print()
 print("=" * 60)
-print("STEP 2 / 2 — Staff sample data")
+print(f"STEP {len(STEPS) + 1} / {len(STEPS) + 1} — Staff sample data")
 print("  reschedule appointments · non_counseling_clients · check-in cases")
 print("=" * 60)
 
@@ -152,6 +158,7 @@ for i, (first, last) in enumerate(STUDENT_NAMES):
         'student_name': f'{first} {last}',
         'student_email': f'{first.lower()}.{last.lower().replace(" ", "")}@dlsu.edu.ph',
         'status': 'ACTIVE',
+        'case_status': 'ACTIVE',
         'client_status': random.choice(['CHECK_IN_ONLY', 'WITH_MH_CHECK_IN']),
         'primary_concern': random.choice(COUNSELING_CONCERNS),
         'risk_level': 'GREEN',
@@ -180,12 +187,12 @@ Collections seeded:
   resources              {db.resources.count_documents({}):>4}
   non_counseling_clients {db.non_counseling_clients.count_documents({}):>4}
 
-Key credentials (password = same as username prefix):
-  admin@university.edu / admin123
-  dpo@university.edu   / dpo123
-  staff@university.edu / staff123
-  student1@university.edu / student123
-  daryl@university.edu / daryl123   (psychologist)
-  rose.t@university.edu / roset123  (counselor)
-  julse@university.edu / julse123   (IC)
+Key credentials:
+  admin@dlsu.edu.ph    / admin123
+  dpo@dlsu.edu.ph      / dpo123
+  staff@dlsu.edu.ph    / staff123
+  ejohnson@dlsu.edu.ph / stu001    (student)
+  daryl@dlsu.edu.ph    / daryl123  (psychologist)
+  rose.t@dlsu.edu.ph   / roset123  (counselor)
+  julse@dlsu.edu.ph    / julse123  (IC)
 """)

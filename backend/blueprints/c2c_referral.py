@@ -23,16 +23,15 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 def require_permission(required_permission):
     def decorator(f):
         @wraps(f)
+        @jwt_required()
         def decorated_function(*args, **kwargs):
-            token_data = request.headers.get('Authorization', '').replace('Bearer ', '')
-            _, user_id = token_required(token_data)
+            user_id = get_jwt_identity()
             if not user_id:
                 return jsonify({"error": "Unauthorized"}), 401
-            
-            permissions = user_has_permission(user_id)
-            if required_permission not in permissions and 'ADMIN_ACCESS' not in permissions:
+
+            if not user_has_permission(db.db, user_id, required_permission):
                 return jsonify({"error": "Insufficient permissions"}), 403
-            
+
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -41,7 +40,7 @@ def require_permission(required_permission):
 # ============ COUNSELOR REFERRAL CRUD ============
 
 @c2c_referral_bp.route('/', methods=['POST'])
-@require_permission('CREATE_C2C_REFERRAL')
+@require_permission(PermissionType.EDIT_CASE.value)
 def create_c2c_referral():
     """
     Create a counselor-to-counselor internal referral for rare/specialty cases.
@@ -62,8 +61,7 @@ def create_c2c_referral():
     }
     """
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
         data = request.json
         
@@ -184,15 +182,14 @@ def list_c2c_referrals():
 # ============ REFERRAL WORKFLOW ============
 
 @c2c_referral_bp.route('/<referral_id>/accept', methods=['POST'])
-@require_permission('ACCEPT_C2C_REFERRAL')
+@require_permission(PermissionType.EDIT_CASE.value)
 def accept_c2c_referral(referral_id):
     """
     Accept a counselor-to-counselor referral.
     Counselor accepting the referral confirms they will take the case.
     """
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
         referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         if not referral:
@@ -213,14 +210,8 @@ def accept_c2c_referral(referral_id):
         db.db.counselor_referrals.update_one({'_id': ObjectId(referral_id)}, {'$set': updates})
         
         # Log audit
-        log_audit_action(
-            collection='counselor_referrals',
-            action='UPDATE',
-            case_id=str(referral['case_id']),
-            user_id=user_id,
-            changes={'status': 'accepted'},
-            reason='C2C referral accepted'
-        )
+        audit_log(db.db, 'counselor_referrals', 'accept', entity_id=referral_id,
+                  new_values={'status': 'accepted', 'case_id': str(referral['case_id'])})
         
         updated_referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         updated_referral['_id'] = str(updated_referral['_id'])
@@ -233,15 +224,14 @@ def accept_c2c_referral(referral_id):
 
 
 @c2c_referral_bp.route('/<referral_id>/decline', methods=['POST'])
-@require_permission('ACCEPT_C2C_REFERRAL')
+@require_permission(PermissionType.EDIT_CASE.value)
 def decline_c2c_referral(referral_id):
     """
     Decline a counselor-to-counselor referral.
     Counselor can decline if they're unable to take the case.
     """
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
         referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         if not referral:
@@ -264,14 +254,8 @@ def decline_c2c_referral(referral_id):
         db.db.counselor_referrals.update_one({'_id': ObjectId(referral_id)}, {'$set': updates})
         
         # Log audit
-        log_audit_action(
-            collection='counselor_referrals',
-            action='UPDATE',
-            case_id=str(referral['case_id']),
-            user_id=user_id,
-            changes={'status': 'declined'},
-            reason=f"C2C referral declined: {data['decline_reason']}"
-        )
+        audit_log(db.db, 'counselor_referrals', 'decline', entity_id=referral_id,
+                  new_values={'status': 'declined', 'case_id': str(referral['case_id']), 'decline_reason': data['decline_reason']})
         
         updated_referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         updated_referral['_id'] = str(updated_referral['_id'])
@@ -284,17 +268,16 @@ def decline_c2c_referral(referral_id):
 
 
 @c2c_referral_bp.route('/<referral_id>/complete', methods=['POST'])
-@require_permission('ACCEPT_C2C_REFERRAL')
+@require_permission(PermissionType.EDIT_CASE.value)
 def complete_c2c_referral(referral_id):
     """
     Mark a referral as completed.
     Called when the target counselor has resolved the specialty need.
     """
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
-        referral = db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
+        referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         if not referral:
             return jsonify({"error": "Referral not found"}), 404
         
@@ -310,19 +293,13 @@ def complete_c2c_referral(referral_id):
             'updated_at': datetime.utcnow()
         }
         
-        db.counselor_referrals.update_one({'_id': ObjectId(referral_id)}, {'$set': updates})
+        db.db.counselor_referrals.update_one({'_id': ObjectId(referral_id)}, {'$set': updates})
         
         # Log audit
-        log_audit_action(
-            collection='counselor_referrals',
-            action='UPDATE',
-            case_id=str(referral['case_id']),
-            user_id=user_id,
-            changes={'status': 'completed'},
-            reason='C2C referral completed'
-        )
+        audit_log(db.db, 'counselor_referrals', 'complete', entity_id=referral_id,
+                  new_values={'status': 'completed', 'case_id': str(referral['case_id'])})
         
-        updated_referral = db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
+        updated_referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         updated_referral['_id'] = str(updated_referral['_id'])
         updated_referral['case_id'] = str(updated_referral['case_id'])
         
@@ -335,17 +312,16 @@ def complete_c2c_referral(referral_id):
 # ============ FOLLOW-UP AND TRACKING ============
 
 @c2c_referral_bp.route('/<referral_id>/follow-up', methods=['POST'])
-@require_permission('ACCEPT_C2C_REFERRAL')
+@require_permission(PermissionType.EDIT_CASE.value)
 def log_follow_up(referral_id):
     """
     Log a follow-up note in the referral workflow.
     Used to track ongoing communication and progress.
     """
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
+        user_id = get_jwt_identity()
         
-        referral = db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
+        referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         if not referral:
             return jsonify({"error": "Referral not found"}), 404
         
@@ -360,7 +336,7 @@ def log_follow_up(referral_id):
             'session_summary': data.get('session_summary', '')
         }
         
-        db.counselor_referrals.update_one(
+        db.db.counselor_referrals.update_one(
             {'_id': ObjectId(referral_id)},
             {
                 '$push': {'follow_up_sessions': follow_up_entry},
@@ -369,16 +345,10 @@ def log_follow_up(referral_id):
         )
         
         # Log audit
-        log_audit_action(
-            collection='counselor_referrals',
-            action='UPDATE',
-            case_id=str(referral['case_id']),
-            user_id=user_id,
-            changes={'follow_up_logged': True},
-            reason='Follow-up note logged'
-        )
+        audit_log(db.db, 'counselor_referrals', 'follow_up', entity_id=referral_id,
+                  new_values={'follow_up_logged': True, 'case_id': str(referral['case_id'])})
         
-        updated_referral = db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
+        updated_referral = db.db.counselor_referrals.find_one({'_id': ObjectId(referral_id)})
         updated_referral['_id'] = str(updated_referral['_id'])
         updated_referral['case_id'] = str(updated_referral['case_id'])
         

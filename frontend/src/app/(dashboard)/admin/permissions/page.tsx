@@ -19,7 +19,7 @@ const ALL = Array.from(new Set(Object.values(PERMS).flat())).sort();
 export default function PermissionsPage() {
   return (
     <DashboardPageWrapper title="Permissions Matrix" subtitle="Role-to-permission mapping">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+      <div className="max-w-7xl mx-auto space-y-4">
 
         <div className="px-4 py-3 rounded-xl text-sm"
           style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning-text)' }}>

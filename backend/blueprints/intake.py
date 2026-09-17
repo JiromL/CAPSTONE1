@@ -564,7 +564,7 @@ def submit_triage(intake_id):
         # Reuse any existing open case for this student to prevent duplicates
         existing_student_case = db.db.cases.find_one({
             'student_id': student_id,
-            'status': {'$nin': ['CLOSED', 'CANCELLED']},
+            'case_status': {'$nin': ['CLOSED', 'CANCELLED']},
         }) if student_id else None
 
         if existing_student_case:
@@ -990,7 +990,7 @@ def assign_emergency_appointment(intake_id):
         )
     
     audit_log(db.db, 'intake', 'emergency_assigned', entity_id=intake_id,
-              details=f"assigned_to={counselor_id}, scheduled={appointment_date} {appointment_time}")
+              new_values={'assigned_to': counselor_id, 'scheduled': f'{appointment_date} {appointment_time}'})
     
     return jsonify({
         'message': 'Emergency intake assigned',
@@ -1994,7 +1994,7 @@ def create_walkin_intake():
                 _wid = ObjectId(walkin_student_id) if isinstance(walkin_student_id, str) else walkin_student_id
                 existing_walkin_case = db.db.cases.find_one({
                     'student_id': _wid,
-                    'status': {'$nin': ['CLOSED', 'CANCELLED']},
+                    'case_status': {'$nin': ['CLOSED', 'CANCELLED']},
                 })
             except Exception:
                 pass
@@ -2011,6 +2011,7 @@ def create_walkin_intake():
                 'student_email': data.get('email'),
                 'student_name': f"{data.get('first_name')} {data.get('last_name')}",
                 'phone': data.get('phone', ''),
+                'case_status': 'ACTIVE',
                 'status': 'ACTIVE',
                 'risk_level': risk_level,
                 'created_at': datetime.utcnow(),
@@ -2171,6 +2172,7 @@ def student_self_checkin():
             'student_email': data['email'],
             'student_name': f"{data['first_name']} {data['last_name']}",
             'phone': data.get('phone', ''),
+            'case_status': 'ACTIVE',
             'status': 'ACTIVE',
             'risk_level': initial_risk,
             'intake_source': 'SELF_CHECKIN',

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import PageShell from '@/components/PageShell'
 import { api } from '@/utils/api';
 
-const IC = 'w-full p-3 rounded outline-none text-center text-2xl tracking-widest';
+const IC = 'w-full p-3 rounded-lg outline-none text-center text-2xl tracking-widest';
 const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 function VerifyEmailContent() {
@@ -92,7 +92,7 @@ function VerifyEmailContent() {
       <div className="max-w-md mx-auto rounded-lg p-6" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-card)' }}>
         <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Verify Your Email</h1>
 
-        <div className="mb-4 p-3 rounded" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
+        <div className="mb-4 p-3 rounded-lg" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             We sent a verification code to <strong>{email || 'your email'}</strong>. Click the button in the email or enter the code below.
           </p>
@@ -111,7 +111,7 @@ function VerifyEmailContent() {
             <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>6-digit code</p>
           </div>
 
-          <button className="w-full px-4 py-2 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+          <button className="w-full px-4 py-2 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: 'var(--color-primary)' }}
             type="submit" disabled={loading || code.length !== 6}
             onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
@@ -130,10 +130,10 @@ function VerifyEmailContent() {
         </div>
 
         {msg && (
-          <p className="mt-4 text-sm p-3 rounded" style={{ color: 'var(--color-success-text)', background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>{msg}</p>
+          <p className="mt-4 text-sm p-3 rounded-lg" style={{ color: 'var(--color-success-text)', background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>{msg}</p>
         )}
         {error && (
-          <p className="mt-4 text-sm p-3 rounded" style={{ color: 'var(--color-danger-text)', background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>{error}</p>
+          <p className="mt-4 text-sm p-3 rounded-lg" style={{ color: 'var(--color-danger-text)', background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>{error}</p>
         )}
 
         <hr className="my-6" style={{ borderColor: 'var(--color-border)' }} />

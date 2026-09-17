@@ -7,12 +7,12 @@ import PageShell from '@/components/PageShell';
 
 // Utilization status — fixed semantic hex for clear clinical/operational meaning
 const UTIL_STYLE: Record<string, React.CSSProperties> = {
-  full:   { background: '#FEE2E2', color: '#991B1B' },
+  full:   { background: '#FEE2E2', color: 'var(--color-danger-text)' },
   high:   { background: '#FFEDD5', color: '#9A3412' },
-  medium: { background: '#FEF3C7', color: '#92400E' },
+  medium: { background: '#FEF3C7', color: 'var(--color-warning-text)' },
   low:    { background: '#DCFCE7', color: '#15803D' },
 };
-const UTIL_DOT: Record<string, string> = { full: '#DC2626', high: '#EA580C', medium: '#CA8A04', low: '#16A34A' };
+const UTIL_DOT: Record<string, string> = { full: 'var(--color-danger)', high: '#EA580C', medium: '#CA8A04', low: '#16A34A' };
 
 export default function WorkloadReportPage() {
   const [report, setReport] = useState<any>(null);
@@ -133,7 +133,7 @@ export default function WorkloadReportPage() {
       <div className="mt-6 rounded-lg p-4" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
         <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-secondary)' }}>Utilization Status Legend:</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[['low','#16A34A','Low (0-50%)'],['medium','#CA8A04','Medium (50-70%)'],['high','#EA580C','High (70-90%)'],['full','#DC2626','Full (90%+)']].map(([,dot,label]) => (
+          {[['low','#16A34A','Low (0-50%)'],['medium','#CA8A04','Medium (50-70%)'],['high','#EA580C','High (70-90%)'],['full','var(--color-danger)','Full (90%+)']].map(([,dot,label]) => (
             <div key={label} className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ background: dot as string }} />
               <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>

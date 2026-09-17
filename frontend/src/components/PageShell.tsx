@@ -41,7 +41,7 @@ export default function PageShell({ title, subtitle, actions, children, hideNav 
                 {menuItems.map(item => (
                   <Link
                     key={item.id}
-                    href={item.href}
+                    href={item.href ?? '#'}
                     className="whitespace-nowrap transition-colors hover:opacity-80"
                     style={{ color: 'var(--color-text-secondary)' }}
                   >

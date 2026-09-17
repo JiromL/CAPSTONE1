@@ -182,7 +182,7 @@ function WriteCard({ intake, onExport }: { intake: IntakeRecord; onExport: () =>
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
-          {intake.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+          {intake.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: 'var(--color-warning-text)', border: '1px solid #FDE68A' }}>Minor</span>}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {intake.client_id_number && <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>{intake.client_id_number}</span>}
@@ -230,7 +230,7 @@ function DoneCard({ intake, onExport }: { intake: IntakeRecord; onExport: () => 
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{intake.client_name}</p>
-          {intake.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+          {intake.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: 'var(--color-warning-text)', border: '1px solid #FDE68A' }}>Minor</span>}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {intake.client_id_number && <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>{intake.client_id_number}</span>}

@@ -96,7 +96,7 @@ export function DashboardLayout({
         if (Date.now() - last < 5 * 60 * 1000) return;
       } catch {}
     }
-    fetch(api('/api/reminders'), { headers: { Authorization: `Bearer ${token}` } })
+    fetch(api('/api/reminders/'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (!d) return;
@@ -439,7 +439,7 @@ export function DashboardLayout({
                 {reminderCount > 0 && (
                   <span
                     className="absolute top-1 right-1 w-2 h-2 rounded-full ring-2 animate-ping-dot"
-                    style={{ background: 'var(--color-danger)', ringColor: 'var(--color-surface)', borderColor: 'var(--color-surface)' }}
+                    style={{ background: 'var(--color-danger)', '--tw-ring-color': 'var(--color-surface)' } as React.CSSProperties}
                   />
                 )}
               </button>

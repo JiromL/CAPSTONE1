@@ -462,9 +462,7 @@ def student_self_checkin():
 
     audit_log(db.db, 'check_ins', 'student_self_checkin',
               entity_id=str(result.inserted_id),
-              user_id=str(user_id_obj),
-              entity_type='case',
-              related_id=str(case['_id']) if case else str(appointment_id_obj or ''))
+              new_values={'related_id': str(case['_id']) if case else str(appointment_id_obj or '')})
 
     return jsonify({
         'message': 'Check-in submitted successfully',

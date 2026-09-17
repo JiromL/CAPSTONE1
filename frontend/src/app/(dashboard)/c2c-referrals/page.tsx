@@ -45,7 +45,7 @@ export default function C2CReferralsPage() {
   const load = () => {
     setLoading(true); setError('');
     const token = localStorage.getItem('token');
-    fetch(api('/api/counselor-referrals'), { headers: { Authorization: `Bearer ${token}` } })
+    fetch(api('/api/counselor-referrals/'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => setReferrals(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load referrals'))

@@ -27,12 +27,22 @@ except Exception as e:
     print(f"✗ {e}"); exit(1)
 
 # ── WIPE ───────────────────────────────────────────────────────────────────────
+# Every collection that stores a case_id / student_id / user_id reference must be
+# wiped here — otherwise a reseed leaves orphaned records pointing at deleted
+# cases/users (e.g. referrals with a case_id that no longer exists), which show
+# up in the UI as broken rows with null student/case names.
 WIPE = [
     'users','appointments','cases','intakes','counselor_availability',
-    'counselor_weekly_schedule','session_notes','check_ins','safety_plans',
+    'counselor_weekly_schedule','session_notes','session_notes_versions','check_ins','safety_plans',
     'perma_snapshots','perma_history','missed_appointment_tracker',
     'notifications','announcements','resources','consent_records',
     'reschedule_requests','non_counseling_clients',
+    'referrals','referral_logs','counselor_referrals','case_handovers',
+    'high_risk_checkins','crisis_escalations','waitlist','feedback',
+    'reminders','journal_entries','progress_metrics','video_links',
+    'personal_events','intake_drafts','intake_packets','new_client_intakes',
+    'documents','document_versions','assessments','assessment_schedules',
+    'booking_locks','counseling_cases','oauth_states',
 ]
 for col in WIPE:
     if col in db.list_collection_names():
@@ -489,6 +499,65 @@ c35 = mk_case(s35, p_niko,   ic_wil,    IC_NAMES[5], 'NEW', 'RED', 'Eating disor
 
 print(f"✅ {_case_seq[0]} cases created")
 
+# ── REFERRALS (external / internal service referrals with warm-handoff tracking) ─
+def mk_referral(case_id, counselor_id, referral_type, reason, urgency, status,
+                receiving_provider_name=None, service_type=None,
+                assigned_to_user=None, assigned_to_role=None,
+                warm_handoff_completed=False, days_ago=5, acknowledged=False):
+    doc = {
+        'case_id': case_id,
+        'referring_counselor_id': counselor_id,
+        'referral_type': referral_type,
+        'reason': reason,
+        'urgency': urgency,
+        'status': status,
+        'warm_handoff_completed': warm_handoff_completed,
+        'created_at': H(days_ago), 'updated_at': H(max(0, days_ago - 1)),
+    }
+    if referral_type == 'EXTERNAL':
+        doc.update({
+            'sub_type': service_type or 'OTHER',
+            'receiving_provider_name': receiving_provider_name,
+            'receiving_provider_contact': None,
+            'external_case_number': None,
+            'roi_signed': status in ('ACKNOWLEDGED', 'IN_PROGRESS', 'COMPLETED'),
+            'roi_file_url': None, 'roi_signed_at': None, 'roi_expires_at': None,
+            'agency_response': 'Accepted — first appointment scheduled.' if status == 'COMPLETED' else None,
+        })
+    else:  # INTERNAL
+        provider = None
+        if assigned_to_user:
+            provider = db.users.find_one({'_id': assigned_to_user})
+        doc.update({
+            'assigned_to_user': assigned_to_user,
+            'assigned_to_role': assigned_to_role,
+            'receiving_provider_id': assigned_to_user,
+            'receiving_provider_name': f"{provider.get('first_name','')} {provider.get('last_name','')}".strip() if provider else None,
+            'provider_acknowledgment_date': H(days_ago - 1) if acknowledged or status != 'SUBMITTED' else None,
+        })
+    return db.referrals.insert_one(doc).inserted_id
+
+mk_referral(c1, c_rose, 'EXTERNAL',
+            'Needs psychiatric medication evaluation alongside ongoing counseling.', 'urgent', 'ACKNOWLEDGED',
+            receiving_provider_name='DLSU Health Services Psychiatry', service_type='MENTAL_HEALTH', days_ago=6)
+mk_referral(c2, c_bia, 'INTERNAL',
+            'Escalating to psychologist given passive SI and depressive severity.', 'urgent', 'COMPLETED',
+            assigned_to_user=p_daryl, assigned_to_role='PSYCHOLOGIST', warm_handoff_completed=True, days_ago=20, acknowledged=True)
+mk_referral(c18, p_chona, 'EXTERNAL',
+            'Referral to substance-use outpatient program for co-occurring alcohol use.', 'routine', 'SUBMITTED',
+            receiving_provider_name='DLSU Wellness — Substance Use Program', service_type='SOCIAL_SERVICES', days_ago=2)
+mk_referral(c27, p_shel, 'INTERNAL',
+            'Trauma history warrants specialized trauma-informed care.', 'routine', 'SUBMITTED',
+            assigned_to_user=c_clara, assigned_to_role='COUNSELOR', days_ago=4)
+mk_referral(c29, c_daye, 'EXTERNAL',
+            'Agoraphobia symptoms require specialized exposure therapy beyond CPS scope.', 'urgent', 'COMPLETED',
+            receiving_provider_name='DLSU Health Services Psychiatry', service_type='MENTAL_HEALTH',
+            warm_handoff_completed=True, days_ago=15, acknowledged=True)
+mk_referral(c32, p_daryl, 'INTERNAL',
+            'High-risk case — routing to case manager for close monitoring.', 'urgent', 'ACKNOWLEDGED',
+            assigned_to_user=cm_id, assigned_to_role='CASE_MANAGER', days_ago=1, acknowledged=True)
+print("✅ Referrals seeded")
+
 # ── APPOINTMENTS ───────────────────────────────────────────────────────────────
 _apts = []
 
@@ -736,26 +805,80 @@ for sv, casev, cov in [(s2, c2, c_bia), (s6, c6, p_daryl), (s7, c7, p_niko)]:
     })
 print("✅ Safety plans seeded")
 
-# ── PERMA SNAPSHOTS ────────────────────────────────────────────────────────────
+# ── PERMA SNAPSHOTS (EMA / MHBot linked students) ───────────────────────────────
+# Each entry is a label 1-5 score: In Crisis=1, Struggling=2, Surviving=3, Thriving=4, Excelling=5.
+# Real EMA check-ins are near-daily with some gaps and gradual drift, not random noise —
+# generate a short "walk" per student around a baseline so the trend graph reads naturally.
+_LABEL_ORDER = ['In Crisis', 'Struggling', 'Surviving', 'Thriving', 'Excelling']
+
+# (student, baseline label, trend) — trend: 'stable' | 'declining' | 'improving' | 'volatile'
 _perma_map = {
-    s1: 'Thriving', s2: 'Struggling', s3: 'Surviving', s4: 'Thriving',
-    s5: 'Excelling', s6: 'In Crisis', s7: 'Struggling', s8: 'Surviving',
-    s9: 'Thriving',  s10: 'Surviving', s11: 'Struggling', s12: 'Surviving',
-    s13: 'Surviving', s14: 'Thriving', s15: 'Thriving', s16: 'Struggling',
-    s17: 'Thriving', s18: 'Surviving', s19: 'Excelling', s20: 'Excelling',
-    s23: 'Thriving', s25: 'Excelling', s27: 'Surviving', s30: 'Thriving',
+    s1:  ('Thriving',   'stable'),      s2:  ('Struggling', 'declining'),
+    s3:  ('Surviving',  'improving'),   s4:  ('Thriving',   'stable'),
+    s5:  ('Excelling',  'stable'),      s6:  ('In Crisis',  'volatile'),
+    s7:  ('Struggling', 'volatile'),    s8:  ('Surviving',  'stable'),
+    s9:  ('Thriving',   'improving'),   s10: ('Surviving',  'declining'),
+    s11: ('Struggling', 'stable'),      s12: ('Surviving',  'stable'),
+    s13: ('Surviving',  'improving'),   s14: ('Thriving',   'stable'),
+    s15: ('Thriving',   'volatile'),    s16: ('Struggling', 'declining'),
+    s17: ('Thriving',   'stable'),      s18: ('Surviving',  'improving'),
+    s19: ('Excelling',  'stable'),      s20: ('Excelling',  'stable'),
+    s21: ('Surviving',  'stable'),      s22: ('Thriving',   'improving'),
+    s23: ('Thriving',   'stable'),      s24: ('Surviving',  'declining'),
+    s25: ('Excelling',  'stable'),      s26: ('Struggling', 'volatile'),
+    s27: ('Surviving',  'stable'),      s28: ('Thriving',   'stable'),
+    s29: ('Surviving',  'improving'),   s30: ('Thriving',   'stable'),
+    s32: ('Excelling',  'stable'),      s33: ('Surviving',  'declining'),
+    s34: ('Thriving',   'stable'),      s35: ('Struggling', 'improving'),
 }
-for sv, label in _perma_map.items():
-    for i in range(3):
-        entry_date = H(i * 30 + rng.randint(0, 7))
+
+DAYS_OF_HISTORY = 45
+
+def _next_value(cur, base, trend, progress):
+    """Mean-reverting float walk around `base` (0..4). `progress` is 0→1 oldest→newest."""
+    pull = (base - cur) * 0.25  # gentle pull back toward baseline so it doesn't wander off
+    if trend == 'declining':
+        bias, noise_amp = -0.06 * progress * 4, 0.35
+    elif trend == 'improving':
+        bias, noise_amp = 0.06 * progress * 4, 0.35
+    elif trend == 'volatile':
+        bias, noise_amp = 0, 0.9
+    else:  # stable
+        bias, noise_amp = 0, 0.4
+    noise = rng.uniform(-noise_amp, noise_amp)
+    return max(0.0, min(4.0, cur + pull + bias + noise))
+
+for sv, (baseline, trend) in _perma_map.items():
+    base_idx = float(_LABEL_ORDER.index(baseline))
+    mhbot_username = _emails[sv].split('@')[0]
+    entries = []
+    cur_val = base_idx
+    for day in range(DAYS_OF_HISTORY, -1, -1):
+        # ~75% check-in rate — students don't check in every single day
+        if rng.random() > 0.75 and day != 0:
+            continue
+        cur_val = _next_value(cur_val, base_idx, trend, (DAYS_OF_HISTORY - day) / DAYS_OF_HISTORY)
+        label = _LABEL_ORDER[round(cur_val)]
+        entry_date = H(day, h=rng.randint(7, 22), m=rng.randint(0, 59))
+        entries.append((entry_date, label))
+    entries.sort(key=lambda e: e[0])
+    for entry_date, label in entries:
         db.perma_snapshots.insert_one({
             'student_user_id': sv,
-            'perma_label': label if i == 0 else rng.choice(['Excelling','Thriving','Surviving','Struggling']),
+            'mhbot_username': mhbot_username,
+            'perma_label': label,
             'entry_date': entry_date,
+            'raw_date': entry_date.isoformat(),
             'saved_at': entry_date,
         })
-    db.users.update_one({'_id': sv}, {'$set': {'perma_latest_label': label}})
-print("✅ PERMA snapshots seeded")
+    latest_date, latest_label = entries[-1]
+    db.users.update_one({'_id': sv}, {'$set': {
+        'mhbot_username': mhbot_username,
+        'perma_latest_label': latest_label,
+        'perma_latest_date': latest_date.isoformat(),
+        'perma_synced_at': now,
+    }})
+print(f"✅ PERMA snapshots seeded ({len(_perma_map)} EMA-linked students, ~{DAYS_OF_HISTORY}d history each)")
 
 # ── ANNOUNCEMENTS ──────────────────────────────────────────────────────────────
 db.announcements.insert_many([

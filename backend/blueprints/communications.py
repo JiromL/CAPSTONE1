@@ -12,6 +12,9 @@ from models import db
 communications_bp = Blueprint('communications', __name__, url_prefix='/api/communications')
 
 
+BULK_SEND_ROLES = ['ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'STAFF']
+
+
 @communications_bp.route('/bulk-send', methods=['POST'])
 @jwt_required()
 def bulk_send():
@@ -20,15 +23,20 @@ def bulk_send():
     recipients = data.get('recipients', [])
     message = (data.get('message') or '').strip()
 
+    sender = db.db.users.find_one(
+        {'_id': ObjectId(sender_id) if isinstance(sender_id, str) else sender_id},
+        {'first_name': 1, 'last_name': 1, 'email': 1, 'role': 1}
+    )
+    if not sender:
+        return jsonify({'error': 'User not found'}), 404
+    if sender.get('role') not in BULK_SEND_ROLES:
+        return jsonify({'error': 'Only staff can send bulk messages'}), 403
+
     if not message:
         return jsonify({'error': 'message is required'}), 400
     if not recipients:
         return jsonify({'error': 'recipients list is required'}), 400
 
-    sender = db.db.users.find_one(
-        {'_id': ObjectId(sender_id) if isinstance(sender_id, str) else sender_id},
-        {'first_name': 1, 'last_name': 1, 'email': 1, 'role': 1}
-    )
     sender_name = (
         f"{sender.get('first_name', '')} {sender.get('last_name', '')}".strip()
         if sender else 'Staff'

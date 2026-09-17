@@ -35,7 +35,7 @@ const PHQ4_LABELS = [
 const FREQ = ['Not at all', 'Several days', 'More than half the days', 'Nearly every day'];
 
 const RISK_COLOR: Record<string, string> = {
-  GREEN: '#166534', YELLOW: '#b45309', ORANGE: '#c2410c', RED: '#991b1b', CRITICAL: '#7f1d1d',
+  GREEN: '#166534', YELLOW: '#b45309', ORANGE: '#c2410c', RED: 'var(--color-danger-text)', CRITICAL: '#7f1d1d',
 };
 
 export default function CasePrintPage() {
@@ -54,7 +54,7 @@ export default function CasePrintPage() {
   }, [caseId]);
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center text-sm" style={{ color: '#DC2626' }}>{error}</div>
+    <div className="min-h-screen flex items-center justify-center text-sm" style={{ color: 'var(--color-danger)' }}>{error}</div>
   );
   if (!data) return (
     <div className="min-h-screen flex items-center justify-center text-sm" style={{ color: '#9CA3AF' }}>Loading…</div>
@@ -78,9 +78,9 @@ export default function CasePrintPage() {
       <div className="no-print fixed top-4 right-4 flex gap-2 z-50">
         <button onClick={() => window.print()}
           className="px-4 py-2 text-white text-sm font-semibold rounded-lg shadow transition"
-          style={{ background: '#2563eb' }}
+          style={{ background: 'var(--color-info)' }}
           onMouseEnter={e => (e.currentTarget.style.background = '#1A3DB0')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#2563eb')}>
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-info)')}>
           Print / Save as PDF
         </button>
         <button onClick={() => window.close()}
@@ -95,9 +95,9 @@ export default function CasePrintPage() {
       <div className="max-w-3xl mx-auto px-8 py-10 text-sm">
 
         {/* Header */}
-        <div className="flex items-start justify-between border-b-2 border-[#2563eb] pb-4 mb-6">
+        <div className="flex items-start justify-between border-b-2 border-[var(--color-info)] pb-4 mb-6">
           <div>
-            <p className="text-xl font-bold text-[#2563eb]">De La Salle University</p>
+            <p className="text-xl font-bold text-[var(--color-info)]">De La Salle University</p>
             <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Counseling & Psychology Services</p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Case Summary Record — CONFIDENTIAL</p>
           </div>
@@ -315,7 +315,7 @@ export default function CasePrintPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <p className="text-xs font-bold text-[#2563eb] uppercase tracking-wide border-b border-[#2563eb]/20 pb-1 mb-2">{title}</p>
+      <p className="text-xs font-bold text-[var(--color-info)] uppercase tracking-wide border-b border-[var(--color-info)]/20 pb-1 mb-2">{title}</p>
       {children}
     </div>
   );

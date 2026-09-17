@@ -545,7 +545,7 @@ def get_audit_logs():
     if q:
         import re as _re
         pat = _re.compile(_re.escape(q), _re.IGNORECASE)
-        query['$or'] = [{'action': pat}, {'module': pat}]
+        query['$or'] = [{'action': pat}, {'entity_type': pat}]
 
     from_date = request.args.get('from_date', '').strip()
     to_date   = request.args.get('to_date', '').strip()
@@ -574,6 +574,7 @@ def get_audit_logs():
         uid = str(log.get('user_id', '')) if log.get('user_id') else None
         log['user_id'] = uid
         log['actor_name'] = users_map.get(uid, 'System') if uid else 'System'
+        log['module'] = log.get('entity_type', '')
         if 'timestamp' in log:
             log['timestamp'] = log['timestamp'].isoformat()
 

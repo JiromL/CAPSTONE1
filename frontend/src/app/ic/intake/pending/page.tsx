@@ -38,9 +38,9 @@ function fmtRelative(d: string) {
 
 const RISK_COLOR: Record<string, { barColor: string; badgeBg: string; badgeColor: string; label: string }> = {
   GREEN:    { barColor: '#4ADE80', badgeBg: '#F0FDF4', badgeColor: '#15803D', label: 'Low Risk'  },
-  YELLOW:   { barColor: '#FBBF24', badgeBg: '#FFFBEB', badgeColor: '#B45309', label: 'Moderate'  },
-  RED:      { barColor: '#F87171', badgeBg: '#FEF2F2', badgeColor: '#B91C1C', label: 'High Risk' },
-  CRITICAL: { barColor: '#DC2626', badgeBg: '#FEE2E2', badgeColor: '#7F1D1D', label: 'Critical'  },
+  YELLOW:   { barColor: '#FBBF24', badgeBg: 'var(--color-warning-surface)', badgeColor: '#B45309', label: 'Moderate'  },
+  RED:      { barColor: '#F87171', badgeBg: 'var(--color-danger-surface)', badgeColor: 'var(--color-danger-hover)', label: 'High Risk' },
+  CRITICAL: { barColor: 'var(--color-danger)', badgeBg: '#FEE2E2', badgeColor: '#7F1D1D', label: 'Critical'  },
 };
 
 export default function PendingIntakesPage() {

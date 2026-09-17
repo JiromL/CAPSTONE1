@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
 import { Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
+import { getRiskBadgeStyle } from '@/utils/badges';
 
 interface DashboardProps { user: any; onLogout: () => void; }
 
@@ -72,7 +73,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
 
       <div className="mb-6 pb-5" style={{ borderBottom: '1px solid var(--color-border)' }}>
         <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
-        <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
         <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{roleLabel} — Client case support and coordination</p>
       </div>
 
@@ -84,31 +85,29 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
         <>
         {/* New case assignments banner */}
         {newCases.length > 0 && (
-          <div className="mb-5 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl p-4">
+          <div className="mb-5 rounded-xl p-4" style={{ background: 'var(--color-info-surface)', border: '1px solid color-mix(in srgb, var(--color-info) 25%, transparent)' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-[#2563eb]" />
-                <p className="text-xs font-semibold text-[#2563eb] uppercase tracking-wider">
+                <AlertTriangle size={14} style={{ color: 'var(--color-info)' }} />
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-info-text)' }}>
                   New Cases Assigned to You ({newCases.length})
                 </p>
               </div>
-              <Link href="/cases" className="text-xs text-[#2563eb] underline underline-offset-2">
+              <Link href="/cases" className="text-xs underline underline-offset-2" style={{ color: 'var(--color-info-text)' }}>
                 View all cases
               </Link>
             </div>
             <div className="flex flex-wrap gap-2">
-              {newCases.map((c: any, i: number) => (
+              {newCases.map((c: any, i: number) => {
+                const risk = getRiskBadgeStyle(c.risk_level);
+                return (
                 <Link key={i} href="/cases"
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 border border-[#2563eb]/10 hover:border-[#2563eb]/30 transition-colors"
-                  style={{ background: 'var(--color-surface)' }}>
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 border transition-colors"
+                  style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
                   {c.risk_level && c.risk_level !== 'GREEN' && (
                     <span
                       className="text-xs px-1.5 py-0.5 rounded font-bold"
-                      style={
-                        c.risk_level === 'CRITICAL' ? { background: '#fee2e2', color: '#7f1d1d' } :
-                        c.risk_level === 'RED'      ? { background: '#fef2f2', color: '#b91c1c' } :
-                                                      { background: '#fffbeb', color: '#b45309' }
-                      }>
+                      style={{ background: risk.bg, color: risk.text }}>
                       {c.risk_level}
                     </span>
                   )}
@@ -119,7 +118,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                     </p>
                   </div>
                 </Link>
-              ))}
+              );})}
             </div>
           </div>
         )}
@@ -130,7 +129,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
           <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Today's Sessions</p>
-              <Link href="/appointments" className="text-xs text-[#2563eb] hover:underline">View all</Link>
+              <Link href="/appointments" className="text-xs hover:underline" style={{ color: 'var(--color-primary-text)' }}>View all</Link>
             </div>
             {todayAppts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-28 text-center">
@@ -138,7 +137,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Confirmed appointments will appear here.</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-border">
                 {todayAppts.slice(0, 5).map((a: any, i: number) => (
                   <div key={i} className="py-2.5 flex items-center justify-between">
                     <div>
@@ -165,7 +164,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
                       {pendingEval.length}
                     </span>
                   </p>
-                  <Link href="/appointment-requests" className="text-xs text-[#2563eb] hover:underline">Review</Link>
+                  <Link href="/appointment-requests" className="text-xs hover:underline" style={{ color: 'var(--color-primary-text)' }}>Review</Link>
                 </div>
                 {pendingEval.slice(0, 3).map((a: any, i: number) => (
                   <div key={i} className="py-1.5 flex items-center justify-between">
@@ -180,7 +179,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
           {/* Quick navigation */}
           <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
             <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--color-text-muted)' }}>Quick Access</p>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {LINKS.map(({ href, label }) => (
                 <Link key={href} href={href}
                   className="flex items-center justify-between py-2.5 text-sm transition-colors"

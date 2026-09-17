@@ -154,13 +154,13 @@ export default function DocumentationPage() {
               )}
               <div className="flex gap-3">
                 <button type="submit" disabled={uploading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition disabled:opacity-50 hover:opacity-90"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 hover:opacity-90"
                   style={{ background: 'var(--color-primary)' }}>
                   {uploading && <Loader2 size={13} className="animate-spin" />}
                   {uploading ? 'Uploading…' : 'Upload Document'}
                 </button>
                 <button type="button" onClick={() => setShowUploadForm(false)}
-                  className="flex-1 px-4 py-2 border rounded-xl text-sm font-medium transition"
+                  className="flex-1 px-4 py-2 border rounded-lg text-sm font-medium transition"
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -182,7 +182,7 @@ export default function DocumentationPage() {
         )}
 
         {/* Search and filter */}
-        <div className="border rounded-xl p-4 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+        <div className="border rounded-2xl p-4 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2 relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />

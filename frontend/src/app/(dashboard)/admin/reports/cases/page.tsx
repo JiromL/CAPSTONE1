@@ -52,7 +52,7 @@ export default function CasesReportPage() {
 
   return (
     <DashboardPageWrapper title="Case Statistics" subtitle="Summary of cases by status">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8">
 
         <div className="flex items-center justify-between">
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Case data pulled from the CPS system database</p>

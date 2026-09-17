@@ -937,6 +937,8 @@ def get_pending_warm_handoffs():
             'referral_type': r.get('referral_type'),
             'status': r.get('status'),
             'urgency': r.get('urgency'),
+            'reason': r.get('reason'),
+            'created_at': r['created_at'].isoformat() if isinstance(r.get('created_at'), datetime) else None,
             'case_number': case.get('case_number') if case else None,
             'student_name': f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else None,
             'days_pending': (datetime.utcnow() - r['created_at']).days if isinstance(r['created_at'], datetime) else 0

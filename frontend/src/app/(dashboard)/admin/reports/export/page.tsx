@@ -250,7 +250,7 @@ export default function ExportDataPage() {
                 {preview.rows.map((row, i) => (
                   <tr key={i} style={{ borderTop: '1px solid var(--color-border)' }}>
                     {Object.values(row).map((val, j) => (
-                      <td key={j} className="px-3 py-2 whitespace-nowrap max-w-[160px] truncate"
+                      <td key={j} className="px-3 py-2 whitespace-nowrap max-w-40 truncate"
                         style={{ color: 'var(--color-text-secondary)', borderRight: '1px solid var(--color-border)' }}>
                         {val || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}
                       </td>

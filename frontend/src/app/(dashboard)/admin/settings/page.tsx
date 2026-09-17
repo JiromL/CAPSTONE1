@@ -90,14 +90,14 @@ export default function SettingsPage() {
       setStatus('saved');
       setTimeout(() => setStatus('idle'), 3000);
     } catch {
-      setStatus('saved');
+      setStatus('error');
       setTimeout(() => setStatus('idle'), 5000);
     }
   };
 
   return (
     <DashboardPageWrapper title="System Settings" subtitle="Configure global application settings">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6">
 
         {status === 'saved' && (
           <div className="p-3 rounded-lg text-sm"

@@ -144,23 +144,39 @@ def get_perma_history(username: str, token: str = None, limit: int = 5, save: bo
 
 # ── Auth endpoints ─────────────────────────────────────────────────────────────
 
+def _verify_ema_credentials(username: str, password: str) -> bool:
+    """One-time proof that the caller owns this EMA identity. Never cached or stored."""
+    try:
+        resp = requests.post(
+            f"{MHBOT_BASE_URL}/api/v1/auth/login",
+            data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'dashboard'},
+            headers={'accept': 'application/json'},
+            timeout=10,
+        )
+        return resp.ok
+    except Exception as e:
+        logger.warning('EMA credential verification error: %s', e)
+        return False
+
+
 @mhbot_bp.route('/link-username', methods=['POST'])
 @jwt_required()
 def link_ema_username():
-    """Student provides their EMA username; system verifies it exists and stores it."""
+    """Student proves ownership of an EMA account (username + password) once; only the
+    username is stored afterward, and further PERMA syncs use the shared admin token."""
     user_id = get_jwt_identity()
     data = request.get_json() or {}
     ema_username = data.get('username', '').strip()
-    if not ema_username:
-        return jsonify({'error': 'EMA username is required'}), 400
+    ema_password = data.get('password', '').strip()
+    if not ema_username or not ema_password:
+        return jsonify({'error': 'EMA username and password are required'}), 400
+
+    if not _verify_ema_credentials(ema_username, ema_password):
+        return jsonify({'error': 'EMA username or password is incorrect.'}), 400
 
     token = _get_shared_ema_token()
     if not token:
         return jsonify({'error': 'EMA service is currently unavailable'}), 503
-
-    result = get_perma_history(ema_username, token, limit=1)
-    if not result['success']:
-        return jsonify({'error': 'EMA username not found. Please check your username and try again.'}), 400
 
     uid = _resolve_user_id(user_id)
     db.db.users.update_one(
@@ -521,13 +537,46 @@ def get_my_perma():
     limit = min(request.args.get('limit', 10, type=int), 100)
     result = get_perma_history(mhbot_username, limit=limit, save=True, student_user_id=_resolve_user_id(user_id))
 
+    if result['success']:
+        return jsonify({
+            'connected': True,
+            'mhbot_username': mhbot_username,
+            'latest_label': result.get('latest_label'),
+            'latest_date': result.get('latest_date'),
+            'history': result.get('data', []),
+            'fetch_error': None,
+        }), 200
+
+    # Live EMA server unreachable (e.g. demo/offline environment) — fall back to
+    # the last locally-saved snapshots for this student, if any, instead of a bare error.
+    resolved_id = _resolve_user_id(user_id)
+    local = list(db.db.perma_snapshots.find(
+        {'student_user_id': resolved_id}
+    ).sort('entry_date', -1).limit(limit))
+    if not local:
+        local = list(db.db.perma_snapshots.find(
+            {'mhbot_username': mhbot_username}
+        ).sort('entry_date', -1).limit(limit))
+
+    if local:
+        history = [{'perma_label': s.get('perma_label'), 'date': s.get('raw_date') or s['entry_date'].isoformat()} for s in local]
+        return jsonify({
+            'connected': True,
+            'mhbot_username': mhbot_username,
+            'latest_label': history[0]['perma_label'],
+            'latest_date': history[0]['date'],
+            'history': history,
+            'fetch_error': None,
+            'from_cache': True,
+        }), 200
+
     return jsonify({
         'connected': True,
         'mhbot_username': mhbot_username,
-        'latest_label': result.get('latest_label'),
-        'latest_date': result.get('latest_date'),
-        'history': result.get('data', []),
-        'fetch_error': None if result['success'] else result['error'],
+        'latest_label': None,
+        'latest_date': None,
+        'history': [],
+        'fetch_error': result['error'],
     }), 200
 
 
@@ -855,49 +904,72 @@ def get_ema_analytics_summary():
 @mhbot_bp.route('/analytics/trend', methods=['GET'])
 @jwt_required()
 def get_ema_analytics_trend():
-    """Monthly PERMA check-in counts from DB snapshots (last N months)."""
+    """PERMA check-in counts from DB snapshots, bucketed by day/week/month."""
     user_id = get_jwt_identity()
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    months_back = min(request.args.get('months', 6, type=int), 12)
+    granularity = request.args.get('granularity', 'month')
+    if granularity not in ('day', 'week', 'month'):
+        granularity = 'month'
     now = datetime.utcnow()
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
 
-    months = []
-    for i in range(months_back - 1, -1, -1):
-        m = now.month - i
-        y = now.year
-        while m <= 0:
-            m += 12
-            y -= 1
-        months.append(f"{y}-{str(m).zfill(2)}")
+    if granularity == 'day':
+        points = min(request.args.get('points', 14, type=int), 60)
+        buckets = []
+        for i in range(points - 1, -1, -1):
+            d = now - timedelta(days=i)
+            buckets.append(d.strftime('%Y-%m-%d'))
+        start_dt = now - timedelta(days=points)
 
-    result = {key: {l: 0 for l in labels} for key in months}
+        def bucket_key(dt):
+            return dt.strftime('%Y-%m-%d')
 
-    start_dt = datetime(now.year - 1, now.month, 1) if months_back > 1 else datetime(now.year, now.month, 1)
+    elif granularity == 'week':
+        points = min(request.args.get('points', 12, type=int), 26)
+        buckets = []
+        for i in range(points - 1, -1, -1):
+            d = now - timedelta(weeks=i)
+            iso_year, iso_week, _ = d.isocalendar()
+            buckets.append(f"{iso_year}-W{str(iso_week).zfill(2)}")
+        start_dt = now - timedelta(weeks=points)
 
-    pipeline = [
-        {'$match': {'entry_date': {'$gte': start_dt}}},
-        {'$group': {
-            '_id': {
-                'year': {'$year': '$entry_date'},
-                'month': {'$month': '$entry_date'},
-                'label': '$perma_label',
-            },
-            'count': {'$sum': 1},
-        }},
-    ]
+        def bucket_key(dt):
+            iso_year, iso_week, _ = dt.isocalendar()
+            return f"{iso_year}-W{str(iso_week).zfill(2)}"
 
-    for row in db.db.perma_snapshots.aggregate(pipeline):
-        y = row['_id']['year']
-        m = row['_id']['month']
-        label = row['_id'].get('label')
-        key = f"{y}-{str(m).zfill(2)}"
-        if key in result and label in labels:
-            result[key][label] += row['count']
+    else:  # month
+        points = min(request.args.get('points', request.args.get('months', 6, type=int), type=int), 12)
+        buckets = []
+        for i in range(points - 1, -1, -1):
+            m = now.month - i
+            y = now.year
+            while m <= 0:
+                m += 12
+                y -= 1
+            buckets.append(f"{y}-{str(m).zfill(2)}")
+        start_dt = datetime(now.year - 1, now.month, 1) if points > 1 else datetime(now.year, now.month, 1)
 
-    return jsonify({'months': months, 'data': result}), 200
+        def bucket_key(dt):
+            return f"{dt.year}-{str(dt.month).zfill(2)}"
+
+    result = {key: {l: 0 for l in labels} for key in buckets}
+
+    snapshots = db.db.perma_snapshots.find(
+        {'entry_date': {'$gte': start_dt}},
+        {'entry_date': 1, 'perma_label': 1},
+    )
+    for snap in snapshots:
+        entry_date = snap.get('entry_date')
+        label = snap.get('perma_label')
+        if not entry_date or label not in labels:
+            continue
+        key = bucket_key(entry_date)
+        if key in result:
+            result[key][label] += 1
+
+    return jsonify({'granularity': granularity, 'buckets': buckets, 'months': buckets, 'data': result}), 200
 
 
 @mhbot_bp.route('/analytics/college', methods=['GET'])
@@ -975,7 +1047,7 @@ def get_ema_analytics_attention():
         case = db.db.cases.find_one(
             {'student_id': s['_id']},
             sort=[('created_at', -1)],
-            projection={'status': 1},
+            projection={'case_status': 1},
         )
         attention.append({
             'student_id': str(s['_id']),
@@ -988,7 +1060,7 @@ def get_ema_analytics_attention():
             'last_checkin': date_str,
             'reason': reason,
             'case_id': str(case['_id']) if case else None,
-            'case_status': case.get('status') if case else None,
+            'case_status': case.get('case_status') if case else None,
         })
 
     priority_map = {'at_risk': 0, 'inactive': 1, 'no_checkin': 2}

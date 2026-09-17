@@ -58,24 +58,24 @@ const ICSSEL: React.CSSProperties = { ...ICS };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function phq9Sev(s: number): { label: string; style: React.CSSProperties } {
-  if (s >= 20) return { label: 'Severe',     style: { color: '#991B1B', background: '#FEE2E2' } };
-  if (s >= 15) return { label: 'Mod-Severe', style: { color: '#DC2626', background: '#FEF2F2' } };
-  if (s >= 10) return { label: 'Moderate',   style: { color: '#92400E', background: '#FEF3C7' } };
-  if (s >= 5)  return { label: 'Mild',       style: { color: '#92400E', background: '#FEF9C3' } };
-  return               { label: 'Minimal',   style: { color: '#065F46', background: '#ECFDF5' } };
+  if (s >= 20) return { label: 'Severe',     style: { color: 'var(--color-danger-text)', background: '#FEE2E2' } };
+  if (s >= 15) return { label: 'Mod-Severe', style: { color: 'var(--color-danger)', background: 'var(--color-danger-surface)' } };
+  if (s >= 10) return { label: 'Moderate',   style: { color: 'var(--color-warning-text)', background: '#FEF3C7' } };
+  if (s >= 5)  return { label: 'Mild',       style: { color: 'var(--color-warning-text)', background: '#FEF9C3' } };
+  return               { label: 'Minimal',   style: { color: 'var(--color-success-text)', background: 'var(--color-success-surface)' } };
 }
 function gad7Sev(s: number): { label: string; style: React.CSSProperties } {
-  if (s >= 15) return { label: 'Severe',   style: { color: '#991B1B', background: '#FEE2E2' } };
-  if (s >= 10) return { label: 'Moderate', style: { color: '#92400E', background: '#FEF3C7' } };
-  if (s >= 5)  return { label: 'Mild',     style: { color: '#92400E', background: '#FEF9C3' } };
-  return               { label: 'Minimal', style: { color: '#065F46', background: '#ECFDF5' } };
+  if (s >= 15) return { label: 'Severe',   style: { color: 'var(--color-danger-text)', background: '#FEE2E2' } };
+  if (s >= 10) return { label: 'Moderate', style: { color: 'var(--color-warning-text)', background: '#FEF3C7' } };
+  if (s >= 5)  return { label: 'Mild',     style: { color: 'var(--color-warning-text)', background: '#FEF9C3' } };
+  return               { label: 'Minimal', style: { color: 'var(--color-success-text)', background: 'var(--color-success-surface)' } };
 }
 
 // Risk badge uses fixed clinical hex colors — must not vary with theme
 const RISK_BADGE_MAP: Record<string, { style: React.CSSProperties; icon: React.ReactNode; label: string }> = {
   GREEN:    { style: { background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0' },   icon: <Shield size={13} />,        label: 'Code Green — Low Risk' },
   YELLOW:   { style: { background: '#FEFCE8', color: '#A16207', border: '1px solid #FDE047' },   icon: <Activity size={13} />,      label: 'Code Yellow — Moderate Risk' },
-  RED:      { style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA' },   icon: <AlertTriangle size={13} />, label: 'Code Red — High Risk' },
+  RED:      { style: { background: 'var(--color-danger-surface)', color: 'var(--color-danger-hover)', border: '1px solid #FECACA' },   icon: <AlertTriangle size={13} />, label: 'Code Red — High Risk' },
   CRITICAL: { style: { background: '#FEE2E2', color: '#7F1D1D', border: '1px solid #FCA5A5' },   icon: <ShieldAlert size={13} />,   label: 'CRITICAL — Immediate Response' },
 };
 
@@ -456,7 +456,7 @@ export default function ConductIntakePage() {
 
   // ── Done ─────────────────────────────────────────────────────────────────────
   if (done) {
-    const headerBg = displayRisk === 'CRITICAL' || displayRisk === 'RED' ? '#B91C1C' : 'var(--color-primary)';
+    const headerBg = displayRisk === 'CRITICAL' || displayRisk === 'RED' ? 'var(--color-danger-hover)' : 'var(--color-primary)';
     return (
       <DashboardPageWrapper title="Intake Complete" subtitle="">
         <div className="max-w-lg mx-auto mt-8">
@@ -629,9 +629,9 @@ export default function ConductIntakePage() {
                         const isSelected = referralUserId === c.counselor_id;
                         const isRec = recommendedId === c.counselor_id;
                         const utilColor = c.utilization === 'LOW'
-                          ? '#16A34A' : c.utilization === 'MEDIUM' ? '#D97706' : '#DC2626';
+                          ? '#16A34A' : c.utilization === 'MEDIUM' ? 'var(--color-warning)' : 'var(--color-danger)';
                         const utilBg = c.utilization === 'LOW'
-                          ? '#F0FDF4' : c.utilization === 'MEDIUM' ? '#FFFBEB' : '#FEF2F2';
+                          ? '#F0FDF4' : c.utilization === 'MEDIUM' ? 'var(--color-warning-surface)' : 'var(--color-danger-surface)';
                         const barW = Math.min(100, (c.active_appointments / 12) * 100);
                         return (
                           <button key={c.counselor_id}
@@ -712,7 +712,7 @@ export default function ConductIntakePage() {
                   </div>
 
                   {!slotsLoading && slotsInfo?.is_holiday && (
-                    <p className="text-xs rounded-xl px-3 py-2" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
+                    <p className="text-xs rounded-xl px-3 py-2" style={{ background: '#FEF3C7', color: 'var(--color-warning-text)', border: '1px solid #FDE68A' }}>
                       {slotsInfo.holiday_name || 'University holiday'} — no sessions on this date.
                     </p>
                   )}
@@ -858,7 +858,7 @@ export default function ConductIntakePage() {
                 style={{
                   gridTemplateColumns: '2rem 1fr repeat(4, 5rem)',
                   borderBottom: i < questions.length - 1 ? '1px solid var(--color-border)' : 'none',
-                  background: isLast ? '#FEF2F2' : answers[i] !== null ? '#F0FDF420' : 'transparent',
+                  background: isLast ? 'var(--color-danger-surface)' : answers[i] !== null ? '#F0FDF420' : 'transparent',
                 }}>
                 <div className="flex items-center justify-center text-xs font-bold"
                   style={{ color: isLast ? '#EF4444' : 'var(--color-border-strong)' }}>
@@ -920,9 +920,9 @@ export default function ConductIntakePage() {
               {csrsDone && csrsRisk() && (
                 <div className="rounded-xl p-3 text-center min-w-[60px]"
                   style={{ background: 'var(--color-surface)', border: '1px solid #FECACA', boxShadow: 'var(--shadow-card)' }}>
-                  <p className="text-xs font-semibold" style={{ color: '#DC2626' }}>C-SSRS</p>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--color-danger)' }}>C-SSRS</p>
                   <p className="text-xs font-bold mt-1" style={{
-                    color: csrsRisk() === 'GREEN' ? 'var(--color-primary)' : csrsRisk() === 'YELLOW' ? '#A16207' : '#B91C1C'
+                    color: csrsRisk() === 'GREEN' ? 'var(--color-primary)' : csrsRisk() === 'YELLOW' ? '#A16207' : 'var(--color-danger-hover)'
                   }}>
                     {csrsRisk()}
                   </p>
@@ -1049,10 +1049,10 @@ export default function ConductIntakePage() {
                         ].map(x => (
                           <div key={x.l} className="rounded-xl p-3 text-center"
                             style={x.risk
-                              ? { background: '#FEF2F2', border: '1px solid #FECACA' }
+                              ? { background: 'var(--color-danger-surface)', border: '1px solid #FECACA' }
                               : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
                             <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.l}</p>
-                            <p className="text-xl font-bold" style={{ color: x.risk ? '#B91C1C' : 'var(--color-primary)' }}>
+                            <p className="text-xl font-bold" style={{ color: x.risk ? 'var(--color-danger-hover)' : 'var(--color-primary)' }}>
                               {x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span>
                             </p>
                             <p className="text-xs font-semibold" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
@@ -1341,12 +1341,12 @@ export default function ConductIntakePage() {
         {/* ── C-SSRS ─────────────────────────────────────────────────────── */}
         {step === 'cssr_s' && (
           <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid #FECACA', boxShadow: 'var(--shadow-card)' }}>
-            <div className="px-5 py-4" style={{ background: '#FEF2F2', borderBottom: '1px solid #FECACA' }}>
+            <div className="px-5 py-4" style={{ background: 'var(--color-danger-surface)', borderBottom: '1px solid #FECACA' }}>
               <div className="flex items-start gap-3">
-                <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
+                <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-danger)' }} />
                 <div>
                   <p className="text-sm font-bold" style={{ color: '#7F1D1D' }}>C-SSRS — Columbia Suicide Severity Rating Scale</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#B91C1C' }}>PHQ-9 Q9 &gt; 0 — suicidal ideation indicated. Administer C-SSRS immediately. Timeframe: <strong>last month</strong>.</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-danger-hover)' }}>PHQ-9 Q9 &gt; 0 — suicidal ideation indicated. Administer C-SSRS immediately. Timeframe: <strong>last month</strong>.</p>
                 </div>
               </div>
             </div>
@@ -1357,12 +1357,12 @@ export default function ConductIntakePage() {
               </div>
               {CSSRS.map((q, i) => {
                 const severity = i <= 1 ? 'low' : i <= 3 ? 'medium' : 'high';
-                const dotBg = severity === 'low' ? '#FBBF24' : severity === 'medium' ? '#F97316' : '#DC2626';
+                const dotBg = severity === 'low' ? '#FBBF24' : severity === 'medium' ? '#F97316' : 'var(--color-danger)';
                 return (
                   <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl"
                     style={{
                       border: `1px solid ${cssr[i] === true ? '#FECACA' : cssr[i] === false ? '#BBF7D0' : 'var(--color-border)'}`,
-                      background: cssr[i] === true ? '#FEF2F2' : cssr[i] === false ? '#F0FDF4' : 'var(--color-bg)',
+                      background: cssr[i] === true ? 'var(--color-danger-surface)' : cssr[i] === false ? '#F0FDF4' : 'var(--color-bg)',
                     }}>
                     <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
                       style={{ background: dotBg }}>{i+1}</div>
@@ -1391,7 +1391,7 @@ export default function ConductIntakePage() {
                   style={csrsRisk() === 'CRITICAL'
                     ? { background: '#FEE2E2', border: '1px solid #FCA5A5' }
                     : csrsRisk() === 'RED'
-                      ? { background: '#FEF2F2', border: '1px solid #FECACA' }
+                      ? { background: 'var(--color-danger-surface)', border: '1px solid #FECACA' }
                       : csrsRisk() === 'YELLOW'
                         ? { background: '#FEFCE8', border: '1px solid #FDE047' }
                         : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>

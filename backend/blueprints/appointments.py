@@ -1343,7 +1343,7 @@ def match_counselor(appointment_id):
                 appt_display_time = (scheduled_start or appointment.get('requested_start'))
                 if appt_display_time:
                     date_str = appt_display_time.strftime('%B %d, %Y')
-                    time_str = appt_display_time.strftime('%I:%M %p') + ' PHT'
+                    time_str = appt_display_time.strftime('%I:%M %p')
                 else:
                     date_str = 'TBD'
                     time_str = 'TBD'
@@ -1353,14 +1353,6 @@ def match_counselor(appointment_id):
                     platform_label = platform_map.get(preferred_platform_val, preferred_platform_val.replace('-', ' ').title())
                 else:
                     platform_label = platform_map.get(preferred_method, preferred_method or 'In-Person')
-
-                meeting_section = ''
-                if meeting_link:
-                    meeting_section = f"""
-                    <p style="margin:8px 0;"><strong>Meeting Link:</strong>
-                      <a href="{meeting_link}" style="color:#1B5E20;">{meeting_link}</a></p>"""
-                    if meeting_passcode:
-                        meeting_section += f'<p style="margin:8px 0;"><strong>Passcode:</strong> {meeting_passcode}</p>'
 
                 email_svc = EmailService()
                 email_svc.send_appointment_confirmation_email(
@@ -1372,6 +1364,7 @@ def match_counselor(appointment_id):
                         'platform':         platform_label,
                         'counselor_name':   c_name,
                         'meeting_link':     meeting_link or '',
+                        'meeting_passcode': meeting_passcode or '',
                         'start_dt':         appt_display_time,
                     },
                 )
@@ -1388,6 +1381,7 @@ def match_counselor(appointment_id):
                         time_str=time_str,
                         platform=platform_label,
                         meeting_link=meeting_link or '',
+                        meeting_passcode=meeting_passcode or '',
                     )
                     print(f"✓ Counselor notification sent to {c_email}")
         except Exception as e:
@@ -3083,7 +3077,7 @@ def get_appointment_details(appointment_id):
             'case': {
                 'id': str(case['_id']),
                 'student_id': str(case.get('student_id')),
-                'status': case.get('status'),
+                'status': case.get('case_status'),
                 'risk_level': case.get('risk_level'),
             } if case else None,
             'created_at': fmt_dt(appointment.get('created_at')),
@@ -3393,7 +3387,7 @@ def ic_counselor_workload():
         })
         active_cases = db.db.cases.count_documents({
             'assigned_counselor_id': cid,
-            'status': {'$nin': ['CLOSED', 'ARCHIVED']},
+            'case_status': {'$nin': ['CLOSED', 'ARCHIVED']},
         })
         # Lower score = more available; weight cases heavier than appointment count
         score = (active_cases * 2) + active_appts
@@ -4754,6 +4748,7 @@ def close_at_intake(appointment_id):
             db.db.cases.update_one(
                 {'_id': ObjectId(str(case_id))},
                 {'$set': {
+                    'case_status': CaseStatus.CLOSED.value,
                     'status': CaseStatus.CLOSED.value,
                     'termination_type': TerminationType.CLOSED_AT_INTAKE.value,
                     'termination_reason': reason or 'No continuing sessions required after intake.',
@@ -4855,6 +4850,7 @@ def complete_with_termination(appointment_id):
             db.db.cases.update_one(
                 {'_id': ObjectId(str(case_id))},
                 {'$set': {
+                    'case_status': CaseStatus.CLOSED.value,
                     'status': CaseStatus.CLOSED.value,
                     'termination_type': termination_type,
                     'termination_notes': notes,

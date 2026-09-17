@@ -154,8 +154,8 @@ def _get_fresh_ema_token():
     """Login to EMA with staff credentials from env and return a fresh dashboard token."""
     import os, requests as req
     base = os.getenv('MHBOT_BASE_URL', 'https://pchrd-ema.dlsu.edu.ph/backend')
-    username = os.getenv('MHBOT_USERNAME', '')
-    password = os.getenv('MHBOT_PASSWORD', '')
+    username = os.getenv('EMA_ADMIN_USERNAME', '')
+    password = os.getenv('EMA_ADMIN_PASSWORD', '')
     if not username or not password:
         return None
     try:
@@ -177,7 +177,7 @@ def _sync_perma_labels(app):
 
         staff_token = _get_fresh_ema_token()
         if not staff_token:
-            print('[Scheduler] PERMA sync skipped — EMA login failed (check MHBOT_USERNAME/PASSWORD in .env)')
+            print('[Scheduler] PERMA sync skipped — EMA login failed (check EMA_ADMIN_USERNAME/EMA_ADMIN_PASSWORD in .env)')
             return
 
         students = list(db.db.users.find(

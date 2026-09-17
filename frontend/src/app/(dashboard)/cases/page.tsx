@@ -21,10 +21,10 @@ const TAB_STATUS: Record<string, string | null> = {
 /* ── Badge maps ─────────────────────────────────────────── */
 
 const RISK_BADGE: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  GREEN:    { bg: 'var(--color-success-surface)',  text: 'var(--color-success-text)',  border: 'rgba(5,150,105,0.2)',  dot: '#059669' },
-  YELLOW:   { bg: 'var(--color-warning-surface)',  text: 'var(--color-warning-text)',  border: 'rgba(217,119,6,0.2)',  dot: '#D97706' },
-  RED:      { bg: 'var(--color-danger-surface)',   text: 'var(--color-danger-text)',   border: 'rgba(220,38,38,0.2)',  dot: '#DC2626' },
-  CRITICAL: { bg: 'var(--color-danger-surface)',   text: 'var(--color-danger-text)',   border: 'rgba(220,38,38,0.3)',  dot: '#991B1B' },
+  GREEN:    { bg: 'var(--color-success-surface)',  text: 'var(--color-success-text)',  border: 'rgba(5,150,105,0.2)',  dot: 'var(--color-success)' },
+  YELLOW:   { bg: 'var(--color-warning-surface)',  text: 'var(--color-warning-text)',  border: 'rgba(217,119,6,0.2)',  dot: 'var(--color-warning)' },
+  RED:      { bg: 'var(--color-danger-surface)',   text: 'var(--color-danger-text)',   border: 'rgba(220,38,38,0.2)',  dot: 'var(--color-danger)' },
+  CRITICAL: { bg: 'var(--color-danger-surface)',   text: 'var(--color-danger-text)',   border: 'rgba(220,38,38,0.3)',  dot: 'var(--color-danger-text)' },
 };
 
 const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
@@ -351,7 +351,7 @@ export default function CasesPage() {
                                 <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
                                   {c.student_name || 'Unknown'}
                                 </p>
-                                {c.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+                                {c.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: 'var(--color-warning-text)', border: '1px solid #FDE68A' }}>Minor</span>}
                               </div>
                               {c.student_email && (
                                 <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>

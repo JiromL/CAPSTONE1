@@ -136,7 +136,7 @@ export default function AddUserPage() {
 
   return (
     <DashboardPageWrapper title="Add User" subtitle="Create a new CPS system account">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-2xl mx-auto">
         <Link
           href="/admin/users"
           className="inline-flex items-center gap-1.5 text-sm mb-6 transition"

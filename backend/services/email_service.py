@@ -282,6 +282,7 @@ class EmailService:
         concern      = d.get('concern', '')
         ref_id       = d.get('reference_id', '')
         meeting_link = d.get('meeting_link', '')
+        meeting_passcode = d.get('meeting_passcode', '')
         start_dt     = d.get('start_dt')
         end_dt       = d.get('end_dt')
         subject      = f'Appointment confirmed — {date_str} at {time_str}'
@@ -298,6 +299,8 @@ class EmailService:
         if meeting_link:
             rows.append(('Meeting link',
                          f'<a href="{meeting_link}" style="color:{PRIMARY};">{meeting_link}</a>'))
+            if meeting_passcode:
+                rows.append(('Passcode', meeting_passcode))
 
         ics_content     = None
         calendar_block  = ''
@@ -348,7 +351,8 @@ class EmailService:
 
     def send_counselor_notification(self, recipient_email: str, counselor_name: str,
                                      student_name: str, date_str: str, time_str: str,
-                                     platform: str, meeting_link: str = ''):
+                                     platform: str, meeting_link: str = '',
+                                     meeting_passcode: str = ''):
         subject = f'New appointment assigned — {student_name} on {date_str}'
         rows = [
             ('Student',  student_name),
@@ -359,6 +363,8 @@ class EmailService:
         if meeting_link:
             rows.append(('Meeting link',
                          f'<a href="{meeting_link}" style="color:{PRIMARY};">{meeting_link}</a>'))
+            if meeting_passcode:
+                rows.append(('Passcode', meeting_passcode))
         body = (
             _p(f'Hi <strong>{counselor_name}</strong>,')
             + _p('A new counseling appointment has been assigned to you. Please log in to the CPS portal to review the full case details.')

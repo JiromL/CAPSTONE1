@@ -152,11 +152,9 @@ def cps_summary():
         new_clients_total = db.db.appointments.count_documents({})
         new_clients_month = db.db.appointments.count_documents({'created_at': {'$gte': month_ago}})
 
-        counseling_total = db.db.cases.count_documents({
-            'status': {'$nin': ['closed', 'CLOSED']},
-        })
+        counseling_total = db.db.cases.count_documents({})
         counseling_active = db.db.cases.count_documents({
-            'status': {'$in': ['active', 'ACTIVE']},
+            'case_status': {'$in': ['active', 'ACTIVE']},
         })
 
         checkin_total = db.db.cases.count_documents({'client_status': 'CHECK_IN_ONLY'})
@@ -286,7 +284,7 @@ def _sheet_counseling_cases(start, end):
     Columns: Counselor, Case Number, ID Number, Client Name,
              Target No. of Sessions, Current No. of Sessions, Risk Level, Status
     """
-    query = {'client_status': {'$nin': ['CHECK_IN_ONLY', None]}}
+    query = {'client_status': {'$ne': 'CHECK_IN_ONLY'}}
     if start and end:
         query['created_at'] = {'$gte': start, '$lt': end}
 
@@ -313,7 +311,7 @@ def _sheet_counseling_cases(start, end):
             'Target No. of Sessions':  _s(c.get('target_sessions', '')),
             'Current No. of Sessions': _s(c.get('session_count', 0)),
             'Risk Level':              c.get('risk_level', 'GREEN'),
-            'Case Status':             _label(c.get('client_status') or c.get('status', '')),
+            'Case Status':             _label(c.get('case_status', '')),
         })
 
     return rows
@@ -548,8 +546,8 @@ def _sheet_counselor_workload(start, end):
     if start and end:
         q_appt['scheduled_start'] = {'$gte': start, '$lt': end}
     all_appts = list(db.db.appointments.find(q_appt, {'counselor_id': 1, 'status': 1}))
-    q_case = {'status': {'$nin': ['CLOSED', 'CANCELLED', 'closed', 'cancelled']}}
-    all_cases = list(db.db.cases.find(q_case, {'counselor_id': 1, 'assigned_counselor_id': 1, 'status': 1}))
+    q_case = {'case_status': {'$nin': ['CLOSED', 'CANCELLED', 'closed', 'cancelled']}}
+    all_cases = list(db.db.cases.find(q_case, {'counselor_id': 1, 'assigned_counselor_id': 1, 'case_status': 1}))
     rows = []
     for u in staff:
         uid = u['_id']

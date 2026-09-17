@@ -10,10 +10,10 @@ const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '
 
 // Status badge styles — semantic colors, kept fixed
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  pending:   { background: '#FFFBEB', color: '#92400E' },
-  confirmed: { background: '#EFF6FF', color: '#1E40AF' },
-  completed: { background: '#ECFDF5', color: '#065F46' },
-  cancelled: { background: '#FEF2F2', color: '#991B1B' },
+  pending:   { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' },
+  confirmed: { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' },
+  completed: { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' },
+  cancelled: { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' },
 };
 const STATUS_ICON: Record<string, any> = {
   pending: Clock, confirmed: CheckCircle, completed: CheckCircle, cancelled: AlertCircle,

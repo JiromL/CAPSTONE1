@@ -319,7 +319,7 @@ function PostSessionCard({ apt, actioningId, actionMsg, pendingAction, setPendin
 }) {
   const aptId = apt.appointment_id;
   return (
-    <div className="rounded-xl border p-4" style={{ background: '#FFFBEB', borderColor: '#F59E0B' }}>
+    <div className="rounded-xl border p-4" style={{ background: 'var(--color-warning-surface)', borderColor: '#F59E0B' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-0.5">
@@ -475,12 +475,12 @@ function apptPillStyle(status: string): React.CSSProperties {
     case 'CONFIRMED':
     case 'APPROVED':
     case 'MATCHED':
-    case 'CHECKED_IN':  return { background: '#dbeafe', color: '#1e40af' };
+    case 'CHECKED_IN':  return { background: '#dbeafe', color: 'var(--color-info-text)' };
     case 'EVALUATION':  return { background: '#ede9fe', color: '#4c1d95' };
-    case 'FOLLOW_UP':   return { background: '#d1fae5', color: '#065f46' };
+    case 'FOLLOW_UP':   return { background: '#d1fae5', color: 'var(--color-success-text)' };
     case 'REFERRAL':    return { background: '#f3e8ff', color: '#581c87' };
     case 'REQUESTED':
-    case 'PENDING_APPROVAL': return { background: '#fef3c7', color: '#92400e' };
+    case 'PENDING_APPROVAL': return { background: '#fef3c7', color: 'var(--color-warning-text)' };
     default:            return { background: 'var(--color-bg)', color: 'var(--color-text-muted)' };
   }
 }

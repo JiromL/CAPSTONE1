@@ -76,7 +76,7 @@ export default function RolesPage() {
 
   return (
     <DashboardPageWrapper title="Role Management" subtitle="Assign and manage user roles">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
 
         {message && (
           <div className="p-3 rounded-lg text-sm"

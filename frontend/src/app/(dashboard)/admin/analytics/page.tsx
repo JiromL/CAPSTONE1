@@ -269,7 +269,7 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
 
   const attentionItems = [
     summary?.pending_appointments && summary.pending_appointments > 0
-      ? { text: `${summary.pending_appointments} appointment request${summary.pending_appointments !== 1 ? 's' : ''} awaiting assignment`, href: '/appointment-requests', color: C.amber }
+      ? { text: `${summary.pending_appointments} appointment request${summary.pending_appointments !== 1 ? 's' : ''} awaiting confirmation`, href: '/appointment-requests', color: C.amber }
       : null,
     summary?.high_risk_cases && summary.high_risk_cases > 0
       ? { text: `${summary.high_risk_cases} student${summary.high_risk_cases !== 1 ? 's' : ''} at RED or CRITICAL risk`, href: '/high-risk', color: C.red }
@@ -320,7 +320,7 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
               const color = PIPELINE_COLORS[s.stage] ?? C.slate;
               return (
                 <React.Fragment key={s.stage}>
-                  <div className="flex flex-col items-center flex-1 min-w-[80px]">
+                  <div className="flex flex-col items-center flex-1 min-w-20">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-1"
                       style={{ background: color + '20', color, border: `2px solid ${color}` }}>
                       {s.count}
@@ -1162,9 +1162,9 @@ function RatingsTab({ data, isDark }: { data: any; isDark: boolean }) {
         ].map(({ label, value, sub }) => (
           <div key={label} className="rounded-2xl px-4 py-4"
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-            <p className="text-[11px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+            <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
             <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
-            {sub && <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>}
+            {sub && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>}
           </div>
         ))}
       </div>
@@ -1220,7 +1220,7 @@ function RatingsTab({ data, isDark }: { data: any; isDark: boolean }) {
                     style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <div>
                       <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{c.name}</p>
-                      <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{c.count} rating{c.count !== 1 ? 's' : ''}</p>
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{c.count} rating{c.count !== 1 ? 's' : ''}</p>
                     </div>
                     <Stars value={c.avg} />
                   </div>
@@ -1272,7 +1272,7 @@ function RatingsTab({ data, isDark }: { data: any; isDark: boolean }) {
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
                       {['Counselor', 'Session Date', 'Attitude', 'Communication', 'Objectives', 'Techniques', 'Overall', 'Comments'].map(h => (
-                        <th key={h} className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide"
+                        <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wide"
                           style={{ color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -1511,9 +1511,9 @@ function ReportsTab({ cpsSummary }: { cpsSummary: CpsSummary | null }) {
           ].map(({ label, value, sub, color }) => (
             <div key={label} className="rounded-2xl px-4 py-4"
               style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-              <p className="text-[11px] font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+              <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
               <p className="text-2xl font-bold tabular-nums" style={{ color }}>{value.toLocaleString('en-PH')}</p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>
             </div>
           ))}
         </div>
@@ -1588,7 +1588,7 @@ function ReportsTab({ cpsSummary }: { cpsSummary: CpsSummary | null }) {
                   onDownload={doExport}
                 />
                 {dlMsg && dlMsg.id === report.id && (
-                  <p className="text-[11px] mt-1 pl-4"
+                  <p className="text-xs mt-1 pl-4"
                     style={{ color: dlMsg.type === 'ok' ? 'var(--color-success-text)' : 'var(--color-danger-text)' }}>
                     {dlMsg.text}
                   </p>

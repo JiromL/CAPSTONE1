@@ -55,7 +55,7 @@ def get_student_current_case():
     
     # Find student's most recent non-cancelled case
     case = db.db.cases.find_one(
-        {'student_id': ObjectId(user_id), 'status': {'$nin': ['CANCELLED']}},
+        {'student_id': ObjectId(user_id), 'case_status': {'$nin': ['CANCELLED']}},
         sort=[('created_at', -1)]
     )
     
@@ -292,7 +292,7 @@ def create_checkin_case():
     
     # Audit log
     from utils import audit_log
-    audit_log(db.db, 'case', 'create_checkin', entity_id=str(result.inserted_id), user_id=user_id)
+    audit_log(db.db, 'case', 'create_checkin', entity_id=str(result.inserted_id))
     
     return jsonify({
         'case_id': str(result.inserted_id),

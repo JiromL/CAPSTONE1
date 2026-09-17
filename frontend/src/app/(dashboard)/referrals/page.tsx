@@ -14,9 +14,11 @@ type Referral = {
   urgency?: string;
   created_at?: string;
   warm_handoff_completed?: boolean;
-  referring_counselor?: string;
-  provider_name?: string;
+  receiving_provider?: string;
   service_type?: string;
+  student_name?: string;
+  case_number?: string;
+  days_pending?: number;
 };
 
 type Summary = {
@@ -53,7 +55,7 @@ export default function ReferralsPage() {
   const [creating, setCreating] = useState(false);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
-    case_id: '', referral_type: 'EXTERNAL', reason: '', urgency: 'routine', provider_name: '', service_type: '',
+    case_id: '', referral_type: 'EXTERNAL', reason: '', urgency: 'routine', receiving_provider_name: '', service_type: '',
   });
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function ReferralsPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed to create referral'); }
       setCreateSuccess('Referral created successfully');
       setShowCreateModal(false);
-      setCreateForm({ case_id: '', referral_type: 'EXTERNAL', reason: '', urgency: 'routine', provider_name: '', service_type: '' });
+      setCreateForm({ case_id: '', referral_type: 'EXTERNAL', reason: '', urgency: 'routine', receiving_provider_name: '', service_type: '' });
       await loadData();
       setTimeout(() => setCreateSuccess(null), 3000);
     } catch (err: any) {
@@ -217,7 +219,7 @@ export default function ReferralsPage() {
                     ...cases.map(c => ({ value: c._id, label: `${c.case_number || c._id} — ${c.presenting_issue?.slice(0, 40) || 'No issue listed'}` })),
                   ]},
                   { label: 'Referral Type', field: 'referral_type', type: 'select', options: [
-                    { value: 'EXTERNAL', label: 'External' }, { value: 'INTERNAL', label: 'Internal' }, { value: 'CPS', label: 'CPS' },
+                    { value: 'EXTERNAL', label: 'External' }, { value: 'INTERNAL', label: 'Internal' },
                   ]},
                   { label: 'Urgency', field: 'urgency', type: 'select', options: [
                     { value: 'routine', label: 'Routine' }, { value: 'urgent', label: 'Urgent' },
@@ -232,8 +234,10 @@ export default function ReferralsPage() {
                   </div>
                 ))}
                 <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Provider / Service</label>
-                  <input type="text" value={createForm.provider_name} onChange={e => setCreateForm({ ...createForm, provider_name: e.target.value })}
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    Provider / Service{createForm.referral_type === 'EXTERNAL' ? ' *' : ''}
+                  </label>
+                  <input type="text" value={createForm.receiving_provider_name} onChange={e => setCreateForm({ ...createForm, receiving_provider_name: e.target.value })}
                     placeholder="Provider name or service" className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} />
                 </div>
                 <div>
@@ -271,11 +275,14 @@ function ReferralCard({ referral }: { referral: Referral }) {
       <div className="flex items-start justify-between mb-2">
         <div>
           <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            {referral.referral_type} Referral{referral.provider_name ? ` — ${referral.provider_name}` : ''}
+            {referral.referral_type} Referral{referral.receiving_provider ? ` — ${referral.receiving_provider}` : ''}
           </p>
-          {referral.reason && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{referral.reason}</p>}
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+            {referral.student_name || 'Unknown student'}{referral.case_number ? ` · ${referral.case_number}` : ''}
+          </p>
+          {referral.reason && <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{referral.reason}</p>}
         </div>
-        <span className="px-2 py-0.5 rounded-full text-xs font-medium border"
+        <span className="px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0"
           style={{ background: st.bg, color: st.text, borderColor: st.border }}>
           {referral.status}
         </span>
@@ -283,6 +290,7 @@ function ReferralCard({ referral }: { referral: Referral }) {
       <div className="flex items-center gap-4 text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
         {referral.urgency && <span className="capitalize">Urgency: {referral.urgency}</span>}
         {referral.created_at && <span>{new Date(referral.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>}
+        {typeof referral.days_pending === 'number' && <span>{referral.days_pending}d pending</span>}
         {!referral.warm_handoff_completed && (
           <span className="font-medium" style={{ color: 'var(--color-warning)' }}>Handoff pending</span>
         )}

@@ -15,7 +15,7 @@ const PURPOSES = [
   { value: 'intake_interview', label: 'First Time',          desc: 'New student — full intake required',        color: 'var(--color-primary)' },
   { value: 'counseling',       label: 'Continuing Sessions', desc: 'Returning student, ongoing counseling',     color: '#7C3AED' },
   { value: 'follow_up',        label: 'Follow-Up Session',   desc: 'Scheduled follow-up with their counselor', color: '#0891B2' },
-  { value: 'others',           label: 'Something Else',      desc: 'Consultation, assessment, or other',       color: '#059669' },
+  { value: 'others',           label: 'Something Else',      desc: 'Consultation, assessment, or other',       color: 'var(--color-success)' },
 ];
 
 const PHQ4_QUESTIONS = [
@@ -28,9 +28,9 @@ const PHQ4_QUESTIONS = [
 // Clinical PHQ-4 response severity — keep as fixed hex (clinical tool)
 const FREQ = [
   { v: 0, s: 'Not at all',              col: '#4B5563', sel: { background: '#4B5563', color: '#fff', border: '2px solid #4B5563' } },
-  { v: 1, s: 'Several days',            col: '#2563EB', sel: { background: '#3B82F6', color: '#fff', border: '2px solid #3B82F6' } },
-  { v: 2, s: 'More than half the days', col: '#D97706', sel: { background: '#F59E0B', color: '#fff', border: '2px solid #F59E0B' } },
-  { v: 3, s: 'Nearly every day',        col: '#DC2626', sel: { background: '#EF4444', color: '#fff', border: '2px solid #EF4444' } },
+  { v: 1, s: 'Several days',            col: 'var(--color-info)', sel: { background: '#3B82F6', color: '#fff', border: '2px solid #3B82F6' } },
+  { v: 2, s: 'More than half the days', col: 'var(--color-warning)', sel: { background: '#F59E0B', color: '#fff', border: '2px solid #F59E0B' } },
+  { v: 3, s: 'Nearly every day',        col: 'var(--color-danger)', sel: { background: '#EF4444', color: '#fff', border: '2px solid #EF4444' } },
 ];
 
 const STEP_LABELS_FULL = [
@@ -348,7 +348,7 @@ export default function WalkinIntakePage() {
       <DashboardPageWrapper title="Walk-in Intake" subtitle="">
         <div className="max-w-md mx-auto">
           <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid #FECACA' }}>
-            <div className="px-6 pt-8 pb-6 text-center" style={{ background: '#DC2626' }}>
+            <div className="px-6 pt-8 pb-6 text-center" style={{ background: 'var(--color-danger)' }}>
               <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.2)' }}>
                 <ShieldAlert size={28} className="text-white" />
               </div>
@@ -357,22 +357,22 @@ export default function WalkinIntakePage() {
               {intakeId && <p className="text-xs mt-1 font-mono" style={{ color: '#FECACA' }}>ID: {intakeId}</p>}
             </div>
             <div className="px-6 py-5 space-y-4">
-              <div className="rounded-xl px-4 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                <p className="text-sm font-bold mb-1" style={{ color: '#B91C1C' }}>Immediate next steps</p>
-                <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: '#B91C1C' }}>
+              <div className="rounded-xl px-4 py-3" style={{ background: 'var(--color-danger-surface)', border: '1px solid #FECACA' }}>
+                <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-danger-hover)' }}>Immediate next steps</p>
+                <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: 'var(--color-danger-hover)' }}>
                   <li>Alert the IC or on-duty counselor immediately</li>
                   <li>Do not leave the student unattended</li>
                   <li>IC will complete SPIF-IF and PHQ-9/GAD-7 during the session</li>
                 </ol>
               </div>
-              <div className="rounded-xl px-4 py-3" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                <p className="text-xs font-semibold mb-1" style={{ color: '#92400E' }}>Deferred forms</p>
-                <p className="text-xs" style={{ color: '#92400E' }}>SPIF-IF and PHQ-4 were <strong>not collected</strong> due to crisis. The IC will administer PHQ-9, GAD-7, and C-SSRS as needed during the session.</p>
+              <div className="rounded-xl px-4 py-3" style={{ background: 'var(--color-warning-surface)', border: '1px solid #FDE68A' }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-warning-text)' }}>Deferred forms</p>
+                <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}>SPIF-IF and PHQ-4 were <strong>not collected</strong> due to crisis. The IC will administer PHQ-9, GAD-7, and C-SSRS as needed during the session.</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={resetForm} className="flex-1 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ background: '#DC2626' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#B91C1C')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#DC2626')}>
+                <button onClick={resetForm} className="flex-1 py-2.5 text-sm font-semibold text-white rounded-xl transition" style={{ background: 'var(--color-danger)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danger-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-danger)')}>
                   New Walk-in
                 </button>
                 <button onClick={() => router.push('/dashboard')} className="flex-1 py-2.5 text-sm rounded-xl transition"
@@ -410,15 +410,15 @@ export default function WalkinIntakePage() {
                   { label: 'PHQ-2 (Depression)', score: phq2, max: 6, at_risk: phq2 >= 3 },
                   { label: 'GAD-2 (Anxiety)',    score: gad2, max: 6, at_risk: gad2 >= 3 },
                 ].map(s => (
-                  <div key={s.label} className="rounded-xl p-3 text-center" style={s.at_risk ? { background: '#FEF2F2', border: '1px solid #FECACA' } : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                  <div key={s.label} className="rounded-xl p-3 text-center" style={s.at_risk ? { background: 'var(--color-danger-surface)', border: '1px solid #FECACA' } : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
                     <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-text-secondary)' }}>{s.label}</p>
-                    <p className="text-2xl font-bold" style={{ color: s.at_risk ? '#DC2626' : '#1D4ED8' }}>{s.score}<span className="text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>/{s.max}</span></p>
+                    <p className="text-2xl font-bold" style={{ color: s.at_risk ? 'var(--color-danger)' : '#1D4ED8' }}>{s.score}<span className="text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>/{s.max}</span></p>
                     <p className="text-xs mt-0.5 font-medium" style={{ color: s.at_risk ? '#EF4444' : '#16A34A' }}>{s.at_risk ? 'Elevated — flag for IC' : 'Within normal range'}</p>
                   </div>
                 ))}
               </div>
-              <div className="rounded-xl px-3 py-2 mb-4" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                <p className="text-xs" style={{ color: '#92400E' }}><strong>Next step:</strong> Student is queued for IC triage. Hand referral slip to student.</p>
+              <div className="rounded-xl px-3 py-2 mb-4" style={{ background: 'var(--color-warning-surface)', border: '1px solid #FDE68A' }}>
+                <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}><strong>Next step:</strong> Student is queued for IC triage. Hand referral slip to student.</p>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => { resetForm(); setIsCrisis(false); }} className="flex-1 py-2.5 text-sm font-semibold text-white rounded-xl"
@@ -445,7 +445,7 @@ export default function WalkinIntakePage() {
   // Sky (ICF step) → primary-surface; Violet (SPIF step) → fixed purple; Red (crisis) → fixed red
   const skyHeader:    React.CSSProperties = { background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)' };
   const violetHeader: React.CSSProperties = { background: '#EDE9FE', color: '#5B21B6' };
-  const redHeader:    React.CSSProperties = { background: '#FEF2F2', color: '#991B1B' };
+  const redHeader:    React.CSSProperties = { background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' };
 
   return (
     <DashboardPageWrapper title="Walk-in Intake" subtitle="Register a student visiting the CPS office">
@@ -456,9 +456,9 @@ export default function WalkinIntakePage() {
           onClick={() => { setIsCrisis(v => !v); setError(''); setStep(0); }}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 mb-5 transition font-semibold text-sm"
           style={isCrisis
-            ? { background: '#DC2626', borderColor: '#DC2626', color: '#fff' }
-            : { background: 'var(--color-surface)', borderColor: '#FECACA', color: '#DC2626' }}
-          onMouseEnter={e => { if (!isCrisis) (e.currentTarget as HTMLButtonElement).style.background = '#FEF2F2'; }}
+            ? { background: 'var(--color-danger)', borderColor: 'var(--color-danger)', color: '#fff' }
+            : { background: 'var(--color-surface)', borderColor: '#FECACA', color: 'var(--color-danger)' }}
+          onMouseEnter={e => { if (!isCrisis) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-surface)'; }}
           onMouseLeave={e => { if (!isCrisis) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface)'; }}>
           <ShieldAlert size={18} className="flex-shrink-0" />
           <div className="text-left flex-1">
@@ -468,7 +468,7 @@ export default function WalkinIntakePage() {
             </p>
           </div>
           <span className="text-xs px-2 py-1 rounded-full border font-bold flex-shrink-0"
-            style={isCrisis ? { background: '#fff', color: '#DC2626', borderColor: '#fff' } : { borderColor: '#FECACA', color: '#EF4444' }}>
+            style={isCrisis ? { background: '#fff', color: 'var(--color-danger)', borderColor: '#fff' } : { borderColor: '#FECACA', color: '#EF4444' }}>
             {isCrisis ? 'ON' : 'OFF'}
           </span>
         </button>
@@ -477,7 +477,7 @@ export default function WalkinIntakePage() {
         {studentLabel && (
           <div className="flex items-center gap-3 rounded-xl px-4 py-2.5 mb-5"
             style={isCrisis
-              ? { background: '#FEF2F2', border: '1px solid #FECACA' }
+              ? { background: 'var(--color-danger-surface)', border: '1px solid #FECACA' }
               : { background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary-muted)' }}>
             <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
               style={{ background: isCrisis ? '#EF4444' : 'var(--color-primary)' }}>
@@ -488,7 +488,7 @@ export default function WalkinIntakePage() {
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{icf.email || 'Email not yet entered'}</p>
             </div>
             {isCrisis
-              ? <span className="text-xs px-2 py-1 rounded-full font-bold" style={{ background: '#FEE2E2', color: '#B91C1C' }}>URGENT</span>
+              ? <span className="text-xs px-2 py-1 rounded-full font-bold" style={{ background: '#FEE2E2', color: 'var(--color-danger-hover)' }}>URGENT</span>
               : <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>Walk-in</span>}
           </div>
         )}
@@ -496,9 +496,9 @@ export default function WalkinIntakePage() {
         {/* ── CRISIS FAST-TRACK FORM ────────────────────────────────────────── */}
         {isCrisis && (
           <div className="space-y-3">
-            <div className="rounded-xl px-4 py-3 mb-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-              <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: '#B91C1C' }}>Fast-Track Registration</p>
-              <p className="text-xs" style={{ color: '#DC2626' }}>Capture the minimum needed to get the student to a counselor immediately. The assigned staff will complete the full assessment during the session.</p>
+            <div className="rounded-xl px-4 py-3 mb-2" style={{ background: 'var(--color-danger-surface)', border: '1px solid #FECACA' }}>
+              <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-danger-hover)' }}>Fast-Track Registration</p>
+              <p className="text-xs" style={{ color: 'var(--color-danger)' }}>Capture the minimum needed to get the student to a counselor immediately. The assigned staff will complete the full assessment during the session.</p>
             </div>
 
             <SectionCard icon={User} title="Student Identity" headerStyle={redHeader}>
@@ -524,22 +524,22 @@ export default function WalkinIntakePage() {
                   <option value="other_crisis">Other urgent concern</option>
                 </select>
               </F>
-              <p className="text-xs" style={{ color: '#DC2626' }}>The assigned counselor/psychologist will assess and document the full clinical concern during the session.</p>
+              <p className="text-xs" style={{ color: 'var(--color-danger)' }}>The assigned counselor/psychologist will assess and document the full clinical concern during the session.</p>
             </SectionCard>
 
             {/* Verbal consent */}
-            <div className="rounded-xl overflow-hidden" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+            <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-warning-surface)', border: '1px solid #FDE68A' }}>
               <div className="px-4 py-2.5" style={{ background: '#FEF3C7', borderBottom: '1px solid #FDE68A' }}>
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#92400E' }}>Verbal Consent — Required</p>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-warning-text)' }}>Verbal Consent — Required</p>
               </div>
               <div className="px-4 py-3 space-y-2">
-                <p className="text-xs" style={{ color: '#92400E' }}>Read aloud and confirm the student's verbal agreement. Written consent can be obtained after the crisis is stabilized.</p>
+                <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}>Read aloud and confirm the student's verbal agreement. Written consent can be obtained after the crisis is stabilized.</p>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={icf.consent_to_service} onChange={e => setI('consent_to_service', e.target.checked)} className="mt-0.5 w-4 h-4 rounded flex-shrink-0" style={{ accentColor: '#DC2626' }} />
+                  <input type="checkbox" checked={icf.consent_to_service} onChange={e => setI('consent_to_service', e.target.checked)} className="mt-0.5 w-4 h-4 rounded flex-shrink-0" style={{ accentColor: 'var(--color-danger)' }} />
                   <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}><strong>Consent to Services:</strong> The student verbally consents to receive crisis counseling from DLSU CPS.</span>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={icf.consent_to_data} onChange={e => setI('consent_to_data', e.target.checked)} className="mt-0.5 w-4 h-4 rounded flex-shrink-0" style={{ accentColor: '#DC2626' }} />
+                  <input type="checkbox" checked={icf.consent_to_data} onChange={e => setI('consent_to_data', e.target.checked)} className="mt-0.5 w-4 h-4 rounded flex-shrink-0" style={{ accentColor: 'var(--color-danger)' }} />
                   <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}><strong>Data Privacy:</strong> The student verbally consents to processing of their personal information for service delivery (RA 10173).</span>
                 </label>
               </div>
@@ -547,8 +547,8 @@ export default function WalkinIntakePage() {
 
             {/* Direct counselor/psychologist assignment */}
             <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid #FECACA' }}>
-              <div className="px-4 py-2.5" style={{ background: '#FEF2F2', borderBottom: '1px solid #FECACA' }}>
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#B91C1C' }}>Route to Available Counselor / Psychologist</p>
+              <div className="px-4 py-2.5" style={{ background: 'var(--color-danger-surface)', borderBottom: '1px solid #FECACA' }}>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-danger-hover)' }}>Route to Available Counselor / Psychologist</p>
                 <p className="text-[11px] mt-0.5" style={{ color: '#EF4444' }}>Assign now to confirm immediately. If left unassigned, it goes to Appointment Requests for the OA to assign later.</p>
               </div>
               <div className="px-4 py-3">
@@ -589,9 +589,9 @@ export default function WalkinIntakePage() {
 
             <button onClick={handleCrisisSubmit} disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-white rounded-xl transition disabled:opacity-50"
-              style={{ background: '#DC2626' }}
-              onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = '#B91C1C'; }}
-              onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = '#DC2626'; }}>
+              style={{ background: 'var(--color-danger)' }}
+              onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger-hover)'; }}
+              onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-danger)'; }}>
               {loading ? 'Registering…' : <><Zap size={15} /> Fast-Track Register — URGENT</>}
             </button>
           </div>
@@ -712,12 +712,12 @@ export default function WalkinIntakePage() {
                 </SectionCard>
 
                 {/* Consent */}
-                <div className="rounded-xl overflow-hidden" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-warning-surface)', border: '1px solid #FDE68A' }}>
                   <div className="px-4 py-2.5" style={{ background: '#FEF3C7', borderBottom: '1px solid #FDE68A' }}>
-                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#92400E' }}>Informed Consent — Required</p>
+                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-warning-text)' }}>Informed Consent — Required</p>
                   </div>
                   <div className="px-4 py-4 space-y-3">
-                    <p className="text-xs" style={{ color: '#92400E' }}>Please read each statement aloud to the student and confirm their verbal agreement.</p>
+                    <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}>Please read each statement aloud to the student and confirm their verbal agreement.</p>
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input type="checkbox" checked={icf.consent_to_service} onChange={e => setI('consent_to_service', e.target.checked)} className="mt-0.5 w-4 h-4 rounded flex-shrink-0" style={{ accentColor: 'var(--color-primary)' }} />
                       <span className="text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
@@ -836,7 +836,7 @@ export default function WalkinIntakePage() {
                 {/* PHQ-2 header — keep fixed clinical blue */}
                 <div className="flex items-center gap-2 px-1">
                   <div className="flex-1 h-px" style={{ background: '#BFDBFE' }} />
-                  <span className="text-[11px] font-bold uppercase tracking-wide px-2" style={{ color: '#2563EB' }}>PHQ-2 — Depression Screener</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-info)' }}>PHQ-2 — Depression Screener</span>
                   <div className="flex-1 h-px" style={{ background: '#BFDBFE' }} />
                 </div>
 
@@ -866,14 +866,14 @@ export default function WalkinIntakePage() {
                 {/* GAD-2 header — keep fixed clinical amber */}
                 <div className="flex items-center gap-2 px-1 mt-2">
                   <div className="flex-1 h-px" style={{ background: '#FDE68A' }} />
-                  <span className="text-[11px] font-bold uppercase tracking-wide px-2" style={{ color: '#D97706' }}>GAD-2 — Anxiety Screener</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-warning)' }}>GAD-2 — Anxiety Screener</span>
                   <div className="flex-1 h-px" style={{ background: '#FDE68A' }} />
                 </div>
 
                 {PHQ4_QUESTIONS.slice(2, 4).map((q, i) => (
                   <div key={q.id} className="rounded-xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
                     <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold mr-2" style={{ background: '#FEF3C7', color: '#D97706' }}>{i+3}</span>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold mr-2" style={{ background: '#FEF3C7', color: 'var(--color-warning)' }}>{i+3}</span>
                       {q.text}
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -903,9 +903,9 @@ export default function WalkinIntakePage() {
                         { l: 'GAD-2', s: gad2, max: 6,  risk: gad2 >= 3,      desc: 'Anxiety'    },
                         { l: 'Total', s: phq2+gad2, max: 12, risk: phq2+gad2 >= 6, desc: 'PHQ-4' },
                       ].map(x => (
-                        <div key={x.l} className="rounded-xl py-3 px-2" style={x.risk ? { background: '#FEF2F2', border: '1px solid #FECACA' } : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                        <div key={x.l} className="rounded-xl py-3 px-2" style={x.risk ? { background: 'var(--color-danger-surface)', border: '1px solid #FECACA' } : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
                           <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.desc}</p>
-                          <p className="text-2xl font-bold" style={{ color: x.risk ? '#DC2626' : '#1D4ED8' }}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
+                          <p className="text-2xl font-bold" style={{ color: x.risk ? 'var(--color-danger)' : '#1D4ED8' }}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
                           <p className="text-xs font-semibold mt-0.5" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.l}: {x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
                         </div>
                       ))}

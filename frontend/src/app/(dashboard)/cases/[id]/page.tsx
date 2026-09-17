@@ -1483,7 +1483,7 @@ export default function CaseDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <p className="text-base font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{studentName}</p>
-              {caseData?.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Minor</span>}
+              {caseData?.is_minor && <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: 'var(--color-warning-text)', border: '1px solid #FDE68A' }}>Minor</span>}
             </div>
             <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--color-text-secondary)' }}>{studentSchoolId}{studentEmail ? ` · ${studentEmail}` : ''}</p>
           </div>
@@ -1519,8 +1519,8 @@ export default function CaseDetailPage() {
                   <div className="p-3 space-y-1.5">
                     {[
                       { val: 'GREEN',  label: 'Low Risk',  color: '#16a34a' },
-                      { val: 'YELLOW', label: 'Moderate',  color: '#d97706' },
-                      { val: 'RED',    label: 'High Risk', color: '#dc2626' },
+                      { val: 'YELLOW', label: 'Moderate',  color: 'var(--color-warning)' },
+                      { val: 'RED',    label: 'High Risk', color: 'var(--color-danger)' },
                     ].map(opt => (
                       <button key={opt.val} onClick={() => setRiskEditVal(opt.val)}
                         className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition text-left"
@@ -1951,19 +1951,19 @@ export default function CaseDetailPage() {
               GREEN:    { bar: '#10b981', badgeStyle: { background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' }, label: 'Low Risk'      },
               YELLOW:   { bar: '#f59e0b', badgeStyle: { background: 'var(--color-warning-surface)', color: 'var(--color-warning)', boxShadow: '0 0 0 1px var(--color-warning)' }, label: 'Moderate Risk' },
               RED:      { bar: '#ef4444', badgeStyle: { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  boxShadow: '0 0 0 1px var(--color-danger)'  }, label: 'High Risk'     },
-              CRITICAL: { bar: '#b91c1c', badgeStyle: { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  boxShadow: '0 0 0 1px var(--color-danger)', fontWeight: 700 }, label: 'Critical Risk' },
+              CRITICAL: { bar: 'var(--color-danger-hover)', badgeStyle: { background: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  boxShadow: '0 0 0 1px var(--color-danger)', fontWeight: 700 }, label: 'Critical Risk' },
             };
             const riskCfg = RISK_CONFIG[risk] ?? RISK_CONFIG['GREEN'];
 
             const phq9Sev   = phq9 == null ? null : phq9 <= 4 ? { l: 'Minimal',           c: '#10b981' }
-                            : phq9 <= 9    ? { l: 'Mild',               c: '#d97706'   }
+                            : phq9 <= 9    ? { l: 'Mild',               c: 'var(--color-warning)'   }
                             : phq9 <= 14   ? { l: 'Moderate',           c: '#ea580c'  }
-                            : phq9 <= 19   ? { l: 'Moderately Severe',  c: '#dc2626'     }
-                            :                { l: 'Severe',             c: '#b91c1c'     };
+                            : phq9 <= 19   ? { l: 'Moderately Severe',  c: 'var(--color-danger)'     }
+                            :                { l: 'Severe',             c: 'var(--color-danger-hover)'     };
             const gad7Sev   = gad7 == null ? null : gad7 <= 4 ? { l: 'Minimal',   c: '#10b981' }
-                            : gad7 <= 9    ? { l: 'Mild',       c: '#d97706'   }
+                            : gad7 <= 9    ? { l: 'Mild',       c: 'var(--color-warning)'   }
                             : gad7 <= 14   ? { l: 'Moderate',   c: '#ea580c'  }
-                            :                { l: 'Severe',     c: '#dc2626'     };
+                            :                { l: 'Severe',     c: 'var(--color-danger)'     };
 
             const DECISION_CONFIG: Record<string, { label: string; sub: string; bgStyle: React.CSSProperties; dotColor: string }> = {
               ENDORSE_CC:      { label: 'Endorsed to Counselor',    sub: 'CC', bgStyle: { border: '2px solid var(--color-primary)', background: 'var(--color-primary-surface)' }, dotColor: 'var(--color-primary)' },
@@ -1987,7 +1987,7 @@ export default function CaseDetailPage() {
               if (value == null) return <div className="h-2 rounded-full w-full" style={{ background: 'var(--color-border)' }} />;
               const pct = Math.min(100, (value / max) * 100);
               const zone = thresholds.filter(t => value > t).length;
-              const barColors = ['#10b981', '#d97706', '#ea580c', '#ef4444', '#b91c1c'];
+              const barColors = ['#10b981', 'var(--color-warning)', '#ea580c', '#ef4444', 'var(--color-danger-hover)'];
               return (
                 <div className="h-2 rounded-full w-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColors[zone] }} />
@@ -2108,9 +2108,9 @@ export default function CaseDetailPage() {
                   const totalPhq4 = phq2Score != null && gad2Score != null ? phq2Score + gad2Score : null;
                   const phq4Sev = totalPhq4 == null ? null
                     : totalPhq4 <= 2 ? { label: 'None',     color: '#10b981' }
-                    : totalPhq4 <= 5 ? { label: 'Mild',     color: '#d97706' }
+                    : totalPhq4 <= 5 ? { label: 'Mild',     color: 'var(--color-warning)' }
                     : totalPhq4 <= 8 ? { label: 'Moderate', color: '#ea580c' }
-                    :                  { label: 'Severe',   color: '#dc2626' };
+                    :                  { label: 'Severe',   color: 'var(--color-danger)' };
                   return (
                     <div className="rounded-2xl shadow-card p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                       <div className="flex items-center justify-between mb-3">
@@ -2257,7 +2257,7 @@ export default function CaseDetailPage() {
           INDIVIDUAL: 'Individual', CRISIS: 'Crisis', FOLLOW_UP: 'Follow-up', INTAKE: 'Intake',
         };
         const SEVERITY_COLOR: Record<string, string> = {
-          MILD: '#ca8a04', MODERATE: '#ea580c', SEVERE: '#dc2626',
+          MILD: '#ca8a04', MODERATE: '#ea580c', SEVERE: 'var(--color-danger)',
         };
         const moodBar = (r: number) => {
           const pct = (r / 10) * 100;
@@ -2275,8 +2275,8 @@ export default function CaseDetailPage() {
         const soapSections = [
           { key: 'S', label: 'Subjective', color: 'var(--color-primary)', itemStyle: { background: 'var(--color-primary-surface)', color: 'var(--color-primary)' } as React.CSSProperties },
           { key: 'O', label: 'Objective',  color: '#7c3aed',              itemStyle: { background: '#F5F3FF', color: '#7C3AED' } as React.CSSProperties },
-          { key: 'A', label: 'Assessment', color: '#d97706',              itemStyle: { background: '#FEF3C7', color: '#d97706' } as React.CSSProperties },
-          { key: 'P', label: 'Plan',       color: '#059669',              itemStyle: { background: '#ECFDF5', color: '#059669' } as React.CSSProperties },
+          { key: 'A', label: 'Assessment', color: 'var(--color-warning)',              itemStyle: { background: '#FEF3C7', color: 'var(--color-warning)' } as React.CSSProperties },
+          { key: 'P', label: 'Plan',       color: 'var(--color-success)',              itemStyle: { background: 'var(--color-success-surface)', color: 'var(--color-success)' } as React.CSSProperties },
         ] as const;
 
         const avgMood = sessionNotes.filter(n => n.mood_rating).length
@@ -2657,8 +2657,8 @@ export default function CaseDetailPage() {
                                 const labels: Record<string,{letter:string;label:string;color:string}> = {
                                   subjective: {letter:'S',label:'Subjective',color:'var(--color-primary)'},
                                   objective:  {letter:'O',label:'Objective', color:'#7c3aed'},
-                                  assessment: {letter:'A',label:'Assessment',color:'#d97706'},
-                                  plan:       {letter:'P',label:'Plan',      color:'#059669'},
+                                  assessment: {letter:'A',label:'Assessment',color:'var(--color-warning)'},
+                                  plan:       {letter:'P',label:'Plan',      color:'var(--color-success)'},
                                 };
                                 const { letter, label, color } = labels[k];
                                 return (
@@ -3595,7 +3595,7 @@ export default function CaseDetailPage() {
               }));
 
             const latestScore = chartData.length ? chartData[chartData.length - 1].score : null;
-            const latestColor = latestScore ? SCORE_COLOR[latestScore] : '#2563eb';
+            const latestColor = latestScore ? SCORE_COLOR[latestScore] : 'var(--color-info)';
 
             const CustomTooltip = ({ active, payload }: any) => {
               if (!active || !payload?.length) return null;

@@ -94,8 +94,8 @@ function CheckList({ options, selected, onToggle, otherValue, onOtherChange }: {
       {options.map(opt => (
         <label key={opt} className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={selected.includes(opt)} onChange={() => onToggle(opt)}
-            className="rounded text-[#2563eb] focus:ring-[#2563eb]"
-            style={{ borderColor: 'var(--color-border-strong)' }} />
+            className="rounded"
+            style={{ borderColor: 'var(--color-border-strong)', accentColor: 'var(--color-primary)' }} />
           <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
         </label>
       ))}
@@ -117,8 +117,7 @@ function RadioList({ options, selected, onSelect }: {
       {options.map(opt => (
         <label key={opt} className="flex items-center gap-2 cursor-pointer">
           <input type="radio" checked={selected === opt} onChange={() => onSelect(opt)}
-            className="text-[#2563eb] focus:ring-[#2563eb]"
-            style={{ borderColor: 'var(--color-border-strong)' }} />
+            style={{ borderColor: 'var(--color-border-strong)', accentColor: 'var(--color-primary)' }} />
           <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{opt}</span>
         </label>
       ))}
@@ -132,8 +131,10 @@ function Textarea({ value, onChange, placeholder, rows = 2 }: {
   return (
     <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows}
       placeholder={placeholder}
-      className="w-full px-3 py-2 text-xs rounded-lg focus:ring-1 focus:ring-[#2563eb] outline-none resize-none"
-      style={{ border: '1px solid var(--color-border-strong)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+      className="w-full px-3 py-2 text-xs rounded-lg outline-none resize-none transition-shadow"
+      style={{ border: '1px solid var(--color-border-strong)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+      onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = 'var(--shadow-primary)'; }}
+      onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border-strong)'; e.currentTarget.style.boxShadow = 'none'; }} />
   );
 }
 

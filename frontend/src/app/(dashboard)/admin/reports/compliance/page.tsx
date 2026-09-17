@@ -48,7 +48,7 @@ export default function ComplianceReportPage() {
         const total       = d.total_appointments ?? ((d.completed ?? 0) + (d.cancelled ?? 0) + (d.no_show ?? 0));
         const completed   = d.completed_appointments ?? d.completed ?? 0;
         const cancelled   = d.cancelled_appointments ?? d.cancelled ?? 0;
-        const no_show     = d.no_show_appointments   ?? d.no_show   ?? 0;
+        const no_show     = d.no_shows ?? d.no_show_appointments ?? d.no_show ?? 0;
         const completion_rate = total > 0 ? Math.round((completed / total) * 100) : 0;
         setAppointments({ total, completed, cancelled, no_show, completion_rate });
       }
@@ -62,7 +62,7 @@ export default function ComplianceReportPage() {
 
   return (
     <DashboardPageWrapper title="Compliance Report" subtitle="Intake completion rates and appointment compliance overview">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8">
 
         <div className="flex items-center justify-between">
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Compliance metrics from the CPS system</p>

@@ -160,7 +160,7 @@ export default function WellnessResourcesPage() {
                   {resource.tags && resource.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {resource.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs px-2 py-0.5 rounded"
+                        <span key={tag} className="text-xs px-2 py-0.5 rounded-md"
                           style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
                           {tag}
                         </span>

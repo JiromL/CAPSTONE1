@@ -90,7 +90,7 @@ export default function RecurringAppointmentsPage() {
 
   if (success) {
     return (
-      <DashboardPageWrapper title="Recurring Appointments">
+      <DashboardPageWrapper title="Recurring Appointments" subtitle="Schedule a series of sessions for a student">
         <div className="max-w-lg mx-auto text-center py-16">
           <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
             style={{ background: 'var(--color-success-surface)' }}>

@@ -40,8 +40,11 @@ def get_analytics_summary():
         active_cases = db.db.cases.count_documents({'$or': [{'case_status': {'$in': ['ACTIVE', 'active']}}, {'status': {'$in': ['ACTIVE', 'active']}}]})
         closed_cases = db.db.cases.count_documents({'case_status': {'$in': ['CLOSED', 'closed']}})
 
-        # High-risk cases
-        high_risk_cases = db.db.cases.count_documents({'risk_level': {'$in': ['RED', 'CRITICAL']}})
+        # High-risk cases still open (excludes closed cases — matches "active" framing in the UI)
+        high_risk_cases = db.db.cases.count_documents({
+            'risk_level': {'$in': ['RED', 'CRITICAL']},
+            'case_status': {'$nin': ['CLOSED', 'closed']},
+        })
 
         # Students
         total_students = db.db.users.count_documents({'role': 'STUDENT'})
@@ -210,11 +213,10 @@ def get_staff_workload():
 
             # Active cases assigned (try both field names)
             cases_assigned = db.db.cases.count_documents({
-                '$or': [
-                    {'counselor_id': staff_id},
-                    {'assigned_counselor_id': staff_id},
-                ],
-                '$or': [{'case_status': {'$in': ['ACTIVE', 'active']}}, {'status': {'$in': ['ACTIVE', 'active']}}]
+                '$and': [
+                    {'$or': [{'counselor_id': staff_id}, {'assigned_counselor_id': staff_id}]},
+                    {'$or': [{'case_status': {'$in': ['ACTIVE', 'active']}}, {'status': {'$in': ['ACTIVE', 'active']}}]},
+                ]
             })
 
             # Total appointments

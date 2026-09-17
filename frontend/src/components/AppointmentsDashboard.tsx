@@ -809,9 +809,9 @@ export default function AppointmentsDashboard() {
         </div>
       )}
       {isIC && intakeReady.length > 0 && (
-        <div className="flex items-center gap-3 bg-[#2563eb]/5 border border-[#2563eb]/20 rounded-xl px-4 py-3 text-sm">
-          <ClipboardList size={14} className="text-[#2563eb] flex-shrink-0" />
-          <span className="text-[#2563eb]">
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-info-surface)', border: '1px solid color-mix(in srgb, var(--color-info) 25%, transparent)' }}>
+          <ClipboardList size={14} className="flex-shrink-0" style={{ color: 'var(--color-info)' }} />
+          <span style={{ color: 'var(--color-info-text)' }}>
             <strong>{intakeReady.length}</strong> intake interview{intakeReady.length !== 1 ? 's' : ''} confirmed — conduct the intake assessment to assign to a counselor.
           </span>
           <button onClick={() => setActiveTab('confirmed')}
@@ -1556,7 +1556,7 @@ export default function AppointmentsDashboard() {
                                         </div>
                                         <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
                                           style={isOnline ? { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' } : { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>{isOnline ? 'Online' : 'F2F'}</span>
-                                        {isSel && <span className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-white text-xs flex-shrink-0">✓</span>}
+                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
                                       </button>
                                     );
                                   })}
@@ -2692,14 +2692,14 @@ function SummaryCard({ icon: Icon, label, value, color, highlight }: {
 }) {
   return (
     <div
-      className="rounded-xl border px-4 py-3 flex items-center gap-3"
+      className="rounded-2xl border px-4 py-3 flex items-center gap-3"
       style={highlight
-        ? { borderColor: 'var(--color-warning)', background: 'rgba(255,251,235,0.3)' }
+        ? { borderColor: 'var(--color-warning)', background: 'var(--color-warning-surface)' }
         : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <Icon size={18} style={{ color }} />
       <div>
         <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
-        <p className="text-xl font-semibold" style={{ color }}>{value}</p>
+        <p className="text-2xl font-bold" style={{ color }}>{value}</p>
       </div>
     </div>
   );

@@ -74,7 +74,7 @@ def create_session_note():
     audit_log(db.db, 'session_note', 'create', entity_id=str(result.inserted_id), new_values={
         'case_id': str(case_id),
         'session_date': data['session_date']
-    }, user_id=str(user_oid))
+    })
     
     return jsonify({
         'note_id': str(result.inserted_id),
@@ -161,8 +161,8 @@ def edit_session_note(note_id):
     db.db.session_notes.update_one({"_id": note_oid}, {"$set": update_data})
     
     audit_log(db.db, 'session_note', 'edit', entity_id=str(note_oid), 
-              previous_values=version_record['previous_values'],
-              new_values=version_record['new_values'], user_id=str(user_oid))
+              old_values=version_record['previous_values'],
+              new_values=version_record['new_values'])
     
     return jsonify({
         'message': 'Session note updated successfully',
@@ -265,7 +265,7 @@ def soft_delete_session_note(note_id):
         }}
     )
     
-    audit_log(db.db, 'session_note', 'soft_delete', entity_id=str(note_oid), user_id=str(user_oid))
+    audit_log(db.db, 'session_note', 'soft_delete', entity_id=str(note_oid))
     
     return jsonify({'message': 'Session note deleted successfully'}), 200
 
@@ -299,7 +299,7 @@ def restore_session_note(note_id):
         }}
     )
     
-    audit_log(db.db, 'session_note', 'restore', entity_id=str(note_oid), user_id=str(user_oid))
+    audit_log(db.db, 'session_note', 'restore', entity_id=str(note_oid))
     
     return jsonify({'message': 'Session note restored successfully'}), 200
 
@@ -361,8 +361,7 @@ def initiate_handover():
     )
     
     audit_log(db.db, 'case_handover', 'create', entity_id=str(result.inserted_id), 
-              new_values={'case_id': str(case_id), 'reason': data['reason']}, 
-              user_id=str(user_oid))
+              new_values={'case_id': str(case_id), 'reason': data['reason']})
     
     return jsonify({
         'handover_id': str(result.inserted_id),
@@ -441,7 +440,7 @@ def approve_handover(handover_id):
         }}
     )
     
-    audit_log(db.db, 'case_handover', 'approve', entity_id=str(handover_oid), user_id=str(user_oid))
+    audit_log(db.db, 'case_handover', 'approve', entity_id=str(handover_oid))
     
     return jsonify({'message': 'Handover approved', 'status': 'PENDING_APPROVAL'}), 200
 
@@ -488,7 +487,7 @@ def reject_handover(handover_id):
         {"$set": {"status": "ACTIVE"}}
     )
     
-    audit_log(db.db, 'case_handover', 'reject', entity_id=str(handover_oid), user_id=str(user_oid))
+    audit_log(db.db, 'case_handover', 'reject', entity_id=str(handover_oid))
     
     return jsonify({'message': 'Handover rejected', 'status': 'REJECTED'}), 200
 
@@ -543,7 +542,7 @@ def complete_handover(handover_id):
     )
     
     audit_log(db.db, 'case_handover', 'complete', entity_id=str(handover_oid), 
-              new_values={'completed_at': completed_at.isoformat()}, user_id=str(user_oid))
+              new_values={'completed_at': completed_at.isoformat()})
     
     return jsonify({'message': 'Handover completed successfully', 'status': 'COMPLETED'}), 200
 
@@ -597,8 +596,7 @@ def log_referral():
     result = db.db.referral_logs.insert_one(referral)
     
     audit_log(db.db, 'referral', 'create', entity_id=str(result.inserted_id), 
-              new_values={'case_id': str(case_id), 'agency_name': data['agency_name']}, 
-              user_id=str(user_oid))
+              new_values={'case_id': str(case_id), 'agency_name': data['agency_name']})
     
     return jsonify({
         'referral_id': str(result.inserted_id),
@@ -643,8 +641,8 @@ def update_referral_status(referral_id):
     )
     
     audit_log(db.db, 'referral', 'update_status', entity_id=str(referral_oid), 
-              previous_values={'status': referral['status']},
-              new_values={'status': data['status']}, user_id=str(user_oid))
+              old_values={'status': referral['status']},
+              new_values={'status': data['status']})
     
     return jsonify({'message': 'Referral status updated', 'status': data['status']}), 200
 
@@ -691,7 +689,7 @@ def log_referral_followup(referral_id):
     )
     
     audit_log(db.db, 'referral_followup', 'create', entity_id=str(referral_oid), 
-              new_values={'action_taken': data['action_taken']}, user_id=str(user_oid))
+              new_values={'action_taken': data['action_taken']})
     
     return jsonify({'message': 'Follow-up logged successfully'}), 201
 
@@ -909,9 +907,8 @@ def change_case_status(case_id):
     )
     
     audit_log(db.db, 'case', 'status_change', entity_id=str(case_oid),
-              previous_values={'status': case.get('status')},
-              new_values={'status': new_status, 'reason': reason}, 
-              user_id=str(user_oid))
+              old_values={'status': case.get('status')},
+              new_values={'status': new_status, 'reason': reason})
     
     return jsonify({
         'message': 'Case status updated successfully',

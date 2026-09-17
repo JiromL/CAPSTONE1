@@ -62,7 +62,7 @@ interface SessionNote {
 const RISK_MAP: Record<string, { label: string; icon: React.ReactNode; style: React.CSSProperties }> = {
   GREEN:    { label: 'Low Risk',      icon: <Shield size={12} />,        style: { background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0' } },
   YELLOW:   { label: 'Moderate Risk', icon: <Activity size={12} />,      style: { background: '#FEFCE8', color: '#A16207', border: '1px solid #FDE047' } },
-  RED:      { label: 'High Risk',     icon: <AlertTriangle size={12} />, style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA' } },
+  RED:      { label: 'High Risk',     icon: <AlertTriangle size={12} />, style: { background: 'var(--color-danger-surface)', color: 'var(--color-danger-hover)', border: '1px solid #FECACA' } },
   CRITICAL: { label: 'Critical',      icon: <ShieldAlert size={12} />,   style: { background: '#FEE2E2', color: '#7F1D1D', border: '1px solid #FCA5A5' } },
 };
 

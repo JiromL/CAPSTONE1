@@ -28,8 +28,11 @@ interface AnalyticsSummary {
 }
 interface TrendData {
   months: string[];
+  buckets?: string[];
+  granularity?: TrendGranularity;
   data: Record<string, Record<string, number>>;
 }
+type TrendGranularity = 'day' | 'week' | 'month';
 interface CollegeEntry {
   college: string; total: number; at_risk: number;
   Excelling: number; Thriving: number; Surviving: number;
@@ -77,16 +80,29 @@ function fmtMonthKey(key: string) {
   return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-PH', { month: 'short', year: '2-digit' });
 }
 
+function fmtBucketKey(key: string, granularity: TrendGranularity) {
+  if (granularity === 'day') {
+    const d = new Date(key + 'T00:00:00');
+    return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+  }
+  if (granularity === 'week') {
+    const [, w] = key.split('-W');
+    return `Wk ${parseInt(w)}`;
+  }
+  return fmtMonthKey(key);
+}
+
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 
 function ChartTooltip({ active, payload, label, isDark }: {
   active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string; isDark: boolean;
 }) {
   if (!active || !payload?.length) return null;
-  const bg  = isDark ? '#111827' : '#ffffff';
-  const bdr = isDark ? '#1F2640' : '#E4E7F0';
-  const txt = isDark ? '#F1F5F9' : '#0D1526';
-  const sub = isDark ? '#94A3B8' : '#64748B';
+  void isDark;
+  const bg  = 'var(--color-surface)';
+  const bdr = 'var(--color-border)';
+  const txt = 'var(--color-text-primary)';
+  const sub = 'var(--color-text-secondary)';
   return (
     <div style={{ background: bg, border: `1px solid ${bdr}`, borderRadius: 8, padding: '10px 14px', minWidth: 130 }}>
       {label && <p style={{ color: sub, fontSize: 11, marginBottom: 6, fontWeight: 500 }}>{label}</p>}
@@ -147,6 +163,7 @@ function Empty({ text = 'No data for this period' }: { text?: string }) {
 
 function AnalyticsTab({
   summary, trend, colleges, attention, role, isDark, loading,
+  granularity, onGranularityChange, trendLoading,
 }: {
   summary: AnalyticsSummary | null;
   trend: TrendData | null;
@@ -155,10 +172,14 @@ function AnalyticsTab({
   role: string;
   isDark: boolean;
   loading: boolean;
+  granularity: TrendGranularity;
+  onGranularityChange: (g: TrendGranularity) => void;
+  trendLoading: boolean;
 }) {
   const isAdmin = ADMIN_ROLES.includes(role.toUpperCase());
-  const grid  = isDark ? '#1F2640' : '#E4E7F0';
-  const tText = isDark ? '#94A3B8' : '#6B7280';
+  void isDark;
+  const grid  = 'var(--color-border)';
+  const tText = 'var(--color-text-muted)';
 
   // Distribution donut data
   const distData = LABEL_ORDER.map(l => ({
@@ -167,9 +188,10 @@ function AnalyticsTab({
   const totalDist = distData.reduce((a, d) => a + d.value, 0);
 
   // Trend line data
+  const trendBuckets = trend?.buckets ?? trend?.months ?? [];
   const trendRows = trend
-    ? trend.months.map(m => ({
-        month: fmtMonthKey(m),
+    ? trendBuckets.map(m => ({
+        month: fmtBucketKey(m, granularity),
         ...LABEL_ORDER.reduce((acc, l) => ({ ...acc, [l]: trend.data[m]?.[l] ?? 0 }), {}),
       }))
     : [];
@@ -296,25 +318,48 @@ function AnalyticsTab({
           )}
         </SCard>
 
-        <SCard title="Mental Health Trend" subtitle="EMA check-ins per label over time (from saved snapshots)">
-          {!trend || trendRows.length === 0 ? <Empty text="No snapshot history yet — sync first" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={trendRows} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+        <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Mental Health Trend</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>EMA check-ins per label over time (from saved snapshots)</p>
+            </div>
+            <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+              {(['day', 'week', 'month'] as TrendGranularity[]).map(g => {
+                const active = granularity === g;
+                return (
+                  <button key={g} onClick={() => onGranularityChange(g)}
+                    className="px-2.5 py-1 rounded-md text-xs font-medium transition-all capitalize"
+                    style={active
+                      ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }
+                      : { color: 'var(--color-text-muted)' }}>
+                    {g === 'day' ? 'Daily' : g === 'week' ? 'Weekly' : 'Monthly'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {trendLoading ? (
+            <div className="flex items-center justify-center h-44"><Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-border-strong)' }} /></div>
+          ) : !trend || trendRows.length === 0 ? <Empty text="No snapshot history yet — sync first" /> : (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={trendRows} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: tText, fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: tText, fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: tText, fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip isDark={isDark} />} />
                 <Legend wrapperStyle={{ fontSize: 10, color: tText }} />
                 {LABEL_ORDER.map(l => (
-                  <Area key={l} type="monotone" dataKey={l} name={l}
-                    stroke={PERMA_COLORS[l]} fill={PERMA_COLORS[l] + '22'}
-                    strokeWidth={l === 'In Crisis' || l === 'Struggling' ? 2 : 1.5}
-                    dot={false} />
+                  <Line key={l} type="monotone" dataKey={l} name={l}
+                    stroke={PERMA_COLORS[l]}
+                    strokeWidth={l === 'In Crisis' || l === 'Struggling' ? 2.5 : 1.75}
+                    dot={{ r: 2.5, fill: PERMA_COLORS[l] }}
+                    activeDot={{ r: 4 }} />
                 ))}
-              </AreaChart>
+              </LineChart>
             </ResponsiveContainer>
           )}
-        </SCard>
+        </div>
       </div>
 
       {/* College Breakdown (admin only) */}
@@ -554,6 +599,9 @@ function EmaEmbed() {
           </a>
         </div>
       </div>
+      <p className="text-xs mb-3 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+        This opens EMA&apos;s own chat app inside this page — sign in below with the same EMA username and password you used to link your account. This is separate from the CPS login above.
+      </p>
       <div className="flex-1 rounded-xl overflow-hidden border shadow-sm" style={{ borderColor: 'var(--color-border)' }}>
         <iframe key={iframeKey} src={EMA_URL} title="EMA Chatbot" className="w-full h-full border-0" allow="microphone; camera" />
       </div>
@@ -568,14 +616,15 @@ const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', bac
 const onFIn  = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
 const onFOut = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; };
 
-function ConnectCard({ onLink }: { onLink: (username: string) => Promise<string | null> }) {
+function ConnectCard({ onLink }: { onLink: (username: string, password: string) => Promise<string | null> }) {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setErr('');
-    const error = await onLink(username.trim());
+    const error = await onLink(username.trim(), password);
     if (error) setErr(error);
     setBusy(false);
   };
@@ -596,8 +645,13 @@ function ConnectCard({ onLink }: { onLink: (username: string) => Promise<string 
             <input type="text" value={username} onChange={e => setUsername(e.target.value)}
               placeholder="e.g. JeromeJLS" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
           </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-secondary)' }}>EMA Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="Your EMA account password" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
+          </div>
           {err && <p className="text-xs rounded-lg px-3 py-2 border" style={{ color: 'var(--color-danger)', background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)' }}>{err}</p>}
-          <button type="submit" disabled={busy || !username.trim()}
+          <button type="submit" disabled={busy || !username.trim() || !password}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 hover:opacity-90"
             style={{ background: 'var(--color-primary)' }}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
@@ -605,7 +659,7 @@ function ConnectCard({ onLink }: { onLink: (username: string) => Promise<string 
           </button>
         </form>
         <p className="text-xs text-center mt-4" style={{ color: 'var(--color-text-muted)' }}>
-          Your EMA username is your display name on the EMA app (not your email address).
+          Your EMA username is your display name on the EMA app (not your email address). Your password is only used once to verify you own this account and is never stored.
         </p>
       </div>
     </div>
@@ -614,26 +668,39 @@ function ConnectCard({ onLink }: { onLink: (username: string) => Promise<string 
 
 // ── Student View ──────────────────────────────────────────────────────────────
 
+const LABEL_SCORE: Record<string, number> = {
+  'In Crisis': 1, Struggling: 2, Surviving: 3, Thriving: 4, Excelling: 5,
+};
+
 function StudentView({ username, onDisconnect }: { username: string; onDisconnect: () => void }) {
   const [loading, setLoading] = useState(true);
   const [label, setLabel]     = useState<string | null>(null);
   const [date, setDate]       = useState<string | null>(null);
   const [history, setHistory] = useState<PermaEntry[]>([]);
+  const [range, setRange]     = useState<7 | 14 | 30>(14);
   const [err, setErr]         = useState('');
+  const [fromCache, setFromCache] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (limit: number) => {
     setLoading(true);
     const token = localStorage.getItem('token');
     try {
-      const r = await fetch(api('/api/mhbot/my-perma?limit=10'), { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(api(`/api/mhbot/my-perma?limit=${limit}`), { headers: { Authorization: `Bearer ${token}` } });
       const d = await r.json();
       if (!r.ok || d.fetch_error) { setErr(d.fetch_error || d.error || 'Could not load PERMA data'); }
-      else { setLabel(d.latest_label ?? null); setDate(d.latest_date ?? null); setHistory(d.history || []); }
+      else { setLabel(d.latest_label ?? null); setDate(d.latest_date ?? null); setHistory(d.history || []); setFromCache(!!d.from_cache); }
     } catch { setErr('Network error'); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(range); }, [load, range]);
+
+  // Oldest-first for the line chart, mapped to a 1–5 wellbeing score
+  const chartRows = [...history].reverse().map(h => ({
+    date: fmtDate(h.date).replace(', ', ' '),
+    score: h.perma_label ? LABEL_SCORE[h.perma_label] ?? null : null,
+    label: h.perma_label || 'No Data',
+  }));
 
   return (
     <div className="max-w-lg mx-auto space-y-5">
@@ -646,7 +713,7 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="p-1.5 rounded transition" style={{ color: 'var(--color-text-muted)' }}
+          <button onClick={() => load(range)} className="p-1.5 rounded transition" style={{ color: 'var(--color-text-muted)' }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-secondary)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
             <RefreshCw size={13} />
@@ -670,6 +737,13 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
           style={{ background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>{err}</div>
       ) : (
         <>
+          {fromCache && (
+            <div className="flex items-center gap-2 p-3 rounded-xl border text-xs"
+              style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)', color: 'var(--color-warning)' }}>
+              <WifiOff size={13} className="flex-shrink-0" />
+              Showing your last synced data — the live EMA server is unreachable right now.
+            </div>
+          )}
           <div className="border rounded-xl p-6 flex items-center gap-5"
             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
@@ -699,6 +773,52 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
                   PH Crisis Hotlines: <strong>Hopeline 8804-4673</strong> · <strong>Crisis Line 0917-899-8727</strong>
                 </p>
               )}
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="border rounded-xl p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={14} style={{ color: 'var(--color-text-muted)' }} />
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Your Wellbeing Trend</p>
+                </div>
+                <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                  {([7, 14, 30] as const).map(n => {
+                    const active = range === n;
+                    return (
+                      <button key={n} onClick={() => setRange(n)}
+                        className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                        style={active
+                          ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }
+                          : { color: 'var(--color-text-muted)' }}>
+                        {n}d
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={chartRows} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} axisLine={false} tickLine={false}
+                    tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }}
+                    tickFormatter={(v: number) => ({ 1: 'Crisis', 2: 'Struggling', 3: 'Surviving', 4: 'Thriving', 5: 'Excelling' }[v] ?? '')}
+                    width={64}
+                  />
+                  <Tooltip
+                    formatter={((_v: number, _n: string, p: any) => [p?.payload?.label ?? '', 'Wellbeing']) as any}
+                    contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                  />
+                  <Line type="monotone" dataKey="score" stroke="var(--color-primary)" strokeWidth={2}
+                    dot={((props: any) => (
+                      <circle key={`${props.cx}-${props.cy}`} cx={props.cx} cy={props.cy} r={3.5} fill={PERMA_COLORS[props.payload.label] || '#94A3B8'} stroke="none" />
+                    )) as any}
+                    connectNulls activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           )}
 
@@ -734,6 +854,8 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
   const [tab, setTab]           = useState<StaffTab>('analytics');
   const [summary, setSummary]   = useState<AnalyticsSummary | null>(null);
   const [trend, setTrend]       = useState<TrendData | null>(null);
+  const [trendLoading, setTrendLoading] = useState(true);
+  const [granularity, setGranularity]   = useState<TrendGranularity>('day');
   const [colleges, setColleges] = useState<CollegeEntry[]>([]);
   const [attention, setAttention] = useState<AttentionStudent[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -743,17 +865,24 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
 
   const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
+  const fetchTrend = useCallback(async (g: TrendGranularity) => {
+    setTrendLoading(true);
+    try {
+      const r = await fetch(api(`/api/mhbot/analytics/trend?granularity=${g}`), { headers: hdrs() });
+      if (r.ok) setTrend(await r.json());
+    } catch {}
+    finally { setTrendLoading(false); }
+  }, []);
+
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const [summRes, trendRes, collegeRes, attRes] = await Promise.all([
+      const [summRes, collegeRes, attRes] = await Promise.all([
         fetch(api('/api/mhbot/analytics/summary'),   { headers: hdrs() }),
-        fetch(api('/api/mhbot/analytics/trend'),     { headers: hdrs() }),
         fetch(api('/api/mhbot/analytics/college'),   { headers: hdrs() }),
         fetch(api('/api/mhbot/analytics/attention'), { headers: hdrs() }),
       ]);
       if (summRes.ok)    setSummary(await summRes.json());
-      if (trendRes.ok)   setTrend(await trendRes.json());
       if (collegeRes.ok) setColleges((await collegeRes.json()).colleges || []);
       if (attRes.ok)     setAttention((await attRes.json()).students || []);
     } catch {}
@@ -774,7 +903,7 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
       if (r.ok) {
         const d = await r.json();
         setSyncMsg(`Synced ${d.synced} of ${d.total} students`);
-        await fetchAnalytics();
+        await Promise.all([fetchAnalytics(), fetchTrend(granularity)]);
       } else {
         setSyncMsg('Sync failed — check EMA connection');
       }
@@ -786,6 +915,10 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
     fetchAnalytics();
     checkServer();
   }, [fetchAnalytics, checkServer]);
+
+  useEffect(() => {
+    fetchTrend(granularity);
+  }, [fetchTrend, granularity]);
 
   const TAB_LABELS: { key: StaffTab; label: string }[] = [
     { key: 'analytics', label: 'Analytics'   },
@@ -869,6 +1002,9 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
           role={role}
           isDark={isDark}
           loading={loading}
+          granularity={granularity}
+          onGranularityChange={setGranularity}
+          trendLoading={trendLoading}
         />
       )}
 
@@ -903,12 +1039,12 @@ export default function EMAPage() {
     checkAuth();
   }, []);
 
-  const handleLink = async (username: string): Promise<string | null> => {
+  const handleLink = async (username: string, password: string): Promise<string | null> => {
     try {
       const r = await fetch(api('/api/mhbot/link-username'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username, password }),
       });
       const d = await r.json();
       if (r.ok) { setAuthStatus({ connected: true, mhbot_username: d.mhbot_username }); return null; }

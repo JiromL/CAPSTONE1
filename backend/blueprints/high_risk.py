@@ -482,6 +482,41 @@ def escalate_to_crisis(case_id):
     }), 201
 
 
+@high_risk_bp.route('/case/<case_id>/crisis-escalations', methods=['GET'])
+@jwt_required()
+def list_case_crisis_escalations(case_id):
+    """List crisis escalations for a case, most recent first (for the case detail page)."""
+    user_id = get_jwt_identity()
+
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        cid = ObjectId(case_id)
+    except Exception:
+        cid = case_id
+
+    escalations = list(db.db.crisis_escalations.find({"case_id": cid}).sort("created_at", -1))
+    result = []
+    for e in escalations:
+        initiated_by = db.db.users.find_one({"_id": e.get('initiated_by_id')})
+        result.append({
+            'escalation_id': str(e['_id']),
+            'crisis_level': e.get('crisis_level'),
+            'description': e.get('description'),
+            'initiated_by': f"{initiated_by.get('first_name', '')} {initiated_by.get('last_name', '')}".strip() if initiated_by else None,
+            'emergency_contact_notified': e.get('emergency_contact_notified'),
+            'hospital_contact': e.get('hospital_contact'),
+            'police_contact': e.get('police_contact'),
+            'resolved': e.get('resolved'),
+            'resolution_notes': e.get('resolution_notes'),
+            'created_at': e['created_at'].isoformat() if isinstance(e.get('created_at'), datetime) else e.get('created_at'),
+            'resolved_at': e['resolved_at'].isoformat() if isinstance(e.get('resolved_at'), datetime) else e.get('resolved_at'),
+        })
+
+    return jsonify({'escalations': result}), 200
+
+
 @high_risk_bp.route('/crisis-escalation/<escalation_id>', methods=['GET'])
 @jwt_required()
 def get_crisis_escalation(escalation_id):

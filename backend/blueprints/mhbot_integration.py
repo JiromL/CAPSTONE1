@@ -192,6 +192,7 @@ def link_ema_username():
         'mhbot_username': ema_username,
         'latest_label': full.get('latest_label'),
         'latest_date': full.get('latest_date'),
+        'recovered': len(full.get('data') or []),
     }), 200
 
 

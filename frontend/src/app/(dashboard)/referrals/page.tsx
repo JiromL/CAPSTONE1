@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -19,6 +19,7 @@ type Referral = {
   student_name?: string;
   case_number?: string;
   days_pending?: number;
+  roi_signed?: boolean;
 };
 
 type Summary = {
@@ -104,6 +105,54 @@ export default function ReferralsPage() {
 
   const canCreateReferral = ['COUNSELOR', 'PSYCHOLOGIST', 'IC', 'ADMIN', 'DPO'].includes(userRole);
   const isStudent = userRole === 'STUDENT';
+  const [actingId, setActingId] = useState<string | null>(null);
+
+  const doAction = async (referralId: string, path: string, body?: any) => {
+    setActingId(referralId);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(api(`/api/referrals/${referralId}/${path}`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Action failed'); }
+      await loadData();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleAcknowledge = (id: string) => doAction(id, 'acknowledge');
+  const handleRequestRoi = (id: string) => doAction(id, 'roi-request');
+  const handleCompleteHandoff = (id: string) => {
+    if (!confirm('Confirm the warm handoff was completed — the student was connected to the receiving provider?')) return;
+    return doAction(id, 'warm-handoff');
+  };
+
+  const handleUploadRoi = async (referralId: string, file: File) => {
+    setActingId(referralId);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(api(`/api/referrals/${referralId}/roi-upload`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'ROI upload failed'); }
+      await loadData();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -175,7 +224,15 @@ export default function ReferralsPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingHandoffs.map(r => <ReferralCard key={r.referral_id} referral={r} />)}
+                {pendingHandoffs.map(r => (
+                  <ReferralCard key={r.referral_id} referral={r}
+                    canAct={canCreateReferral} busy={actingId === r.referral_id}
+                    onAcknowledge={() => handleAcknowledge(r.referral_id)}
+                    onRequestRoi={() => handleRequestRoi(r.referral_id)}
+                    onUploadRoi={file => handleUploadRoi(r.referral_id, file)}
+                    onCompleteHandoff={() => handleCompleteHandoff(r.referral_id)}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -268,8 +325,24 @@ export default function ReferralsPage() {
   );
 }
 
-function ReferralCard({ referral }: { referral: Referral }) {
+function ReferralCard({ referral, canAct, busy, onAcknowledge, onRequestRoi, onUploadRoi, onCompleteHandoff }: {
+  referral: Referral;
+  canAct?: boolean;
+  busy?: boolean;
+  onAcknowledge?: () => void;
+  onRequestRoi?: () => void;
+  onUploadRoi?: (file: File) => void;
+  onCompleteHandoff?: () => void;
+}) {
   const st = statusStyle(referral.status);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isExternal = referral.referral_type === 'EXTERNAL';
+  const needsRoi = isExternal && !referral.roi_signed;
+  const canAcknowledge = canAct && referral.status === 'SUBMITTED';
+  const canCompleteHandoff = canAct && !referral.warm_handoff_completed && referral.status !== 'SUBMITTED' && !(isExternal && needsRoi);
+
+  const btnStyle: React.CSSProperties = { borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' };
+
   return (
     <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <div className="flex items-start justify-between mb-2">
@@ -287,14 +360,51 @@ function ReferralCard({ referral }: { referral: Referral }) {
           {referral.status}
         </span>
       </div>
-      <div className="flex items-center gap-4 text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
+      <div className="flex items-center gap-4 text-xs mt-2 flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
         {referral.urgency && <span className="capitalize">Urgency: {referral.urgency}</span>}
         {referral.created_at && <span>{new Date(referral.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>}
         {typeof referral.days_pending === 'number' && <span>{referral.days_pending}d pending</span>}
+        {isExternal && (
+          <span className="font-medium" style={{ color: referral.roi_signed ? 'var(--color-success)' : 'var(--color-warning)' }}>
+            {referral.roi_signed ? 'ROI signed' : 'ROI not signed'}
+          </span>
+        )}
         {!referral.warm_handoff_completed && (
           <span className="font-medium" style={{ color: 'var(--color-warning)' }}>Handoff pending</span>
         )}
       </div>
+
+      {canAct && (
+        <div className="flex items-center gap-2 mt-3 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--color-border)' }}>
+          {canAcknowledge && (
+            <button onClick={onAcknowledge} disabled={busy}
+              className="px-3 py-1.5 text-xs rounded-lg border transition disabled:opacity-50" style={btnStyle}>
+              {busy ? 'Working…' : 'Acknowledge'}
+            </button>
+          )}
+          {isExternal && needsRoi && (
+            <>
+              <button onClick={onRequestRoi} disabled={busy}
+                className="px-3 py-1.5 text-xs rounded-lg border transition disabled:opacity-50" style={btnStyle}>
+                Request ROI Signature
+              </button>
+              <button onClick={() => fileInputRef.current?.click()} disabled={busy}
+                className="px-3 py-1.5 text-xs rounded-lg border transition disabled:opacity-50" style={btnStyle}>
+                Upload Signed ROI
+              </button>
+              <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f && onUploadRoi) onUploadRoi(f); e.target.value = ''; }} />
+            </>
+          )}
+          {canCompleteHandoff && (
+            <button onClick={onCompleteHandoff} disabled={busy}
+              className="px-3 py-1.5 text-xs rounded-lg text-white transition disabled:opacity-50 hover:opacity-90"
+              style={{ background: 'var(--color-success)' }}>
+              Mark Warm Handoff Complete
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

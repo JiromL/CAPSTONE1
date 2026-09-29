@@ -15,14 +15,11 @@ export function EmaFloatingChat() {
   const [connected, setConnected]   = useState<boolean | null>(null); // null = loading
   const [username, setUsername]     = useState('');
   const [password, setPassword]     = useState('');
-  const [emaId, setEmaId]           = useState('');
   const [showPw, setShowPw]         = useState(false);
   const [logging, setLogging]       = useState(false);
   const [error, setError]           = useState('');
   const [justConnected, setJustConnected] = useState(false);
   const [recovered, setRecovered]   = useState(0);
-
-  const isEmaFormat = (u: string) => /^ema_[a-zA-Z0-9]+$/.test(u.trim());
 
   // Check connection status when widget opens
   useEffect(() => {
@@ -63,10 +60,10 @@ export function EmaFloatingChat() {
     setLogging(true); setError('');
     try {
       const token = localStorage.getItem('token') ?? '';
-      const r = await fetch(api('/api/mhbot/auth/login'), {
+      const r = await fetch(api('/api/mhbot/link-username'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, ema_identifier: emaId.trim() || undefined }),
+        body: JSON.stringify({ username, password }),
       });
       const d = await r.json();
       if (r.ok) {
@@ -211,25 +208,6 @@ export function EmaFloatingChat() {
                           </button>
                         </div>
                       </div>
-
-                      {username && !isEmaFormat(username) && (
-                        <div>
-                          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-secondary)' }}>
-                            Original EMA ID <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(optional)</span>
-                          </label>
-                          <input
-                            type="text" value={emaId} onChange={e => setEmaId(e.target.value)}
-                            placeholder="e.g. ema_nhS"
-                            className="w-full px-3 py-2.5 text-sm rounded-xl outline-none transition"
-                            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-                            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
-                            onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
-                          />
-                          <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                            If you changed your EMA username, enter the original <span className="font-mono">ema_XXX</span> ID your account was created with.
-                          </p>
-                        </div>
-                      )}
 
                       {error && (
                         <p className="text-xs rounded-lg px-3 py-2"

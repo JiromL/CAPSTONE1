@@ -289,15 +289,25 @@ function ActiveCard({ apt, actioningId, actionMsg, onView, onAction, onNoShow, o
             {actioningId === aptId ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />} Session Done
           </button>
         )}
-        {isConfirmed && !isPending && (
-          <button onClick={onNoShow}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border transition whitespace-nowrap"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-danger)'; e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}>
-            No Show
-          </button>
-        )}
+        {isConfirmed && !isPending && (() => {
+          const start = effDate(apt);
+          const notYetStarted = start ? new Date(start).getTime() > Date.now() : false;
+          return notYetStarted ? (
+            <span title="Available once the scheduled session time has passed"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border whitespace-nowrap cursor-not-allowed"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)', opacity: 0.5 }}>
+              No Show
+            </span>
+          ) : (
+            <button onClick={onNoShow}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border transition whitespace-nowrap"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-danger)'; e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}>
+              No Show
+            </button>
+          );
+        })()}
         <button onClick={onView}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
@@ -1574,13 +1584,25 @@ export default function AppointmentsPage() {
                                   Session Done
                                 </button>
                                 )}
-                                <button onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
-                                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border transition"
-                                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
-                                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-danger)'; e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}>
-                                  No Show
-                                </button>
+                                {(() => {
+                                  const start = effDate(apt);
+                                  const notYetStarted = start ? new Date(start).getTime() > Date.now() : false;
+                                  return notYetStarted ? (
+                                    <span title="Available once the scheduled session time has passed"
+                                      className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border cursor-not-allowed"
+                                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)', opacity: 0.5 }}>
+                                      No Show
+                                    </span>
+                                  ) : (
+                                    <button onClick={() => { setNoShowTarget(apt); setNoShowReason(''); }}
+                                      className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border transition"
+                                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+                                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-danger)'; e.currentTarget.style.color = 'var(--color-danger)'; e.currentTarget.style.background = 'var(--color-danger-surface)'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}>
+                                      No Show
+                                    </button>
+                                  );
+                                })()}
                               </>
                             )}
 

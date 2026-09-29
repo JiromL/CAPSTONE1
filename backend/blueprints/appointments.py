@@ -1866,6 +1866,10 @@ def mark_no_show(appointment_id):
     if current_status in terminal_statuses:
         return jsonify({'error': f'Cannot mark no-show: appointment is already {current_status}'}), 400
 
+    scheduled_start = appointment.get('scheduled_start') or appointment.get('requested_start')
+    if isinstance(scheduled_start, datetime) and datetime.utcnow() < scheduled_start:
+        return jsonify({'error': 'Cannot mark no-show before the scheduled session time has passed.'}), 400
+
     now = datetime.utcnow()
     db.db.appointments.update_one(
         {"_id": appointment['_id']},

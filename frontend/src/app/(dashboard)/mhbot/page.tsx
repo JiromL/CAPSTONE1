@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   PieChart, Pie, Cell, LineChart, Line,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend, Area, AreaChart,
+  ResponsiveContainer, Legend, Area, AreaChart, ReferenceArea,
 } from 'recharts';
 import {
   Activity, Wifi, WifiOff, RefreshCw, Loader2, Users,
@@ -812,6 +812,7 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
                     formatter={((_v: number, _n: string, p: any) => [p?.payload?.label ?? '', 'Wellbeing']) as any}
                     contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
                   />
+                  <ReferenceArea y1={1} y2={2.5} fill="#ef4444" fillOpacity={0.06} />
                   <Line type="monotone" dataKey="score" stroke="var(--color-primary)" strokeWidth={2}
                     dot={((props: any) => (
                       <circle key={`${props.cx}-${props.cy}`} cx={props.cx} cy={props.cy} r={3.5} fill={PERMA_COLORS[props.payload.label] || '#94A3B8'} stroke="none" />

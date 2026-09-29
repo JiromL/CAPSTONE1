@@ -420,8 +420,14 @@ def get_case(case_id):
     user_role = user.get('role')
     if user_role == UserRole.STUDENT and str(case['student_id']) != user_id:
         return jsonify({'error': 'Cannot view other student cases'}), 403
-    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.IC, UserRole.CASE_MANAGER, UserRole.ADMIN, UserRole.DPO]:
-        pass  # clinical staff and oversight roles can view any case
+    elif user_role in [UserRole.PSYCHOLOGIST, UserRole.COUNSELOR]:
+        # Only the assigned provider may view full clinical details of a case —
+        # mirrors the same restriction already enforced on case edits (PUT below).
+        # IC/CASE_MANAGER/ADMIN/DPO keep broader access for intake routing and oversight.
+        if str(case.get('assigned_counselor_id')) != user_id:
+            return jsonify({'error': 'Case not assigned to you'}), 403
+    elif user_role in [UserRole.IC, UserRole.CASE_MANAGER, UserRole.ADMIN, UserRole.DPO]:
+        pass  # intake routing and oversight roles can view any case
     
     # Serialize all ObjectId and datetime fields safely (including nested structures)
     raw_student_id = case.get('student_id')

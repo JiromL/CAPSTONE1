@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus, UserPlus } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus, UserPlus, AlertTriangle } from 'lucide-react';
 import { getNoteTypeBadgeStyle, getRiskBadgeStyle } from '@/utils/badges';
 import Link from 'next/link';
 import { api } from '@/utils/api';
@@ -419,6 +419,24 @@ export default function CaseDetailPage() {
   const [referralWorkloadLoading, setReferralWorkloadLoading] = useState(false);
   const [recommendedReferralId, setRecommendedReferralId] = useState<string | null>(null);
 
+  type CrisisEscalation = {
+    escalation_id: string; crisis_level: string; description: string; initiated_by: string | null;
+    emergency_contact_notified: boolean; hospital_contact: boolean; police_contact: boolean;
+    resolved: boolean; resolution_notes?: string; created_at: string; resolved_at?: string;
+  };
+  const [showCrisisModal, setShowCrisisModal] = useState(false);
+  const [crisisLevel, setCrisisLevel] = useState<'CRITICAL' | 'HIGH'>('CRITICAL');
+  const [crisisDescription, setCrisisDescription] = useState('');
+  const [crisisEmergencyContact, setCrisisEmergencyContact] = useState(false);
+  const [crisisHospital, setCrisisHospital] = useState(false);
+  const [crisisPolice, setCrisisPolice] = useState(false);
+  const [crisisSubmitting, setCrisisSubmitting] = useState(false);
+  const [crisisMsg, setCrisisMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [crisisEscalations, setCrisisEscalations] = useState<CrisisEscalation[]>([]);
+  const [focusedEscalationId, setFocusedEscalationId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveNotes, setResolveNotes] = useState('');
+
   const EXT_OFFICES = [
     'Health Services Office (HSO)',
     'Student Discipline and Formation Office (SDFO)',
@@ -439,6 +457,7 @@ export default function CaseDetailPage() {
     loadCaseData();
     loadCaseAppointments();
     loadSessionCount();
+    loadCrisisEscalations();
   }, [caseId]);
 
   // Warn before leaving when a note form has unsaved content
@@ -744,6 +763,59 @@ export default function CaseDetailPage() {
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load case data');
+    }
+  };
+
+  const loadCrisisEscalations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/high-risk/case/${caseId}/crisis-escalations`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) { const d = await r.json(); setCrisisEscalations(d.escalations || []); }
+    } catch {}
+  };
+
+  const handleEscalateCrisis = async () => {
+    if (!crisisDescription.trim()) { setCrisisMsg({ type: 'err', text: 'Description is required.' }); return; }
+    setCrisisSubmitting(true); setCrisisMsg(null);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/high-risk/crisis-escalate/${caseId}`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          crisis_level: crisisLevel, description: crisisDescription,
+          emergency_contact_notified: crisisEmergencyContact,
+          hospital_contact: crisisHospital, police_contact: crisisPolice,
+        }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Failed to escalate'); }
+      setCrisisMsg({ type: 'ok', text: 'Crisis escalation recorded. Case risk level set to CRITICAL.' });
+      setCrisisDescription(''); setCrisisEmergencyContact(false); setCrisisHospital(false); setCrisisPolice(false);
+      await Promise.all([loadCrisisEscalations(), loadCaseData()]);
+      setTimeout(() => { setShowCrisisModal(false); setCrisisMsg(null); }, 1800);
+    } catch (err: any) {
+      setCrisisMsg({ type: 'err', text: err.message || 'Failed to escalate' });
+    } finally {
+      setCrisisSubmitting(false);
+    }
+  };
+
+  const handleResolveCrisis = async (escalationId: string) => {
+    setResolvingId(escalationId);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await fetch(api(`/api/high-risk/crisis-escalation/${escalationId}/resolve`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolution_notes: resolveNotes }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Failed to resolve'); }
+      setResolveNotes('');
+      await loadCrisisEscalations();
+    } catch (err: any) {
+      setCrisisMsg({ type: 'err', text: err.message || 'Failed to resolve' });
+    } finally {
+      setResolvingId(null);
     }
   };
 
@@ -1588,6 +1660,15 @@ export default function CaseDetailPage() {
                     <UserPlus size={11} /> Internal Referral
                   </button>
                 )}
+                {['PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(currentUser?.role?.toUpperCase() || '') && (
+                  <button
+                    onClick={() => { setShowCrisisModal(true); setCrisisMsg(null); setCrisisLevel('CRITICAL'); }}
+                    className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold transition hover:opacity-90 text-white"
+                    style={{ background: '#B91C1C' }}
+                  >
+                    <AlertTriangle size={11} /> Escalate to Crisis
+                  </button>
+                )}
                 <button
                   onClick={() => { setClosureChecks({ notes: false, referrals: false, notified: false }); setShowClosureChecklist(true); }}
                   className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
@@ -1609,6 +1690,29 @@ export default function CaseDetailPage() {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Active Crisis Escalation Banner ──────────────────────────────────── */}
+      {crisisEscalations.some(e => !e.resolved) && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl px-4 py-3.5"
+          style={{ background: '#FEE2E2', border: '2px solid #B91C1C' }}>
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#B91C1C' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold" style={{ color: '#B91C1C' }}>
+              Active Crisis Escalation — case flagged CRITICAL, daily check-ins required
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: '#B91C1C' }}>
+              {crisisEscalations.find(e => !e.resolved)?.description}
+            </p>
+          </div>
+          {['PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(currentUser?.role?.toUpperCase() || '') && (
+            <button onClick={() => { setShowCrisisModal(true); setCrisisMsg(null); }}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white flex-shrink-0"
+              style={{ background: '#B91C1C' }}>
+              View / Resolve
+            </button>
+          )}
         </div>
       )}
 
@@ -4042,6 +4146,106 @@ export default function CaseDetailPage() {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    )}
+
+    {showCrisisModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => !crisisSubmitting && setShowCrisisModal(false)} />
+        <div className="relative rounded-2xl shadow-xl w-full max-w-md p-6 animate-scale-in" style={{ background: 'var(--color-surface)', border: '2px solid #B91C1C' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: '#B91C1C' }}>
+              <AlertTriangle size={18} /> Escalate to Crisis
+            </h3>
+            <button onClick={() => setShowCrisisModal(false)} disabled={crisisSubmitting} className="p-1 rounded-lg transition" style={{ color: 'var(--color-text-muted)' }}>
+              <XIcon size={16} />
+            </button>
+          </div>
+
+          <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+            This immediately sets the case's risk level to CRITICAL and flags it for required daily check-ins. Use this when a student is in active crisis.
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Crisis Level</label>
+              <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+                {(['CRITICAL', 'HIGH'] as const).map(lvl => (
+                  <button key={lvl} onClick={() => setCrisisLevel(lvl)}
+                    className="flex-1 py-2 text-xs font-semibold transition"
+                    style={{ background: crisisLevel === lvl ? '#B91C1C' : 'transparent', color: crisisLevel === lvl ? '#fff' : 'var(--color-text-secondary)' }}>
+                    {lvl}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Description *</label>
+              <textarea value={crisisDescription} onChange={e => setCrisisDescription(e.target.value)} rows={3}
+                placeholder="What is happening right now?"
+                className="w-full px-3 py-2 text-sm rounded-lg resize-none outline-none"
+                style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
+            </div>
+            <div className="space-y-1.5">
+              {[
+                { label: 'Emergency contact notified', val: crisisEmergencyContact, set: setCrisisEmergencyContact },
+                { label: 'Hospital contacted', val: crisisHospital, set: setCrisisHospital },
+                { label: 'Police contacted', val: crisisPolice, set: setCrisisPolice },
+              ].map(({ label, val, set }) => (
+                <label key={label} className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--color-text-secondary)' }}>
+                  <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} className="w-4 h-4" />
+                  {label}
+                </label>
+              ))}
+            </div>
+            {crisisMsg && (
+              <p className="text-xs rounded-lg px-3 py-2"
+                style={{ background: crisisMsg.type === 'ok' ? 'var(--color-success-surface)' : 'var(--color-danger-surface)', color: crisisMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                {crisisMsg.text}
+              </p>
+            )}
+            <button onClick={handleEscalateCrisis} disabled={crisisSubmitting}
+              className="w-full py-2.5 text-sm font-bold rounded-lg text-white transition disabled:opacity-50"
+              style={{ background: '#B91C1C' }}>
+              {crisisSubmitting ? 'Submitting…' : 'Confirm Crisis Escalation'}
+            </button>
+          </div>
+
+          {crisisEscalations.length > 0 && (
+            <div className="mt-5 pt-4 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Escalation History</p>
+              {crisisEscalations.map(esc => (
+                <div key={esc.escalation_id} className="rounded-lg p-3 text-xs" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold" style={{ color: esc.resolved ? 'var(--color-text-secondary)' : '#B91C1C' }}>
+                      {esc.crisis_level} {esc.resolved ? '· Resolved' : '· ACTIVE'}
+                    </span>
+                    <span style={{ color: 'var(--color-text-muted)' }}>{new Date(esc.created_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}</span>
+                  </div>
+                  <p style={{ color: 'var(--color-text-secondary)' }}>{esc.description}</p>
+                  {esc.initiated_by && <p className="mt-1" style={{ color: 'var(--color-text-muted)' }}>By {esc.initiated_by}</p>}
+                  {!esc.resolved && (
+                    <div className="mt-2 flex gap-2">
+                      <input value={focusedEscalationId === esc.escalation_id ? resolveNotes : ''} onChange={e => setResolveNotes(e.target.value)}
+                        onFocus={() => { setFocusedEscalationId(esc.escalation_id); setResolveNotes(''); }}
+                        placeholder="Resolution notes…"
+                        className="flex-1 px-2 py-1 text-xs rounded outline-none"
+                        style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                      <button onClick={() => handleResolveCrisis(esc.escalation_id)} disabled={resolvingId === esc.escalation_id}
+                        className="px-2.5 py-1 text-xs font-semibold rounded whitespace-nowrap disabled:opacity-50"
+                        style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
+                        {resolvingId === esc.escalation_id ? 'Resolving…' : 'Resolve'}
+                      </button>
+                    </div>
+                  )}
+                  {esc.resolved && esc.resolution_notes && (
+                    <p className="mt-1.5 italic" style={{ color: 'var(--color-text-muted)' }}>Resolution: {esc.resolution_notes}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     )}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -39,6 +39,19 @@ function InfoRow({ icon, label, value, indent }: { icon?: React.ReactNode; label
   );
 }
 
+// emergency_contact can be stored either as a plain string or as
+// { name, relationship, phone } — normalize to safe display strings either way.
+function emergencyContactName(ec: any): string {
+  if (!ec) return '';
+  if (typeof ec === 'string') return ec;
+  return ec.name || '';
+}
+function emergencyContactPhone(ec: any, fallback?: string): string {
+  if (fallback) return fallback;
+  if (ec && typeof ec === 'object') return ec.phone || '';
+  return '';
+}
+
 export default function ProfilePage() {
   const [editMode, setEditMode]     = useState(false);
   const [saving, setSaving]         = useState(false);
@@ -53,6 +66,7 @@ export default function ProfilePage() {
   const [emaConsentChecked, setEmaConsentChecked] = useState(false);
   const [emaConsentSaving, setEmaConsentSaving]   = useState(false);
   const [emaConsentError, setEmaConsentError]     = useState('');
+  const [permaRange, setPermaRange] = useState<30 | 90 | 180 | 0>(90); // days back; 0 = all time
 
   const cpsToken = () => localStorage.getItem('token') || '';
 
@@ -61,7 +75,7 @@ export default function ProfilePage() {
     try {
       const hdrs = { Authorization: `Bearer ${cpsToken()}` };
       const [snapRes, statusRes] = await Promise.all([
-        fetch(api('/api/mhbot/my-snapshots'), { headers: hdrs }),
+        fetch(api('/api/mhbot/my-snapshots?limit=200'), { headers: hdrs }),
         fetch(api('/api/mhbot/auth/status'),  { headers: hdrs }),
       ]);
       const [snap, status] = await Promise.all([snapRes.json(), statusRes.json()]);
@@ -152,8 +166,8 @@ export default function ProfilePage() {
       email: cachedUser.email || '', phone: cachedUser.phone || '',
       studentId: cachedUser.id_number || '', college: cachedUser.college || '',
       course: cachedUser.course || '', major: cachedUser.major || '',
-      year: cachedUser.year || '', emergencyContact: cachedUser.emergency_contact || '',
-      emergencyPhone: cachedUser.emergency_phone || '',
+      year: cachedUser.year || '', emergencyContact: emergencyContactName(cachedUser.emergency_contact),
+      emergencyPhone: emergencyContactPhone(cachedUser.emergency_contact, cachedUser.emergency_phone),
     };
     setProfile(fromCache); setFormData(fromCache); setUserRole(cachedUser.role || null);
     if (!token) return;
@@ -172,8 +186,8 @@ export default function ProfilePage() {
           email: user.email || '', phone: user.phone || '',
           studentId: user.id_number || '', college: user.college || '',
           course: user.course || '', major: user.major || '',
-          year: user.year || '', emergencyContact: user.emergency_contact || '',
-          emergencyPhone: user.emergency_phone || '',
+          year: user.year || '', emergencyContact: emergencyContactName(user.emergency_contact),
+          emergencyPhone: emergencyContactPhone(user.emergency_contact, user.emergency_phone),
         };
         setProfile(fresh); setFormData(fresh); setUserRole(user.role || null);
         localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...user }));
@@ -402,11 +416,14 @@ export default function ProfilePage() {
                 )}
               </div>
             ) : (() => {
+              const rangeCutoff = permaRange === 0 ? null : Date.now() - permaRange * 86_400_000;
               const chartData = [...(permaData.history || [])]
                 .filter((h: any) => h.perma_label && LABEL_TO_SCORE[h.perma_label])
+                .filter((h: any) => !rangeCutoff || new Date(h.date).getTime() >= rangeCutoff)
                 .reverse()
                 .map((h: any) => ({
                   dateRaw: h.date,
+                  ts: new Date(h.date).getTime(),
                   date: new Date(h.date).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }),
                   score: LABEL_TO_SCORE[h.perma_label],
                   label: h.perma_label,
@@ -446,12 +463,33 @@ export default function ProfilePage() {
                     )}
                   </div>
 
+                  <div className="flex items-center gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                    {([{ v: 30, label: '30d' }, { v: 90, label: '90d' }, { v: 180, label: '6mo' }, { v: 0, label: 'All' }] as const).map(({ v, label }) => (
+                      <button key={v} onClick={() => setPermaRange(v)}
+                        className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                        style={permaRange === v
+                          ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }
+                          : { color: 'var(--color-text-muted)' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
                   {chartData.length === 0 ? (
                     <div className="py-6 flex flex-col items-center gap-2 text-center rounded-2xl"
                       style={{ border: '1px dashed var(--color-border)' }}>
                       <Activity size={22} style={{ color: 'var(--color-border)' }} />
-                      <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No assessments recorded yet</p>
-                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Complete a conversation in the EMA chatbot to generate your first wellbeing label.</p>
+                      {(permaData.history?.length ?? 0) > 0 ? (
+                        <>
+                          <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No check-ins in this range</p>
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Try a wider range like "All" to see your earlier check-ins.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>No assessments recorded yet</p>
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Complete a conversation in the EMA chatbot to generate your first wellbeing label.</p>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -464,7 +502,9 @@ export default function ProfilePage() {
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.06} />
-                          <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                          <XAxis dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']}
+                            tickFormatter={(ts: number) => new Date(ts).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}
+                            tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                           <YAxis
                             domain={[1, 5]} ticks={[1, 2, 3, 4, 5]}
                             tickFormatter={(v: number) => SCORE_TO_LABEL[v] || ''}
@@ -472,6 +512,7 @@ export default function ProfilePage() {
                             width={62}
                           />
                           <Tooltip content={<CustomTooltip />} />
+                          <ReferenceArea y1={1} y2={2.5} fill="#ef4444" fillOpacity={0.06} />
                           <ReferenceLine y={3} stroke="#f59e0b" strokeDasharray="4 4" strokeOpacity={0.4} />
                           <Area
                             type="monotone" dataKey="score"

@@ -72,7 +72,9 @@ function CheckInContent() {
       });
   }, [token, appt]);
 
-  const errBg = result?.error?.includes('expired') ? '#F59E0B' : result?.error?.includes('already') ? '#3B82F6' : '#EF4444';
+  const errTone = result?.error?.includes('expired') ? 'warning' : result?.error?.includes('already') ? 'info' : 'danger';
+  const errBg   = `var(--color-${errTone}-surface)`;
+  const errFg   = `var(--color-${errTone}-text)`;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
@@ -148,13 +150,13 @@ function CheckInContent() {
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
             <div className="px-6 py-5 text-center" style={{ background: errBg }}>
               {result.error?.includes('expired') ? (
-                <Clock size={36} className="text-white mx-auto mb-2" />
+                <Clock size={36} className="mx-auto mb-2" style={{ color: errFg }} />
               ) : result.error?.includes('already') ? (
-                <AlertCircle size={36} className="text-white mx-auto mb-2" />
+                <AlertCircle size={36} className="mx-auto mb-2" style={{ color: errFg }} />
               ) : (
-                <XCircle size={36} className="text-white mx-auto mb-2" />
+                <XCircle size={36} className="mx-auto mb-2" style={{ color: errFg }} />
               )}
-              <p className="text-white font-bold text-lg">
+              <p className="font-bold text-lg" style={{ color: errFg }}>
                 {result.error?.includes('expired') ? 'QR Expired' : result.error?.includes('already') ? 'Already Scanned' : 'Invalid QR'}
               </p>
             </div>

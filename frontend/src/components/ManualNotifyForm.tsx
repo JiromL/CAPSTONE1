@@ -85,32 +85,33 @@ export default function ManualNotifyForm() {
   }, [username]);
 
   return (
-    <div className="max-w-md">
-      <form onSubmit={handleNotify} className="space-y-2">
+    <div className="card p-5 max-w-lg">
+      <form onSubmit={handleNotify} className="space-y-3">
+        <label htmlFor="perma-username" className="field-label">Student username</label>
         <input
+          id="perma-username"
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full pb-1 outline-none transition"
-          style={{ borderBottom: '1px solid var(--color-border-strong)', color: 'var(--color-text-primary)', background: 'transparent' }}
-          placeholder="Student username (e.g. jsmith)"
+          className="input"
+          placeholder="e.g. jsmith"
           required
         />
-        <div className="flex gap-2 text-sm">
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={loadHistory}
             disabled={loadingHistory || !username}
-            className="hover:underline" style={{ color: 'var(--color-primary)' }}
+            className="btn-ghost"
           >
-            {loadingHistory ? 'Loading…' : 'Load'}
+            {loadingHistory ? 'Loading…' : 'Load history'}
           </button>
           <button
             type="submit"
             disabled={loadingNotify || !username}
-            className="hover:underline" style={{ color: 'var(--color-warning)' }}
+            className="btn-primary"
           >
-            {loadingNotify ? 'Sending…' : 'Notify'}
+            {loadingNotify ? 'Sending…' : 'Notify counselor'}
           </button>
         </div>
       </form>

@@ -88,7 +88,8 @@ export default function PageShell({ title, subtitle, actions, children, hideNav 
       </header>
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        <PageHeader title={title} subtitle={subtitle} actions={actions} />
+        {/* Account pages (hideNav) carry their own card heading, so skip the page title */}
+        {!hideNav && <PageHeader title={title} subtitle={subtitle} actions={actions} />}
         <div className="space-y-6">{children}</div>
       </main>
     </div>

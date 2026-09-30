@@ -145,7 +145,7 @@ export default function FeedbackPage() {
 
   return (
     <DashboardPageWrapper title="Feedback" subtitle="Help us improve our services">
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-xl">
 
         {error && (
           <div className="mb-5 flex gap-2.5 rounded-xl p-4"

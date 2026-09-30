@@ -139,7 +139,7 @@ export default function RecurringAppointmentsPage() {
 
   return (
     <DashboardPageWrapper title="Recurring Appointments" subtitle="Schedule a series of sessions for a student">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl">
         <form onSubmit={submit} className="space-y-5">
 
           {error && (

@@ -449,7 +449,7 @@ export default function WalkinIntakePage() {
 
   return (
     <DashboardPageWrapper title="Walk-in Intake" subtitle="Register a student visiting the CPS office">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl">
 
         {/* Crisis toggle — keep fixed red (safety-critical UI) */}
         <button

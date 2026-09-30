@@ -243,7 +243,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         }}
       />
     )}
-    <DashboardLayout user={currentUser} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard">
+    <DashboardLayout user={currentUser} onLogout={onLogout} menuItems={menuItems} title="Dashboard" activeSection="dashboard" titleInPage>
       {loading ? (
         <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
           <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
@@ -305,7 +305,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 <article className="relative flex flex-col sm:flex-row rounded-2xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-card-lg)' }} aria-label="Next session">
                   <div className="sm:w-40 flex-shrink-0 flex sm:flex-col items-center sm:justify-center gap-4 sm:gap-0 px-6 py-5 sm:py-7 rounded-t-2xl sm:rounded-tr-none sm:rounded-l-2xl text-white" style={{ background: 'var(--color-primary)' }}>
                     <span className="text-xs font-bold tracking-[0.16em] uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>{d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short' })}</span>
-                    <span className="font-display text-6xl leading-none sm:my-1.5" style={{ color: 'white' }}>{d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric' })}</span>
+                    <span className="font-display text-5xl leading-none sm:my-1.5" style={{ color: 'white' }}>{d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric' })}</span>
                     <span className="text-xs font-bold tracking-[0.16em] uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>{d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short' })}</span>
                     {timeStr && (
                       <span className="sm:mt-4 ml-auto sm:ml-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.16)' }}>
@@ -374,7 +374,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   {upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
                     <>
                       <p className="type-overline" style={{ color: '#7BAAF7' }}>Welcome to CPS</p>
-                      <h2 className="font-display text-3xl leading-tight mt-3" style={{ color: 'white' }}>
+                      <h2 className="font-display text-2xl leading-snug mt-3 max-w-md" style={{ color: 'white' }}>
                         You don&apos;t have to figure this out alone, {firstName}.
                       </h2>
                       <p className="text-sm mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -387,7 +387,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   ) : (
                     <>
                       <p className="type-overline" style={{ color: '#7BAAF7' }}>Your counseling journey</p>
-                      <h2 className="font-display text-3xl leading-tight mt-3" style={{ color: 'white' }}>
+                      <h2 className="font-display text-2xl leading-snug mt-3 max-w-md" style={{ color: 'white' }}>
                         Reaching out was a brave first step, {firstName}.
                       </h2>
                       <p className="text-sm mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -620,7 +620,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             {/* Journal prompt */}
             <section className="card p-5">
               <p className="type-overline flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}><NotebookPen size={12} aria-hidden="true" /> Journal</p>
-              <p className="font-display text-2xl mt-3 leading-snug" style={{ color: 'var(--color-text-primary)' }}>
+              <p className="font-display text-lg mt-2 leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                 {nextAppt
                   ? `What's one thing you want to bring up on ${new Date(nextAppt.requested_start).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long' })}?`
                   : 'How are you doing today, really?'}

@@ -753,7 +753,7 @@ export default function CounselorSessionPage() {
       subtitle="Complete the structured SOAP note for this session"
       backLink={{ href: '/appointments', label: 'Appointments' }}
     >
-      <div className="max-w-3xl mx-auto space-y-4 pb-12">
+      <div className="max-w-3xl space-y-4 pb-12">
 
         {/* Patient header */}
         <div className="rounded-2xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>

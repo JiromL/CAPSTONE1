@@ -104,7 +104,7 @@ export default function CaseManagerQueuePage() {
 
   return (
     <DashboardPageWrapper title="CM Queue" subtitle="Students flagged as Struggling or In Crisis via EMA">
-      <div className="max-w-3xl mx-auto space-y-5">
+      <div className="max-w-3xl space-y-5">
 
         <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
           <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />

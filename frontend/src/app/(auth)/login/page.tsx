@@ -163,7 +163,7 @@ export default function LoginPage() {
 
         <div className="flex-1 flex items-center">
           <div className="w-full max-w-[400px] mx-auto py-12 animate-fade-up">
-            <h1 className="font-display" style={{ fontSize: 'clamp(2.25rem, 4vw, 2.875rem)', lineHeight: 1.05, color: 'var(--color-text-primary)' }}>
+            <h1 className="font-display" style={{ fontSize: 'clamp(1.875rem, 3vw, 2.25rem)', lineHeight: 1.15, color: 'var(--color-text-primary)' }}>
               Welcome back.
             </h1>
             <p className="type-body mt-3" style={{ color: 'var(--color-text-secondary)' }}>
@@ -286,14 +286,14 @@ export default function LoginPage() {
         </div>
 
         <div className="relative py-12 lg:py-0">
-          <h2 className="font-display max-w-md" style={{ fontSize: 'clamp(2rem, 3.6vw, 3.25rem)', lineHeight: 1.08, color: 'white' }}>
+          <h2 className="font-display max-w-md" style={{ fontSize: 'clamp(1.75rem, 2.8vw, 2.5rem)', lineHeight: 1.2, color: 'white' }}>
             Reaching out is <span style={{ color: '#7BAAF7' }}>the first step.</span> We&apos;ll take the next one with you.
           </h2>
 
           <div className="login-slip relative mt-12 max-w-[420px] rounded-2xl flex" style={{ background: 'var(--color-surface)', boxShadow: '0 30px 60px -20px rgba(0,0,0,0.55)' }}>
             <div className="w-[104px] flex-shrink-0 rounded-l-2xl flex flex-col items-center justify-center py-5 text-white" style={{ background: 'var(--color-primary)' }}>
               <span className="text-[10px] font-bold tracking-[0.16em] uppercase" style={{ color: 'rgba(255,255,255,0.7)' }}>Step</span>
-              <span className="font-display text-5xl leading-none mt-1" style={{ color: 'white' }}>1</span>
+              <span className="font-display text-4xl leading-none mt-1" style={{ color: 'white' }}>1</span>
             </div>
             <div className="relative w-0 border-l-2 border-dashed" style={{ borderColor: 'var(--color-border-strong)' }} aria-hidden="true">
               <span className="absolute -top-2.5 -left-[11px] w-5 h-5 rounded-full" style={{ background: 'var(--color-sidebar)' }} />

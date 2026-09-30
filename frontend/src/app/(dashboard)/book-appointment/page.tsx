@@ -965,7 +965,7 @@ export default function BookAppointmentPage() {
             </div>
             {purpose === 'intake_interview' && (
               <p className="text-xs rounded-lg px-3 py-2 mb-4" style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning)' }}>
-                After booking, you&apos;ll be asked to fill out the intake forms (ICF, SPIF, PHQ-4). You can do them now or come back later.
+                After booking, you&apos;ll fill out a few short forms about you and how you&apos;ve been feeling. You can do them now or come back later.
               </p>
             )}
             {error && <p className="text-xs mb-3" style={{ color: 'var(--color-danger)' }}>{error}</p>}
@@ -1145,7 +1145,7 @@ export default function BookAppointmentPage() {
                   {purpose === 'intake_interview' && (
                     <div className="flex items-start gap-2 rounded-xl px-4 py-3" style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
                       <ClipboardCheck size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
-                      <p className="text-xs" style={{ color: 'var(--color-primary)' }}><strong>Intake Interview selected:</strong> After submitting, you&apos;ll complete short intake forms (ICF, SPIF-IF, PHQ-4) to help your counselor prepare.</p>
+                      <p className="text-xs" style={{ color: 'var(--color-primary)' }}><strong>First session:</strong> After submitting, you&apos;ll fill out a few short forms so your counselor can get to know you before you meet.</p>
                     </div>
                   )}
 

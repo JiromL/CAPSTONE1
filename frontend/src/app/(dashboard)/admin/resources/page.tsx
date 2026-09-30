@@ -51,7 +51,7 @@ export default function AdminResourcesPage() {
 
   return (
     <DashboardPageWrapper title="Manage Wellness Resources">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl">
 
         <div className="p-4 mb-6" style={{ background: 'var(--color-primary-surface)', borderLeft: '4px solid var(--color-primary)' }}>
           <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>How it works:</h3>

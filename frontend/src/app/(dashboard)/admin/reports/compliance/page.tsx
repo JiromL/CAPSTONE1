@@ -62,7 +62,7 @@ export default function ComplianceReportPage() {
 
   return (
     <DashboardPageWrapper title="Compliance Report" subtitle="Intake completion rates and appointment compliance overview">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl space-y-8">
 
         <div className="flex items-center justify-between">
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Compliance metrics from the CPS system</p>

@@ -55,7 +55,7 @@ function ResetPasswordContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="font-display text-4xl mb-3" style={{ color: 'var(--color-text-primary)' }}>Password reset!</h1>
+              <h1 className="font-display text-3xl mb-3" style={{ color: 'var(--color-text-primary)' }}>Password reset!</h1>
               <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>Redirecting you to login…</p>
               <Link href="/login" className="text-sm hover:underline" style={{ color: 'var(--color-success)' }}>
                 Go to login now
@@ -63,7 +63,7 @@ function ResetPasswordContent() {
             </div>
           ) : (
             <div>
-              <h1 className="font-display text-4xl mb-2" style={{ color: 'var(--color-text-primary)' }}>Set new password</h1>
+              <h1 className="font-display text-3xl mb-2" style={{ color: 'var(--color-text-primary)' }}>Set new password</h1>
               <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>Must be at least 8 characters.</p>
 
               {error && (

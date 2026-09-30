@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="font-display text-4xl mb-3" style={{ color: 'var(--color-text-primary)' }}>Check your email</h1>
+              <h1 className="font-display text-3xl mb-3" style={{ color: 'var(--color-text-primary)' }}>Check your email</h1>
               <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>
                 If <strong>{email}</strong> is registered, you'll receive a password reset link shortly.
               </p>
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <div>
-              <h1 className="font-display text-4xl mb-2" style={{ color: 'var(--color-text-primary)' }}>Forgot password?</h1>
+              <h1 className="font-display text-3xl mb-2" style={{ color: 'var(--color-text-primary)' }}>Forgot password?</h1>
               <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>
                 Enter your DLSU email and we'll send a reset link.
               </p>

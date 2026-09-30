@@ -890,7 +890,7 @@ export default function ConductIntakePage() {
 
   return (
     <DashboardPageWrapper title="Intake Interview" subtitle="Complete assessments and document the session" backLink={{ href: '/intake-management', label: 'Intake Management' }}>
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="max-w-3xl space-y-4">
 
         {/* Patient header — persistent throughout */}
         <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>

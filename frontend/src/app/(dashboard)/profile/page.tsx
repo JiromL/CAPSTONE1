@@ -242,7 +242,7 @@ export default function ProfilePage() {
   return (
     <>
     <DashboardPageWrapper title="My Profile">
-      <div className="max-w-3xl mx-auto space-y-5">
+      <div className="max-w-3xl space-y-5">
 
         {successMessage && (
           <div className="p-4 rounded-xl" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>

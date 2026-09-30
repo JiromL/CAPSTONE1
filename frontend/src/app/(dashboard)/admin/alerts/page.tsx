@@ -40,7 +40,7 @@ export default function AlertsPage() {
 
   return (
     <DashboardPageWrapper title="Alert Configuration" subtitle="Configure system-wide alert rules and thresholds">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl space-y-6">
         {status === 'saved' && (
           <div className="p-3 rounded-lg text-sm"
             style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning-text)' }}>

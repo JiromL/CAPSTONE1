@@ -138,7 +138,7 @@ export default function JournalPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <p className="font-display text-2xl" style={{ color: 'var(--color-text-primary)' }}>{editingId ? 'Edit entry' : 'New entry'}</p>
+                <p className="font-display text-xl" style={{ color: 'var(--color-text-primary)' }}>{editingId ? 'Edit entry' : 'New entry'}</p>
                 <p className="flex items-center gap-1.5 type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>
                   {today} · <Lock size={11} aria-hidden="true" /> Only you can see this unless you choose to share it
                 </p>

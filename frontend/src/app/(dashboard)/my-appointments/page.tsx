@@ -369,17 +369,15 @@ export default function MyAppointmentsPage() {
   };
 
   return (
-    <DashboardPageWrapper title="My Appointments" subtitle="View and manage your counseling sessions">
-
-      {/* Page header */}
-      <div className="flex items-center justify-end mb-5">
-        <Link href="/book-appointment">
-          <button className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-all hover:opacity-90 shadow-sm"
-            style={{ background: 'var(--color-primary)' }}>
-            <Plus size={14} /> Book a Session
-          </button>
+    <DashboardPageWrapper
+      title="My Appointments"
+      subtitle="View and manage your counseling sessions"
+      actions={
+        <Link href="/book-appointment" className="btn-primary !min-h-11 !px-5 !text-sm">
+          <Plus size={16} /> Book a session
         </Link>
-      </div>
+      }
+    >
 
       {/* Evaluation reminder banner */}
       {(() => {

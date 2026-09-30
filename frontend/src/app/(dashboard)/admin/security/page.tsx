@@ -57,7 +57,7 @@ const Sec = ({ icon, title, children }: { icon: React.ReactNode; title: string; 
 export default function SecurityPage() {
   return (
     <DashboardPageWrapper title="Security Settings" subtitle="Password policy, login security, and authentication">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl space-y-6">
 
         <div className="p-4 rounded-xl text-sm"
           style={{ background: 'var(--color-warning-surface)', border: '1px solid var(--color-warning)', color: 'var(--color-warning-text)' }}>

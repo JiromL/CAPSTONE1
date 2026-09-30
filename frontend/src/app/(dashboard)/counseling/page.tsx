@@ -99,8 +99,13 @@ export default function CounselingHistoryPage() {
       title="My Counseling History"
       subtitle="A record of your past sessions with CPS"
       requiredRoles={['STUDENT']}
+      actions={
+        <Link href="/book-appointment" className="btn-primary !min-h-11 !px-5 !text-sm">
+          <Plus size={16} /> Request a new session
+        </Link>
+      }
     >
-      <div className="max-w-2xl mx-auto space-y-5">
+      <div className="max-w-3xl space-y-5">
 
         {/* Stats strip */}
         <div className="grid grid-cols-2 gap-3">
@@ -121,14 +126,6 @@ export default function CounselingHistoryPage() {
             }
           </div>
         </div>
-
-        {/* CTA */}
-        <Link href="/book-appointment">
-          <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold text-white transition hover:opacity-90"
-            style={{ background: 'var(--color-primary)' }}>
-            <Plus size={15} /> Request a New Session
-          </button>
-        </Link>
 
         {/* Session list */}
         <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>

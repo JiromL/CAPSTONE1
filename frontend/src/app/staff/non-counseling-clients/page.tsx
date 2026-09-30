@@ -121,7 +121,7 @@ export default function NonCounselingClientsPage() {
 
   return (
     <PageShell title="Non-Counseling Check-In Clients" subtitle="Create periodic check-in cases for referred students">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="flex gap-3 rounded p-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>

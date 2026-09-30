@@ -7,7 +7,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 export default function BackupPage() {
   return (
     <DashboardPageWrapper title="Backup & Recovery" subtitle="Manage system data backups">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl space-y-6">
 
         <div className="rounded-2xl p-6 space-y-4"
           style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>

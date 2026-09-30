@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2, ShieldCheck, Check } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
@@ -241,8 +241,9 @@ export default function ProfilePage() {
 
   return (
     <>
-    <DashboardPageWrapper title="My Profile">
-      <div className="max-w-3xl space-y-5">
+    <DashboardPageWrapper title="My Profile" subtitle="Your details and account settings">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      <div className="xl:col-span-8 space-y-5 min-w-0">
 
         {successMessage && (
           <div className="p-4 rounded-xl" style={{ background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
@@ -558,6 +559,40 @@ export default function ProfilePage() {
           </div>
         )}
 
+      </div>
+
+      {/* Side column */}
+      <aside className="xl:col-span-4 space-y-5 min-w-0">
+        {userRole === 'STUDENT' && (
+          <section className="rounded-2xl shadow-card p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <div className="flex items-center gap-2.5">
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-success-surface)' }}>
+                <ShieldCheck size={17} style={{ color: 'var(--color-success)' }} aria-hidden="true" />
+              </span>
+              <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Your privacy</h3>
+            </div>
+            <ul className="mt-4 space-y-3.5">
+              {[
+                { t: 'Your sessions', d: 'What you share stays between you and your CPS care team.' },
+                { t: 'Your journal', d: 'Private to you unless you choose to share it.' },
+                { t: 'Your emergency contact', d: 'Only contacted if we’re seriously worried about your safety.' },
+              ].map(i => (
+                <li key={i.t} className="flex gap-2.5">
+                  <Check size={15} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-success)' }} aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{i.t}</p>
+                    <p className="type-body-sm" style={{ color: 'var(--color-text-secondary)' }}>{i.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="type-caption mt-4 pt-4" style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)' }}>
+              Protected under RA 10173 (Data Privacy Act). Questions?{' '}
+              <a href="mailto:cps@dlsu.edu.ph" className="font-medium hover:underline underline-offset-2" style={{ color: 'var(--color-primary-text)' }}>cps@dlsu.edu.ph</a>
+            </p>
+          </section>
+        )}
+
         {/* Account section */}
         <div className="rounded-2xl shadow-card p-5 flex flex-col gap-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--color-text-muted)' }}>Account</p>
@@ -597,6 +632,7 @@ export default function ProfilePage() {
             </Link>
           )}
         </div>
+      </aside>
       </div>
 
       {/* EMA Consent Modal */}

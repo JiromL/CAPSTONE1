@@ -138,9 +138,6 @@ html.dark {
 html {
   scroll-behavior: smooth;
   height: 100%;
-  /* Base size for the whole app (17px). Text, spacing, radii and
-     component sizes are in rem, so they all scale together. */
-  font-size: 106.25%;
 }
 
 body {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
+import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose, Sun, Moon } from 'lucide-react';
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
@@ -16,6 +16,7 @@ interface MenuItem {
   icon?: React.ReactNode;
   badge?: number;
   divider?: boolean;
+  heading?: string;
 }
 
 interface DashboardLayoutProps {
@@ -285,10 +286,22 @@ export function DashboardLayout({
 
   /* ── Sidebar content ────────────────────────────────────── */
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'radial-gradient(120% 45% at 0% 0%, rgba(35,82,204,0.28) 0%, transparent 60%), radial-gradient(90% 35% at 100% 100%, rgba(35,82,204,0.12) 0%, transparent 60%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.035]"
+        style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0 39px, #fff 39px 40px)' }}
+      />
 
       {/* Logo */}
-      <div className="flex items-center gap-3 px-3 h-16 flex-shrink-0">
+      <div className="relative flex items-center gap-3 px-3 h-16 flex-shrink-0">
         {/* Mark — clicking it expands the sidebar when collapsed */}
         <div
           onClick={!mobileOpen && sidebarCollapsed ? toggleSidebar : undefined}
@@ -327,10 +340,10 @@ export function DashboardLayout({
       </div>
 
       {/* Divider */}
-      <div className="mx-4 h-px bg-white/[0.06] mb-3 flex-shrink-0" />
+      <div className="relative mx-4 h-px bg-white/[0.08] mb-1 flex-shrink-0" />
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1" aria-label="Main">
+      <nav className="relative flex-1 overflow-y-auto overflow-x-hidden py-1" aria-label="Main">
         <div ref={navListRef} className="relative space-y-0.5">
           {indicator && (
             <span
@@ -345,16 +358,21 @@ export function DashboardLayout({
               <span className="absolute -left-2 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-[#7BAAF7]" />
             </span>
           )}
-          {menuItems.map((item, i) => item.divider
-            ? <div key={i} className="mx-4 my-1.5 h-px bg-white/[0.06]" />
-            : <div key={i}>{NavItem({ item, index: i })}</div>
-          )}
+          {menuItems.map((item, i) => {
+            if (item.heading) {
+              return (mobileOpen || !sidebarCollapsed)
+                ? <p key={i} className="px-5 pt-5 pb-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-white/40 select-none">{item.heading}</p>
+                : <div key={i} className="mx-4 my-3 h-px bg-white/[0.08]" aria-hidden="true" />;
+            }
+            if (item.divider) return <div key={i} className="mx-4 my-1.5 h-px bg-white/[0.06]" />;
+            return <div key={i}>{NavItem({ item, index: i })}</div>;
+          })}
         </div>
       </nav>
 
       {/* Crisis line — students only, always one glance away */}
       {user?.role === 'STUDENT' && (mobileOpen || !sidebarCollapsed) && (
-        <div className="mx-3 mb-3 rounded-xl p-3.5 flex-shrink-0" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)' }}>
+        <div className="relative mx-3 mb-3 rounded-xl p-3.5 flex-shrink-0" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)' }}>
           <p className="text-xs font-semibold" style={{ color: '#FCA5A5' }}>Need help right now?</p>
           <p className="text-[0.6875rem] mt-1 leading-relaxed text-white/70">
             NCMH <a href="tel:1553" className="font-semibold underline underline-offset-2 text-white">1553</a> · open 24/7
@@ -362,73 +380,33 @@ export function DashboardLayout({
         </div>
       )}
 
-      {/* Bottom section */}
-      <div className="flex-shrink-0 pb-3">
-        <div className="mx-4 h-px bg-white/[0.06] mb-3" />
-
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          className={`
-            flex items-center gap-3 w-full px-3 py-2.5 mx-2 rounded-xl
-            text-white/40 hover:text-white/70 hover:bg-white/[0.07]
-            transition-all duration-150
-            ${mobileOpen ? 'w-[calc(100%-16px)]' : 'w-[calc(100%-16px)]'}
-          `}
-          style={{ width: 'calc(100% - 16px)' }}
+      {/* Account card — who is signed in, theme and sign-out in one place */}
+      <div className="relative flex-shrink-0 px-3 pb-3 pt-1">
+        <div
+          className={`rounded-xl border border-white/[0.08] bg-white/[0.04] ${(mobileOpen || !sidebarCollapsed) ? 'flex items-center gap-2.5 p-2.5' : 'flex flex-col items-center gap-1.5 py-2'}`}
         >
-          <span className="flex-shrink-0 w-[18px] h-[18px] flex items-center justify-center">
-            {theme === 'dark'
-              ? <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-              : <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            }
-          </span>
-          <span className={`
-            text-sm font-medium whitespace-nowrap transition-opacity duration-150
-            ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
-          `}>
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-          </span>
-        </button>
-
-        {/* User card */}
-        <div className="flex items-center gap-3 px-3 py-2.5 mx-2 mt-0.5 rounded-xl hover:bg-white/[0.05] transition-colors cursor-default">
-          {/* Avatar */}
           <div
-            className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ring-2 ring-white/10"
+            className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ring-2 ring-white/10"
             style={{ background: roleColor }}
+            title={`${fullName} · ${roleLabel}`}
           >
             {initials || 'U'}
           </div>
-
-          {/* Name + role */}
-          <div className={`
-            flex-1 min-w-0 overflow-hidden transition-opacity duration-150
-            ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
-          `}>
-            <p className="text-xs font-semibold text-white/90 truncate leading-tight">{fullName}</p>
-            <p className="text-[0.6875rem] text-white/40 truncate leading-tight mt-0.5">{roleLabel}</p>
-          </div>
+          {(mobileOpen || !sidebarCollapsed) && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white leading-snug line-clamp-2 break-words" title={fullName}>{fullName}</p>
+              <p className="text-xs text-white/50 truncate leading-tight mt-0.5">{roleLabel}</p>
+            </div>
+          )}
+          <button
+            onClick={onLogout}
+            aria-label="Sign out"
+            title="Sign out"
+            className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-white/55 hover:text-[#FCA5A5] hover:bg-[rgba(239,68,68,0.12)] transition-colors"
+          >
+            <Power size={16} />
+          </button>
         </div>
-
-        {/* Sign out */}
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-3 mt-0.5 px-3 py-2.5 mx-2 rounded-xl transition-all duration-150"
-          style={{ width: 'calc(100% - 16px)', color: 'rgba(255,255,255,0.3)' }}
-          onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.color = '#F87171'; b.style.background = 'rgba(239,68,68,0.1)'; }}
-          onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.color = 'rgba(255,255,255,0.3)'; b.style.background = 'transparent'; }}
-        >
-          <span className="flex-shrink-0 w-[18px] h-[18px] flex items-center justify-center">
-            <Power size={14} />
-          </span>
-          <span className={`
-            text-sm font-medium whitespace-nowrap transition-opacity duration-150
-            ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
-          `}>
-            Sign out
-          </span>
-        </button>
       </div>
     </div>
   );
@@ -528,6 +506,17 @@ export function DashboardLayout({
 
           {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto lg:ml-0">
+
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              className="flex items-center justify-center w-10 h-10 rounded-xl border transition-colors duration-150 hover:bg-[var(--color-bg)] hover:border-[var(--color-border-strong)]"
+              style={{ color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            >
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
 
             {/* Notification bell */}
             <div className="relative" ref={bellRef}>

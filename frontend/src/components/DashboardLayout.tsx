@@ -72,11 +72,16 @@ export function DashboardLayout({
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  useEffect(() => {
+  // Read the saved collapse state before the first paint so a new page never
+  // flashes the full-width sidebar; width transitions stay off until then.
+  const [sidebarReady, setSidebarReady] = useState(false);
+  useLayoutEffect(() => {
     try {
       const stored = localStorage.getItem('sidebar-collapsed');
       if (stored !== null) setSidebarCollapsed(stored === 'true');
     } catch {}
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setSidebarReady(true)));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   /* ── Sidebar motion ─────────────────────────────────────────
@@ -450,7 +455,7 @@ export function DashboardLayout({
       <aside className={`
         fixed left-0 top-0 h-screen z-30 flex-col flex
         overflow-hidden
-        transition-[width,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
+        ${sidebarReady ? 'transition-[width,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]' : ''}
         border-r border-white/[0.04]
         w-72
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -473,7 +478,7 @@ export function DashboardLayout({
       )}
 
       {/* ── Main area ────────────────────────────────────── */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-[margin] duration-200 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+      <div className={`flex-1 flex flex-col min-h-screen ${sidebarReady ? 'transition-[margin] duration-200' : ''} ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
 
         {/* Top header */}
         <header

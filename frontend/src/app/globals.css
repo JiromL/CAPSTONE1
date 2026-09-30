@@ -273,65 +273,128 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-card);
 }
 
+/* Interactive card — lifts on hover */
+.card-interactive {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  cursor: pointer;
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-lg);
+  border-color: var(--color-border-strong);
+}
+
+/* Buttons — shared base */
+.btn-primary,
+.btn-ghost,
+.btn-outline,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 2.5rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+}
+.btn-primary:active:not(:disabled),
+.btn-ghost:active:not(:disabled),
+.btn-outline:active:not(:disabled),
+.btn-danger:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn-primary:disabled,
+.btn-ghost:disabled,
+.btn-outline:disabled,
+.btn-danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Primary button */
 .btn-primary {
   background: var(--color-primary);
   color: #ffffff;
-  border-radius: 0.625rem;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  padding: 0.5rem 1rem;
-  transition: background 150ms, box-shadow 150ms, transform 100ms;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
+  border: 1px solid transparent;
 }
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
   box-shadow: var(--shadow-primary);
-}
-.btn-primary:active {
-  transform: scale(0.97);
 }
 
 /* Ghost button */
 .btn-ghost {
-  background: transparent;
-  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
-  border-radius: 0.625rem;
   font-weight: 500;
-  font-size: 0.8125rem;
-  padding: 0.5rem 0.875rem;
-  transition: background 150ms, border-color 150ms, color 150ms;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
 }
-.btn-ghost:hover {
+.btn-ghost:hover:not(:disabled) {
   background: var(--color-bg);
   border-color: var(--color-border-strong);
-  color: var(--color-text-primary);
+}
+
+/* Outline (primary) button */
+.btn-outline {
+  background: transparent;
+  color: var(--color-primary-text);
+  border: 1px solid var(--color-primary);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--color-primary-surface);
+}
+
+/* Destructive button */
+.btn-danger {
+  background: var(--color-danger);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
 }
 
 /* Page input */
 .input {
   width: 100%;
-  background: var(--color-surface);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 0.625rem;
-  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
   font-size: 0.875rem;
   color: var(--color-text-primary);
-  transition: border-color 150ms, box-shadow 150ms;
+  transition: border-color 150ms, box-shadow 150ms, background 150ms;
   outline: none;
 }
+.input:hover:not(:focus):not(:disabled) {
+  border-color: var(--color-border-strong);
+}
 .input:focus {
+  background: var(--color-surface);
   border-color: var(--color-primary);
   box-shadow: var(--shadow-primary);
 }
 .input::placeholder {
   color: var(--color-text-muted);
+}
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Form field label */
+.field-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  margin-bottom: 0.375rem;
+  color: var(--color-text-primary);
 }
 
 /* Status badge base */
@@ -367,6 +430,9 @@ h1, h2, h3, h4, h5, h6 {
    WCAG AA requires 4.5:1 contrast for text below 18px/14px bold.
 ───────────────────────────────────────────────────────────── */
 
+/* Display — Fraunces, reserved for page greetings and hero moments */
+.font-display       { font-family: var(--font-fraunces), Georgia, serif; font-variation-settings: 'SOFT' 100, 'opsz' 144; font-weight: 420; letter-spacing: -0.025em; }
+.type-display       { font-family: var(--font-fraunces), Georgia, serif; font-variation-settings: 'SOFT' 100, 'opsz' 144; font-weight: 420; letter-spacing: -0.025em; font-size: clamp(1.75rem, 3vw, 2.25rem); line-height: 1.1; }
 /* Page-level heading */
 .type-page-title    { font-size: 1.25rem;   font-weight: 700; line-height: 1.75rem; letter-spacing: -0.02em; }
 /* Card / panel section heading */

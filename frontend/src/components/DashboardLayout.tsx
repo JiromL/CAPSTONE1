@@ -145,6 +145,7 @@ export function DashboardLayout({
   const initials  = (firstName[0] || '').toUpperCase() + (lastName[0] || '').toUpperCase();
   const roleLabel = ROLE_LABEL[user?.role] ?? (user?.role || 'User');
   const roleColor = ROLE_COLOR[user?.role] ?? '#2352CC';
+  const todayLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric' });
 
   /* ── Sidebar nav item renderer ─────────────────────────── */
   const NavItem = ({ item, index }: { item: MenuItem; index: number }) => {
@@ -154,21 +155,21 @@ export function DashboardLayout({
 
     const inner = (
       <div className={`
-        relative flex items-center gap-3 px-3 py-2.5 rounded-xl mx-2 cursor-pointer
-        transition-all duration-150
+        relative flex items-center gap-3 px-3 h-11 rounded-xl mx-2 cursor-pointer
+        transition-colors duration-150
         ${isActive
-          ? 'bg-[var(--color-primary)] text-white shadow-sm'
-          : 'text-white/50 hover:text-white/90 hover:bg-white/[0.07]'
+          ? 'bg-[rgba(35,82,204,0.28)] text-white'
+          : 'text-white/60 hover:text-white hover:bg-white/[0.06]'
         }
       `}>
-        {/* Active indicator line */}
+        {/* Active indicator rail */}
         {isActive && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-white/40 -ml-2" />
+          <span className="absolute -left-2 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-[#7BAAF7]" />
         )}
 
         {/* Icon */}
         <span className={`flex-shrink-0 flex items-center justify-center w-[18px] h-[18px] ${
-          isActive ? 'text-white' : 'text-white/50'
+          isActive ? 'text-white' : 'text-white/60'
         }`}>
           {icon}
         </span>
@@ -189,7 +190,7 @@ export function DashboardLayout({
             flex items-center justify-center rounded-full font-bold
             transition-opacity duration-150
             ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
-            ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-primary)] text-white'}
+            bg-[var(--color-primary)] text-white
           `}>
             {item.badge > 99 ? '99+' : item.badge}
           </span>
@@ -216,13 +217,13 @@ export function DashboardLayout({
     <div className="flex flex-col h-full">
 
       {/* Logo */}
-      <div className="flex items-center gap-3 px-3 py-5 flex-shrink-0">
+      <div className="flex items-center gap-3 px-3 h-16 flex-shrink-0">
         {/* Mark — clicking it expands the sidebar when collapsed */}
         <div
           onClick={!mobileOpen && sidebarCollapsed ? toggleSidebar : undefined}
-          className={`flex-shrink-0 w-8 h-8 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-md shadow-blue-900/30 select-none transition-opacity ${!mobileOpen && sidebarCollapsed ? 'cursor-pointer hover:opacity-80' : ''}`}
+          className={`flex-shrink-0 w-9 h-9 rounded-xl bg-[var(--color-primary)] flex items-center justify-center select-none transition-opacity ${!mobileOpen && sidebarCollapsed ? 'cursor-pointer hover:opacity-80' : ''}`}
         >
-          <span className="text-xs font-extrabold text-white tracking-tighter">CPS</span>
+          <span className="text-[10px] font-extrabold text-white tracking-tighter">CPS</span>
         </div>
 
         {/* Wordmark — removed from layout flow when collapsed so toggle button stays visible */}
@@ -230,10 +231,8 @@ export function DashboardLayout({
           overflow-hidden transition-all duration-200 whitespace-nowrap
           ${(mobileOpen || !sidebarCollapsed) ? 'max-w-[200px] opacity-100 flex-1 min-w-0' : 'max-w-0 opacity-0 flex-none w-0'}
         `}>
-          <p className="text-sm font-bold text-white leading-tight">CPS Portal</p>
-          <p className="text-xs text-white/35 leading-tight font-medium tracking-wide uppercase">
-            De La Salle University
-          </p>
+          <p className="text-sm font-bold text-white leading-tight">DLSU CPS</p>
+          <p className="text-[11px] text-white/50 leading-tight mt-0.5">{roleLabel}</p>
         </div>
 
         {/* Desktop collapse toggle */}
@@ -257,7 +256,7 @@ export function DashboardLayout({
       </div>
 
       {/* Divider */}
-      <div className="mx-4 h-px bg-white/[0.06] mb-2 flex-shrink-0" />
+      <div className="mx-4 h-px bg-white/[0.06] mb-3 flex-shrink-0" />
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-1 space-y-0.5">
@@ -266,6 +265,16 @@ export function DashboardLayout({
           : <NavItem key={i} item={item} index={i} />
         )}
       </nav>
+
+      {/* Crisis line — students only, always one glance away */}
+      {user?.role === 'STUDENT' && (mobileOpen || !sidebarCollapsed) && (
+        <div className="mx-3 mb-3 rounded-xl p-3.5 flex-shrink-0" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)' }}>
+          <p className="text-xs font-semibold" style={{ color: '#FCA5A5' }}>Need help right now?</p>
+          <p className="text-[11px] mt-1 leading-relaxed text-white/70">
+            NCMH <a href="tel:1553" className="font-semibold underline underline-offset-2 text-white">1553</a> · open 24/7
+          </p>
+        </div>
+      )}
 
       {/* Bottom section */}
       <div className="flex-shrink-0 pb-3">
@@ -379,7 +388,7 @@ export function DashboardLayout({
 
         {/* Top header */}
         <header
-          className="sticky top-0 z-20 h-14 flex items-center gap-4 px-4 lg:px-6 border-b"
+          className="sticky top-0 z-20 h-16 flex items-center gap-3 px-4 lg:px-8 border-b"
           style={{
             background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
             borderColor: 'var(--color-border)',
@@ -401,14 +410,12 @@ export function DashboardLayout({
 
           {/* Page title — desktop */}
           <div className="hidden lg:block flex-1 min-w-0">
-            <p className="text-base font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
+            <p className="text-[0.9375rem] font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
               {title}
             </p>
-            {subtitle && (
-              <p className="text-xs leading-none mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
-                {subtitle}
-              </p>
-            )}
+            <p className="text-xs leading-tight mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+              {subtitle || todayLabel}
+            </p>
           </div>
 
           {/* Page title — mobile (centered) */}
@@ -417,28 +424,20 @@ export function DashboardLayout({
           </div>
 
           {/* Right actions */}
-          <div className="flex items-center gap-1 ml-auto lg:ml-0">
+          <div className="flex items-center gap-2 ml-auto lg:ml-0">
 
             {/* Notification bell */}
             <div className="relative" ref={bellRef}>
               <button
                 onClick={() => setBellOpen(v => { if (!v) setReminderCount(0); return !v; })}
                 aria-label={reminderCount > 0 ? `Notifications (${reminderCount} new)` : 'Notifications'}
-                className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors duration-150"
-                style={{ color: 'var(--color-text-secondary)' }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'var(--color-border)';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)';
-                }}
+                className="relative flex items-center justify-center w-10 h-10 rounded-xl border transition-colors duration-150 hover:bg-[var(--color-bg)] hover:border-[var(--color-border-strong)]"
+                style={{ color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
               >
-                <Bell size={16} />
+                <Bell size={17} />
                 {reminderCount > 0 && (
                   <span
-                    className="absolute top-1 right-1 w-2 h-2 rounded-full ring-2 animate-ping-dot"
+                    className="absolute top-2 right-2.5 w-2 h-2 rounded-full ring-2"
                     style={{ background: 'var(--color-danger)', '--tw-ring-color': 'var(--color-surface)' } as React.CSSProperties}
                   />
                 )}
@@ -537,7 +536,7 @@ export function DashboardLayout({
 
             {/* User avatar — desktop only */}
             <div
-              className="hidden lg:flex ml-1 items-center justify-center w-7 h-7 rounded-full text-white text-xs font-bold ring-1 ring-white/20 cursor-default select-none"
+              className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full text-white text-xs font-bold ring-1 ring-white/20 cursor-default select-none"
               style={{ background: roleColor }}
               title={`${fullName} · ${roleLabel}`}
             >
@@ -547,8 +546,8 @@ export function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main id="main-content" className="flex-1 p-4 lg:p-6" tabIndex={-1}>
-          <div className="max-w-6xl mx-auto animate-fade-in">
+        <main id="main-content" className="flex-1 px-4 py-6 lg:px-8 lg:py-8" tabIndex={-1}>
+          <div className="max-w-[1200px] mx-auto animate-fade-in">
             {children}
           </div>
         </main>

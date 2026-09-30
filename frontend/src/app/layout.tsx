@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeContext";
 
@@ -9,6 +9,15 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-jakarta",
   display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: "variable",
+  style: ["normal", "italic"],
+  variable: "--font-fraunces",
+  display: "swap",
+  axes: ["opsz", "SOFT"],
 });
 
 export const metadata: Metadata = {
@@ -80,7 +89,7 @@ html.dark{
         <meta name="apple-mobile-web-app-title" content="DLSU CPS" />
         <link rel="apple-touch-icon" href="/cps-logo.png" />
       </head>
-      <body className={`${jakarta.variable} antialiased`}>
+      <body className={`${jakarta.variable} ${fraunces.variable} antialiased`}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

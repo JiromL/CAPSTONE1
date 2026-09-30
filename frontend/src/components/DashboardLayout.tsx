@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
 import { EmaFloatingChat } from './EmaFloatingChat';
@@ -79,7 +79,48 @@ export function DashboardLayout({
     } catch {}
   }, []);
 
+  /* ── Sidebar motion ─────────────────────────────────────────
+     The active highlight is one element that glides to the current page.
+     The layout remounts on every page, so the last position is kept in
+     sessionStorage and the highlight animates from there.            */
+  const navListRef = useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = useState<{ top: number; height: number; animate: boolean } | null>(null);
+  const [navTip, setNavTip] = useState<{ label: string; top: number } | null>(null);
+  const [navIntro] = useState(() => {
+    try { return typeof window !== 'undefined' && !sessionStorage.getItem('nav-intro-played'); } catch { return false; }
+  });
+
+  useEffect(() => {
+    if (navIntro) { try { sessionStorage.setItem('nav-intro-played', '1'); } catch {} }
+  }, [navIntro]);
+
+  useLayoutEffect(() => {
+    const el = navListRef.current?.querySelector<HTMLElement>('[data-nav-active="true"]');
+    if (!el) { setIndicator(null); return; }
+    const next = { top: el.offsetTop, height: el.offsetHeight };
+    let prev: number | null = null;
+    try { const v = sessionStorage.getItem('nav-indicator-top'); prev = v === null ? null : Number(v); } catch {}
+    try { sessionStorage.setItem('nav-indicator-top', String(next.top)); } catch {}
+
+    setIndicator(cur => {
+      if (cur) return { ...next, animate: true };              // same mount: glide
+      if (prev !== null && prev !== next.top) return { top: prev, height: next.height, animate: false };
+      return { ...next, animate: false };
+    });
+    if (prev !== null && prev !== next.top) {
+      const id = requestAnimationFrame(() => requestAnimationFrame(() => setIndicator({ ...next, animate: true })));
+      return () => cancelAnimationFrame(id);
+    }
+  }, [activeSection, pathname, menuItems.length]);
+
+  const showNavTip = (label: string | undefined, target: HTMLElement) => {
+    if (!label || mobileOpen || !sidebarCollapsed) return;
+    const r = target.getBoundingClientRect();
+    setNavTip({ label, top: r.top + r.height / 2 });
+  };
+
   const toggleSidebar = () => {
+    setNavTip(null);
     setSidebarCollapsed(v => {
       const next = !v;
       try { localStorage.setItem('sidebar-collapsed', String(next)); } catch {}
@@ -153,24 +194,26 @@ export function DashboardLayout({
       || (!activeSection && item.href && pathname === item.href);
     const icon = item.icon || (item.id ? getMenuIcon(item.id) : null);
 
+    const collapsedDesktop = !mobileOpen && sidebarCollapsed;
     const inner = (
-      <div className={`
-        relative flex items-center gap-3 px-3 h-11 rounded-xl mx-2 cursor-pointer
-        transition-colors duration-150
-        ${isActive
-          ? 'bg-[rgba(35,82,204,0.28)] text-white'
-          : 'text-white/60 hover:text-white hover:bg-white/[0.06]'
-        }
-      `}>
-        {/* Active indicator rail */}
-        {isActive && (
-          <span className="absolute -left-2 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-[#7BAAF7]" />
-        )}
-
-        {/* Icon */}
-        <span className={`flex-shrink-0 flex items-center justify-center w-[18px] h-[18px] ${
-          isActive ? 'text-white' : 'text-white/60'
-        }`}>
+      <div
+        data-nav-active={isActive ? 'true' : undefined}
+        className={`
+          group relative flex items-center gap-3 px-3 h-11 rounded-xl mx-2 cursor-pointer
+          transition-[color,background-color,transform] duration-150 active:scale-[0.98]
+          ${navIntro ? 'animate-fade-up' : ''}
+          ${isActive
+            ? 'text-white'
+            : 'text-white/60 hover:text-white hover:bg-white/[0.06]'
+          }
+          ${isActive && !indicator ? 'bg-[rgba(35,82,204,0.28)]' : ''}
+        `}
+        style={navIntro ? { animationDelay: `${60 + index * 30}ms` } : undefined}
+      >
+        {/* Icon — nudges toward the label on hover */}
+        <span className={`flex-shrink-0 flex items-center justify-center w-[18px] h-[18px] transition-transform duration-200 ease-out ${
+          collapsedDesktop ? '' : 'group-hover:translate-x-0.5'
+        } ${isActive ? 'text-white' : 'text-white/60 group-hover:text-white'}`}>
           {icon}
         </span>
 
@@ -200,13 +243,33 @@ export function DashboardLayout({
 
     if (item.id && onMenuClick) {
       return (
-        <button key={index} onClick={() => { onMenuClick(item.id!); setMobileOpen(false); }} className="w-full text-left">
+        <button
+          key={index}
+          onClick={() => { onMenuClick(item.id!); setMobileOpen(false); }}
+          className="w-full text-left"
+          aria-label={collapsedDesktop ? item.label : undefined}
+          aria-current={isActive ? 'page' : undefined}
+          onMouseEnter={e => showNavTip(item.label, e.currentTarget)}
+          onMouseLeave={() => setNavTip(null)}
+          onFocus={e => showNavTip(item.label, e.currentTarget)}
+          onBlur={() => setNavTip(null)}
+        >
           {inner}
         </button>
       );
     }
     return (
-      <Link key={index} href={item.href || '#'} className="block">
+      <Link
+        key={index}
+        href={item.href || '#'}
+        className="block"
+        aria-label={collapsedDesktop ? item.label : undefined}
+        aria-current={isActive ? 'page' : undefined}
+        onMouseEnter={e => showNavTip(item.label, e.currentTarget)}
+        onMouseLeave={() => setNavTip(null)}
+        onFocus={e => showNavTip(item.label, e.currentTarget)}
+        onBlur={() => setNavTip(null)}
+      >
         {inner}
       </Link>
     );
@@ -259,11 +322,26 @@ export function DashboardLayout({
       <div className="mx-4 h-px bg-white/[0.06] mb-3 flex-shrink-0" />
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-1 space-y-0.5">
-        {menuItems.map((item, i) => item.divider
-          ? <div key={i} className="mx-4 my-1.5 h-px bg-white/[0.06]" />
-          : <NavItem key={i} item={item} index={i} />
-        )}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1" aria-label="Main">
+        <div ref={navListRef} className="relative space-y-0.5">
+          {indicator && (
+            <span
+              aria-hidden="true"
+              className="absolute left-2 right-2 top-0 rounded-xl pointer-events-none bg-[rgba(35,82,204,0.28)]"
+              style={{
+                height: indicator.height,
+                transform: `translateY(${indicator.top}px)`,
+                transition: indicator.animate ? 'transform 340ms cubic-bezier(0.34, 1.25, 0.64, 1)' : 'none',
+              }}
+            >
+              <span className="absolute -left-2 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-[#7BAAF7]" />
+            </span>
+          )}
+          {menuItems.map((item, i) => item.divider
+            ? <div key={i} className="mx-4 my-1.5 h-px bg-white/[0.06]" />
+            : <div key={i}>{NavItem({ item, index: i })}</div>
+          )}
+        </div>
       </nav>
 
       {/* Crisis line — students only, always one glance away */}
@@ -380,8 +458,19 @@ export function DashboardLayout({
       `}
       style={{ background: 'var(--color-sidebar)' }}
       >
-        <SidebarContent />
+        {SidebarContent()}
       </aside>
+
+      {/* Collapsed-sidebar label */}
+      {navTip && (
+        <div
+          role="tooltip"
+          className="hidden lg:block fixed z-40 left-[72px] -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white whitespace-nowrap pointer-events-none animate-fade-in"
+          style={{ top: navTip.top, background: 'var(--color-sidebar)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: 'var(--shadow-card-lg)' }}
+        >
+          {navTip.label}
+        </div>
+      )}
 
       {/* ── Main area ────────────────────────────────────── */}
       <div className={`flex-1 flex flex-col min-h-screen transition-[margin] duration-200 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>

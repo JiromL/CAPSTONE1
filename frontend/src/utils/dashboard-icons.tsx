@@ -1,68 +1,91 @@
 /**
  * Icon mapping for dashboard menu items
- * Uses lucide-react icons to provide visual indicators for navigation
+ * Uses lucide-react icons to provide visual indicators for navigation.
+ * Every id in utils/navigation.ts has its own entry so no two menu items
+ * in the same role share an icon.
  */
 
 import {
   LayoutDashboard,
-  FileText,
-  Calendar,
-  CheckCircle2,
-  Book,
-  MessageSquare,
-  AlertCircle,
-  Users,
-  Settings,
-  Briefcase,
-  ClipboardList,
-  Video,
-  BookOpen,
-  TrendingUp,
+  CalendarPlus,
+  CalendarCheck,
+  CalendarDays,
+  CalendarClock,
+  CalendarRange,
   History,
+  NotebookPen,
+  HeartHandshake,
+  CircleUser,
+  Users,
+  Settings2,
+  ChartLine,
+  ScrollText,
+  FolderHeart,
+  ListChecks,
+  ClipboardList,
+  ClipboardCheck,
+  Bot,
+  Inbox,
+  UserRoundSearch,
+  DoorOpen,
+  BellRing,
+  ShieldAlert,
+  Share2,
+  Video,
+  FileText,
+  MessageSquareText,
+  Activity,
 } from 'lucide-react';
+
+const I = (Icon: typeof LayoutDashboard) => <Icon size={18} strokeWidth={1.75} aria-hidden="true" />;
 
 export const menuIconMap: Record<string, React.ReactNode> = {
   // Common
-  'dashboard': <LayoutDashboard size={18} />,
-  'profile': <Users size={18} />,
-  'settings': <Settings size={18} />,
-  'staff-settings': <Settings size={18} />,
+  'dashboard':           I(LayoutDashboard),
+  'profile':             I(CircleUser),
+  'settings':            I(Settings2),
+  'staff-settings':      I(Settings2),
+  'admin-settings':      I(Settings2),
 
-  // Student workflow
-  'intake': <FileText size={18} />,
-  'book-appointment': <Calendar size={18} />,
-  'counseling': <History size={18} />,
-  'tasks': <CheckCircle2 size={18} />,
-  'check-ins': <CheckCircle2 size={18} />,
-  'check-ins-student': <CheckCircle2 size={18} />,
-  'journal': <Book size={18} />,
-  'feedback': <MessageSquare size={18} />,
-  'resources': <BookOpen size={18} />,
+  // Student
+  'book-appointment':    I(CalendarPlus),
+  'my-appointments':     I(CalendarCheck),
+  'counseling':          I(History),
+  'journal':             I(NotebookPen),
+  'resources':           I(HeartHandshake),
+  'intake':              I(FileText),
+  'tasks':               I(ListChecks),
+  'check-ins':           I(Activity),
+  'check-ins-student':   I(Activity),
+  'feedback':            I(MessageSquareText),
 
-  // IC workflow
-  'new-intakes': <FileText size={18} />,
-  'assessments': <ClipboardList size={18} />,
-  'appointments': <Calendar size={18} />,
-  'reminders': <AlertCircle size={18} />,
+  // Intake / clinical
+  'intake-management':   I(ClipboardCheck),
+  'new-intakes':         I(UserRoundSearch),
+  'walk-in-intake':      I(DoorOpen),
+  'assessments':         I(ClipboardList),
+  'appointments':        I(Inbox),
+  'schedule':            I(CalendarDays),
+  'availability':        I(CalendarClock),
+  'reschedule-requests': I(CalendarRange),
+  'reminders':           I(BellRing),
+  'cases':               I(FolderHeart),
+  'counseling-cases':    I(FolderHeart),
+  'cm-queue':            I(ListChecks),
+  'high-risk':           I(ShieldAlert),
+  'referrals':           I(Share2),
+  'video-links':         I(Video),
+  'mhbot':               I(Bot),
 
-  // Clinical workflow
-  'cases': <Briefcase size={18} />,
-  'counseling-cases': <Briefcase size={18} />,
-  'high-risk': <AlertCircle size={18} />,
-  'referrals': <FileText size={18} />,
-  'video-links': <Video size={18} />,
-
-  // Admin/Operational
-  'admin': <Users size={18} />,
-  'availability': <Calendar size={18} />,
-  'analytics': <TrendingUp size={18} />,
-  'documentation': <BookOpen size={18} />,
-  'audit': <ClipboardList size={18} />,
-  'check-in-tracking': <CheckCircle2 size={18} />,
-  'reschedule-requests': <Calendar size={18} />,
-  'counselor-profile': <Users size={18} />,
+  // Admin / operational
+  'admin':               I(Users),
+  'analytics':           I(ChartLine),
+  'audit':               I(ScrollText),
+  'documentation':       I(FileText),
+  'check-in-tracking':   I(Activity),
+  'counselor-profile':   I(CircleUser),
 };
 
 export function getMenuIcon(id: string): React.ReactNode {
-  return menuIconMap[id] || <LayoutDashboard size={18} />;
+  return menuIconMap[id] || I(LayoutDashboard);
 }

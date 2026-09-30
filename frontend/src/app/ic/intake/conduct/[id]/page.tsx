@@ -656,7 +656,7 @@ export default function ConductIntakePage() {
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                                <div className="flex items-center gap-3 mt-1 text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>
                                   <span>{c.active_appointments} active session{c.active_appointments !== 1 ? 's' : ''}</span>
                                   <span>·</span>
                                   <span>{c.active_cases} case{c.active_cases !== 1 ? 's' : ''}</span>
@@ -693,7 +693,7 @@ export default function ConductIntakePage() {
                     </p>
                     {selectedSlot && (
                       <button onClick={() => setSelectedSlot(null)}
-                        className="text-[11px] underline" style={{ color: 'var(--color-text-muted)' }}>
+                        className="text-[0.6875rem] underline" style={{ color: 'var(--color-text-muted)' }}>
                         Clear
                       </button>
                     )}

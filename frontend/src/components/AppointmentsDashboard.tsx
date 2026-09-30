@@ -947,7 +947,7 @@ export default function AppointmentsDashboard() {
                         {confirmed > 0 && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#22c55e' }} />}
                         {pending   > 0 && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f59e0b' }} />}
                         {closed    > 0 && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#9ca3af' }} />}
-                        <span className="text-[9px] font-bold leading-none mt-0.5 w-full text-center"
+                        <span className="text-[0.5625rem] font-bold leading-none mt-0.5 w-full text-center"
                           style={{ color: isSel ? 'rgba(255,255,255,0.8)' : 'var(--color-text-muted)' }}>
                           {dayApts.length}
                         </span>
@@ -960,13 +960,13 @@ export default function AppointmentsDashboard() {
 
             {/* Legend */}
             <div className="flex items-center gap-4 mt-4 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="flex items-center gap-1.5 text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#22c55e' }} /> Confirmed
               </span>
-              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="flex items-center gap-1.5 text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#f59e0b' }} /> Pending
               </span>
-              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="flex items-center gap-1.5 text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#9ca3af' }} /> Closed
               </span>
             </div>
@@ -1492,7 +1492,7 @@ export default function AppointmentsDashboard() {
                                 return (
                                   <button key={i} type="button" disabled={!selectable}
                                     onClick={() => { setAssignForm(f => ({ ...f, date: ds })); setSelectedSlot(null); fetchOpenSlots(ds); setAssignCalMonth({ year, month }); }}
-                                    className="mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-medium transition"
+                                    className="mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[0.6875rem] font-medium transition"
                                     style={isSelected
                                       ? { background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }
                                       : isToday && selectable
@@ -1521,7 +1521,7 @@ export default function AppointmentsDashboard() {
                                   <p className="text-xs font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{selectedDayLabel}</p>
                                   {selectedSlot && (
                                     <div className="mt-1.5 flex items-center gap-1.5">
-                                      <span className="px-2 py-0.5 rounded-lg text-white text-[11px] font-bold" style={{ background: 'var(--color-primary)' }}>{fmtSlotTime(selectedSlot.time)}</span>
+                                      <span className="px-2 py-0.5 rounded-lg text-white text-[0.6875rem] font-bold" style={{ background: 'var(--color-primary)' }}>{fmtSlotTime(selectedSlot.time)}</span>
                                       <span className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{selectedSlot.counselor_name?.split(' ')[0]}</span>
                                     </div>
                                   )}
@@ -1536,7 +1536,7 @@ export default function AppointmentsDashboard() {
                                     <div className="py-4 text-center space-y-2">
                                       <p className="text-xs" style={{ color: 'var(--color-warning-text)' }}>No slots on this date.</p>
                                       <button type="button" onClick={() => setAssignMode('manual')}
-                                        className="text-[11px] font-bold underline" style={{ color: 'var(--color-warning-text)' }}>Manual entry</button>
+                                        className="text-[0.6875rem] font-bold underline" style={{ color: 'var(--color-warning-text)' }}>Manual entry</button>
                                     </div>
                                   )}
                                   {!loadingOpenSlots && openSlots.map((s: any, i: number) => {
@@ -1621,7 +1621,7 @@ export default function AppointmentsDashboard() {
                                         {c.first_name} {c.last_name || ''}
                                       </span>
                                       {isRec && (
-                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                        <span className="text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full"
                                           style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
                                           ★ Recommended
                                         </span>
@@ -1633,12 +1633,12 @@ export default function AppointmentsDashboard() {
                                     </p>
                                   </div>
                                   {wl && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                    <span className="text-[0.625rem] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
                                       style={{ background: utilBg, color: utilColor }}>
                                       {wl.utilization}
                                     </span>
                                   )}
-                                  {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                                  {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
                                 </button>
                               );
                             })}
@@ -1708,7 +1708,7 @@ export default function AppointmentsDashboard() {
                                 return (
                                   <button key={i} type="button" disabled={!selectable}
                                     onClick={() => { setAssignForm(f => ({ ...f, date: ds, time: '' })); setFreeSlots([]); fetchFreeSlots(assignForm.counselorId, ds); }}
-                                    className="mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-medium transition"
+                                    className="mx-auto w-7 h-7 flex items-center justify-center rounded-full text-[0.6875rem] font-medium transition"
                                     style={isSelected
                                       ? { background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }
                                       : isTodayCell && selectable
@@ -1738,7 +1738,7 @@ export default function AppointmentsDashboard() {
                                   <p className="text-xs font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{selectedDayLabel}</p>
                                   {assignForm.time && (
                                     <div className="mt-1.5">
-                                      <span className="px-2 py-0.5 rounded-lg text-white text-[11px] font-bold" style={{ background: 'var(--color-primary)' }}>{fmtSlotTime(assignForm.time)}</span>
+                                      <span className="px-2 py-0.5 rounded-lg text-white text-[0.6875rem] font-bold" style={{ background: 'var(--color-primary)' }}>{fmtSlotTime(assignForm.time)}</span>
                                     </div>
                                   )}
                                 </div>
@@ -1770,7 +1770,7 @@ export default function AppointmentsDashboard() {
                                         onMouseEnter={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; } }}
                                         onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'; } }}>
                                         <p className="text-xs font-bold flex-1" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{fmtSlotTime(t)}</p>
-                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px]" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem]" style={{ background: 'var(--color-primary)' }}>✓</span>}
                                       </button>
                                     );
                                   })}
@@ -2289,7 +2289,7 @@ export default function AppointmentsDashboard() {
                           onMouseEnter={e => { if (editCounselor !== '') (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
                           onMouseLeave={e => { if (editCounselor !== '') (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                           Keep current: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'}
-                          {editCounselor === '' && <span className="ml-auto w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px]" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                          {editCounselor === '' && <span className="ml-auto w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem]" style={{ background: 'var(--color-primary)' }}>✓</span>}
                         </button>
                         {sorted.map((c: any) => {
                           const wl = workloadMap[c._id];
@@ -2312,7 +2312,7 @@ export default function AppointmentsDashboard() {
                                     {c.first_name} {c.last_name || ''}
                                   </span>
                                   {isRec && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                    <span className="text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full"
                                       style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>
                                       ★ Recommended
                                     </span>
@@ -2324,12 +2324,12 @@ export default function AppointmentsDashboard() {
                                 </p>
                               </div>
                               {wl && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                <span className="text-[0.625rem] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
                                   style={{ background: utilBg, color: utilColor }}>
                                   {wl.utilization}
                                 </span>
                               )}
-                              {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                              {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
                             </button>
                           );
                         })}

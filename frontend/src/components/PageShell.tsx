@@ -73,11 +73,11 @@ export default function PageShell({ title, subtitle, actions, children, hideNav 
       <header className="flex items-center justify-between px-6 sm:px-10 h-16 border-b" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         <Link href="/login" className="flex items-center gap-2.5">
           <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
-            <span className="text-[10px] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
           </span>
           <span className="leading-tight">
             <span className="block text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>DLSU CPS</span>
-            <span className="block text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Counseling &amp; Psychological Services</span>
+            <span className="block text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>Counseling &amp; Psychological Services</span>
           </span>
         </Link>
         <div className="flex items-center gap-3">

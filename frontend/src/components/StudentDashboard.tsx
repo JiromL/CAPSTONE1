@@ -434,14 +434,14 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                             border: isToday ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
                             opacity: past ? 0.6 : 1,
                           }}>
-                          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{d.toLocaleDateString('en-PH', { weekday: 'narrow' })}</span>
+                          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{d.toLocaleDateString('en-PH', { weekday: 'narrow' })}</span>
                           <span className="text-base sm:text-lg font-bold tabular-nums" style={{ color: count > 0 ? 'var(--color-primary-text)' : 'var(--color-text-primary)' }}>{d.getDate()}</span>
                           <span className="flex items-center gap-1 h-2">
                             {Array.from({ length: Math.min(count, 3) }).map((_, k) => (
                               <span key={k} className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
                             ))}
                           </span>
-                          {isToday && <span className="text-[10px] font-bold uppercase tracking-wide hidden sm:block" style={{ color: 'var(--color-primary-text)' }}>Today</span>}
+                          {isToday && <span className="text-[0.625rem] font-bold uppercase tracking-wide hidden sm:block" style={{ color: 'var(--color-primary-text)' }}>Today</span>}
                         </li>
                       );
                     })}
@@ -475,7 +475,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                           return (
                             <li key={step} className={`flex items-center ${s < 2 ? 'flex-1' : ''}`} aria-current={current ? 'step' : undefined}>
                               <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[0.6875rem] font-bold flex-shrink-0"
                                   style={done
                                     ? { background: 'var(--color-primary)', color: 'white' }
                                     : current
@@ -515,7 +515,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                         <button onClick={() => setOpenAnnouncement(a)} className="group w-full text-left flex items-center gap-4 px-3 py-3 rounded-xl transition-colors hover:bg-[var(--color-bg)]">
                           <span className="w-1 self-stretch rounded-full flex-shrink-0" style={{ background: meta.accent }} aria-hidden="true" />
                           <div className="flex-1 min-w-0">
-                            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+                            <p className="flex items-center gap-2 text-[0.6875rem] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
                               {meta.label}
                               {a.pinned && <span className="inline-flex items-center gap-1 normal-case tracking-normal font-medium"><Pin size={11} aria-hidden="true" />Pinned</span>}
                             </p>
@@ -589,7 +589,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                     <CalendarDays size={20} style={{ color: 'var(--color-text-muted)' }} />
                   </div>
                   <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No sessions booked yet</p>
-                  <p className="type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>Confirmed sessions will show up here. Everything is private.</p>
+                  <p className="type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>Confirmed sessions will show up here.</p>
                 </div>
               ) : (
                 <ul className="px-2 pb-2">
@@ -600,7 +600,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                           style={i === 0
                             ? { background: 'var(--color-primary)', color: 'white' }
                             : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
-                          <p className="text-[11px] font-semibold leading-none mb-0.5 uppercase">{apptDay(appt.requested_start)}</p>
+                          <p className="text-[0.6875rem] font-semibold leading-none mb-0.5 uppercase">{apptDay(appt.requested_start)}</p>
                           <p className="text-base font-bold leading-none">{apptNum(appt.requested_start)}</p>
                         </div>
                         <div className="flex-1 min-w-0">

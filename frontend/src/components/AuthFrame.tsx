@@ -34,7 +34,7 @@ export function AuthFrame({ headline, children }: { headline: React.ReactNode; c
           </button>
         </div>
         <div className="flex-1 flex items-center">
-          <div className="w-full max-w-[400px] mx-auto py-12 animate-fade-up">{children}</div>
+          <div className="w-full max-w-[25rem] mx-auto py-12 animate-fade-up">{children}</div>
         </div>
       </main>
 

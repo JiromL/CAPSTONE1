@@ -293,16 +293,16 @@ export default function CasesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-8" style={{ color: 'var(--color-text-muted)' }}>#</th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Student</th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Case #</th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Chief Complaint</th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Status</th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Risk</th>
+                    <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider w-8" style={{ color: 'var(--color-text-muted)' }}>#</th>
+                    <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Student</th>
+                    <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Case #</th>
+                    <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Chief Complaint</th>
+                    <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Status</th>
+                    <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Risk</th>
                     {showWellbeing && (
-                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Wellbeing</th>
+                      <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Wellbeing</th>
                     )}
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Created</th>
+                    <th className="px-5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Created</th>
                     <th className="px-5 py-3 w-10" />
                   </tr>
                 </thead>

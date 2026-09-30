@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose, Lock } from 'lucide-react';
+import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
@@ -294,7 +294,7 @@ export function DashboardLayout({
           onClick={!mobileOpen && sidebarCollapsed ? toggleSidebar : undefined}
           className={`flex-shrink-0 w-9 h-9 rounded-xl bg-[var(--color-primary)] flex items-center justify-center select-none transition-opacity ${!mobileOpen && sidebarCollapsed ? 'cursor-pointer hover:opacity-80' : ''}`}
         >
-          <span className="text-[10px] font-extrabold text-white tracking-tighter">CPS</span>
+          <span className="text-[0.625rem] font-extrabold text-white tracking-tighter">CPS</span>
         </div>
 
         {/* Wordmark — removed from layout flow when collapsed so toggle button stays visible */}
@@ -303,7 +303,7 @@ export function DashboardLayout({
           ${(mobileOpen || !sidebarCollapsed) ? 'max-w-[200px] opacity-100 flex-1 min-w-0' : 'max-w-0 opacity-0 flex-none w-0'}
         `}>
           <p className="text-sm font-bold text-white leading-tight">DLSU CPS</p>
-          <p className="text-[11px] text-white/50 leading-tight mt-0.5">{roleLabel}</p>
+          <p className="text-[0.6875rem] text-white/50 leading-tight mt-0.5">{roleLabel}</p>
         </div>
 
         {/* Desktop collapse toggle */}
@@ -356,7 +356,7 @@ export function DashboardLayout({
       {user?.role === 'STUDENT' && (mobileOpen || !sidebarCollapsed) && (
         <div className="mx-3 mb-3 rounded-xl p-3.5 flex-shrink-0" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)' }}>
           <p className="text-xs font-semibold" style={{ color: '#FCA5A5' }}>Need help right now?</p>
-          <p className="text-[11px] mt-1 leading-relaxed text-white/70">
+          <p className="text-[0.6875rem] mt-1 leading-relaxed text-white/70">
             NCMH <a href="tel:1553" className="font-semibold underline underline-offset-2 text-white">1553</a> · open 24/7
           </p>
         </div>
@@ -407,7 +407,7 @@ export function DashboardLayout({
             ${(mobileOpen || !sidebarCollapsed) ? 'opacity-100' : 'opacity-0'}
           `}>
             <p className="text-xs font-semibold text-white/90 truncate leading-tight">{fullName}</p>
-            <p className="text-[11px] text-white/40 truncate leading-tight mt-0.5">{roleLabel}</p>
+            <p className="text-[0.6875rem] text-white/40 truncate leading-tight mt-0.5">{roleLabel}</p>
           </div>
         </div>
 
@@ -473,7 +473,7 @@ export function DashboardLayout({
       {navTip && (
         <div
           role="tooltip"
-          className="hidden lg:block fixed z-40 left-[72px] -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white whitespace-nowrap pointer-events-none animate-fade-in"
+          className="hidden lg:block fixed z-40 left-[4.5rem] -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white whitespace-nowrap pointer-events-none animate-fade-in"
           style={{ top: navTip.top, background: 'var(--color-sidebar)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: 'var(--shadow-card-lg)' }}
         >
           {navTip.label}
@@ -508,14 +508,7 @@ export function DashboardLayout({
           {/* Page title — desktop */}
           <div className="hidden lg:block flex-1 min-w-0">
             {titleInPage ? (
-              <p className="type-label truncate flex items-center gap-3" style={{ color: 'var(--color-text-muted)' }}>
-                {todayLabel}
-                {user?.role === 'STUDENT' && (
-                  <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
-                    <Lock size={12} aria-hidden="true" /> Your information is private
-                  </span>
-                )}
-              </p>
+              <p className="type-label truncate" style={{ color: 'var(--color-text-muted)' }}>{todayLabel}</p>
             ) : (
               <>
                 <p className="text-[0.9375rem] font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
@@ -656,8 +649,8 @@ export function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main id="main-content" className="flex-1 px-4 py-6 lg:px-8 lg:py-8" tabIndex={-1}>
-          <div className="max-w-[1200px] mx-auto animate-fade-in">
+        <main id="main-content" className={`flex-1 px-4 pt-6 lg:px-8 lg:pt-8 ${user?.role === 'STUDENT' ? 'pb-28' : 'pb-6 lg:pb-8'}`} tabIndex={-1}>
+          <div className="max-w-[75rem] mx-auto animate-fade-in">
             {children}
           </div>
         </main>

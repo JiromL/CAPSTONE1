@@ -244,7 +244,7 @@ export function ScheduleSessionCard({ onScheduled }: Props) {
           {saving ? <><Loader2 size={14} className="animate-spin" />Confirming…</> : <>Confirm Session <ChevronRight size={14} /></>}
         </button>
 
-        <p className="text-[11px] text-center" style={{ color: 'var(--color-text-muted)' }}>
+        <p className="text-[0.6875rem] text-center" style={{ color: 'var(--color-text-muted)' }}>
           You'll be meeting with {session.counselor_name} ({roleLabel}) · 1-hour session
         </p>
       </div>

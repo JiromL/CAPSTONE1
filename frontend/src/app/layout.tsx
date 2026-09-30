@@ -59,6 +59,7 @@ export default function RootLayout({
   --shadow-modal:0 20px 25px -5px rgba(13,21,38,0.12),0 8px 10px -6px rgba(13,21,38,0.08);
   --background:#FFFFFF;--foreground:#0D1526;
 }
+html{font-size:106.25%}
 html.dark{
   --color-primary:#4575F0;--color-primary-hover:#3465E0;--color-primary-surface:#0D1A40;
   --color-primary-text:#7BAAF7;--color-primary-muted:rgba(69,117,240,0.15);

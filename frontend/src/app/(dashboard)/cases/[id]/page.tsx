@@ -1563,7 +1563,7 @@ export default function CaseDetailPage() {
             {/* Risk badge + inline edit for counselors */}
             <div className="relative">
               <div className="flex items-center gap-1">
-                <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium" style={riskBadgeStyle(riskLevel)}>
+                <span className="inline-flex text-[0.6875rem] px-2.5 py-1 rounded-full font-medium" style={riskBadgeStyle(riskLevel)}>
                   {riskLevel === 'GREEN' ? 'Low Risk' : riskLevel === 'YELLOW' ? 'Moderate' : riskLevel === 'RED' ? 'High Risk' : 'Critical'}
                 </span>
                 {['COUNSELOR','PSYCHOLOGIST','CASE_MANAGER','IC','ADMIN'].includes(currentUser?.role || '') &&
@@ -1629,24 +1629,24 @@ export default function CaseDetailPage() {
               )}
             </div>
 
-            <span className="inline-flex text-[11px] px-2.5 py-1 rounded-full font-medium"
+            <span className="inline-flex text-[0.6875rem] px-2.5 py-1 rounded-full font-medium"
               style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
               {fmtClientStatus(caseData.client_status || caseData.case_status || 'ACTIVE')}
             </span>
             {caseData.case_number && (
-              <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-muted)' }}>{caseData.case_number}</span>
+              <span className="text-[0.6875rem] font-mono" style={{ color: 'var(--color-text-muted)' }}>{caseData.case_number}</span>
             )}
             {!['CLOSED', 'closed'].includes(caseData.case_status || caseData.client_status || '') && (
               <>
                 <button
                   onClick={() => { setShowScheduleModal(true); setScheduleMsg(null); }}
-                  className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
+                  className="inline-flex items-center gap-1 text-[0.6875rem] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
                   style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' }}
                 >
                   <CalendarPlus size={11} /> Schedule Session
                 </button>
                 {sessionCount && sessionCount.completed > 0 && (
-                  <span className="text-[11px] px-2.5 py-1 rounded-full font-medium"
+                  <span className="text-[0.6875rem] px-2.5 py-1 rounded-full font-medium"
                     style={{ background: 'var(--color-bg)', color: 'var(--color-text-muted)', boxShadow: '0 0 0 1px var(--color-border)' }}>
                     {sessionCount.completed} session{sessionCount.completed !== 1 ? 's' : ''} completed
                   </span>
@@ -1654,7 +1654,7 @@ export default function CaseDetailPage() {
                 {currentUser?.role?.toUpperCase() === 'COUNSELOR' && (
                   <button
                     onClick={() => { setShowReferralModal(true); setReferralMsg(null); setReferralReason(''); setReferralRole('PSYCHOLOGIST'); loadReferralWorkload('PSYCHOLOGIST'); }}
-                    className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
+                    className="inline-flex items-center gap-1 text-[0.6875rem] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
                     style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)', boxShadow: '0 0 0 1px var(--color-warning)' }}
                   >
                     <UserPlus size={11} /> Internal Referral
@@ -1663,7 +1663,7 @@ export default function CaseDetailPage() {
                 {['PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN', 'DPO'].includes(currentUser?.role?.toUpperCase() || '') && (
                   <button
                     onClick={() => { setShowCrisisModal(true); setCrisisMsg(null); setCrisisLevel('CRITICAL'); }}
-                    className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold transition hover:opacity-90 text-white"
+                    className="inline-flex items-center gap-1 text-[0.6875rem] px-2.5 py-1 rounded-full font-bold transition hover:opacity-90 text-white"
                     style={{ background: '#B91C1C' }}
                   >
                     <AlertTriangle size={11} /> Escalate to Crisis
@@ -1671,7 +1671,7 @@ export default function CaseDetailPage() {
                 )}
                 <button
                   onClick={() => { setClosureChecks({ notes: false, referrals: false, notified: false }); setShowClosureChecklist(true); }}
-                  className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
+                  className="text-[0.6875rem] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80"
                   style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)', boxShadow: '0 0 0 1px var(--color-danger)' }}
                 >
                   Close Case
@@ -1683,7 +1683,7 @@ export default function CaseDetailPage() {
               <button
                 onClick={handleReopenCase}
                 disabled={reopeningCase}
-                className="text-[11px] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80 disabled:opacity-50"
+                className="text-[0.6875rem] px-2.5 py-1 rounded-full font-medium transition hover:opacity-80 disabled:opacity-50"
                 style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)', boxShadow: '0 0 0 1px var(--color-success)' }}
               >
                 {reopeningCase ? 'Reopening…' : 'Reopen Case'}

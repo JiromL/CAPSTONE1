@@ -145,11 +145,11 @@ export default function LoginPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
-              <span className="text-[10px] font-extrabold text-white tracking-tighter select-none">CPS</span>
+              <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
             </div>
             <div className="leading-tight">
               <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>DLSU CPS</p>
-              <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Counseling &amp; Psychological Services</p>
+              <p className="text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>Counseling &amp; Psychological Services</p>
             </div>
           </div>
           <button
@@ -162,7 +162,7 @@ export default function LoginPage() {
         </div>
 
         <div className="flex-1 flex items-center">
-          <div className="w-full max-w-[400px] mx-auto py-12 animate-fade-up">
+          <div className="w-full max-w-[25rem] mx-auto py-12 animate-fade-up">
             <h1 className="font-display" style={{ fontSize: 'clamp(1.875rem, 3vw, 2.25rem)', lineHeight: 1.15, color: 'var(--color-text-primary)' }}>
               Welcome back.
             </h1>
@@ -290,9 +290,9 @@ export default function LoginPage() {
             Reaching out is <span style={{ color: '#7BAAF7' }}>the first step.</span> We&apos;ll take the next one with you.
           </h2>
 
-          <div className="login-slip relative mt-12 max-w-[420px] rounded-2xl flex" style={{ background: 'var(--color-surface)', boxShadow: '0 30px 60px -20px rgba(0,0,0,0.55)' }}>
+          <div className="login-slip relative mt-12 max-w-[26rem] rounded-2xl flex" style={{ background: 'var(--color-surface)', boxShadow: '0 30px 60px -20px rgba(0,0,0,0.55)' }}>
             <div className="w-[104px] flex-shrink-0 rounded-l-2xl flex flex-col items-center justify-center py-5 text-white" style={{ background: 'var(--color-primary)' }}>
-              <span className="text-[10px] font-bold tracking-[0.16em] uppercase" style={{ color: 'rgba(255,255,255,0.7)' }}>Step</span>
+              <span className="text-[0.625rem] font-bold tracking-[0.16em] uppercase" style={{ color: 'rgba(255,255,255,0.7)' }}>Step</span>
               <span className="font-display text-4xl leading-none mt-1" style={{ color: 'white' }}>1</span>
             </div>
             <div className="relative w-0 border-l-2 border-dashed" style={{ borderColor: 'var(--color-border-strong)' }} aria-hidden="true">
@@ -318,7 +318,7 @@ export default function LoginPage() {
               24/7 Philippine Mental Health Hotline
             </a>
           </p>
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>© {new Date().getFullYear()} De La Salle University Manila</p>
+          <p className="text-[0.6875rem]" style={{ color: 'rgba(255,255,255,0.45)' }}>© {new Date().getFullYear()} De La Salle University Manila</p>
         </div>
       </aside>
     </div>

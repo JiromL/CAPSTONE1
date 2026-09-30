@@ -983,7 +983,7 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
               onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
               {label}
               {key === 'at-risk' && atRiskCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[0.5625rem] font-bold flex items-center justify-center text-white"
                   style={{ background: '#DC2626' }}>
                   {atRiskCount > 9 ? '9+' : atRiskCount}
                 </span>

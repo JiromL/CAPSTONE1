@@ -68,7 +68,7 @@ function FullPageLoader() {
             className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
             style={{ background: 'var(--color-primary)' }}
           >
-            <span className="text-[11px] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            <span className="text-[0.6875rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
           </div>
           {/* Spinning ring */}
           <svg

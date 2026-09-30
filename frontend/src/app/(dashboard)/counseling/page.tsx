@@ -171,7 +171,7 @@ export default function CounselingHistoryPage() {
                 <div className="w-10 flex-shrink-0 text-center pt-0.5">
                   {dt ? (
                     <>
-                      <p className="text-[11px] font-bold leading-none" style={{ color: 'var(--color-primary)' }}>
+                      <p className="text-[0.6875rem] font-bold leading-none" style={{ color: 'var(--color-primary)' }}>
                         {new Date(dt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short' }).toUpperCase()}
                       </p>
                       <p className="text-lg font-bold leading-tight" style={{ color: 'var(--color-text-primary)' }}>
@@ -192,7 +192,7 @@ export default function CounselingHistoryPage() {
                     <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                       {PURPOSE_LABEL[a.purpose || ''] || a.purpose || 'Session'}
                     </p>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
+                    <span className="inline-flex items-center gap-1 text-[0.6875rem] font-medium px-2 py-0.5 rounded-full"
                       style={{ background: cfg.bg, color: cfg.color }}>
                       {cfg.icon} {cfg.label}
                     </span>

@@ -657,7 +657,7 @@ export default function IntakeManagementPage() {
                   style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>
                   {s.label}
                 </p>
-                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
+                <p className="text-[0.6875rem] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
                   {s.sublabel}
                 </p>
               </button>
@@ -690,7 +690,7 @@ export default function IntakeManagementPage() {
                 <p className="text-xs font-semibold leading-tight" style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>
                   {s.label}
                 </p>
-                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
+                <p className="text-[0.6875rem] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>
                   {s.sublabel}
                 </p>
               </button>

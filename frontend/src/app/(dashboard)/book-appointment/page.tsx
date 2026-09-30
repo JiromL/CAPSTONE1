@@ -743,7 +743,7 @@ export default function BookAppointmentPage() {
                                 style={sel
                                   ? { background: opt.selBg, borderColor: opt.selBg, color: 'white' }
                                   : { background: 'var(--color-bg)', borderColor: 'var(--color-border)', color: opt.textColor }}>
-                                <span className="block text-[11px] font-bold mb-0.5 tabular-nums" aria-hidden>{opt.v}</span>{opt.s}
+                                <span className="block text-[0.6875rem] font-bold mb-0.5 tabular-nums" aria-hidden>{opt.v}</span>{opt.s}
                               </button>
                             );
                           })}
@@ -767,7 +767,7 @@ export default function BookAppointmentPage() {
                                 style={sel
                                   ? { background: opt.selBg, borderColor: opt.selBg, color: 'white' }
                                   : { background: 'var(--color-bg)', borderColor: 'var(--color-border)', color: opt.textColor }}>
-                                <span className="block text-[11px] font-bold mb-0.5 tabular-nums" aria-hidden>{opt.v}</span>{opt.s}
+                                <span className="block text-[0.6875rem] font-bold mb-0.5 tabular-nums" aria-hidden>{opt.v}</span>{opt.s}
                               </button>
                             );
                           })}
@@ -1290,7 +1290,7 @@ export default function BookAppointmentPage() {
                 </div>
                 <div className="grid grid-cols-7 mb-2">
                   {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d => (
-                    <div key={d} className="text-center text-[11px] font-semibold py-1" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
+                    <div key={d} className="text-center text-[0.6875rem] font-semibold py-1" style={{ color: 'var(--color-text-muted)' }}>{d}</div>
                   ))}
                 </div>
                 <div className="grid grid-cols-7 gap-y-1">

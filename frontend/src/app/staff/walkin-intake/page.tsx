@@ -92,7 +92,7 @@ function StepWizard({ current, labels }: { current: number; labels: { num: numbe
                   : { background: 'var(--color-surface)', border: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
                 {done ? <Check size={16} /> : s.num}
               </div>
-              <p className="text-[11px] font-semibold mt-1.5 text-center leading-tight"
+              <p className="text-[0.6875rem] font-semibold mt-1.5 text-center leading-tight"
                 style={{ color: active ? 'var(--color-primary)' : done ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}>
                 {s.label}
               </p>
@@ -549,7 +549,7 @@ export default function WalkinIntakePage() {
             <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid #FECACA' }}>
               <div className="px-4 py-2.5" style={{ background: 'var(--color-danger-surface)', borderBottom: '1px solid #FECACA' }}>
                 <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-danger-hover)' }}>Route to Available Counselor / Psychologist</p>
-                <p className="text-[11px] mt-0.5" style={{ color: '#EF4444' }}>Assign now to confirm immediately. If left unassigned, it goes to Appointment Requests for the OA to assign later.</p>
+                <p className="text-[0.6875rem] mt-0.5" style={{ color: '#EF4444' }}>Assign now to confirm immediately. If left unassigned, it goes to Appointment Requests for the OA to assign later.</p>
               </div>
               <div className="px-4 py-3">
                 {loadingCrisisStaff ? (
@@ -836,7 +836,7 @@ export default function WalkinIntakePage() {
                 {/* PHQ-2 header — keep fixed clinical blue */}
                 <div className="flex items-center gap-2 px-1">
                   <div className="flex-1 h-px" style={{ background: '#BFDBFE' }} />
-                  <span className="text-[11px] font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-info)' }}>PHQ-2 — Depression Screener</span>
+                  <span className="text-[0.6875rem] font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-info)' }}>PHQ-2 — Depression Screener</span>
                   <div className="flex-1 h-px" style={{ background: '#BFDBFE' }} />
                 </div>
 
@@ -866,7 +866,7 @@ export default function WalkinIntakePage() {
                 {/* GAD-2 header — keep fixed clinical amber */}
                 <div className="flex items-center gap-2 px-1 mt-2">
                   <div className="flex-1 h-px" style={{ background: '#FDE68A' }} />
-                  <span className="text-[11px] font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-warning)' }}>GAD-2 — Anxiety Screener</span>
+                  <span className="text-[0.6875rem] font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-warning)' }}>GAD-2 — Anxiety Screener</span>
                   <div className="flex-1 h-px" style={{ background: '#FDE68A' }} />
                 </div>
 

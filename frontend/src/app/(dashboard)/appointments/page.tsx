@@ -963,7 +963,7 @@ export default function AppointmentsPage() {
                     </div>
                   </div>
                   <p className="text-xs font-semibold leading-tight" style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>{s.label}</p>
-                  <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{s.sublabel}</p>
+                  <p className="text-[0.6875rem] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{s.sublabel}</p>
                 </button>
               );
             })}
@@ -985,7 +985,7 @@ export default function AppointmentsPage() {
                     <span className="text-lg font-bold tabular-nums" style={{ color: hasItems || isActive ? s.accent : 'var(--color-border)' }}>{stageCount}</span>
                   </div>
                   <p className="text-xs font-semibold leading-tight" style={{ color: isActive ? s.accent : 'var(--color-text-primary)' }}>{s.label}</p>
-                  <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{s.sublabel}</p>
+                  <p className="text-[0.6875rem] mt-0.5 leading-snug" style={{ color: 'var(--color-text-muted)' }}>{s.sublabel}</p>
                 </button>
               );
             })}
@@ -1193,7 +1193,7 @@ export default function AppointmentsPage() {
                                   : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
                                 {req.status}
                               </span>
-                              <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{fmtAgo(req.created_at)}</span>
+                              <span className="text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>{fmtAgo(req.created_at)}</span>
                             </div>
                           </div>
                         </button>
@@ -1341,7 +1341,7 @@ export default function AppointmentsPage() {
                               : { background: 'var(--color-bg)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
                             {req.status}
                           </span>
-                          <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{fmtAgo(req.created_at)}</span>
+                          <span className="text-[0.6875rem]" style={{ color: 'var(--color-text-muted)' }}>{fmtAgo(req.created_at)}</span>
                         </div>
                       </div>
                     </button>
@@ -1745,7 +1745,7 @@ export default function AppointmentsPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4 mb-5" style={{ background: 'var(--color-bg)' }}>
-                <p className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Schedule Change</p>
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>Schedule Change</p>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 rounded-lg px-3 py-2.5 border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
                     <p className="text-xs font-semibold uppercase mb-1" style={{ color: 'var(--color-text-muted)' }}>Current</p>
@@ -1827,7 +1827,7 @@ export default function AppointmentsPage() {
                 <div className="rounded-lg p-3" style={{ background: 'var(--color-bg)' }}>
                   <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Status</p>
                   {(() => { const s = STATUS_STYLE[detailAppt.status] ?? { label: detailAppt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', border: 'var(--color-border)' }; return (
-                    <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium border" style={{ background: s.bg, color: s.text, borderColor: s.border }}>{s.label}</span>
+                    <span className="inline-flex items-center text-[0.6875rem] px-2 py-0.5 rounded-full font-medium border" style={{ background: s.bg, color: s.text, borderColor: s.border }}>{s.label}</span>
                   ); })()}
                 </div>
               </div>

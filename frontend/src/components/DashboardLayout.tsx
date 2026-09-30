@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
+import { Power, Menu, Bell, X, CheckCheck, ChevronRight, ChevronLeft, PanelLeftClose, Lock } from 'lucide-react';
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
@@ -508,7 +508,14 @@ export function DashboardLayout({
           {/* Page title — desktop */}
           <div className="hidden lg:block flex-1 min-w-0">
             {titleInPage ? (
-              <p className="type-label truncate" style={{ color: 'var(--color-text-muted)' }}>{todayLabel}</p>
+              <p className="type-label truncate flex items-center gap-3" style={{ color: 'var(--color-text-muted)' }}>
+                {todayLabel}
+                {user?.role === 'STUDENT' && (
+                  <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
+                    <Lock size={12} aria-hidden="true" /> Your information is private
+                  </span>
+                )}
+              </p>
             ) : (
               <>
                 <p className="text-[0.9375rem] font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>

@@ -5,7 +5,7 @@ import { Calendar, Search, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import { api } from '@/utils/api';
 import PageShell from '@/components/PageShell';
 
-const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none';
+const IC = 'input';
 const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 // Status badge styles — semantic colors, kept fixed

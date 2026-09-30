@@ -44,7 +44,7 @@ const RECURRENCE_OPTIONS = [
   { value: 'monthly', label: 'Monthly'  },
 ];
 
-const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const ICS: React.CSSProperties = {
   background: 'var(--color-bg)',
   border: '1px solid var(--color-border)',

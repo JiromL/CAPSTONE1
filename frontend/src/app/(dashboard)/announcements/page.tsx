@@ -41,7 +41,7 @@ function fmtEventDate(s: string) {
 
 const POSTER_ROLES = new Set(['PSYCHOLOGIST', 'ADMIN', 'DPO']);
 
-const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const ICS: React.CSSProperties = {
   background: 'var(--color-bg)',
   border: '1px solid var(--color-border)',

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import PageShell from '@/components/PageShell'
 import { api } from '@/utils/api';
 
-const IC = 'w-full px-3.5 py-2.5 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 function passwordStrength(pw: string): { score: number; label: string; color: string } {

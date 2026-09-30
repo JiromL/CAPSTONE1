@@ -18,7 +18,7 @@ interface Counselor {
   role: string;
 }
 
-const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none';
+const IC = 'input';
 const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 export default function NonCounselingClientsPage() {

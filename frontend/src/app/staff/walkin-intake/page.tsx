@@ -45,7 +45,7 @@ const STEP_LABELS_SHORT = [
   { num: 3, label: 'Assign Counselor',    sub: 'Session' },
 ];
 
-const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const ICS: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 // ── Sub-components ────────────────────────────────────────────────────────────

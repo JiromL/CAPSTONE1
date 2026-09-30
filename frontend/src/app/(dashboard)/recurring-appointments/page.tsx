@@ -19,7 +19,7 @@ const METHOD_OPTIONS = [
   { value: 'google_meet', label: 'Google Meet', icon: <Video size={14}/> },
 ];
 
-const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const IC_S = (focused: boolean): React.CSSProperties => ({
   background: 'var(--color-bg)',
   border: `1px solid ${focused ? 'var(--color-primary)' : 'var(--color-border)'}`,

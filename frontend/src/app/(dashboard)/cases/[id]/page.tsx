@@ -58,7 +58,7 @@ const CLIENT_STATUS_LABEL: Record<string, string> = {
 const fmtClientStatus = (s: string) => CLIENT_STATUS_LABEL[s] ?? s.replace(/_/g, ' ');
 
 const IC    = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
-const IC_XS = 'w-full px-3 py-2 text-xs rounded-lg outline-none transition';
+const IC_XS = 'input !text-xs';
 const ICS: React.CSSProperties = { background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 function riskBadgeStyle(level: string): React.CSSProperties {

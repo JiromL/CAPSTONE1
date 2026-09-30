@@ -20,7 +20,7 @@ const DLSU_COLLEGES: { abbr: string; name: string; sampleCourses: string[] }[] =
   { abbr: 'GCOE',   name: 'Graduate School',                   sampleCourses: ['Masters / Doctoral program'] },
 ];
 
-const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const ICS: React.CSSProperties = {
   background: 'var(--color-bg)',
   border: '1px solid var(--color-border)',
@@ -324,7 +324,10 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <div className="md:col-span-2 pt-4 mt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
-                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-secondary)' }}>Emergency Contact</h3>
+                    <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Emergency contact</h3>
+                    <p className="type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                      We only reach out to this person if we&apos;re seriously worried about your safety.
+                    </p>
                   </div>
                   {[
                     { label: 'Name',  name: 'emergencyContact', type: 'text', value: formData.emergencyContact },
@@ -359,7 +362,8 @@ export default function ProfilePage() {
                 <InfoRow label="College" value={profile.college ? `${profile.college} · ${DLSU_COLLEGES.find(c => c.abbr === profile.college)?.name ?? ''}` : ''} />
                 <InfoRow label="Course"  value={profile.course} />
                 <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-                  <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>Emergency Contact</h3>
+                  <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Emergency contact</h3>
+                  <p className="type-caption mt-0.5 mb-2" style={{ color: 'var(--color-text-muted)' }}>Only contacted if we&apos;re seriously worried about your safety.</p>
                   <InfoRow label="Name"  value={profile.emergencyContact} indent />
                   <InfoRow label="Phone" value={profile.emergencyPhone}   indent />
                 </div>

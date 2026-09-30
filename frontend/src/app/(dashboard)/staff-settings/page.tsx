@@ -35,7 +35,7 @@ interface BookingRules {
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}:00`);
 
-const IC = 'w-full px-3 py-2 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const ICS: React.CSSProperties = { background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' };
 
 const Card = ({ children }: { children: React.ReactNode }) => (

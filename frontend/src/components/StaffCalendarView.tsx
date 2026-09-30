@@ -6,7 +6,7 @@ import { api } from '@/utils/api';
 
 interface TimeSlot { start: string; end: string; }
 
-const IC = 'w-full px-3 py-2 rounded-lg outline-none';
+const IC = 'input';
 const ICS: React.CSSProperties = { border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' };
 
 export default function StaffCalendarView() {

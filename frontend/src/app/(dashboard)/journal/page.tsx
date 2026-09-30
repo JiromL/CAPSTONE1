@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
-import { Plus, Trash2, Edit2, X, Tag, Loader2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Tag, Loader2, ChevronDown, ChevronUp, BookOpen, Lock } from 'lucide-react';
 
 interface JournalEntry {
   journal_id: string;
@@ -125,9 +125,8 @@ export default function JournalPage() {
           </div>
         </div>
         <button onClick={openCompose}
-          className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-xl transition hover:opacity-90"
-          style={{ background: 'var(--color-primary)' }}>
-          <Plus size={15} /> New Entry
+          className="btn-primary !min-h-11 !px-5 !text-sm">
+          <Plus size={16} /> New entry
         </button>
       </div>
 
@@ -139,25 +138,26 @@ export default function JournalPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>{editingId ? 'Edit Entry' : 'New Entry'}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{today}</p>
+                <p className="font-display text-2xl" style={{ color: 'var(--color-text-primary)' }}>{editingId ? 'Edit entry' : 'New entry'}</p>
+                <p className="flex items-center gap-1.5 type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                  {today} · <Lock size={11} aria-hidden="true" /> Only you can see this unless you choose to share it
+                </p>
               </div>
-              <button onClick={closeCompose} className="p-1.5 rounded-lg transition"
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <button onClick={closeCompose} aria-label="Close editor" className="w-10 h-10 flex items-center justify-center rounded-xl transition hover:bg-[var(--color-bg)]">
                 <X size={16} style={{ color: 'var(--color-text-muted)' }} />
               </button>
             </div>
 
             {/* Mood row */}
             <div className="mb-4">
-              <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>How are you feeling?</p>
+              <p className="field-label">How are you feeling?</p>
               <div className="flex gap-2 flex-wrap">
                 {MOODS.map(m => {
                   const sel = mood === m.value;
                   return (
                     <button key={m.value} onClick={() => setMood(m.value)} title={m.label}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition-all"
+                      aria-pressed={sel}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-sm transition-all active:scale-95"
                       style={sel
                         ? { borderColor: m.color, background: `${m.color}15`, color: m.color, fontWeight: 600 }
                         : { borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}

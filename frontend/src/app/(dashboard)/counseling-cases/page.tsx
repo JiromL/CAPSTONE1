@@ -27,7 +27,7 @@ function caseStatusStyle(status: string): React.CSSProperties {
   }
 }
 
-const IC = 'w-full px-4 py-2 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const IC_S = (f: boolean): React.CSSProperties => ({
   background: 'var(--color-bg)',
   border: `1px solid ${f ? 'var(--color-primary)' : 'var(--color-border)'}`,

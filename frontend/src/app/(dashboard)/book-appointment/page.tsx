@@ -49,7 +49,7 @@ const BOOK_STEPS = [
 ];
 
 const DRAFT_KEY_PREFIX = 'bookAppointmentDraft_v2';
-const IC = 'w-full px-3 py-2.5 text-sm rounded-lg outline-none transition';
+const IC = 'input';
 const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' };
 const onFocusIn  = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
 const onFocusOut = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; };
@@ -77,8 +77,9 @@ function fmtT(t: string) {
 function F({ label, req, children, span }: { label: string; req?: boolean; children: React.ReactNode; span?: boolean }) {
   return (
     <div className={span ? 'col-span-full' : ''}>
-      <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
-        {label}{req && <span className="ml-1" style={{ color: 'var(--color-danger)' }}>*</span>}
+      <label className="field-label">
+        {label}{req && <span className="ml-0.5" style={{ color: 'var(--color-danger)' }} aria-hidden="true">*</span>}
+        {req && <span className="sr-only"> (required)</span>}
       </label>
       {children}
     </div>
@@ -1362,13 +1363,17 @@ export default function BookAppointmentPage() {
               )}
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Presenting Concern</label>
+                  <label className="field-label">What would you like to talk about?</label>
                   <textarea value={concern} onChange={e => setConcern(e.target.value)} rows={4}
-                    placeholder="Briefly describe what you'd like to talk about…"
+                    placeholder="A few words is enough — you can say more in your session."
                     className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} />
+                  <p className="flex items-start gap-1.5 mt-2 type-caption" style={{ color: 'var(--color-text-muted)' }}>
+                    <Lock size={12} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    Only CPS staff involved in your care will read this. Share only what you&apos;re comfortable with.
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Referral</label>
+                  <label className="field-label">How did you find us?</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { v: 'self-referred', label: 'Self-referred', desc: 'I came on my own' },

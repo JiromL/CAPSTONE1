@@ -18,7 +18,7 @@ const DLSU_COLLEGES = [
 
 const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 'Graduate'];
 
-const IC = 'w-full px-3 py-2 text-sm rounded-xl outline-none transition-all';
+const IC = 'input';
 const ICS: React.CSSProperties = {
   background: 'var(--color-bg)',
   border: '1px solid var(--color-border)',

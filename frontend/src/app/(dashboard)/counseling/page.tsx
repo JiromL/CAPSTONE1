@@ -38,6 +38,8 @@ const PURPOSE_LABEL: Record<string, string> = {
   crisis:             'Crisis Intervention',
   walk_in:            'Walk-in Session',
   others:             'General Inquiry',
+  counseling:         'Counseling Session',
+  follow_up_counselling: 'Follow-up Session',
 };
 
 const STATUS_CFG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
@@ -105,7 +107,7 @@ export default function CounselingHistoryPage() {
         </Link>
       }
     >
-      <div className="max-w-3xl space-y-5">
+      <div className="space-y-5">
 
         {/* Stats strip */}
         <div className="grid grid-cols-2 gap-3">

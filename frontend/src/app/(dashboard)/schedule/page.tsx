@@ -449,7 +449,7 @@ function ScheduleInner() {
 
                 <div className="p-5 space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    <label className="field-label">
                       Title <span style={{ color: 'var(--color-danger)' }}>*</span>
                     </label>
                     <input type="text" value={evTitle} onChange={e => setEvTitle(e.target.value)}
@@ -458,7 +458,7 @@ function ScheduleInner() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    <label className="field-label">
                       Date <span style={{ color: 'var(--color-danger)' }}>*</span>
                     </label>
                     <input type="date" value={evDate} onChange={e => setEvDate(e.target.value)}
@@ -467,14 +467,14 @@ function ScheduleInner() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                      <label className="field-label">
                         Start <span style={{ color: 'var(--color-danger)' }}>*</span>
                       </label>
                       <input type="time" value={evStart} onChange={e => setEvStart(e.target.value)}
                         className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                      <label className="field-label">
                         End <span style={{ color: 'var(--color-danger)' }}>*</span>
                       </label>
                       <input type="time" value={evEnd} onChange={e => setEvEnd(e.target.value)}
@@ -483,7 +483,7 @@ function ScheduleInner() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Color</label>
+                    <label className="field-label">Color</label>
                     <div className="flex gap-2">
                       {EVENT_COLORS.map(c => (
                         <button key={c.value} title={c.label}
@@ -500,7 +500,7 @@ function ScheduleInner() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    <label className="field-label">
                       Note <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                     </label>
                     <textarea value={evNote} onChange={e => setEvNote(e.target.value)}
@@ -705,13 +705,13 @@ function ScheduleInner() {
             {/* Add new leave */}
             <div className="px-6 py-4 flex items-end gap-3 flex-wrap" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div className="flex-1 min-w-[140px]">
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Date</label>
+                <label className="field-label">Date</label>
                 <input type="date" value={newLeaveDate} onChange={e => setNewLeaveDate(e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
                   className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Reason (optional)</label>
+                <label className="field-label">Reason (optional)</label>
                 <input type="text" value={newLeaveReason} onChange={e => setNewLeaveReason(e.target.value)}
                   placeholder="e.g. Sick leave, Conference…"
                   className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />

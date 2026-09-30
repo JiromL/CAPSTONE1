@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp, RefreshCw, HeartPulse } from 'lucide-react';
 import { api } from '@/utils/api';
 
 const STATUS_OPTIONS = [
@@ -160,7 +160,7 @@ export default function CheckInPage() {
             <div className="flex flex-col items-center justify-center h-52 text-center border rounded-xl shadow-card"
               style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 text-2xl"
-                style={{ background: 'var(--color-success-surface)' }}>✓</div>
+                style={{ background: 'var(--color-success-surface)' }}><HeartPulse size={22} style={{ color: 'var(--color-success)' }} aria-hidden="true" /></div>
               <p className="font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>No check-ins yet</p>
               <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>Let your support team know how you're doing</p>
               <button onClick={() => setStep('form')}

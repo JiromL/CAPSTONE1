@@ -458,13 +458,15 @@ export default function MyAppointmentsPage() {
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
                 <Icon size={18} style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
-                <span>{tab.label}</span>
-                {cnt > 0 && !seenTabs.has(tab.key) && (
-                  <span className="absolute -top-1 -right-0.5 text-xs font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-0.5 leading-none"
-                    style={{ background: 'var(--color-text-primary)', color: 'white' }}>
-                    {cnt}
-                  </span>
-                )}
+                <span className="flex items-center gap-1.5">
+                  {tab.label}
+                  {cnt > 0 && !seenTabs.has(tab.key) && (
+                    <span className="text-[0.6875rem] font-bold min-w-[1.125rem] h-[1.125rem] flex items-center justify-center rounded-full px-1 leading-none"
+                      style={{ background: 'var(--color-primary)', color: 'white' }} aria-label={`${cnt} new`}>
+                      {cnt}
+                    </span>
+                  )}
+                </span>
               </button>
             );
           })}
@@ -549,7 +551,7 @@ export default function MyAppointmentsPage() {
                             {cfg.label}
                           </span>
                           {isSlotReserved && (
-                            <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>Awaiting IC confirmation</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>Waiting for our intake team to confirm</span>
                           )}
                           {counselorProposedResched && (
                             <span className="text-xs font-medium" style={{ color: 'var(--color-warning)' }}>Your counselor proposed a new time</span>
@@ -876,7 +878,7 @@ export default function MyAppointmentsPage() {
                 ))}
 
                 <div>
-                  <label className="block text-xs font-semibold tracking-wide uppercase mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  <label className="field-label">
                     What did you like most about your experience?
                   </label>
                   <textarea value={evalLiked} onChange={e => setEvalLiked(e.target.value)}
@@ -888,7 +890,7 @@ export default function MyAppointmentsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold tracking-wide uppercase mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  <label className="field-label">
                     What do you want to improve in the counseling sessions?
                   </label>
                   <textarea value={evalImprove} onChange={e => setEvalImprove(e.target.value)}
@@ -989,7 +991,7 @@ export default function MyAppointmentsPage() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Date</label>
+                <label className="field-label">New Preferred Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-xl outline-none transition-all"
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
@@ -998,7 +1000,7 @@ export default function MyAppointmentsPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Time</label>
+                <label className="field-label">New Preferred Time</label>
                 {!reschedDate ? (
                   <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Select a date to see available slots.</p>
                 ) : rescheduleLoadingSlots ? (
@@ -1036,7 +1038,7 @@ export default function MyAppointmentsPage() {
                 )}
               </div>
               <div>
-                <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                <label className="field-label">
                   Reason <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                 </label>
                 <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}

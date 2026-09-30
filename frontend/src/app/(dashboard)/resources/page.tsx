@@ -96,7 +96,7 @@ export default function WellnessResourcesPage() {
             <input type="text" placeholder="Search resources…" value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg outline-none transition"
-              style={{ background: 'var(--color-bg)', border: `1px solid ${fSearch ? 'var(--color-primary)' : 'var(--color-border)'}`, color: 'var(--color-text-primary)' }}
+              style={{ background: 'var(--color-surface)', border: `1px solid ${fSearch ? 'var(--color-primary)' : 'var(--color-border)'}`, color: 'var(--color-text-primary)' }}
               onFocus={() => setFSearch(true)} onBlur={() => setFSearch(false)} />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -119,8 +119,10 @@ export default function WellnessResourcesPage() {
 
         {/* Grid */}
         {filteredResources.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <FileText size={36} className="mb-3" style={{ color: 'var(--color-border)' }} />
+          <div className="card flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--color-primary-surface)' }}>
+              <FileText size={22} style={{ color: 'var(--color-primary-text)' }} />
+            </div>
             <p className="font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>No resources found</p>
             <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
               {searchTerm || selectedCategory !== 'all' ? 'Try adjusting your search or filter' : 'Check back soon for wellness resources'}

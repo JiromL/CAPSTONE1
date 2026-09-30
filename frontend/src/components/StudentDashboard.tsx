@@ -723,7 +723,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             ) : (
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Date</label>
+                  <label className="field-label">New Preferred Date</label>
                   <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-lg outline-none transition-all"
                     style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}
@@ -732,7 +732,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>New Preferred Time</label>
+                  <label className="field-label">New Preferred Time</label>
                   {!reschedDate ? (
                     <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Select a date to see available slots.</p>
                   ) : rescheduleLoadingSlots ? (
@@ -772,7 +772,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold tracking-wide uppercase block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  <label className="field-label">
                     Reason <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                   </label>
                   <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}

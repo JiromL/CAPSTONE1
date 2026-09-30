@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
-import Image from 'next/image';
 import {
   AlertCircle, CheckCircle, Loader2, Save, Check,
   ChevronRight, ChevronLeft, User, Brain, ClipboardCheck,
@@ -493,7 +492,7 @@ export default function BookAppointmentPage() {
             <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-primary)' }}>
-                  <Image src="/dlsu-seal.svg" alt="DLSU" width={22} height={22} className="brightness-[10]" />
+                  <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
                 </div>
                 <div>
                   <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Intake Forms</p>
@@ -1032,7 +1031,7 @@ export default function BookAppointmentPage() {
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center gap-3 mb-5">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-primary)' }}>
-                <Image src="/dlsu-seal.svg" alt="DLSU" width={22} height={22} className="brightness-[10]" />
+                <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
               </div>
               <div>
                 <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Book Appointment</p>
@@ -1128,7 +1127,7 @@ export default function BookAppointmentPage() {
                   {purpose === 'others' && (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Specify <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                        <label className="field-label">Specify <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                         <input value={specifyOthers} onChange={e => setSpecifyOthers(e.target.value)} placeholder="Please specify…"
                           className={IC} style={IC_S} onFocus={onFocusIn} onBlur={onFocusOut} />
                       </div>
@@ -1152,7 +1151,7 @@ export default function BookAppointmentPage() {
                   {/* Counselor */}
                   {(purpose === 'counseling' || purpose === 'follow_up') && (
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Counselor <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                      <label className="field-label">Counselor <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                       {assignedCounselor === undefined && (
                         <div className="flex items-center gap-2 text-sm py-2" style={{ color: 'var(--color-text-muted)' }}>
                           <Loader2 size={13} className="animate-spin" /> Looking up your assigned counselor…
@@ -1208,7 +1207,7 @@ export default function BookAppointmentPage() {
                   {/* Session mode */}
                   {purpose !== 'others' && (purpose === 'intake_interview' || !!selectedCounselorId || assignedCounselor) && (
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>Session Mode <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                      <label className="field-label">Session Mode <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                       <div className="grid grid-cols-2 gap-2">
                         {[
                           { v: 'F2F', label: 'Face to Face', sub: 'Visit the CPS office', Icon: MapPin },

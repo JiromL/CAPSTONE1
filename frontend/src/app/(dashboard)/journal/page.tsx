@@ -106,10 +106,18 @@ export default function JournalPage() {
   const currentMoodColor = getMood(mood).color;
 
   return (
-    <DashboardPageWrapper title="My Journal" subtitle="A private space to reflect on your thoughts and feelings">
+    <DashboardPageWrapper
+      title="My Journal"
+      subtitle="A private space to reflect on your thoughts and feelings"
+      actions={
+        <button onClick={openCompose} className="btn-primary !min-h-11 !px-5 !text-sm">
+          <Plus size={16} /> New entry
+        </button>
+      }
+    >
 
-      {/* Header row */}
-      <div className="flex items-end justify-between mb-6">
+      {/* Entry counts */}
+      <div className="flex items-end justify-between mb-5">
         <div>
           <div className="flex items-center gap-5">
             <span className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
@@ -124,10 +132,6 @@ export default function JournalPage() {
             )}
           </div>
         </div>
-        <button onClick={openCompose}
-          className="btn-primary !min-h-11 !px-5 !text-sm">
-          <Plus size={16} /> New entry
-        </button>
       </div>
 
       {/* Compose / Edit panel */}

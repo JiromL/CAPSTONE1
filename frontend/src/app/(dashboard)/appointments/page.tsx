@@ -1977,7 +1977,7 @@ export default function AppointmentsPage() {
                 </div>
               )}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                <label className="field-label">
                   Remarks <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                 </label>
                 <textarea value={noShowReason} onChange={e => setNoShowReason(e.target.value)}
@@ -2171,12 +2171,12 @@ export default function AppointmentsPage() {
                 A new confirmed session will be created and linked to the same case. The student will see it in their upcoming sessions.
               </p>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <label className="field-label">Date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                 <input type="date" value={followUpDate} onChange={e => { setFollowUpDate(e.target.value); setFollowUpTime(''); }} className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
               {followUpDate && (
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  <label className="field-label">
                     Time <span style={{ color: 'var(--color-danger)' }}>*</span>
                     {followUpLoadingSlots && <span className="font-normal normal-case ml-1" style={{ color: 'var(--color-text-muted)' }}>Loading…</span>}
                   </label>
@@ -2207,12 +2207,12 @@ export default function AppointmentsPage() {
                 </div>
               )}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Office / Location <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
+                <label className="field-label">Office / Location <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
                 <input type="text" value={followUpOffice} onChange={e => setFollowUpOffice(e.target.value)}
                   placeholder="e.g. Room 203, CPS Office" className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Notes <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
+                <label className="field-label">Notes <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
                 <textarea value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)}
                   rows={2} placeholder="Session notes or focus areas…"
                   className="w-full px-3 py-2 text-sm rounded-lg outline-none transition resize-none"

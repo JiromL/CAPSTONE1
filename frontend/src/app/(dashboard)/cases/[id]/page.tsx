@@ -2945,7 +2945,7 @@ export default function CaseDetailPage() {
                 {/* Goals */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Goals</label>
+                    <label className="field-label">Goals</label>
                     <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, goals: [...tp.goals, { goal: '', target_date: '', status: 'not_started' }] }))}
                       className="text-xs hover:underline" style={{ color: 'var(--color-primary)' }}>+ Add Goal</button>
                   </div>
@@ -2976,7 +2976,7 @@ export default function CaseDetailPage() {
                 {/* Interventions */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Interventions</label>
+                    <label className="field-label">Interventions</label>
                     <button type="button" onClick={() => setTreatmentPlan(tp => ({ ...tp, interventions: [...tp.interventions, ''] }))}
                       className="text-xs hover:underline" style={{ color: 'var(--color-primary)' }}>+ Add</button>
                   </div>
@@ -3310,7 +3310,7 @@ export default function CaseDetailPage() {
 
               {/* Means restriction */}
               <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                <label className="field-label">
                   Means Restriction
                 </label>
                 <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>Describe agreed actions to limit access to lethal means.</p>
@@ -3326,7 +3326,7 @@ export default function CaseDetailPage() {
               {/* Follow-up + Signature */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Follow-Up Date</label>
+                  <label className="field-label">Follow-Up Date</label>
                   <input
                     type="date"
                     value={safetyPlan.follow_up_date}
@@ -3335,7 +3335,7 @@ export default function CaseDetailPage() {
                   />
                 </div>
                 <div className="rounded-lg p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Counselor Name</label>
+                  <label className="field-label">Counselor Name</label>
                   <input
                     type="text"
                     value={safetyPlan.counselor_signature}
@@ -4019,7 +4019,7 @@ export default function CaseDetailPage() {
               The student will pick a time from your available slots. Make sure your availability is set up in your schedule settings.
             </p>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Notes for student (optional)</label>
+              <label className="field-label">Notes for student (optional)</label>
               <textarea rows={2} value={scheduleNotes} onChange={e => setScheduleNotes(e.target.value)} placeholder="Anything the student should prepare or know…"
                 className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"
                 style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
@@ -4081,7 +4081,7 @@ export default function CaseDetailPage() {
 
             {/* Destination office */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Referring To</label>
+              <label className="field-label">Referring To</label>
               <div className="grid grid-cols-2 gap-2">
                 {EXT_OFFICES.map(o => (
                   <button key={o} onClick={() => setExtReferralOffice(o)}
@@ -4109,7 +4109,7 @@ export default function CaseDetailPage() {
 
             {/* Nature of concern */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>
+              <label className="field-label">
                 Nature of Concern <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(brief, will appear on letter)</span>
               </label>
               <textarea rows={2} value={extReferralConcern} onChange={e => setExtReferralConcern(e.target.value)}
@@ -4120,7 +4120,7 @@ export default function CaseDetailPage() {
 
             {/* Specific request */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>
+              <label className="field-label">
                 Specific Request to Office <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(optional)</span>
               </label>
               <textarea rows={2} value={extReferralRequest} onChange={e => setExtReferralRequest(e.target.value)}
@@ -4169,7 +4169,7 @@ export default function CaseDetailPage() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Crisis Level</label>
+              <label className="field-label">Crisis Level</label>
               <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
                 {(['CRITICAL', 'HIGH'] as const).map(lvl => (
                   <button key={lvl} onClick={() => setCrisisLevel(lvl)}
@@ -4181,7 +4181,7 @@ export default function CaseDetailPage() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Description *</label>
+              <label className="field-label">Description *</label>
               <textarea value={crisisDescription} onChange={e => setCrisisDescription(e.target.value)} rows={3}
                 placeholder="What is happening right now?"
                 className="w-full px-3 py-2 text-sm rounded-lg resize-none outline-none"
@@ -4281,7 +4281,7 @@ export default function CaseDetailPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>
+              <label className="field-label">
                 Select {referralRole === 'COUNSELOR' ? 'Counselor' : 'Psychologist'}
               </label>
               {referralWorkloadLoading ? (
@@ -4339,7 +4339,7 @@ export default function CaseDetailPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-muted)' }}>Reason for Referral</label>
+              <label className="field-label">Reason for Referral</label>
               <textarea rows={3} value={referralReason} onChange={e => setReferralReason(e.target.value)}
                 placeholder="Clinical rationale, specific concerns, or context for the receiving provider…"
                 className="w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none"

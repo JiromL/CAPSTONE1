@@ -1573,7 +1573,7 @@ export default function AppointmentsDashboard() {
                   {/* Office — only for F2F */}
                   {selectedSlot && selectedSlot.method?.toLowerCase() !== 'online' && (
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
+                      <label className="field-label">Office / Room</label>
                       <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
                         placeholder="e.g. Room 203, CPS Office"
                         className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
@@ -1585,7 +1585,7 @@ export default function AppointmentsDashboard() {
                 <>
                   {/* Manual: counselor — workload-aware list for OA, plain select otherwise */}
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    <label className="field-label">
                       Counselor <span className="normal-case font-normal" style={{ color: 'var(--color-danger)' }}>*</span>
                     </label>
                     {(() => {
@@ -1786,7 +1786,7 @@ export default function AppointmentsDashboard() {
                   {/* Manual: office */}
                   {(assignTarget?.method === 'in-person' || assignTarget?.method === 'in_person') && (
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
+                      <label className="field-label">Office / Room</label>
                       <input type="text" value={assignForm.office} onChange={e => setAssignForm(f => ({ ...f, office: e.target.value }))}
                         placeholder="e.g. Room 203, CPS Office, Bldg. A"
                         className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
@@ -1842,7 +1842,7 @@ export default function AppointmentsDashboard() {
             <div className="p-6 space-y-4">
               {/* Student search */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Student</label>
+                <label className="field-label">Student</label>
                 {selectedStudent ? (
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'var(--color-success-surface)', border: '1px solid #bbf7d0' }}>
                     <div>
@@ -1887,7 +1887,7 @@ export default function AppointmentsDashboard() {
 
               {/* Purpose */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Purpose</label>
+                <label className="field-label">Purpose</label>
                 <select value={schedPurpose} onChange={e => setSchedPurpose(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-xl focus:outline-none"
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
@@ -1900,7 +1900,7 @@ export default function AppointmentsDashboard() {
 
               {/* Concern */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Concern / Notes</label>
+                <label className="field-label">Concern / Notes</label>
                 <textarea value={schedConcern} onChange={e => setSchedConcern(e.target.value)}
                   placeholder="Brief description…" rows={2}
                   className="w-full px-3 py-2 text-sm rounded-xl focus:outline-none resize-none"
@@ -1909,7 +1909,7 @@ export default function AppointmentsDashboard() {
 
               {/* Mode */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Mode</label>
+                <label className="field-label">Mode</label>
                 <select value={schedMethod} onChange={e => setSchedMethod(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-xl focus:outline-none"
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
@@ -2030,19 +2030,19 @@ export default function AppointmentsDashboard() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--color-text-secondary)' }}>New Date</label>
+                <label className="field-label">New Date</label>
                 <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--color-text-secondary)' }}>New Time</label>
+                <label className="field-label">New Time</label>
                 <input type="time" step="1800" value={reschedTime} onChange={e => setReschedTime(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                   style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--color-text-secondary)' }}>Reason <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
+                <label className="field-label">Reason <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span></label>
                 <textarea value={reschedReason} onChange={e => setReschedReason(e.target.value)}
                   rows={2} placeholder="Why is this session being rescheduled?"
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none resize-none"
@@ -2092,13 +2092,13 @@ export default function AppointmentsDashboard() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Date *</label>
+                  <label className="field-label">Date *</label>
                   <input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                     style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Time *</label>
+                  <label className="field-label">Time *</label>
                   <input type="time" step="1800" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                     style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
@@ -2106,7 +2106,7 @@ export default function AppointmentsDashboard() {
               </div>
               {(followUpTarget.method === 'in-person' || followUpTarget.method === 'in_person') && (
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
+                  <label className="field-label">Office / Room</label>
                   <input type="text" value={followUpOffice} onChange={e => setFollowUpOffice(e.target.value)}
                     placeholder="e.g. Room 203, CPS Office"
                     className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
@@ -2114,7 +2114,7 @@ export default function AppointmentsDashboard() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>Session Notes (optional)</label>
+                <label className="field-label">Session Notes (optional)</label>
                 <textarea rows={2} value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)}
                   placeholder="Continuation goals, topics to cover…"
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none resize-none"
@@ -2265,7 +2265,7 @@ export default function AppointmentsDashboard() {
             <div className="p-6 space-y-4">
               {/* Reassign counselor */}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                <label className="field-label">
                   Counselor <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(leave blank to keep current)</span>
                 </label>
                 {(() => {
@@ -2353,14 +2353,14 @@ export default function AppointmentsDashboard() {
               {/* Date + time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Date</label>
+                  <label className="field-label">Date</label>
                   <input type="date" value={editDate}
                     onChange={e => { setEditDate(e.target.value); fetchFreeSlots(editCounselor, e.target.value); }}
                     className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"
                     style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                  <label className="field-label">
                     Time
                     {loadingSlots && <span className="ml-1 font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>loading…</span>}
                   </label>
@@ -2386,7 +2386,7 @@ export default function AppointmentsDashboard() {
 
               {/* Office */}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Office / Room</label>
+                <label className="field-label">Office / Room</label>
                 <input type="text" value={editOffice} onChange={e => setEditOffice(e.target.value)}
                   placeholder="e.g. Room 203, CPS Office, Bldg. A"
                   className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none"

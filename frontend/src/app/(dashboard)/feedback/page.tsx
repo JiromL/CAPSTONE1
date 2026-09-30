@@ -2,23 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { Star, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Star, Send, CheckCircle, AlertCircle, Loader2, Building2, MessagesSquare, CalendarDays, BookOpen, UserRound, MessageCircle, Footprints, DoorOpen, Video, Phone, ThumbsUp, CircleHelp, ThumbsDown, type LucideIcon } from 'lucide-react';
 import { api } from '@/utils/api';
 
 const CATEGORIES = [
-  { value: 'general',   label: 'General Experience', icon: '🏢', desc: 'Overall impression of CPS services' },
-  { value: 'session',   label: 'Counseling Session',  icon: '🗣', desc: 'Feedback on a counseling session' },
-  { value: 'program',   label: 'Program / Workshop',  icon: '📋', desc: 'Events, group sessions, or workshops' },
-  { value: 'resources', label: 'Wellness Resources',  icon: '📚', desc: 'Materials, guides, online resources' },
-  { value: 'staff',     label: 'Staff Experience',    icon: '👤', desc: 'Administrative or support staff' },
-  { value: 'other',     label: 'Other',               icon: '💬', desc: 'Something else entirely' },
+  { value: 'general',   label: 'General Experience', icon: Building2, desc: 'Overall impression of CPS services' },
+  { value: 'session',   label: 'Counseling Session',  icon: MessagesSquare, desc: 'Feedback on a counseling session' },
+  { value: 'program',   label: 'Program / Workshop',  icon: CalendarDays, desc: 'Events, group sessions, or workshops' },
+  { value: 'resources', label: 'Wellness Resources',  icon: BookOpen, desc: 'Materials, guides, online resources' },
+  { value: 'staff',     label: 'Staff Experience',    icon: UserRound, desc: 'Administrative or support staff' },
+  { value: 'other',     label: 'Other',               icon: MessageCircle, desc: 'Something else entirely' },
 ];
 
 const SESSION_FORMATS = [
-  { value: 'walk_in',   label: 'Walk-in',                       icon: '🚶' },
-  { value: 'in_person', label: 'In-person (booked)',            icon: '🏠' },
-  { value: 'online',    label: 'Online (Google Meet / Zoom)',   icon: '💻' },
-  { value: 'phone',     label: 'Phone call',                    icon: '📞' },
+  { value: 'walk_in',   label: 'Walk-in',                       icon: Footprints },
+  { value: 'in_person', label: 'In-person (booked)',            icon: DoorOpen },
+  { value: 'online',    label: 'Online (Google Meet / Zoom)',   icon: Video },
+  { value: 'phone',     label: 'Phone call',                    icon: Phone },
 ];
 
 type RecommendValue = 'yes' | 'maybe' | 'no';
@@ -31,10 +31,10 @@ function recommendStyle(v: RecommendValue, selected: boolean): React.CSSProperti
   }
 }
 
-const RECOMMEND_OPTIONS: { value: RecommendValue; label: string; icon: string }[] = [
-  { value: 'yes',   label: 'Yes, definitely', icon: '👍' },
-  { value: 'maybe', label: 'Maybe',           icon: '🤔' },
-  { value: 'no',    label: 'No',              icon: '👎' },
+const RECOMMEND_OPTIONS: { value: RecommendValue; label: string; icon: LucideIcon }[] = [
+  { value: 'yes',   label: 'Yes, definitely', icon: ThumbsUp },
+  { value: 'maybe', label: 'Maybe',           icon: CircleHelp },
+  { value: 'no',    label: 'No',              icon: ThumbsDown },
 ];
 
 const RATING_LABELS: Record<number, string> = {
@@ -171,7 +171,7 @@ export default function FeedbackPage() {
                     style={sel
                       ? { border: '2px solid var(--color-primary)', background: 'var(--color-primary-surface)' }
                       : { border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                    <span className="text-xl block mb-1">{c.icon}</span>
+                    <c.icon size={20} className="block mb-1.5" style={{ color: 'var(--color-primary-text)' }} aria-hidden="true" />
                     <p className="text-sm font-semibold" style={{ color: sel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{c.label}</p>
                     <p className="text-xs mt-0.5 leading-tight" style={{ color: 'var(--color-text-muted)' }}>{c.desc}</p>
                   </button>
@@ -198,7 +198,7 @@ export default function FeedbackPage() {
                           style={sel
                             ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: 'white', border: '1px solid var(--color-primary)' }
                             : { border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}>
-                          <span>{f.icon}</span> {f.label}
+                          <f.icon size={15} aria-hidden="true" /> {f.label}
                         </button>
                       );
                     })}
@@ -254,7 +254,7 @@ export default function FeedbackPage() {
                   onClick={() => setWouldRecommend(opt.value)}
                   className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all"
                   style={recommendStyle(opt.value, wouldRecommend === opt.value)}>
-                  <span className="text-2xl">{opt.icon}</span>
+                  <opt.icon size={22} aria-hidden="true" />
                   <span className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{opt.label}</span>
                 </button>
               ))}

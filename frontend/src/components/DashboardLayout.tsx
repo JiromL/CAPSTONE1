@@ -287,18 +287,6 @@ export function DashboardLayout({
   /* ── Sidebar content ────────────────────────────────────── */
   const SidebarContent = () => (
     <div className="relative flex flex-col h-full">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: 'radial-gradient(120% 45% at 0% 0%, rgba(35,82,204,0.28) 0%, transparent 60%), radial-gradient(90% 35% at 100% 100%, rgba(35,82,204,0.12) 0%, transparent 60%)',
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.035]"
-        style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0 39px, #fff 39px 40px)' }}
-      />
 
       {/* Logo */}
       <div className="relative flex items-center gap-3 px-3 h-16 flex-shrink-0">
@@ -361,7 +349,7 @@ export function DashboardLayout({
           {menuItems.map((item, i) => {
             if (item.heading) {
               return (mobileOpen || !sidebarCollapsed)
-                ? <p key={i} className="px-5 pt-5 pb-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-white/40 select-none">{item.heading}</p>
+                ? <p key={i} className="px-5 pt-4 pb-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-white/35 select-none">{item.heading}</p>
                 : <div key={i} className="mx-4 my-3 h-px bg-white/[0.08]" aria-hidden="true" />;
             }
             if (item.divider) return <div key={i} className="mx-4 my-1.5 h-px bg-white/[0.06]" />;
@@ -437,7 +425,7 @@ export function DashboardLayout({
         fixed left-0 top-0 h-screen z-30 flex-col flex
         overflow-hidden
         ${sidebarReady ? 'transition-[width,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]' : ''}
-        border-r border-white/[0.04]
+        border-r border-white/[0.06]
         w-72
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-60'}
@@ -459,14 +447,14 @@ export function DashboardLayout({
       )}
 
       {/* ── Main area ────────────────────────────────────── */}
-      <div className={`flex-1 flex flex-col min-h-screen ${sidebarReady ? 'transition-[margin] duration-200' : ''} ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+      <div style={{ background: 'radial-gradient(1200px 420px at 15% -120px, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 72%), var(--color-bg)' }} className={`flex-1 flex flex-col min-h-screen ${sidebarReady ? 'transition-[margin] duration-200' : ''} ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
 
         {/* Top header */}
         <header
           className="sticky top-0 z-20 h-16 flex items-center gap-3 px-4 lg:px-8 border-b"
           style={{
-            background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
-            borderColor: 'var(--color-border)',
+            background: 'color-mix(in srgb, var(--color-bg) 72%, transparent)',
+            borderColor: 'color-mix(in srgb, var(--color-border) 70%, transparent)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}

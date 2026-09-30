@@ -102,7 +102,7 @@ export default function CounselingCasesPage() {
         <div className="border rounded-xl shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Search</label>
+              <label className="field-label">Search</label>
               <div className="relative">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} />
                 <input type="text" placeholder="Name, ID, or Case #…" value={search}
@@ -113,7 +113,7 @@ export default function CounselingCasesPage() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Status</label>
+              <label className="field-label">Status</label>
               <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
                 className={IC} style={IC_S(false)}>
                 <option value="">All Status</option>
@@ -123,7 +123,7 @@ export default function CounselingCasesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>Month</label>
+              <label className="field-label">Month</label>
               <input type="month" value={month} onChange={e => { setMonth(e.target.value); setPage(1); }}
                 className={IC} style={IC_S(false)} />
             </div>

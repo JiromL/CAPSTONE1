@@ -108,7 +108,7 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <DashboardPageWrapper title="Announcements" subtitle="Post events, webinars, and notices for students">
+    <DashboardPageWrapper title="Announcements" subtitle={canPost ? 'Post events, webinars, and notices for students' : 'Events, webinars, and notices from CPS'}>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">

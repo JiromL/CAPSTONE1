@@ -33,7 +33,9 @@ function InfoRow({ icon, label, value, indent }: { icon?: React.ReactNode; label
       {icon && <div className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>{icon}</div>}
       <div className="flex-1">
         <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
-        <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+        {value
+          ? <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+          : <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Not added yet</p>}
       </div>
     </div>
   );

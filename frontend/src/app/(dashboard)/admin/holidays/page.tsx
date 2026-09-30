@@ -147,14 +147,14 @@ export default function HolidaysPage() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                <label className="field-label">
                   Date <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
                   className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                <label className="field-label">
                   Name <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
                 <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
@@ -162,7 +162,7 @@ export default function HolidaysPage() {
                   className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                <label className="field-label">
                   Description <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
                 </label>
                 <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)}

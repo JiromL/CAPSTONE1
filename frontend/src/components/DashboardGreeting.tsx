@@ -10,7 +10,7 @@ export function greetingFor(d: Date = new Date()): string {
 
 /**
  * Page-top greeting shared by every role dashboard, matching the student
- * dashboard: large Fraunces headline, one supporting line, optional actions.
+ * dashboard: Figtree headline, one supporting line, optional actions.
  */
 export function DashboardGreeting({
   firstName, subtitle, actions,

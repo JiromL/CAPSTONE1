@@ -178,7 +178,7 @@ export default function JournalPage() {
               placeholder="What's on your mind today?"
               rows={6}
               className="w-full px-4 py-3 text-sm rounded-lg outline-none transition resize-none leading-relaxed"
-              style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)', fontFamily: 'Georgia, serif' }}
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text-primary)', fontFamily: 'var(--font-body)' }}
               onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; }}
               onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
             />
@@ -263,7 +263,7 @@ export default function JournalPage() {
                               <span className="text-xs font-medium" style={{ color: m.color }}>{m.label}</span>
                             </div>
                             <p className={`text-sm leading-relaxed ${expanded ? 'whitespace-pre-wrap' : 'line-clamp-3'}`}
-                              style={{ color: 'var(--color-text-secondary)', fontFamily: 'Georgia, serif' }}>
+                              style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-body)' }}>
                               {entry.content}
                             </p>
                             {entry.tags.length > 0 && (

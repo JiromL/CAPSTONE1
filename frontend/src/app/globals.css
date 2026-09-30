@@ -124,7 +124,7 @@ html.dark {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-jakarta);
+  --font-sans: var(--font-body);
   --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', monospace;
 }
 
@@ -143,8 +143,7 @@ html {
 body {
   background: var(--color-bg);
   color: var(--color-text-primary);
-  font-family: 'Plus Jakarta Sans', var(--font-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-feature-settings: 'cv11', 'ss01';
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -152,6 +151,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), var(--font-body), sans-serif;
   font-weight: 700;
   letter-spacing: -0.015em;
   color: var(--color-text-primary);
@@ -445,10 +445,11 @@ h1, h2, h3, h4, h5, h6 {
      WCAG AA requires 4.5:1 contrast for text below 18px/14px bold.
   ───────────────────────────────────────────────────────────── */
 
-  /* Display — Fraunces, reserved for page greetings and hero moments */
-  .font-display       { font-family: var(--font-fraunces), Georgia, serif; font-variation-settings: 'SOFT' 100, 'opsz' 144; font-weight: 420; letter-spacing: -0.025em; }
-  .type-display       { font-family: var(--font-fraunces), Georgia, serif; font-variation-settings: 'SOFT' 100, 'opsz' 144; font-weight: 420; letter-spacing: -0.025em; font-size: clamp(1.75rem, 3vw, 2.25rem); line-height: 1.1; }
+  /* Display — Figtree, for page titles and greetings */
+  .font-display       { font-family: var(--font-heading), var(--font-body), sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+  .type-display       { font-family: var(--font-heading), var(--font-body), sans-serif; font-weight: 600; letter-spacing: -0.02em; font-size: clamp(1.625rem, 2.6vw, 2rem); line-height: 1.2; }
   /* Page-level heading */
+  .type-page-title, .type-section-title, .type-card-title { font-family: var(--font-heading), var(--font-body), sans-serif; }
   .type-page-title    { font-size: 1.25rem;   font-weight: 700; line-height: 1.75rem; letter-spacing: -0.02em; }
   /* Card / panel section heading */
   .type-section-title { font-size: 1rem;      font-weight: 600; line-height: 1.5rem;  letter-spacing: -0.01em; }

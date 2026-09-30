@@ -63,7 +63,7 @@ export default function UsersReportPage() {
 
   return (
     <DashboardPageWrapper title="User Activity Report" subtitle="User counts and role distribution">
-      <div className="max-w-5xl space-y-8">
+      <div className="space-y-8">
 
         <div className="flex items-center justify-between">
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>User data from the CPS system database</p>

@@ -61,7 +61,7 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
 
   return (
     <DashboardPageWrapper title="Dashboard" subtitle="" hideHeader>
-      <div className="max-w-4xl space-y-6 animate-fade-up">
+      <div className="space-y-6 animate-fade-up">
 
         {/* Header */}
         <DashboardGreeting firstName={firstName} subtitle="Here’s your case queue for today." />

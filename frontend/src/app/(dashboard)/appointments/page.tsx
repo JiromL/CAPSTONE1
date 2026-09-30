@@ -177,7 +177,7 @@ function RequestCard({ apt, actioningId, actionMsg, onView, onAction }: {
 }) {
   const aptId = apt.appointment_id;
   return (
-    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+    <div className="rounded-xl border p-4 flex flex-col lg:flex-row lg:items-start justify-between gap-4"
       style={{ background: 'var(--color-primary-surface)', borderColor: 'var(--color-primary)' }}>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 mb-0.5">
@@ -233,7 +233,7 @@ function ActiveCard({ apt, actioningId, actionMsg, onView, onAction, onNoShow, o
   const isPending = apt.status === 'PENDING_STUDENT_APPROVAL';
   const isConfirmed = ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN'].includes(apt.status);
   return (
-    <div className="rounded-xl border p-4 flex items-start justify-between gap-4"
+    <div className="rounded-xl border p-4 flex flex-col lg:flex-row lg:items-start justify-between gap-4"
       style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 mb-0.5">
@@ -255,7 +255,7 @@ function ActiveCard({ apt, actioningId, actionMsg, onView, onAction, onNoShow, o
           <p className="text-xs mt-1.5 font-medium" style={{ color: actionMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>{actionMsg.text}</p>
         )}
       </div>
-      <div className="flex flex-col gap-2 flex-shrink-0 items-end">
+      <div className="flex flex-wrap items-center gap-2 flex-shrink-0 lg:justify-end lg:max-w-[26rem]">
         {isPending ? (
           <span className="text-xs font-medium flex items-center gap-1 whitespace-nowrap" style={{ color: 'var(--color-primary)' }}>
             <CheckCircle size={11} /> Awaiting student
@@ -348,7 +348,7 @@ function PostSessionCard({ apt, actioningId, actionMsg, pendingAction, setPendin
             <p className="text-xs mt-1.5 font-medium" style={{ color: actionMsg.type === 'ok' ? 'var(--color-success)' : 'var(--color-danger)' }}>{actionMsg.text}</p>
           )}
         </div>
-        <div className="flex flex-col gap-2 flex-shrink-0 items-end">
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0 lg:justify-end lg:max-w-[26rem]">
           {apt.case_id && (
             <a href={`/cases/${apt.case_id}?tab=session-notes`}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap"

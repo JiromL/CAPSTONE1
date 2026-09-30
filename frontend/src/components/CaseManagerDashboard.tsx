@@ -117,7 +117,7 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
 
         {/* Quick links */}
         <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: 'var(--color-text-muted)' }}>Quick Access</p>
+          <h3 className="type-section-title mb-4" style={{ color: 'var(--color-text-primary)' }}>Quick Access</h3>
           <div>
             {[
               { href: '/case-manager/queue', label: 'CM Queue', icon: AlertTriangle, note: 'Struggling & In Crisis students' },

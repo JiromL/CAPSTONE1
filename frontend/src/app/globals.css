@@ -151,6 +151,10 @@ body {
 }
 
 @layer base {
+  /* Tailwind v4 defaults borders to currentColor (near-black here).
+     Restore a soft default so unstyled borders and dividers stay light. */
+  *, ::before, ::after, ::backdrop { border-color: var(--color-border); }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading), var(--font-body), sans-serif;
     font-weight: 700;

@@ -40,7 +40,7 @@ function PermaDistributionWidget() {
   return (
     <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Student Wellbeing Overview</p>
+        <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Student Wellbeing Overview</h3>
         {total > 0 && <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{total} tracked</span>}
       </div>
       {notConnected || (!data && !notConnected) ? (
@@ -93,7 +93,7 @@ function PermaTrendsWidget() {
 
   return (
     <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-      <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: 'var(--color-text-muted)' }}>Wellbeing Trends — Last 6 Months</p>
+      <h3 className="type-section-title mb-4" style={{ color: 'var(--color-text-primary)' }}>Wellbeing Trends — Last 6 Months</h3>
       <div className="space-y-3">
         {months.map(month => {
           const counts = data.monthly[month] ?? {};
@@ -361,7 +361,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
           {/* Recent cases */}
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Recent Cases</p>
+              <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Recent Cases</h3>
               <Link href="/cases" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
             </div>
             {cases.length === 0 ? (

@@ -101,7 +101,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Pending Confirmation</p>
+                <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Pending Confirmation</h3>
                 {needsAction.length > 0 && (
                   <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>
                     {needsAction.length}
@@ -150,7 +150,7 @@ export function IntakeCounselorDashboard({ user, onLogout }: DashboardProps) {
           {/* Today's intakes */}
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Today's Intakes</p>
+              <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Today's Intakes</h3>
               <Link href="/intake-management" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
             </div>
             {todayConfirmed.length === 0 ? (

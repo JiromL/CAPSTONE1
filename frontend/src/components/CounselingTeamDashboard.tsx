@@ -122,7 +122,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
           {/* Today's sessions + pending evaluations */}
           <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Today's Sessions</p>
+              <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Today's Sessions</h3>
               <Link href="/appointments" className="text-xs hover:underline" style={{ color: 'var(--color-primary-text)' }}>View all</Link>
             </div>
             {todayAppts.length === 0 ? (
@@ -172,7 +172,7 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
 
           {/* Quick navigation */}
           <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--color-text-muted)' }}>Quick Access</p>
+            <h3 className="type-section-title mb-4" style={{ color: 'var(--color-text-primary)' }}>Quick Access</h3>
             <div className="divide-y divide-border">
               {LINKS.map(({ href, label }) => (
                 <Link key={href} href={href}

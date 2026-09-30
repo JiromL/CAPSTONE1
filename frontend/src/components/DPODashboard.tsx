@@ -62,7 +62,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
 
             {/* System snapshot */}
             <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: 'var(--color-text-muted)' }}>System Snapshot</p>
+              <h3 className="type-section-title mb-4" style={{ color: 'var(--color-text-primary)' }}>System Snapshot</h3>
               <div className="space-y-0.5">
                 {[
                   { label: 'Active cases',            value: summary?.active_cases ?? '—',        danger: false },
@@ -84,7 +84,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
             <div className="space-y-5">
               {/* Data governance */}
               <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted)' }}>Data Governance</p>
+                <h3 className="type-section-title mb-3" style={{ color: 'var(--color-text-primary)' }}>Data Governance</h3>
                 <div>
                   {[
                     { href: '/admin/audit-log',     label: 'Audit Logs' },
@@ -107,7 +107,7 @@ export function DPODashboard({ user, onLogout }: DashboardProps) {
 
               {/* Clinical oversight */}
               <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--color-text-muted)' }}>Clinical Oversight</p>
+                <h3 className="type-section-title mb-3" style={{ color: 'var(--color-text-primary)' }}>Clinical Oversight</h3>
                 <div>
                   {[
                     { href: '/high-risk',            label: 'High-Risk Cases' },

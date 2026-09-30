@@ -55,7 +55,7 @@ function CasesNeedingAttention() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <AlertTriangle size={14} style={{ color: 'var(--color-warning)' }} />
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Cases Needing Attention</p>
+          <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Cases Needing Attention</h3>
         </div>
         <Link href="/cases" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View all</Link>
       </div>
@@ -131,7 +131,7 @@ function PendingNotesPanel() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FileText size={14} style={{ color: 'var(--color-warning)' }} />
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Pending Session Notes</p>
+          <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Pending Session Notes</h3>
         </div>
         <Link href="/cases" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>View cases</Link>
       </div>

@@ -106,7 +106,7 @@ export default function LoginMockupV3() {
         <Link href="/login" className="underline underline-offset-2">Compare with /login</Link>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row">
+      <div className="flex-1 flex flex-col lg:flex-row-reverse">
 
         {/* ── Form side ─────────────────────────────────────────── */}
         <main className="flex-1 flex flex-col px-6 sm:px-12 py-8" style={{ background: 'var(--color-surface)' }}>
@@ -202,7 +202,7 @@ export default function LoginMockupV3() {
           <div className="flex flex-wrap items-center justify-between gap-3 type-caption" style={{ color: 'var(--color-text-muted)' }}>
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck size={13} style={{ color: 'var(--color-success)' }} aria-hidden="true" />
-              Confidential under RA 10173 (Data Privacy Act)
+              Protected under RA 10173 (Data Privacy Act)
             </span>
             <a href="mailto:cps@dlsu.edu.ph" className="hover:underline underline-offset-2">Trouble signing in? cps@dlsu.edu.ph</a>
           </div>
@@ -259,18 +259,11 @@ export default function LoginMockupV3() {
               <div className="flex-1 p-5 min-w-0">
                 <p className="type-overline" style={{ color: 'var(--color-text-muted)' }}>Counseling request</p>
                 <p className="text-lg font-bold mt-1 leading-snug" style={{ color: 'var(--color-text-primary)' }}>Talk to someone</p>
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                  <div><dt style={{ color: 'var(--color-text-muted)' }}>Cost</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Free</dd></div>
+                <dl className="mt-3 grid grid-cols-1 gap-y-2 text-xs">
                   <div><dt style={{ color: 'var(--color-text-muted)' }}>Mode</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>In-person or online</dd></div>
-                  <div className="col-span-2"><dt style={{ color: 'var(--color-text-muted)' }}>Who sees it</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Only you and your CPS counselor</dd></div>
+                  <div><dt style={{ color: 'var(--color-text-muted)' }}>Who sees it</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Only you and your CPS counselor</dd></div>
                 </dl>
               </div>
-              <span
-                className="v3-stamp absolute -top-4 -right-3 rounded-lg px-2.5 py-1 text-[10px] font-extrabold tracking-[0.14em] uppercase"
-                style={{ color: 'var(--color-success)', border: '2px solid var(--color-success)', background: 'var(--color-success-surface)' }}
-              >
-                Confidential
-              </span>
             </div>
           </div>
 

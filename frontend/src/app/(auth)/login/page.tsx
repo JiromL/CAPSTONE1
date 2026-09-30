@@ -127,7 +127,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row" style={{ background: 'var(--color-bg)' }}>
+    <div className="min-h-screen flex flex-col lg:flex-row-reverse" style={{ background: 'var(--color-bg)' }}>
       <style>{`
         .login-field { background: var(--color-bg); border: 1px solid var(--color-border); transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease; }
         .login-field:focus-within { background: var(--color-surface); border-color: var(--color-primary); box-shadow: var(--shadow-primary); }
@@ -136,10 +136,8 @@ export default function LoginPage() {
         .login-submit .arrow { transition: transform 180ms ease; }
         .login-submit:hover .arrow { transform: translateX(3px); }
         @keyframes login-slip-in { from { opacity: 0; transform: translateY(28px) rotate(-5deg); } to { opacity: 1; transform: translateY(0) rotate(-2.5deg); } }
-        @keyframes login-stamp { 0% { opacity: 0; transform: scale(1.35) rotate(-14deg); } 60% { opacity: 1; transform: scale(0.96) rotate(-8deg); } 100% { opacity: 1; transform: scale(1) rotate(-8deg); } }
         .login-slip  { transform: rotate(-2.5deg); animation: login-slip-in 700ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both; }
-        .login-stamp { transform: rotate(-8deg); animation: login-stamp 420ms cubic-bezier(0.34, 1.4, 0.64, 1) 900ms both; }
-        @media (prefers-reduced-motion: reduce) { .login-slip, .login-stamp { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .login-slip { animation: none; } }
       `}</style>
 
       {/* ── Form side ─────────────────────────────────────────── */}
@@ -263,7 +261,7 @@ export default function LoginPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 type-caption" style={{ color: 'var(--color-text-muted)' }}>
           <span className="inline-flex items-center gap-1.5">
             <ShieldCheck size={13} style={{ color: 'var(--color-success)' }} aria-hidden="true" />
-            Confidential under RA 10173 (Data Privacy Act)
+            Protected under RA 10173 (Data Privacy Act)
           </span>
           <a href="mailto:cps@dlsu.edu.ph" className="hover:underline underline-offset-2">Trouble signing in? cps@dlsu.edu.ph</a>
         </div>
@@ -304,16 +302,11 @@ export default function LoginPage() {
             <div className="flex-1 p-5 min-w-0">
               <p className="type-overline" style={{ color: 'var(--color-text-muted)' }}>Counseling request</p>
               <p className="text-lg font-bold mt-1 leading-snug" style={{ color: 'var(--color-text-primary)' }}>Talk to someone</p>
-              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                <div><dt style={{ color: 'var(--color-text-muted)' }}>Cost</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Free</dd></div>
+              <dl className="mt-3 grid grid-cols-1 gap-y-2 text-xs">
                 <div><dt style={{ color: 'var(--color-text-muted)' }}>Mode</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>In-person or online</dd></div>
-                <div className="col-span-2"><dt style={{ color: 'var(--color-text-muted)' }}>Who sees it</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Only you and your CPS counselor</dd></div>
+                <div><dt style={{ color: 'var(--color-text-muted)' }}>Who sees it</dt><dd className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Only you and your CPS counselor</dd></div>
               </dl>
             </div>
-            <span className="login-stamp absolute -top-4 -right-3 rounded-lg px-2.5 py-1 text-[10px] font-extrabold tracking-[0.14em] uppercase"
-              style={{ color: 'var(--color-success)', border: '2px solid var(--color-success)', background: 'var(--color-success-surface)' }}>
-              Confidential
-            </span>
           </div>
         </div>
 

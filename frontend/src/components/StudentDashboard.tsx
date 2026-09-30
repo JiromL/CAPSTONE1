@@ -263,7 +263,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                   ? `Your next session is ${relativeDay(nextAppt.requested_start)}.`
                   : pendingRequests.length > 0
                     ? `You have ${pendingRequests.length} request${pendingRequests.length !== 1 ? 's' : ''} under review.`
-                    : 'Free, confidential counseling whenever you need it.'}
+                    : 'Counseling support is here whenever you need it.'}
               </p>
             </div>
             {!isCheckInOnly && (
@@ -378,13 +378,8 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                         You don&apos;t have to figure this out alone, {firstName}.
                       </h2>
                       <p className="text-sm mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
-                        Free, confidential counseling for all DLSU students. In-person or online — on your own terms, at your own pace.
+                        Counseling for all DLSU students, in person or online — on your own terms, at your own pace.
                       </p>
-                      <div className="flex flex-wrap gap-2 mt-5">
-                        {['Free', 'Confidential', 'In-person & Online'].map(t => (
-                          <span key={t} className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.12)' }}>{t}</span>
-                        ))}
-                      </div>
                       <Link href="/book-appointment" className="btn-primary mt-6 !min-h-11 !px-5 !text-sm">
                         Talk to someone <ArrowRight size={15} />
                       </Link>

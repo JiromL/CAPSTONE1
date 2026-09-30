@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle, CalendarPlus, ArrowRight, NotebookPen, Pin } from 'lucide-react';
 
 import { OnboardingModal } from './OnboardingModal';
 import { ScheduleSessionCard } from './ScheduleSessionCard';
@@ -74,6 +74,22 @@ function getMethodLabel(appt: any): string {
 function fmtApptDate(s: string): string {
   try { return new Date(s).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' }); }
   catch { return ''; }
+}
+
+function greetingFor(d: Date): string {
+  const h = Number(d.toLocaleString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false })) % 24;
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function relativeDay(s: string): string {
+  const key = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+  const days = Math.round((new Date(key(new Date(s))).getTime() - new Date(key(new Date())).getTime()) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days < 7) return `in ${days} days`;
+  return `on ${fmtApptDate(s)}`;
 }
 
 function isProfileIncomplete(u: any) {
@@ -234,10 +250,33 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
           Loading…
         </div>
       ) : (
-        <div className="flex flex-col xl:flex-row gap-6 animate-fade-up">
+        <div className="animate-fade-up">
+
+          {/* Greeting */}
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+            <div>
+              <h1 className="type-display" style={{ color: 'var(--color-text-primary)' }}>
+                {greetingFor(new Date())}, {firstName}.
+              </h1>
+              <p className="type-body mt-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                {nextAppt
+                  ? `Your next session is ${relativeDay(nextAppt.requested_start)}.`
+                  : pendingRequests.length > 0
+                    ? `You have ${pendingRequests.length} request${pendingRequests.length !== 1 ? 's' : ''} under review.`
+                    : 'Free, confidential counseling whenever you need it.'}
+              </p>
+            </div>
+            {!isCheckInOnly && (
+              <Link href="/book-appointment" className="btn-primary !min-h-11 !px-5 !text-sm">
+                <CalendarPlus size={16} /> Request a session
+              </Link>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
 
           {/* Left column */}
-          <div className="flex-1 space-y-5 min-w-0">
+          <div className="xl:col-span-8 space-y-6 min-w-0">
 
             {/* Schedule session card — shown when IC has endorsed but student hasn't picked a time yet */}
             {hasPendingSession && (
@@ -252,339 +291,361 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               }} />
             )}
 
-            {/* Hero banner */}
+            {/* Next session slip */}
             {nextAppt ? (() => {
               const title       = getSessionTitle(nextAppt);
               const method      = getMethodLabel(nextAppt);
-              const dateStr     = fmtApptDate(nextAppt.requested_start);
               const timeStr     = fmtTime(nextAppt.requested_start);
               const counselor   = nextAppt.counselor_name || 'CPS Counselor';
               const isOnline    = ['online','video'].includes((nextAppt.preferred_method || '').toLowerCase());
               const meetingLink = nextAppt.meeting_link;
+              const d           = new Date(nextAppt.requested_start);
+              const initials    = counselor.split(' ').filter(Boolean).slice(-2).map((w: string) => w[0]).join('').toUpperCase();
               return (
-                <div
-                  className="relative overflow-hidden rounded-2xl p-7 text-white shadow-card-lg"
-                  style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, #1A3DB0 100%)' }}
-                >
-                  <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
-                  <div className="pointer-events-none absolute bottom-0 left-1/2 w-64 h-24 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                        Upcoming Appointment
-                      </p>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                        <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'var(--color-success)', animation: 'pulse-dot 2s ease-in-out infinite' }} />
-                        Confirmed
+                <article className="relative flex flex-col sm:flex-row rounded-2xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-card-lg)' }} aria-label="Next session">
+                  <div className="sm:w-40 flex-shrink-0 flex sm:flex-col items-center sm:justify-center gap-4 sm:gap-0 px-6 py-5 sm:py-7 rounded-t-2xl sm:rounded-tr-none sm:rounded-l-2xl text-white" style={{ background: 'var(--color-primary)' }}>
+                    <span className="text-xs font-bold tracking-[0.16em] uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>{d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short' })}</span>
+                    <span className="font-display text-6xl leading-none sm:my-1.5" style={{ color: 'white' }}>{d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric' })}</span>
+                    <span className="text-xs font-bold tracking-[0.16em] uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>{d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short' })}</span>
+                    {timeStr && (
+                      <span className="sm:mt-4 ml-auto sm:ml-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.16)' }}>
+                        <Clock size={12} aria-hidden="true" /> {timeStr}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* perforation */}
+                  <div className="relative hidden sm:block w-0 border-l-2 border-dashed" style={{ borderColor: 'var(--color-border)' }} aria-hidden="true">
+                    <span className="absolute -top-[11px] -left-[11px] w-5 h-5 rounded-full" style={{ background: 'var(--color-bg)' }} />
+                    <span className="absolute -bottom-[11px] -left-[11px] w-5 h-5 rounded-full" style={{ background: 'var(--color-bg)' }} />
+                  </div>
+
+                  <div className="flex-1 p-6 sm:p-7 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="type-overline" style={{ color: 'var(--color-text-muted)' }}>Next session</span>
+                      <span className="badge" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
+                        <CheckCircle size={12} aria-hidden="true" /> Confirmed
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold mb-2 leading-snug" style={{ color: 'white' }}>{title}</h3>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm mb-6" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                      <span className="font-semibold text-white">with {counselor}</span>
-                      {dateStr && (
-                        <span className="flex items-center gap-1.5">
-                          <CalendarDays size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />{dateStr}
-                        </span>
-                      )}
-                      {timeStr && (
-                        <span className="flex items-center gap-1.5">
-                          <Clock size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />{timeStr}
-                        </span>
-                      )}
+                    <h2 className="text-xl font-bold mt-2 leading-snug" style={{ color: 'var(--color-text-primary)' }}>{title}</h2>
+
+                    <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)' }}>{initials || 'C'}</div>
+                        <div className="min-w-0">
+                          <dt className="type-caption" style={{ color: 'var(--color-text-muted)' }}>Counselor</dt>
+                          <dd className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{counselor}</dd>
+                        </div>
+                      </div>
                       {method && (
-                        <span className="flex items-center gap-1.5">
-                          {isOnline
-                            ? <Video size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
-                            : <MapPin size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />}
-                          {method} session
-                        </span>
+                        <div>
+                          <dt className="type-caption" style={{ color: 'var(--color-text-muted)' }}>Where</dt>
+                          <dd className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'var(--color-text-primary)' }}>
+                            {isOnline ? <Video size={14} aria-hidden="true" style={{ color: 'var(--color-primary-text)' }} /> : <MapPin size={14} aria-hidden="true" style={{ color: 'var(--color-primary-text)' }} />}
+                            {method}
+                          </dd>
+                        </div>
                       )}
-                    </div>
-                    <div className="flex gap-3">
+                    </dl>
+
+                    <div className="flex flex-wrap items-center gap-2.5 mt-6 pt-5 border-t" style={{ borderColor: 'var(--color-border)' }}>
                       {isOnline && meetingLink ? (
-                        <a href={meetingLink} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
-                          style={{ background: 'white', color: 'var(--color-primary)' }}>
-                          <Video size={15} />Join Session
+                        <a href={meetingLink} target="_blank" rel="noopener noreferrer" className="btn-primary">
+                          <Video size={15} /> Join session
                         </a>
                       ) : (
-                        <Link href="/my-appointments">
-                          <button className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
-                            style={{ background: 'white', color: 'var(--color-primary)' }}>
-                            <Video size={15} />View Details
-                          </button>
+                        <Link href="/my-appointments" className="btn-primary">
+                          View details <ArrowRight size={14} />
                         </Link>
                       )}
                       <button
                         onClick={() => { setReschedTarget(nextAppt); setReschedDate(''); setReschedTime(''); setReschedReason(''); setReschedError(''); setReschedSuccess(false); }}
-                        className="px-5 py-2.5 text-sm font-semibold rounded-xl transition-colors"
-                        style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}>
+                        className="btn-ghost">
                         Reschedule
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               );
-            })() : upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
-              <div
-                className="relative overflow-hidden rounded-2xl p-7 text-white shadow-card-lg"
-                style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, #1A3DB0 100%)' }}
-              >
-                <div className="pointer-events-none absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
-                <div className="relative z-10">
-                  <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Welcome to CPS</p>
-                  <h3 className="text-xl font-bold mb-2 leading-snug" style={{ color: 'white' }}>
-                    You don't have to figure this out alone, {firstName}.
-                  </h3>
-                  <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                    Free, confidential counseling for all DLSU students. In-person or online — on your own terms, at your own pace.
-                  </p>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {['Free', 'Confidential', 'In-person & Online'].map(t => (
-                      <span key={t} className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.18)', color: 'white' }}>{t}</span>
-                    ))}
-                  </div>
-                  <Link href="/book-appointment">
-                    <button className="px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
-                      style={{ background: 'white', color: 'var(--color-primary)' }}>
-                      Talk to Someone →
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div
-                className="relative overflow-hidden rounded-2xl p-7 text-white shadow-card-lg"
-                style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, #1A3DB0 100%)' }}
-              >
-                <div className="pointer-events-none absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
-                <div className="relative z-10">
-                  <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Your counseling journey</p>
-                  <h3 className="text-xl font-bold mb-2" style={{ color: 'white' }}>Reaching out was a brave first step, {firstName}.</h3>
-                  <p className="text-sm mb-6 leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                    {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review. We'll be in touch within 1–2 business days.`}
-                  </p>
-                  {!isCheckInOnly && (
-                    <Link href="/book-appointment">
-                      <button className="px-5 py-2.5 text-sm font-bold rounded-xl transition-all hover:shadow-lg hover:-translate-y-0.5"
-                        style={{ background: 'white', color: 'var(--color-primary)' }}>
-                        Book Another Session →
-                      </button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Announcements */}
-            <div className="rounded-2xl border p-5 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>CPS Updates &amp; Events</p>
-                {announcements.length > 3 && (
-                  <a href="/announcements" className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>
-                    View All →
-                  </a>
-                )}
-              </div>
-              {announcements.length === 0 ? (
-                <p className="text-sm text-center py-6" style={{ color: 'var(--color-text-muted)' }}>No announcements at this time.</p>
-              ) : (
-                <div className="space-y-1">
-                  {announcements.slice(0, 3).map((a, i) => {
-                    const meta = TYPE_META[a.event_type] || TYPE_META.info;
-                    return (
-                      <button
-                        key={a.id}
-                        onClick={() => setOpenAnnouncement(a)}
-                        className="w-full text-left px-3 py-3 rounded-xl transition-colors group"
-                        style={{ animationDelay: `${i * 50}ms` }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: meta.accent }} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-xs font-bold tracking-wide uppercase" style={{ color: meta.accent }}>{meta.label}</span>
-                              {a.pinned && <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
-                            </div>
-                            <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--color-text-primary)' }}>{a.title}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              {a.event_date && (
-                                <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{fmtEventDate(a.event_date)}</span>
-                              )}
-                              {a.created_at && (
-                                <span className="text-[11px]" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>· {timeAgo(a.created_at)}</span>
-                              )}
-                            </div>
-                          </div>
-                          <ChevronRight size={14} className="flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            {/* Crisis support strip */}
-            <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', borderLeftWidth: 3 }}>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold" style={{ color: 'var(--color-danger)' }}>Need support right now?</p>
-                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--color-danger)' }}>
-                  CPS:{' '}
-                  <a href="tel:09XXXXXXXXX" className="font-bold underline underline-offset-2">09XX-XXX-XXXX</a>
-                  {' '}· Hopeline:{' '}
-                  <a href="tel:1553" className="font-bold underline underline-offset-2">1553</a>
-                  {' '}· NCMH:{' '}
-                  <a href="tel:028928922" className="font-bold underline underline-offset-2">0917-899-8727</a>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right column — Upcoming Sessions */}
-          <div className="w-full xl:w-72 flex-shrink-0 space-y-5">
-
-            {/* H-03: Active case status card */}
-            {activeCase && (() => {
-              const caseStatus = (activeCase.status || activeCase.case_status || '').replace(/_/g,' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-              const isActive = ['ACTIVE','NEW','INTAKE_SCHEDULED'].includes((activeCase.status || activeCase.case_status || '').toUpperCase());
-              return (
-                <div className="rounded-2xl border p-4 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Your Case</p>
-                    <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={isActive
-                        ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
-                        : { background: 'var(--color-border)', color: 'var(--color-text-muted)' }}
-                    >
-                      {caseStatus}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {activeCase.counselor_name ? (
-                      <div>
-                        <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Assigned Counselor</p>
-                        <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{activeCase.counselor_name}</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-muted)' }}>Counselor</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Not yet assigned</p>
-                      </div>
-                    )}
-                    {activeCase.case_number && (
-                      <p className="text-xs font-mono pt-1" style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)' }}>
-                        Case #{activeCase.case_number}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div className="rounded-2xl border p-5 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Your next sessions</p>
-              </div>
-
-              {upcoming.length === 0 && pendingRequests.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
-                    <CalendarDays size={22} style={{ color: 'var(--color-text-muted)' }} />
-                  </div>
-                  <p className="text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>No sessions yet.</p>
-                  <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>When you book a session, it'll appear here. Everything is private.</p>
-                  {!isCheckInOnly && (
-                    <Link href="/book-appointment">
-                      <button className="mt-1 text-xs font-semibold px-4 py-2 rounded-xl transition-all hover:opacity-90"
-                        style={{ background: 'var(--color-primary)', color: 'white' }}>
-                        Talk to Someone →
-                      </button>
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {upcoming.slice(0, 5).map((appt, i) => (
-                    <Link key={appt.id || appt._id || i} href="/my-appointments">
-                      <div
-                        className="flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer"
-                        style={i === 0 ? { background: 'var(--color-primary-surface)' } : {}}
-                        onMouseEnter={e => { if (i !== 0) e.currentTarget.style.background = 'var(--color-bg)'; }}
-                        onMouseLeave={e => { if (i !== 0) e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <div
-                          className="flex-shrink-0 w-10 text-center rounded-xl py-1.5"
-                          style={i === 0
-                            ? { background: 'var(--color-primary)', color: 'white' }
-                            : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}
-                        >
-                          <p className="text-xs font-medium leading-none mb-0.5">{apptDay(appt.requested_start)}</p>
-                          <p className="text-base font-bold leading-none">{apptNum(appt.requested_start)}</p>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
-                            {appt.counselor_name || 'CPS Counselor'}
-                          </p>
-                          <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
-                            {fmtTime(appt.requested_start)}
-                            {appt.requested_end ? ` – ${fmtTime(appt.requested_end)}` : ''}
-                          </p>
-                        </div>
-                        <ChevronRight size={13} style={{ color: i === 0 ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
-                      </div>
-                    </Link>
-                  ))}
-
-                  {pendingRequests.length > 0 && (
+            })() : (
+              <section className="relative overflow-hidden rounded-2xl p-7 sm:p-8" style={{ background: 'var(--color-sidebar)', boxShadow: 'var(--shadow-card-lg)' }}>
+                <div className="pointer-events-none absolute -right-32 -top-32 w-[420px] h-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(35,82,204,0.35) 0%, transparent 65%)' }} aria-hidden="true" />
+                <div className="relative max-w-lg">
+                  {upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
                     <>
-                      {upcoming.length > 0 && <div className="h-px my-1" style={{ background: 'var(--color-border)' }} />}
-                      <p className="text-xs font-bold tracking-widest uppercase px-1 pt-1" style={{ color: 'var(--color-text-muted)' }}>
-                        Pending Requests
+                      <p className="type-overline" style={{ color: '#7BAAF7' }}>Welcome to CPS</p>
+                      <h2 className="font-display text-3xl leading-tight mt-3" style={{ color: 'white' }}>
+                        You don&apos;t have to figure this out alone, {firstName}.
+                      </h2>
+                      <p className="text-sm mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                        Free, confidential counseling for all DLSU students. In-person or online — on your own terms, at your own pace.
                       </p>
-                      {pendingRequests.slice(0, 3).map((appt, i) => (
-                        <Link key={appt.id || appt._id || i} href="/my-appointments">
-                          <div
-                            className="flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer"
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            <div className="flex-shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center" style={{ background: 'var(--color-warning-surface)', borderColor: 'var(--color-warning)' }}>
-                              <CalendarDays size={14} style={{ color: 'var(--color-warning)' }} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
-                                {appt.purpose === 'intake_interview' ? 'Intake Interview' :
-                                 appt.purpose === 'counseling' ? 'Counseling' :
-                                 appt.purpose === 'follow_up_counselling' ? 'Follow-up' : 'Session Request'}
-                              </p>
-                              <p className="text-xs font-medium" style={{ color: 'var(--color-warning)' }}>Pending review</p>
-                            </div>
-                            <ChevronRight size={13} style={{ color: 'var(--color-text-muted)' }} />
-                          </div>
+                      <div className="flex flex-wrap gap-2 mt-5">
+                        {['Free', 'Confidential', 'In-person & Online'].map(t => (
+                          <span key={t} className="text-xs px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.12)' }}>{t}</span>
+                        ))}
+                      </div>
+                      <Link href="/book-appointment" className="btn-primary mt-6 !min-h-11 !px-5 !text-sm">
+                        Talk to someone <ArrowRight size={15} />
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <p className="type-overline" style={{ color: '#7BAAF7' }}>Your counseling journey</p>
+                      <h2 className="font-display text-3xl leading-tight mt-3" style={{ color: 'white' }}>
+                        Reaching out was a brave first step, {firstName}.
+                      </h2>
+                      <p className="text-sm mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                        {`You have ${pendingRequests.length} pending request${pendingRequests.length !== 1 ? 's' : ''} under review. We'll be in touch within 1–2 business days.`}
+                      </p>
+                      {!isCheckInOnly && (
+                        <Link href="/book-appointment" className="btn-primary mt-6 !min-h-11 !px-5 !text-sm">
+                          Book another session <ArrowRight size={15} />
                         </Link>
-                      ))}
+                      )}
                     </>
                   )}
                 </div>
-              )}
+              </section>
+            )}
 
-              {upcoming.length > 5 && (
-                <div className="mt-3 pt-3 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
-                  <Link href="/my-appointments">
-                    <span className="text-xs font-medium transition-opacity hover:opacity-75" style={{ color: 'var(--color-primary)' }}>
-                      View all {upcoming.length} sessions →
+            {/* This week */}
+            {(() => {
+              const today = new Date();
+              const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7)); monday.setHours(0,0,0,0);
+              const week = Array.from({ length: 7 }, (_, i) => { const x = new Date(monday); x.setDate(monday.getDate() + i); return x; });
+              const sessionsOn = (d: Date) => appointments.filter(a =>
+                a.requested_start && ['scheduled','confirmed','matched','completed'].includes((a.status||'').toLowerCase()) &&
+                new Date(a.requested_start).toDateString() === d.toDateString());
+              return (
+                <section className="card">
+                  <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                    <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>This week</h3>
+                    <span className="inline-flex items-center gap-1.5 type-caption" style={{ color: 'var(--color-text-muted)' }}>
+                      <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />Session
                     </span>
-                  </Link>
+                  </div>
+                  <ol className="grid grid-cols-7 gap-1.5 sm:gap-2 px-5 pb-5">
+                    {week.map(d => {
+                      const isToday = d.toDateString() === today.toDateString();
+                      const count = sessionsOn(d).length;
+                      const past = d < today && !isToday;
+                      const label = [d.toLocaleDateString('en-PH', { weekday: 'long', month: 'short', day: 'numeric' }), isToday && 'today', count > 0 && `${count} session${count > 1 ? 's' : ''}`].filter(Boolean).join(', ');
+                      return (
+                        <li key={d.toISOString()} aria-label={label}
+                          className="rounded-xl flex flex-col items-center py-3 gap-1"
+                          style={{
+                            background: count > 0 ? 'var(--color-primary-surface)' : 'transparent',
+                            border: isToday ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                            opacity: past ? 0.6 : 1,
+                          }}>
+                          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{d.toLocaleDateString('en-PH', { weekday: 'narrow' })}</span>
+                          <span className="text-base sm:text-lg font-bold tabular-nums" style={{ color: count > 0 ? 'var(--color-primary-text)' : 'var(--color-text-primary)' }}>{d.getDate()}</span>
+                          <span className="flex items-center gap-1 h-2">
+                            {Array.from({ length: Math.min(count, 3) }).map((_, k) => (
+                              <span key={k} className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
+                            ))}
+                          </span>
+                          {isToday && <span className="text-[10px] font-bold uppercase tracking-wide hidden sm:block" style={{ color: 'var(--color-primary-text)' }}>Today</span>}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              );
+            })()}
+
+            {/* Pending requests */}
+            {pendingRequests.length > 0 && (
+              <section className="card p-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Requests under review</h3>
+                  <Link href="/my-appointments" className="type-label hover:underline underline-offset-2" style={{ color: 'var(--color-primary-text)' }}>View all</Link>
                 </div>
+                <p className="type-body-sm mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>We usually reply within 1–2 business days.</p>
+                <ul className="mt-4 space-y-4">
+                  {pendingRequests.slice(0, 3).map((appt, i) => (
+                    <li key={appt.id || appt._id || i} className="rounded-xl p-4" style={{ background: 'var(--color-bg)' }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                          {appt.purpose === 'intake_interview' ? 'Intake Interview' :
+                           appt.purpose === 'counseling' ? 'Counseling' :
+                           appt.purpose === 'follow_up_counselling' ? 'Follow-up' : 'Session Request'}
+                        </p>
+                        <span className="badge" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' }}>Under review</span>
+                      </div>
+                      <ol className="flex items-center mt-4" aria-label="Request progress">
+                        {(['Requested', 'Under review', 'Confirmed'] as const).map((step, s) => {
+                          const done = s < 1, current = s === 1;
+                          return (
+                            <li key={step} className={`flex items-center ${s < 2 ? 'flex-1' : ''}`} aria-current={current ? 'step' : undefined}>
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                                  style={done
+                                    ? { background: 'var(--color-primary)', color: 'white' }
+                                    : current
+                                      ? { background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)', boxShadow: '0 0 0 2px var(--color-primary)' }
+                                      : { background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
+                                  {done ? <CheckCircle size={13} /> : s + 1}
+                                </span>
+                                <span className="text-xs font-semibold whitespace-nowrap" style={{ color: done || current ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>{step}</span>
+                              </div>
+                              {s < 2 && <span className="flex-1 h-0.5 mx-3 rounded-full" style={{ background: done ? 'var(--color-primary)' : 'var(--color-border)' }} />}
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {/* Announcements */}
+            <section className="card">
+              <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>CPS updates &amp; events</h3>
+                {announcements.length > 3 && (
+                  <a href="/announcements" className="type-label hover:underline underline-offset-2" style={{ color: 'var(--color-primary-text)' }}>View all</a>
+                )}
+              </div>
+              {announcements.length === 0 ? (
+                <p className="type-body-sm text-center pb-8 pt-3" style={{ color: 'var(--color-text-muted)' }}>No announcements right now. Check back later for webinars and events.</p>
+              ) : (
+                <ul className="px-2 pb-2">
+                  {announcements.slice(0, 3).map(a => {
+                    const meta = TYPE_META[a.event_type] || TYPE_META.info;
+                    return (
+                      <li key={a.id}>
+                        <button onClick={() => setOpenAnnouncement(a)} className="group w-full text-left flex items-center gap-4 px-3 py-3 rounded-xl transition-colors hover:bg-[var(--color-bg)]">
+                          <span className="w-1 self-stretch rounded-full flex-shrink-0" style={{ background: meta.accent }} aria-hidden="true" />
+                          <div className="flex-1 min-w-0">
+                            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+                              {meta.label}
+                              {a.pinned && <span className="inline-flex items-center gap-1 normal-case tracking-normal font-medium"><Pin size={11} aria-hidden="true" />Pinned</span>}
+                            </p>
+                            <p className="text-sm font-semibold mt-0.5 truncate" style={{ color: 'var(--color-text-primary)' }}>{a.title}</p>
+                            <p className="type-caption mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                              {a.event_date ? fmtEventDate(a.event_date) : a.created_at ? timeAgo(a.created_at) : ''}
+                            </p>
+                          </div>
+                          <ChevronRight size={16} className="flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} aria-hidden="true" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
+            </section>
+          </div>
+
+          {/* Right column */}
+          <div className="xl:col-span-4 space-y-6 min-w-0">
+
+            {/* Active case */}
+            {activeCase && (() => {
+              const raw = (activeCase.status || activeCase.case_status || '');
+              const caseStatus = raw.replace(/_/g,' ').toLowerCase().replace(/^\w/, (c: string) => c.toUpperCase());
+              const isActive = ['ACTIVE','NEW','INTAKE_SCHEDULED'].includes(raw.toUpperCase());
+              return (
+                <section className="card p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Your case</h3>
+                    <span className="badge" style={isActive
+                      ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }
+                      : { background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
+                      {caseStatus}
+                    </span>
+                  </div>
+                  <dl className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="type-body-sm" style={{ color: 'var(--color-text-muted)' }}>Counselor</dt>
+                      <dd className="type-body-sm font-semibold text-right" style={{ color: activeCase.counselor_name ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+                        {activeCase.counselor_name || 'Not yet assigned'}
+                      </dd>
+                    </div>
+                    {activeCase.case_number && (
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="type-body-sm" style={{ color: 'var(--color-text-muted)' }}>Case no.</dt>
+                        <dd className="type-body-sm font-mono" style={{ color: 'var(--color-text-secondary)' }}>{activeCase.case_number}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  <Link href="/counseling" className="mt-5 flex items-center justify-between rounded-xl px-4 h-11 type-label transition-opacity hover:opacity-80" style={{ color: 'var(--color-primary-text)', background: 'var(--color-primary-surface)' }}>
+                    View session history <ArrowRight size={15} aria-hidden="true" />
+                  </Link>
+                </section>
+              );
+            })()}
+
+            {/* Upcoming sessions */}
+            <section className="card">
+              <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                <h3 className="type-section-title" style={{ color: 'var(--color-text-primary)' }}>Upcoming sessions</h3>
+                {upcoming.length > 0 && (
+                  <Link href="/my-appointments" className="type-label hover:underline underline-offset-2" style={{ color: 'var(--color-primary-text)' }}>
+                    {upcoming.length > 5 ? `All ${upcoming.length}` : 'View all'}
+                  </Link>
+                )}
+              </div>
+              {upcoming.length === 0 ? (
+                <div className="text-center px-5 pb-6 pt-2">
+                  <div className="w-11 h-11 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+                    <CalendarDays size={20} style={{ color: 'var(--color-text-muted)' }} />
+                  </div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>No sessions booked yet</p>
+                  <p className="type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>Confirmed sessions will show up here. Everything is private.</p>
+                </div>
+              ) : (
+                <ul className="px-2 pb-2">
+                  {upcoming.slice(0, 5).map((appt, i) => (
+                    <li key={appt.id || appt._id || i}>
+                      <Link href="/my-appointments" className="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--color-bg)]">
+                        <div className="flex-shrink-0 w-11 text-center rounded-xl py-1.5"
+                          style={i === 0
+                            ? { background: 'var(--color-primary)', color: 'white' }
+                            : { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
+                          <p className="text-[11px] font-semibold leading-none mb-0.5 uppercase">{apptDay(appt.requested_start)}</p>
+                          <p className="text-base font-bold leading-none">{apptNum(appt.requested_start)}</p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{appt.counselor_name || 'CPS Counselor'}</p>
+                          <p className="type-caption truncate" style={{ color: 'var(--color-text-muted)' }}>
+                            {fmtTime(appt.requested_start)}{appt.requested_end ? ` – ${fmtTime(appt.requested_end)}` : ''}
+                          </p>
+                        </div>
+                        <ChevronRight size={15} className="flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--color-text-muted)' }} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* Journal prompt */}
+            <section className="card p-5">
+              <p className="type-overline flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}><NotebookPen size={12} aria-hidden="true" /> Journal</p>
+              <p className="font-display text-2xl mt-3 leading-snug" style={{ color: 'var(--color-text-primary)' }}>
+                {nextAppt
+                  ? `What's one thing you want to bring up on ${new Date(nextAppt.requested_start).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long' })}?`
+                  : 'How are you doing today, really?'}
+              </p>
+              <p className="type-caption mt-2" style={{ color: 'var(--color-text-muted)' }}>Private to you unless you choose to share it.</p>
+              <Link href="/journal" className="btn-ghost mt-5">Write an entry <ArrowRight size={14} /></Link>
+            </section>
+
+            {/* Crisis — on mobile the sidebar card is hidden, so show it inline */}
+            <div className="lg:hidden rounded-2xl p-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-danger-text)' }}>Need support right now?</p>
+              <p className="type-body-sm mt-1" style={{ color: 'var(--color-danger-text)' }}>
+                CPS: <a href="tel:09XXXXXXXXX" className="font-bold underline underline-offset-2">09XX-XXX-XXXX</a>
+                {' '}· Hopeline: <a href="tel:1553" className="font-bold underline underline-offset-2">1553</a>
+                {' '}· NCMH: <a href="tel:028928922" className="font-bold underline underline-offset-2">0917-899-8727</a>
+              </p>
             </div>
           </div>
 
+          </div>
         </div>
       )}
 

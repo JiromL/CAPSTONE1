@@ -368,7 +368,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                 </article>
               );
             })() : (
-              <section className="relative overflow-hidden rounded-2xl p-7 sm:p-8" style={{ background: 'var(--color-sidebar)', boxShadow: 'var(--shadow-card-lg)' }}>
+              <section className="relative overflow-hidden rounded-2xl p-7 sm:p-8" style={{ background: 'var(--color-sidebar)', boxShadow: 'var(--shadow-card-lg)', border: '1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)' }}>
                 <div className="pointer-events-none absolute -right-32 -top-32 w-[420px] h-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(35,82,204,0.35) 0%, transparent 65%)' }} aria-hidden="true" />
                 <div className="relative max-w-lg">
                   {upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (

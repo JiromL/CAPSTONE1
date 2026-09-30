@@ -269,7 +269,6 @@ export default function LoginPage() {
 
       {/* ── Navy panel with the slip ──────────────────────────── */}
       <aside className="relative lg:w-[48%] flex flex-col justify-between overflow-hidden px-6 sm:px-12 py-10 lg:py-12" style={{ background: 'var(--color-sidebar)' }}>
-        <div className="absolute inset-0 pointer-events-none opacity-[0.05]" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0 39px, #fff 39px 40px)' }} aria-hidden="true" />
         <div className="absolute -right-40 -top-40 w-[520px] h-[520px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(35,82,204,0.35) 0%, transparent 65%)' }} aria-hidden="true" />
 
         <div className="relative">

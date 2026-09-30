@@ -334,7 +334,7 @@ export function SupportStaffDashboard({ user, onLogout }: DashboardProps) {
           {/* Pending assignments */}
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-bold tracking-widest uppercase flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="type-section-title flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
                 Pending Assignments
                 {pendingList.length > 0 && (
                   <span className="text-xs px-1.5 py-0.5 rounded-full font-bold normal-case tracking-normal" style={{ background: 'var(--color-warning-surface)', color: 'var(--color-warning)' }}>

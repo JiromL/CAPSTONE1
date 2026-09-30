@@ -311,7 +311,7 @@ export function PsychologistDashboard({ user, onLogout }: DashboardProps) {
           {/* High-Risk Alerts */}
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-bold tracking-widest uppercase flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="type-section-title flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
                 High-Risk Alerts
                 {alerts.length > 0 && (
                   <span className="text-xs px-1.5 py-0.5 rounded-full font-bold normal-case tracking-normal" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>

@@ -117,7 +117,7 @@ export default function NonCounselingClientsPage() {
     }
   };
 
-  const SECTION: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: 16, marginBottom: 0 };
+  const SECTION: React.CSSProperties = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, padding: 20, boxShadow: 'var(--shadow-card)' };
 
   return (
     <PageShell title="Non-Counseling Check-In Clients" subtitle="Create periodic check-in cases for referred students">

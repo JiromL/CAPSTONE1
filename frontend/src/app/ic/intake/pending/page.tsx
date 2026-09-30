@@ -154,7 +154,7 @@ export default function PendingIntakesPage() {
       title="Pending Intakes"
       subtitle={loading ? 'Loading…' : `${intakes.length} intake${intakes.length !== 1 ? 's' : ''} awaiting session`}
     >
-      <div className="max-w-3xl space-y-5">
+      <div className="space-y-5">
 
         <div className="flex justify-end">
           <button onClick={load} disabled={loading}

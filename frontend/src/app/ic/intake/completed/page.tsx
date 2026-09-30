@@ -41,7 +41,7 @@ export default function CompletedIntakesPage() {
       title="Completed Intakes"
       subtitle={loading ? 'Loading…' : `${intakes.length} completed`}
     >
-      <div className="max-w-3xl space-y-3">
+      <div className="space-y-3">
         {error && (
           <div className="px-4 py-3 rounded-xl text-sm"
             style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}>

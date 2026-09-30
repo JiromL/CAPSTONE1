@@ -165,7 +165,15 @@ export default function ReferralsPage() {
   }
 
   return (
-    <DashboardPageWrapper title="Referrals" subtitle="View and manage service referrals">
+    <DashboardPageWrapper
+      title="Referrals"
+      subtitle="View and manage service referrals"
+      actions={canCreateReferral ? (
+        <button onClick={() => setShowCreateModal(true)} className="btn-primary !min-h-11 !px-5 !text-sm">
+          <Plus size={16} /> New referral
+        </button>
+      ) : undefined}
+    >
       <div className="space-y-6">
         {error && (
           <div className="flex gap-3 p-4 rounded-lg items-start" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
@@ -193,19 +201,6 @@ export default function ReferralsPage() {
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{s.label}</p>
               </div>
             ))}
-          </div>
-        )}
-
-        {canCreateReferral && (
-          <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Create Referral</h2>
-              <button onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-90"
-                style={{ background: 'var(--color-primary)' }}>
-                <Plus size={14} /> New Referral
-              </button>
-            </div>
           </div>
         )}
 

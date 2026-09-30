@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { DashboardGreeting } from './DashboardGreeting';
 import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/utils/api';
@@ -208,9 +209,6 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
   const staffCount = (summary?.total_counselors ?? 0) + (summary?.total_psychologists ?? 0);
   const latestAnn  = announcements[0];
 
-  const dateLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
 
   const QUICK_ACTIONS = [
     { href: '/admin/users',         label: 'Manage Users',        icon: Users,        primary: true  },
@@ -232,7 +230,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
   }
 
   return (
-    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
+    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard" titleInPage>
       {loading ? (
         <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
           <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Loading…
@@ -240,11 +238,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
       ) : (
         <div className="space-y-6 animate-fade-up">
 
-          {/* Page header */}
-          <div>
-            <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>System Overview</h2>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
-          </div>
+          <DashboardGreeting firstName={firstName} subtitle="Here’s the system overview for today." />
 
           {/* High-risk alert banner */}
           {highRisk > 0 && (

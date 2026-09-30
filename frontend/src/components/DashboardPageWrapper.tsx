@@ -51,6 +51,8 @@ interface DashboardPageWrapperProps {
   backLink?: { href: string; label: string };
   /** Page-level actions shown to the right of the page title. */
   actions?: React.ReactNode;
+  /** Skip the page title block (e.g. dashboards that render their own greeting). */
+  hideHeader?: boolean;
 }
 
 function FullPageLoader() {
@@ -126,7 +128,7 @@ function AccessDenied() {
   );
 }
 
-export function DashboardPageWrapper({ children, title, subtitle, requiredRoles, backLink, actions }: DashboardPageWrapperProps) {
+export function DashboardPageWrapper({ children, title, subtitle, requiredRoles, backLink, actions, hideHeader = false }: DashboardPageWrapperProps) {
   const [user, setUser]               = useState<any>(null);
   const [accessDenied, setAccessDenied] = useState(false);
   const [sessionWarning, setSessionWarning] = useState(false);
@@ -227,7 +229,7 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles,
           <button onClick={() => setSessionWarning(false)} aria-label="Dismiss" style={{ color: 'var(--color-warning-text)', opacity: 0.6 }}>✕</button>
         </div>
       )}
-      <header className="mb-7 animate-fade-up">
+      {!hideHeader && <header className="mb-7 animate-fade-up">
         {backLink && (
           <Link href={backLink.href}
             className="group inline-flex items-center gap-1 mb-3 type-label transition-colors hover:text-[var(--color-primary-text)]"
@@ -245,7 +247,7 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles,
           </div>
           {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
         </div>
-      </header>
+      </header>}
       <ErrorBoundary>
         {children}
       </ErrorBoundary>

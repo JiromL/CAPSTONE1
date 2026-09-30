@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from './DashboardPageWrapper';
+import { DashboardGreeting } from './DashboardGreeting';
 import { api } from '@/utils/api';
 import { AlertTriangle, ClipboardList, ArrowRight, RefreshCw } from 'lucide-react';
 import { AnnouncementsPanel } from './AnnouncementsPanel';
@@ -21,9 +22,6 @@ const DIST_BARS = [
 
 export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
   const firstName = user.first_name || user.name?.split(' ')[0] || 'Manager';
-  const todayStr = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-  });
 
   const [dist, setDist] = useState<Record<string, number> | null>(null);
   const [caseCount, setCaseCount] = useState<number | null>(null);
@@ -62,14 +60,11 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
   const totalDist = dist ? Object.values(dist).reduce((a, b) => a + b, 0) : 0;
 
   return (
-    <DashboardPageWrapper title="Dashboard" subtitle="">
+    <DashboardPageWrapper title="Dashboard" subtitle="" hideHeader>
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-up">
 
         {/* Header */}
-        <div className="pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{todayStr}</p>
-          <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
-        </div>
+        <DashboardGreeting firstName={firstName} subtitle="Here’s your case queue for today." />
 
         {/* Stat strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

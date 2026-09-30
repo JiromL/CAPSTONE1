@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { DashboardLayout } from './DashboardLayout';
+import { DashboardGreeting } from './DashboardGreeting';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
@@ -53,9 +54,6 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
     try { return new Date(s).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return ''; }
   };
 
-  const dateLabel = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila',
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-  });
 
   const LINKS = [
     { href: '/cases',        label: 'My Cases' },
@@ -69,13 +67,9 @@ export function CounselingTeamDashboard({ user, onLogout }: DashboardProps) {
     .slice(0, 5);
 
   return (
-    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard">
+    <DashboardLayout user={user} onLogout={onLogout} menuItems={menuItems} title="Dashboard" subtitle="" activeSection="dashboard" titleInPage>
 
-      <div className="mb-6 pb-5" style={{ borderBottom: '1px solid var(--color-border)' }}>
-        <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{dateLabel}</p>
-        <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Good day, {firstName}.</h2>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{roleLabel} — Client case support and coordination</p>
-      </div>
+      <DashboardGreeting firstName={firstName} subtitle=<>{roleLabel} — client case support and coordination.</> />
 
       {loading ? (
         <div className="flex items-center justify-center h-40 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>

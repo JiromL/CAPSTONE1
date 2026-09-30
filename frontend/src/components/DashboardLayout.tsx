@@ -27,6 +27,8 @@ interface DashboardLayoutProps {
   subtitle?: string;
   activeSection?: string;
   onMenuClick?: (id: string) => void;
+  /** The page renders its own large title, so the top bar shows the date instead. */
+  titleInPage?: boolean;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -60,6 +62,7 @@ export function DashboardLayout({
   subtitle,
   activeSection,
   onMenuClick,
+  titleInPage = false,
 }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen]       = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -504,12 +507,18 @@ export function DashboardLayout({
 
           {/* Page title — desktop */}
           <div className="hidden lg:block flex-1 min-w-0">
-            <p className="text-[0.9375rem] font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {title}
-            </p>
-            <p className="text-xs leading-tight mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
-              {subtitle || todayLabel}
-            </p>
+            {titleInPage ? (
+              <p className="type-label truncate" style={{ color: 'var(--color-text-muted)' }}>{todayLabel}</p>
+            ) : (
+              <>
+                <p className="text-[0.9375rem] font-semibold leading-tight truncate" style={{ color: 'var(--color-text-primary)' }}>
+                  {title}
+                </p>
+                <p className="text-xs leading-tight mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                  {subtitle || todayLabel}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Page title — mobile (centered) */}

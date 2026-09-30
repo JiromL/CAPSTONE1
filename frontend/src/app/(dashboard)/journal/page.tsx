@@ -111,8 +111,7 @@ export default function JournalPage() {
       {/* Header row */}
       <div className="flex items-end justify-between mb-6">
         <div>
-          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{today}</p>
-          <div className="flex items-center gap-5 mt-1">
+          <div className="flex items-center gap-5">
             <span className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
               <BookOpen size={15} style={{ color: 'var(--color-text-muted)' }} />
               <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{total}</span> entries

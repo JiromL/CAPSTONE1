@@ -203,22 +203,15 @@ export default function UserManagementPage() {
   }
 
   return (
-    <DashboardPageWrapper title="User Management" subtitle="Manage staff and user accounts">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>User Management</h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            {total} total account{total !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <Link href="/admin/users/create"
-          className="flex items-center gap-2 text-white px-6 py-2 rounded-lg font-medium transition text-sm"
-          style={{ background: 'var(--color-primary)' }}
-          onMouseOver={e => (e.currentTarget.style.background = 'var(--color-primary-hover)')}
-          onMouseOut={e  => (e.currentTarget.style.background = 'var(--color-primary)')}>
-          <Plus size={20} /> Add User
+    <DashboardPageWrapper
+      title="User Management"
+      subtitle={`${total} total account${total !== 1 ? 's' : ''}`}
+      actions={
+        <Link href="/admin/users/create" className="btn-primary !min-h-11 !px-5 !text-sm">
+          <Plus size={16} /> Add User
         </Link>
-      </div>
+      }
+    >
 
       {/* Search + filter bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">

@@ -49,6 +49,8 @@ interface DashboardPageWrapperProps {
   subtitle?: string;
   requiredRoles?: string[];
   backLink?: { href: string; label: string };
+  /** Page-level actions shown to the right of the page title. */
+  actions?: React.ReactNode;
 }
 
 function FullPageLoader() {
@@ -124,7 +126,7 @@ function AccessDenied() {
   );
 }
 
-export function DashboardPageWrapper({ children, title, subtitle, requiredRoles, backLink }: DashboardPageWrapperProps) {
+export function DashboardPageWrapper({ children, title, subtitle, requiredRoles, backLink, actions }: DashboardPageWrapperProps) {
   const [user, setUser]               = useState<any>(null);
   const [accessDenied, setAccessDenied] = useState(false);
   const [sessionWarning, setSessionWarning] = useState(false);
@@ -200,19 +202,19 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles,
       title={title}
       subtitle={subtitle}
       activeSection={activeSection}
+      titleInPage
     >
       {/* Session expiry warning */}
       {sessionWarning && (
         <div
           role="alert"
-          className="mx-4 mt-3 mb-0 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium"
+          className="mb-6 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium"
           style={{ background: 'var(--color-warning-surface)', border: '1px solid rgba(217,119,6,0.25)', color: 'var(--color-warning-text)' }}
         >
           <AlertCircle size={14} className="flex-shrink-0" />
           <span className="flex-1">Your session expires soon.</span>
           <button
-            className="text-xs font-semibold px-3 py-1 rounded-lg"
-            style={{ background: 'var(--color-primary)', color: '#fff' }}
+            className="btn-primary !min-h-8 !px-3 !text-xs"
             onClick={() => {
               // Silently extend: re-request a token refresh if the backend supports it,
               // otherwise redirect to login before expiry to avoid data loss.
@@ -225,18 +227,25 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles,
           <button onClick={() => setSessionWarning(false)} aria-label="Dismiss" style={{ color: 'var(--color-warning-text)', opacity: 0.6 }}>✕</button>
         </div>
       )}
-      {backLink && (
-        <div className="px-4 pt-3 pb-0">
+      <header className="mb-7 animate-fade-up">
+        {backLink && (
           <Link href={backLink.href}
-            className="inline-flex items-center gap-1 text-xs font-medium transition-colors"
-            style={{ color: 'var(--color-text-muted)' }}
-            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = 'var(--color-primary)')}
-            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
-            <ChevronLeft size={13} />
+            className="group inline-flex items-center gap-1 mb-3 type-label transition-colors hover:text-[var(--color-primary-text)]"
+            style={{ color: 'var(--color-text-muted)' }}>
+            <ChevronLeft size={15} className="transition-transform group-hover:-translate-x-0.5" />
             {backLink.label}
           </Link>
+        )}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="type-display" style={{ color: 'var(--color-text-primary)' }}>{title}</h1>
+            {subtitle && (
+              <p className="type-body mt-1.5 max-w-2xl" style={{ color: 'var(--color-text-secondary)' }}>{subtitle}</p>
+            )}
+          </div>
+          {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
         </div>
-      )}
+      </header>
       <ErrorBoundary>
         {children}
       </ErrorBoundary>

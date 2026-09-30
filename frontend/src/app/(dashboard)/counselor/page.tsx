@@ -106,7 +106,7 @@ export default function CounselorProfilePage() {
               {initials}
             </div>
             <div>
-              <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{fullName}</h1>
+              <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{fullName}</h2>
               <p style={{ color: 'var(--color-text-secondary)' }}>Licensed Counselor</p>
               {dp.specialization && (
                 <p className="text-sm mt-2" style={{ color: 'var(--color-primary)' }}>{dp.specialization}</p>

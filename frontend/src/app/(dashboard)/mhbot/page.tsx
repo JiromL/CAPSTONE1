@@ -943,7 +943,9 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
           : <WifiOff size={14} className="flex-shrink-0" style={{ color: 'var(--color-danger)' }} />}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium" style={{ color: 'var(--color-success)' }}>
-            Connected as <span className="font-semibold">{username}</span>
+            {username
+              ? <>Connected as <span className="font-semibold">{username}</span></>
+              : 'Connected to EMA via the shared CPS staff account'}
           </p>
           {serverUp === false && (
             <p className="text-xs mt-0.5" style={{ color: 'var(--color-danger)' }}>EMA server unreachable — data may be stale</p>

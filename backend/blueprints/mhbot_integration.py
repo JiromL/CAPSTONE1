@@ -452,22 +452,21 @@ def get_cm_queue():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_shared_ema_token()
-    if not token:
-        return jsonify({'error': 'Not connected to EMA. Please log in via the EMA page.'}), 503
-
+    # Read the stored latest EMA label (kept current by EMA sync and the
+    # webhook) — the same source as /analytics/summary's at_risk_count, so the
+    # queue and the badge always agree and a failed live EMA lookup can never
+    # hide an at-risk student.
     try:
-        flagged_labels = {'Struggling', 'In Crisis'}
+        flagged_labels = ['Struggling', 'In Crisis']
         results = []
 
-        for student in db.db.users.find({'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'}):
+        for student in db.db.users.find({
+            'mhbot_username': {'$exists': True, '$ne': None},
+            'role': 'STUDENT',
+            'perma_latest_label': {'$in': flagged_labels},
+        }):
             mhbot_un = student.get('mhbot_username')
-            r = get_perma_history(mhbot_un, token, limit=3)
-            if not r['success']:
-                continue
-            label = r['latest_label']
-            if label not in flagged_labels:
-                continue
+            label = student.get('perma_latest_label')
 
             # Find their most recent case
             case = db.db.cases.find_one({'student_id': student['_id']}, sort=[('created_at', -1)])
@@ -479,9 +478,9 @@ def get_cm_queue():
                 'college':      student.get('college', ''),
                 'mhbot_username': mhbot_un,
                 'latest_label': label,
-                'latest_date':  r['latest_date'],
+                'latest_date':  student.get('perma_latest_date'),
                 'case_id':      str(case['_id']) if case else None,
-                'case_status':  case.get('status') if case else None,
+                'case_status':  (case.get('case_status') or case.get('status')) if case else None,
             })
 
         # Sort: In Crisis first, then Struggling

@@ -189,3 +189,61 @@ def is_staff(db, user_id):
     except Exception:
         return False
     return bool(user) and user.get('role') not in (None, 'STUDENT')
+
+
+# Route parameters that point at a record belonging to a case, and where that record lives.
+_CASE_RECORD_PARAMS = {
+    'appointment_id': 'appointments', 'note_id': 'session_notes', 'session_id': 'session_notes',
+    'check_in_id': 'check_ins', 'checkin_id': 'check_ins', 'referral_id': 'referrals',
+    'plan_id': 'safety_plans', 'safety_plan_id': 'safety_plans', 'intake_id': 'intakes',
+    'document_id': 'documents', 'escalation_id': 'crisis_escalations', 'assessment_id': 'assessments',
+}
+_OWN_RECORD_ERROR = ('You can only open records from your own case', 403)
+
+
+def record_access_error(db, user_id, view_args):
+    """Central rule for every route with a case or case-record ID in its URL: apply the case
+    page's viewing rules (case_access_error). Returns (message, status) or None.
+
+    A counselor or psychologist named on the record itself (e.g. the appointment's counselor)
+    may open that record even when the case is assigned to someone else.
+    """
+    if not view_args:
+        return None
+    try:
+        user = db.users.find_one({'_id': ObjectId(user_id)}, {'role': 1})
+    except Exception:
+        return None
+    if not user:
+        return None
+    role, uid = user.get('role'), str(user_id)
+
+    if role == 'STUDENT':
+        for key in ('student_id', 'client_id'):
+            if key in view_args and str(view_args[key]) != uid:
+                return _OWN_RECORD_ERROR
+
+    case_ids = [view_args['case_id']] if 'case_id' in view_args else []
+    for key, collection in _CASE_RECORD_PARAMS.items():
+        if key not in view_args:
+            continue
+        try:
+            doc = db[collection].find_one({'_id': ObjectId(view_args[key])})
+        except Exception:
+            doc = None
+        if not doc:
+            continue
+        involved = {str(v) for k, v in doc.items() if k.endswith('_id') and k not in ('_id', 'case_id')}
+        if role == 'STUDENT':
+            if doc.get('student_id') is not None and str(doc['student_id']) != uid:
+                return _OWN_RECORD_ERROR
+        elif uid in involved:
+            continue
+        if doc.get('case_id'):
+            case_ids.append(doc['case_id'])
+
+    for case_id in case_ids:
+        err = case_access_error(db, user_id, case_id)
+        if err and err[1] == 403:
+            return err
+    return None

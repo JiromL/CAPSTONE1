@@ -148,6 +148,27 @@ def create_app(config_name=None):
         from scheduler import start_scheduler
         start_scheduler(app)
 
+    # One access rule for every URL that names a case or a record inside a case, so
+    # sub-resources (notes, safety plans, check-ins, referrals…) follow the case page's rules
+    @app.before_request
+    def enforce_case_record_access():
+        from flask import request, jsonify
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from utils import record_access_error
+        if request.method == 'OPTIONS' or not request.view_args:
+            return None
+        try:
+            verify_jwt_in_request(optional=True)
+            user_id = get_jwt_identity()
+        except Exception:
+            return None   # the route's own @jwt_required reports bad or expired tokens
+        if not user_id:
+            return None
+        denied = record_access_error(mongodb, user_id, request.view_args)
+        if denied:
+            return jsonify({'error': denied[0]}), denied[1]
+        return None
+
     # Health check route
     @app.route('/api/health', methods=['GET'])
     def health():

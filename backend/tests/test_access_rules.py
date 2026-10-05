@@ -23,6 +23,10 @@ def world():
                                         'created_at': datetime.utcnow()}).inserted_id
     ids['other_case'] = tdb.cases.insert_one({'student_id': ids['other'], 'assigned_counselor_id': ids['counselor'],
                                               'case_status': 'ACTIVE', 'created_at': datetime.utcnow()}).inserted_id
+    oc = ids['other_case']
+    ids['plan'] = tdb.safety_plans.insert_one({'case_id': oc, 'warning_signs': 'private'}).inserted_id
+    ids['checkin'] = tdb.check_ins.insert_one({'case_id': oc, 'notes': 'private', 'created_at': datetime.utcnow()}).inserted_id
+    ids['referral'] = tdb.referrals.insert_one({'case_id': oc, 'provider': 'private', 'created_at': datetime.utcnow()}).inserted_id
     ids['reminder'] = tdb.reminders.insert_one({'recipient_id': str(ids['student']), 'created_by': str(ids['cm']),
                                                 'title': 'Session tomorrow', 'message': 'See you', 'status': 'pending',
                                                 'delivery_methods': ['dashboard'],
@@ -31,6 +35,9 @@ def world():
     tdb.users.delete_many({'_id': {'$in': [ids[k] for k in ('student', 'other', 'counselor', 'stranger_counselor', 'cm', 'admin')]}})
     tdb.cases.delete_many({'_id': {'$in': [ids['case'], ids['other_case']]}})
     tdb.reminders.delete_many({'_id': ids['reminder']})
+    tdb.safety_plans.delete_many({'_id': ids['plan']})
+    tdb.check_ins.delete_many({'_id': ids['checkin']})
+    tdb.referrals.delete_many({'_id': ids['referral']})
     tdb.notifications.delete_many({'reminder_id': ids['reminder']})
 
 
@@ -114,3 +121,36 @@ def test_reopen_case_returns_success(client, world):
                     headers=auth(world['admin']))
     assert r.status_code == 200, r.get_json()
     assert db.db.cases.find_one({'_id': world['case']})['case_status'] == 'ACTIVE'
+
+
+# ── Central rule: every URL naming a case or a record inside one ─────────────
+
+def case_record_paths(w):
+    oc = w['other_case']
+    return [f'/api/high-risk/case/{oc}/safety-plan', f'/api/check-ins/{oc}/history', f'/api/check-ins/{w["checkin"]}',
+            f'/api/referrals/{w["referral"]}', f'/api/referrals/case/{oc}/history', f'/api/cases/{oc}/diagnoses',
+            f'/api/case-management/cases/{oc}/timeline', f'/api/case-management/cases/{oc}/audit-log']
+
+
+def test_students_cannot_open_another_students_case_records(client, world):
+    for path in case_record_paths(world):
+        assert client.get(path, headers=auth(world['student'])).status_code == 403, path
+
+
+def test_unassigned_counselor_cannot_open_case_records(client, world):
+    for path in case_record_paths(world):
+        assert client.get(path, headers=auth(world['stranger_counselor'])).status_code == 403, path
+
+
+def test_assigned_counselor_and_case_manager_still_can(client, world):
+    for who in ('counselor', 'cm'):
+        for path in case_record_paths(world):
+            assert client.get(path, headers=auth(world[who])).status_code != 403, (who, path)
+
+
+def test_rule_also_covers_changes(client, world):
+    oc = world['other_case']
+    r = client.post(f'/api/high-risk/case/{oc}/safety-plan', json={'warning_signs': 'overwritten'},
+                    headers=auth(world['student']))
+    assert r.status_code == 403
+    assert db.db.safety_plans.find_one({'_id': world['plan']})['warning_signs'] == 'private'

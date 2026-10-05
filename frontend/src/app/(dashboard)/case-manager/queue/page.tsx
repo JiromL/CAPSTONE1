@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { AlertTriangle, RefreshCw, User, ExternalLink } from 'lucide-react';
+import { TriageFlags, TriageReasons, ClearCrisisButton } from '@/components/PermaTriage';
 
 interface QueueStudent {
   student_id: string;
@@ -13,7 +14,11 @@ interface QueueStudent {
   school_id: string;
   college: string;
   mhbot_username: string;
-  latest_label: 'Struggling' | 'In Crisis';
+  triage_label: 'Struggling' | 'In Crisis';
+  flags: string[];
+  reasons: string[];
+  crisis_pending_review: boolean;
+  latest_label: string | null;
   latest_date: string | null;
   case_id: string | null;
   case_status: string | null;
@@ -61,11 +66,11 @@ export default function CaseManagerQueuePage() {
     return s.student_name.toLowerCase().includes(q) || s.school_id.toLowerCase().includes(q) || s.college.toLowerCase().includes(q);
   });
 
-  const crisis    = filtered.filter(s => s.latest_label === 'In Crisis');
-  const struggling = filtered.filter(s => s.latest_label === 'Struggling');
+  const crisis    = filtered.filter(s => s.triage_label === 'In Crisis');
+  const struggling = filtered.filter(s => s.triage_label === 'Struggling');
 
   const StudentCard = ({ s }: { s: QueueStudent }) => {
-    const { badge, dot } = labelStyle(s.latest_label);
+    const { badge, dot } = labelStyle(s.triage_label);
     return (
       <div className="border rounded-xl p-4 flex items-start justify-between gap-4 transition"
         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
@@ -80,13 +85,20 @@ export default function CaseManagerQueuePage() {
             <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{s.student_name || '—'}</p>
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{s.school_id || s.student_email}</p>
             {s.college && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{s.college}</p>}
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>EMA check-in: {fmtDate(s.latest_date)}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+              Last EMA check-in: {fmtDate(s.latest_date)}{s.latest_label && s.latest_label !== s.triage_label ? ` (${s.latest_label})` : ''}
+            </p>
+            <div className="mt-2 space-y-1.5">
+              <TriageFlags flags={s.flags} />
+              <TriageReasons reasons={s.reasons} />
+              {s.crisis_pending_review && <div className="pt-1"><ClearCrisisButton studentId={s.student_id} onCleared={load} /></div>}
+            </div>
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={badge}>
             <span className="w-1.5 h-1.5 rounded-full" style={dot} />
-            {s.latest_label}
+            {s.triage_label}
           </span>
           {s.case_id ? (
             <Link href={`/cases/${s.case_id}`}
@@ -110,7 +122,7 @@ export default function CaseManagerQueuePage() {
           <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
           <p style={{ color: 'var(--color-primary)' }}>
             <span className="font-semibold">About this queue: </span>
-            Students flagged by EMA risk scoring as Struggling or In Crisis. Not all may have an open case yet — use this list to prioritize outreach and case creation.
+            Students whose worst EMA result in the last 7 days was Struggling or In Crisis. An In Crisis result stays here until it&apos;s marked reviewed, even if later check-ins look better. Not all may have an open case yet — use this list to prioritize outreach and case creation.
           </p>
         </div>
 

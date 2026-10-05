@@ -218,6 +218,13 @@ def _refresh_ema_chat_tokens(app):
         print(f"[Scheduler] EMA chat keys renewed — {r['renewed']} renewed, {r['relink']} need re-link, {r['failed']} failed")
 
 
+def _refresh_triage(app):
+    with app.app_context():
+        from models import db
+        from services.perma_triage import refresh_all_triage
+        print(f"[Scheduler] PERMA triage recomputed for {refresh_all_triage(db.db)} students")
+
+
 def _scheduler_loop(app, interval_seconds=300):
     global _last_perma_sync, _last_ema_token_refresh
     while True:
@@ -225,9 +232,11 @@ def _scheduler_loop(app, interval_seconds=300):
             _process_reminders(app)
             _process_assessment_schedules(app)
 
-            # Run PERMA sync every 6 hours
+            # Run PERMA sync every 6 hours, then recompute triage (its 7-day window
+            # moves with time even when no new results arrive)
             if time.time() - _last_perma_sync >= PERMA_SYNC_INTERVAL_SECONDS:
                 _sync_perma_labels(app)
+                _refresh_triage(app)
                 _last_perma_sync = time.time()
 
             # Renew student EMA chat keys every 6 hours

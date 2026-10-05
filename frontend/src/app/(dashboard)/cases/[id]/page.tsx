@@ -15,6 +15,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { StructuredSOAPForm, StructuredSOAPData, emptyStructuredSOAP } from '@/components/StructuredSOAPForm';
 import { TerminationFormModal, TerminationFormData } from '@/components/TerminationFormModal';
 import { ICInterviewWizard } from '@/components/ICInterviewWizard';
+import { PermaTrendCard } from '@/components/PermaTriage';
 
 interface SessionNote {
   note_id: string;
@@ -3676,6 +3677,11 @@ export default function CaseDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Triage result, daily/monthly scores and crisis reviews */}
+          {caseData?.student?.mhbot_username && caseData?.student_id && (
+            <PermaTrendCard studentId={String(caseData.student_id)} />
+          )}
 
           {/* PERMA history */}
           {caseData?.student?.mhbot_username && (() => {

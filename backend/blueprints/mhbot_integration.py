@@ -14,7 +14,10 @@ import threading
 from datetime import datetime, timedelta
 from bson import ObjectId
 from models import db, PermissionType
-from utils import user_has_permission, audit_log
+from utils import user_has_permission, audit_log, case_access_error
+from services.perma_triage import (refresh_student_triage, triage_priority, daily_scores, monthly_scores,
+                                   weakest_area, get_settings, DEFAULT_SETTINGS, AT_RISK, LABEL_SCORE,
+                                   label_for_score)
 import os
 import base64
 import logging
@@ -109,6 +112,8 @@ def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=No
     # Update the quick-access fields on the user record. Unfinished conversations come back
     # with no label, so use the newest entry that has one.
     latest = _latest_labeled(history)
+    if student_user_id:
+        refresh_student_triage(db.db, student_user_id)
     if student_user_id and latest:
         db.db.users.update_one(
             {'_id': student_user_id},
@@ -673,6 +678,9 @@ def link_case_to_mhbot(case_id):
     if not case:
         return jsonify({'error': 'Case not found'}), 404
 
+    if _ema_account_taken(case.get('student_id'), mhbot_username):
+        return jsonify({'error': ACCOUNT_TAKEN_ERROR}), 409
+
     perma_result = get_perma_history(mhbot_username, token, limit=1)
     if not perma_result['success']:
         return jsonify({'error': 'Invalid MHBot username', 'mhbot_error': perma_result['error']}), 400
@@ -681,6 +689,7 @@ def link_case_to_mhbot(case_id):
         {'_id': case.get('student_id')},
         {'$set': {'mhbot_username': mhbot_username, 'mhbot_linked_at': datetime.utcnow()}}
     )
+    get_perma_history(mhbot_username, token, limit=100, save=True, student_user_id=case.get('student_id'), source='link')
 
     return jsonify({
         'success': True,
@@ -724,23 +733,17 @@ def get_cm_queue():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    # Read the stored latest EMA label (kept current by EMA sync and the
-    # webhook) — the same source as /analytics/summary's at_risk_count, so the
-    # queue and the badge always agree and a failed live EMA lookup can never
-    # hide an at-risk student.
+    # Triage label (worst recent result, unreviewed crises kept) is stored on each student
+    # whenever results arrive and every 6 hours — the same source as /analytics/summary, so
+    # the queue and the badge always agree and a failed live EMA lookup never hides anyone.
     try:
-        flagged_labels = ['Struggling', 'In Crisis']
         results = []
-
         for student in db.db.users.find({
             'mhbot_username': {'$exists': True, '$ne': None},
             'role': 'STUDENT',
-            'perma_latest_label': {'$in': flagged_labels},
+            'perma_triage_label': {'$in': list(AT_RISK)},
         }):
-            mhbot_un = student.get('mhbot_username')
-            label = student.get('perma_latest_label')
-
-            # Find their most recent case
+            triage = student.get('perma_triage') or {}
             case = db.db.cases.find_one({'student_id': student['_id']}, sort=[('created_at', -1)])
             results.append({
                 'student_id':   str(student['_id']),
@@ -748,15 +751,20 @@ def get_cm_queue():
                 'student_email': student.get('email', ''),
                 'school_id':    student.get('student_id', ''),
                 'college':      student.get('college', ''),
-                'mhbot_username': mhbot_un,
-                'latest_label': label,
+                'mhbot_username': student.get('mhbot_username'),
+                'triage_label': student.get('perma_triage_label'),
+                'flags':        triage.get('flags', []),
+                'reasons':      triage.get('reasons', []),
+                'crisis_pending_review': triage.get('crisis_pending_review', False),
+                'latest_label': student.get('perma_latest_label'),
                 'latest_date':  student.get('perma_latest_date'),
                 'case_id':      str(case['_id']) if case else None,
                 'case_status':  (case.get('case_status') or case.get('status')) if case else None,
+                '_sort':        triage_priority(triage),
             })
 
-        # Sort: In Crisis first, then Struggling
-        results.sort(key=lambda x: 0 if x['latest_label'] == 'In Crisis' else 1)
+        # In Crisis first, flagged students before unflagged, most recent check-in first
+        results.sort(key=lambda x: x.pop('_sort'))
         return jsonify({'total': len(results), 'students': results}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1110,6 +1118,7 @@ def ema_webhook():
                 'perma_synced_at': now,
             }}
         )
+        refresh_student_triage(db.db, student['_id'])
         logger.info('EMA webhook: saved %s label for student %s', perma_label, str(student['_id']))
     else:
         logger.warning('EMA webhook: no CPS student found for mhbot_username=%s email=%s — snapshot saved without user link', mhbot_username, email)
@@ -1134,7 +1143,7 @@ def get_ema_analytics_summary():
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
     students = list(db.db.users.find(
         {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
-        {'_id': 1, 'perma_latest_label': 1, 'perma_latest_date': 1}
+        {'_id': 1, 'perma_triage_label': 1, 'perma_latest_label': 1, 'perma_latest_date': 1}
     ))
 
     total = len(students)
@@ -1144,7 +1153,7 @@ def get_ema_analytics_summary():
     inactive_14d = 0
 
     for s in students:
-        label = s.get('perma_latest_label')
+        label = s.get('perma_triage_label') or s.get('perma_latest_label')
         date_str = s.get('perma_latest_date')
 
         if label in by_label:
@@ -1234,8 +1243,9 @@ def get_ema_analytics_trend():
 
     snapshots = db.db.perma_snapshots.find(
         {'entry_date': {'$gte': start_dt}},
-        {'entry_date': 1, 'perma_label': 1},
+        {'entry_date': 1, 'perma_label': 1, 'student_user_id': 1, 'mhbot_username': 1},
     )
+    day_scores = {}   # (bucket, student, day) -> scores, so each student-day counts once
     for snap in snapshots:
         entry_date = snap.get('entry_date')
         label = snap.get('perma_label')
@@ -1244,8 +1254,21 @@ def get_ema_analytics_trend():
         key = bucket_key(entry_date)
         if key in result:
             result[key][label] += 1
+            who = snap.get('student_user_id') or snap.get('mhbot_username')
+            day_scores.setdefault((key, who, entry_date.date()), []).append(LABEL_SCORE[label])
 
-    return jsonify({'granularity': granularity, 'buckets': buckets, 'months': buckets, 'data': result}), 200
+    # Average score per bucket: mean of each student's daily average (1 = In Crisis … 5 = Excelling)
+    per_bucket = {}
+    for (key, _, _), v in day_scores.items():
+        per_bucket.setdefault(key, []).append(sum(v) / len(v))
+    scores = {}
+    for key in buckets:
+        v = per_bucket.get(key)
+        scores[key] = {'avg': round(sum(v) / len(v), 2), 'label': label_for_score(sum(v) / len(v)),
+                       'student_days': len(v)} if v else None
+
+    return jsonify({'granularity': granularity, 'buckets': buckets, 'months': buckets, 'data': result,
+                    'scores': scores}), 200
 
 
 @mhbot_bp.route('/analytics/college', methods=['GET'])
@@ -1259,13 +1282,13 @@ def get_ema_analytics_college():
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
     students = list(db.db.users.find(
         {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
-        {'college': 1, 'perma_latest_label': 1}
+        {'college': 1, 'perma_triage_label': 1, 'perma_latest_label': 1}
     ))
 
     college_data: dict = {}
     for s in students:
         college = (s.get('college') or 'Unknown').strip() or 'Unknown'
-        label = s.get('perma_latest_label') or 'No Data'
+        label = s.get('perma_triage_label') or s.get('perma_latest_label') or 'No Data'
         if college not in college_data:
             college_data[college] = {l: 0 for l in labels}
             college_data[college]['No Data'] = 0
@@ -1296,12 +1319,12 @@ def get_ema_analytics_attention():
     students = list(db.db.users.find(
         {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
         {'_id': 1, 'name': 1, 'email': 1, 'student_id': 1, 'college': 1,
-         'year_level': 1, 'perma_latest_label': 1, 'perma_latest_date': 1}
+         'year_level': 1, 'perma_triage_label': 1, 'perma_triage': 1, 'perma_latest_label': 1, 'perma_latest_date': 1}
     ))
 
     attention = []
     for s in students:
-        label = s.get('perma_latest_label')
+        label = s.get('perma_triage_label') or s.get('perma_latest_label')
         date_str = s.get('perma_latest_date')
 
         reason = None
@@ -1333,6 +1356,7 @@ def get_ema_analytics_attention():
             'college': s.get('college', ''),
             'year_level': str(s.get('year_level', '')),
             'label': label,
+            'flags': (s.get('perma_triage') or {}).get('flags', []),
             'last_checkin': date_str,
             'reason': reason,
             'case_id': str(case['_id']) if case else None,
@@ -1347,6 +1371,133 @@ def get_ema_analytics_attention():
     ))
 
     return jsonify({'students': attention, 'total': len(attention)}), 200
+
+
+# ── Triage: crisis review, per-student trend, thresholds ─────────────────────
+
+CRISIS_REVIEW_ROLES = ('CASE_MANAGER', 'ADMIN', 'COUNSELOR', 'PSYCHOLOGIST')
+
+
+def _student_case_denied(user_id, student_oid):
+    """Use the case page's rules: counselors/psychologists only for students they're assigned to."""
+    case = db.db.cases.find_one({'student_id': student_oid}, sort=[('created_at', -1)], projection={'_id': 1})
+    caller = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'role': 1})
+    role = (caller or {}).get('role')
+    if role in ('COUNSELOR', 'PSYCHOLOGIST'):
+        if not case:
+            return ('This student has no case assigned to you', 403)
+        return case_access_error(db.db, user_id, case['_id'])
+    if role == 'STUDENT':
+        return ('Students cannot view triage details', 403)
+    return None
+
+
+@mhbot_bp.route('/students/<student_id>/clear-crisis', methods=['POST'])
+@jwt_required()
+def clear_crisis_flag(student_id):
+    """Mark the student's In Crisis results as reviewed. A later In Crisis flags them again."""
+    user_id = get_jwt_identity()
+    caller = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'role': 1, 'name': 1})
+    if not caller or caller.get('role') not in CRISIS_REVIEW_ROLES:
+        return jsonify({'error': 'Only counselors, psychologists, case managers or admins can clear a crisis flag'}), 403
+    try:
+        student_oid = ObjectId(student_id)
+    except Exception:
+        return jsonify({'error': 'Invalid student ID'}), 400
+    denied = _student_case_denied(user_id, student_oid)
+    if denied:
+        return jsonify({'error': denied[0]}), denied[1]
+
+    note = ((request.get_json() or {}).get('note') or '').strip()
+    if len(note) < 10:
+        return jsonify({'error': 'Write a short note (at least 10 characters) on how the crisis was followed up'}), 400
+
+    student = db.db.users.find_one({'_id': student_oid, 'role': 'STUDENT'}, {'perma_triage': 1})
+    if not student:
+        return jsonify({'error': 'Student not found'}), 404
+    if not (student.get('perma_triage') or {}).get('crisis_pending_review'):
+        return jsonify({'error': 'This student has no crisis flag waiting for review'}), 409
+
+    now = datetime.utcnow()
+    db.db.perma_crisis_reviews.insert_one({
+        'student_id': student_oid, 'cleared_by': _resolve_user_id(user_id), 'cleared_by_role': caller.get('role'),
+        'note': note[:2000], 'cleared_at': now,
+    })
+    db.db.users.update_one({'_id': student_oid}, {'$set': {'perma_crisis_cleared_at': now}})
+    audit_log(db.db, 'perma_triage', 'clear_crisis', entity_id=student_id, new_values={'cleared_by': user_id})
+    triage = refresh_student_triage(db.db, student_oid)
+    return jsonify({'success': True, 'triage': triage}), 200
+
+
+@mhbot_bp.route('/students/<student_id>/perma-trend', methods=['GET'])
+@jwt_required()
+def student_perma_trend(student_id):
+    """Triage result, daily and monthly scores, weakest PERMA area and crisis reviews for one student."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    try:
+        student_oid = ObjectId(student_id)
+    except Exception:
+        return jsonify({'error': 'Invalid student ID'}), 400
+    denied = _student_case_denied(user_id, student_oid)
+    if denied:
+        return jsonify({'error': denied[0]}), denied[1]
+
+    student = db.db.users.find_one({'_id': student_oid}, {'mhbot_username': 1, 'perma_triage': 1})
+    if not student:
+        return jsonify({'error': 'Student not found'}), 404
+    days = min(request.args.get('days', 90, type=int), 365)
+    since = datetime.utcnow() - timedelta(days=days)
+    query = {'student_user_id': student_oid}
+    if student.get('mhbot_username'):
+        query = {'$or': [query, {'mhbot_username': student['mhbot_username']}]}
+    snaps = list(db.db.perma_snapshots.find(query, {'perma_label': 1, 'entry_date': 1, 'perma_score': 1}))
+    recent = [x for x in snaps if x['entry_date'] >= since]
+    reviews = list(db.db.perma_crisis_reviews.find({'student_id': student_oid}).sort('cleared_at', -1).limit(10))
+    reviewers = {u['_id']: u.get('name') or u.get('email') for u in db.db.users.find(
+        {'_id': {'$in': [r['cleared_by'] for r in reviews]}}, {'name': 1, 'email': 1})}
+    return jsonify({
+        'triage': student.get('perma_triage'),
+        'daily': daily_scores(recent),
+        'monthly': monthly_scores(snaps),
+        'weakest_area': weakest_area(snaps, since=datetime.utcnow() - timedelta(days=30)),
+        'crisis_reviews': [{'cleared_at': r['cleared_at'].isoformat(), 'note': r.get('note'),
+                            'cleared_by': reviewers.get(r['cleared_by'], 'Staff')} for r in reviews],
+    }), 200
+
+
+@mhbot_bp.route('/triage-settings', methods=['GET', 'PUT'])
+@jwt_required()
+def triage_settings():
+    """Triage thresholds. Anyone with case access can read them; only ADMIN can change them."""
+    user_id = get_jwt_identity()
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    if request.method == 'GET':
+        return jsonify({'settings': get_settings(db.db), 'defaults': DEFAULT_SETTINGS}), 200
+
+    caller = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'role': 1})
+    if (caller or {}).get('role') != 'ADMIN':
+        return jsonify({'error': 'Only ADMIN can change triage settings'}), 403
+    data = request.get_json() or {}
+    limits = {'window_days': (1, 60), 'persistent_struggle_count': (2, 10), 'unstable_swing_levels': (2, 4)}
+    update = {}
+    for key, (lo, hi) in limits.items():
+        if key in data:
+            try:
+                v = int(data[key])
+            except (TypeError, ValueError):
+                return jsonify({'error': f'{key} must be a whole number'}), 400
+            if not lo <= v <= hi:
+                return jsonify({'error': f'{key} must be between {lo} and {hi}'}), 400
+            update[key] = v
+    db.db.settings.update_one({'_id': 'perma_triage'}, {'$set': {**update, 'updated_at': datetime.utcnow(),
+                                                                'updated_by': user_id}}, upsert=True)
+    audit_log(db.db, 'perma_triage', 'update_settings', entity_id='perma_triage', new_values=update)
+    from services.perma_triage import refresh_all_triage
+    refresh_all_triage(db.db)
+    return jsonify({'settings': get_settings(db.db)}), 200
 
 
 @mhbot_bp.route('/health', methods=['GET'])

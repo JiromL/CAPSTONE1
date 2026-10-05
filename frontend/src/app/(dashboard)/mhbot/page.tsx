@@ -1,5 +1,6 @@
 'use client';
 
+import { TriageFlags, TriageReasons } from '@/components/PermaTriage';
 import { useState, useEffect, useCallback } from 'react';
 import {
   PieChart, Pie, Cell, LineChart, Line,
@@ -29,6 +30,7 @@ interface AnalyticsSummary {
 interface TrendData {
   months: string[];
   buckets?: string[];
+  scores?: Record<string, { avg: number; label: string; student_days: number } | null>;
   granularity?: TrendGranularity;
   data: Record<string, Record<string, number>>;
 }
@@ -359,6 +361,27 @@ function AnalyticsTab({
               </LineChart>
             </ResponsiveContainer>
           )}
+          {trend?.scores && trendBuckets.some(b => trend.scores?.[b]) && (
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+              <p className="text-[11px] mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                Average wellbeing score · each student-day counts once · 1 In Crisis to 5 Excelling
+              </p>
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {trendBuckets.slice(-8).map(b => {
+                  const sc = trend.scores?.[b];
+                  return (
+                    <div key={b} className="flex-shrink-0 rounded-md px-2 py-1 text-center min-w-[56px]" style={{ background: 'var(--color-bg)' }}
+                      title={sc ? `${sc.label} · ${sc.student_days} student-days` : 'No check-ins'}>
+                      <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{fmtBucketKey(b, granularity)}</p>
+                      <p className="text-xs font-semibold tabular-nums" style={{ color: sc ? PERMA_COLORS[sc.label] : 'var(--color-text-muted)' }}>
+                        {sc ? sc.avg.toFixed(2) : '—'}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -505,12 +528,12 @@ function AtRiskTab({ isDark }: { isDark: boolean }) {
     </div>
   );
 
-  const crisisStudents   = students.filter(s => s.latest_label === 'In Crisis');
-  const strugglingStudents = students.filter(s => s.latest_label === 'Struggling');
+  const crisisStudents   = students.filter(s => s.triage_label === 'In Crisis');
+  const strugglingStudents = students.filter(s => s.triage_label === 'Struggling');
 
   const StudentCard = ({ s }: { s: any }) => {
     const days = daysSince(s.latest_date);
-    const isCrisis = s.latest_label === 'In Crisis';
+    const isCrisis = s.triage_label === 'In Crisis';
     return (
       <div className="flex items-start gap-4 p-4 rounded-xl border transition"
         style={{
@@ -520,13 +543,18 @@ function AtRiskTab({ isDark }: { isDark: boolean }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{s.student_name || '—'}</span>
-            <PermaBadge label={s.latest_label} />
+            <PermaBadge label={s.triage_label} />
           </div>
           <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{s.school_id || s.student_email}</p>
           {s.college && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{s.college}</p>}
           <p className="text-xs mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
             Last check-in: {fmtDate(s.latest_date)}{days !== null ? ` · ${days}d ago` : ''}
+            {s.latest_label && s.latest_label !== s.triage_label ? ` · latest result ${s.latest_label}` : ''}
           </p>
+          <div className="mt-2 space-y-1.5">
+            <TriageFlags flags={s.flags} />
+            <TriageReasons reasons={s.reasons} />
+          </div>
         </div>
         {s.case_id && (
           <Link href={`/cases/${s.case_id}`}

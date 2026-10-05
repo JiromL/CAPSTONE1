@@ -18,6 +18,23 @@ from utils import audit_log, user_has_permission
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
+FEEDBACK_STAFF_ROLES = ('ADMIN', 'DPO', 'CASE_MANAGER')
+
+
+def feedback_staff_only(fn):
+    """Feedback answers and counselor performance are for oversight roles, not students."""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            user = db.db.users.find_one({'_id': ObjectId(get_jwt_identity())}, {'role': 1})
+        except Exception:
+            user = None
+        if not user or user.get('role') not in FEEDBACK_STAFF_ROLES:
+            return jsonify({'error': 'Only ADMIN, DPO or CASE_MANAGER can view or change feedback'}), 403
+        return fn(*args, **kwargs)
+    return wrapper
+
+
 # ============ FEEDBACK TEMPLATE CRUD ============
 
 @feedback_bp.route('/templates', methods=['GET'])
@@ -130,6 +147,7 @@ def submit_feedback():
 
 @feedback_bp.route('/<feedback_id>', methods=['GET'])
 @jwt_required()
+@feedback_staff_only
 def get_feedback(feedback_id):
     """Get a specific feedback submission."""
     try:
@@ -149,6 +167,7 @@ def get_feedback(feedback_id):
 
 @feedback_bp.route('/', methods=['GET'])
 @jwt_required()
+@feedback_staff_only
 def list_feedback():
     """
     List feedback submissions with optional filters.
@@ -185,6 +204,7 @@ def list_feedback():
 
 @feedback_bp.route('/<feedback_id>', methods=['PATCH'])
 @jwt_required()
+@feedback_staff_only
 def update_feedback(feedback_id):
     """Update a feedback submission."""
     try:
@@ -228,6 +248,7 @@ def update_feedback(feedback_id):
 
 @feedback_bp.route('/<feedback_id>', methods=['DELETE'])
 @jwt_required()
+@feedback_staff_only
 def delete_feedback(feedback_id):
     """Delete a feedback submission."""
     try:
@@ -252,6 +273,7 @@ def delete_feedback(feedback_id):
 
 @feedback_bp.route('/analytics/summary', methods=['GET'])
 @jwt_required()
+@feedback_staff_only
 def get_feedback_summary():
     """
     Get feedback summary and analytics.
@@ -316,6 +338,7 @@ def get_feedback_summary():
 
 @feedback_bp.route('/counselor/<counselor_id>/performance', methods=['GET'])
 @jwt_required()
+@feedback_staff_only
 def get_counselor_performance(counselor_id):
     """Get performance metrics for a specific counselor based on feedback."""
     try:
@@ -351,6 +374,7 @@ def get_counselor_performance(counselor_id):
 
 @feedback_bp.route('/outcomes/summary', methods=['GET'])
 @jwt_required()
+@feedback_staff_only
 def get_outcome_summary():
     """
     Get summary of treatment outcomes based on feedback.

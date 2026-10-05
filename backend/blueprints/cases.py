@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from bson.objectid import ObjectId
 from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
-from utils import serialize_doc, user_has_permission
+from utils import serialize_doc, user_has_permission, case_access_error
 import uuid
 
 cases_bp = Blueprint('cases', __name__, url_prefix='/api/cases')
@@ -783,6 +783,9 @@ def add_session(case_id):
 @jwt_required()
 def get_session_count(case_id):
     """Return count of completed sessions for a case."""
+    denied = case_access_error(db.db, get_jwt_identity(), case_id)
+    if denied:
+        return jsonify({'error': denied[0]}), denied[1]
     try:
         case_oid = ObjectId(case_id)
     except Exception:

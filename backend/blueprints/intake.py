@@ -6,7 +6,7 @@ MongoDB-compatible version
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, IntakeStatus, PermissionType, AppointmentStatus
-from utils import audit_log, user_has_permission, serialize_doc
+from utils import audit_log, user_has_permission, serialize_doc, case_access_error
 from datetime import datetime, timedelta, date as date_type
 from bson import ObjectId
 import random
@@ -819,7 +819,10 @@ def get_intake(intake_id):
 def get_case_intake(case_id):
     """Get intake for a case"""
     user_id = get_jwt_identity()
-    
+    denied = case_access_error(db.db, user_id, case_id)
+    if denied:
+        return jsonify({'error': denied[0]}), denied[1]
+
     try:
         intake = db.db.intakes.find_one({"case_id": ObjectId(case_id)})
     except:

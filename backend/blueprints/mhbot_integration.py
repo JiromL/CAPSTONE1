@@ -1035,15 +1035,18 @@ def ema_webhook():
       X-EMA-Signature: sha256=<hmac_hex>
     where hmac_hex = HMAC-SHA256(secret, raw_request_body)
     """
-    # ── Signature verification (skip if no secret configured) ─────────────
+    # ── Signature verification ────────────────────────────────────────────
+    # Without a shared secret anyone could post fake PERMA labels, so the webhook stays
+    # off until EMA_WEBHOOK_SECRET is set. The 6-hourly sync still pulls labels meanwhile.
     secret = current_app.config.get('EMA_WEBHOOK_SECRET', '')
-    if secret:
-        sig_header = request.headers.get('X-EMA-Signature', '')
-        mac = hmac.new(secret.encode(), request.get_data(), hashlib.sha256)
-        expected = 'sha256=' + mac.hexdigest()
-        if not hmac.compare_digest(sig_header, expected):
-            logger.warning('EMA webhook: invalid signature')
-            return jsonify({'error': 'Invalid signature'}), 401
+    if not secret:
+        return jsonify({'error': 'EMA webhook is not configured'}), 503
+    sig_header = request.headers.get('X-EMA-Signature', '')
+    mac = hmac.new(secret.encode(), request.get_data(), hashlib.sha256)
+    expected = 'sha256=' + mac.hexdigest()
+    if not hmac.compare_digest(sig_header, expected):
+        logger.warning('EMA webhook: invalid signature')
+        return jsonify({'error': 'Invalid signature'}), 401
 
     data = request.get_json(silent=True) or {}
     mhbot_username = (data.get('mhbot_username') or data.get('username', '')).strip()

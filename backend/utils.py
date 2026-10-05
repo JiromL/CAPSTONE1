@@ -159,3 +159,26 @@ def get_user_ip():
     if request.environ.get('HTTP_X_FORWARDED_FOR'):
         return request.environ.get('HTTP_X_FORWARDED_FOR').split(',')[0]
     return request.remote_addr
+
+
+def case_access_error(db, user_id, case_id):
+    """Apply the same viewing rules as GET /api/cases/<id> to routes that expose case data.
+
+    Returns (error_message, status) when the caller may not see the case, or None if allowed.
+    Students see only their own case; counselors and psychologists only cases assigned to them.
+    """
+    try:
+        case = db.cases.find_one({'_id': ObjectId(case_id)}, {'student_id': 1, 'assigned_counselor_id': 1})
+    except Exception:
+        return 'Invalid case ID', 400
+    if not case:
+        return 'Case not found', 404
+    user = db.users.find_one({'_id': ObjectId(user_id)}, {'role': 1})
+    if not user:
+        return 'User not found', 401
+    role = user.get('role')
+    if role == 'STUDENT' and str(case.get('student_id')) != str(user_id):
+        return 'Cannot view other student cases', 403
+    if role in ('COUNSELOR', 'PSYCHOLOGIST') and str(case.get('assigned_counselor_id')) != str(user_id):
+        return 'Case not assigned to you', 403
+    return None

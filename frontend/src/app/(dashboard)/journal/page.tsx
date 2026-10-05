@@ -10,6 +10,7 @@ interface JournalEntry {
   mood: number;
   content: string;
   tags: string[];
+  source?: string | null;
   created_at: string;
 }
 
@@ -265,6 +266,15 @@ export default function JournalPage() {
                             <div className="flex items-center gap-1.5 mb-2">
                               <span className="text-base">{m.emoji}</span>
                               <span className="text-xs font-medium" style={{ color: m.color }}>{m.label}</span>
+                              {entry.source === 'ema' && (
+                                <span className="ml-1 inline-flex items-center gap-1 text-[11px] font-medium pl-0.5 pr-2 py-0.5 rounded-full"
+                                  style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary-text)' }}
+                                  title="Copied from your check-in with Ema">
+                                  <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+                                    style={{ background: 'var(--color-surface)' }}>E</span>
+                                  From EMA check-in
+                                </span>
+                              )}
                             </div>
                             <p className={`text-sm leading-relaxed ${expanded ? 'whitespace-pre-wrap' : 'line-clamp-3'}`}
                               style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-body)' }}>

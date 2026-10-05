@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Minus, ExternalLink, RefreshCw, MessageCircle, Eye, EyeOff, Loader2, LogIn, CheckCircle } from 'lucide-react';
+import { X, Minus, ExternalLink, RefreshCw, MessageCircle, Eye, EyeOff, Loader2, LogIn, CheckCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { api } from '@/utils/api';
+import { EmaChat, EmaAvatar } from './EmaChat';
 
 const EMA_URL = 'https://pchrd-ema.dlsu.edu.ph/app/login/';
 
 export function EmaFloatingChat() {
   const [open, setOpen]           = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [iframeKey, setIframeKey] = useState(0);
+  const [expanded, setExpanded]   = useState(false);
+  const [linkedAs, setLinkedAs]   = useState('');
 
   // EMA connection state
   const [connected, setConnected]   = useState<boolean | null>(null); // null = loading
@@ -20,6 +22,8 @@ export function EmaFloatingChat() {
   const [error, setError]           = useState('');
   const [justConnected, setJustConnected] = useState(false);
   const [recovered, setRecovered]   = useState(0);
+  const [needsRelink, setNeedsRelink] = useState(false);
+  const [consented, setConsented]   = useState(false);
 
   // Check connection status when widget opens
   useEffect(() => {
@@ -28,7 +32,12 @@ export function EmaFloatingChat() {
     if (!token) { setConnected(false); return; }
     fetch(api('/api/mhbot/auth/status'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(d => setConnected(d?.connected ?? false))
+      .then(d => {
+        // Only signed in when CPS holds this student's EMA key; older links must sign in once more
+        setConnected(!!(d?.connected && d?.chat_ready));
+        setNeedsRelink(!!d?.needs_relink);
+        setLinkedAs(d?.mhbot_username ?? '');
+      })
       .catch(() => setConnected(false));
   }, [open]);
 
@@ -67,7 +76,14 @@ export function EmaFloatingChat() {
       });
       const d = await r.json();
       if (r.ok) {
+        await fetch(api('/api/consent/submit'), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ consent_types: ['ema_data_linking'] }),
+        }).catch(() => {});
         setConnected(true);
+        setNeedsRelink(false);
+        setLinkedAs(d.mhbot_username ?? username);
         setRecovered(d.recovered ?? 0);
         setJustConnected(true);
         setPassword('');
@@ -79,9 +95,16 @@ export function EmaFloatingChat() {
     finally { setLogging(false); }
   };
 
-  const panelStyle = minimized
-    ? {}
-    : { width: 'calc(100vw - 280px)', height: 'calc(100vh - 32px)', maxWidth: '1100px', maxHeight: '960px' };
+  // Docked side panel: narrow by default so the page stays usable, wider on request
+  const panelStyle: React.CSSProperties = minimized
+    ? { width: 'min(320px, calc(100vw - 32px))' }
+    : { width: expanded ? 'min(760px, calc(100vw - 32px))' : 'min(440px, calc(100vw - 32px))', height: 'min(820px, calc(100vh - 88px))' };
+
+  const iconBtn = 'w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2';
+  const iconHover = {
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.background = 'var(--color-bg)'; e.currentTarget.style.color = 'var(--color-text-primary)'; },
+    onMouseLeave: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; },
+  };
 
   return (
     <>
@@ -89,70 +112,64 @@ export function EmaFloatingChat() {
       {!open && (
         <button
           onClick={() => { setOpen(true); setMinimized(false); }}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-6 right-6 z-50 h-12 pl-3.5 pr-4 rounded-full flex items-center gap-2 text-sm font-medium transition-all hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 animate-scale-in"
           style={{ background: 'var(--color-primary)', color: 'white', boxShadow: 'var(--shadow-card-lg)' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary)'; }}
-          title="Open EMA Chatbot"
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-hover)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-primary)'; }}
+          aria-label="Open EMA chatbot"
         >
-          <MessageCircle size={24} />
+          <MessageCircle size={20} />
+          Talk to Ema
         </button>
       )}
 
       {/* Chat panel */}
       {open && (
         <div
-          className={`fixed bottom-4 right-4 z-50 flex flex-col rounded-2xl overflow-hidden border transition-all duration-200 ${minimized ? 'h-14 w-96' : ''}`}
-          style={{ ...panelStyle, borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-modal)' }}
+          className="fixed bottom-4 right-4 z-50 flex flex-col rounded-2xl overflow-hidden border animate-slide-up"
+          style={{ ...panelStyle, borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-modal)', background: 'var(--color-surface)', transition: 'width 200ms ease' }}
         >
           {/* Header */}
-          <div
-            className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-            style={{ background: 'var(--color-primary)' }}
-          >
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(255,255,255,0.2)' }}
-              >
-                <MessageCircle size={16} style={{ color: 'white' }} />
+          <div className={`flex items-center justify-between pl-4 pr-2 flex-shrink-0 ${minimized ? 'py-2' : 'py-3 border-b'}`}
+            style={{ borderColor: 'var(--color-border)' }}>
+            <button className="flex items-center gap-2.5 min-w-0 text-left" onClick={() => minimized && setMinimized(false)}
+              tabIndex={minimized ? 0 : -1} aria-label={minimized ? 'Expand chat' : undefined}>
+              <EmaAvatar size={34} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>Ema</p>
+                <p className="text-xs leading-tight truncate" style={{ color: 'var(--color-text-muted)' }}>
+                  {connected && linkedAs ? <>EMA chatbot · signed in as {linkedAs}</> : 'EMA chatbot · DLSU mental health support'}
+                </p>
               </div>
-              <div>
-                <p className="text-sm font-semibold leading-tight" style={{ color: 'white' }}>EMA Chatbot</p>
-                {!minimized && (
-                  <p className="text-xs leading-tight" style={{ color: 'rgba(255,255,255,0.7)' }}>DLSU Mental Health Support</p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <a href={EMA_URL} target="_blank" rel="noopener noreferrer" title="Open in new tab"
-                className="p-1.5 rounded-lg hover:bg-white/10 transition hover:text-white"
-                style={{ color: 'rgba(255,255,255,0.7)' }}>
-                <ExternalLink size={14} />
-              </a>
-              {connected && (
-                <button onClick={() => syncLatest(true)} title="Sync PERMA labels now" disabled={syncing}
-                  className="p-1.5 rounded-lg hover:bg-white/10 transition hover:text-white disabled:opacity-50"
-                  style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  {syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            </button>
+            <div className="flex items-center flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+              {!minimized && connected && (
+                <button onClick={() => syncLatest(true)} title="Update my wellbeing results" disabled={syncing} className={iconBtn} {...iconHover}>
+                  {syncing ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
                 </button>
               )}
-              <button onClick={() => { syncLatest(); setMinimized(m => !m); }} title={minimized ? 'Expand' : 'Minimize'}
-                className="p-1.5 rounded-lg hover:bg-white/10 transition hover:text-white"
-                style={{ color: 'rgba(255,255,255,0.7)' }}>
-                <Minus size={14} />
+              {!minimized && (
+                <a href={EMA_URL} target="_blank" rel="noopener noreferrer" title="Open EMA in a new tab" className={iconBtn} {...iconHover}>
+                  <ExternalLink size={15} />
+                </a>
+              )}
+              {!minimized && (
+                <button onClick={() => setExpanded(x => !x)} title={expanded ? 'Make narrower' : 'Make wider'} className={`${iconBtn} hidden md:flex`} {...iconHover}>
+                  {expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                </button>
+              )}
+              <button onClick={() => { syncLatest(); setMinimized(m => !m); }} title={minimized ? 'Expand' : 'Minimize'} className={iconBtn} {...iconHover}>
+                {minimized ? <Maximize2 size={15} /> : <Minus size={15} />}
               </button>
-              <button onClick={() => { syncLatest(); setOpen(false); }} title="Close"
-                className="p-1.5 rounded-lg hover:bg-white/10 transition hover:text-white"
-                style={{ color: 'rgba(255,255,255,0.7)' }}>
-                <X size={14} />
+              <button onClick={() => { syncLatest(); setOpen(false); }} title="Close" className={iconBtn} {...iconHover}>
+                <X size={15} />
               </button>
             </div>
           </div>
 
           {/* Body */}
           {!minimized && (
-            <div className="flex-1 overflow-hidden relative" style={{ background: 'var(--color-surface)' }}>
+            <div className="flex-1 min-h-0 overflow-hidden relative" style={{ background: 'var(--color-surface)' }}>
 
               {/* Loading check */}
               {connected === null && (
@@ -163,18 +180,17 @@ export function EmaFloatingChat() {
 
               {/* Not connected — show login form as overlay */}
               {connected === false && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-8" style={{ background: 'var(--color-surface)' }}>
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-6 py-8 overflow-y-auto" style={{ background: 'var(--color-surface)' }}>
                   <div className="w-full max-w-sm">
                     <div className="flex flex-col items-center mb-6">
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-                        style={{ background: 'var(--color-success-surface)' }}
-                      >
-                        <MessageCircle size={22} style={{ color: 'var(--color-primary)' }} />
-                      </div>
-                      <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Sign in to EMA</h3>
+                      <div className="mb-3"><EmaAvatar size={48} /></div>
+                      <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                        {needsRelink ? 'Reconnect your EMA account' : 'Sign in to EMA'}
+                      </h3>
                       <p className="text-xs text-center mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                        Use your EMA account credentials. Your past assessment history will be recovered automatically.
+                        {needsRelink
+                          ? 'Sign in once more so the chatbot can open already signed in from now on.'
+                          : 'Use your EMA account credentials. Your past assessment history will be recovered automatically.'}
                       </p>
                     </div>
 
@@ -209,6 +225,15 @@ export function EmaFloatingChat() {
                         </div>
                       </div>
 
+                      <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'var(--color-text-secondary)' }}>
+                        <input type="checkbox" checked={consented} onChange={e => setConsented(e.target.checked)} className="mt-0.5" />
+                        <span>
+                          I agree that CPS stays connected to my EMA account until I disconnect it, and that CPS may view my
+                          EMA wellbeing results to support my counseling. If I choose, copies of my EMA journals are saved to my
+                          private CPS journal. If I disconnect, results already saved stay in my CPS record (Data Privacy Act of 2012).
+                        </span>
+                      </label>
+
                       {error && (
                         <p className="text-xs rounded-lg px-3 py-2"
                           style={{ color: 'var(--color-danger-text)', background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
@@ -216,7 +241,7 @@ export function EmaFloatingChat() {
                         </p>
                       )}
 
-                      <button type="submit" disabled={logging}
+                      <button type="submit" disabled={logging || !consented}
                         className="w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-50 text-sm font-medium rounded-xl transition"
                         style={{ background: 'var(--color-primary)', color: 'white' }}
                         onMouseEnter={e => { if (!logging) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-primary-hover)'; }}
@@ -228,7 +253,7 @@ export function EmaFloatingChat() {
                     </form>
 
                     <p className="text-xs text-center mt-4" style={{ color: 'var(--color-border-strong)' }}>
-                      These credentials are used only to sync your wellness history. You'll also sign in inside the chatbot below.
+                      You only do this once. Your password isn&apos;t saved. You can disconnect anytime in your Profile.
                     </p>
                   </div>
                 </div>
@@ -247,15 +272,9 @@ export function EmaFloatingChat() {
                 </div>
               )}
 
-              {/* iframe — always rendered when connected so it loads in background */}
+              {/* Chat — CPS talks to EMA as this student with their saved key */}
               {connected === true && (
-                <iframe
-                  key={iframeKey}
-                  src={EMA_URL}
-                  title="EMA Chatbot"
-                  className="w-full h-full border-0"
-                  allow="microphone; camera"
-                />
+                <EmaChat onNeedsRelink={() => { setConnected(false); setNeedsRelink(true); }} />
               )}
 
             </div>

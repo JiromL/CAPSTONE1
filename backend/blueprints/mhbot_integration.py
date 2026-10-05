@@ -1,7 +1,8 @@
 """
 MHBot Integration Blueprint
-Shared admin account — one EMA staff account authenticates on behalf of all users.
-Token is cached in memory and auto-refreshed. Students only need to supply their EMA username once.
+Shared admin account — one EMA staff account reads PERMA data on behalf of all users.
+Students link their own EMA account once; CPS keeps their encrypted refresh token so the
+chat widget can talk to EMA as them without a second login.
 """
 
 from flask import Blueprint, request, jsonify, current_app
@@ -13,9 +14,11 @@ import threading
 from datetime import datetime, timedelta
 from bson import ObjectId
 from models import db, PermissionType
-from utils import user_has_permission
+from utils import user_has_permission, audit_log
 import os
+import base64
 import logging
+from cryptography.fernet import Fernet, InvalidToken
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +77,7 @@ def _auth_headers(token: str) -> dict:
 
 # ── Core PERMA fetch (token passed in explicitly) ─────────────────────────────
 
-def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=None):
+def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=None, source: str = 'sync'):
     """Upsert PERMA entries into perma_snapshots collection."""
     if not history:
         return
@@ -97,13 +100,16 @@ def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=No
                 'entry_date': entry_date,
                 'raw_date': date_str,
                 'saved_at': now,
+                'source': source,
+                **(({'perma_score': entry['perma_score']}) if entry.get('perma_score') else {}),
                 **(({'student_user_id': student_user_id}) if student_user_id else {}),
             }},
             upsert=True,
         )
-    # Update the quick-access fields on the user record
-    if student_user_id and history:
-        latest = history[0]
+    # Update the quick-access fields on the user record. Unfinished conversations come back
+    # with no label, so use the newest entry that has one.
+    latest = _latest_labeled(history)
+    if student_user_id and latest:
         db.db.users.update_one(
             {'_id': student_user_id},
             {'$set': {
@@ -114,7 +120,12 @@ def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=No
         )
 
 
-def get_perma_history(username: str, token: str = None, limit: int = 5, save: bool = False, student_user_id=None) -> dict:
+def _latest_labeled(history: list):
+    return next((h for h in history or [] if h.get('perma_label')), None)
+
+
+def get_perma_history(username: str, token: str = None, limit: int = 5, save: bool = False, student_user_id=None,
+                      source: str = 'sync') -> dict:
     if not token:
         token = _get_shared_ema_token()
     if not token:
@@ -122,16 +133,18 @@ def get_perma_history(username: str, token: str = None, limit: int = 5, save: bo
 
     url = f"{MHBOT_BASE_URL}/api/v1/dashboard/user_perma_history/{username}"
     try:
-        resp = requests.get(url, headers=_auth_headers(token), params={'offset': 0, 'limit': limit}, timeout=10)
+        # EMA returns at most 100 entries per request
+        resp = requests.get(url, headers=_auth_headers(token), params={'offset': 0, 'limit': min(limit, 100)}, timeout=10)
         if resp.status_code == 200:
             history = resp.json()
             if save and history:
-                _save_perma_snapshots(username, history, student_user_id)
+                _save_perma_snapshots(username, history, student_user_id, source)
+            latest = _latest_labeled(history)
             return {
                 'success': True,
                 'data': history,
-                'latest_label': history[0]['perma_label'] if history and history[0].get('perma_label') else None,
-                'latest_date': history[0]['date'] if history else None,
+                'latest_label': latest['perma_label'] if latest else None,
+                'latest_date': latest['date'] if latest else None,
             }
         return {'success': False, 'error': f'MHBot API error: {resp.status_code}', 'data': []}
     except requests.exceptions.Timeout:
@@ -142,28 +155,121 @@ def get_perma_history(username: str, token: str = None, limit: int = 5, save: bo
         return {'success': False, 'error': str(e), 'data': []}
 
 
-# ── Auth endpoints ─────────────────────────────────────────────────────────────
+# ── Per-student EMA chat tokens ───────────────────────────────────────────────
+# Linking logs in once as the student (scope "chat") and keeps only their EMA refresh
+# token, encrypted. EMA refresh tokens last 24h and every refresh returns a new one,
+# so the scheduler renews them well inside that window to keep students linked.
 
-def _verify_ema_credentials(username: str, password: str) -> bool:
-    """One-time proof that the caller owns this EMA identity. Never cached or stored."""
+EMA_ACCESS_TOKEN_TTL = timedelta(minutes=50)   # EMA access tokens last 60 min
+
+_student_access_cache = {}   # str(user _id) -> (access_token, expires_at)
+
+
+class EmaRelinkRequired(Exception):
+    """The student's saved EMA key is missing or was rejected; they must link again."""
+
+
+def _token_cipher() -> Fernet:
+    key = os.getenv('EMA_TOKEN_KEY', '')
+    if not key:
+        secret = current_app.config.get('JWT_SECRET_KEY') or current_app.config.get('SECRET_KEY') or ''
+        key = base64.urlsafe_b64encode(hashlib.sha256(f'ema-token:{secret}'.encode()).digest()).decode()
+    return Fernet(key.encode())
+
+
+def _ema_student_login(username: str, password: str):
+    """Log in to EMA as the student with chat scope. Returns EMA's token dict, or None if rejected."""
+    resp = requests.post(
+        f"{MHBOT_BASE_URL}/api/v1/auth/login",
+        data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'chat'},
+        headers={'accept': 'application/json'},
+        timeout=10,
+    )
+    return resp.json() if resp.ok else None
+
+
+def _store_student_tokens(uid, tokens: dict, extra: dict = None):
+    db.db.users.update_one(
+        {'_id': uid},
+        {'$set': {
+            'ema_refresh_token': _token_cipher().encrypt(tokens['refresh_token'].encode()).decode(),
+            'ema_token_updated_at': datetime.utcnow(),
+            **(extra or {}),
+        },
+         '$unset': {'ema_chat_needs_relink': ''}},
+    )
+    _student_access_cache[str(uid)] = (tokens['access_token'], datetime.utcnow() + EMA_ACCESS_TOKEN_TTL)
+
+
+def _mark_student_relink(uid):
+    _student_access_cache.pop(str(uid), None)
+    db.db.users.update_one(
+        {'_id': uid},
+        {'$set': {'ema_chat_needs_relink': True}, '$unset': {'ema_refresh_token': ''}},
+    )
+
+
+def _refresh_student_tokens(user: dict) -> str:
+    """Trade the student's saved refresh token for new tokens. Returns a fresh access token."""
+    encrypted = user.get('ema_refresh_token')
+    if not encrypted:
+        raise EmaRelinkRequired()
     try:
-        resp = requests.post(
-            f"{MHBOT_BASE_URL}/api/v1/auth/login",
-            data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'dashboard'},
-            headers={'accept': 'application/json'},
-            timeout=10,
-        )
-        return resp.ok
-    except Exception as e:
-        logger.warning('EMA credential verification error: %s', e)
-        return False
+        refresh_token = _token_cipher().decrypt(encrypted.encode()).decode()
+    except InvalidToken:
+        _mark_student_relink(user['_id'])
+        raise EmaRelinkRequired()
+    resp = requests.post(f"{MHBOT_BASE_URL}/api/v1/auth/refresh",
+                         json={'refresh_token': refresh_token}, timeout=10)
+    if resp.status_code in (400, 401, 403, 422):
+        _mark_student_relink(user['_id'])
+        raise EmaRelinkRequired()
+    resp.raise_for_status()
+    tokens = resp.json()
+    _store_student_tokens(user['_id'], tokens)
+    return tokens['access_token']
 
+
+def get_student_ema_access_token(user: dict) -> str:
+    cached = _student_access_cache.get(str(user['_id']))
+    if cached and cached[1] > datetime.utcnow():
+        return cached[0]
+    return _refresh_student_tokens(user)
+
+
+def refresh_all_student_ema_tokens() -> dict:
+    """Scheduler job: renew every linked student's EMA key so links never lapse."""
+    renewed = relink = failed = 0
+    for user in db.db.users.find({'ema_refresh_token': {'$exists': True}}, {'ema_refresh_token': 1}):
+        try:
+            _refresh_student_tokens(user)
+            renewed += 1
+        except EmaRelinkRequired:
+            relink += 1
+        except Exception as e:
+            failed += 1
+            logger.warning('EMA token refresh failed for %s: %s', user['_id'], e)
+    return {'renewed': renewed, 'relink': relink, 'failed': failed}
+
+
+def _ema_account_taken(uid, ema_username: str, ema_user_id=None) -> bool:
+    """An EMA account may be linked to only one CPS account."""
+    match = [{'mhbot_username': ema_username}]
+    if ema_user_id:
+        match.append({'ema_user_id': ema_user_id})
+    return db.db.users.find_one({'_id': {'$ne': uid}, '$or': match}, {'_id': 1}) is not None
+
+
+ACCOUNT_TAKEN_ERROR = 'This EMA account is already linked to another CPS account. Disconnect it there first.'
+
+
+# ── Auth endpoints ─────────────────────────────────────────────────────────────
 
 @mhbot_bp.route('/link-username', methods=['POST'])
 @jwt_required()
 def link_ema_username():
-    """Student proves ownership of an EMA account (username + password) once; only the
-    username is stored afterward, and further PERMA syncs use the shared admin token."""
+    """Student signs in to EMA once. CPS keeps their encrypted EMA refresh token (never the
+    password) so the chat widget stays signed in; PERMA syncs still use the shared admin token."""
     user_id = get_jwt_identity()
     data = request.get_json() or {}
     ema_username = data.get('username', '').strip()
@@ -171,21 +277,30 @@ def link_ema_username():
     if not ema_username or not ema_password:
         return jsonify({'error': 'EMA username and password are required'}), 400
 
-    if not _verify_ema_credentials(ema_username, ema_password):
-        return jsonify({'error': 'EMA username or password is incorrect.'}), 400
-
-    token = _get_shared_ema_token()
-    if not token:
+    try:
+        tokens = _ema_student_login(ema_username, ema_password)
+        if not tokens:
+            return jsonify({'error': 'EMA username or password is incorrect.'}), 400
+        me = requests.get(f"{MHBOT_BASE_URL}/api/v1/auth/me",
+                          headers=_auth_headers(tokens['access_token']), timeout=10)
+        me.raise_for_status()
+        me = me.json()
+    except requests.exceptions.RequestException as e:
+        logger.warning('EMA link error: %s', e)
         return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
+    ema_username = me.get('username') or ema_username
     uid = _resolve_user_id(user_id)
-    db.db.users.update_one(
-        {'_id': uid},
-        {'$set': {'mhbot_username': ema_username, 'mhbot_linked_at': datetime.utcnow()}}
-    )
+    if _ema_account_taken(uid, ema_username, me.get('id')):
+        return jsonify({'error': ACCOUNT_TAKEN_ERROR}), 409
+    _store_student_tokens(uid, tokens, {
+        'mhbot_username': ema_username,
+        'mhbot_linked_at': datetime.utcnow(),
+        'ema_user_id': me.get('id'),
+    })
 
-    # Recover full history in background
-    full = get_perma_history(ema_username, token, limit=200, save=True, student_user_id=uid)
+    token = _get_shared_ema_token()
+    full = get_perma_history(ema_username, token, limit=100, save=True, student_user_id=uid, source='link') if token else {}
 
     return jsonify({
         'success': True,
@@ -196,31 +311,18 @@ def link_ema_username():
     }), 200
 
 
-@mhbot_bp.route('/auth/set-identifier', methods=['POST'])
-@jwt_required()
-def set_ema_identifier():
-    """Store the user's EMA internal identifier (ema_XXX) after login is verified."""
-    user_id = get_jwt_identity()
-    data = request.get_json() or {}
-    identifier = data.get('identifier', '').strip()
-    if not identifier:
-        return jsonify({'error': 'identifier is required'}), 400
-
-    db.db.users.update_one(
-        {'_id': _resolve_user_id(user_id)},
-        {'$set': {'mhbot_username': identifier}}
-    )
-    return jsonify({'success': True, 'mhbot_username': identifier}), 200
-
-
 @mhbot_bp.route('/auth/logout', methods=['POST'])
 @jwt_required()
 def mhbot_logout():
-    """Unlink the student's EMA username from their CPS account."""
-    user_id = get_jwt_identity()
+    """Unlink the student's EMA account from CPS and delete their saved EMA key. PERMA results
+    already saved stay in perma_snapshots as part of the counseling record; syncing them stops."""
+    uid = _resolve_user_id(get_jwt_identity())
+    _student_access_cache.pop(str(uid), None)
     db.db.users.update_one(
-        {'_id': _resolve_user_id(user_id)},
-        {'$unset': {'mhbot_username': '', 'mhbot_linked_at': ''}}
+        {'_id': uid},
+        {'$unset': {'mhbot_username': '', 'mhbot_linked_at': '', 'ema_user_id': '',
+                    'ema_refresh_token': '', 'ema_token_updated_at': '', 'ema_chat_needs_relink': '',
+                    'ema_chat_conversation_id': '', 'ema_chat_state': '', 'ema_chat_rating': ''}}
     )
     return jsonify({'success': True}), 200
 
@@ -242,7 +344,177 @@ def mhbot_auth_status():
     return jsonify({
         'connected': bool(mhbot_username) if is_student else True,
         'mhbot_username': mhbot_username,
+        # chat_ready: the widget can chat as this student without another EMA sign-in
+        'chat_ready': bool(user.get('ema_refresh_token')) if is_student else False,
+        'needs_relink': bool(mhbot_username) and not user.get('ema_refresh_token') if is_student else False,
     }), 200
+
+
+# ── Student chat (CPS relays messages to EMA as the student) ──────────────────
+
+def _chat_student():
+    """Return the calling student's user record, or an error response tuple."""
+    user = db.db.users.find_one({'_id': _resolve_user_id(get_jwt_identity())})
+    if not user or user.get('role') != 'STUDENT':
+        return None, (jsonify({'error': 'Only students can chat with EMA here'}), 403)
+    if not user.get('ema_refresh_token') or not user.get('ema_user_id'):
+        return None, (jsonify({'error': 'Link your EMA account to start chatting.', 'needs_relink': True}), 409)
+    return user, None
+
+
+def _clean_messages(messages: list) -> list:
+    """Keep only what the chat view renders; EMA also returns large internal debug events."""
+    keep = ('sender', 'type', 'date_sent', 'content', 'journal', 'activities')
+    return [{k: m[k] for k in keep if k in m} for m in (messages or [])]
+
+
+def _ema_chat_call(user: dict, method: str, path: str, **kwargs):
+    token = get_student_ema_access_token(user)
+    return requests.request(method, f"{MHBOT_BASE_URL}/api/v1{path}",
+                            headers=_auth_headers(token), **kwargs)
+
+
+def _chat_error(e: Exception):
+    if isinstance(e, EmaRelinkRequired):
+        return jsonify({'error': 'Your EMA link expired. Sign in to EMA again to keep chatting.', 'needs_relink': True}), 409
+    logger.warning('EMA chat error: %s', e)
+    return jsonify({'error': 'EMA is not responding right now. Please try again in a moment.'}), 503
+
+
+def _sync_after_session(user: dict):
+    """Pull the new PERMA label in the background once a chat session ends."""
+    def run():
+        token = _get_shared_ema_token()
+        if token and user.get('mhbot_username'):
+            get_perma_history(user['mhbot_username'], token, limit=5, save=True, student_user_id=user['_id'])
+    threading.Thread(target=run, daemon=True).start()
+
+
+@mhbot_bp.route('/chat/session', methods=['GET'])
+@jwt_required()
+def chat_session():
+    """The student's unfinished conversation, if any, so the widget can pick up where they left off."""
+    user, err = _chat_student()
+    if err:
+        return err
+    cid = user.get('ema_chat_conversation_id')
+    if not cid or user.get('ema_chat_state') == 'end':
+        return jsonify({'conversation': None}), 200
+    try:
+        resp = _ema_chat_call(user, 'GET', f"/users/{user['ema_user_id']}/conversations/{cid}", timeout=15)
+    except Exception as e:
+        return _chat_error(e)
+    if not resp.ok:
+        db.db.users.update_one({'_id': user['_id']}, {'$unset': {'ema_chat_conversation_id': '', 'ema_chat_state': ''}})
+        return jsonify({'conversation': None}), 200
+    return jsonify({'conversation': {
+        'id': cid,
+        'messages': _clean_messages(resp.json().get('chat_history')),
+        'graph_state': user.get('ema_chat_state') or 'wait_input',
+    }}), 200
+
+
+@mhbot_bp.route('/chat/start', methods=['POST'])
+@jwt_required()
+def chat_start():
+    """Start a new EMA conversation with the student's 1-5 check-in rating and return Ema's greeting."""
+    user, err = _chat_student()
+    if err:
+        return err
+    try:
+        rating = int((request.get_json() or {}).get('rating', 0))
+    except (TypeError, ValueError):
+        rating = 0
+    if not 1 <= rating <= 5:
+        return jsonify({'error': 'Choose how you feel from 1 to 5'}), 400
+    try:
+        conv = _ema_chat_call(user, 'POST', '/conversations/', timeout=15,
+                              json={'user_id': user['ema_user_id'], 'initial_check_in_rating': rating})
+        if conv.status_code == 409:
+            # EMA allows one unfinished conversation per account (it may have been started
+            # in EMA's own app). Reopen the most recent one instead of starting a new one.
+            listing = _ema_chat_call(user, 'GET', f"/users/{user['ema_user_id']}/conversations/", timeout=20)
+            listing.raise_for_status()
+            ongoing = max(listing.json(), key=lambda c: c.get('date_created') or '')
+            db.db.users.update_one({'_id': user['_id']}, {'$set': {
+                'ema_chat_conversation_id': ongoing['id'], 'ema_chat_state': 'wait_input', 'ema_chat_rating': None}})
+            return jsonify({'conversation_id': ongoing['id'], 'resumed': True,
+                            'messages': _clean_messages(ongoing.get('chat_history')),
+                            'graph_state': 'wait_input'}), 200
+        conv.raise_for_status()
+        cid = conv.json()['id']
+        first = _ema_chat_call(user, 'POST', '/messages/send_message', timeout=90,
+                               json={'conversation_id': cid, 'user_id': user['ema_user_id'], 'content': None})
+        first.raise_for_status()
+        body = first.json()
+    except Exception as e:
+        return _chat_error(e)
+    db.db.users.update_one({'_id': user['_id']}, {'$set': {
+        'ema_chat_conversation_id': cid, 'ema_chat_state': body.get('graph_state'), 'ema_chat_rating': rating}})
+    return jsonify({'conversation_id': cid, 'messages': _clean_messages(body.get('messages')),
+                    'graph_state': body.get('graph_state')}), 200
+
+
+@mhbot_bp.route('/chat/message', methods=['POST'])
+@jwt_required()
+def chat_message():
+    """Send the student's message (or chosen activity) to EMA and return Ema's reply."""
+    user, err = _chat_student()
+    if err:
+        return err
+    data = request.get_json() or {}
+    cid = data.get('conversation_id')
+    if not cid or cid != user.get('ema_chat_conversation_id'):
+        return jsonify({'error': 'This conversation is no longer active. Start a new check-in.'}), 409
+    content = data.get('content')
+    content = content.strip()[:4000] if isinstance(content, str) and content.strip() else None
+    try:
+        resp = _ema_chat_call(user, 'POST', '/messages/send_message', timeout=90,
+                              json={'conversation_id': cid, 'user_id': user['ema_user_id'], 'content': content})
+        resp.raise_for_status()
+        body = resp.json()
+    except Exception as e:
+        return _chat_error(e)
+    state = body.get('graph_state')
+    db.db.users.update_one({'_id': user['_id']}, {'$set': {'ema_chat_state': state}})
+
+    # The message answering a journal prompt is the final journal text; copy it into the
+    # student's private CPS journal when they chose to.
+    journal_saved = False
+    if user.get('ema_chat_state') == 'wait_journal' and content and data.get('save_to_cps_journal'):
+        journal_saved = _save_ema_journal(user, cid, content, data.get('journal_label'))
+
+    if state == 'end':
+        _sync_after_session(user)
+    return jsonify({'messages': _clean_messages(body.get('messages')), 'graph_state': state,
+                    'cps_journal_saved': journal_saved}), 200
+
+
+LABEL_MOOD = {'Excelling': 5, 'Thriving': 4, 'Surviving': 3, 'Struggling': 2, 'In Crisis': 1}
+
+
+def _save_ema_journal(user: dict, conversation_id: str, text: str, label) -> bool:
+    """One private CPS journal entry per EMA conversation, tagged with the EMA label."""
+    label = label if label in LABEL_MOOD else None
+    if db.db.journal_entries.find_one({'student_id': user['_id'], 'ema_conversation_id': conversation_id}):
+        return True
+    now = datetime.utcnow()
+    result = db.db.journal_entries.insert_one({
+        'student_id': user['_id'],
+        # The check-in rating is how the student said they felt; fall back to the EMA label
+        'mood': user.get('ema_chat_rating') or LABEL_MOOD.get(label, 3),
+        'content': text,
+        'tags': [label] if label else [],
+        'is_private': True,
+        'attachments': [],
+        'source': 'ema',
+        'ema_conversation_id': conversation_id,
+        'created_at': now,
+        'updated_at': now,
+    })
+    audit_log(db.db, 'journal', 'create', entity_id=str(result.inserted_id), new_values={
+        'student_id': str(user['_id']), 'source': 'ema'})
+    return True
 
 
 # ── Data endpoints (use caller's token) ───────────────────────────────────────
@@ -819,6 +1091,7 @@ def ema_webhook():
             'raw_date': date_str,
             'saved_at': now,
             'source': 'webhook',
+            **(({'perma_score': data['perma_score']}) if isinstance(data.get('perma_score'), dict) else {}),
             **(({'student_user_id': student['_id']}) if student else {}),
         }},
         upsert=True,

@@ -64,6 +64,7 @@ export default function ProfilePage() {
   const [permaData, setPermaData]         = useState<any>(null);
   const [loadingPerma, setLoadingPerma]   = useState(false);
   const [emaLiveConnected, setEmaLiveConnected] = useState(false);
+  const [emaNeedsRelink, setEmaNeedsRelink]     = useState(false);
   const [showEmaConsent, setShowEmaConsent]   = useState(false);
   const [emaConsentChecked, setEmaConsentChecked] = useState(false);
   const [emaConsentSaving, setEmaConsentSaving]   = useState(false);
@@ -84,6 +85,7 @@ export default function ProfilePage() {
       const history = (snap.snapshots || []).map((s: any) => ({ perma_label: s.perma_label, date: s.raw_date || s.entry_date }));
       const hasData = !!(snap.latest_label || history.length > 0);
       setEmaLiveConnected(status.connected ?? false);
+      setEmaNeedsRelink(!!status.needs_relink);
       setPermaData({
         connected: hasData,
         mhbot_username: status.mhbot_username || '',
@@ -385,6 +387,7 @@ export default function ProfilePage() {
               </div>
               {emaLiveConnected && (
                 <button onClick={handleMhbotLogout}
+                  title="Stops new EMA results. Results already saved stay in your CPS record."
                   className="flex items-center gap-1.5 text-xs transition"
                   style={{ color: 'var(--color-text-muted)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}
@@ -393,6 +396,15 @@ export default function ProfilePage() {
                 </button>
               )}
             </div>
+
+            {!loadingPerma && emaNeedsRelink && (
+              <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 mb-4 text-xs"
+                style={{ background: 'var(--color-primary-surface)', color: 'var(--color-primary)' }}>
+                <span>Sign in to EMA once more so the chatbot opens already signed in.</span>
+                <button onClick={() => { window.location.href = '/mhbot'; }}
+                  className="font-semibold whitespace-nowrap hover:underline">Reconnect</button>
+              </div>
+            )}
 
             {loadingPerma ? (
               <div className="flex items-center gap-2 text-sm py-2" style={{ color: 'var(--color-text-muted)' }}>
@@ -660,11 +672,13 @@ export default function ProfilePage() {
               </p>
               <ul className="list-disc list-inside space-y-1.5" style={{ color: 'var(--color-primary)' }}>
                 <li>Your EMA wellbeing labels (e.g. Thriving, Surviving) will be accessible to CPS to support your counseling sessions</li>
+                <li>CPS stays signed in to your EMA account so you can chat with EMA inside CPS. Your password is never saved; CPS keeps only an encrypted sign-in key</li>
+                <li>When you submit an EMA journal, you can choose to save a copy to your private CPS journal, which only you can see</li>
                 <li>Data is stored securely on university servers with password-protected access</li>
                 <li>Only your assigned counselor or psychologist may view your individual wellness data</li>
                 <li>All CPS staff with data access are bound by confidentiality agreements</li>
                 <li>Any aggregate or summary reports will use anonymized data only</li>
-                <li>You may withdraw this consent and disconnect EMA at any time from this page</li>
+                <li>You may withdraw this consent and disconnect EMA at any time from this page. CPS then stops receiving new EMA results; results already saved stay in your CPS counseling record</li>
               </ul>
             </div>
 

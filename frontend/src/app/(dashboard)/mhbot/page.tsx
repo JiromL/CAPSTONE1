@@ -20,7 +20,7 @@ import { api } from '@/utils/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface AuthStatus { connected: boolean; mhbot_username?: string; expired?: boolean; }
+interface AuthStatus { connected: boolean; mhbot_username?: string; expired?: boolean; chat_ready?: boolean; needs_relink?: boolean; }
 interface AnalyticsSummary {
   total_tracked: number; active_last_30d: number; inactive_14d: number;
   at_risk_count: number; completion_rate: number;
@@ -659,7 +659,7 @@ function ConnectCard({ onLink }: { onLink: (username: string, password: string) 
           </button>
         </form>
         <p className="text-xs text-center mt-4" style={{ color: 'var(--color-text-muted)' }}>
-          Your EMA username is your display name on the EMA app (not your email address). Your password is only used once to verify you own this account and is never stored.
+          Your EMA username is your display name on the EMA app (not your email address). Your password is never stored. CPS keeps an encrypted sign-in key so the EMA chatbot opens already signed in.
         </p>
       </div>
     </div>
@@ -1050,7 +1050,7 @@ export default function EMAPage() {
         body: JSON.stringify({ username, password }),
       });
       const d = await r.json();
-      if (r.ok) { setAuthStatus({ connected: true, mhbot_username: d.mhbot_username }); return null; }
+      if (r.ok) { setAuthStatus({ connected: true, chat_ready: true, mhbot_username: d.mhbot_username }); return null; }
       return d.error || 'Failed to link account';
     } catch { return 'Network error'; }
   };
@@ -1072,7 +1072,8 @@ export default function EMAPage() {
     );
   }
 
-  if (!authStatus?.connected) {
+  // Students linked before the in-CPS chatbot have no saved EMA key yet; ask them to sign in once more
+  if (!authStatus?.connected || (isStudent && authStatus.needs_relink)) {
     return (
       <DashboardPageWrapper
         title="EMA"

@@ -137,8 +137,10 @@ def list_journal_entries():
         result_entries.append({
             'journal_id': str(entry['_id']),
             'mood': entry.get('mood'),
-            'content': entry.get('content')[:200] + '...' if len(entry.get('content', '')) > 200 else entry.get('content'),
+            # Full text: the page clamps long entries itself, and edits are saved from this text
+            'content': entry.get('content'),
             'tags': entry.get('tags', []),
+            'source': entry.get('source'),
             'created_at': entry.get('created_at').isoformat() if entry.get('created_at') else None
         })
     

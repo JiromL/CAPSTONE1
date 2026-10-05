@@ -206,8 +206,20 @@ def _sync_perma_labels(app):
         print(f"[Scheduler] PERMA sync complete — {synced} synced, {failed} failed, {len(students)} total students")
 
 
+EMA_TOKEN_REFRESH_INTERVAL_SECONDS = 6 * 60 * 60  # EMA refresh tokens expire after 24h
+_last_ema_token_refresh = 0
+
+
+def _refresh_ema_chat_tokens(app):
+    """Renew every linked student's EMA chat key so the widget stays signed in."""
+    with app.app_context():
+        from blueprints.mhbot_integration import refresh_all_student_ema_tokens
+        r = refresh_all_student_ema_tokens()
+        print(f"[Scheduler] EMA chat keys renewed — {r['renewed']} renewed, {r['relink']} need re-link, {r['failed']} failed")
+
+
 def _scheduler_loop(app, interval_seconds=300):
-    global _last_perma_sync
+    global _last_perma_sync, _last_ema_token_refresh
     while True:
         try:
             _process_reminders(app)
@@ -218,6 +230,11 @@ def _scheduler_loop(app, interval_seconds=300):
                 _sync_perma_labels(app)
                 _last_perma_sync = time.time()
 
+            # Renew student EMA chat keys every 6 hours
+            if time.time() - _last_ema_token_refresh >= EMA_TOKEN_REFRESH_INTERVAL_SECONDS:
+                _refresh_ema_chat_tokens(app)
+                _last_ema_token_refresh = time.time()
+
         except Exception as e:
             print(f"[Scheduler] Error: {e}")
         time.sleep(interval_seconds)
@@ -227,4 +244,4 @@ def start_scheduler(app):
     """Start the background scheduler thread."""
     t = threading.Thread(target=_scheduler_loop, args=(app,), daemon=True)
     t.start()
-    print("[Scheduler] Scheduler started (reminders every 5 min, PERMA sync every 6 hours)")
+    print("[Scheduler] Scheduler started (reminders every 5 min, PERMA sync and EMA key renewal every 6 hours)")

@@ -266,10 +266,12 @@ class MongoDB:
         
         try:
             self.db.users.create_index("email", unique=True)
+            # One record per EMA result; also stops two syncs from saving the same result twice
+            self.db.perma_snapshots.create_index([("mhbot_username", 1), ("entry_date", 1)], unique=True)
             self.db.cases.create_index("student_id")
             self.db.cases.create_index("assigned_counselor_id")
             self.db.assessments.create_index("case_id")
-            self.db.intakes.create_index("case_id", unique=True)
+            self.db.intakes.create_index("case_id", unique=True, sparse=True)  # matches the existing index
             self.db.appointments.create_index("case_id")
             self.db.documents.create_index("case_id")
             self.db.session_notes.create_index("case_id")

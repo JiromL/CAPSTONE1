@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
@@ -121,7 +121,7 @@ function VerticalStepTracker({ steps, current }: { steps: { label: string; desc?
   );
 }
 
-export default function BookAppointmentPage() {
+function BookAppointmentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeId = searchParams.get('resumeId');
@@ -1544,5 +1544,13 @@ export default function BookAppointmentPage() {
         )}
       </div>
     </DashboardPageWrapper>
+  );
+}
+
+export default function BookAppointmentPage() {
+  return (
+    <Suspense fallback={null}>
+      <BookAppointmentContent />
+    </Suspense>
   );
 }

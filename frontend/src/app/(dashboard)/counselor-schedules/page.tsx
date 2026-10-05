@@ -82,7 +82,7 @@ export default function CounselorSchedulesPage() {
 
         map.forEach(row => row.upcomingAppts.sort((a, b) => new Date(a.scheduled_start || a.requested_start || 0).getTime() - new Date(b.scheduled_start || b.requested_start || 0).getTime()));
 
-        let sorted = Array.from(map.values());
+        const sorted = Array.from(map.values());
         if (sortBy === 'load') sorted.sort((a, b) => b.total - a.total);
         else if (sortBy === 'thisWeek') sorted.sort((a, b) => b.thisWeek - a.thisWeek);
         else sorted.sort((a, b) => a.name.localeCompare(b.name));

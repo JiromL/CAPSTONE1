@@ -10,7 +10,7 @@ A full-stack web application for managing student counseling at De La Salle Univ
 | Backend | Python 3.12, Flask 3.1 |
 | Database | MongoDB (pymongo 4.7) |
 | Auth | JWT (flask-jwt-extended) |
-| AI | OpenAI API (MHBot chatbot) |
+| Wellbeing chatbot | EMA (DLSU PCHRD) through its API: chat inside CPS and PERMA results |
 
 ## Project Structure
 
@@ -21,8 +21,11 @@ CAPSTONE1/
 │       ├── app/            # Route pages (dashboard, staff, auth)
 │       └── components/     # Shared UI components
 ├── backend/                # Flask API
-│   ├── app.py              # Entry point
+│   ├── app.py              # Entry point (also applies the case-record access rule)
 │   ├── blueprints/         # Route handlers by domain
+│   ├── services/           # perma_triage.py: EMA triage and trend scoring
+│   ├── scheduler.py        # Reminders, EMA sync, triage refresh, EMA key renewal
+│   ├── tests/              # pytest suite (uses the cps_system_test database)
 │   └── requirements.txt
 └── scripts/                # Seed scripts
     ├── seed.py                  # Main seed (run first)
@@ -39,7 +42,22 @@ CAPSTONE1/
 
 - Node.js 20+
 - Python 3.12+
-- MongoDB running locally on port 27017
+- MongoDB running locally on port 27017. With Homebrew on macOS, `brew services` may not work for
+  `mongodb-community`; run `mongod --config /opt/homebrew/etc/mongod.conf` in its own terminal instead.
+
+### Environment
+
+The backend reads the project-root `.env` first, then `backend/.env`. Neither is committed.
+
+| Variable | Purpose |
+|----------|---------|
+| `FLASK_ENV` | `development` uses the **`cps_system_dev`** database (where the seed data lives); `production` uses `cps_system` |
+| `SECRET_KEY`, `JWT_SECRET_KEY` | Flask and login token secrets |
+| `MHBOT_BASE_URL`, `EMA_ADMIN_USERNAME`, `EMA_ADMIN_PASSWORD` | Shared EMA staff account used to read PERMA results |
+| `EMA_TOKEN_KEY` | Encrypts each student's saved EMA sign-in key. Keep it stable: changing it makes every student link EMA again |
+| `EMA_WEBHOOK_SECRET` | Shared secret for EMA's push webhook. Until it is set the webhook is off and results arrive through the 6-hourly sync |
+| `SMTP_*`, `GOOGLE_*`, `ZOOM_*` | Email, Google Calendar and Zoom integrations |
+| `frontend/.env.local` → `NEXT_PUBLIC_API_BASE` | Backend URL, normally `http://localhost:5001` |
 
 ### Frontend
 
@@ -64,7 +82,7 @@ PORT=5001 python app.py
 
 ### Seeding the Database
 
-Run all four scripts in order:
+`seed.py` **wipes `cps_system_dev`** and rebuilds it. Run all four scripts in order:
 
 ```bash
 python3 scripts/seed.py                  # Wipes DB and seeds base data
@@ -75,7 +93,29 @@ python3 scripts/seed_structured_soap.py  # Adds structured SOAP session notes
 
 After seeding: **64 users, 35 cases, 91 appointments, 40 session notes, 72 PERMA entries**
 
+### Tests
+
+```bash
+cd backend
+venv/bin/python -m pytest tests -q
+```
+
+Tests run against the separate `cps_system_test` database with the background scheduler off, so they never
+touch development data or call EMA. They cover the triage rules and the access rules (students only see
+their own records; counselors only cases assigned to them).
+
+### Production build
+
+```bash
+cd frontend && npm run build && npm start
+```
+
+Design mockups under `/design` are available in development only and return 404 in production builds.
+
 ## Test Accounts
+
+> These seeded accounts and passwords are public in this README. Change them before putting the app on
+> the internet (for example through ngrok).
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -123,8 +163,13 @@ Walk-in path: Student arrives → IC conducts intake interview → Case created 
 - **Session notes** — free-form SOAP, structured SOAP form (checkboxes), and narrative formats
 - **Safety plans** — crisis safety plan creation and tracking
 - **PERMA tracker** — wellbeing snapshots across Positive Emotion, Engagement, Relationships, Meaning, Accomplishment
-- **MHBot** — AI-powered mental health chatbot for students
-- **Analytics dashboard** — appointments, case trends, risk distribution, PERMA insights
+- **EMA chatbot inside CPS** — students link their EMA account once; the chat widget then opens already
+  signed in. CPS keeps only an encrypted EMA refresh token (never the password) and renews it every 6 hours.
+  Students can save their EMA journal to their private CPS journal.
+- **EMA triage** — the Case Manager queue uses the *worst* EMA result in the last 7 days, not the latest.
+  An In Crisis result stays until a counselor or case manager marks it reviewed (with a note). Flags:
+  crisis not yet reviewed, persistent struggle, unstable mood. Thresholds are admin settings.
+- **Analytics dashboard** — appointments, case trends, risk distribution, PERMA daily/monthly averages
 - **Reports** — exportable case and session reports
 
 ## Risk Levels

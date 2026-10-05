@@ -71,7 +71,7 @@ export default function DashboardLayout({
     return () => {
       window.fetch = original;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   if (!mounted) {
     return (

@@ -243,7 +243,7 @@ export default function MyAppointmentsPage() {
       })
       .catch(() => setRescheduleSlots([]))
       .finally(() => setRescheduleLoadingSlots(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [reschedDate, reschedTarget]);
 
   const EVAL_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

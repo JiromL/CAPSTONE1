@@ -83,8 +83,8 @@ export const useAppointmentExport = () => {
       // If not available globally, try dynamic import (browser-only)
       if (!html2pdf) {
         try {
-          const module = await import('html2pdf.js');
-          html2pdf = module.default || module;
+          const html2pdfModule = await import('html2pdf.js');
+          html2pdf = html2pdfModule.default || html2pdfModule;
         } catch {
           html2pdf = null;
         }

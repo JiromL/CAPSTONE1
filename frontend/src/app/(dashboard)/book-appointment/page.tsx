@@ -273,7 +273,7 @@ function BookAppointmentContent() {
             .then(r => r.json()).then(d2 => setCounselorList(d2.users ?? [])).catch(() => setCounselorList([]));
         }
       }).catch(() => setAssignedCounselor(null));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [purpose]);
 
   useEffect(() => {

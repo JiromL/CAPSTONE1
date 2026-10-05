@@ -155,7 +155,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
       })
       .catch(() => setRescheduleSlots([]))
       .finally(() => setRescheduleLoadingSlots(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [reschedDate, reschedTarget]);
 
   const handleReschedule = async () => {

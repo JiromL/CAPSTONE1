@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
-from utils import user_has_permission
+from utils import user_has_permission, is_staff
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -115,7 +115,7 @@ def get_upcoming_appointments_report():
     """Get upcoming appointments scheduled for next N days (STAFF: VIEW_CASE)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not is_staff(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:

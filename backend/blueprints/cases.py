@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from bson.objectid import ObjectId
 from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
-from utils import serialize_doc, user_has_permission, case_access_error
+from utils import serialize_doc, user_has_permission, case_access_error, audit_log
 import uuid
 
 cases_bp = Blueprint('cases', __name__, url_prefix='/api/cases')

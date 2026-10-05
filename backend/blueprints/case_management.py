@@ -276,7 +276,7 @@ def restore_session_note(note_id):
     """Restore deleted session note (admin only) (Feature 1.6)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.ADMIN_ACCESS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_USERS.value):
         return jsonify({'error': 'Insufficient permissions to restore session notes'}), 403
     
     try:
@@ -314,7 +314,7 @@ def initiate_handover():
     """Initiate case handover request (Feature 2.1)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_HANDOVERS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
         return jsonify({'error': 'Insufficient permissions to manage handovers'}), 403
     
     data = request.get_json()
@@ -407,7 +407,7 @@ def approve_handover(handover_id):
     """Approve handover request (Feature 2.3)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_HANDOVERS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
@@ -451,7 +451,7 @@ def reject_handover(handover_id):
     """Reject handover request (Feature 2.4)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_HANDOVERS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
@@ -498,7 +498,7 @@ def complete_handover(handover_id):
     """Mark handover as complete (Feature 2.5)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_HANDOVERS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.ASSIGN_CASES.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
@@ -557,7 +557,7 @@ def log_referral():
     """Log referral with details (Feature 3.1)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_REFERRALS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
         return jsonify({'error': 'Insufficient permissions to create referrals'}), 403
     
     data = request.get_json()
@@ -611,7 +611,7 @@ def update_referral_status(referral_id):
     """Update referral status (Feature 3.2)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_REFERRALS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     data = request.get_json()
@@ -653,7 +653,7 @@ def log_referral_followup(referral_id):
     """Log referral follow-up action (Feature 3.3)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.MANAGE_REFERRALS.value):
+    if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     data = request.get_json()

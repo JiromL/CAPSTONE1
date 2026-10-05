@@ -142,9 +142,11 @@ def create_app(config_name=None):
     app.register_blueprint(communications_bp)
     app.register_blueprint(holidays_bp)
 
-    # Start background reminder scheduler
-    from scheduler import start_scheduler
-    start_scheduler(app)
+    # Start background reminder scheduler (not during tests: it syncs EMA and
+    # writes to the database)
+    if not app.config.get('TESTING') and os.getenv('DISABLE_SCHEDULER') != '1':
+        from scheduler import start_scheduler
+        start_scheduler(app)
 
     # Health check route
     @app.route('/api/health', methods=['GET'])

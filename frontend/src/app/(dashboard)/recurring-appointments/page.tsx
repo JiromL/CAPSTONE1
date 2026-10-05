@@ -26,6 +26,24 @@ const IC_S = (focused: boolean): React.CSSProperties => ({
   color: 'var(--color-text-primary)',
 });
 
+// Defined outside the page so React keeps the same component between renders
+// (inputs inside them would otherwise lose focus on every keystroke).
+const Card = ({ children }: { children: React.ReactNode }) => (
+  <div className="border rounded-xl p-4 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+    {children}
+  </div>
+);
+
+const SectionLabel = ({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) => (
+  <p className="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}>
+    {icon}{children}
+  </p>
+);
+
+const FieldLabel = ({ children }: { children: React.ReactNode }) => (
+  <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{children}</label>
+);
+
 export default function RecurringAppointmentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [studentSearch, setStudentSearch] = useState('');
@@ -123,19 +141,6 @@ export default function RecurringAppointmentsPage() {
     );
   }
 
-  const Card = ({ children }: { children: React.ReactNode }) => (
-    <div className="border rounded-xl p-4 shadow-card" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-      {children}
-    </div>
-  );
-  const SectionLabel = ({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) => (
-    <p className="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}>
-      {icon}{children}
-    </p>
-  );
-  const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-    <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{children}</label>
-  );
 
   return (
     <DashboardPageWrapper title="Recurring Appointments" subtitle="Schedule a series of sessions for a student">

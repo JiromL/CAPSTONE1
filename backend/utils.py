@@ -150,9 +150,6 @@ def get_current_user(db, user_id):
     except:
         return db.users.find_one({"_id": user_id})
 
-    """Log data access for audit trail (EPIC 1: Implement Audit Log)"""
-    audit_log(entity_type, 'access', entity_id=entity_id)
-
 
 def get_user_ip():
     """Get user's IP address"""
@@ -182,3 +179,13 @@ def case_access_error(db, user_id, case_id):
     if role in ('COUNSELOR', 'PSYCHOLOGIST') and str(case.get('assigned_counselor_id')) != str(user_id):
         return 'Case not assigned to you', 403
     return None
+
+
+def is_staff(db, user_id):
+    """True for any CPS staff role. Students hold VIEW_CASE for their own case, so
+    VIEW_CASE alone must not gate routes that list other students' data."""
+    try:
+        user = db.users.find_one({'_id': ObjectId(user_id)}, {'role': 1})
+    except Exception:
+        return False
+    return bool(user) and user.get('role') not in (None, 'STUDENT')

@@ -30,6 +30,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Defined outside the page so React keeps the same component between renders
+// (inputs inside them would otherwise lose focus on every keystroke).
+const Card = ({ children }: { children: React.ReactNode }) => (
+  <div className="border rounded-xl shadow-card p-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+    {children}
+  </div>
+);
+
 export default function CheckInPage() {
   const [step, setStep]               = useState<'overview' | 'form'>('overview');
   const [status, setStatus]           = useState('');
@@ -104,11 +112,6 @@ export default function CheckInPage() {
 
   const wColor = WELLNESS_COLORS[wellnessRating] ?? '#6366f1';
 
-  const Card = ({ children }: { children: React.ReactNode }) => (
-    <div className="border rounded-xl shadow-card p-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-      {children}
-    </div>
-  );
 
   return (
     <DashboardPageWrapper title="Wellness Check-In" subtitle="How are you doing today?">

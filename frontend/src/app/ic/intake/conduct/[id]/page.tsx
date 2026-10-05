@@ -116,6 +116,76 @@ function fmtFreq(v: number) { return ['Not at all','Several days','More than hal
 type Step = 'review' | 'phq9' | 'cssr_s' | 'gad7' | 'ic_doc' | 'route';
 
 // ── Page ───────────────────────────────────────────────────────────────────────
+// Outside the page so React keeps the same table between renders.
+function AssessmentTable({ questions, answers, setAnswers, flagLast }: {
+  questions: string[]; answers: (number|null)[]; setAnswers: (a: (number|null)[]) => void; flagLast?: boolean;
+}) {
+  const answered = answers.filter(v => v !== null).length;
+  const score    = answers.every(v => v !== null) ? answers.reduce((a,b) => a!+b!, 0)! : null;
+  return (
+    <div>
+      {/* Progress bar */}
+      <div className="flex items-center gap-3 mb-4 px-1">
+        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${(answered / questions.length) * 100}%`, background: 'var(--color-primary)' }} />
+        </div>
+        <span className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>{answered}/{questions.length} answered</span>
+        {score !== null && (
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ color: 'var(--color-text-primary)', background: 'var(--color-bg)' }}>Score: {score}</span>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+        <div className="grid" style={{ gridTemplateColumns: '2rem 1fr repeat(4, 5rem)', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+          <div className="px-3 py-2.5" />
+          <div className="px-3 py-2.5 text-xs font-bold uppercase" style={{ color: 'var(--color-text-muted)' }}>Item</div>
+          {FREQ.map(f => (
+            <div key={f.v} className="py-2.5 text-center text-xs font-bold uppercase leading-tight px-1" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="block text-xs font-bold">{f.v}</span>
+              {f.s}
+            </div>
+          ))}
+        </div>
+
+        {questions.map((q, i) => {
+          const isLast = flagLast && i === questions.length - 1;
+          return (
+            <div key={i}
+              className="grid transition"
+              style={{
+                gridTemplateColumns: '2rem 1fr repeat(4, 5rem)',
+                borderBottom: i < questions.length - 1 ? '1px solid var(--color-border)' : 'none',
+                background: isLast ? 'var(--color-danger-surface)' : answers[i] !== null ? '#F0FDF420' : 'transparent',
+              }}>
+              <div className="flex items-center justify-center text-xs font-bold"
+                style={{ color: isLast ? '#EF4444' : 'var(--color-border-strong)' }}>
+                {i + 1}
+              </div>
+              <div className="px-3 py-3">
+                <p className="text-sm leading-snug" style={{ color: 'var(--color-text-primary)' }}>{q}</p>
+                {isLast && <p className="text-xs font-semibold mt-0.5" style={{ color: '#EF4444' }}>C-SSRS required if score &gt; 0</p>}
+              </div>
+              {FREQ.map(f => (
+                <div key={f.v} className="flex items-center justify-center py-2">
+                  <button
+                    onClick={() => { const a = [...answers]; a[i] = a[i] === f.v ? null : f.v; setAnswers(a); }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition"
+                    style={answers[i] === f.v
+                      ? { background: 'var(--color-primary)', border: '2px solid var(--color-primary)', boxShadow: 'var(--shadow-card)' }
+                      : { border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                    {answers[i] === f.v && <div className="w-3 h-3 rounded-full bg-white" />}
+                  </button>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function ConductIntakePage() {
   const { id: intakeId } = useParams<{ id: string }>();
   const router = useRouter();
@@ -819,74 +889,6 @@ export default function ConductIntakePage() {
   const stepIdx = allSteps.findIndex(s => s.key === step);
 
   // ── Assessment table (shared PHQ-9/GAD-7) ────────────────────────────────
-  function AssessmentTable({ questions, answers, setAnswers, flagLast }: {
-    questions: string[]; answers: (number|null)[]; setAnswers: (a: (number|null)[]) => void; flagLast?: boolean;
-  }) {
-    const answered = answers.filter(v => v !== null).length;
-    const score    = answers.every(v => v !== null) ? answers.reduce((a,b) => a!+b!, 0)! : null;
-    return (
-      <div>
-        {/* Progress bar */}
-        <div className="flex items-center gap-3 mb-4 px-1">
-          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
-            <div className="h-full rounded-full transition-all" style={{ width: `${(answered / questions.length) * 100}%`, background: 'var(--color-primary)' }} />
-          </div>
-          <span className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>{answered}/{questions.length} answered</span>
-          {score !== null && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ color: 'var(--color-text-primary)', background: 'var(--color-bg)' }}>Score: {score}</span>
-          )}
-        </div>
-
-        {/* Table */}
-        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-          <div className="grid" style={{ gridTemplateColumns: '2rem 1fr repeat(4, 5rem)', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
-            <div className="px-3 py-2.5" />
-            <div className="px-3 py-2.5 text-xs font-bold uppercase" style={{ color: 'var(--color-text-muted)' }}>Item</div>
-            {FREQ.map(f => (
-              <div key={f.v} className="py-2.5 text-center text-xs font-bold uppercase leading-tight px-1" style={{ color: 'var(--color-text-muted)' }}>
-                <span className="block text-xs font-bold">{f.v}</span>
-                {f.s}
-              </div>
-            ))}
-          </div>
-
-          {questions.map((q, i) => {
-            const isLast = flagLast && i === questions.length - 1;
-            return (
-              <div key={i}
-                className="grid transition"
-                style={{
-                  gridTemplateColumns: '2rem 1fr repeat(4, 5rem)',
-                  borderBottom: i < questions.length - 1 ? '1px solid var(--color-border)' : 'none',
-                  background: isLast ? 'var(--color-danger-surface)' : answers[i] !== null ? '#F0FDF420' : 'transparent',
-                }}>
-                <div className="flex items-center justify-center text-xs font-bold"
-                  style={{ color: isLast ? '#EF4444' : 'var(--color-border-strong)' }}>
-                  {i + 1}
-                </div>
-                <div className="px-3 py-3">
-                  <p className="text-sm leading-snug" style={{ color: 'var(--color-text-primary)' }}>{q}</p>
-                  {isLast && <p className="text-xs font-semibold mt-0.5" style={{ color: '#EF4444' }}>C-SSRS required if score &gt; 0</p>}
-                </div>
-                {FREQ.map(f => (
-                  <div key={f.v} className="flex items-center justify-center py-2">
-                    <button
-                      onClick={() => { const a = [...answers]; a[i] = a[i] === f.v ? null : f.v; setAnswers(a); }}
-                      className="w-7 h-7 rounded-full flex items-center justify-center transition"
-                      style={answers[i] === f.v
-                        ? { background: 'var(--color-primary)', border: '2px solid var(--color-primary)', boxShadow: 'var(--shadow-card)' }
-                        : { border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                      {answers[i] === f.v && <div className="w-3 h-3 rounded-full bg-white" />}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <DashboardPageWrapper title="Intake Interview" subtitle="Complete assessments and document the session" backLink={{ href: '/intake-management', label: 'Intake Management' }}>

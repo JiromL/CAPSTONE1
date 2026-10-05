@@ -74,6 +74,15 @@ def _resolve_user_id(user_id):
         return user_id
 
 
+def _staff_access_denied(user_id) -> bool:
+    """EMA staff routes show other students' wellbeing data. Students also hold VIEW_CASE
+    (for their own case), so the permission alone is not enough to keep them out."""
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+        return True
+    user = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'role': 1})
+    return not user or user.get('role') == 'STUDENT'
+
+
 def _auth_headers(token: str) -> dict:
     return {'accept': 'application/json', 'Authorization': f'Bearer {token}'}
 
@@ -528,7 +537,7 @@ def _save_ema_journal(user: dict, conversation_id: str, text: str, label) -> boo
 @jwt_required()
 def get_user_perma(username):
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     token = _get_shared_ema_token()
@@ -555,7 +564,7 @@ def get_user_perma(username):
 @jwt_required()
 def lookup_perma_by_username():
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     token = _get_shared_ema_token()
@@ -585,7 +594,7 @@ def batch_perma_labels():
     """Return latest PERMA label for a list of mhbot usernames.
     Used by staff views to enrich lists without N individual requests."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     token = _get_shared_ema_token()
@@ -611,7 +620,7 @@ def batch_perma_labels():
 @jwt_required()
 def get_pending_students_with_perma():
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     token = _get_shared_ema_token()
@@ -730,7 +739,7 @@ def unlink_case_from_mhbot(case_id):
 def get_cm_queue():
     """Return students with Struggling or In Crisis EMA labels for the Case Manager queue."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     # Triage label (worst recent result, unreviewed crises kept) is stored on each student
@@ -774,7 +783,7 @@ def get_cm_queue():
 @jwt_required()
 def get_perma_distribution():
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     token = _get_shared_ema_token()
@@ -868,7 +877,7 @@ def get_my_perma():
 def get_perma_trends():
     """Return monthly PERMA label distribution for the last 6 months."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     token = _get_shared_ema_token()
@@ -929,7 +938,7 @@ def get_perma_trends():
 def sync_all_perma():
     """Staff: pull latest PERMA history from EMA for all linked students and save to DB."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     token = _get_shared_ema_token()
@@ -966,7 +975,7 @@ def sync_all_perma():
 def get_perma_snapshots(mhbot_username):
     """Return saved PERMA snapshots from DB for a given EMA username."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     limit = min(request.args.get('limit', 30, type=int), 200)
@@ -1133,7 +1142,7 @@ def ema_webhook():
 def get_ema_analytics_summary():
     """Key EMA metrics from DB — total tracked, active, at-risk, completion rate."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     now = datetime.utcnow()
@@ -1191,7 +1200,7 @@ def get_ema_analytics_summary():
 def get_ema_analytics_trend():
     """PERMA check-in counts from DB snapshots, bucketed by day/week/month."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     granularity = request.args.get('granularity', 'month')
@@ -1276,7 +1285,7 @@ def get_ema_analytics_trend():
 def get_ema_analytics_college():
     """EMA label distribution grouped by student college."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
@@ -1309,7 +1318,7 @@ def get_ema_analytics_college():
 def get_ema_analytics_attention():
     """Students needing EMA attention: at-risk labels + long-inactive check-ins."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     inactive_days = request.args.get('inactive_days', 14, type=int)
@@ -1434,7 +1443,7 @@ def clear_crisis_flag(student_id):
 def student_perma_trend(student_id):
     """Triage result, daily and monthly scores, weakest PERMA area and crisis reviews for one student."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     try:
         student_oid = ObjectId(student_id)
@@ -1472,7 +1481,7 @@ def student_perma_trend(student_id):
 def triage_settings():
     """Triage thresholds. Anyone with case access can read them; only ADMIN can change them."""
     user_id = get_jwt_identity()
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     if request.method == 'GET':
         return jsonify({'settings': get_settings(db.db), 'defaults': DEFAULT_SETTINGS}), 200

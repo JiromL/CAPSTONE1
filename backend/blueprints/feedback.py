@@ -45,7 +45,7 @@ def list_feedback_templates():
     Templates: session_feedback, effectiveness_survey, outcome_tracking, satisfaction_form
     """
     try:
-        templates = list(db.feedback_templates.find({}))
+        templates = list(db.db.feedback_templates.find({}))
         
         for template in templates:
             template['_id'] = str(template['_id'])
@@ -61,7 +61,7 @@ def list_feedback_templates():
 def get_feedback_template(template_id):
     """Get a specific feedback template."""
     try:
-        template = db.feedback_templates.find_one({'_id': ObjectId(template_id)})
+        template = db.db.feedback_templates.find_one({'_id': ObjectId(template_id)})
         if not template:
             return jsonify({"error": "Template not found"}), 404
         
@@ -131,7 +131,7 @@ def submit_feedback():
             "tags": data.get('tags', [])
         }
         
-        result = db.feedback_submissions.insert_one(feedback_doc)
+        result = db.db.feedback_submissions.insert_one(feedback_doc)
         feedback_doc['_id'] = str(result.inserted_id)
         feedback_doc['case_id'] = str(feedback_doc['case_id'])
         feedback_doc['session_id'] = str(feedback_doc['session_id'])
@@ -151,7 +151,7 @@ def submit_feedback():
 def get_feedback(feedback_id):
     """Get a specific feedback submission."""
     try:
-        feedback = db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
+        feedback = db.db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
         if not feedback:
             return jsonify({"error": "Feedback not found"}), 404
         
@@ -189,7 +189,7 @@ def list_feedback():
         if request.args.get('status'):
             query['status'] = request.args.get('status')
         
-        feedback_list = list(db.feedback_submissions.find(query).sort('created_at', -1).limit(100))
+        feedback_list = list(db.db.feedback_submissions.find(query).sort('created_at', -1).limit(100))
         
         for feedback in feedback_list:
             feedback['_id'] = str(feedback['_id'])
@@ -210,7 +210,7 @@ def update_feedback(feedback_id):
     try:
         user_id = get_jwt_identity()
         
-        feedback = db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
+        feedback = db.db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
         if not feedback:
             return jsonify({"error": "Feedback not found"}), 404
         
@@ -230,12 +230,12 @@ def update_feedback(feedback_id):
         
         updates['updated_at'] = datetime.utcnow()
         
-        db.feedback_submissions.update_one({'_id': ObjectId(feedback_id)}, {'$set': updates})
+        db.db.feedback_submissions.update_one({'_id': ObjectId(feedback_id)}, {'$set': updates})
         
         audit_log(db.db, 'feedback', 'update', entity_id=feedback_id,
                   old_values={'id': feedback_id}, new_values=updates)
         
-        updated_feedback = db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
+        updated_feedback = db.db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
         updated_feedback['_id'] = str(updated_feedback['_id'])
         updated_feedback['case_id'] = str(updated_feedback['case_id'])
         updated_feedback['session_id'] = str(updated_feedback['session_id'])
@@ -254,11 +254,11 @@ def delete_feedback(feedback_id):
     try:
         user_id = get_jwt_identity()
         
-        feedback = db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
+        feedback = db.db.feedback_submissions.find_one({'_id': ObjectId(feedback_id)})
         if not feedback:
             return jsonify({"error": "Feedback not found"}), 404
         
-        db.feedback_submissions.delete_one({'_id': ObjectId(feedback_id)})
+        db.db.feedback_submissions.delete_one({'_id': ObjectId(feedback_id)})
         
         audit_log(db.db, 'feedback', 'delete', entity_id=feedback_id,
                   old_values={'case_id': str(feedback.get('case_id', ''))})
@@ -296,7 +296,7 @@ def get_feedback_summary():
             else:
                 query['created_at'] = {'$lte': datetime.fromisoformat(request.args.get('date_to'))}
         
-        feedback_list = list(db.feedback_submissions.find(query))
+        feedback_list = list(db.db.feedback_submissions.find(query))
         
         # Calculate analytics
         total_count = len(feedback_list)
@@ -342,7 +342,7 @@ def get_feedback_summary():
 def get_counselor_performance(counselor_id):
     """Get performance metrics for a specific counselor based on feedback."""
     try:
-        feedback_list = list(db.feedback_submissions.find({'counselor_id': counselor_id}))
+        feedback_list = list(db.db.feedback_submissions.find({'counselor_id': counselor_id}))
         
         if not feedback_list:
             return jsonify({
@@ -381,7 +381,7 @@ def get_outcome_summary():
     Tracks effectiveness and client progress.
     """
     try:
-        outcomes = list(db.feedback_submissions.find({
+        outcomes = list(db.db.feedback_submissions.find({
             'feedback_type': 'outcome_tracking'
         }))
         

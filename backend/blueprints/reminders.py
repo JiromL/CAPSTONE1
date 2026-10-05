@@ -22,6 +22,39 @@ from utils import audit_log, user_has_permission
 
 # ============ REMINDERS CRUD ============
 
+def _serialize(doc):
+    out = {}
+    for k, v in doc.items():
+        if isinstance(v, ObjectId):
+            out[k] = str(v)
+        elif isinstance(v, datetime):
+            out[k] = v.isoformat()
+        else:
+            out[k] = v
+    return out
+
+
+def _can_manage(user_id):
+    """Staff (every role with VIEW_NOTES; never students) can view, change and send any reminder."""
+    return user_has_permission(db.db, user_id, PermissionType.VIEW_NOTES.value)
+
+
+def _is_own(reminder, user_id):
+    """The recipient or the person who created it."""
+    return str(user_id) in {str(reminder.get(k)) for k in ('recipient_id', 'student_id', 'created_by')}
+
+
+def _find_reminder(reminder_id):
+    try:
+        return db.db.reminders.find_one({'_id': ObjectId(reminder_id)})
+    except Exception:
+        return None
+
+
+def _audit(action, reminder_id, user_id, changes):
+    audit_log(db.db, 'reminder', action, entity_id=str(reminder_id), new_values={'by': str(user_id), **changes})
+
+
 @reminders_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_reminder():
@@ -48,7 +81,7 @@ def create_reminder():
         user_id = get_jwt_identity()
         
         # Check permission
-        if not user_has_permission(db.db, user_id, PermissionType.CREATE_REMINDER.value):
+        if not user_has_permission(db.db, user_id, PermissionType.VIEW_NOTES.value):
             return jsonify({"error": "Insufficient permissions"}), 403
         
         data = request.get_json()
@@ -115,19 +148,14 @@ def create_reminder():
 @reminders_bp.route('/<reminder_id>', methods=['GET'])
 @jwt_required()
 def get_reminder(reminder_id):
-    """Get a specific reminder by ID."""
-    try:
-        reminder = db.reminders.find_one({'_id': ObjectId(reminder_id)})
-        if not reminder:
-            return jsonify({"error": "Reminder not found"}), 404
-        
-        reminder['_id'] = str(reminder['_id'])
-        reminder['case_id'] = str(reminder['case_id'])
-        
-        return jsonify(reminder), 200
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    """Get a specific reminder by ID (its recipient, its creator, or reminder staff)."""
+    user_id = get_jwt_identity()
+    reminder = _find_reminder(reminder_id)
+    if not reminder:
+        return jsonify({"error": "Reminder not found"}), 404
+    if not (_is_own(reminder, user_id) or _can_manage(user_id)):
+        return jsonify({"error": "You can only view your own reminders"}), 403
+    return jsonify(_serialize(reminder)), 200
 
 
 @reminders_bp.route('/', methods=['GET'])
@@ -178,89 +206,58 @@ def list_reminders():
 @reminders_bp.route('/<reminder_id>', methods=['PATCH'])
 @jwt_required()
 def update_reminder(reminder_id):
-    """Update a reminder (mark as sent, read, etc)."""
-    try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
-        
-        reminder = db.reminders.find_one({'_id': ObjectId(reminder_id)})
-        if not reminder:
-            return jsonify({"error": "Reminder not found"}), 404
-        
-        data = request.json
-        updates = {}
-        
-        if 'status' in data:
-            updates['status'] = data['status']
-            if data['status'] == 'sent':
-                updates['sent_at'] = datetime.utcnow()
-            elif data['status'] == 'read':
-                updates['read_at'] = datetime.utcnow()
-        
-        if 'title' in data:
-            updates['title'] = data['title']
-        if 'message' in data:
-            updates['message'] = data['message']
-        if 'scheduled_for' in data:
-            updates['scheduled_for'] = datetime.fromisoformat(
-                data['scheduled_for'].replace('Z', '+00:00')
-            )
-        
-        updates['updated_at'] = datetime.utcnow()
-        
-        db.reminders.update_one({'_id': ObjectId(reminder_id)}, {'$set': updates})
-        
-        # Log audit
-        log_audit_action(
-            collection='reminders',
-            action='UPDATE',
-            case_id=str(reminder['case_id']),
-            user_id=user_id,
-            changes=updates,
-            reason='Reminder updated'
-        )
-        
-        updated_reminder = db.reminders.find_one({'_id': ObjectId(reminder_id)})
-        updated_reminder['_id'] = str(updated_reminder['_id'])
-        updated_reminder['case_id'] = str(updated_reminder['case_id'])
-        
-        return jsonify(updated_reminder), 200
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    """Update a reminder. Recipients may only mark it read; creators and staff may edit it."""
+    user_id = get_jwt_identity()
+    reminder = _find_reminder(reminder_id)
+    if not reminder:
+        return jsonify({"error": "Reminder not found"}), 404
+    manager = _can_manage(user_id) or str(reminder.get('created_by')) == str(user_id)
+    if not (manager or _is_own(reminder, user_id)):
+        return jsonify({"error": "You can only change your own reminders"}), 403
+
+    data = request.get_json() or {}
+    if not manager and set(data) - {'status'}:
+        return jsonify({"error": "You can only mark this reminder as read"}), 403
+    updates = {}
+    if 'status' in data:
+        allowed = ('pending', 'sent', 'read') if manager else ('read',)
+        if data['status'] not in allowed:
+            return jsonify({"error": f"status must be one of: {', '.join(allowed)}"}), 400
+        updates['status'] = data['status']
+        if data['status'] == 'sent':
+            updates['sent_at'] = datetime.utcnow()
+        elif data['status'] == 'read':
+            updates['read_at'] = datetime.utcnow()
+            updates['is_read'] = True
+    for field in ('title', 'message'):
+        if field in data:
+            updates[field] = data[field]
+    if 'scheduled_for' in data:
+        try:
+            updates['scheduled_for'] = datetime.fromisoformat(data['scheduled_for'].replace('Z', '+00:00'))
+        except (AttributeError, ValueError):
+            return jsonify({"error": "Invalid datetime format"}), 400
+    updates['updated_at'] = datetime.utcnow()
+
+    db.db.reminders.update_one({'_id': reminder['_id']}, {'$set': updates})
+    _audit('update', reminder_id, user_id, {k: v for k, v in updates.items() if k in ('status', 'title')})
+    return jsonify(_serialize(db.db.reminders.find_one({'_id': reminder['_id']}))), 200
 
 
 @reminders_bp.route('/<reminder_id>', methods=['DELETE'])
 @jwt_required()
 def delete_reminder(reminder_id):
-    """Delete a reminder (soft delete)."""
-    try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
-        
-        reminder = db.reminders.find_one({'_id': ObjectId(reminder_id)})
-        if not reminder:
-            return jsonify({"error": "Reminder not found"}), 404
-        
-        db.reminders.update_one(
-            {'_id': ObjectId(reminder_id)},
-            {'$set': {'status': 'deleted', 'updated_at': datetime.utcnow()}}
-        )
-        
-        # Log audit
-        log_audit_action(
-            collection='reminders',
-            action='DELETE',
-            case_id=str(reminder['case_id']),
-            user_id=user_id,
-            changes={'status': 'deleted'},
-            reason='Reminder deleted'
-        )
-        
-        return jsonify({"message": "Reminder deleted successfully"}), 200
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    """Soft-delete a reminder (its creator or reminder staff)."""
+    user_id = get_jwt_identity()
+    reminder = _find_reminder(reminder_id)
+    if not reminder:
+        return jsonify({"error": "Reminder not found"}), 404
+    if not (_can_manage(user_id) or str(reminder.get('created_by')) == str(user_id)):
+        return jsonify({"error": "Only the person who created this reminder or reminder staff can delete it"}), 403
+    db.db.reminders.update_one({'_id': reminder['_id']},
+                               {'$set': {'status': 'deleted', 'updated_at': datetime.utcnow()}})
+    _audit('delete', reminder_id, user_id, {'status': 'deleted'})
+    return jsonify({"message": "Reminder deleted successfully"}), 200
 
 
 # ============ REMINDER DELIVERY ============
@@ -269,88 +266,44 @@ def delete_reminder(reminder_id):
 @jwt_required()
 def send_reminder(reminder_id):
     """
-    Send a reminder via configured delivery methods.
-    Simulates email, SMS, and dashboard notification.
+    Send a reminder via its delivery methods (reminder staff only).
+    Email and SMS are simulated; dashboard delivery stores a notification.
     """
-    try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
-        
-        reminder = db.reminders.find_one({'_id': ObjectId(reminder_id)})
-        if not reminder:
-            return jsonify({"error": "Reminder not found"}), 404
-        
-        if reminder['status'] in ['sent', 'deleted']:
-            return jsonify({"error": "Cannot send this reminder"}), 400
-        
-        delivery_results = {}
-        
-        # Simulate email delivery
-        if 'email' in reminder['delivery_methods'] and reminder['recipient_email']:
-            delivery_results['email'] = {
-                'status': 'sent',
-                'to': reminder['recipient_email'],
-                'subject': reminder['title'],
-                'timestamp': datetime.utcnow().isoformat()
-            }
-        
-        # Simulate SMS delivery
-        if 'sms' in reminder['delivery_methods'] and reminder['recipient_phone']:
-            delivery_results['sms'] = {
-                'status': 'sent',
-                'to': reminder['recipient_phone'],
-                'message': reminder['message'][:160],  # SMS char limit
-                'timestamp': datetime.utcnow().isoformat()
-            }
-        
-        # Store as dashboard notification
-        if 'dashboard' in reminder['delivery_methods']:
-            notification_doc = {
-                "reminder_id": ObjectId(reminder_id),
-                "recipient_id": reminder['recipient_id'],
-                "title": reminder['title'],
-                "message": reminder['message'],
-                "type": reminder['reminder_type'],
-                "priority": reminder['priority'],
-                "created_at": datetime.utcnow(),
-                "read": False
-            }
-            db.notifications.insert_one(notification_doc)
-            delivery_results['dashboard'] = {
-                'status': 'stored',
-                'timestamp': datetime.utcnow().isoformat()
-            }
-        
-        # Update reminder status
-        db.reminders.update_one(
-            {'_id': ObjectId(reminder_id)},
-            {
-                '$set': {
-                    'status': 'sent',
-                    'sent_at': datetime.utcnow(),
-                    'updated_at': datetime.utcnow(),
-                    'delivery_results': delivery_results
-                }
-            }
-        )
-        
-        # Log audit
-        log_audit_action(
-            collection='reminders',
-            action='SEND',
-            case_id=str(reminder['case_id']),
-            user_id=user_id,
-            changes={'delivery_results': delivery_results},
-            reason='Reminder sent'
-        )
-        
-        return jsonify({
-            "message": "Reminder sent successfully",
-            "delivery_results": delivery_results
-        }), 200
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    user_id = get_jwt_identity()
+    if not _can_manage(user_id):
+        return jsonify({"error": "Insufficient permissions"}), 403
+    reminder = _find_reminder(reminder_id)
+    if not reminder:
+        return jsonify({"error": "Reminder not found"}), 404
+    if reminder.get('status') in ('sent', 'deleted'):
+        return jsonify({"error": "Cannot send this reminder"}), 400
+
+    now = datetime.utcnow()
+    methods = reminder.get('delivery_methods') or ['dashboard']
+    delivery_results = {}
+    if 'email' in methods and reminder.get('recipient_email'):
+        delivery_results['email'] = {'status': 'sent', 'to': reminder['recipient_email'],
+                                     'subject': reminder.get('title', ''), 'timestamp': now.isoformat()}
+    if 'sms' in methods and reminder.get('recipient_phone'):
+        delivery_results['sms'] = {'status': 'sent', 'to': reminder['recipient_phone'],
+                                   'message': (reminder.get('message') or '')[:160], 'timestamp': now.isoformat()}
+    if 'dashboard' in methods:
+        db.db.notifications.insert_one({
+            "reminder_id": reminder['_id'],
+            "recipient_id": reminder.get('recipient_id') or reminder.get('student_id'),
+            "title": reminder.get('title', 'Reminder'),
+            "message": reminder.get('message', ''),
+            "type": reminder.get('reminder_type'),
+            "priority": reminder.get('priority', 'medium'),
+            "created_at": now,
+            "read": False,
+        })
+        delivery_results['dashboard'] = {'status': 'stored', 'timestamp': now.isoformat()}
+
+    db.db.reminders.update_one({'_id': reminder['_id']}, {'$set': {
+        'status': 'sent', 'sent_at': now, 'updated_at': now, 'delivery_results': delivery_results}})
+    _audit('send', reminder_id, user_id, {'methods': list(delivery_results)})
+    return jsonify({"message": "Reminder sent successfully", "delivery_results": delivery_results}), 200
 
 
 # ============ BULK OPERATIONS ============
@@ -359,41 +312,24 @@ def send_reminder(reminder_id):
 @jwt_required()
 def mark_reminders_sent():
     """
-    Mark multiple reminders as sent (batch operation).
+    Mark multiple reminders as sent (reminder staff only).
     Body: {"reminder_ids": ["id1", "id2", ...]}
     """
+    user_id = get_jwt_identity()
+    if not _can_manage(user_id):
+        return jsonify({"error": "Insufficient permissions"}), 403
+    reminder_ids = (request.get_json() or {}).get('reminder_ids', [])
+    if not reminder_ids:
+        return jsonify({"error": "No reminder IDs provided"}), 400
     try:
-        auth_header = request.headers.get('Authorization', '').replace('Bearer ', '')
-        _, user_id = token_required(auth_header)
-        
-        data = request.json
-        reminder_ids = data.get('reminder_ids', [])
-        
-        if not reminder_ids:
-            return jsonify({"error": "No reminder IDs provided"}), 400
-        
         object_ids = [ObjectId(rid) for rid in reminder_ids]
-        result = db.reminders.update_many(
-            {
-                '_id': {'$in': object_ids},
-                'status': 'pending'
-            },
-            {
-                '$set': {
-                    'status': 'sent',
-                    'sent_at': datetime.utcnow(),
-                    'updated_at': datetime.utcnow()
-                }
-            }
-        )
-        
-        return jsonify({
-            "message": f"Updated {result.modified_count} reminders",
-            "modified_count": result.modified_count
-        }), 200
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Invalid reminder ID"}), 400
+    now = datetime.utcnow()
+    result = db.db.reminders.update_many({'_id': {'$in': object_ids}, 'status': 'pending'},
+                                         {'$set': {'status': 'sent', 'sent_at': now, 'updated_at': now}})
+    return jsonify({"message": f"Updated {result.modified_count} reminders",
+                    "modified_count": result.modified_count}), 200
 
 
 @reminders_bp.route('/mark-all-read', methods=['POST'])
@@ -417,21 +353,16 @@ def mark_all_reminders_read():
 @reminders_bp.route('/upcoming', methods=['GET'])
 @jwt_required()
 def get_upcoming_reminders():
-    """Get reminders scheduled for the next 24 hours."""
-    try:
-        now = datetime.utcnow()
-        tomorrow = now + timedelta(hours=24)
-        
-        reminders = list(db.reminders.find({
-            'scheduled_for': {'$gte': now, '$lte': tomorrow},
-            'status': 'pending'
-        }).sort('scheduled_for', 1))
-        
-        for reminder in reminders:
-            reminder['_id'] = str(reminder['_id'])
-            reminder['case_id'] = str(reminder['case_id'])
-        
-        return jsonify(reminders), 200
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    """Reminders scheduled for the next 24 hours: all for reminder staff, otherwise only your own."""
+    user_id = get_jwt_identity()
+    now = datetime.utcnow()
+    query = {'scheduled_for': {'$gte': now, '$lte': now + timedelta(hours=24)}, 'status': 'pending'}
+    if not _can_manage(user_id):
+        try:
+            mine = [ObjectId(user_id), str(user_id)]
+        except Exception:
+            mine = [str(user_id)]
+        query['$or'] = [{'recipient_id': {'$in': mine}}, {'student_id': {'$in': mine}}]
+    reminders = db.db.reminders.find(query).sort('scheduled_for', 1)
+    return jsonify([_serialize(r) for r in reminders]), 200
+

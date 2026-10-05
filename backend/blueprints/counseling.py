@@ -356,26 +356,6 @@ def login_page():
 </html>"""
     return html
 
-    
-    result_notes = []
-    for n in notes:
-        counselor = db.db.users.find_one({"_id": n.get('counselor_id')})
-        result_notes.append({
-            'note_id': str(n['_id']),
-            'session_date': n['session_date'].isoformat() if isinstance(n['session_date'], datetime) else n['session_date'],
-            'session_type': n.get('session_type'),
-            'mood_rating': n.get('mood_rating'),
-            'symptom_severity': n.get('symptom_severity'),
-            'risk_flagged': n.get('risk_flagged'),
-            'counselor': f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}" if counselor else None
-        })
-    
-    return jsonify({
-        'case_id': str(case['_id']),
-        'total_sessions': len(notes),
-        'sessions': result_notes
-    }), 200
-
 
 @counseling_bp.route('/progress-metric', methods=['POST'])
 @jwt_required()

@@ -7,6 +7,7 @@ import { AlertCircle, RefreshCw, ChevronLeft } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { getMenuItemsByRole, getActiveSectionFromPath } from '@/utils/navigation';
 import { canAccessPage } from '@/utils/roleAccess';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 /* ── Error Boundary ─────────────────────────────────────── */
 interface EBState { hasError: boolean }
@@ -66,9 +67,9 @@ function FullPageLoader() {
         <div className="relative">
           <div
             className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
-            style={{ background: 'var(--color-primary)' }}
+            style={CPS_LOGO_TILE}
           >
-            <span className="text-[0.6875rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            <CpsLogoMark />
           </div>
           {/* Spinning ring */}
           <svg

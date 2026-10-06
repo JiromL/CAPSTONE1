@@ -12,6 +12,7 @@ import {
   Building2, AlertTriangle, FolderOpen, CalendarDays, UserX, Lock, Info,
 } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 const PURPOSES = [
   { value: 'intake_interview', label: "First Time",           desc: "I'd like to talk to someone for the first time" },
@@ -491,8 +492,8 @@ function BookAppointmentContent() {
           <div className="w-52 flex-shrink-0 hidden lg:flex flex-col gap-4">
             <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-primary)' }}>
-                  <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={CPS_LOGO_TILE}>
+                  <CpsLogoMark />
                 </div>
                 <div>
                   <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Intake Forms</p>
@@ -1030,8 +1031,8 @@ function BookAppointmentContent() {
         <div className="w-52 flex-shrink-0 hidden lg:flex flex-col gap-4">
           <div className="rounded-2xl border shadow-card p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-primary)' }}>
-                <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={CPS_LOGO_TILE}>
+                <CpsLogoMark />
               </div>
               <div>
                 <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>Book Appointment</p>

@@ -10,6 +10,7 @@ import { IntakeCounselorDashboard } from '@/components/IntakeCounselorDashboard'
 import { SupportStaffDashboard } from '@/components/SupportStaffDashboard';
 import { StudentDashboard } from '@/components/StudentDashboard';
 import { CaseManagerDashboard } from '@/components/CaseManagerDashboard';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -59,8 +60,8 @@ export default function Dashboard() {
       <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-bg)' }}>
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'var(--color-primary)' }}>
-              <span className="text-[0.6875rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={CPS_LOGO_TILE}>
+              <CpsLogoMark />
             </div>
             <svg className="absolute -inset-2 w-16 h-16 animate-spin" style={{ animationDuration: '1.4s' }} viewBox="0 0 64 64" fill="none">
               <circle cx="32" cy="32" r="28" stroke="var(--color-primary)" strokeOpacity="0.15" strokeWidth="3" />

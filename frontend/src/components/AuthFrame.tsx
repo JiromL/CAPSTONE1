@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Phone, Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 /**
  * Frame for the signed-out account pages (forgot / reset password), matching
@@ -17,8 +18,8 @@ export function AuthFrame({ headline, children }: { headline: React.ReactNode; c
       <main className="flex-1 flex flex-col px-6 sm:px-12 py-8" style={{ background: 'var(--color-surface)' }}>
         <div className="flex items-center justify-between">
           <Link href="/login" className="flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
-              <span className="text-[10px] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={CPS_LOGO_TILE}>
+              <CpsLogoMark />
             </span>
             <span className="leading-tight">
               <span className="block text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>DLSU CPS</span>

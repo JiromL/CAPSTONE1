@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { ThemeToggle } from './ThemeToggle';
 import { DashboardLayout } from './DashboardLayout';
 import { getMenuItemsByRole, getActiveSectionFromPath } from '@/utils/navigation';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 type Props = {
   title?: string;
@@ -72,8 +73,8 @@ export default function PageShell({ title, subtitle, actions, children, hideNav 
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
       <header className="flex items-center justify-between px-6 sm:px-10 h-16 border-b" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         <Link href="/login" className="flex items-center gap-2.5">
-          <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
-            <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
+          <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={CPS_LOGO_TILE}>
+            <CpsLogoMark />
           </span>
           <span className="leading-tight">
             <span className="block text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>DLSU CPS</span>

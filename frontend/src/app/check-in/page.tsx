@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, XCircle, AlertCircle, Clock, User, Calendar, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 interface CheckInResult {
   success: boolean;
@@ -83,8 +84,8 @@ function CheckInContent() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
-            style={{ background: 'var(--color-success)' }}>
-            <span className="text-white text-sm font-bold">CPS</span>
+            style={CPS_LOGO_TILE}>
+            <CpsLogoMark />
           </div>
           <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>DLSU Counseling &amp; Psychological Services</p>
         </div>

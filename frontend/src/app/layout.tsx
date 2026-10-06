@@ -87,7 +87,7 @@ html.dark{
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="DLSU CPS" />
-        <link rel="apple-touch-icon" href="/cps-logo.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${figtree.variable} ${notoSans.variable} antialiased`}>
         <ThemeProvider>

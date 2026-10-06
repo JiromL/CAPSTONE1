@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { api } from '@/utils/api';
 import { Mail, Lock, Eye, EyeOff, Phone, ShieldCheck, Sun, Moon, Loader2, CalendarPlus, CalendarCheck, NotebookPen, HeartHandshake } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 // CPS office hours (Manila): Mon–Fri, 8:00 AM – 5:00 PM.
 function useOfficeStatus() {
@@ -137,8 +138,8 @@ function LoginContent() {
         <div className="flex items-center justify-between lg:justify-end">
           {/* Brand — mobile only (the navy panel carries it on desktop) */}
           <div className="flex items-center gap-2.5 lg:hidden">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
-              <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={CPS_LOGO_TILE}>
+              <CpsLogoMark />
             </div>
             <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>DLSU CPS</p>
           </div>
@@ -266,8 +267,8 @@ function LoginContent() {
 
         {/* Brand — same block as the sidebar */}
         <div className="relative hidden lg:flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
-            <span className="text-[0.625rem] font-extrabold text-white tracking-tighter select-none">CPS</span>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={CPS_LOGO_TILE}>
+            <CpsLogoMark />
           </div>
           <div className="leading-tight">
             <p className="text-sm font-bold text-white">DLSU CPS</p>

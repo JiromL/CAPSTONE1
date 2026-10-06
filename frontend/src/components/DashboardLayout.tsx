@@ -8,6 +8,7 @@ import { getMenuIcon } from '@/utils/dashboard-icons';
 import { api } from '@/utils/api';
 import { EmaFloatingChat } from './EmaFloatingChat';
 import { useTheme } from '@/context/ThemeContext';
+import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 
 interface MenuItem {
   label?: string;
@@ -293,9 +294,9 @@ export function DashboardLayout({
         {/* Mark — clicking it expands the sidebar when collapsed */}
         <div
           onClick={!mobileOpen && sidebarCollapsed ? toggleSidebar : undefined}
-          className={`flex-shrink-0 w-9 h-9 rounded-xl bg-[var(--color-primary)] flex items-center justify-center select-none transition-opacity ${!mobileOpen && sidebarCollapsed ? 'cursor-pointer hover:opacity-80' : ''}`}
+          style={CPS_LOGO_TILE} className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center select-none transition-opacity ${!mobileOpen && sidebarCollapsed ? 'cursor-pointer hover:opacity-80' : ''}`}
         >
-          <span className="text-[0.625rem] font-extrabold text-white tracking-tighter">CPS</span>
+          <CpsLogoMark />
         </div>
 
         {/* Wordmark — removed from layout flow when collapsed so toggle button stays visible */}

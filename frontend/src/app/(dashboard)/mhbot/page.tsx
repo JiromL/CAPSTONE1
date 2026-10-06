@@ -1,6 +1,7 @@
 'use client';
 
 import { TriageFlags, TriageReasons } from '@/components/PermaTriage';
+import { EmaConsentCheckbox } from '@/components/EmaPrivacyNotice';
 import { useState, useEffect, useCallback } from 'react';
 import {
   PieChart, Pie, Cell, LineChart, Line,
@@ -644,15 +645,16 @@ const IC_S: React.CSSProperties = { border: '1px solid var(--color-border)', bac
 const onFIn  = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-primary-surface)'; };
 const onFOut = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; };
 
-function ConnectCard({ onLink }: { onLink: (username: string, password: string) => Promise<string | null> }) {
+function ConnectCard({ onLink }: { onLink: (username: string, password: string, consent: boolean) => Promise<string | null> }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [consent, setConsent]   = useState(false);
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setErr('');
-    const error = await onLink(username.trim(), password);
+    const error = await onLink(username.trim(), password, consent);
     if (error) setErr(error);
     setBusy(false);
   };
@@ -671,15 +673,16 @@ function ConnectCard({ onLink }: { onLink: (username: string, password: string) 
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-secondary)' }}>EMA Username</label>
             <input type="text" value={username} onChange={e => setUsername(e.target.value)}
-              placeholder="e.g. JeromeJLS" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
+              placeholder="e.g. juan_dc" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
           </div>
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--color-text-secondary)' }}>EMA Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               placeholder="Your EMA account password" required className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
           </div>
+          <EmaConsentCheckbox checked={consent} onChange={setConsent} id="ema-connect-consent" />
           {err && <p className="text-xs rounded-lg px-3 py-2 border" style={{ color: 'var(--color-danger)', background: 'var(--color-danger-surface)', borderColor: 'var(--color-danger)' }}>{err}</p>}
-          <button type="submit" disabled={busy || !username.trim() || !password}
+          <button type="submit" disabled={busy || !username.trim() || !password || !consent}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 hover:opacity-90"
             style={{ background: 'var(--color-primary)' }}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
@@ -1070,12 +1073,12 @@ export default function EMAPage() {
     checkAuth();
   }, []);
 
-  const handleLink = async (username: string, password: string): Promise<string | null> => {
+  const handleLink = async (username: string, password: string, consent: boolean): Promise<string | null> => {
     try {
       const r = await fetch(api('/api/mhbot/link-username'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, consent }),
       });
       const d = await r.json();
       if (r.ok) { setAuthStatus({ connected: true, chat_ready: true, mhbot_username: d.mhbot_username }); return null; }

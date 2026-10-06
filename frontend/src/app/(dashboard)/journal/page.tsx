@@ -145,7 +145,7 @@ export default function JournalPage() {
               <div>
                 <p className="font-display text-xl" style={{ color: 'var(--color-text-primary)' }}>{editingId ? 'Edit entry' : 'New entry'}</p>
                 <p className="flex items-center gap-1.5 type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                  {today} · <Lock size={11} aria-hidden="true" /> Only you can see this unless you choose to share it
+                  {today} · <Lock size={11} aria-hidden="true" /> Only you can see this
                 </p>
               </div>
               <button onClick={closeCompose} aria-label="Close editor" className="w-10 h-10 flex items-center justify-center rounded-xl transition hover:bg-[var(--color-bg)]">

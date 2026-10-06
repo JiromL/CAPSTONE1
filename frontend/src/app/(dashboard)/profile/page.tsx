@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { EmaPrivacyNotice, EMA_CONSENT_STATEMENT } from '@/components/EmaPrivacyNotice';
 import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2, ShieldCheck, Check } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import Link from 'next/link';
@@ -102,7 +103,7 @@ export default function ProfilePage() {
       const r = await fetch(api('/api/consent/submit'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${cpsToken()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consent_types: ['ema_data_linking'] }),
+        body: JSON.stringify({ consent_types: ['ema_data_linking'], version: '2.0' }),
       });
       if (r.ok) { setShowEmaConsent(false); window.location.href = '/mhbot'; }
       else setEmaConsentError('Failed to record consent. Please try again.');
@@ -387,7 +388,7 @@ export default function ProfilePage() {
               </div>
               {emaLiveConnected && (
                 <button onClick={handleMhbotLogout}
-                  title="Stops new EMA results. Results already saved stay in your CPS record."
+                  title="Withdraws your EMA consent and stops new results. Results already saved stay in your CPS record."
                   className="flex items-center gap-1.5 text-xs transition"
                   style={{ color: 'var(--color-text-muted)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-danger)')}
@@ -668,18 +669,9 @@ export default function ProfilePage() {
               style={{ background: 'var(--color-primary-surface)', border: '1px solid var(--color-primary)' }}>
               <p className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Data Privacy Notice — EMA Wellness Data</p>
               <p className="mb-2" style={{ color: 'var(--color-primary)' }}>
-                In accordance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, your EMA wellness data will be handled as follows:
+                In accordance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, here is how CPS handles your EMA data:
               </p>
-              <ul className="list-disc list-inside space-y-1.5" style={{ color: 'var(--color-primary)' }}>
-                <li>Your EMA wellbeing labels (e.g. Thriving, Surviving) will be accessible to CPS to support your counseling sessions</li>
-                <li>CPS stays signed in to your EMA account so you can chat with EMA inside CPS. Your password is never saved; CPS keeps only an encrypted sign-in key</li>
-                <li>When you submit an EMA journal, you can choose to save a copy to your private CPS journal, which only you can see</li>
-                <li>Data is stored securely on university servers with password-protected access</li>
-                <li>Only your assigned counselor or psychologist may view your individual wellness data</li>
-                <li>All CPS staff with data access are bound by confidentiality agreements</li>
-                <li>Any aggregate or summary reports will use anonymized data only</li>
-                <li>You may withdraw this consent and disconnect EMA at any time from this page. CPS then stops receiving new EMA results; results already saved stay in your CPS counseling record</li>
-              </ul>
+              <EmaPrivacyNotice />
             </div>
 
             <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl transition mb-4"
@@ -688,7 +680,7 @@ export default function ProfilePage() {
               <input type="checkbox" checked={emaConsentChecked} onChange={e => setEmaConsentChecked(e.target.checked)}
                 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ accentColor: 'var(--color-primary)' }} />
               <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                I have read and understood the above Data Privacy Notice. I consent to CPS accessing my EMA wellness data to support my counseling sessions, in accordance with the Data Privacy Act of 2012 (RA 10173).
+                {EMA_CONSENT_STATEMENT}
               </span>
             </label>
 

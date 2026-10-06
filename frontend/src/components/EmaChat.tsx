@@ -169,7 +169,7 @@ export function EmaChat({ onNeedsRelink }: { onNeedsRelink: () => void }) {
                 Hi! Before we talk, how are you feeling right now?
               </p>
               <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-                There&apos;s no wrong answer. Ema uses this to start the conversation in the right place.
+                There&apos;s no wrong answer. EMA uses this to start the conversation in the right place.
               </p>
             </div>
           </div>
@@ -284,7 +284,7 @@ export function EmaChat({ onNeedsRelink }: { onNeedsRelink: () => void }) {
             <div className={`flex items-end gap-2 ${messages[lastIndex]?.sender === 'ai' ? '' : 'pt-3'}`}>
               <EmaAvatar />
               <div className="px-4 py-3.5 rounded-2xl rounded-bl-md" style={{ background: 'var(--color-bg)' }}
-                role="status" aria-label="Ema is typing">
+                role="status" aria-label="EMA is typing">
                 <span className="ema-typing"><span /><span /><span /></span>
               </div>
             </div>
@@ -332,10 +332,10 @@ export function EmaChat({ onNeedsRelink }: { onNeedsRelink: () => void }) {
           <form onSubmit={submitText}
             className="flex items-end gap-2 rounded-2xl border pl-3.5 pr-1.5 py-1.5 transition-shadow focus-within:shadow-[var(--shadow-primary)]"
             style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-            <label htmlFor="ema-message" className="sr-only">Message Ema</label>
+            <label htmlFor="ema-message" className="sr-only">Message EMA</label>
             <textarea id="ema-message" ref={inputRef} value={input} onChange={e => setInput(e.target.value)} rows={1}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitText(e); } }}
-              placeholder="Message Ema…"
+              placeholder="Message EMA…"
               className="flex-1 resize-none bg-transparent text-sm py-2 outline-none leading-relaxed"
               style={{ color: 'var(--color-text-primary)' }} />
             <button type="submit" disabled={sending || !input.trim()} aria-label="Send message"
@@ -438,7 +438,7 @@ function JournalEditor({ journal, disabled, onSubmit }: { journal: Journal; disa
       style={{ borderColor: 'var(--color-primary)', background: 'var(--color-surface)', boxShadow: 'var(--shadow-primary)' }}>
       <JournalHeader journal={journal} title="Suggested journal entry" />
       <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-        Ema wrote this from your conversation. Change anything that doesn&apos;t sound like you.
+        EMA wrote this from your conversation. Change anything that doesn&apos;t sound like you.
       </p>
       <label htmlFor="ema-journal" className="sr-only">Journal entry</label>
       <textarea id="ema-journal" value={text} onChange={e => setText(e.target.value)} rows={6} disabled={disabled}

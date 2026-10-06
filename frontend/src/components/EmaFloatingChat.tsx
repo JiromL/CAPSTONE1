@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Minus, ExternalLink, RefreshCw, MessageCircle, Eye, EyeOff, Loader2, LogIn, CheckCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { api } from '@/utils/api';
 import { EmaChat, EmaAvatar } from './EmaChat';
+import { EmaConsentCheckbox } from './EmaPrivacyNotice';
 
 const EMA_URL = 'https://pchrd-ema.dlsu.edu.ph/app/login/';
 
@@ -72,15 +73,11 @@ export function EmaFloatingChat() {
       const r = await fetch(api('/api/mhbot/link-username'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        // The backend records consent together with the link, so it can't be skipped
+        body: JSON.stringify({ username, password, consent: consented }),
       });
       const d = await r.json();
       if (r.ok) {
-        await fetch(api('/api/consent/submit'), {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consent_types: ['ema_data_linking'] }),
-        }).catch(() => {});
         setConnected(true);
         setNeedsRelink(false);
         setLinkedAs(d.mhbot_username ?? username);
@@ -119,7 +116,7 @@ export function EmaFloatingChat() {
           aria-label="Open EMA chatbot"
         >
           <MessageCircle size={20} />
-          Talk to Ema
+          Talk to EMA
         </button>
       )}
 
@@ -136,7 +133,7 @@ export function EmaFloatingChat() {
               tabIndex={minimized ? 0 : -1} aria-label={minimized ? 'Expand chat' : undefined}>
               <EmaAvatar size={34} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>Ema</p>
+                <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>EMA</p>
                 <p className="text-xs leading-tight truncate" style={{ color: 'var(--color-text-muted)' }}>
                   {connected && linkedAs ? <>EMA chatbot · signed in as {linkedAs}</> : 'EMA chatbot · DLSU mental health support'}
                 </p>
@@ -225,14 +222,7 @@ export function EmaFloatingChat() {
                         </div>
                       </div>
 
-                      <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'var(--color-text-secondary)' }}>
-                        <input type="checkbox" checked={consented} onChange={e => setConsented(e.target.checked)} className="mt-0.5" />
-                        <span>
-                          I agree that CPS stays connected to my EMA account until I disconnect it, and that CPS may view my
-                          EMA wellbeing results to support my counseling. If I choose, copies of my EMA journals are saved to my
-                          private CPS journal. If I disconnect, results already saved stay in my CPS record (Data Privacy Act of 2012).
-                        </span>
-                      </label>
+                      <EmaConsentCheckbox checked={consented} onChange={setConsented} id="ema-widget-consent" />
 
                       {error && (
                         <p className="text-xs rounded-lg px-3 py-2"

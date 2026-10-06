@@ -15,7 +15,8 @@ def world():
     assert tdb.name == 'cps_system_test'
     ids = {}
     for name, role in [('student', 'STUDENT'), ('other', 'STUDENT'), ('counselor', 'COUNSELOR'),
-                       ('stranger_counselor', 'COUNSELOR'), ('cm', 'CASE_MANAGER'), ('admin', 'ADMIN')]:
+                       ('stranger_counselor', 'COUNSELOR'), ('cm', 'CASE_MANAGER'), ('admin', 'ADMIN'),
+                       ('office', 'STAFF')]:
         ids[name] = tdb.users.insert_one({'email': f'{name}-{ObjectId()}@test.local', 'role': role,
                                           'name': name, 'is_active': True}).inserted_id
     ids['case'] = tdb.cases.insert_one({'student_id': ids['student'], 'assigned_counselor_id': ids['counselor'],
@@ -32,7 +33,8 @@ def world():
                                                 'delivery_methods': ['dashboard'],
                                                 'scheduled_for': datetime.utcnow() + timedelta(hours=2)}).inserted_id
     yield ids
-    tdb.users.delete_many({'_id': {'$in': [ids[k] for k in ('student', 'other', 'counselor', 'stranger_counselor', 'cm', 'admin')]}})
+    tdb.users.delete_many({'_id': {'$in': [ids[k] for k in ('student', 'other', 'counselor', 'stranger_counselor', 'cm', 'admin', 'office')]}})
+    tdb.consent_records.delete_many({'user_id': {'$in': [ids['student'], ids['other']]}})
     tdb.cases.delete_many({'_id': {'$in': [ids['case'], ids['other_case']]}})
     tdb.reminders.delete_many({'_id': ids['reminder']})
     tdb.safety_plans.delete_many({'_id': ids['plan']})
@@ -154,3 +156,33 @@ def test_rule_also_covers_changes(client, world):
                     headers=auth(world['student']))
     assert r.status_code == 403
     assert db.db.safety_plans.find_one({'_id': world['plan']})['warning_signs'] == 'private'
+
+
+# ── EMA data: who sees it, and consent ───────────────────────────────────────
+
+def test_office_assistants_cannot_see_ema_data(client, world):
+    for path in ('/api/mhbot/cm-queue', '/api/mhbot/analytics/attention', '/api/mhbot/students/pending'):
+        assert client.get(path, headers=auth(world['office'])).status_code == 403, path
+    r = client.post('/api/mhbot/batch-labels', json={'usernames': ['x']}, headers=auth(world['office']))
+    assert r.status_code == 403
+
+
+def test_linking_ema_requires_consent_before_contacting_ema(client, world):
+    r = client.post('/api/mhbot/link-username', json={'username': 'someone', 'password': 'pw'},
+                    headers=auth(world['student']))
+    assert r.status_code == 403 and r.get_json().get('consent_required')
+
+
+def test_staff_cannot_link_ema_for_student_without_consent(client, world):
+    db.db.users.update_one({'_id': world['other']}, {'$unset': {'ema_consent_given': ''}})
+    r = client.post(f'/api/mhbot/case/{world["other_case"]}/link-mhbot', json={'mhbot_username': 'someone'},
+                    headers=auth(world['cm']))
+    assert r.status_code == 409
+    assert not db.db.users.find_one({'_id': world['other']}).get('mhbot_username')
+
+
+def test_disconnecting_withdraws_consent(client, world):
+    db.db.users.update_one({'_id': world['student']}, {'$set': {'ema_consent_given': True, 'mhbot_username': 'x-test'}})
+    assert client.post('/api/mhbot/auth/logout', headers=auth(world['student'])).status_code == 200
+    u = db.db.users.find_one({'_id': world['student']})
+    assert u.get('ema_consent_given') is False and 'mhbot_username' not in u

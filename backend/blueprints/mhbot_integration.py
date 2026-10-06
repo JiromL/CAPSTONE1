@@ -74,13 +74,35 @@ def _resolve_user_id(user_id):
         return user_id
 
 
+# Roles that may see other students' EMA results: the care team (counselors, psychologists,
+# case managers, intake coordinators), admins, and the Data Privacy Officer for audits.
+# Office assistants (STAFF) and students may not. The consent notice states this list.
+EMA_DATA_ROLES = ('COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'IC', 'ADMIN', 'DPO')
+
+
 def _staff_access_denied(user_id) -> bool:
-    """EMA staff routes show other students' wellbeing data. Students also hold VIEW_CASE
-    (for their own case), so the permission alone is not enough to keep them out."""
+    """EMA staff routes show other students' wellbeing data. VIEW_CASE alone is not enough:
+    students hold it for their own case, and office assistants hold it for scheduling."""
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return True
     user = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'role': 1})
-    return not user or user.get('role') == 'STUDENT'
+    return not user or user.get('role') not in EMA_DATA_ROLES
+
+
+def _record_ema_consent(uid):
+    """Store the student's EMA consent the same way /api/consent/submit does."""
+    now = datetime.utcnow()
+    db.db.consent_records.insert_one({
+        'user_id': uid, 'consent_types': ['ema_data_linking'], 'consented_at': now,
+        'ip_address': request.remote_addr, 'user_agent': request.headers.get('User-Agent', ''),
+        'version': EMA_CONSENT_VERSION,
+    })
+    db.db.users.update_one({'_id': uid}, {'$set': {'ema_consent_given': True, 'ema_consent_given_at': now},
+                                          '$unset': {'ema_consent_withdrawn_at': ''}})
+
+
+EMA_CONSENT_VERSION = '2.0'   # bump when the EMA consent wording changes
+CONSENT_REQUIRED_ERROR = 'Please read and agree to the EMA data privacy notice before linking your account.'
 
 
 def _auth_headers(token: str) -> dict:
@@ -290,6 +312,10 @@ def link_ema_username():
     ema_password = data.get('password', '').strip()
     if not ema_username or not ema_password:
         return jsonify({'error': 'EMA username and password are required'}), 400
+    # Consent first: no credentials go to EMA unless the student agreed (now or earlier)
+    if data.get('consent') is not True and not (db.db.users.find_one(
+            {'_id': _resolve_user_id(user_id)}, {'ema_consent_given': 1}) or {}).get('ema_consent_given'):
+        return jsonify({'error': CONSENT_REQUIRED_ERROR, 'consent_required': True}), 403
 
     try:
         tokens = _ema_student_login(ema_username, ema_password)
@@ -307,6 +333,8 @@ def link_ema_username():
     uid = _resolve_user_id(user_id)
     if _ema_account_taken(uid, ema_username, me.get('id')):
         return jsonify({'error': ACCOUNT_TAKEN_ERROR}), 409
+    if data.get('consent') is True:
+        _record_ema_consent(uid)
     _store_student_tokens(uid, tokens, {
         'mhbot_username': ema_username,
         'mhbot_linked_at': datetime.utcnow(),
@@ -332,6 +360,8 @@ def mhbot_logout():
     already saved stay in perma_snapshots as part of the counseling record; syncing them stops."""
     uid = _resolve_user_id(get_jwt_identity())
     _student_access_cache.pop(str(uid), None)
+    db.db.users.update_one({'_id': uid}, {'$set': {'ema_consent_given': False,
+                                                  'ema_consent_withdrawn_at': datetime.utcnow()}})
     db.db.users.update_one(
         {'_id': uid},
         {'$unset': {'mhbot_username': '', 'mhbot_linked_at': '', 'ema_user_id': '',
@@ -671,10 +701,6 @@ def link_case_to_mhbot(case_id):
     if not user_has_permission(db.db, user_id, PermissionType.EDIT_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_shared_ema_token()
-    if not token:
-        return jsonify({'error': 'EMA service is currently unavailable'}), 503
-
     data = request.get_json() or {}
     mhbot_username = data.get('mhbot_username', '').strip()
     if not mhbot_username:
@@ -689,6 +715,14 @@ def link_case_to_mhbot(case_id):
 
     if _ema_account_taken(case.get('student_id'), mhbot_username):
         return jsonify({'error': ACCOUNT_TAKEN_ERROR}), 409
+    student = db.db.users.find_one({'_id': case.get('student_id')}, {'ema_consent_given': 1}) or {}
+    if not student.get('ema_consent_given'):
+        return jsonify({'error': "This student hasn't agreed to share EMA data with CPS yet. "
+                                 "Ask them to link EMA from their own account (Profile or the Talk to EMA button)."}), 409
+
+    token = _get_shared_ema_token()
+    if not token:
+        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     perma_result = get_perma_history(mhbot_username, token, limit=1)
     if not perma_result['success']:
@@ -947,7 +981,7 @@ def sync_all_perma():
 
     limit = min(request.args.get('limit', 50, type=int), 200)
     students = list(db.db.users.find(
-        {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
+        {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT', 'ema_consent_given': True},
         {'_id': 1, 'mhbot_username': 1}
     ))
 

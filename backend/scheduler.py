@@ -180,8 +180,9 @@ def _sync_perma_labels(app):
             print('[Scheduler] PERMA sync skipped — EMA login failed (check EMA_ADMIN_USERNAME/EMA_ADMIN_PASSWORD in .env)')
             return
 
+        # Only students who agreed to share EMA data with CPS
         students = list(db.db.users.find(
-            {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT'},
+            {'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT', 'ema_consent_given': True},
             {'_id': 1, 'mhbot_username': 1}
         ))
 

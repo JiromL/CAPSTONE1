@@ -64,9 +64,26 @@
   /* Legacy compat */
   --background: #FFFFFF;
   --foreground: #0D1526;
+
+  /* EMA wellbeing labels: ordered good -> bad, green / neutral gray / orange / red.
+     Validated with the dataviz palette validator (adjacent CVD and normal-vision checks)
+     against #FFFFFF; the dark set below against #111827. */
+  --perma-excelling:  #00704A;
+  --perma-thriving:   #2FA27A;
+  --perma-surviving:  #A3A9B3;
+  --perma-struggling: #E7892A;
+  --perma-crisis:     #BF2D2A;
+  --perma-nodata:     #D5DAE1;
 }
 
 html.dark {
+  --perma-excelling:  #007748;
+  --perma-thriving:   #4FA866;
+  --perma-surviving:  #646970;
+  --perma-struggling: #D67B19;
+  --perma-crisis:     #C9302D;
+  --perma-nodata:     #2D3852;
+
   /* Brand */
   --color-primary:         #4575F0;
   --color-primary-hover:   #3465E0;
@@ -587,3 +604,12 @@ label.text-xs {
 .ema-typing span:nth-child(3) { animation-delay: 0.3s; }
 @keyframes ema-dot { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .ema-typing span { animation: none; opacity: 0.6; } }
+
+/* EMA label colors are used from component styles (utils/perma.ts). Referencing them here
+   keeps the CSS optimizer from dropping them as unused. */
+.perma-swatch-excelling  { background: var(--perma-excelling); }
+.perma-swatch-thriving   { background: var(--perma-thriving); }
+.perma-swatch-surviving  { background: var(--perma-surviving); }
+.perma-swatch-struggling { background: var(--perma-struggling); }
+.perma-swatch-crisis     { background: var(--perma-crisis); }
+.perma-swatch-nodata     { background: var(--perma-nodata); }

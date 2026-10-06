@@ -186,3 +186,10 @@ def test_disconnecting_withdraws_consent(client, world):
     assert client.post('/api/mhbot/auth/logout', headers=auth(world['student'])).status_code == 200
     u = db.db.users.find_one({'_id': world['student']})
     assert u.get('ema_consent_given') is False and 'mhbot_username' not in u
+
+
+def test_insights_are_care_team_only(client, world):
+    assert client.get('/api/mhbot/analytics/insights', headers=auth(world['student'])).status_code == 403
+    assert client.get('/api/mhbot/analytics/insights', headers=auth(world['office'])).status_code == 403
+    r = client.get('/api/mhbot/analytics/insights', headers=auth(world['cm']))
+    assert r.status_code == 200 and r.get_json()['min_group'] == 5

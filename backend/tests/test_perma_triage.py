@@ -103,3 +103,24 @@ def test_queue_priority_crisis_then_flags_then_recency():
     plain_recent = triage([snap('Struggling', 0)])
     order = sorted([plain_recent, flagged, crisis], key=triage_priority)
     assert order == [crisis, flagged, plain_recent]
+
+
+# ── Insights (services/ema_insights.py) ─────────────────────────────────────
+
+from services.ema_insights import triage_vs_latest, MIN_GROUP
+
+
+def test_understated_risk_is_counted_when_latest_label_looks_better():
+    students = [
+        {'_id': 1, 'name': 'A', 'perma_triage_label': 'In Crisis', 'perma_latest_label': 'Struggling', 'perma_triage': {'reasons': ['r']}},
+        {'_id': 2, 'name': 'B', 'perma_triage_label': 'Struggling', 'perma_latest_label': 'Thriving', 'perma_triage': {'reasons': ['r']}},
+        {'_id': 3, 'name': 'C', 'perma_triage_label': 'Thriving', 'perma_latest_label': 'Thriving'},
+    ]
+    r = triage_vs_latest(students)
+    assert [u['name'] for u in r['understated']] == ['A', 'B']       # most serious first
+    assert r['missed_count'] == 1                                    # only B is invisible to a latest-label queue
+    assert (r['latest_in_crisis'], r['triage_in_crisis']) == (0, 1)
+
+
+def test_small_groups_are_withheld():
+    assert MIN_GROUP == 5

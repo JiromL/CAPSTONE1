@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/utils/api';
 import { Search, Loader2, AlertCircle, Link2 } from 'lucide-react';
+import { PERMA_COLOR } from '@/utils/perma';
 
 interface PermaStatus { label: string | null; date: string; }
 interface PendingStudent {
@@ -13,12 +14,13 @@ interface PendingStudent {
 
 type PermaLevel = 'Excelling' | 'Thriving' | 'Surviving' | 'Struggling' | 'In Crisis';
 
+// Badge text and background use theme tokens; the dot carries the validated label color.
 export const PERMA_STYLES: Record<PermaLevel, { bg: string; color: string; dot: string }> = {
-  'Excelling':  { bg: 'var(--color-success-surface)',  color: 'var(--color-success-text)',  dot: 'var(--color-success)' },
-  'Thriving':   { bg: '#F0FDFA', color: '#0F766E', dot: '#14B8A6' },
-  'Surviving':  { bg: 'var(--color-warning-surface)', color: 'var(--color-warning-text)', dot: 'var(--color-warning)' },
-  'Struggling': { bg: '#FFF7ED', color: '#C2410C', dot: '#F97316' },
-  'In Crisis':  { bg: 'var(--color-danger-surface)',  color: 'var(--color-danger-text)',  dot: 'var(--color-danger)' },
+  'Excelling':  { bg: 'var(--color-success-surface)', color: 'var(--color-success-text)',   dot: PERMA_COLOR.Excelling },
+  'Thriving':   { bg: 'var(--color-success-surface)', color: 'var(--color-success-text)',   dot: PERMA_COLOR.Thriving },
+  'Surviving':  { bg: 'var(--color-bg)',              color: 'var(--color-text-secondary)', dot: PERMA_COLOR.Surviving },
+  'Struggling': { bg: 'var(--color-warning-surface)', color: 'var(--color-warning-text)',   dot: PERMA_COLOR.Struggling },
+  'In Crisis':  { bg: 'var(--color-danger-surface)',  color: 'var(--color-danger-text)',    dot: PERMA_COLOR['In Crisis'] },
 };
 
 export function PermaBadge({ label }: { label: string | null }) {

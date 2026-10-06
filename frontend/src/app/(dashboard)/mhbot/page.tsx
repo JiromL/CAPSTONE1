@@ -2,11 +2,13 @@
 
 import { TriageFlags, TriageReasons } from '@/components/PermaTriage';
 import { EmaConsentCheckbox } from '@/components/EmaPrivacyNotice';
+import { EmaInsights, LabelChip } from '@/components/EmaInsights';
+import { PERMA_COLOR } from '@/utils/perma';
 import { useState, useEffect, useCallback } from 'react';
 import {
-  PieChart, Pie, Cell, LineChart, Line,
+  LineChart, Line,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend, Area, AreaChart, ReferenceArea,
+  ResponsiveContainer, Legend, ReferenceArea,
 } from 'recharts';
 import {
   Activity, Wifi, WifiOff, RefreshCw, Loader2, Users,
@@ -52,14 +54,7 @@ interface PermaEntry { perma_label: string | null; date: string; }
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const LABEL_ORDER = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'] as const;
-const PERMA_COLORS: Record<string, string> = {
-  Excelling:  '#059669',
-  Thriving:   '#14B8A6',
-  Surviving:  '#F59E0B',
-  Struggling: '#F97316',
-  'In Crisis':'#DC2626',
-  'No Data':  '#94A3B8',
-};
+const PERMA_COLORS = PERMA_COLOR;   // validated, theme-aware (app/globals.css)
 const EMA_URL = 'https://pchrd-ema.dlsu.edu.ph/app/login/';
 const STUDENT_ROLES = ['STUDENT'];
 const ADMIN_ROLES   = ['ADMIN', 'DPO', 'MANAGEMENT'];
@@ -110,34 +105,31 @@ function ChartTooltip({ active, payload, label, isDark }: {
     <div style={{ background: bg, border: `1px solid ${bdr}`, borderRadius: 8, padding: '10px 14px', minWidth: 130 }}>
       {label && <p style={{ color: sub, fontSize: 11, marginBottom: 6, fontWeight: 500 }}>{label}</p>}
       {payload.map((p, i) => (
-        <p key={i} style={{ color: txt, fontSize: 12, marginBottom: 2 }}>
-          <span style={{ color: p.color, fontWeight: 600 }}>{p.name}: </span>
-          {p.value.toLocaleString('en-PH')}
+        <p key={i} style={{ color: txt, fontSize: 12, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 9999, background: p.color, flexShrink: 0 }} />
+          <span style={{ color: sub }}>{p.name}</span>
+          <span style={{ marginLeft: 'auto', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{p.value.toLocaleString('en-PH')}</span>
         </p>
       ))}
     </div>
   );
 }
 
-function KpiCard({ label, value, sub, icon, color, accent }: {
+function KpiCard({ label, value, sub, icon, alert }: {
   label: string; value: string | number; sub?: string;
-  icon: React.ReactNode; color: string; accent?: boolean;
+  icon: React.ReactNode; color?: string; accent?: boolean; alert?: boolean;
 }) {
   return (
-    <div className="rounded-xl p-4 flex items-start gap-3"
+    <div className="rounded-xl p-4 flex flex-col gap-1"
       style={{
-        background: accent ? `${color}12` : 'var(--color-surface)',
-        border: `1px solid ${accent ? color + '40' : 'var(--color-border)'}`,
+        background: alert ? 'var(--color-danger-surface)' : 'var(--color-surface)',
+        border: `1px solid ${alert ? 'var(--color-danger)' : 'var(--color-border)'}`,
       }}>
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ background: color + '20' }}>
-        <span style={{ color }}>{icon}</span>
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
-        <p className="text-xl font-bold leading-tight mt-0.5" style={{ color: accent ? color : 'var(--color-text-primary)' }}>{value}</p>
-        {sub && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>}
-      </div>
+      <p className="text-xs font-medium flex items-center gap-1.5" style={{ color: alert ? 'var(--color-danger-text)' : 'var(--color-text-muted)' }}>
+        {icon}{label}
+      </p>
+      <p className="text-2xl font-semibold leading-tight" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
+      {sub && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>}
     </div>
   );
 }
@@ -216,9 +208,9 @@ function AnalyticsTab({
   };
 
   const REASON_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-    at_risk:    { label: 'At-Risk',      bg: '#FEE2E2', color: '#DC2626' },
-    inactive:   { label: 'Inactive 14d', bg: '#FEF3C7', color: '#D97706' },
-    no_checkin: { label: 'No Check-in',  bg: '#F3F4F6', color: '#6B7280' },
+    at_risk:    { label: 'At risk',      bg: 'var(--color-danger-surface)',  color: 'var(--color-danger-text)' },
+    inactive:   { label: 'Inactive 14d', bg: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' },
+    no_checkin: { label: 'No check-in',  bg: 'var(--color-bg)',              color: 'var(--color-text-muted)' },
   };
 
   if (loading && !summary) {
@@ -235,58 +227,54 @@ function AnalyticsTab({
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
-          label="EMA-Linked Students"
+          label="Students linked to EMA"
           value={summary?.total_tracked ?? '—'}
           sub="registered in CPS"
           icon={<Users size={14} />}
           color="#2352CC"
         />
         <KpiCard
-          label="Active (Last 30d)"
+          label="Checked in, last 30 days"
           value={summary ? `${summary.active_last_30d} (${summary.completion_rate}%)` : '—'}
           sub="checked in this month"
           icon={<CheckCircle2 size={14} />}
-          color="#059669"
           accent={!!summary && summary.completion_rate >= 60}
         />
         <KpiCard
-          label="Needs Attention"
+          label="Inactive 14+ days"
           value={summary?.inactive_14d ?? '—'}
-          sub="inactive 14+ days"
+          sub="no EMA check-in in two weeks"
           icon={<Clock size={14} />}
           color="#D97706"
           accent={!!summary && summary.inactive_14d > 0}
         />
         <KpiCard
-          label="At-Risk Students"
+          label="At risk now"
           value={summary?.at_risk_count ?? '—'}
-          sub="Struggling or In Crisis"
+          sub="Struggling or In Crisis (triage)"
+          alert={!!summary && summary.at_risk_count > 0}
           icon={<AlertTriangle size={14} />}
-          color="#DC2626"
           accent={!!summary && summary.at_risk_count > 0}
         />
+      </div>
+
+      {/* Care follow-up and outcomes */}
+      <EmaInsights />
+
+      <div className="pt-2">
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Wellbeing over time</h2>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>How students are doing now and how check-ins change.</p>
       </div>
 
       {/* Distribution + Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        <SCard title="EMA Wellbeing Distribution" subtitle="Latest check-in label per student">
+        <SCard title="Where students are now" subtitle="Triage label per student (worst result in the last 7 days)">
           {!summary || totalDist === 0 ? <Empty text="No EMA data collected yet" /> : (
-            <div className="flex items-center gap-5">
-              <div style={{ width: 140, flexShrink: 0, position: 'relative' }}>
-                <ResponsiveContainer width="100%" height={140}>
-                  <PieChart>
-                    <Pie data={distData} cx="50%" cy="50%" innerRadius={38} outerRadius={60}
-                      paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
-                      {distData.map((d, i) => <Cell key={i} fill={d.fill} />)}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)' }}>{totalDist}</span>
-                  <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>students</span>
-                </div>
-              </div>
+            <div className="space-y-4">
+              <p className="text-3xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                {totalDist} <span className="text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>students with a result</span>
+              </p>
               <div className="flex-1 space-y-2 min-w-0">
                 {LABEL_ORDER.map(l => {
                   const count = summary.by_label[l] ?? 0;
@@ -297,8 +285,8 @@ function AnalyticsTab({
                         <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: PERMA_COLORS[l] }} />
                         <span className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{l}</span>
                       </div>
-                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: PERMA_COLORS[l] }} />
+                      <div className="flex-1 h-2.5 rounded-r" style={{ background: 'var(--color-bg)' }}>
+                        <div className="h-full rounded-r" title={`${l}: ${count} (${pct}%)`} style={{ width: `${pct}%`, background: PERMA_COLORS[l] }} />
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0 w-14 justify-end">
                         <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{count}</span>
@@ -324,8 +312,8 @@ function AnalyticsTab({
         <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Mental Health Trend</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>EMA check-ins per label over time (from saved snapshots)</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Check-ins by label</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Number of EMA check-ins per label in each period</p>
             </div>
             <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
               {(['day', 'week', 'month'] as TrendGranularity[]).map(g => {
@@ -347,17 +335,17 @@ function AnalyticsTab({
           ) : !trend || trendRows.length === 0 ? <Empty text="No snapshot history yet — sync first" /> : (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={trendRows} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
+                <CartesianGrid stroke={grid} strokeWidth={1} vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: tText, fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: tText, fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip isDark={isDark} />} />
-                <Legend wrapperStyle={{ fontSize: 10, color: tText }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" formatter={(v: string) => <span style={{ color: 'var(--color-text-secondary)' }}>{v}</span>} />
                 {LABEL_ORDER.map(l => (
-                  <Line key={l} type="monotone" dataKey={l} name={l}
+                  <Line key={l} type="linear" dataKey={l} name={l} isAnimationActive={false}
                     stroke={PERMA_COLORS[l]}
-                    strokeWidth={l === 'In Crisis' || l === 'Struggling' ? 2.5 : 1.75}
-                    dot={{ r: 2.5, fill: PERMA_COLORS[l] }}
-                    activeDot={{ r: 4 }} />
+                    strokeWidth={2} strokeLinejoin="round" strokeLinecap="round"
+                    dot={false}
+                    activeDot={{ r: 5, fill: PERMA_COLORS[l], stroke: 'var(--color-surface)', strokeWidth: 2 }} />
                 ))}
               </LineChart>
             </ResponsiveContainer>
@@ -374,7 +362,8 @@ function AnalyticsTab({
                     <div key={b} className="flex-shrink-0 rounded-md px-2 py-1 text-center min-w-[56px]" style={{ background: 'var(--color-bg)' }}
                       title={sc ? `${sc.label} · ${sc.student_days} student-days` : 'No check-ins'}>
                       <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{fmtBucketKey(b, granularity)}</p>
-                      <p className="text-xs font-semibold tabular-nums" style={{ color: sc ? PERMA_COLORS[sc.label] : 'var(--color-text-muted)' }}>
+                      <p className="text-xs font-semibold tabular-nums inline-flex items-center gap-1" style={{ color: sc ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+                        {sc && <span className="w-1.5 h-1.5 rounded-full" style={{ background: PERMA_COLORS[sc.label] }} aria-hidden />}
                         {sc ? sc.avg.toFixed(2) : '—'}
                       </p>
                     </div>
@@ -390,17 +379,17 @@ function AnalyticsTab({
       {isAdmin && colleges.length > 0 && (
         <SCard
           title="College Breakdown"
-          subtitle="EMA-linked students and at-risk count per college — identify underserved units"
+          subtitle="Linked students and how many are at risk, per college. Colleges with fewer than 5 students are combined."
         >
           <ResponsiveContainer width="100%" height={Math.max(180, colleges.length * 36)}>
-            <BarChart data={colleges} layout="vertical" margin={{ top: 0, right: 60, left: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={grid} horizontal={false} />
+            <BarChart data={colleges} layout="vertical" barGap={2} margin={{ top: 0, right: 60, left: 8, bottom: 0 }}>
+              <CartesianGrid stroke={grid} strokeWidth={1} horizontal={false} />
               <XAxis type="number" tick={{ fill: tText, fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="college" tick={{ fill: tText, fontSize: 10 }} axisLine={false} tickLine={false} width={115} />
               <Tooltip content={<ChartTooltip isDark={isDark} />} />
-              <Legend wrapperStyle={{ fontSize: 10, color: tText }} />
-              <Bar dataKey="total"   name="Total"   fill="#2352CC" radius={[0, 3, 3, 0]} barSize={9} />
-              <Bar dataKey="at_risk" name="At-Risk"  fill="#DC2626" radius={[0, 3, 3, 0]} barSize={9} />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconType="square" formatter={(v: string) => <span style={{ color: 'var(--color-text-secondary)' }}>{v}</span>} />
+              <Bar dataKey="total"   name="Linked students" fill="var(--color-border-strong)" radius={[0, 4, 4, 0]} barSize={10} isAnimationActive={false} />
+              <Bar dataKey="at_risk" name="At risk now"     fill={PERMA_COLORS['In Crisis']} radius={[0, 4, 4, 0]} barSize={10} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </SCard>
@@ -417,7 +406,7 @@ function AnalyticsTab({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
-              style={{ background: attention.length > 0 ? '#FEE2E2' : 'var(--color-bg)', color: attention.length > 0 ? '#DC2626' : 'var(--color-text-muted)' }}>
+              style={{ background: attention.length > 0 ? 'var(--color-danger-surface)' : 'var(--color-bg)', color: attention.length > 0 ? 'var(--color-danger-text)' : 'var(--color-text-muted)' }}>
               {attention.length}
             </span>
             {attention.length > 0 && (
@@ -465,12 +454,12 @@ function AnalyticsTab({
                         {s.college || '—'}
                         {s.year_level && <span className="block" style={{ color: 'var(--color-text-muted)' }}>Year {s.year_level}</span>}
                       </td>
-                      <td className="px-4 py-3"><PermaBadge label={s.label} /></td>
+                      <td className="px-4 py-3"><LabelChip label={s.label} /></td>
                       <td className="px-4 py-3 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
                         {fmtDate(s.last_checkin)}
                       </td>
                       <td className="px-4 py-3 tabular-nums font-semibold"
-                        style={{ color: days === null ? 'var(--color-text-muted)' : days > 30 ? '#DC2626' : days > 14 ? '#D97706' : 'var(--color-text-secondary)' }}>
+                        style={{ color: days === null ? 'var(--color-text-muted)' : days > 14 ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}>
                         {days === null ? '—' : `${days}d`}
                       </td>
                       <td className="px-4 py-3">
@@ -486,7 +475,7 @@ function AnalyticsTab({
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold"
-                          style={{ background: isDark ? rb.color + '30' : rb.bg, color: rb.color }}>
+                          style={{ background: rb.bg, color: rb.color }}>
                           {rb.label}
                         </span>
                       </td>
@@ -538,8 +527,9 @@ function AtRiskTab({ isDark }: { isDark: boolean }) {
     return (
       <div className="flex items-start gap-4 p-4 rounded-xl border transition"
         style={{
-          background: isCrisis ? (isDark ? '#7F1D1D20' : '#FEF2F2') : (isDark ? '#7C2D1220' : '#FFF7ED'),
-          borderColor: isCrisis ? '#DC262660' : '#F9731660',
+          background: 'var(--color-surface)',
+          borderColor: 'var(--color-border)',
+          borderLeft: `3px solid ${isCrisis ? PERMA_COLORS['In Crisis'] : PERMA_COLORS.Struggling}`,
         }}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -577,7 +567,8 @@ function AtRiskTab({ isDark }: { isDark: boolean }) {
 
       {crisisStudents.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: '#DC2626' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest px-1 flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: PERMA_COLORS['In Crisis'] }} aria-hidden />
             In Crisis ({crisisStudents.length})
           </p>
           {crisisStudents.map(s => <StudentCard key={s.student_id} s={s} />)}
@@ -586,7 +577,8 @@ function AtRiskTab({ isDark }: { isDark: boolean }) {
 
       {strugglingStudents.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: '#F97316' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest px-1 flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: PERMA_COLORS.Struggling }} aria-hidden />
             Struggling ({strugglingStudents.length})
           </p>
           {strugglingStudents.map(s => <StudentCard key={s.student_id} s={s} />)}
@@ -1017,7 +1009,7 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
               {label}
               {key === 'at-risk' && atRiskCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[0.5625rem] font-bold flex items-center justify-center text-white"
-                  style={{ background: '#DC2626' }}>
+                  style={{ background: 'var(--color-danger)' }}>
                   {atRiskCount > 9 ? '9+' : atRiskCount}
                 </span>
               )}

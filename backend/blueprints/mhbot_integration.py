@@ -1338,13 +1338,39 @@ def get_ema_analytics_college():
         target = label if label in college_data[college] else 'No Data'
         college_data[college][target] += 1
 
+    # Colleges with fewer than MIN_GROUP students are combined so no one can be singled out
+    from services.ema_insights import MIN_GROUP
+    other = {l: 0 for l in labels}
+    other['No Data'] = 0
+    merged = 0
     result = []
     for college, counts in sorted(college_data.items(), key=lambda x: -sum(x[1].values())):
         total_c = sum(counts.values())
+        if total_c < MIN_GROUP:
+            merged += 1
+            for k, v in counts.items():
+                other[k] += v
+            continue
         at_risk_c = counts.get('Struggling', 0) + counts.get('In Crisis', 0)
         result.append({'college': college, 'total': total_c, 'at_risk': at_risk_c, **counts})
+    other_total = sum(other.values())
+    if merged and other_total >= MIN_GROUP:
+        result.append({'college': 'Other colleges', 'total': other_total,
+                       'at_risk': other.get('Struggling', 0) + other.get('In Crisis', 0), **other})
 
-    return jsonify({'colleges': result}), 200
+    return jsonify({'colleges': result, 'min_group': MIN_GROUP, 'merged_colleges': merged,
+                    'hidden_students': other_total if merged and other_total < MIN_GROUP else 0}), 200
+
+
+@mhbot_bp.route('/analytics/insights', methods=['GET'])
+@jwt_required()
+def get_ema_insights():
+    """Crisis follow-up, declining students, before/after counseling, PERMA profile and the
+    triage-vs-latest comparison (see services/ema_insights.py). Care team only."""
+    if _staff_access_denied(get_jwt_identity()):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    from services.ema_insights import build_insights
+    return jsonify(build_insights(db.db)), 200
 
 
 @mhbot_bp.route('/analytics/attention', methods=['GET'])

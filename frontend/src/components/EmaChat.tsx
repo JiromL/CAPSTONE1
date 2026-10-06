@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowUp, RotateCcw, BookOpen, AlertCircle, CheckCircle2, ChevronRight, Phone } from 'lucide-react';
 import { api } from '@/utils/api';
+import { PERMA_COLOR } from '@/utils/perma';
 
 // CPS-hosted chat with EMA. The backend relays each message to EMA as the signed-in
 // student using their saved EMA key, so there is no second EMA login here.
@@ -41,9 +42,7 @@ const PERMA_NAMES: Record<string, string> = {
 };
 
 // Same label colors as the EMA analytics page
-const LABEL_COLORS: Record<string, string> = {
-  Excelling: '#059669', Thriving: '#14B8A6', Surviving: '#F59E0B', Struggling: '#F97316', 'In Crisis': '#DC2626',
-};
+const LABEL_COLORS: Record<string, string> = PERMA_COLOR;   // validated, theme-aware
 
 const tint = (pct: number) => `color-mix(in srgb, var(--color-primary) ${pct}%, transparent)`;
 

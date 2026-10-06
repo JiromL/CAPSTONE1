@@ -3,13 +3,12 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
 import { api } from '@/utils/api';
+import { PERMA_COLOR } from '@/utils/perma';
 
 // Shared pieces for EMA triage: flag chips, the "mark crisis reviewed" form, and the
 // per-student trend card. Triage rules live in backend/services/perma_triage.py.
 
-export const LABEL_COLORS: Record<string, string> = {
-  Excelling: '#059669', Thriving: '#14B8A6', Surviving: '#F59E0B', Struggling: '#F97316', 'In Crisis': '#DC2626',
-};
+export const LABEL_COLORS: Record<string, string> = PERMA_COLOR;   // validated, theme-aware
 
 const FLAGS: Record<string, { text: string; tone: 'danger' | 'warning' | 'success' }> = {
   crisis_pending_review: { text: 'Crisis not yet reviewed', tone: 'danger' },

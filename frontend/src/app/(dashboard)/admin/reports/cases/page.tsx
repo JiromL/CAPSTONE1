@@ -79,8 +79,8 @@ export default function CasesReportPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {statCards.map(card => (
                 <div key={card.label} className="rounded-2xl p-5"
-                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderLeft: `4px solid ${card.accent}` }}>
-                  <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}>{card.label}</p>
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-secondary)' }}><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: card.accent }} aria-hidden="true" />{card.label}</p>
                   <p className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{card.value.toLocaleString('en-PH')}</p>
                 </div>
               ))}

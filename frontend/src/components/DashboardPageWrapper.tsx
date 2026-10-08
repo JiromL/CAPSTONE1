@@ -3,7 +3,7 @@
 import { useEffect, useState, Component } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { AlertCircle, RefreshCw, ChevronLeft } from 'lucide-react';
+import { AlertCircle, RefreshCw, ChevronLeft, X } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { getMenuItemsByRole, getActiveSectionFromPath } from '@/utils/navigation';
 import { canAccessPage } from '@/utils/roleAccess';
@@ -227,7 +227,7 @@ export function DashboardPageWrapper({ children, title, subtitle, requiredRoles,
           >
             Log in again
           </button>
-          <button onClick={() => setSessionWarning(false)} aria-label="Dismiss" style={{ color: 'var(--color-warning-text)', opacity: 0.6 }}>✕</button>
+          <button onClick={() => setSessionWarning(false)} aria-label="Dismiss" style={{ color: 'var(--color-warning-text)', opacity: 0.6 }}><X size={14} aria-hidden="true" /></button>
         </div>
       )}
       {!hideHeader && <header className="mb-7 animate-fade-up">

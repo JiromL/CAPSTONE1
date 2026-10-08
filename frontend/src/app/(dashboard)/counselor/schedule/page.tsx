@@ -4,8 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Calendar as CalendarIcon, Clock, Users, Filter, Search,
-  AlertCircle, Phone, Mail, Video, MapPin, ExternalLink, RefreshCw, CheckCircle, Loader2,
-} from 'lucide-react';
+  AlertCircle, Phone, Mail, Video, MapPin, ExternalLink, RefreshCw, CheckCircle, Loader2, X } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -140,7 +139,7 @@ function AppointmentDetailsModal({ appointment, onClose }: { appointment: Appoin
   const { style: sStyle, label: sLabel } = getStatusStyle(appointment.status);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose} />
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose} />
       <div className="relative rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in"
         style={{ background: 'var(--color-surface)' }}>
         <div className="sticky top-0 z-10 flex items-center justify-between p-6"
@@ -149,7 +148,7 @@ function AppointmentDetailsModal({ appointment, onClose }: { appointment: Appoin
           <button onClick={onClose} className="p-1.5 rounded-lg transition"
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            style={{ color: 'var(--color-text-muted)' }}>✕</button>
+            style={{ color: 'var(--color-text-muted)' }} aria-label="Close"><X size={16} aria-hidden="true" /></button>
         </div>
         <div className="p-6 space-y-6">
           {/* Student info */}

@@ -7,8 +7,7 @@ import { api } from '@/utils/api';
 import {
   AlertCircle, CheckCircle2, ChevronRight, ChevronLeft,
   User, BookOpen, Heart, Phone, MapPin, GraduationCap,
-  ClipboardList, Stethoscope, Brain, Check, Zap, ShieldAlert, CalendarCheck, Clock,
-} from 'lucide-react';
+  ClipboardList, Stethoscope, Brain, Check, Zap, ShieldAlert, CalendarCheck, Clock, AlertTriangle } from 'lucide-react';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const PURPOSES = [
@@ -906,7 +905,7 @@ export default function WalkinIntakePage() {
                         <div key={x.l} className="rounded-xl py-3 px-2" style={x.risk ? { background: 'var(--color-danger-surface)', border: '1px solid #FECACA' } : { background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
                           <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.desc}</p>
                           <p className="text-2xl font-bold" style={{ color: x.risk ? 'var(--color-danger)' : '#1D4ED8' }}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
-                          <p className="text-xs font-semibold mt-0.5" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.l}: {x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                          <p className="text-xs font-semibold mt-0.5" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.l}: {x.risk ? <><AlertTriangle size={12} aria-hidden="true" className="inline -mt-0.5" /> Elevated</> : <><Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Normal</>}</p>
                         </div>
                       ))}
                     </div>

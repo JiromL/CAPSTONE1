@@ -7,8 +7,7 @@ import {
 } from 'recharts';
 import {
   AlertTriangle, FileText, RefreshCw, Loader2, Download,
-  Users, Clock, ChevronRight, Activity, Brain, TrendingUp,
-} from 'lucide-react';
+  Users, Clock, ChevronRight, Activity, Brain, TrendingUp, CheckCircle, XCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { useTheme } from '@/context/ThemeContext';
@@ -1564,10 +1563,10 @@ function ReportsTab({ cpsSummary }: { cpsSummary: CpsSummary | null }) {
             border: `1px solid ${dlMsg.type === 'ok' ? 'rgba(5,150,105,0.25)' : 'rgba(220,38,38,0.25)'}`,
             color: dlMsg.type === 'ok' ? 'var(--color-success-text)' : 'var(--color-danger-text)',
           }}>
-          <span>{dlMsg.type === 'ok' ? '✓' : '✗'}</span>
+          {dlMsg.type === 'ok' ? <CheckCircle size={14} aria-hidden="true" /> : <XCircle size={14} aria-hidden="true" />}
           <span className="font-medium">{dlMsg.type === 'ok' ? 'Export complete' : 'Export failed'}</span>
           <span style={{ opacity: 0.8 }}>— {dlMsg.text}</span>
-          <button onClick={() => setDlMsg(null)} className="ml-auto text-xs opacity-60 hover:opacity-100">✕</button>
+          <button onClick={() => setDlMsg(null)} className="ml-auto opacity-60 hover:opacity-100" aria-label="Dismiss"><X size={14} aria-hidden="true" /></button>
         </div>
       )}
 

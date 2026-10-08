@@ -216,7 +216,7 @@ export default function CasesPage() {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t whitespace-nowrap border-b-2 transition-all duration-150"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-all duration-150"
                 style={{
                   borderColor:   activeTab === tab.id ? 'var(--color-primary)' : 'transparent',
                   color:         activeTab === tab.id ? 'var(--color-primary-text)' : 'var(--color-text-muted)',

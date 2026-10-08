@@ -1057,7 +1057,7 @@ export default function ConductIntakePage() {
                             <p className="text-xl font-bold" style={{ color: x.risk ? 'var(--color-danger-hover)' : 'var(--color-primary)' }}>
                               {x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span>
                             </p>
-                            <p className="text-xs font-semibold" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                            <p className="text-xs font-semibold" style={{ color: x.risk ? '#EF4444' : '#16A34A' }}>{x.risk ? <><AlertTriangle size={12} aria-hidden="true" className="inline -mt-0.5" /> Elevated</> : <><Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Normal</>}</p>
                           </div>
                         ))}
                       </div>

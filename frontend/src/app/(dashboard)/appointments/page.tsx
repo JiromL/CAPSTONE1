@@ -1720,7 +1720,7 @@ export default function AppointmentsPage() {
       {/* ── Reschedule detail modal ── */}
       {reschedSelected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setReschedSelected(null)} />
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setReschedSelected(null)} />
           <div className="relative rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="h-1.5 w-full" style={{ background: reschedSelected.status === 'pending' ? 'var(--color-warning)' : reschedSelected.status === 'approved' ? 'var(--color-success)' : 'var(--color-border)' }} />
             <div className="p-6">
@@ -1806,7 +1806,7 @@ export default function AppointmentsPage() {
 
       {/* ── Detail Modal ── */}
       {detailAppt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Session Details</h3>
@@ -1956,7 +1956,7 @@ export default function AppointmentsPage() {
 
       {/* ── No Show Modal ── */}
       {noShowTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Mark as No Show</h3>
@@ -2039,7 +2039,7 @@ export default function AppointmentsPage() {
 
       {/* ── No-Show Termination Alert ── */}
       {noShowTermAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--color-danger)', background: 'var(--color-danger-surface)' }}>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-danger)' }}>Case Flagged for Termination</h3>
@@ -2075,7 +2075,7 @@ export default function AppointmentsPage() {
 
       {/* ── No-Show Rebook Prompt ── */}
       {noShowRebookPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
@@ -2153,7 +2153,7 @@ export default function AppointmentsPage() {
 
       {/* ── Follow-Up Modal ── */}
       {followUpTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
@@ -2244,7 +2244,7 @@ export default function AppointmentsPage() {
 
       {/* ── Set Schedule Modal ── */}
       {schedTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>

@@ -53,7 +53,7 @@ export default function AdminResourcesPage() {
     <DashboardPageWrapper title="Manage Wellness Resources">
       <div className="max-w-2xl">
 
-        <div className="p-4 mb-6" style={{ background: 'var(--color-primary-surface)', borderLeft: '4px solid var(--color-primary)' }}>
+        <div className="p-4 mb-6 rounded-xl" style={{ background: 'var(--color-primary-surface)', border: '1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)' }}>
           <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>How it works:</h3>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
             Upload wellness resources (PDFs, guides, images, documents) here. These resources will be visible to your assigned students in their personal resource library.

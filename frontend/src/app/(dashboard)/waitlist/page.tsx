@@ -223,7 +223,7 @@ export default function WaitlistPage() {
 
       {/* Promote Modal */}
       {showPromoteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-xl shadow-2xl w-full max-w-md p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <h3 className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Promote Student</h3>
             <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>

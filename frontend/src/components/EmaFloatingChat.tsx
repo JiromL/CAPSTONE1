@@ -136,7 +136,7 @@ export function EmaFloatingChat() {
       {open && (
         <div
           className="fixed bottom-4 right-4 z-50 flex flex-col rounded-2xl overflow-hidden border animate-slide-up"
-          style={{ ...panelStyle, borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-modal)', background: 'var(--color-surface)', transition: 'width 200ms ease' }}
+          style={{ ...panelStyle, borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-modal)', background: 'var(--color-surface)' }}
         >
           {/* Header */}
           <div className={`flex items-center justify-between pl-4 pr-2 flex-shrink-0 ${minimized ? 'py-2' : 'py-3 border-b'}`}

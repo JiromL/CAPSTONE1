@@ -942,7 +942,7 @@ function BookAppointmentContent() {
 
       {/* Confirm modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl max-w-md w-full p-7 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--color-success-surface)' }}>
               <CalendarCheck className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
@@ -988,7 +988,7 @@ function BookAppointmentContent() {
 
       {/* Forms choice modal */}
       {showFormsChoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl max-w-md w-full p-7 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--color-success-surface)' }}>
               <CheckCircle className="w-6 h-6" style={{ color: 'var(--color-success)' }} />

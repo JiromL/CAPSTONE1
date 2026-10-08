@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { CheckInForm, CheckInHistory } from '@/components/CheckInForm';
 import { useIntakeApi, useCheckInApi } from '@/utils/useApi';
-import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus, UserPlus, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Loader, Plus, FileText, Target, Activity, Link2, Unlink, Loader2, Shield, X as XIcon, ArrowLeft, Download, ChevronDown, Pencil, Trash2, CalendarPlus, UserPlus, AlertTriangle, Flag, Check, X } from 'lucide-react';
 import { getNoteTypeBadgeStyle, getRiskBadgeStyle } from '@/utils/badges';
 import Link from 'next/link';
 import { api } from '@/utils/api';
@@ -2240,7 +2240,7 @@ function CaseDetailContent() {
                             {score != null && (
                               <span className="text-xs font-semibold mt-0.5 inline-block"
                                 style={{ color: score >= threshold ? '#ef4444' : '#10b981' }}>
-                                {score >= threshold ? '⚑ Positive' : '✓ Negative'}
+                                {score >= threshold ? <><Flag size={12} aria-hidden="true" className="inline -mt-0.5" /> Positive</> : <><Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Negative</>}
                               </span>
                             )}
                           </div>
@@ -2608,7 +2608,7 @@ function CaseDetailContent() {
                   return (
                     <div key={note.note_id}
                       className="rounded-xl shadow-card overflow-hidden"
-                      style={{ background: note.is_deleted ? 'var(--color-danger-surface)' : 'var(--color-surface)', border: `1px solid ${note.is_deleted ? 'rgba(220,38,38,0.3)' : 'var(--color-border)'}`, borderLeft: `3px solid ${note.is_deleted ? 'var(--color-danger)' : accentColor}`, opacity: note.is_deleted ? 0.8 : 1 }}>
+                      style={{ background: note.is_deleted ? 'var(--color-danger-surface)' : 'var(--color-surface)', border: `1px solid ${note.is_deleted ? 'rgba(220,38,38,0.3)' : 'var(--color-border)'}`, opacity: note.is_deleted ? 0.8 : 1 }}>
 
                       {/* ── Card header (always visible) ── */}
                       <div className="px-5 py-4">
@@ -2651,16 +2651,16 @@ function CaseDetailContent() {
                             {note.is_deleted && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-bold"
                                 style={{ background: 'rgba(220,38,38,0.15)', color: 'var(--color-danger)' }}>
-                                ✕ Deleted{note.deleted_by_name ? ` by ${note.deleted_by_name}` : ''}
+                                <X size={12} aria-hidden="true" className="inline -mt-0.5" /> Deleted{note.deleted_by_name ? ` by ${note.deleted_by_name}` : ''}
                               </span>
                             )}
                             {!note.is_deleted && approvalStatus === 'approved' && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}>✓ Approved</span>
+                                style={{ background: 'var(--color-success-surface)', color: 'var(--color-success)' }}><Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Approved</span>
                             )}
                             {!note.is_deleted && approvalStatus === 'rejected' && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>✗ Rejected</span>
+                                style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}><X size={12} aria-hidden="true" className="inline -mt-0.5" /> Rejected</span>
                             )}
                             {!note.is_deleted && approvalStatus === 'pending' && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -3802,7 +3802,7 @@ function CaseDetailContent() {
     )}
     {showClosureChecklist && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowClosureChecklist(false)} />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowClosureChecklist(false)} />
         <div className="relative rounded-2xl shadow-xl w-full max-w-sm p-6" style={{ background: 'var(--color-surface)' }}>
           <h2 className="text-base font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>Pre-Closure Checklist</h2>
           <p className="text-xs mb-5" style={{ color: 'var(--color-text-muted)' }}>
@@ -3944,7 +3944,7 @@ function CaseDetailContent() {
     {/* ── Edit Triage Modal ── */}
     {showEditTriageModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowEditTriageModal(false)} />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowEditTriageModal(false)} />
         <div className="relative rounded-2xl shadow-xl w-full max-w-md p-6" style={{ background: 'var(--color-surface)' }}>
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>Edit Triage Decision</h3>
@@ -4008,7 +4008,7 @@ function CaseDetailContent() {
 
     {showScheduleModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowScheduleModal(false)} />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowScheduleModal(false)} />
         <div className="relative rounded-2xl shadow-xl w-full max-w-sm p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
@@ -4057,7 +4057,7 @@ function CaseDetailContent() {
 
     {showExtReferralModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowExtReferralModal(false)} />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowExtReferralModal(false)} />
         <div className="relative rounded-2xl shadow-xl w-full max-w-lg p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -4158,7 +4158,7 @@ function CaseDetailContent() {
 
     {showCrisisModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => !crisisSubmitting && setShowCrisisModal(false)} />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => !crisisSubmitting && setShowCrisisModal(false)} />
         <div className="relative rounded-2xl shadow-xl w-full max-w-md p-6 animate-scale-in" style={{ background: 'var(--color-surface)', border: '2px solid #B91C1C' }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: '#B91C1C' }}>
@@ -4258,7 +4258,7 @@ function CaseDetailContent() {
 
     {showReferralModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowReferralModal(false)} />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowReferralModal(false)} />
         <div className="relative rounded-2xl shadow-xl w-full max-w-md p-6 animate-scale-in" style={{ background: 'var(--color-surface)' }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>

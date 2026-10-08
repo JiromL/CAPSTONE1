@@ -6,8 +6,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import {
   Loader2, Plus, Video, X, RotateCcw, Clock, Eye,
-  CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin,
-} from 'lucide-react';
+  CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin, Check } from 'lucide-react';
 import Link from 'next/link';
 
 interface Appointment {
@@ -603,7 +602,7 @@ export default function MyAppointmentsPage() {
                                   <div className="flex flex-col items-center">
                                     <div className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
                                       style={{ background: s.done ? 'var(--color-success)' : 'var(--color-border)', color: s.done ? 'white' : 'var(--color-text-muted)' }}>
-                                      {s.done ? '✓' : i + 1}
+                                      {s.done ? <Check size={11} strokeWidth={3} aria-hidden="true" /> : i + 1}
                                     </div>
                                     <span className="text-xs mt-0.5 whitespace-nowrap" style={{ color: s.done ? 'var(--color-success)' : 'var(--color-text-muted)' }}>{s.label}</span>
                                   </div>
@@ -761,7 +760,7 @@ export default function MyAppointmentsPage() {
       {detailAppt && (() => {
         const cfg = STATUS_CFG[detailAppt.status] ?? { label: detailAppt.status, bg: 'var(--color-bg)', text: 'var(--color-text-muted)', ring: 'var(--color-border)' };
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
             <div className="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
               <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <div>
@@ -841,7 +840,7 @@ export default function MyAppointmentsPage() {
 
       {/* Evaluation Modal */}
       {evalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
               <div>
@@ -931,7 +930,7 @@ export default function MyAppointmentsPage() {
 
       {/* Cancel Modal */}
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Cancel this session?</h3>
@@ -979,7 +978,7 @@ export default function MyAppointmentsPage() {
 
       {/* Reschedule Modal */}
       {reschedTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Request Reschedule</h3>
@@ -1030,7 +1029,7 @@ export default function MyAppointmentsPage() {
                           }}>
                           <Clock size={13} style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                           <span className="font-bold tabular-nums">{fmtTime(s.time)}</span>
-                          {selected && <span className="ml-auto text-xs font-bold">✓</span>}
+                          {selected && <Check size={14} aria-hidden="true" className="ml-auto" />}
                         </button>
                       );
                     })}
@@ -1073,7 +1072,7 @@ export default function MyAppointmentsPage() {
 
       {/* View Forms modal */}
       {(viewFormsPacket || viewFormsLoading) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="px-6 pt-6 pb-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>

@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
-import { CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp, RefreshCw, HeartPulse } from 'lucide-react';
+import { CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp, RefreshCw, HeartPulse, ArrowRight, AlertTriangle, LifeBuoy } from 'lucide-react';
 import { api } from '@/utils/api';
 
 const STATUS_OPTIONS = [
-  { value: 'DOING_WELL', label: 'Doing Well',  desc: 'Everything is going smoothly',    icon: '✓', bg: 'var(--color-success-surface)',  color: 'var(--color-success)',  border: 'var(--color-success)'  },
-  { value: 'MANAGING',   label: 'Managing',    desc: 'Getting through, day by day',      icon: '→', bg: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: 'var(--color-primary)' },
-  { value: 'STRUGGLING', label: 'Struggling',  desc: 'Finding things difficult',         icon: '⚠', bg: 'var(--color-warning-surface)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
-  { value: 'IN_CRISIS',  label: 'In Crisis',   desc: 'Need immediate support',           icon: '🆘', bg: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  border: 'var(--color-danger)'  },
+  { value: 'DOING_WELL', label: 'Doing Well',  desc: 'Everything is going smoothly',    icon: CheckCircle, bg: 'var(--color-success-surface)',  color: 'var(--color-success)',  border: 'var(--color-success)'  },
+  { value: 'MANAGING',   label: 'Managing',    desc: 'Getting through, day by day',      icon: ArrowRight, bg: 'var(--color-primary-surface)', color: 'var(--color-primary)', border: 'var(--color-primary)' },
+  { value: 'STRUGGLING', label: 'Struggling',  desc: 'Finding things difficult',         icon: AlertTriangle, bg: 'var(--color-warning-surface)', color: 'var(--color-warning)', border: 'var(--color-warning)' },
+  { value: 'IN_CRISIS',  label: 'In Crisis',   desc: 'Need immediate support',           icon: LifeBuoy, bg: 'var(--color-danger-surface)',  color: 'var(--color-danger)',  border: 'var(--color-danger)'  },
 ];
 
 const MOOD_CHIPS = ['anxious','hopeful','tired','stressed','calm','sad','motivated','overwhelmed','grateful','uncertain'];
@@ -25,7 +25,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className="text-xs font-medium px-2 py-0.5 rounded-full"
       style={{ background: opt.bg, color: opt.color, border: `1px solid ${opt.border}` }}>
-      {opt.icon} {opt.label}
+      <opt.icon size={12} aria-hidden="true" className="inline -mt-0.5" /> {opt.label}
     </span>
   );
 }
@@ -191,7 +191,7 @@ export default function CheckInPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <StatusBadge status={ci.status} />
                             {ci.reviewed_at && (
-                              <span className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>✓ Reviewed</span>
+                              <span className="text-xs font-medium" style={{ color: 'var(--color-success)' }}><CheckCircle size={12} aria-hidden="true" className="inline -mt-0.5" /> Reviewed</span>
                             )}
                           </div>
                           <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
@@ -266,7 +266,7 @@ export default function CheckInPage() {
                       style={isSelected
                         ? { background: opt.bg, borderColor: opt.border, color: opt.color }
                         : { background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}>
-                      <span className="text-lg block mb-1">{opt.icon}</span>
+                      <opt.icon size={20} aria-hidden="true" className="block mb-1.5" />
                       <p className="text-sm font-semibold">{opt.label}</p>
                       <p className="text-xs mt-0.5" style={{ color: isSelected ? opt.color : 'var(--color-text-muted)', opacity: isSelected ? 0.8 : 1 }}>{opt.desc}</p>
                     </button>

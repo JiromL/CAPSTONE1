@@ -40,7 +40,6 @@ export function AuthFrame({ headline, children }: { headline: React.ReactNode; c
       </main>
 
       <aside className="relative lg:w-[48%] flex flex-col justify-between overflow-hidden px-6 sm:px-12 py-10 lg:py-12" style={{ background: 'var(--color-sidebar)' }}>
-        <div className="absolute -right-40 -top-40 w-[520px] h-[520px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(35,82,204,0.35) 0%, transparent 65%)' }} aria-hidden="true" />
         <div />
         <h2 className="relative font-display max-w-md py-10 lg:py-0" style={{ fontSize: 'clamp(1.75rem, 2.8vw, 2.5rem)', lineHeight: 1.2, color: 'white' }}>
           {headline}

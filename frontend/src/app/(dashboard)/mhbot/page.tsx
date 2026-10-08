@@ -528,8 +528,8 @@ function AtRiskTab({ isDark }: { isDark: boolean }) {
       <div className="flex items-start gap-4 p-4 rounded-xl border transition"
         style={{
           background: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-          borderLeft: `3px solid ${isCrisis ? PERMA_COLORS['In Crisis'] : PERMA_COLORS.Struggling}`,
+          // Crisis keeps a full-strength outline; the colored badge already marks Struggling
+          borderColor: isCrisis ? PERMA_COLORS['In Crisis'] : 'var(--color-border)',
         }}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">

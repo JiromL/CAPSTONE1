@@ -5,7 +5,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useState, useEffect } from 'react';
 import { api } from '@/utils/api';
 import { getMenuItemsByRole } from '@/utils/navigation';
-import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle, CalendarPlus, ArrowRight, NotebookPen, Pin } from 'lucide-react';
+import { Loader2, ExternalLink, X, ChevronRight, CalendarDays, Video, MapPin, Clock, CheckCircle, CalendarPlus, ArrowRight, NotebookPen, Pin, Check } from 'lucide-react';
 
 import { OnboardingModal } from './OnboardingModal';
 import { ScheduleSessionCard } from './ScheduleSessionCard';
@@ -322,7 +322,6 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
                   <div className="flex-1 p-6 sm:p-7 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="type-overline" style={{ color: 'var(--color-text-muted)' }}>Next session</span>
                       <span className="badge" style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
                         <CheckCircle size={12} aria-hidden="true" /> Confirmed
                       </span>
@@ -369,12 +368,10 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
               );
             })() : (
               <section className="relative overflow-hidden rounded-2xl p-7 sm:p-8" style={{ background: 'var(--color-sidebar)', boxShadow: 'var(--shadow-card-lg)', border: '1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)' }}>
-                <div className="pointer-events-none absolute -right-32 -top-32 w-[420px] h-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(35,82,204,0.35) 0%, transparent 65%)' }} aria-hidden="true" />
                 <div className="relative max-w-lg">
                   {upcoming.length === 0 && pendingRequests.length === 0 && !isCheckInOnly ? (
                     <>
-                      <p className="type-overline" style={{ color: '#7BAAF7' }}>Welcome to CPS</p>
-                      <h2 className="font-display text-2xl leading-snug mt-3 max-w-md" style={{ color: 'white' }}>
+                      <h2 className="font-display text-2xl leading-snug max-w-md" style={{ color: 'white' }}>
                         You don&apos;t have to figure this out alone, {firstName}.
                       </h2>
                       <p className="text-sm mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -386,8 +383,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                     </>
                   ) : (
                     <>
-                      <p className="type-overline" style={{ color: '#7BAAF7' }}>Your counseling journey</p>
-                      <h2 className="font-display text-2xl leading-snug mt-3 max-w-md" style={{ color: 'white' }}>
+                      <h2 className="font-display text-2xl leading-snug max-w-md" style={{ color: 'white' }}>
                         Reaching out was a brave first step, {firstName}.
                       </h2>
                       <p className="text-sm mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -619,7 +615,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
             {/* Journal prompt */}
             <section className="card p-5">
-              <p className="type-overline flex items-center gap-1.5" style={{ color: 'var(--color-text-muted)' }}><NotebookPen size={12} aria-hidden="true" /> Journal</p>
+              <p className="type-label flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}><NotebookPen size={14} aria-hidden="true" /> Journal</p>
               <p className="font-display text-lg mt-2 leading-snug" style={{ color: 'var(--color-text-primary)' }}>
                 {nextAppt
                   ? `What's one thing you want to bring up on ${new Date(nextAppt.requested_start).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'long' })}?`
@@ -650,7 +646,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         const meta = TYPE_META[a.event_type] || TYPE_META.info;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpenAnnouncement(null)} />
+            <div className="absolute inset-0 bg-black/50" onClick={() => setOpenAnnouncement(null)} />
             <div className="relative rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
               <div className="h-1 w-full" style={{ background: meta.accent }} />
               <div className="p-7">
@@ -700,7 +696,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
       {/* Reschedule Modal */}
       {reschedTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Request Reschedule</h3>
@@ -764,7 +760,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                             }}>
                             <Clock size={13} style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
                             <span className="font-bold tabular-nums">{label}</span>
-                            {selected && <span className="ml-auto text-xs font-bold">✓</span>}
+                            {selected && <Check size={14} aria-hidden="true" className="ml-auto" />}
                           </button>
                         );
                       })}
@@ -810,7 +806,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
 
       {/* Consent Modal */}
       {showConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.6)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
             <div className="px-6 py-5" style={{ background: 'var(--color-primary)' }}>
               <h2 className="text-base font-bold" style={{ color: 'white' }}>A quick note before we begin</h2>

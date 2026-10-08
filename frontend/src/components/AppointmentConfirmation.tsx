@@ -1,5 +1,6 @@
 'use client';
 
+import { Check } from 'lucide-react';
 import { useAppointmentExport } from '@/hooks/useAppointmentExport';
 
 interface AppointmentConfirmationProps {
@@ -143,7 +144,7 @@ export function AppointmentConfirmation({
               <ul className="space-y-2 ml-4">
                 {screeningsCompleted.map((screening, idx) => (
                   <li key={idx} className="flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
-                    <span style={{ color: 'var(--color-success-text)' }}>✓</span>
+                    <Check size={14} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--color-success-text)' }} />
                     <span>{screening}</span>
                   </li>
                 ))}

@@ -263,7 +263,6 @@ function LoginContent() {
 
       {/* ── Navy panel — mirrors the app sidebar ──────────────── */}
       <aside className="relative lg:w-[42%] xl:w-[38%] flex flex-col justify-between overflow-hidden px-6 sm:px-10 py-8 lg:py-10" style={{ background: 'var(--color-sidebar)' }}>
-        <div className="absolute -left-40 -top-40 w-[520px] h-[520px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(35,82,204,0.28) 0%, transparent 65%)' }} aria-hidden="true" />
 
         {/* Brand — same block as the sidebar */}
         <div className="relative hidden lg:flex items-center gap-3">

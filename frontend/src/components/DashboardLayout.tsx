@@ -341,7 +341,7 @@ export function DashboardLayout({
               style={{
                 height: indicator.height,
                 transform: `translateY(${indicator.top}px)`,
-                transition: indicator.animate ? 'transform 340ms cubic-bezier(0.34, 1.25, 0.64, 1)' : 'none',
+                transition: indicator.animate ? 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
               }}
             >
               <span className="absolute -left-2 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-[#7BAAF7]" />
@@ -415,7 +415,7 @@ export function DashboardLayout({
       {/* Mobile backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-20 lg:hidden backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-20 lg:hidden animate-fade-in"
           style={{ background: 'rgba(7,11,20,0.65)' }}
           onClick={() => setMobileOpen(false)}
         />

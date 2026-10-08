@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Clock, AlertCircle, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle, AlertTriangle, ChevronRight, Check } from 'lucide-react';
 import { api } from '@/utils/api';
 
 interface TimeSlot {
@@ -205,7 +205,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
       {counselorsAvailable > 0 && (
         <div className="p-3 rounded-lg" style={{ background: 'var(--color-info-surface)', border: '1px solid var(--color-info)' }}>
           <p className="text-sm" style={{ color: 'var(--color-info-text)' }}>
-            ✓ <strong>{counselorsAvailable} intake counselor{counselorsAvailable !== 1 ? 's' : ''}</strong> available for appointment
+            <Check size={14} aria-hidden="true" className="inline -mt-0.5" /> <strong>{counselorsAvailable} intake counselor{counselorsAvailable !== 1 ? 's' : ''}</strong> available for appointment
           </p>
         </div>
       )}
@@ -215,7 +215,7 @@ export default function UrgencyScheduler({ riskLevel, onSlotSelected, onError }:
         <div className="space-y-2">
           {riskLevel === 'RED' ? (
             <div className="p-4 rounded-lg" style={{ background: '#FEF2F2', border: '1px solid #FCA5A5' }}>
-              <p className="mb-2 font-semibold" style={{ color: '#991B1B' }}>✓ Your appointment is assigned:</p>
+              <p className="mb-2 font-semibold" style={{ color: '#991B1B' }}>Your appointment is assigned:</p>
               <div className="p-3 rounded" style={{ background: 'var(--color-surface)', border: '1px solid #FCA5A5' }}>
                 <p className="text-lg font-bold" style={{ color: '#B91C1C' }}>{availableSlots[0]?.time}</p>
                 <p className="text-sm" style={{ color: '#DC2626' }}>{availableSlots[0]?.date}</p>

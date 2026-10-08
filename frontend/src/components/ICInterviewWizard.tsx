@@ -115,7 +115,8 @@ export function ReadSection({ title, children, accent }: { title: string; childr
     <div className="rounded-xl mb-4 overflow-hidden"
       style={{ border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,.04)' }}>
       <div className="px-5 py-2.5 flex items-center gap-2"
-        style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)', borderLeft: `3px solid ${accent || 'var(--color-primary)'}` }}>
+        style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: accent || 'var(--color-primary)' }} aria-hidden="true" />
         <h3 className="text-xs font-semibold uppercase tracking-widest"
           style={{ color: 'var(--color-text-secondary)' }}>{title}</h3>
       </div>
@@ -371,7 +372,7 @@ function getStepStatus(step: number, draft: any): StepStatus {
 }
 
 function StepStatusIcon({ status }: { status: StepStatus }) {
-  if (status === 'complete') return <span className="font-bold text-sm" style={{ color: 'var(--color-primary)' }}>✓</span>;
+  if (status === 'complete') return <Check size={14} strokeWidth={3} aria-hidden="true" style={{ color: 'var(--color-primary)' }} />;
   if (status === 'partial')  return <span className="font-bold text-sm" style={{ color: '#F97316' }}>●</span>;
   if (status === 'error')    return <span className="font-bold text-sm" style={{ color: 'var(--color-danger)' }}>!</span>;
   return null;
@@ -577,8 +578,8 @@ export function ICInterviewReadView({ form, sessionInfo, updatedAt }: {
             { label: 'Perpetuating', vals: form.perpetuating_factors, other: form.perpetuating_other, accent: '#a855f7' },
             { label: 'Protective', vals: form.protective_factors, other: form.protective_other, accent: '#22c55e' },
           ].map(({ label, vals, other, accent }) => (
-            <div key={label} className="rounded-lg p-3" style={{ border: '1px solid var(--color-border)', borderLeft: `3px solid ${accent}` }}>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}>{label} Factors</p>
+            <div key={label} className="rounded-lg p-3" style={{ border: '1px solid var(--color-border)' }}>
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-muted)' }}><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: accent }} aria-hidden="true" />{label} Factors</p>
               {(vals || []).length > 0 || other ? (
                 <div className="flex flex-wrap">
                   {(vals || []).map((v: string) => <ReadBadge key={v} value={v} />)}

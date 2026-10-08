@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, TrendingUp, AlertCircle, Briefcase, Clock, CheckCircle } from 'lucide-react';
+import { Users, TrendingUp, AlertCircle, Briefcase, Clock, CheckCircle, Check } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -206,7 +206,7 @@ export default function CounselorsAvailabilityPage() {
                         {isUnderloaded && (
                           <span className="px-3 py-1 rounded-full text-sm font-medium"
                             style={{ background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>
-                            ✓ Available
+                            <Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Available
                           </span>
                         )}
                       </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { EmaPrivacyNotice, EMA_CONSENT_STATEMENT } from '@/components/EmaPrivacyNotice';
-import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2, ShieldCheck, Check } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, AlertCircle, Lock, Eye, EyeOff, CheckCircle, Activity, LogOut, Loader2, ShieldCheck, Check, Circle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
@@ -769,7 +769,7 @@ export default function ProfilePage() {
                         style={ok
                           ? { background: 'var(--color-success-surface)', color: 'var(--color-success)' }
                           : { background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
-                        {ok ? '✓' : '○'} {label}
+                        {ok ? <Check size={11} aria-hidden="true" className="inline -mt-0.5" /> : <Circle size={10} aria-hidden="true" className="inline -mt-0.5" />} {label}
                       </span>
                     ))}
                   </div>

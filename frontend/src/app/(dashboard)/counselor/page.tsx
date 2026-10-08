@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, MapPin, Clock, Award, FileText, AlertCircle, Loader } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Award, FileText, AlertCircle, Loader, Check } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { getApiUrl } from '@/utils/api-config';
 
@@ -171,7 +171,7 @@ export default function CounselorProfilePage() {
               <ul className="space-y-2">
                 {dp.qualifications.map((qual, idx) => (
                   <li key={idx} className="flex items-start gap-3" style={{ color: 'var(--color-text-secondary)' }}>
-                    <span className="mt-1" style={{ color: 'var(--color-primary)' }}>✓</span>
+                    <Check size={14} aria-hidden="true" className="mt-1 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
                     {qual}
                   </li>
                 ))}

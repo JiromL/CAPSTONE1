@@ -8,8 +8,7 @@ import { ClinicalExportModal } from '@/components/ClinicalExportModal';
 import {
   Loader2, AlertCircle, RefreshCw, Search, CheckCircle2,
   ClipboardList, CalendarDays, FileCheck, PenLine, Clock,
-  FileText, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, UserCheck,
-} from 'lucide-react';
+  FileText, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, UserCheck, Check } from 'lucide-react';
 
 interface IntakeAppointment {
   appointment_id: string;
@@ -447,7 +446,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
                     {dayAppts.length === 0 ? (
                       <p className="text-xs text-center py-1"
                         style={{ color: isRequested ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
-                        {isRequested ? '✓ Free' : '—'}
+                        {isRequested ? <><Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Free</> : '—'}
                       </p>
                     ) : (
                       <>
@@ -484,7 +483,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
             <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Conflict — student requesting this day</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold" style={{ color: 'var(--color-success)' }}>✓ Free</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--color-success)' }}><Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Free</span>
             <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Student requested, you&apos;re available</span>
           </div>
         </div>

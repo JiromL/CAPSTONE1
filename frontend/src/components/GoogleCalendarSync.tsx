@@ -35,7 +35,7 @@ export default function GoogleCalendarSync({
       if (response.ok) {
         setSynced(true);
         setEventUrl(data.event_url);
-        setMessage('✓ Synced to Google Calendar');
+        setMessage('Synced to Google Calendar');
         onSyncSuccess?.();
       } else if (response.status === 400 && data.auth_url) {
         setMessage('Google Calendar not connected');
@@ -63,7 +63,7 @@ export default function GoogleCalendarSync({
       if (response.ok) {
         setSynced(false);
         setEventUrl(null);
-        setMessage('✓ Removed from Google Calendar');
+        setMessage('Removed from Google Calendar');
       } else {
         setMessage(data.error || 'Failed to remove');
       }
@@ -74,7 +74,7 @@ export default function GoogleCalendarSync({
     }
   };
 
-  const msgStyle = message.startsWith('✓')
+  const msgStyle = /^(Synced|Removed) /.test(message)
     ? { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }
     : message.startsWith('Google Calendar not connected')
     ? { background: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' }

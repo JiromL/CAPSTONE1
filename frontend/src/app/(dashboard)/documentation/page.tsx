@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { File, Upload, Search, AlertCircle, X, Loader2 } from 'lucide-react';
+import { File, Upload, Search, AlertCircle, X, Loader2, Check } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -106,7 +106,7 @@ export default function DocumentationPage() {
         )}
         {success && (
           <div className="border rounded-lg p-4 flex gap-3 items-start" style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
-            <span style={{ color: 'var(--color-success)' }}>✓</span>
+            <Check size={14} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--color-success)' }} />
             <p className="text-sm" style={{ color: 'var(--color-success)' }}>{success}</p>
           </div>
         )}

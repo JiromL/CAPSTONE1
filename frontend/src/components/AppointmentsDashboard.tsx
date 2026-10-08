@@ -7,8 +7,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, Search, Loader2, RefreshCw,
   ExternalLink, Archive, Star, CalendarDays, Users, Send, Filter,
   XCircle, ThumbsUp, MapPin, RotateCcw, ClipboardList, Pencil,
-  FileText, Eye,
-} from 'lucide-react';
+  FileText, Eye, Check, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/utils/api';
@@ -1378,7 +1377,7 @@ export default function AppointmentsDashboard() {
 
       {/* ── Assign Counselor Modal ────────────────────────────────────────── */}
       {assignTarget && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="rounded-2xl w-full max-w-md overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
@@ -1556,7 +1555,7 @@ export default function AppointmentsDashboard() {
                                         </div>
                                         <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
                                           style={isOnline ? { background: 'var(--color-info-surface)', color: 'var(--color-info-text)' } : { background: 'var(--color-success-surface)', color: 'var(--color-success-text)' }}>{isOnline ? 'Online' : 'F2F'}</span>
-                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ background: 'var(--color-primary)' }}><Check size={10} strokeWidth={3} aria-hidden="true" /></span>}
                                       </button>
                                     );
                                   })}
@@ -1638,7 +1637,7 @@ export default function AppointmentsDashboard() {
                                       {wl.utilization}
                                     </span>
                                   )}
-                                  {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                                  {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem] flex-shrink-0" style={{ background: 'var(--color-primary)' }}><Check size={10} strokeWidth={3} aria-hidden="true" /></span>}
                                 </button>
                               );
                             })}
@@ -1770,7 +1769,7 @@ export default function AppointmentsDashboard() {
                                         onMouseEnter={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; } }}
                                         onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)'; } }}>
                                         <p className="text-xs font-bold flex-1" style={{ color: isSel ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{fmtSlotTime(t)}</p>
-                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem]" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                                        {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem]" style={{ background: 'var(--color-primary)' }}><Check size={10} strokeWidth={3} aria-hidden="true" /></span>}
                                       </button>
                                     );
                                   })}
@@ -1827,7 +1826,7 @@ export default function AppointmentsDashboard() {
 
       {/* ── Schedule for Student Modal ────────────────────────────────────── */}
       {showScheduleModal && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Schedule for Student</h3>
@@ -2249,7 +2248,7 @@ export default function AppointmentsDashboard() {
 
       {/* ── Edit Appointment Modal ──────────────────────────────────────── */}
       {editTarget && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="rounded-2xl w-full max-w-sm overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div>
@@ -2289,7 +2288,7 @@ export default function AppointmentsDashboard() {
                           onMouseEnter={e => { if (editCounselor !== '') (e.currentTarget as HTMLElement).style.background = 'var(--color-bg)'; }}
                           onMouseLeave={e => { if (editCounselor !== '') (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                           Keep current: {editTarget.counselor_name && editTarget.counselor_name !== 'Not Assigned' ? fmtStaffName(editTarget.counselor_name) : 'Unassigned'}
-                          {editCounselor === '' && <span className="ml-auto w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem]" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                          {editCounselor === '' && <span className="ml-auto w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem]" style={{ background: 'var(--color-primary)' }}><Check size={10} strokeWidth={3} aria-hidden="true" /></span>}
                         </button>
                         {sorted.map((c: any) => {
                           const wl = workloadMap[c._id];
@@ -2329,7 +2328,7 @@ export default function AppointmentsDashboard() {
                                   {wl.utilization}
                                 </span>
                               )}
-                              {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem] flex-shrink-0" style={{ background: 'var(--color-primary)' }}>✓</span>}
+                              {isSel && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.625rem] flex-shrink-0" style={{ background: 'var(--color-primary)' }}><Check size={10} strokeWidth={3} aria-hidden="true" /></span>}
                             </button>
                           );
                         })}
@@ -2420,7 +2419,7 @@ export default function AppointmentsDashboard() {
 
       {/* ── Intake Forms Modal (IC) ─────────────────────────────────────── */}
       {formsTarget && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ background: 'var(--color-surface)', boxShadow: 'var(--shadow-modal)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div className="flex items-center gap-3">
@@ -2514,7 +2513,7 @@ export default function AppointmentsDashboard() {
                             <div key={x.l} className="rounded-xl p-3 text-center" style={x.risk ? { background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' } : { background: 'var(--color-success-surface)', border: '1px solid var(--color-success)' }}>
                               <p className="text-xs mb-0.5" style={{ color: 'var(--color-text-secondary)' }}>{x.l}</p>
                               <p className="text-xl font-bold" style={{ color: x.risk ? 'var(--color-danger-text)' : 'var(--color-primary)' }}>{x.s}<span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>/{x.max}</span></p>
-                              <p className="text-xs font-semibold" style={{ color: x.risk ? 'var(--color-danger)' : 'var(--color-success)' }}>{x.risk ? '⚠ Elevated' : '✓ Normal'}</p>
+                              <p className="text-xs font-semibold" style={{ color: x.risk ? 'var(--color-danger)' : 'var(--color-success)' }}>{x.risk ? <><AlertTriangle size={12} aria-hidden="true" className="inline -mt-0.5" /> Elevated</> : <><Check size={12} aria-hidden="true" className="inline -mt-0.5" /> Normal</>}</p>
                             </div>
                           ))}
                         </div>

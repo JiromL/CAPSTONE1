@@ -18,7 +18,7 @@ export default function NewIntakePage() {
   return (
     <PageShell 
       title="New Intake" 
-      subtitle={submitted ? "✓ Intake submitted successfully" : "Create a new intake for a student"}
+      subtitle={submitted ? "Intake submitted successfully" : "Create a new intake for a student"}
     >
       <div className="max-w-2xl">
         <IntakeForm

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Minus, ExternalLink, RefreshCw, MessageCircle, Eye, EyeOff, Loader2, LogIn, CheckCircle, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Minus, ExternalLink, RefreshCw, MessageCircleHeart, Eye, EyeOff, Loader2, LogIn, CheckCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { api } from '@/utils/api';
 import { EmaChat, EmaAvatar } from './EmaChat';
 import { EmaConsentCheckbox } from './EmaPrivacyNotice';
@@ -109,14 +109,26 @@ export function EmaFloatingChat() {
       {!open && (
         <button
           onClick={() => { setOpen(true); setMinimized(false); }}
-          className="fixed bottom-6 right-6 z-50 h-12 pl-3.5 pr-4 rounded-full flex items-center gap-2 text-sm font-medium transition-all hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 animate-scale-in"
-          style={{ background: 'var(--color-primary)', color: 'white', boxShadow: 'var(--shadow-card-lg)' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-hover)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-primary)'; }}
+          className="group fixed bottom-6 right-6 z-50 h-14 pl-2 pr-5 rounded-full flex items-center gap-3 text-left transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 animate-scale-in"
+          style={{
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
+            color: 'white',
+            // Shadow tinted with the brand blue so the button lifts off the page instead of sitting in a grey smudge
+            boxShadow: '0 8px 20px -6px rgba(35,82,204,0.55), 0 2px 6px -2px rgba(13,21,38,0.15)',
+          }}
           aria-label="Open EMA chatbot"
         >
-          <MessageCircle size={20} />
-          Talk to EMA
+          {/* Chat bubble with a heart: reads as "supportive chat" at a glance */}
+          <span className="relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-lg transition-transform duration-200 group-hover:scale-105"
+            style={{ background: 'white', color: 'var(--color-primary)' }} aria-hidden>
+            <MessageCircleHeart size={22} strokeWidth={2} />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full"
+              style={{ background: 'var(--color-success)', border: '2px solid var(--color-primary)' }} />
+          </span>
+          <span className="flex flex-col leading-tight">
+            <span className="text-sm font-semibold">Talk to EMA</span>
+            <span className="text-xs" style={{ opacity: 0.8 }}>Wellbeing chatbot</span>
+          </span>
         </button>
       )}
 

@@ -96,7 +96,7 @@ COUNSELING_CONCERNS = [
     'Relationship Issues', 'Career Counseling', 'Crisis Support',
 ]
 
-COLLEGES = ['CCS', 'CLA', 'SOE', 'COB', 'GCOE', 'CED']
+COLLEGES = ['CCS', 'CLA', 'SOE', 'RVRCOB', 'GCOE', 'BAGCED']   # DLSU codes, as in frontend/src/utils/colleges.ts
 
 
 # ── 1. Reschedule-request appointments ───────────────────────────────────────

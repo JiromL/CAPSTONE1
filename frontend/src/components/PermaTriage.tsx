@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ShieldCheck, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
 import { api } from '@/utils/api';
 import { PERMA_COLOR } from '@/utils/perma';
@@ -113,6 +113,79 @@ interface TrendData {
   crisis_reviews: { cleared_at: string; note: string; cleared_by: string }[];
 }
 
+const SCALE: [number, string][] = [[5, 'Excelling'], [4, 'Thriving'], [3, 'Surviving'], [2, 'Struggling'], [1, 'In Crisis']];
+const DAY_MS = 86_400_000;
+
+/** Daily EMA score (each day's average, 1–5) placed by date over the window. Drawn at its real
+ *  pixel width, so dots stay round; the line breaks across gaps of 3+ days without check-ins. */
+function DailyScoreChart({ pts, days }: { pts: TrendData['daily']; days: number }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(600);
+  const [hover, setHover] = useState<number | null>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const H = 150, left = 74, right = 12, top = 8, bottom = 22;
+  const end = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }) + 'T00:00:00').getTime();
+  const start = end - (days - 1) * DAY_MS;
+  const t = (d: string) => new Date(d + 'T00:00:00').getTime();
+  const x = (d: string) => left + ((t(d) - start) / (end - start)) * (w - left - right);
+  const y = (v: number) => top + ((5 - v) / 4) * (H - top - bottom);
+
+  const segments: string[] = [];
+  pts.forEach((p, i) => {
+    const joined = i > 0 && (t(p.date) - t(pts[i - 1].date)) / DAY_MS < 3;
+    segments.push(`${joined ? 'L' : 'M'}${x(p.date)},${y(p.score)}`);
+  });
+  const ticks: number[] = [];
+  for (let d = new Date(start); d.getTime() <= end; d.setDate(d.getDate() + 1)) if (d.getDate() === 1) ticks.push(d.getTime());
+  const fmt = (ms: number, opts: Intl.DateTimeFormatOptions) => new Date(ms).toLocaleDateString('en-PH', opts);
+  const h = hover !== null ? pts[hover] : null;
+
+  return (
+    <div ref={box} className="relative">
+      <svg width={w} height={H} role="img"
+        aria-label={`Daily EMA scores over ${days} days: ${pts.length} days with check-ins, latest ${pts[pts.length - 1].score} (${pts[pts.length - 1].label})`}>
+        {SCALE.map(([v, name]) => (
+          <g key={v}>
+            <line x1={left} x2={w - right} y1={y(v)} y2={y(v)} stroke="var(--color-border)" strokeWidth={1} />
+            <text x={left - 8} y={y(v) + 3.5} textAnchor="end" fontSize={10.5} fill="var(--color-text-muted)">{name}</text>
+          </g>
+        ))}
+        {ticks.map(ms => (
+          <text key={ms} x={left + ((ms - start) / (end - start)) * (w - left - right)} y={H - 6} textAnchor="middle" fontSize={10.5} fill="var(--color-text-muted)">
+            {fmt(ms, { month: 'short' })}
+          </text>
+        ))}
+        <path d={segments.join(' ')} fill="none" stroke="var(--color-primary)" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+        {h && <line x1={x(h.date)} x2={x(h.date)} y1={top} y2={H - bottom} stroke="var(--color-border-strong)" strokeWidth={1} />}
+        {pts.map((p, i) => (
+          <circle key={p.date} cx={x(p.date)} cy={y(p.score)} r={hover === i ? 5 : 3.5} fill={LABEL_COLORS[p.label]}
+            stroke="var(--color-surface)" strokeWidth={1.5} />
+        ))}
+        {/* invisible hit areas, wider than the dots */}
+        {pts.map((p, i) => (
+          <rect key={`hit-${p.date}`} x={x(p.date) - 6} y={top} width={12} height={H - top - bottom} fill="transparent"
+            tabIndex={0} aria-label={`${p.date}: ${p.score} (${p.label}), ${p.checkins} check-ins`}
+            onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)} />
+        ))}
+      </svg>
+      {h && (
+        <div role="status" className="absolute pointer-events-none -translate-x-1/2 rounded-lg px-2.5 py-1.5 text-xs whitespace-nowrap"
+          style={{ left: Math.min(Math.max(x(h.date), 90), w - 90), top: 0, background: 'var(--color-text-primary)', color: 'var(--color-surface)' }}>
+          <span className="font-semibold">{h.score.toFixed(2)} {h.label}</span>
+          <span style={{ opacity: 0.75 }}> · {fmt(t(h.date), { month: 'short', day: 'numeric' })} · {h.checkins} check-in{h.checkins > 1 ? 's' : ''}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Case page card: triage result, 90-day daily trend, monthly averages, weakest PERMA area. */
 export function PermaTrendCard({ studentId }: { studentId: string }) {
   const [data, setData]   = useState<TrendData | null>(null);
@@ -132,11 +205,7 @@ export function PermaTrendCard({ studentId }: { studentId: string }) {
   if (!t?.label && !data.daily.length) return null;
 
   const months = data.monthly.slice(-3);
-  // Fixed 1–5 scale so the bars read the same on every case
-  const W = 100, H = 36;
   const pts = data.daily;
-  const x = (i: number) => (pts.length < 2 ? W / 2 : (i / (pts.length - 1)) * W);
-  const y = (score: number) => H - ((score - 1) / 4) * H;
 
   return (
     <div className="rounded-xl border p-5 space-y-4" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
@@ -164,23 +233,10 @@ export function PermaTrendCard({ studentId }: { studentId: string }) {
 
       {pts.length > 0 && (
         <div>
-          <div className="flex items-baseline justify-between mb-1.5">
-            <p className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Daily score, last 90 days</p>
-            <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>1 In Crisis · 5 Excelling</p>
-          </div>
-          <svg viewBox={`-2 -3 ${W + 4} ${H + 6}`} className="w-full h-20" preserveAspectRatio="none" role="img"
-            aria-label={`Daily EMA scores, latest ${pts[pts.length - 1].score} (${pts[pts.length - 1].label})`}>
-            {[1, 2, 3, 4, 5].map(v => (
-              <line key={v} x1={0} x2={W} y1={y(v)} y2={y(v)} stroke="var(--color-border)" strokeWidth={0.3} vectorEffect="non-scaling-stroke" />
-            ))}
-            <polyline fill="none" stroke="var(--color-primary)" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
-              points={pts.map((p, i) => `${x(i)},${y(p.score)}`).join(' ')} />
-            {pts.map((p, i) => (
-              <circle key={p.date} cx={x(i)} cy={y(p.score)} r={1.4} fill={LABEL_COLORS[p.label]}>
-                <title>{`${p.date}: ${p.score} (${p.label}), ${p.checkins} check-in${p.checkins > 1 ? 's' : ''}`}</title>
-              </circle>
-            ))}
-          </svg>
+          <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+            Daily score, last 90 days <span className="font-normal" style={{ color: 'var(--color-text-muted)' }}>· each day&apos;s average of its check-ins; gaps are days without one</span>
+          </p>
+          <DailyScoreChart pts={pts} days={90} />
         </div>
       )}
 

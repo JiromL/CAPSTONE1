@@ -652,7 +652,8 @@ export function DashboardLayout({
         </main>
       </div>
 
-      {user?.role === 'STUDENT' && <EmaFloatingChat />}
+      {/* Hidden while booking: the floating button sat over the form's Continue button */}
+      {user?.role === 'STUDENT' && pathname !== '/book-appointment' && <EmaFloatingChat />}
     </div>
   );
 }

@@ -93,7 +93,12 @@ function relativeDay(s: string): string {
 }
 
 function isProfileIncomplete(u: any) {
-  return !u?.college || !u?.phone || !u?.emergency_contact || !u?.emergency_phone;
+  // Phone and emergency contact are stored in two formats: separate fields (Profile) or an
+  // older combined object; either counts as filled in
+  const ec = u?.emergency_contact;
+  const ecName = typeof ec === 'object' && ec ? ec.name : ec;
+  const ecPhone = u?.emergency_phone || (typeof ec === 'object' && ec ? ec.phone : '');
+  return !u?.college || !(u?.phone || u?.contact_number) || !ecName || !ecPhone;
 }
 
 export function StudentDashboard({ user, onLogout }: DashboardProps) {

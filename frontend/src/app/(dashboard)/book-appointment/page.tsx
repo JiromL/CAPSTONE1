@@ -285,7 +285,8 @@ function BookAppointmentContent() {
     const token = localStorage.getItem('token');
     setSlotsLoading(true); setPrefTime(''); setSlotCounselorId(''); setSlotsBlockedMsg(null);
     if (purpose === 'intake_interview') {
-      fetch(api(`/api/availability/open-slots?date=${prefDate}`), { headers: { Authorization: `Bearer ${token}` } })
+      // Only intake counselors who work the way the student chose (online or in person)
+      fetch(api(`/api/availability/open-slots?date=${prefDate}&method=${slotMethod === 'F2F' ? 'in-person' : 'online'}`), { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => {
           if (d.is_holiday) {
             setSlotsBlockedMsg(`No sessions on ${d.holiday_name} — this is a declared university holiday.`);
@@ -312,7 +313,7 @@ function BookAppointmentContent() {
           }
         }).catch(() => setSlots([])).finally(() => setSlotsLoading(false));
     } else { setSlots([]); setSlotsLoading(false); }
-  }, [prefDate, selectedCounselorId, purpose]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [prefDate, selectedCounselorId, purpose, slotMethod]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const myDraftKey = `${DRAFT_KEY_PREFIX}_${user?._id || 'guest'}`;
   const saveDraft = () => { setSavingDraft(true); localStorage.setItem(myDraftKey, JSON.stringify({ purpose, specifyOthers, concern, referralType, referredBy, prefDate, prefTime })); setHasDraft(true); setTimeout(() => setSavingDraft(false), 600); };

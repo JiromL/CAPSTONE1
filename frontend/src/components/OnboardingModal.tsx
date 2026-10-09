@@ -3,18 +3,9 @@
 import { useState } from 'react';
 import { Loader2, GraduationCap, Phone, Users } from 'lucide-react';
 import { api } from '@/utils/api';
+import { DLSU_COLLEGES } from '@/utils/colleges';
 
-const DLSU_COLLEGES = [
-  { abbr: 'CCS',    name: 'College of Computer Studies',    courses: ['BS Computer Science', 'BS Information Technology', 'BS Information Systems'] },
-  { abbr: 'COB',    name: 'College of Business',            courses: ['BS Accountancy', 'BS Business Administration', 'BS Entrepreneurship', 'BS Management of Financial Institutions'] },
-  { abbr: 'COE',    name: 'College of Engineering',         courses: ['BS Chemical Engineering', 'BS Civil Engineering', 'BS Electronics Engineering', 'BS Industrial Engineering', 'BS Mechanical Engineering'] },
-  { abbr: 'CLA',    name: 'College of Liberal Arts',        courses: ['BA Communication Arts', 'BA Political Science', 'BA Psychology', 'BA Filipino', 'BA Literature'] },
-  { abbr: 'COS',    name: 'College of Science',             courses: ['BS Biology', 'BS Chemistry', 'BS Mathematics', 'BS Physics'] },
-  { abbr: 'SOE',    name: 'School of Economics',            courses: ['BS Economics', 'BS Applied Economics'] },
-  { abbr: 'BAGCED', name: 'College of Education',           courses: ['BS Education (major in English)', 'BS Education (major in Mathematics)', 'BS Education (major in Filipino)'] },
-  { abbr: 'SOM',    name: 'School of Medicine',             courses: ['Doctor of Medicine'] },
-  { abbr: 'GCOE',   name: 'Graduate School',                courses: ['Masters / Doctoral program'] },
-];
+
 
 const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 'Graduate'];
 

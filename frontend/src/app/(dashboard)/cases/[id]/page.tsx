@@ -1150,7 +1150,7 @@ function CaseDetailContent() {
         setPermaHistory([]);
         loadPermaHistory();
       } else {
-        setMhbotError(d.error || 'Failed to link MHBot account');
+        setMhbotError(d.error || 'Could not link the EMA account');
       }
     } catch {
       setMhbotError('Network error');
@@ -1160,7 +1160,7 @@ function CaseDetailContent() {
   };
 
   const unlinkMhbot = async () => {
-    if (!confirm('Unlink this student from MHBot? PERMA history will no longer sync.')) return;
+    if (!confirm('Unlink this student from EMA? New EMA results will stop coming into CPS.')) return;
     setLinkingMhbot(true);
     try {
       const token = localStorage.getItem('token');
@@ -3623,7 +3623,7 @@ function CaseDetailContent() {
           {/* Link / Unlink MHBot account */}
           <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             <p className="text-sm font-semibold mb-1 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
-              <Activity size={14} style={{ color: 'var(--color-primary)' }} /> MHBot Account
+              <Activity size={14} style={{ color: 'var(--color-primary)' }} /> EMA account
             </p>
             {caseData?.student?.mhbot_username ? (
               <div className="flex items-center justify-between mt-3">
@@ -3648,11 +3648,11 @@ function CaseDetailContent() {
                 )}
               </div>
             ) : isIC ? (
-              <p className="mt-3 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No MHBot account linked.</p>
+              <p className="mt-3 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No EMA account linked.</p>
             ) : (
               <div className="mt-3">
                 <p className="text-xs mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                  Enter the student's MHBot username to pull PERMA history.
+                  Enter the student's EMA username to bring in their wellbeing history.
                 </p>
                 <div className="flex gap-2">
                   <input

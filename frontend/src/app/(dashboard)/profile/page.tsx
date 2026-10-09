@@ -8,18 +8,9 @@ import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
+import { DLSU_COLLEGES } from '@/utils/colleges';
 
-const DLSU_COLLEGES: { abbr: string; name: string; sampleCourses: string[] }[] = [
-  { abbr: 'CCS',    name: 'College of Computer Studies',       sampleCourses: ['BS Computer Science', 'BS Information Technology', 'BS Information Systems'] },
-  { abbr: 'COB',    name: 'College of Business',               sampleCourses: ['BS Accountancy', 'BS Business Administration', 'BS Entrepreneurship', 'BS Management of Financial Institutions'] },
-  { abbr: 'COE',    name: 'College of Engineering',            sampleCourses: ['BS Chemical Engineering', 'BS Civil Engineering', 'BS Electronics Engineering', 'BS Industrial Engineering', 'BS Mechanical Engineering'] },
-  { abbr: 'CLA',    name: 'College of Liberal Arts',           sampleCourses: ['BA Communication Arts', 'BA Political Science', 'BA Psychology', 'BA Filipino', 'BA Literature'] },
-  { abbr: 'COS',    name: 'College of Science',                sampleCourses: ['BS Biology', 'BS Chemistry', 'BS Mathematics', 'BS Physics'] },
-  { abbr: 'SOE',    name: 'School of Economics',               sampleCourses: ['BS Economics', 'BS Applied Economics'] },
-  { abbr: 'BAGCED', name: 'College of Education',              sampleCourses: ['BS Education (major in English)', 'BS Education (major in Mathematics)', 'BS Education (major in Filipino)'] },
-  { abbr: 'SOM',    name: 'School of Medicine',                sampleCourses: ['Doctor of Medicine'] },
-  { abbr: 'GCOE',   name: 'Graduate School',                   sampleCourses: ['Masters / Doctoral program'] },
-];
+
 
 const IC = 'input';
 const ICS: React.CSSProperties = {
@@ -313,11 +304,11 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Course / Program</label>
                     <input type="text" name="course" value={formData.course} onChange={handleChange} className={IC} style={ICS}
                       placeholder={formData.college
-                        ? `e.g. ${DLSU_COLLEGES.find(c => c.abbr === formData.college)?.sampleCourses[0] ?? 'your program'}`
+                        ? `e.g. ${DLSU_COLLEGES.find(c => c.abbr === formData.college)?.courses[0] ?? 'your program'}`
                         : 'Select a college first'} />
                     {formData.college && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
-                        {DLSU_COLLEGES.find(c => c.abbr === formData.college)?.sampleCourses.map(sc => (
+                        {DLSU_COLLEGES.find(c => c.abbr === formData.college)?.courses.map(sc => (
                           <button key={sc} type="button" onClick={() => setFormData(f => ({ ...f, course: sc }))}
                             className="text-xs px-2 py-0.5 rounded-full transition"
                             style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}

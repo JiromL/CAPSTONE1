@@ -4,6 +4,7 @@ import { TriageFlags, TriageReasons } from '@/components/PermaTriage';
 import { EmaConsentCheckbox } from '@/components/EmaPrivacyNotice';
 import { EmaInsights, LabelChip } from '@/components/EmaInsights';
 import { MyEmaStudents } from '@/components/MyEmaStudents';
+import { AdminEmaOverview } from '@/components/AdminEmaOverview';
 import { PERMA_COLOR } from '@/utils/perma';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -1093,6 +1094,15 @@ export default function EMAPage() {
         <div className="flex items-center justify-center h-48 gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
           <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /> Checking connection…
         </div>
+      </DashboardPageWrapper>
+    );
+  }
+
+  // Admins and the DPO: totals and team workload, never student names. Also no EMA connection needed.
+  if (['ADMIN', 'DPO'].includes(role.toUpperCase())) {
+    return (
+      <DashboardPageWrapper title="EMA overview" subtitle="Student wellbeing and how the care team is responding, in totals">
+        <AdminEmaOverview />
       </DashboardPageWrapper>
     );
   }

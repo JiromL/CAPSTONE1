@@ -703,7 +703,9 @@ export default function AppointmentsDashboard() {
   const filtered = sortedApts.filter(a => {
     const matchTab = TAB_STATUSES[activeTab].includes(a.status);
     const t = search.toLowerCase();
-    const matchSearch = !t || [a.student_name, a.student_email, a.counselor_name, a.purpose, isOA ? undefined : a.concern]
+    // Office assistants don't search students' concerns (clinical text); role read directly because
+    // isOA is declared further down this component
+    const matchSearch = !t || [a.student_name, a.student_email, a.counselor_name, a.purpose, dashboard?.role === 'STAFF' ? undefined : a.concern]
       .some(v => v?.toLowerCase().includes(t));
     return matchTab && matchSearch;
   });

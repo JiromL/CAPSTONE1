@@ -261,7 +261,8 @@ def get_open_slots():
     """Aggregate free 30-min slots across ALL intake counselors for a given date.
 
     Query params:
-      date – YYYY-MM-DD (required)
+      date   – YYYY-MM-DD (required)
+      method – 'online' or 'in-person' (optional): only intake counselors working that way
 
     Returns:
       {
@@ -272,6 +273,15 @@ def get_open_slots():
     date_str = request.args.get('date')
     if not date_str:
         return jsonify({'error': 'date is required'}), 400
+    want = (request.args.get('method') or '').lower()
+    ONLINE = ('online', 'video', 'zoom', 'google-meet', 'google_meet')
+
+    def method_ok(m):
+        """An online student must get an intake counselor who works online, and the other way round."""
+        if not want:
+            return True
+        online = (m or '').lower() in ONLINE
+        return online if want in ONLINE else not online
     try:
         target_date = datetime.strptime(date_str, '%Y-%m-%d')
     except ValueError:
@@ -317,6 +327,8 @@ def get_open_slots():
         time_first  = {}   # time_str → (ic, method) — least-busy IC for that time
         for ic in ics_sorted:
             for s in slots_for_counselor(ic, date):
+                if not method_ok(s.get('method')):
+                    continue
                 t = s['time']
                 time_counts[t] = time_counts.get(t, 0) + 1
                 if t not in time_first:

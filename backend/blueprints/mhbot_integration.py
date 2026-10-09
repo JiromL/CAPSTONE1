@@ -1549,6 +1549,64 @@ def get_ema_analytics_college():
                     'hidden_students': other_total if merged and other_total < MIN_GROUP else 0}), 200
 
 
+@mhbot_bp.route('/analytics/team', methods=['GET'])
+@jwt_required()
+def get_ema_team_overview():
+    """For admins, the DPO and the case manager: EMA adoption, crisis alerts and how at-risk
+    students are spread across counselors. Counts only; staff are named, students never are."""
+    user_id = get_jwt_identity()
+    caller = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'role': 1})
+    if not caller or caller.get('role') not in ('ADMIN', 'DPO', 'CASE_MANAGER'):
+        return jsonify({'error': 'Only admins, the DPO and the case manager can see the team overview'}), 403
+
+    now = datetime.utcnow()
+    students = list(db.db.users.find({'role': 'STUDENT', 'is_active': {'$ne': False}},
+                                     {'mhbot_username': 1, 'ema_consent_given': 1, 'perma_triage': 1}))
+    linked = [s for s in students if s.get('mhbot_username')]
+    at_risk_ids = {s['_id'] for s in linked if (s.get('perma_triage') or {}).get('label') in AT_RISK}
+    crisis_ids = {s['_id'] for s in linked if (s.get('perma_triage') or {}).get('label') == 'In Crisis'}
+    pending_ids = {s['_id'] for s in linked if (s.get('perma_triage') or {}).get('crisis_pending_review')}
+
+    # At-risk students per clinician, from each student's latest open case
+    open_status = ['NEW', 'INTAKE_SCHEDULED', 'ACTIVE', 'PENDING_TERMINATION']
+    per = {}
+    no_case = 0
+    for sid in at_risk_ids:
+        case = db.db.cases.find_one({'student_id': sid, 'case_status': {'$in': open_status}},
+                                    sort=[('created_at', -1)], projection={'assigned_counselor_id': 1})
+        cid = (case or {}).get('assigned_counselor_id')
+        if not cid:
+            no_case += 1
+            continue
+        row = per.setdefault(str(cid), {'at_risk': 0, 'in_crisis': 0, 'unreviewed': 0})
+        row['at_risk'] += 1
+        row['in_crisis'] += sid in crisis_ids
+        row['unreviewed'] += sid in pending_ids
+    clinicians = list(db.db.users.find({'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}, 'is_active': {'$ne': False}},
+                                       {'name': 1, 'first_name': 1, 'last_name': 1, 'role': 1}))
+    caseload = {}
+    for c in db.db.cases.aggregate([{'$match': {'case_status': {'$in': open_status}}},
+                                    {'$group': {'_id': '$assigned_counselor_id', 'n': {'$sum': 1}}}]):
+        caseload[str(c['_id'])] = c['n']
+    team = []
+    for c in clinicians:
+        row = per.get(str(c['_id']), {'at_risk': 0, 'in_crisis': 0, 'unreviewed': 0})
+        team.append({'name': c.get('name') or f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
+                     'role': c.get('role'), 'open_cases': caseload.get(str(c['_id']), 0), **row})
+    team.sort(key=lambda r: (-r['unreviewed'], -r['in_crisis'], -r['at_risk'], r['name']))
+
+    alerts_30d = db.db.notifications.distinct('student_id', {'type': 'EMA_CRISIS', 'created_at': {'$gte': now - timedelta(days=30)}})
+    return jsonify({
+        'students_total': len(students),
+        'linked': len(linked),
+        'consented': sum(1 for s in linked if s.get('ema_consent_given')),
+        'at_risk': len(at_risk_ids), 'in_crisis': len(crisis_ids), 'unreviewed_crises': len(pending_ids),
+        'at_risk_without_case': no_case,
+        'students_alerted_30d': len(alerts_30d),
+        'team': team,
+    }), 200
+
+
 @mhbot_bp.route('/analytics/insights', methods=['GET'])
 @jwt_required()
 def get_ema_insights():

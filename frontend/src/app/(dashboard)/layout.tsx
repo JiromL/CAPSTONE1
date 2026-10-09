@@ -31,7 +31,9 @@ export default function DashboardLayout({
     window.fetch = async (...args: Parameters<typeof fetch>) => {
       const res = await original(...args);
 
-      if (res.status === 401 && !redirecting) {
+      // 422 is how the server answers a missing or malformed login token; the checks below still
+      // only redirect when the token really is gone or expired
+      if ((res.status === 401 || res.status === 422) && !redirecting) {
         const init = args[1] as RequestInit | undefined;
         const hasAuthHeader = !!(
           init?.headers &&

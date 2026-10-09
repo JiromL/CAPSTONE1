@@ -350,6 +350,24 @@ for s in linked:
             'perma_latest_label': last['perma_label'], 'perma_latest_date': last['entry_date'].isoformat()}})
 refresh_all_triage(db)
 
+# ── 8. The crisis alerts the app would have sent (in-app only; seeding never emails) ──
+from services.crisis_alerts import _recipients, ALERT_TYPE   # noqa: E402
+alerts = 0
+for s in db.users.find({'role': 'STUDENT', 'perma_triage.crisis_pending_review': True}, {'name': 1, 'perma_triage': 1}):
+    crisis = db.perma_snapshots.find_one({'student_user_id': s['_id'], 'perma_label': 'In Crisis'}, sort=[('entry_date', -1)])
+    if not crisis:
+        continue
+    at = crisis['first_seen_at'] + timedelta(minutes=1)
+    when = (crisis['entry_date'] + timedelta(hours=8)).strftime('%b %d, %I:%M %p')
+    for user_id, _, link in _recipients(db, s['_id']):
+        db.notifications.insert_one({
+            'target_user_id': str(user_id), 'type': ALERT_TYPE, 'student_id': s['_id'], 'link': link,
+            'title': 'Urgent: In Crisis result on EMA',
+            'message': f"{s['name']} had an In Crisis result on EMA ({when}). Please review and follow up.",
+            'read': False, 'created_at': at})
+        alerts += 1
+print(f"✅ {alerts} crisis alerts (in-app) for unreviewed crises")
+
 print()
 print("EMA triage scenarios (log in as cm@dlsu.edu.ph / cm123 → CM Queue):")
 for sid_, title in scenario_ids.items():

@@ -293,3 +293,12 @@ def test_new_crisis_alerts_case_managers_and_own_counselor_once(client, world):
         assert alert_new_crisis(db.db, sid, datetime.utcnow() - timedelta(days=5)) == 0  # old results arriving late
     finally:
         db.db.notifications.delete_many({'type': ALERT_TYPE, 'student_id': sid})
+
+
+def test_team_overview_is_totals_for_admin_and_refused_for_counselors(client, world, at_risk_student):
+    assert client.get('/api/mhbot/analytics/team', headers=auth(world['counselor'])).status_code == 403
+    r = client.get('/api/mhbot/analytics/team', headers=auth(world['admin']))
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body['at_risk'] >= 1
+    assert 'other' not in str(body)          # no student names anywhere in the response

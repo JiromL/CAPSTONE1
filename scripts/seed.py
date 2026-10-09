@@ -146,32 +146,32 @@ _student_data = [
     ('Leo',     'Aquino',     'laquino@dlsu.edu.ph',    'stu018','RVRCOB', 'BS Accountancy',                  '3rd Year','00118','018','2001-08-31'),
     ('Ola',     'Fernandez',  'ofernandez@dlsu.edu.ph', 'stu019','RVRCOB', 'BS Business Administration',      '4th Year','00119','019','2000-04-07'),
     # CoSc
-    ('Amy',     'Torres',     'atorres@dlsu.edu.ph',    'stu020','CoSc',   'BS Biology',                      '4th Year','00120','020','2000-10-03'),
-    ('Paz',     'Ramirez',    'pramirez@dlsu.edu.ph',   'stu021','CoSc',   'BS Chemistry',                    '2nd Year','00121','021','2002-11-09'),
-    ('Rex',     'Morales',    'rmorales@dlsu.edu.ph',   'stu022','CoSc',   'BS Mathematics',                  '4th Year','00122','022','2000-06-17'),
+    ('Amy',     'Torres',     'atorres@dlsu.edu.ph',    'stu020','COS',    'BS Biology',                      '4th Year','00120','020','2000-10-03'),
+    ('Paz',     'Ramirez',    'pramirez@dlsu.edu.ph',   'stu021','COS',    'BS Chemistry',                    '2nd Year','00121','021','2002-11-09'),
+    ('Rex',     'Morales',    'rmorales@dlsu.edu.ph',   'stu022','COS',    'BS Mathematics',                  '4th Year','00122','022','2000-06-17'),
     # CN
-    ('Sofia',   'Martinez',   'smartinez@dlsu.edu.ph',  'stu023','CN',     'BS Nursing',                      '3rd Year','00123','023','2001-09-12'),
-    ('Nina',    'Cruz',       'ncruz@dlsu.edu.ph',      'stu024','CN',     'BS Nursing',                      '1st Year','00124','024','2004-09-06'),
-    ('Sara',    'Aguilar',    'saguilar@dlsu.edu.ph',   'stu025','CN',     'BS Nursing',                      '3rd Year','00125','025','2001-02-14'),
-    ('Tim',     'Mejia',      'tmejia@dlsu.edu.ph',     'stu026','CN',     'BS Nursing',                      '2nd Year','00126','026','2002-03-07'),
+    ('Sofia',   'Martinez',   'smartinez@dlsu.edu.ph',  'stu023','COS',    'BS Biology',                      '3rd Year','00123','023','2001-09-12'),
+    ('Nina',    'Cruz',       'ncruz@dlsu.edu.ph',      'stu024','COS',    'BS Biology',                      '1st Year','00124','024','2004-09-06'),
+    ('Sara',    'Aguilar',    'saguilar@dlsu.edu.ph',   'stu025','COS',    'BS Biology',                      '3rd Year','00125','025','2001-02-14'),
+    ('Tim',     'Mejia',      'tmejia@dlsu.edu.ph',     'stu026','COS',    'BS Biology',                      '2nd Year','00126','026','2002-03-07'),
     # CED
-    ('Grace',   'Aquino',     'gaquino@dlsu.edu.ph',    'stu027','CED',    'BS Education - Science',          '3rd Year','00127','027','2001-04-03'),
-    ('Uma',     'Pascual',    'upascual@dlsu.edu.ph',   'stu028','CED',    'BS Education - Math',             '3rd Year','00128','028','2001-08-25'),
+    ('Grace',   'Aquino',     'gaquino@dlsu.edu.ph',    'stu027','BAGCED', 'BS Education - Science',          '3rd Year','00127','027','2001-04-03'),
+    ('Uma',     'Pascual',    'upascual@dlsu.edu.ph',   'stu028','BAGCED', 'BS Education - Math',             '3rd Year','00128','028','2001-08-25'),
     # SOL
-    ('Sam',     'Rivera',     'srivera@dlsu.edu.ph',    'stu029','SOL',    'Juris Doctor',                    '1st Year','00129','029','2003-12-01'),
-    ('David',   'Tan',        'dtan@dlsu.edu.ph',       'stu030','SOL',    'Juris Doctor',                    '2nd Year','00130','030','2001-03-28'),
-    ('Vince',   'Dela Cruz',  'vdelacruz@dlsu.edu.ph',  'stu031','SOL',    'Juris Doctor',                    '3rd Year','00131','031','2001-11-12'),
+    ('Sam',     'Rivera',     'srivera@dlsu.edu.ph',    'stu029','TDSOL',  'Juris Doctor',                    '1st Year','00129','029','2003-12-01'),
+    ('David',   'Tan',        'dtan@dlsu.edu.ph',       'stu030','TDSOL',  'Juris Doctor',                    '2nd Year','00130','030','2001-03-28'),
+    ('Vince',   'Dela Cruz',  'vdelacruz@dlsu.edu.ph',  'stu031','TDSOL',  'Juris Doctor',                    '3rd Year','00131','031','2001-11-12'),
     # SOM / others
-    ('Maria',   'Santos',     'msantos2@dlsu.edu.ph',   'stu032','CoSc',   'BS Biology',                      '4th Year','00132','032','2000-07-14'),
+    ('Maria',   'Santos',     'msantos2@dlsu.edu.ph',   'stu032','COS',    'BS Biology',                      '4th Year','00132','032','2000-07-14'),
     ('Ethan',   'Lee',        'elee@dlsu.edu.ph',       'stu033','GCOE',   'BS Computer Engineering',         '4th Year','00133','033','2000-12-22'),
-    ('Diana',   'Santos',     'dsantos@dlsu.edu.ph',    'stu034','CED',    'BEEd Elementary',                 '4th Year','00134','034','2000-06-17'),
-    ('Kevin',   'Lim',        'klim@dlsu.edu.ph',       'stu035','CoSc',   'BS Chemistry',                    '3rd Year','00135','035','2001-08-31'),
+    ('Diana',   'Santos',     'dsantos@dlsu.edu.ph',    'stu034','BAGCED', 'BEEd Elementary',                 '4th Year','00134','034','2000-06-17'),
+    ('Kevin',   'Lim',        'klim@dlsu.edu.ph',       'stu035','COS',    'BS Chemistry',                    '3rd Year','00135','035','2001-08-31'),
     # IC-queue only students (no cases yet — intake in progress)
     ('Anna',    'Ramos',      'aramos@dlsu.edu.ph',     'stu036','CCS',    'BS Computer Science',             '1st Year','00136','036','2004-01-15'),
     ('Ben',     'Santos',     'bsantos@dlsu.edu.ph',    'stu037','GCOE',   'BS Civil Engineering',            '2nd Year','00137','037','2003-06-20'),
     ('Cara',    'Garcia',     'cgarcia@dlsu.edu.ph',    'stu038','CLA',    'AB Psychology',                   '3rd Year','00138','038','2001-09-10'),
     ('Dan',     'Lim',        'dlim@dlsu.edu.ph',       'stu039','RVRCOB', 'BS Accountancy',                  '2nd Year','00139','039','2002-11-05'),
-    ('Eva',     'Flores',     'eflores@dlsu.edu.ph',    'stu040','CN',     'BS Nursing',                      '1st Year','00140','040','2004-03-22'),
+    ('Eva',     'Flores',     'eflores@dlsu.edu.ph',    'stu040','COS',    'BS Biology',                      '1st Year','00140','040','2004-03-22'),
 ]
 
 students = []

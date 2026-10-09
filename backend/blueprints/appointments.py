@@ -4616,26 +4616,20 @@ def confirm_intake_slot(appointment_id):
         confirm_fields['counselor_id'] = uid_obj
         confirm_fields['counselor_name'] = f"{user.get('first_name','')} {user.get('last_name','')}".strip()
 
-    # Auto-create Google Meet link only for Google Meet appointments
+    if not apt.get('scheduled_end') and scheduled_end:
+        confirm_fields['scheduled_end'] = scheduled_end
+
+    # Online session: a link on the platform the student chose (Zoom or Google Meet), with the
+    # other as fallback (services/meeting_links.py), made before the confirmation email
     meeting_link = apt.get('meeting_link')
-    pref_platform = apt.get('preferred_platform', '')
-    is_google_meet = preferred_method in ('google_meet', 'google-meet') or pref_platform in ('google-meet', 'google_meet')
-    if not meeting_link and is_google_meet and scheduled_start:
-        try:
-            from blueprints.google_calendar import sync_appointment_to_calendar
-            appt_for_sync = dict(apt)
-            appt_for_sync['scheduled_start'] = scheduled_start
-            appt_for_sync['scheduled_end']   = scheduled_end
-            _, meet_link = sync_appointment_to_calendar(str(uid_obj), appt_for_sync)
-            if meet_link:
-                meeting_link = meet_link
-                confirm_fields['meeting_link']  = meet_link
-                confirm_fields['is_telehealth'] = True
-                print(f"✓ Google Meet created for IC-confirmed appointment: {meet_link}")
-            else:
-                print("⚠ Google Meet: IC has not connected Google Calendar")
-        except Exception as e:
-            print(f"⚠ Google Meet creation failed: {e}")
+    if not meeting_link and scheduled_start:
+        from services.meeting_links import create_meeting_link
+        counselor_doc = db.db.users.find_one({'_id': existing_counselor}) if existing_counselor else user
+        link_fields = create_meeting_link(apt, counselor_doc, db.db.users.find_one({'_id': apt.get('student_id')}),
+                                          scheduled_start, scheduled_end, current_app.config) or {}
+        if link_fields:
+            confirm_fields.update(link_fields)
+            meeting_link = link_fields['meeting_link']
 
     db.db.appointments.update_one({'_id': apt_id}, {'$set': confirm_fields})
 

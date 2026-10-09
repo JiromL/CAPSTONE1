@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/utils/api';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ClinicalExportModal } from '@/components/ClinicalExportModal';
+import { todayPH } from '@/utils/dateUtils';
 import {
   Loader2, AlertCircle, RefreshCw, Search, CheckCircle2,
   ClipboardList, CalendarDays, FileCheck, PenLine, Clock,
@@ -343,7 +344,7 @@ function MiniSchedulePanel({ requestedDates }: { requestedDates: string[] }) {
   });
 
   const endDate    = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
-  const todayKey   = new Date().toISOString().slice(0, 10);
+  const todayKey   = todayPH();
   const weekLabel  = `${weekStart.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month:'short', day:'numeric' })} – ${endDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month:'short', day:'numeric' })}`;
 
   return (

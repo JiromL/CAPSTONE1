@@ -4,6 +4,7 @@ Role-based appointment request viewing for different user types
 """
 
 from flask import Blueprint, jsonify, request
+from utils import server_error
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson import ObjectId
 from datetime import datetime, timedelta
@@ -47,7 +48,7 @@ def get_role_based_dashboard():
             return get_generic_dashboard(user_id_obj, user_name)
     
     except Exception as e:
-        return jsonify({'error': f'Failed to fetch dashboard: {str(e)}'}), 500
+        return server_error(e, 'Failed to fetch dashboard. Please try again.')
 
 def get_student_appointments(user_id_obj, user_name):
     """STUDENT: All their own appointments — by student_id directly, not via case."""
@@ -74,7 +75,7 @@ def get_student_appointments(user_id_obj, user_name):
             'can_delete': True,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 def get_counselor_appointments(user_id_obj, user_name):
     """COUNSELOR/PSYCHOLOGIST: View their assigned appointments across all active statuses"""
@@ -116,7 +117,7 @@ def get_counselor_appointments(user_id_obj, user_name):
             'can_reschedule': True,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 def get_admin_dashboard(user_id_obj, user_name):
     """ADMIN: View all appointments with detailed statistics"""
@@ -162,7 +163,7 @@ def get_admin_dashboard(user_id_obj, user_name):
             'can_view_all': True
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 def get_intake_coordinator_requests(user_id_obj, user_name):
     """IC: Sees their own assigned appointments + any unassigned REQUESTED intake appointments."""
@@ -224,7 +225,7 @@ def get_intake_coordinator_requests(user_id_obj, user_name):
             'can_approve': True,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 def get_case_coordinator_requests(user_id_obj, user_name):
     """CSC/CSP: View active/ongoing appointments assigned to them plus all follow-up/referral sessions"""
@@ -263,7 +264,7 @@ def get_case_coordinator_requests(user_id_obj, user_name):
             'can_manage_cases': True
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 def get_staff_dashboard(user_id_obj, user_name):
     """STAFF: Unassigned requests, confirmed appointments the OA scheduled, and reschedules."""
@@ -319,7 +320,7 @@ def get_staff_dashboard(user_id_obj, user_name):
             'can_cancel': True,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 def get_case_manager_dashboard(user_id_obj, user_name):
@@ -348,7 +349,7 @@ def get_case_manager_dashboard(user_id_obj, user_name):
             'can_reschedule': False,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 def get_generic_dashboard(user_id_obj, user_name):
@@ -366,7 +367,7 @@ def get_generic_dashboard(user_id_obj, user_name):
             }
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 def format_appointments(appointments):
     """Convert appointments to JSON-friendly format with enriched details"""
@@ -519,7 +520,7 @@ def get_calendar_appointments():
     try:
         apts = list(db.db.appointments.find(query).sort('scheduled_start', 1))
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
     # Cache lookups to avoid N+1
     user_cache: dict = {}

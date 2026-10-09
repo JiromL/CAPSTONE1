@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { ICInterviewWizard } from '@/components/ICInterviewWizard';
 import { api } from '@/utils/api';
+import { todayPH, ymd } from '@/utils/dateUtils';
 import {
   Loader2, ChevronLeft, ChevronRight, CheckCircle2,
   AlertTriangle, ShieldAlert, Shield, Activity,
@@ -232,7 +233,7 @@ export default function ConductIntakePage() {
   const [workloadLoading, setWorkloadLoading] = useState(false);
   const [recommendedId, setRecommendedId] = useState<string | null>(null);
 
-  const [slotDate, setSlotDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [slotDate, setSlotDate] = useState(() => todayPH());
   const [slots, setSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsInfo, setSlotsInfo] = useState<{ is_holiday?: boolean; holiday_name?: string; is_leave?: boolean } | null>(null);
@@ -773,8 +774,8 @@ export default function ConductIntakePage() {
                     <input
                       type="date"
                       value={slotDate}
-                      min={new Date().toISOString().slice(0, 10)}
-                      max={(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10); })()}
+                      min={todayPH()}
+                      max={(() => { const d = new Date(); return ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0)); })()}
                       onChange={e => setSlotDate(e.target.value)}
                       className={IC} style={{ ...ICSSEL, width: 'auto', flex: '0 0 auto' }}
                     />

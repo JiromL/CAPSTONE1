@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+import { todayPH } from '@/utils/dateUtils';
 import {
   AlertCircle, CheckCircle2, ChevronRight, ChevronLeft,
   User, BookOpen, Heart, Phone, MapPin, GraduationCap,
@@ -200,7 +201,7 @@ export default function WalkinIntakePage() {
   const loadIcSlots = async () => {
     setLoadingSlots(true); setSlotsError('');
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayPH();
       const token = localStorage.getItem('token');
       const res = await fetch(api(`/api/availability/open-slots?date=${today}`), {
         headers: { Authorization: `Bearer ${token}` },

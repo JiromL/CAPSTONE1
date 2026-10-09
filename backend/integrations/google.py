@@ -209,8 +209,10 @@ class GoogleMeetIntegration:
 
 class GoogleIntegration:
     def __init__(self, config):
-        self.client_id = config.GOOGLE_CLIENT_ID
-        self.client_secret = config.GOOGLE_CLIENT_SECRET
+        # Callers pass Flask's app.config (a dict); accept a config object too
+        get = config.get if hasattr(config, 'get') else (lambda k, d=None: getattr(config, k, d))
+        self.client_id = get('GOOGLE_CLIENT_ID') or os.getenv('GOOGLE_CLIENT_ID')
+        self.client_secret = get('GOOGLE_CLIENT_SECRET') or os.getenv('GOOGLE_CLIENT_SECRET')
         self.redirect_uri = os.getenv('GOOGLE_OAUTH_REDIRECT', 'http://localhost:5000/api/oauth/callback/google')
         self.scope = 'openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send'
 

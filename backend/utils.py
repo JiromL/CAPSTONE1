@@ -247,3 +247,11 @@ def record_access_error(db, user_id, view_args):
         if err and err[1] == 403:
             return err
     return None
+
+
+def server_error(e, message='Something went wrong on our side. Please try again.'):
+    """Log the real error for staff, give the user a plain message. Raw exception text can
+    reveal database queries, file paths or library details, so it never goes to the browser."""
+    import logging
+    logging.getLogger('cps').exception('Server error: %s', e)
+    return jsonify({'error': message}), 500

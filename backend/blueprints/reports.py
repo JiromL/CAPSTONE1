@@ -11,7 +11,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from datetime import datetime, timedelta
 from models import db
-from utils import audit_log
+from utils import audit_log, server_error
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/api/reports')
 
@@ -134,7 +134,7 @@ def cps_export():
         return jsonify({'sheet': sheet, 'range': label, 'rows': rows, 'total': len(rows)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 # ─── CPS summary counts (used by analytics page) ─────────────────────────────
@@ -166,7 +166,7 @@ def cps_summary():
             'checkins': {'total_clients': checkin_total, 'checkins_this_month': checkin_month},
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 # ─── sheet builders ───────────────────────────────────────────────────────────
@@ -616,7 +616,7 @@ def appointments_csv():
         return jsonify({'rows': rows, 'total': len(rows), 'month': month or 'all'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 # ─── Case summary (for printable case record) ─────────────────────────────────
@@ -744,4 +744,4 @@ def case_summary(case_id):
         return jsonify(result), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)

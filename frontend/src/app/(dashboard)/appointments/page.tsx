@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import CalendarWeekView, { CalAppt } from '@/components/CalendarWeekView';
 import { api } from '@/utils/api';
+import { todayPH, ymd } from '@/utils/dateUtils';
 import {
   Loader2, Eye, Video, RotateCcw, Star, ExternalLink, RefreshCw,
   Archive, CheckCircle, History, X, AlertCircle, AlertTriangle, CalendarDays,
@@ -527,7 +528,7 @@ function MiniSchedulePanel() {
     if (diff >= 0 && diff < 7) byDay[diff].push(a);
   });
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = todayPH();
   const endDate  = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
   const weekLabel = `${weekStart.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })} – ${endDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}`;
   const totalThisWeek = appts.filter(a => ['CONFIRMED','APPROVED','MATCHED','CHECKED_IN'].includes(a.status)).length;
@@ -583,7 +584,7 @@ function MiniSchedulePanel() {
           <div className="grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
             {WEEK_DAYS.map((label, idx) => {
               const dayDate = new Date(weekStart); dayDate.setDate(dayDate.getDate() + idx);
-              const dateKey = dayDate.toISOString().slice(0, 10);
+              const dateKey = ymd(dayDate);
               const isToday = dateKey === todayKey;
               const dayAppts = byDay[idx];
 
@@ -2287,7 +2288,7 @@ export default function AppointmentsPage() {
                     <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Pick a date</label>
                     <input type="date" value={schedDate}
                       onChange={e => { setSchedDate(e.target.value); setSchedTime(''); loadMySlots(e.target.value); }}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={todayPH()}
                       className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
                   </div>
                   {schedDate && (

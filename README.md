@@ -33,7 +33,8 @@ CAPSTONE1/
     ├── seed_bookings.py         # REQUESTED + PENDING_APPROVAL appointments
     ├── seed_structured_soap.py  # Structured SOAP session notes
     ├── seed_all.py              # Single-command seed runner (calls all scripts)
-    └── seed_announcements.py    # Standalone announcements seed
+    ├── seed_announcements.py    # Announcements (title, body, type, pinned)
+    └── seed_ema.py              # EMA consent, triage scenarios, crisis reviews, journals
 ```
 
 ## Getting Started
@@ -82,16 +83,32 @@ PORT=5001 python app.py
 
 ### Seeding the Database
 
-`seed.py` **wipes `cps_system_dev`** and rebuilds it. Run all four scripts in order:
+`seed_all.py` **wipes `cps_system_dev`** and rebuilds it in one command:
 
 ```bash
-python3 scripts/seed.py                  # Wipes DB and seeds base data
-python3 scripts/enrich_ic_forms.py       # Fills IC interview form fields
-python3 scripts/seed_bookings.py         # Adds booking workflow appointments
-python3 scripts/seed_structured_soap.py  # Adds structured SOAP session notes
+backend/venv/bin/python scripts/seed_all.py
 ```
 
-After seeding: **64 users, 35 cases, 91 appointments, 40 session notes, 72 PERMA entries**
+It runs, in order: `seed.py` (base data), `enrich_ic_forms.py`, `seed_bookings.py`, `seed_structured_soap.py`,
+`seed_announcements.py`, `seed_ema.py` and the staff sample data.
+
+`seed_ema.py` makes the EMA data follow the app's triage rules: EMA consent for every linked student, when each
+result reached CPS, about 4 months of history, crisis reviews with notes, journal entries (some saved from EMA),
+and triage labels computed with `backend/services/perma_triage.py`. It also scripts one student per triage
+situation. Log in as the case manager (`cm@dlsu.edu.ph`) and open the CM Queue to see them:
+
+| Student | Situation | Expected label |
+|---------|-----------|----------------|
+| Maria Santos (`msantos2@`) | Crisis 2 hours ago, not reviewed | In Crisis |
+| Alex Chen (`achen@`) | Crisis 2 days ago, not reviewed (overdue) | In Crisis |
+| Mark Smith (`msmith@`) | Crisis reviewed 3 days ago | Struggling, crisis reviewed |
+| Carlos Diaz (`cdiaz@`) | Reviewed 8 days ago, in crisis again yesterday | In Crisis (red in Recently reviewed) |
+| Miguel Santos (`msantos@`) | Crisis that reached CPS after a review | In Crisis, not counted as reviewed |
+| Harold Santos (`hsantos@`) | Struggling 3 times in 7 days | Struggling, persistent struggle |
+| Jake Villanueva (`jvillanueva@`) | Struggling and Excelling on the same day | Struggling, unstable mood |
+| Nina Cruz (`ncruz@`) | No check-in for 12 days | Struggling, marked stale |
+
+After seeding: **64 users, 45 cases, about 2,500 EMA results, about 130 crisis reviews, about 55 journal entries**
 
 ### Tests
 
@@ -109,6 +126,31 @@ their own records; counselors only cases assigned to them).
 ```bash
 cd frontend && npm run build && npm start
 ```
+
+Backend in production: use a real server, not `python app.py` (Flask's development server):
+
+```bash
+cd backend
+FLASK_ENV=production SECRET_KEY=... JWT_SECRET_KEY=... MONGODB_URI=... \
+  venv/bin/gunicorn -w 4 -b 0.0.0.0:5001 "app:app"
+```
+
+- Production refuses to start without its own `SECRET_KEY` and `JWT_SECRET_KEY` (the built-in
+  defaults are public in this repository).
+- Background jobs (reminders, EMA sync, triage, EMA key renewal) run in every server process,
+  but a lease in the `scheduler_runs` collection lets only one process run each job per period.
+- Set `EMAIL_DISABLED=1` in development: seeded accounts use real-looking `@dlsu.edu.ph`
+  addresses, and with SMTP settings present the app really sends email.
+
+### Time conventions
+
+- Appointment times (`scheduled_start`, `requested_start`, ...) are stored as **Philippine
+  wall-clock time without a timezone**. Compare them with `utcnow() + 8 hours`, never `utcnow()`.
+- Everything else (`created_at`, EMA results' `entry_date`, reviews) is **UTC**.
+- In the frontend, use `todayPH()` and `ymd()` from `utils/dateUtils.ts` for calendar dates.
+  `toISOString()` converts to UTC, which in the Philippines turns local midnight into the
+  previous day.
+- EMA rules that are about days group results by Philippine calendar day.
 
 Design mockups under `/design` are available in development only and return 404 in production builds.
 

@@ -193,3 +193,103 @@ def test_insights_are_care_team_only(client, world):
     assert client.get('/api/mhbot/analytics/insights', headers=auth(world['office'])).status_code == 403
     r = client.get('/api/mhbot/analytics/insights', headers=auth(world['cm']))
     assert r.status_code == 200 and r.get_json()['min_group'] == 5
+
+
+# ── EMA scope: own students, everyone, or totals only (services/ema_access.py) ──
+
+@pytest.fixture
+def at_risk_student(world):
+    """'other' is In Crisis on EMA; their case is assigned to 'counselor', not 'stranger_counselor'."""
+    db.db.users.update_one({'_id': world['other']}, {'$set': {
+        'mhbot_username': 'scope-test', 'ema_consent_given': True, 'perma_triage_label': 'In Crisis',
+        'perma_triage': {'label': 'In Crisis', 'flags': ['crisis_pending_review'], 'crisis_pending_review': True}}})
+    yield world['other']
+    db.db.users.update_one({'_id': world['other']}, {'$unset': {
+        'mhbot_username': '', 'ema_consent_given': '', 'perma_triage_label': '', 'perma_triage': ''}})
+
+
+def _queue_ids(client, user):
+    r = client.get('/api/mhbot/cm-queue', headers=auth(user))
+    assert r.status_code == 200
+    return {s['student_id'] for s in r.get_json()['students']}
+
+
+def test_counselor_sees_only_own_students_in_ema_lists(client, world, at_risk_student):
+    assert str(at_risk_student) in _queue_ids(client, world['counselor'])
+    assert str(at_risk_student) not in _queue_ids(client, world['stranger_counselor'])
+    r = client.get('/api/mhbot/analytics/attention', headers=auth(world['stranger_counselor']))
+    assert str(at_risk_student) not in {s['student_id'] for s in r.get_json()['students']}
+
+
+def test_case_manager_sees_every_student(client, world, at_risk_student):
+    assert str(at_risk_student) in _queue_ids(client, world['cm'])
+
+
+def test_counselor_cannot_open_another_counselors_student(client, world, at_risk_student):
+    path = f'/api/mhbot/students/{at_risk_student}/perma-trend'
+    assert client.get(path, headers=auth(world['stranger_counselor'])).status_code == 403
+    assert client.get(path, headers=auth(world['counselor'])).status_code == 200
+    assert client.get('/api/mhbot/perma/scope-test', headers=auth(world['stranger_counselor'])).status_code == 403
+
+
+def test_ema_lookup_refuses_usernames_outside_cps(client, world):
+    r = client.post('/api/mhbot/lookup', json={'username': 'not-a-cps-student'}, headers=auth(world['cm']))
+    assert r.status_code == 403
+
+
+def test_admin_sees_totals_without_names(client, world, at_risk_student):
+    assert client.get('/api/mhbot/cm-queue', headers=auth(world['admin'])).status_code == 403
+    assert client.get(f'/api/mhbot/students/{at_risk_student}/perma-trend', headers=auth(world['admin'])).status_code == 403
+    r = client.get('/api/mhbot/analytics/insights', headers=auth(world['admin'])).get_json()
+    assert r['names_hidden'] and r['crisis_followup']['pending'] == [] and r['counts']['pending_crises'] >= 0
+    att = client.get('/api/mhbot/analytics/attention', headers=auth(world['admin'])).get_json()
+    assert att['students'] == [] and att['names_hidden'] and att['total'] >= 1
+    r = client.post(f'/api/mhbot/students/{at_risk_student}/clear-crisis', json={'note': 'admin should not clear this'},
+                    headers=auth(world['admin']))
+    assert r.status_code == 403
+
+
+# ── Audit fixes ──────────────────────────────────────────────────────────────
+
+def test_students_cannot_edit_client_records(client, world):
+    for path in ('/api/client-tracking/new-intakes/%s' % ObjectId(), '/api/client-tracking/check-ins/%s' % ObjectId(),
+                 '/api/client-tracking/counseling-cases/%s' % ObjectId()):
+        assert client.put(path, json={'status': 'CLOSED'}, headers=auth(world['student'])).status_code == 403, path
+
+
+def test_students_cannot_upload_case_documents(client, world):
+    import io
+    r = client.post('/api/documentation/upload', headers=auth(world['student']), content_type='multipart/form-data',
+                    data={'case_id': str(world['other_case']), 'file': (io.BytesIO(b'x'), 'note.pdf')})
+    assert r.status_code == 403
+
+
+def test_profile_cannot_change_login_email(client, world):
+    me = db.db.users.find_one({'_id': world['student']})
+    r = client.put('/api/users/profile', headers=auth(world['student']),
+                   json={'first_name': 'A', 'last_name': 'B', 'email': 'someone-else@example.com'})
+    assert r.status_code == 400
+    assert db.db.users.find_one({'_id': world['student']})['email'] == me['email']
+
+
+def test_counselor_with_open_cases_cannot_be_deactivated(client, world):
+    r = client.put(f"/api/users/{world['counselor']}/status", json={'is_active': False}, headers=auth(world['admin']))
+    if r.status_code == 405:    # route uses PATCH in some versions
+        r = client.patch(f"/api/users/{world['counselor']}/status", json={'is_active': False}, headers=auth(world['admin']))
+    assert r.status_code == 409 and r.get_json().get('open_cases') >= 1
+    assert db.db.users.find_one({'_id': world['counselor']}).get('is_active') is not False
+
+
+def test_new_crisis_alerts_case_managers_and_own_counselor_once(client, world):
+    from services.crisis_alerts import alert_new_crisis, ALERT_TYPE
+    sid = world['other']
+    try:
+        assert alert_new_crisis(db.db, sid, datetime.utcnow()) >= 2
+        assert alert_new_crisis(db.db, sid, datetime.utcnow()) == 0                    # one alert per 12 hours
+        mine = client.get('/api/high-risk/notifications', headers=auth(world['counselor'])).get_json()['notifications']
+        assert any(n['type'] == ALERT_TYPE and n['link'].startswith('/cases/') for n in mine)
+        assert client.get('/api/high-risk/notifications', headers=auth(world['stranger_counselor'])).get_json()['count'] == 0
+        db.db.notifications.delete_many({'type': ALERT_TYPE, 'student_id': sid})
+        assert alert_new_crisis(db.db, sid, datetime.utcnow() - timedelta(days=5)) == 0  # old results arriving late
+    finally:
+        db.db.notifications.delete_many({'type': ALERT_TYPE, 'student_id': sid})

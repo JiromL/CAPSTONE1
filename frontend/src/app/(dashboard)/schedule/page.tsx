@@ -6,6 +6,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import CalendarWeekView, { CalAppt, PersonalEvent } from '@/components/CalendarWeekView';
 import { api } from '@/utils/api';
 import { X, Loader2, Check, Monitor, MapPin, CalendarOff, Trash2, Plus } from 'lucide-react';
+import { todayPH } from '@/utils/dateUtils';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -707,7 +708,7 @@ function ScheduleInner() {
               <div className="flex-1 min-w-[140px]">
                 <label className="field-label">Date</label>
                 <input type="date" value={newLeaveDate} onChange={e => setNewLeaveDate(e.target.value)}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={todayPH()}
                   className={IC} style={IC_S} onFocus={onFIn} onBlur={onFOut} />
               </div>
               <div className="flex-1 min-w-[160px]">

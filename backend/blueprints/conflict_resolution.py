@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
-from utils import user_has_permission, audit_log
+from utils import user_has_permission, audit_log, server_error
 from datetime import datetime, timedelta
 
 conflict_resolution_bp = Blueprint('conflict_resolution', __name__, url_prefix='/api/conflict-resolution')
@@ -204,7 +204,7 @@ def check_all_conflicts():
         print(f"Error in check_all_conflicts: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to check conflicts: {str(e)}'}), 500
+        return server_error(e, 'Failed to check conflicts. Please try again.')
 
 
 @conflict_resolution_bp.route('/detect-double-bookings', methods=['GET'])
@@ -307,7 +307,7 @@ def detect_double_bookings():
         print(f"Error in detect_double_bookings: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to detect conflicts: {str(e)}'}), 500
+        return server_error(e, 'Failed to detect conflicts. Please try again.')
 
 
 @conflict_resolution_bp.route('/resolve/<appointment_id>', methods=['POST'])
@@ -421,7 +421,7 @@ def resolve_conflict(appointment_id):
         print(f"Error in resolve_conflict: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to resolve conflict: {str(e)}'}), 500
+        return server_error(e, 'Failed to resolve conflict. Please try again.')
 
 
 @conflict_resolution_bp.route('/validate-timeslot', methods=['POST'])

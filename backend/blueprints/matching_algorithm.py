@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
-from utils import user_has_permission
+from utils import user_has_permission, server_error
 from datetime import datetime, timedelta
 
 matching_algorithm_bp = Blueprint('matching_algorithm', __name__, url_prefix='/api/matching-algorithm')
@@ -237,7 +237,7 @@ def get_matching_candidates(case_id):
         print(f"Error in get_matching_candidates: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Matching algorithm error: {str(e)}'}), 500
+        return server_error(e, 'Matching algorithm error. Please try again.')
 
 
 @matching_algorithm_bp.route('/scoring-explanation', methods=['GET'])
@@ -425,4 +425,4 @@ def explain_matching_decision(case_id):
         print(f"Error in explain_matching_decision: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Error explaining decision: {str(e)}'}), 500
+        return server_error(e, 'Error explaining decision. Please try again.')

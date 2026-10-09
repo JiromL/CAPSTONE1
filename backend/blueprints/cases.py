@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from bson.objectid import ObjectId
 from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
-from utils import serialize_doc, user_has_permission, case_access_error, audit_log
+from utils import serialize_doc, user_has_permission, case_access_error, audit_log, server_error
 import uuid
 
 cases_bp = Blueprint('cases', __name__, url_prefix='/api/cases')
@@ -23,6 +23,19 @@ def _ensure_case_number(case):
     db.db.cases.update_one({'_id': case['_id']}, {'$set': {'case_number': num}})
     case['case_number'] = num
     return case
+
+
+def _emergency_contact(user: dict):
+    """The student's own emergency contact, from their profile. Older records store it as an
+    object; the profile form stores a name plus separate phone and relationship fields."""
+    ec = user.get('emergency_contact')
+    if isinstance(ec, dict):
+        name, rel, phone = ec.get('name'), ec.get('relationship'), ec.get('phone')
+    else:
+        name, rel, phone = ec, user.get('emergency_contact_relationship'), user.get('emergency_phone')
+    if not (name or phone):
+        return None
+    return {'name': name or '', 'relationship': rel or '', 'phone': phone or ''}
 
 
 def has_permission(user_role, permission):
@@ -439,7 +452,8 @@ def get_case(case_id):
             {'_id': raw_student_id},
             {'name': 1, 'email': 1, 'student_id': 1, 'id_number': 1, 'mhbot_username': 1,
              'college': 1, 'course': 1, 'program': 1, 'year_level': 1,
-             'first_name': 1, 'last_name': 1, 'middle_name': 1, 'phone': 1}
+             'first_name': 1, 'last_name': 1, 'middle_name': 1, 'phone': 1, 'contact_number': 1,
+             'emergency_contact': 1, 'emergency_phone': 1, 'emergency_contact_relationship': 1}
         )
         if student_doc:
             full_name = (student_doc.get('name') or
@@ -450,7 +464,8 @@ def get_case(case_id):
                 'last_name': student_doc.get('last_name', ''),
                 'middle_name': student_doc.get('middle_name', ''),
                 'email': student_doc.get('email', ''),
-                'phone': student_doc.get('phone', ''),
+                'phone': student_doc.get('phone') or student_doc.get('contact_number', ''),
+                'emergency_contact': _emergency_contact(student_doc),
                 'school_id': (student_doc.get('student_id') or student_doc.get('id_number') or ''),
                 'mhbot_username': student_doc.get('mhbot_username', ''),
                 'college': student_doc.get('college', ''),
@@ -799,7 +814,7 @@ def get_session_count(case_id):
         limit = 10
         return jsonify({'completed': completed, 'limit': limit, 'remaining': max(0, limit - completed)}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @cases_bp.route('/<case_id>/close', methods=['PUT'])
@@ -1132,7 +1147,7 @@ def add_diagnosis(case_id):
             {'$push': {'diagnoses': diagnosis}, '$set': {'updated_at': datetime.utcnow()}}
         )
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
     return jsonify({'success': True, 'diagnosis': diagnosis}), 201
 
@@ -1158,7 +1173,7 @@ def remove_diagnosis(case_id, index):
             {'$set': {'diagnoses': diagnoses, 'updated_at': datetime.utcnow()}}
         )
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
     return jsonify({'success': True}), 200
 
 

@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, redirect, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType, CaseStatus, TerminationType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, server_error
 from datetime import datetime, timedelta
 import os
 import random
@@ -493,7 +493,7 @@ def get_my_appointments():
         error_trace = traceback.format_exc()
         print(f"Error in get_my_appointments: {str(e)}")
         print(error_trace)
-        return jsonify({'error': f'Failed to fetch appointments: {str(e)}'}), 500
+        return server_error(e, 'Failed to fetch appointments. Please try again.')
 
 
 @appointments_bp.route('/available-counselors', methods=['GET'])
@@ -731,7 +731,7 @@ def check_active_appointment():
         import traceback
         print(f"Error checking active appointment: {str(e)}")
         print(traceback.format_exc())
-        return jsonify({'error': f'Failed to check active appointment: {str(e)}'}), 500
+        return server_error(e, 'Failed to check active appointment. Please try again.')
 
 
 @appointments_bp.route('/request', methods=['POST'])
@@ -1209,55 +1209,23 @@ def match_counselor(appointment_id):
             except Exception as e:
                 print(f"⚠ Could not parse scheduled times: {e}")
 
-        # Auto-create meeting link based on preferred method
-        meeting_link = None
-        meeting_id_str = None
-        meeting_passcode = None
-        preferred_method = appointment.get('preferred_method', '')
-
-        if preferred_method == 'zoom' and scheduled_start:
-            try:
-                from integrations.zoom import ZoomIntegration
-                zoom = ZoomIntegration(current_app.config)
-                student_doc = db.db.users.find_one({"_id": appointment.get('student_id')})
-                s_name = f"{student_doc.get('first_name','')} {student_doc.get('last_name','')}".strip() if student_doc else 'Student'
-                c_name = f"{counselor.get('first_name','')} {counselor.get('last_name','')}".strip()
-                zoom_result = zoom.create_meeting(
-                    topic=f"Counseling Session – {s_name} with {c_name}",
-                    start_time=scheduled_start.isoformat()
-                )
-                meeting_link = zoom_result.get('join_url')
-                meeting_id_str = str(zoom_result.get('meeting_id', ''))
-                meeting_passcode = zoom_result.get('meeting_passcode')
-                print(f"✓ Zoom meeting created: {meeting_link}")
-            except Exception as e:
-                print(f"⚠ Zoom meeting creation failed: {e}")
-
-        elif preferred_method in ('google_meet', 'google-meet', 'online') and scheduled_start:
-            try:
-                from blueprints.google_calendar import sync_appointment_to_calendar
-                counselor_id_str = str(counselor['_id'])
-                # Build a minimal appointment dict for the sync helper
-                appt_for_sync = dict(appointment)
-                appt_for_sync['scheduled_start'] = scheduled_start
-                appt_for_sync['scheduled_end'] = scheduled_end or scheduled_start + timedelta(minutes=60)
-                appt_for_sync['counselor_id'] = counselor['_id']
-                _, meet_link = sync_appointment_to_calendar(counselor_id_str, appt_for_sync)
-                if meet_link:
-                    meeting_link = meet_link
-                    print(f"✓ Google Meet created: {meeting_link}")
-                else:
-                    print("⚠ Google Meet: counselor has not connected Google Calendar")
-            except Exception as e:
-                print(f"⚠ Google Meet creation failed: {e}")
-
-        # Fall back to the student's requested time when no explicit scheduled time is provided
+        # Fall back to the student's requested time when no explicit scheduled time is provided.
+        # Done before the meeting link, which needs a start time.
         if not scheduled_start:
             scheduled_start = appointment.get('requested_start')
         if not scheduled_end:
             scheduled_end = appointment.get('requested_end')
             if not scheduled_end and scheduled_start:
                 scheduled_end = scheduled_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60))
+
+        # Meeting link on the platform the student chose (Zoom or Google Meet), with the other as fallback
+        from services.meeting_links import create_meeting_link
+        preferred_method = appointment.get('preferred_method', '')
+        link_fields = create_meeting_link(
+            appointment, counselor, db.db.users.find_one({"_id": appointment.get('student_id')}),
+            scheduled_start, scheduled_end, current_app.config) or {}
+        meeting_link = link_fields.get('meeting_link')
+        meeting_passcode = link_fields.get('meeting_passcode')
 
         # Build update fields
         update_fields = {
@@ -1273,11 +1241,7 @@ def match_counselor(appointment_id):
             update_fields["scheduled_end"] = scheduled_end
         if data.get('office'):
             update_fields["office"] = data['office'].strip()
-        if meeting_link:
-            update_fields["meeting_link"] = meeting_link
-            update_fields["meeting_id"] = meeting_id_str
-            update_fields["meeting_passcode"] = meeting_passcode
-            update_fields["is_telehealth"] = True
+        update_fields.update(link_fields)
 
         db.db.appointments.update_one(
             {"_id": appointment['_id']},
@@ -1645,6 +1609,21 @@ def confirm_appointment(appointment_id):
         {"_id": appointment['_id']},
         {"$set": update_fields}
     )
+    appointment.update(update_fields)
+
+    # Online session with no link yet: make one now, before the confirmation email goes out
+    link_fields = {}
+    if not appointment.get('meeting_link'):
+        from services.meeting_links import create_meeting_link
+        start = appointment.get('scheduled_start')
+        link_fields = create_meeting_link(
+            appointment, db.db.users.find_one({"_id": appointment['counselor_id']}),
+            db.db.users.find_one({"_id": appointment.get('student_id')}),
+            start, appointment.get('scheduled_end') or (start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60)) if start else None),
+            current_app.config) or {}
+        if link_fields:
+            db.db.appointments.update_one({"_id": appointment['_id']}, {"$set": link_fields})
+            appointment.update(link_fields)
 
     # Auto-create 24h and 1h reminder records on confirmation
     try:
@@ -1685,7 +1664,7 @@ def confirm_appointment(appointment_id):
         student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}"
         student_email = student.get('email', '')
         student_id_str = student.get('student_id', 'N/A')
-        student_contact = student.get('phone_number', student_email)
+        student_contact = student.get('phone') or student.get('contact_number') or student_email
         
         counselor_name = f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}" if counselor else "CPS Staff"
         
@@ -1770,9 +1749,10 @@ def confirm_appointment(appointment_id):
         print(f"⚠ Error sending confirmation: {e}")
         # Don't fail the appointment confirmation if email sending fails
     
-    # Auto-sync to Google Calendar / create Meet link if counselor has calendar connected
+    # Auto-sync to Google Calendar if the counselor has it connected (skipped when the Meet link
+    # above already created the calendar event)
     counselor_id = appointment.get('counselor_id')
-    if counselor_id:
+    if counselor_id and not link_fields.get('calendar_event_id'):
         try:
             from blueprints.google_calendar import sync_appointment_to_calendar
             calendar_event_id, meet_link = sync_appointment_to_calendar(str(counselor_id), appointment)
@@ -3287,7 +3267,7 @@ def batch_auto_assign():
         print(f"Error in batch_auto_assign: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Batch assignment failed: {str(e)}'}), 500
+        return server_error(e, 'Batch assignment failed. Please try again.')
 
 
 @appointments_bp.route('/staff/workload-report', methods=['GET'])
@@ -3353,7 +3333,7 @@ def get_workload_report():
         print(f"Error in get_workload_report: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to generate report: {str(e)}'}), 500
+        return server_error(e, 'Failed to generate report. Please try again.')
 
 
 @appointments_bp.route('/ic-counselor-workload', methods=['GET'])
@@ -3513,7 +3493,7 @@ def get_reassignment_suggestions():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to generate suggestions: {str(e)}'}), 500
+        return server_error(e, 'Failed to generate suggestions. Please try again.')
 
 @appointments_bp.route('/<appointment_id>/cancel', methods=['POST'])
 @jwt_required()
@@ -3672,7 +3652,7 @@ def cancel_appointment(appointment_id):
         error_trace = traceback.format_exc()
         print(f"Error in cancel_appointment: {str(e)}")
         print(error_trace)
-        return jsonify({'error': f'Failed to cancel appointment: {str(e)}'}), 500
+        return server_error(e, 'Failed to cancel appointment. Please try again.')
 
 
 @appointments_bp.route('/<appointment_id>/approve', methods=['POST'])
@@ -3744,7 +3724,7 @@ def approve_appointment(appointment_id):
         error_trace = traceback.format_exc()
         print(f"Error in approve_appointment: {str(e)}")
         print(error_trace)
-        return jsonify({'error': f'Failed to approve appointment: {str(e)}'}), 500
+        return server_error(e, 'Failed to approve appointment. Please try again.')
 
 
 @appointments_bp.route('/<appointment_id>/deny', methods=['POST'])
@@ -3838,7 +3818,7 @@ def deny_appointment(appointment_id):
         error_trace = traceback.format_exc()
         print(f"Error in deny_appointment: {str(e)}")
         print(error_trace)
-        return jsonify({'error': f'Failed to deny appointment: {str(e)}'}), 500
+        return server_error(e, 'Failed to deny appointment. Please try again.')
 
 
 @appointments_bp.route('/<appointment_id>/reschedule', methods=['POST'])
@@ -4006,7 +3986,7 @@ def reschedule_appointment(appointment_id):
         error_trace = traceback.format_exc()
         print(f"Error in reschedule_appointment: {str(e)}")
         print(error_trace)
-        return jsonify({'error': f'Failed to reschedule appointment: {str(e)}'}), 500
+        return server_error(e, 'Failed to reschedule appointment. Please try again.')
 
 
 @appointments_bp.route('/reschedule-requests', methods=['GET'])
@@ -4669,7 +4649,7 @@ def confirm_intake_slot(appointment_id):
                 'student_name':    f"{student.get('first_name','')} {student.get('last_name','')}".strip(),
                 'student_id':      student.get('student_id', 'N/A'),
                 'student_email':   student.get('email', ''),
-                'student_contact': student.get('phone_number', student.get('email', '')),
+                'student_contact': student.get('phone') or student.get('contact_number') or student.get('email', ''),
                 'reference_id':    apt.get('reference_id', ''),
                 'appointment_date': scheduled_start.strftime('%B %d, %Y'),
                 'appointment_time': scheduled_start.strftime('%I:%M %p'),

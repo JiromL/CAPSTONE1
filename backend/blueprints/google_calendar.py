@@ -374,7 +374,7 @@ def sync_appointment_to_calendar(user_id, appointment_data, counselor_email=None
         is_online = (
             appointment_data.get('preferred_method', '') in _online_vals
             or appointment_data.get('method', '') in _online_vals
-        )
+        ) and (appointment_data.get('preferred_platform') or '') != 'zoom'   # Zoom sessions get a Zoom link instead
         result = google.create_calendar_event(access_token, event, create_meet_link=is_online)
 
         meet_link = None

@@ -1830,9 +1830,12 @@ function CaseDetailContent() {
             const yearLevel = s.year_level || icf.year_level || '';
             const phone = s.phone || '';
             const middleName = s.middle_name || '';
-            const emergencyName = icf.emergency_contact_name || '';
-            const emergencyRel = icf.emergency_contact_relationship || '';
-            const emergencyPhone = icf.emergency_contact_phone || '';
+            // Intake form first; otherwise the contact the student saved in their profile
+            const ec = s.emergency_contact || {};
+            const fromIntake = !!(icf.emergency_contact_name || icf.emergency_contact_phone);
+            const emergencyName = (fromIntake ? icf.emergency_contact_name : ec.name) || '';
+            const emergencyRel = (fromIntake ? icf.emergency_contact_relationship : ec.relationship) || '';
+            const emergencyPhone = (fromIntake ? icf.emergency_contact_phone : ec.phone) || '';
             const presentingConcern = icf.presenting_concern || caseData.presenting_issue || '';
             const serviceRequested = icf.service_requested || '';
             const rows: { label: string; value: string | null }[] = [
@@ -1845,7 +1848,7 @@ function CaseDetailContent() {
               { label: 'Program',            value: program || null },
               { label: 'Year Level',         value: yearLevel || null },
               { label: 'Service Requested',  value: serviceRequested ? serviceRequested.replace(/_/g, ' ') : null },
-              { label: 'Emergency Contact',  value: emergencyName ? `${emergencyName}${emergencyRel ? ` (${emergencyRel})` : ''}${emergencyPhone ? ` · ${emergencyPhone}` : ''}` : null },
+              { label: 'Emergency Contact',  value: emergencyName || emergencyPhone ? [`${emergencyName || 'Name not given'}${emergencyRel ? ` (${emergencyRel})` : ''}`, emergencyPhone].filter(Boolean).join(' · ') : null },
             ].filter(r => r.value);
             if (rows.length === 0 && !presentingConcern) return null;
             return (

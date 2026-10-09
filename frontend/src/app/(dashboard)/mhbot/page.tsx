@@ -21,6 +21,7 @@ import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { useTheme } from '@/context/ThemeContext';
 import PendingStudentsWithPerma, { PermaBadge, PERMA_STYLES } from '@/components/PendingStudentsWithPerma';
 import { api } from '@/utils/api';
+import { todayPH } from '@/utils/dateUtils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -203,7 +204,7 @@ function AnalyticsTab({
     const csv = [header, ...rows].join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = `ema-attention-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `ema-attention-${todayPH()}.csv`;
     a.click();
   };
 
@@ -312,8 +313,8 @@ function AnalyticsTab({
         <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Check-ins by label</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Number of EMA check-ins per label in each period</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Students by label</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Each student counts once per day, by their hardest result that day (students can chat with EMA many times a day)</p>
             </div>
             <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
               {(['day', 'week', 'month'] as TrendGranularity[]).map(g => {
@@ -1110,7 +1111,9 @@ export default function EMAPage() {
   return (
     <DashboardPageWrapper
       title="EMA Analytics"
-      subtitle={isStudent ? 'Your PERMA well-being' : 'Student well-being monitoring & population health analytics'}
+      subtitle={isStudent ? 'Your PERMA well-being'
+        : ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(role.toUpperCase()) ? 'Wellbeing of the students in your care'
+        : 'Student well-being monitoring & population health analytics'}
     >
       {isStudent
         ? <StudentView username={authStatus.mhbot_username!} onDisconnect={handleDisconnect} />

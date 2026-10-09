@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
-from utils import user_has_permission, is_staff
+from utils import user_has_permission, is_staff, server_error
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -106,7 +106,7 @@ def get_calendar_capacity():
         print(f"Error in get_calendar_capacity: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to generate capacity report: {str(e)}'}), 500
+        return server_error(e, 'Failed to generate capacity report. Please try again.')
 
 
 @scheduling_reports_bp.route('/upcoming-appointments', methods=['GET'])
@@ -204,7 +204,7 @@ def get_upcoming_appointments_report():
         print(f"Error in get_upcoming_appointments_report: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to generate appointments report: {str(e)}'}), 500
+        return server_error(e, 'Failed to generate appointments report. Please try again.')
 
 
 @scheduling_reports_bp.route('/resource-allocation', methods=['GET'])
@@ -307,7 +307,7 @@ def get_resource_allocation_report():
         print(f"Error in get_resource_allocation_report: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to generate resource allocation report: {str(e)}'}), 500
+        return server_error(e, 'Failed to generate resource allocation report. Please try again.')
 
 
 @scheduling_reports_bp.route('/gaps-analysis', methods=['GET'])
@@ -399,4 +399,4 @@ def get_scheduling_gaps():
         print(f"Error in get_scheduling_gaps: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to generate gaps analysis: {str(e)}'}), 500
+        return server_error(e, 'Failed to generate gaps analysis. Please try again.')

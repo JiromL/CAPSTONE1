@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/utils/api';
+import { ymd } from '@/utils/dateUtils';
 
 interface AvailableSlot {
   slot_id: string;
@@ -98,8 +99,8 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
       const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const startDate = firstDay.toISOString().split('T')[0];
-      const endDate = lastDay.toISOString().split('T')[0];
+      const startDate = ymd(firstDay);
+      const endDate = ymd(lastDay);
 
       const response = await fetch(
         api(`/api/availability/counselor/${counselorId}?start_date=${startDate}T00:00:00&end_date=${endDate}T23:59:59`),
@@ -183,7 +184,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
   };
 
   const getSlotsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = ymd(date);
     return availableSlots.filter((slot) => slot.slot_start.startsWith(dateStr));
   };
 
@@ -260,7 +261,7 @@ export function ScheduleAppointmentCalendar({ caseId, onScheduled }: ScheduleApp
               {days.map((day, index) => {
                 const slots = day ? getSlotsForDate(day) : [];
                 const isToday = day && new Date().toDateString() === day.toDateString();
-                const isSelected = day && selectedSlot && selectedSlot.slot_start.startsWith(day.toISOString().split('T')[0]);
+                const isSelected = day && selectedSlot && selectedSlot.slot_start.startsWith(ymd(day));
 
                 const cellStyle: React.CSSProperties = !day
                   ? { background: 'transparent', border: '1px solid transparent' }

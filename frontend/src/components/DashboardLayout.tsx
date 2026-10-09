@@ -147,21 +147,29 @@ export function DashboardLayout({
         if (Date.now() - last < 5 * 60 * 1000) return;
       } catch {}
     }
-    fetch(api('/api/reminders/'), { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!d) return;
-        const list: any[] = Array.isArray(d.reminders) ? d.reminders : Array.isArray(d) ? d : [];
+    // The bell shows reminders and notifications (crisis alerts, case updates) together
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      fetch(api('/api/reminders/'), { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(api('/api/high-risk/notifications?unread=false'), { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([rem, notif]) => {
+        if (!rem && !notif) return;
+        const reminderList: any[] = Array.isArray(rem?.reminders) ? rem.reminders : Array.isArray(rem) ? rem : [];
+        const notifList: any[] = (notif?.notifications || [])
+          .filter((n: any) => !n.reminder_id)                     // reminder deliveries are already in the reminder list
+          .map((n: any) => ({ ...n, is_read: n.read, urgent: n.type === 'EMA_CRISIS' }));
+        const list = [...notifList, ...reminderList]
+          .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setReminderCount(list.filter((r: any) => !r.is_read && !r.acknowledged).length);
         setReminders(list.slice(0, 8));
         try { localStorage.setItem('reminders_last_fetch', String(Date.now())); } catch {}
-      })
-      .catch(() => {});
+      });
   }, []);
 
   const markAllRead = useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
+    fetch(api('/api/high-risk/notifications/mark-read'), { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
     fetch(api('/api/reminders/mark-all-read'), { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
       .then(() => {
         setReminderCount(0);
@@ -576,15 +584,25 @@ export function DashboardLayout({
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
                             onMouseLeave={e => (e.currentTarget.style.background = isUnread ? 'var(--color-primary-muted)' : 'transparent')}
                           >
-                            <p
-                              className="text-xs leading-snug"
-                              style={{
-                                color: isUnread ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                                fontWeight: isUnread ? 600 : 400,
-                              }}
-                            >
-                              {r.message || r.title || 'Notification'}
-                            </p>
+                            {r.urgent && (
+                              <p className="text-[11px] font-semibold mb-0.5" style={{ color: 'var(--color-danger-text)' }}>Urgent</p>
+                            )}
+                            {r.link ? (
+                              <Link href={r.link} onClick={() => setBellOpen(false)} className="block text-xs leading-snug hover:underline underline-offset-2"
+                                style={{ color: isUnread ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: isUnread ? 600 : 400 }}>
+                                {r.message || r.title || 'Notification'}
+                              </Link>
+                            ) : (
+                              <p
+                                className="text-xs leading-snug"
+                                style={{
+                                  color: isUnread ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                                  fontWeight: isUnread ? 600 : 400,
+                                }}
+                              >
+                                {r.message || r.title || 'Notification'}
+                              </p>
+                            )}
                             {r.created_at && (
                               <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                                 {new Date(r.created_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila',

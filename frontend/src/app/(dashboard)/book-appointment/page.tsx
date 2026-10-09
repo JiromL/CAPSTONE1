@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
 import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
+import { ymd } from '@/utils/dateUtils';
 
 const PURPOSES = [
   { value: 'intake_interview', label: "First Time",           desc: "I'd like to talk to someone for the first time" },
@@ -324,7 +325,7 @@ function BookAppointmentContent() {
     if (rebookDeadline) { const dl = new Date(rebookDeadline + 'T23:59:59'); return dl < d ? dl : d; }
     return d;
   })();
-  const toDS = (d: Date) => d.toISOString().split('T')[0];
+  const toDS = (d: Date) => ymd(d);
 
   const handleNextBookStep = () => {
     setError(null);

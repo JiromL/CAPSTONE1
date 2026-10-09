@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Calendar, RefreshCw, AlertCircle, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
+import { todayPH } from '@/utils/dateUtils';
 
 interface TimeSlot { start: string; end: string; }
 
@@ -10,7 +11,7 @@ const IC = 'input';
 const ICS: React.CSSProperties = { border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' };
 
 export default function StaffCalendarView() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(todayPH());
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

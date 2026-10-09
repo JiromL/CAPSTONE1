@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from datetime import datetime, timedelta
 from models import db, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, server_error
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')
 
@@ -89,7 +89,7 @@ def get_analytics_summary():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get analytics: {str(e)}'}), 500
+        return server_error(e, 'Failed to get analytics. Please try again.')
 
 
 @analytics_bp.route('/cases/trends', methods=['GET'])
@@ -135,7 +135,7 @@ def get_case_trends():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get case trends: {str(e)}'}), 500
+        return server_error(e, 'Failed to get case trends. Please try again.')
 
 
 @analytics_bp.route('/assessments/distribution', methods=['GET'])
@@ -186,7 +186,7 @@ def get_assessment_distribution():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get assessment distribution: {str(e)}'}), 500
+        return server_error(e, 'Failed to get assessment distribution. Please try again.')
 
 
 @analytics_bp.route('/staff/workload', methods=['GET'])
@@ -254,7 +254,7 @@ def get_staff_workload():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get staff workload: {str(e)}'}), 500
+        return server_error(e, 'Failed to get staff workload. Please try again.')
 
 
 @analytics_bp.route('/appointments/statistics', methods=['GET'])
@@ -338,7 +338,7 @@ def get_appointment_statistics():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get appointment statistics: {str(e)}'}), 500
+        return server_error(e, 'Failed to get appointment statistics. Please try again.')
 
 
 @analytics_bp.route('/risk/trends', methods=['GET'])
@@ -394,7 +394,7 @@ def get_risk_trends():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get risk trends: {str(e)}'}), 500
+        return server_error(e, 'Failed to get risk trends. Please try again.')
 
 
 @analytics_bp.route('/referrals/summary', methods=['GET'])
@@ -444,7 +444,7 @@ def get_referral_summary():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get referral summary: {str(e)}'}), 500
+        return server_error(e, 'Failed to get referral summary. Please try again.')
 
 
 @analytics_bp.route('/intake/conversion', methods=['GET'])
@@ -479,7 +479,7 @@ def get_intake_conversion():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to get intake conversion: {str(e)}'}), 500
+        return server_error(e, 'Failed to get intake conversion. Please try again.')
 
 
 @analytics_bp.route('/appointments/monthly', methods=['GET'])
@@ -524,7 +524,7 @@ def get_appointments_monthly():
         return jsonify({'months': result}), 200
 
     except Exception as e:
-        return jsonify({'error': f'Failed to get monthly appointments: {str(e)}'}), 500
+        return server_error(e, 'Failed to get monthly appointments. Please try again.')
 
 
 @analytics_bp.route('/cases/monthly', methods=['GET'])
@@ -571,7 +571,7 @@ def get_cases_monthly():
         return jsonify({'months': result}), 200
 
     except Exception as e:
-        return jsonify({'error': f'Failed to get monthly cases: {str(e)}'}), 500
+        return server_error(e, 'Failed to get monthly cases. Please try again.')
 
 
 @analytics_bp.route('/concerns/distribution', methods=['GET'])
@@ -612,7 +612,7 @@ def get_concern_distribution():
             'total': sum(r['count'] for r in result)
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @analytics_bp.route('/assessments/score-trends', methods=['GET'])
@@ -653,7 +653,7 @@ def get_assessment_score_trends():
 
         return jsonify({'months': result}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @analytics_bp.route('/appointments/by-day', methods=['GET'])
@@ -701,7 +701,7 @@ def get_appointments_by_day():
             'period_days': days_back
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @analytics_bp.route('/appointments/breakdown', methods=['GET'])
@@ -760,7 +760,7 @@ def get_appointments_breakdown():
             'monthly': monthly,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @analytics_bp.route('/students/demographics', methods=['GET'])
@@ -798,7 +798,7 @@ def get_student_demographics():
             'utilization_rate': round(served_students / total_students * 100, 1) if total_students else 0,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @analytics_bp.route('/cases/pipeline', methods=['GET'])
@@ -854,7 +854,7 @@ def get_cases_pipeline():
             'stuck_new_cases': stuck_new,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @analytics_bp.route('/sessions/outcomes', methods=['GET'])
@@ -929,7 +929,7 @@ def get_session_outcomes():
             'noshows_at_risk': noshows_at_risk,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @analytics_bp.route('/evaluations/summary', methods=['GET'])
@@ -1066,4 +1066,4 @@ def evaluations_summary():
             'individual': individual,
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)

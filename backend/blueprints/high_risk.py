@@ -770,6 +770,17 @@ def dashboard_user_perma_history(username):
 
 # ─── NOTIFICATIONS ENDPOINTS ────────────────────────────────────────────────
 
+def _mine(user_id):
+    """Notifications addressed to this user. Older code stores the recipient under different
+    field names, and sometimes as an ObjectId rather than a string."""
+    ids = [user_id]
+    try:
+        ids.append(ObjectId(user_id))
+    except Exception:
+        pass
+    return {'$or': [{k: {'$in': ids}} for k in ('target_user_id', 'user_id', 'recipient_id')]}
+
+
 @high_risk_bp.route('/notifications', methods=['GET'])
 @jwt_required()
 def get_notifications():
@@ -777,13 +788,19 @@ def get_notifications():
     user_id = get_jwt_identity()
     unread_only = request.args.get('unread', 'true').lower() == 'true'
 
-    query = {'target_user_id': user_id}
+    query = _mine(user_id)
     if unread_only:
-        query['read'] = False
+        query = {'$and': [query, {'read': {'$ne': True}}, {'is_read': {'$ne': True}}]}
 
     notifs = list(db.db.notifications.find(query).sort('created_at', -1).limit(50))
     for n in notifs:
         n['_id'] = str(n['_id'])
+        n['read'] = bool(n.get('read') or n.get('is_read'))
+        if not n.get('link') and n.get('case_id'):
+            n['link'] = f"/cases/{n['case_id']}"
+        for k in ('case_id', 'student_id', 'user_id', 'recipient_id', 'target_user_id'):
+            if k in n:
+                n[k] = str(n[k])
         if 'created_at' in n and hasattr(n['created_at'], 'isoformat'):
             n['created_at'] = n['created_at'].isoformat()
 
@@ -799,12 +816,12 @@ def mark_notifications_read():
     ids = data.get('ids', [])  # list of notification _id strings; empty = mark all
 
     from bson import ObjectId as ObjId
-    query = {'target_user_id': user_id}
+    query = _mine(user_id)
     if ids:
         try:
             query['_id'] = {'$in': [ObjId(i) for i in ids]}
         except Exception:
             return jsonify({'error': 'Invalid notification ids'}), 400
 
-    db.db.notifications.update_many(query, {'$set': {'read': True}})
+    db.db.notifications.update_many(query, {'$set': {'read': True, 'is_read': True}})
     return jsonify({'message': 'Notifications marked as read'}), 200

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 import { RepeatIcon, Calendar, Clock, User, Video, MapPin, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { todayPH } from '@/utils/dateUtils';
 
 interface Student { _id: string; first_name: string; last_name: string; email: string; student_id?: string; }
 interface PreviewSession { session: number; date: string; }
@@ -200,7 +201,7 @@ export default function RecurringAppointmentsPage() {
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
                 <FieldLabel>Start Date</FieldLabel>
-                <input type="date" value={form.start_date} min={new Date().toISOString().split('T')[0]} required
+                <input type="date" value={form.start_date} min={todayPH()} required
                   onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
                   className={IC} style={IC_S(fieldFocus['date'])}
                   onFocus={() => onFIn('date')} onBlur={() => onFOut('date')} />

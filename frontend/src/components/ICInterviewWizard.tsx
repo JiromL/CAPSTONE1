@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Loader2, Check, CheckCircle2 } from 'lucide-react';
+import { todayPH } from '@/utils/dateUtils';
 
 // ── Field helper components ──────────────────────────────────────────────────
 
@@ -634,7 +635,7 @@ export function ICInterviewWizard({
       } catch {}
     }
     if (!base.ic_signature_date) {
-      base.ic_signature_date = new Date().toISOString().split('T')[0];
+      base.ic_signature_date = todayPH();
     }
     if (triageScores && !base.phq9_responses) {
       base.phq9_responses = triageScores.phq9Responses;

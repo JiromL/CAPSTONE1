@@ -34,7 +34,7 @@ except Exception as e:
 WIPE = [
     'users','appointments','cases','intakes','counselor_availability',
     'counselor_weekly_schedule','session_notes','session_notes_versions','check_ins','safety_plans',
-    'perma_snapshots','perma_history','missed_appointment_tracker',
+    'perma_snapshots','perma_history','perma_crisis_reviews','missed_appointment_tracker',
     'notifications','announcements','resources','consent_records',
     'reschedule_requests','non_counseling_clients',
     'referrals','referral_logs','counselor_referrals','case_handovers',
@@ -636,10 +636,10 @@ for days_ahead, (sv, cov, casev, hr, purp) in enumerate(_upcoming, start=1):
 
 # Walk-in intake appointments
 apt(s36, ic_julse,  None, now.replace(hour=10, minute=30, second=0, microsecond=0), 'CONFIRMED', 'intake_interview')
-apt(s37, ic_archie, None, F(1, 9), 'SCHEDULED', 'intake_interview')
-apt(s38, ic_mars,   None, F(2, 10), 'SCHEDULED', 'intake_interview')
-apt(s39, ic_ria,    None, F(3, 9), 'SCHEDULED', 'intake_interview')
-apt(s40, ic_cris,   None, F(4, 11), 'SCHEDULED', 'intake_interview')
+apt(s37, ic_archie, None, F(1, 9), 'CONFIRMED', 'intake_interview')
+apt(s38, ic_mars,   None, F(2, 10), 'CONFIRMED', 'intake_interview')
+apt(s39, ic_ria,    None, F(3, 9), 'CONFIRMED', 'intake_interview')
+apt(s40, ic_cris,   None, F(4, 11), 'CONFIRMED', 'intake_interview')
 
 print(f"✅ {len(_apts)} appointments created")
 
@@ -882,9 +882,9 @@ print(f"✅ PERMA snapshots seeded ({len(_perma_map)} EMA-linked students, ~{DAY
 
 # ── ANNOUNCEMENTS ──────────────────────────────────────────────────────────────
 db.announcements.insert_many([
-    {'title': 'CPS Mental Health Awareness Week', 'content': 'Join us from July 28–Aug 1 for free wellness workshops, stress management seminars, and drop-in counseling sessions. Open to all DLSU students.', 'is_active': True, 'created_by': admin_id, 'created_at': H(3), 'updated_at': H(3), 'target_roles': ['STUDENT']},
-    {'title': 'Semestral Break Office Hours', 'content': 'CPS will be open for emergency consultations during semestral break (Aug 5–16). Please call ahead to schedule. Regular services resume Aug 19.', 'is_active': True, 'created_by': admin_id, 'created_at': H(7), 'updated_at': H(7), 'target_roles': ['STUDENT', 'COUNSELOR', 'IC']},
-    {'title': 'New: Online Booking Now Available', 'content': 'Students can now book intake appointments directly through the CPS portal. Click "Request a Session" from your dashboard to get started.', 'is_active': True, 'created_by': admin_id, 'created_at': H(14), 'updated_at': H(14), 'target_roles': ['STUDENT']},
+    {'title': 'CPS Mental Health Awareness Week', 'body': 'Join us from July 28–Aug 1 for free wellness workshops, stress management seminars, and drop-in counseling sessions. Open to all DLSU students.', 'event_type': 'event', 'pinned': False, 'is_active': True, 'created_by': admin_id, 'created_at': H(3), 'updated_at': H(3), 'target_roles': ['STUDENT']},
+    {'title': 'Semestral Break Office Hours', 'body': 'CPS will be open for emergency consultations during semestral break (Aug 5–16). Please call ahead to schedule. Regular services resume Aug 19.', 'event_type': 'notice', 'pinned': False, 'is_active': True, 'created_by': admin_id, 'created_at': H(7), 'updated_at': H(7), 'target_roles': ['STUDENT', 'COUNSELOR', 'IC']},
+    {'title': 'New: Online Booking Now Available', 'body': 'Students can now book intake appointments directly through the CPS portal. Click "Request a Session" from your dashboard to get started.', 'event_type': 'notice', 'pinned': False, 'is_active': True, 'created_by': admin_id, 'created_at': H(14), 'updated_at': H(14), 'target_roles': ['STUDENT']},
 ])
 print("✅ Announcements seeded")
 

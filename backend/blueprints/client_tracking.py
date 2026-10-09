@@ -223,6 +223,8 @@ def get_walk_in_intakes():
 def create_new_intake():
     """Create new client intake record"""
     user = get_user_from_token()
+    if not user or user.get('role') == UserRole.STUDENT:   # client records are staff-only
+        return jsonify({"error": "Access denied"}), 403
     
     # Only IC, DPO, and STAFF can create
     if user['role'] not in [UserRole.IC, UserRole.DPO, UserRole.STAFF]:
@@ -277,6 +279,8 @@ def create_new_intake():
 def update_new_intake(intake_id):
     """Update new client intake"""
     user = get_user_from_token()
+    if not user or user.get('role') == UserRole.STUDENT:   # client records are staff-only
+        return jsonify({"error": "Access denied"}), 403
     data = request.get_json()
     
     try:
@@ -376,6 +380,8 @@ def get_check_in_clients():
 def create_check_in_client():
     """Create check-in only client record"""
     user = get_user_from_token()
+    if not user or user.get('role') == UserRole.STUDENT:   # client records are staff-only
+        return jsonify({"error": "Access denied"}), 403
     
     if user['role'] not in [UserRole.IC, UserRole.DPO, UserRole.STAFF, UserRole.COUNSELOR]:
         return jsonify({"error": "Not authorized"}), 403
@@ -421,6 +427,8 @@ def create_check_in_client():
 def update_check_in_client(client_id):
     """Update check-in client"""
     user = get_user_from_token()
+    if not user or user.get('role') == UserRole.STUDENT:   # client records are staff-only
+        return jsonify({"error": "Access denied"}), 403
     data = request.get_json()
     
     try:
@@ -513,6 +521,8 @@ def get_counseling_cases():
 def create_counseling_case():
     """Create counseling case with session tracking"""
     user = get_user_from_token()
+    if not user or user.get('role') == UserRole.STUDENT:   # client records are staff-only
+        return jsonify({"error": "Access denied"}), 403
     
     if user['role'] not in [UserRole.IC, UserRole.DPO, UserRole.COUNSELOR, UserRole.PSYCHOLOGIST]:
         return jsonify({"error": "Not authorized"}), 403
@@ -559,6 +569,8 @@ def create_counseling_case():
 def update_counseling_case(case_id):
     """Update counseling case"""
     user = get_user_from_token()
+    if not user or user.get('role') == UserRole.STUDENT:   # client records are staff-only
+        return jsonify({"error": "Access denied"}), 403
     data = request.get_json()
     
     try:

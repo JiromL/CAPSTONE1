@@ -6,6 +6,7 @@ Additional appointment endpoints for enhanced functionality
 """
 
 from flask import Blueprint, request, jsonify
+from utils import server_error
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, UserRole
@@ -78,7 +79,7 @@ def get_counselor_availability(counselor_id):
         import traceback
         print(f"Error in get_counselor_availability: {str(e)}")
         print(traceback.format_exc())
-        return jsonify({'error': f'Failed to fetch availability: {str(e)}'}), 500
+        return server_error(e, 'Failed to fetch availability. Please try again.')
 
 
 @appointments_enh_bp.route('/stats', methods=['GET'])
@@ -144,4 +145,4 @@ def get_appointment_stats():
         import traceback
         print(f"Error in get_appointment_stats: {str(e)}")
         print(traceback.format_exc())
-        return jsonify({'error': f'Failed to fetch stats: {str(e)}'}), 500
+        return server_error(e, 'Failed to fetch stats. Please try again.')

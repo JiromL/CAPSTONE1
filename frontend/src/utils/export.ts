@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { todayPH } from '@/utils/dateUtils';
 
 export interface ExportData {
   headers: string[];
@@ -35,7 +36,7 @@ export const exportToExcel = (data: ExportData) => {
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
   // Generate filename with date
-  const date = new Date().toISOString().split('T')[0];
+  const date = todayPH();
   const fullFilename = `${filename}-${date}.xlsx`;
 
   // Download file
@@ -75,7 +76,7 @@ export const exportMultipleSheets = (
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
 
-  const date = new Date().toISOString().split('T')[0];
+  const date = todayPH();
   const fullFilename = `${filename}-${date}.xlsx`;
   XLSX.writeFile(wb, fullFilename);
 };

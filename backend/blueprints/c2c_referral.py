@@ -15,7 +15,7 @@ c2c_referral_bp = Blueprint('c2c_referral', __name__, url_prefix='/api/counselor
 
 # Import database and utilities
 from models import db, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, server_error
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # Permission decorators
@@ -125,7 +125,7 @@ def create_c2c_referral():
         return jsonify(referral_doc), 201
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @c2c_referral_bp.route('/<referral_id>', methods=['GET'])
@@ -143,7 +143,7 @@ def get_c2c_referral(referral_id):
         return jsonify(referral), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @c2c_referral_bp.route('/', methods=['GET'])
@@ -176,7 +176,7 @@ def list_c2c_referrals():
         return jsonify(referrals), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 # ============ REFERRAL WORKFLOW ============
@@ -220,7 +220,7 @@ def accept_c2c_referral(referral_id):
         return jsonify(updated_referral), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @c2c_referral_bp.route('/<referral_id>/decline', methods=['POST'])
@@ -264,7 +264,7 @@ def decline_c2c_referral(referral_id):
         return jsonify(updated_referral), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @c2c_referral_bp.route('/<referral_id>/complete', methods=['POST'])
@@ -306,7 +306,7 @@ def complete_c2c_referral(referral_id):
         return jsonify(updated_referral), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 # ============ FOLLOW-UP AND TRACKING ============
@@ -355,7 +355,7 @@ def log_follow_up(referral_id):
         return jsonify(updated_referral), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 # ============ ANALYTICS ============
@@ -404,7 +404,7 @@ def get_rare_cases_analytics():
         }), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @c2c_referral_bp.route('/counselor/<counselor_id>/specializations', methods=['GET'])
@@ -431,4 +431,4 @@ def get_counselor_specializations(counselor_id):
         }), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)

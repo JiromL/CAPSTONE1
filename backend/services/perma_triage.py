@@ -12,6 +12,10 @@ the crisis. So CPS keeps two different numbers:
 * Trend scores (charts and reports): daily average of that day's check-ins, monthly average
   of the daily scores, so one heavy-use day cannot outweigh the rest of the month.
 
+Students can chat with EMA many times a day, and every finished chat is a result. Rules that
+are about *days* (persistent struggle, same-day swings, daily scores) therefore group results
+by Philippine calendar day, not by result, so ten chats in one afternoon count as one day.
+
 The thresholds are clinical choices for CPS to confirm, so they live in the `settings`
 collection (_id "perma_triage") and fall back to the defaults below.
 """
@@ -23,11 +27,17 @@ from bson import ObjectId
 LABEL_SCORE = {'Excelling': 5, 'Thriving': 4, 'Surviving': 3, 'Struggling': 2, 'In Crisis': 1}
 SCORE_LABEL = {v: k for k, v in LABEL_SCORE.items()}
 AT_RISK = ('Struggling', 'In Crisis')
+MANILA = timedelta(hours=8)
+
+
+def local_day(dt):
+    """The Philippine calendar day of a UTC timestamp."""
+    return (dt + MANILA).date()
 PERMA_AREAS = {'P': 'Positive emotion', 'E': 'Engagement', 'R': 'Relationships', 'M': 'Meaning', 'A': 'Accomplishment'}
 
 DEFAULT_SETTINGS = {
     'window_days': 7,              # triage looks at check-ins from this many days back
-    'persistent_struggle_count': 2,  # this many Struggling results in the window adds a flag
+    'persistent_struggle_count': 2,  # Struggling on this many different days in the window adds a flag
     'unstable_swing_levels': 3,    # same-day gap (e.g. In Crisis 1 -> Thriving 4) that adds a flag
 }
 
@@ -111,14 +121,14 @@ def compute_triage(snapshots, settings: dict, crisis_cleared_at=None, now=None) 
         score = 1
         flags.append('crisis_pending_review')
 
-    struggles = sum(1 for e in window if e['perma_label'] == 'Struggling')
-    if struggles >= settings['persistent_struggle_count']:
+    struggle_days = len({local_day(e['entry_date']) for e in window if e['perma_label'] == 'Struggling'})
+    if struggle_days >= settings['persistent_struggle_count']:
         flags.append('persistent_struggle')
-        reasons.append(f"Struggling {struggles} times in the last {settings['window_days']} days")
+        reasons.append(f"Struggling on {struggle_days} different days in the last {settings['window_days']} days")
 
     by_day = defaultdict(list)
     for e in window:
-        by_day[e['entry_date'].date()].append(LABEL_SCORE[e['perma_label']])
+        by_day[local_day(e['entry_date'])].append(LABEL_SCORE[e['perma_label']])
     swings = [(day, max(v) - min(v)) for day, v in by_day.items() if len(v) > 1]
     big = [s for s in swings if s[1] >= settings['unstable_swing_levels']]
     if big:
@@ -150,7 +160,7 @@ def daily_scores(snapshots) -> list:
     """[{date, score, label, checkins}] — average of each day's check-ins."""
     by_day = defaultdict(list)
     for e in _labeled(snapshots):
-        by_day[e['entry_date'].date()].append(LABEL_SCORE[e['perma_label']])
+        by_day[local_day(e['entry_date'])].append(LABEL_SCORE[e['perma_label']])
     return [{'date': day.isoformat(), 'score': round(sum(v) / len(v), 2),
              'label': label_for_score(sum(v) / len(v)), 'checkins': len(v)}
             for day, v in sorted(by_day.items())]

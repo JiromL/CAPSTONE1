@@ -70,6 +70,14 @@ def create_app(config_name=None):
     
     app = Flask(__name__)
     app.config.from_object(config.get(config_name, config['development']))
+
+    # The built-in defaults are public (they are in this repository). Anyone who knows them
+    # could forge a login token, so production refuses to start without real secrets.
+    if config_name == 'production':
+        weak = [k for k in ('SECRET_KEY', 'JWT_SECRET_KEY')
+                if not os.getenv(k) or 'change-in-production' in str(app.config.get(k))]
+        if weak:
+            raise RuntimeError(f"Set {', '.join(weak)} in the environment before running in production.")
     
     # Update config with current environment variables (for runtime env vars like SMTP)
     app.config['SMTP_HOST'] = os.getenv('SMTP_HOST', app.config.get('SMTP_HOST'))

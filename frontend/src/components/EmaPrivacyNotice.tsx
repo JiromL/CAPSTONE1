@@ -2,12 +2,13 @@
 
 // The EMA data privacy notice, shared by Profile, the Talk to EMA widget and the EMA page so
 // students always read the same text. Each point must match how the system actually behaves
-// (see backend/blueprints/mhbot_integration.py: EMA_DATA_ROLES, consent checks, chat relay).
+// (see backend/services/ema_access.py for who sees which students, and
+// backend/blueprints/mhbot_integration.py for consent checks and the chat relay).
 // When the wording changes, bump EMA_CONSENT_VERSION in the backend.
 
 export const EMA_NOTICE_POINTS: string[] = [
   'EMA is a separate wellbeing chatbot run by DLSU PCHRD, with its own privacy policy. Linking lets CPS receive your EMA wellbeing results (labels such as Thriving or Struggling, and their scores) to support your counseling.',
-  'Your results are seen only by CPS staff involved in your care (your counselor or psychologist, case managers and intake coordinators) and by the Data Privacy Officer for audits. Office assistants and other students cannot see them.',
+  'Your results are seen only by the CPS staff involved in your care: your own counselor or psychologist, the intake counselor who met with you, and the CPS case manager, who watches for students who may need support. Administrators and the Data Privacy Officer see totals only, never your name or your individual results. Office assistants, other counselors and other students cannot see them.',
   'CPS uses your results to flag students who may need support. When staff follow up, they may write a note that becomes part of your counseling record.',
   'CPS stays signed in to your EMA account so you can chat with EMA inside CPS. Your password is never saved; CPS keeps only an encrypted sign-in key.',
   'Your chat messages pass through CPS to reach EMA but are not saved by CPS. EMA keeps your conversations.',

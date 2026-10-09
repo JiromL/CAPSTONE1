@@ -17,7 +17,7 @@ reminders_bp = Blueprint('reminders', __name__, url_prefix='/api/reminders')
 
 # Import database and utilities
 from models import db, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, server_error
 
 
 # ============ REMINDERS CRUD ============
@@ -142,7 +142,7 @@ def create_reminder():
         return jsonify(reminder_doc), 201
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @reminders_bp.route('/<reminder_id>', methods=['GET'])
@@ -347,7 +347,7 @@ def mark_all_reminders_read():
         )
         return jsonify({'updated': result.modified_count}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @reminders_bp.route('/upcoming', methods=['GET'])

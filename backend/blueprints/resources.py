@@ -4,6 +4,7 @@ Staff members upload resources, students access resources from assigned staff
 """
 
 from flask import Blueprint, request, jsonify, current_app
+from utils import server_error
 from functools import wraps
 from bson import ObjectId
 from datetime import datetime
@@ -138,7 +139,7 @@ def upload_resource():
     
     except Exception as e:
         current_app.logger.error(f"Resource upload failed: {str(e)}")
-        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+        return server_error(e, 'Upload failed. Please try again.')
 
 
 @resources_bp.route('/staff/<staff_id>', methods=['GET'])
@@ -180,7 +181,7 @@ def get_staff_resources(staff_id):
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to retrieve resources: {str(e)}'}), 500
+        return server_error(e, 'Failed to retrieve resources. Please try again.')
 
 
 @resources_bp.route('/student', methods=['GET'])
@@ -253,7 +254,7 @@ def get_student_resources():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to retrieve resources: {str(e)}'}), 500
+        return server_error(e, 'Failed to retrieve resources. Please try again.')
 
 
 @resources_bp.route('/<resource_id>/download', methods=['GET'])
@@ -306,7 +307,7 @@ def download_resource(resource_id):
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to generate download URL: {str(e)}'}), 500
+        return server_error(e, 'Failed to generate download URL. Please try again.')
 
 
 @resources_bp.route('/<resource_id>', methods=['GET'])
@@ -338,7 +339,7 @@ def get_resource_info(resource_id):
         return jsonify(resource), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to retrieve resource: {str(e)}'}), 500
+        return server_error(e, 'Failed to retrieve resource. Please try again.')
 
 
 @resources_bp.route('/<resource_id>', methods=['DELETE'])
@@ -386,4 +387,4 @@ def delete_resource(resource_id):
         }), 200
     
     except Exception as e:
-        return jsonify({'error': f'Failed to delete resource: {str(e)}'}), 500
+        return server_error(e, 'Failed to delete resource. Please try again.')

@@ -141,3 +141,24 @@ def test_crisis_that_arrived_before_the_review_is_covered_by_it():
     t = triage([seen], cleared_at=seen['entry_date'].replace(hour=10))
     assert t['label'] == 'Struggling'
     assert not t['crisis_pending_review']
+
+
+def test_many_chats_on_one_day_count_as_one_struggle_day():
+    # Two rough chats in one afternoon are one hard day, not "persistent struggle"
+    t = triage([snap('Struggling', 1, hour=6), snap('Struggling', 1, hour=8), snap('Thriving', 0)])
+    assert 'persistent_struggle' not in t['flags']
+    t = triage([snap('Struggling', 3), snap('Struggling', 1), snap('Thriving', 0)])
+    assert 'persistent_struggle' in t['flags']
+
+
+def test_same_day_means_the_philippine_day():
+    # 23:30 UTC on day 1 and 01:00 UTC on day 2 are both the morning of day 2 in Manila
+    a = {'perma_label': 'In Crisis', 'entry_date': (NOW - timedelta(days=2)).replace(hour=23, minute=30)}
+    b = {'perma_label': 'Thriving', 'entry_date': (NOW - timedelta(days=1)).replace(hour=1, minute=0)}
+    t = triage([a, b], cleared_at=NOW)
+    assert 'unstable_mood' in t['flags']
+
+
+def test_daily_score_averages_all_chats_that_day():
+    days = daily_scores([snap('Thriving', 1, hour=2), snap('Struggling', 1, hour=4), snap('Thriving', 1, hour=6)])
+    assert len(days) == 1 and days[0]['checkins'] == 3 and days[0]['score'] == round((4 + 2 + 4) / 3, 2)

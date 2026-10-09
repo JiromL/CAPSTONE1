@@ -147,7 +147,6 @@ def _process_assessment_schedules(app):
 
 
 PERMA_SYNC_INTERVAL_SECONDS = 6 * 60 * 60  # every 6 hours
-_last_perma_sync = 0
 
 
 def _get_fresh_ema_token():
@@ -208,7 +207,6 @@ def _sync_perma_labels(app):
 
 
 EMA_TOKEN_REFRESH_INTERVAL_SECONDS = 6 * 60 * 60  # EMA refresh tokens expire after 24h
-_last_ema_token_refresh = 0
 
 
 def _refresh_ema_chat_tokens(app):
@@ -226,24 +224,40 @@ def _refresh_triage(app):
         print(f"[Scheduler] PERMA triage recomputed for {refresh_all_triage(db.db)} students")
 
 
+def _claim(app, job, every_seconds):
+    """True for exactly one server process per period. A production server runs several
+    processes, each with this thread; a lease in MongoDB stops them all sending the same
+    reminders and syncing EMA at once. The lease also survives restarts."""
+    from pymongo.errors import DuplicateKeyError
+    with app.app_context():
+        from models import db
+        now = datetime.utcnow()
+        lease = {'next_run': now + timedelta(seconds=every_seconds), 'last_run': now}
+        if db.db.scheduler_runs.find_one_and_update({'_id': job, 'next_run': {'$lte': now}}, {'$set': lease}):
+            return True
+        try:
+            db.db.scheduler_runs.insert_one({'_id': job, **lease})   # first run ever
+            return True
+        except DuplicateKeyError:
+            return False
+
+
 def _scheduler_loop(app, interval_seconds=300):
-    global _last_perma_sync, _last_ema_token_refresh
     while True:
         try:
-            _process_reminders(app)
-            _process_assessment_schedules(app)
+            if _claim(app, 'reminders', interval_seconds - 10):
+                _process_reminders(app)
+                _process_assessment_schedules(app)
 
             # Run PERMA sync every 6 hours, then recompute triage (its 7-day window
             # moves with time even when no new results arrive)
-            if time.time() - _last_perma_sync >= PERMA_SYNC_INTERVAL_SECONDS:
+            if _claim(app, 'perma_sync', PERMA_SYNC_INTERVAL_SECONDS):
                 _sync_perma_labels(app)
                 _refresh_triage(app)
-                _last_perma_sync = time.time()
 
             # Renew student EMA chat keys every 6 hours
-            if time.time() - _last_ema_token_refresh >= EMA_TOKEN_REFRESH_INTERVAL_SECONDS:
+            if _claim(app, 'ema_keys', EMA_TOKEN_REFRESH_INTERVAL_SECONDS):
                 _refresh_ema_chat_tokens(app)
-                _last_ema_token_refresh = time.time()
 
         except Exception as e:
             print(f"[Scheduler] Error: {e}")

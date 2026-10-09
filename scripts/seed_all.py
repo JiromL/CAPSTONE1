@@ -29,6 +29,8 @@ STEPS = [
     ('enrich_ic_forms.py',      'IC interview form enrichment for all cases'),
     ('seed_bookings.py',        'Booking-workflow appointments (REQUESTED / PENDING_APPROVAL)'),
     ('seed_structured_soap.py', 'Structured SOAP session notes'),
+    ('seed_announcements.py',   'Announcements (title · body · type · pinned)'),
+    ('seed_ema.py',             'EMA triage scenarios · crisis reviews · EMA consent · journal entries'),
 ]
 
 for i, (script, desc) in enumerate(STEPS, start=1):

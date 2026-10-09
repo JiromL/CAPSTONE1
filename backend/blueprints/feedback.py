@@ -14,7 +14,7 @@ feedback_bp = Blueprint('feedback', __name__, url_prefix='/api/feedback')
 
 # Import database and utilities
 from models import db, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, server_error
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
@@ -53,7 +53,7 @@ def list_feedback_templates():
         return jsonify(templates), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @feedback_bp.route('/templates/<template_id>', methods=['GET'])
@@ -70,7 +70,7 @@ def get_feedback_template(template_id):
         return jsonify(template), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 # ============ FEEDBACK SUBMISSIONS ============
@@ -142,7 +142,7 @@ def submit_feedback():
         return jsonify(feedback_doc), 201
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @feedback_bp.route('/<feedback_id>', methods=['GET'])
@@ -162,7 +162,7 @@ def get_feedback(feedback_id):
         return jsonify(feedback), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @feedback_bp.route('/', methods=['GET'])
@@ -199,7 +199,7 @@ def list_feedback():
         return jsonify(feedback_list), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @feedback_bp.route('/<feedback_id>', methods=['PATCH'])
@@ -243,7 +243,7 @@ def update_feedback(feedback_id):
         return jsonify(updated_feedback), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @feedback_bp.route('/<feedback_id>', methods=['DELETE'])
@@ -266,7 +266,7 @@ def delete_feedback(feedback_id):
         return jsonify({"message": "Feedback deleted successfully"}), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 # ============ FEEDBACK ANALYTICS ============
@@ -333,7 +333,7 @@ def get_feedback_summary():
         }), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 @feedback_bp.route('/counselor/<counselor_id>/performance', methods=['GET'])
@@ -367,7 +367,7 @@ def get_counselor_performance(counselor_id):
         }), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)
 
 
 # ============ OUTCOME TRACKING ============
@@ -398,4 +398,4 @@ def get_outcome_summary():
         }), 200
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return server_error(e)

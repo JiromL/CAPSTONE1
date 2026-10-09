@@ -7,7 +7,12 @@ from flask import Blueprint, request, jsonify, send_file, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, case_access_error, server_error
+
+# Case documents: who may add them, which files, how large
+DOC_UPLOAD_ROLES = ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN')
+DOC_ALLOWED_EXT = {'.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt'}
+DOC_MAX_BYTES = 10 * 1024 * 1024
 from datetime import datetime
 import os
 import sys
@@ -91,7 +96,7 @@ def list_documents():
     
     except Exception as e:
         print(f'Error listing documents: {str(e)}')
-        return jsonify({'error': f'Failed to list documents: {str(e)}'}), 500
+        return server_error(e, 'Failed to list documents. Please try again.')
 
 
 @documentation_bp.route('/upload', methods=['POST'])
@@ -132,11 +137,23 @@ def upload_document():
         
         if not case:
             return jsonify({'error': 'Case not found'}), 404
-        
+
+        # Only the care team may add documents, and only to cases they may open
+        if user.get('role') not in DOC_UPLOAD_ROLES:
+            return jsonify({'error': 'Only CPS clinical staff can upload case documents'}), 403
+        denied = case_access_error(db.db, user_id, case['_id'])
+        if denied:
+            return jsonify({'error': denied[0]}), denied[1]
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in DOC_ALLOWED_EXT:
+            return jsonify({'error': f"File type not allowed. Use one of: {', '.join(sorted(DOC_ALLOWED_EXT))}"}), 400
+
         # Read file content
-        file_content = file.read()
+        file_content = file.read(DOC_MAX_BYTES + 1)
         if len(file_content) == 0:
             return jsonify({'error': 'File is empty'}), 400
+        if len(file_content) > DOC_MAX_BYTES:
+            return jsonify({'error': f'File is too large (max {DOC_MAX_BYTES // (1024 * 1024)} MB)'}), 400
         
         # Upload to Google Drive
         gdrive = get_gdrive_service()
@@ -196,7 +213,7 @@ def upload_document():
     
     except Exception as e:
         print(f'Error uploading document: {str(e)}')
-        return jsonify({'error': f'Failed to upload document: {str(e)}'}), 500
+        return server_error(e, 'Failed to upload document. Please try again.')
 
 
 @documentation_bp.route('/<document_id>/download', methods=['GET'])
@@ -263,7 +280,7 @@ def download_document(document_id):
     
     except Exception as e:
         print(f'Error downloading document: {str(e)}')
-        return jsonify({'error': f'Failed to download document: {str(e)}'}), 500
+        return server_error(e, 'Failed to download document. Please try again.')
 
 
 @documentation_bp.route('/<document_id>/delete', methods=['DELETE'])
@@ -310,7 +327,7 @@ def delete_document(document_id):
     
     except Exception as e:
         print(f'Error deleting document: {str(e)}')
-        return jsonify({'error': f'Failed to delete document: {str(e)}'}), 500
+        return server_error(e, 'Failed to delete document. Please try again.')
 
 
 
@@ -750,7 +767,7 @@ def presign_upload(case_id):
     try:
         url = s3.presign_upload(key, content_type=content_type)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
     # create a document metadata placeholder
     document = {

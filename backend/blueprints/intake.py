@@ -6,13 +6,14 @@ MongoDB-compatible version
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, IntakeStatus, PermissionType, AppointmentStatus
-from utils import audit_log, user_has_permission, serialize_doc, case_access_error
+from utils import audit_log, user_has_permission, serialize_doc, case_access_error, server_error
 from datetime import datetime, timedelta, date as date_type
 from bson import ObjectId
 import random
 import string
 import uuid
 from integrations import EmailIntegration, ZoomIntegration, GoogleMeetIntegration
+from limiter_instance import limiter
 
 intake_bp = Blueprint('intake', __name__, url_prefix='/api/intake')
 
@@ -1066,7 +1067,7 @@ def init_indexes():
             'message': 'All database indexes created successfully'
         }), 200
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/assessments/dashboard', methods=['GET'])
@@ -1427,7 +1428,7 @@ def get_assessment_statistics():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/available-times-for-date', methods=['GET'])
@@ -1539,7 +1540,7 @@ def get_available_times_for_date():
         print(f"Error getting available times for date: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/available-dates', methods=['GET'])
@@ -1634,7 +1635,7 @@ def get_available_dates():
         print(f"Error getting available dates: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/available-slots', methods=['GET'])
@@ -1687,7 +1688,7 @@ def get_available_appointment_slots():
     
     except Exception as e:
         print(f"Error getting available slots: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/select-appointment-time', methods=['POST'])
@@ -1769,7 +1770,7 @@ def select_appointment_time():
         return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
     except Exception as e:
         print(f"Error selecting appointment time: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 def _get_priority_queue_stats():
@@ -1891,7 +1892,7 @@ def get_priority_queue():
     
     except Exception as e:
         print(f"Error getting priority queue: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/walkin', methods=['POST'])
@@ -2107,10 +2108,11 @@ def create_walkin_intake():
         
     except Exception as e:
         current_app.logger.error(f"Error creating walk-in intake: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/self-checkin', methods=['POST'])
+@limiter.limit("30 per hour")   # public kiosk form: allows a busy office, stops flooding
 def student_self_checkin():
     """
     Public endpoint — no auth required.
@@ -2264,7 +2266,7 @@ def student_self_checkin():
 
     except Exception as e:
         current_app.logger.error(f'Error in self-checkin: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        return server_error(e)
 
 
 @intake_bp.route('/draft/save', methods=['POST'])

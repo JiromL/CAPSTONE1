@@ -124,7 +124,7 @@ class ZoomIntegration:
             'start_time': start_time,
             'duration': duration_minutes,
             'password': password,
-            'timezone': 'UTC',
+            'timezone': 'Asia/Manila',   # appointment times are stored as Philippine wall-clock time
             'settings': {
                 'host_video': True,
                 'participant_video': True,
@@ -136,12 +136,7 @@ class ZoomIntegration:
             }
         }
 
-        print(f"🔷 ZOOM DEBUG: Creating meeting")
-        print(f"   Topic: {topic}")
-        print(f"   Start time: {start_time}")
-        print(f"   Duration: {duration_minutes} min")
-        print(f"   Password: {password}")
-        print(f"   Payload: {payload}")
+        # No logging of passwords or payloads: they are meeting secrets
 
         try:
             response = requests.post(
@@ -151,8 +146,8 @@ class ZoomIntegration:
                 timeout=10
             )
             
-            print(f"🔷 ZOOM RESPONSE: Status {response.status_code}")
-            print(f"   Response: {response.text[:500]}")
+            # The response holds the host's start_url (a login link) and the passcode: never log it
+            print(f"Zoom create meeting: HTTP {response.status_code}")
             
             response.raise_for_status()
 

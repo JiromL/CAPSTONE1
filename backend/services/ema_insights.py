@@ -10,7 +10,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from statistics import mean, median
 
-from services.perma_triage import LABEL_SCORE, AT_RISK, PERMA_AREAS, daily_scores, monthly_scores, label_for_score
+from services.perma_triage import LABEL_SCORE, AT_RISK, PERMA_AREAS, daily_scores, monthly_scores, label_for_score, crisis_reviewed
 
 MIN_GROUP = 5
 OVERDUE_HOURS = 24
@@ -35,7 +35,7 @@ def _students(db):
                                'perma_latest_label': 1, 'perma_crisis_cleared_at': 1}))
 
 
-def _snapshots_by_student(db, students, fields=('perma_label', 'entry_date')):
+def _snapshots_by_student(db, students, fields=('perma_label', 'entry_date', 'first_seen_at')):
     names = {s['mhbot_username']: s['_id'] for s in students}
     out = defaultdict(list)
     for snap in db.perma_snapshots.find({'mhbot_username': {'$in': list(names)}},
@@ -53,7 +53,7 @@ def crisis_followup(db, students, snaps, now):
             continue
         cleared = s.get('perma_crisis_cleared_at')
         crises = [x['entry_date'] for x in snaps.get(s['_id'], [])
-                  if x.get('perma_label') == 'In Crisis' and (cleared is None or x['entry_date'] > cleared)]
+                  if x.get('perma_label') == 'In Crisis' and not crisis_reviewed(x, cleared)]
         if not crises:
             continue
         first = min(crises)
@@ -69,8 +69,9 @@ def crisis_followup(db, students, snaps, now):
     for r in db.perma_crisis_reviews.find({}, {'student_id': 1, 'cleared_at': 1}).sort('cleared_at', 1):
         sid = r['student_id']
         prev = last_clear.get(sid)
-        crises = [x['entry_date'] for x in snaps.get(sid, []) if x.get('perma_label') == 'In Crisis'
-                  and x['entry_date'] <= r['cleared_at'] and (prev is None or x['entry_date'] > prev)]
+        # The crises this review covered: in CPS by the review, not covered by the one before
+        crises = [x['entry_date'] for x in snaps.get(sid, []) if crisis_reviewed(x, r['cleared_at'])
+                  and not crisis_reviewed(x, prev)]
         if crises:
             review_hours.append((r['cleared_at'] - min(crises)).total_seconds() / 3600)
         last_clear[sid] = r['cleared_at']

@@ -18,6 +18,8 @@ collection (_id "perma_triage") and fall back to the defaults below.
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from bson import ObjectId
+
 LABEL_SCORE = {'Excelling': 5, 'Thriving': 4, 'Surviving': 3, 'Struggling': 2, 'In Crisis': 1}
 SCORE_LABEL = {v: k for k, v in LABEL_SCORE.items()}
 AT_RISK = ('Struggling', 'In Crisis')
@@ -28,6 +30,24 @@ DEFAULT_SETTINGS = {
     'persistent_struggle_count': 2,  # this many Struggling results in the window adds a flag
     'unstable_swing_levels': 3,    # same-day gap (e.g. In Crisis 1 -> Thriving 4) that adds a flag
 }
+
+
+def arrived_at(snapshot) -> datetime:
+    """When CPS first received this result. EMA results can arrive hours after the check-in
+    (the sync runs every 6 hours), so a review covers what had *arrived* when it was made,
+    not what had happened by then. Otherwise a late crisis would count as already reviewed."""
+    if snapshot.get('first_seen_at'):
+        return snapshot['first_seen_at']
+    oid = snapshot.get('_id')
+    if isinstance(oid, ObjectId):   # saved before first_seen_at existed: the id holds its creation time
+        return oid.generation_time.replace(tzinfo=None)
+    return snapshot['entry_date']
+
+
+def crisis_reviewed(snapshot, cleared_at) -> bool:
+    """An In Crisis result counts as reviewed only if it was in CPS when the review was made."""
+    return (snapshot.get('perma_label') == 'In Crisis' and cleared_at is not None
+            and arrived_at(snapshot) <= cleared_at)
 
 
 def get_settings(db) -> dict:
@@ -61,8 +81,7 @@ def compute_triage(snapshots, settings: dict, crisis_cleared_at=None, now=None) 
     flags, reasons = [], []
 
     def reviewed(e):
-        return (e['perma_label'] == 'In Crisis' and crisis_cleared_at is not None
-                and e['entry_date'] <= crisis_cleared_at)
+        return crisis_reviewed(e, crisis_cleared_at)
 
     def effective(e):
         return LABEL_SCORE['Struggling'] if reviewed(e) else LABEL_SCORE[e['perma_label']]
@@ -84,8 +103,7 @@ def compute_triage(snapshots, settings: dict, crisis_cleared_at=None, now=None) 
         stale = True
 
     # An In Crisis result stays until someone with care responsibility clears it
-    crises = [e for e in entries if e['perma_label'] == 'In Crisis'
-              and (crisis_cleared_at is None or e['entry_date'] > crisis_cleared_at)]
+    crises = [e for e in entries if e['perma_label'] == 'In Crisis' and not reviewed(e)]
     crisis_pending = bool(crises)
     if crisis_pending:
         if score != 1:
@@ -172,7 +190,7 @@ def refresh_student_triage(db, user_id, now=None) -> dict:
     query = {'student_user_id': user_id}
     if user.get('mhbot_username'):
         query = {'$or': [query, {'mhbot_username': user['mhbot_username']}]}
-    snapshots = list(db.perma_snapshots.find(query, {'perma_label': 1, 'entry_date': 1}))
+    snapshots = list(db.perma_snapshots.find(query, {'perma_label': 1, 'entry_date': 1, 'first_seen_at': 1}))
     triage = compute_triage(snapshots, get_settings(db), user.get('perma_crisis_cleared_at'), now)
     triage['computed_at'] = (now or datetime.utcnow()).isoformat()
     db.users.update_one({'_id': user_id}, {'$set': {'perma_triage': triage, 'perma_triage_label': triage['label']}})

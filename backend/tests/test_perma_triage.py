@@ -124,3 +124,20 @@ def test_understated_risk_is_counted_when_latest_label_looks_better():
 
 def test_small_groups_are_withheld():
     assert MIN_GROUP == 5
+
+
+def test_crisis_that_arrives_after_a_review_is_not_counted_as_reviewed():
+    # Check-in at 9:00, review at 10:00, but EMA's sync only delivers the 9:00 result at noon
+    late = snap('In Crisis', 1, hour=9)
+    late['first_seen_at'] = late['entry_date'].replace(hour=12)
+    t = triage([late], cleared_at=late['entry_date'].replace(hour=10))
+    assert t['label'] == 'In Crisis'
+    assert t['crisis_pending_review']
+
+
+def test_crisis_that_arrived_before_the_review_is_covered_by_it():
+    seen = snap('In Crisis', 1, hour=9)
+    seen['first_seen_at'] = seen['entry_date'].replace(hour=9, minute=5)
+    t = triage([seen], cleared_at=seen['entry_date'].replace(hour=10))
+    assert t['label'] == 'Struggling'
+    assert not t['crisis_pending_review']

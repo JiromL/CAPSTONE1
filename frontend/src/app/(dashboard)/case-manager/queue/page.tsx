@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
-import { AlertTriangle, RefreshCw, User, ExternalLink } from 'lucide-react';
+import { AlertTriangle, RefreshCw, User, ExternalLink, CheckCircle } from 'lucide-react';
 import { TriageFlags, TriageReasons, ClearCrisisButton } from '@/components/PermaTriage';
 
 interface QueueStudent {
@@ -22,6 +22,30 @@ interface QueueStudent {
   latest_date: string | null;
   case_id: string | null;
   case_status: string | null;
+}
+
+interface CrisisReview {
+  review_id: string;
+  student_id: string;
+  student_name: string;
+  school_id: string;
+  college: string;
+  reviewed_at: string;
+  reviewed_by: string;
+  reviewed_by_role: string | null;
+  note: string;
+  current_label: string | null;
+  in_crisis_again: boolean;
+  case_id: string | null;
+}
+
+const REVIEW_DAYS = 14;
+const ROLE_NAME: Record<string, string> = {
+  CASE_MANAGER: 'Case manager', ADMIN: 'Admin', COUNSELOR: 'Counselor', PSYCHOLOGIST: 'Psychologist',
+};
+
+function fmtDateTime(d: string) {
+  return new Date(d).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 function labelStyle(label: string): { badge: React.CSSProperties; dot: React.CSSProperties } {
@@ -46,6 +70,8 @@ export default function CaseManagerQueuePage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+  const [reviews, setReviews] = useState<CrisisReview[]>([]);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -57,6 +83,14 @@ export default function CaseManagerQueuePage() {
       setStudents(d.students || []);
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
+    // Recent reviews load separately so a problem here never hides the queue itself
+    try {
+      const r = await fetch(api(`/api/mhbot/cm-queue/recent-reviews?days=${REVIEW_DAYS}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 403) { setReviews([]); setReviewsError(null); return; }
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      setReviews(d.reviews || []); setReviewsError(null);
+    } catch { setReviewsError('Could not load recent reviews. Try refreshing.'); }
   };
 
   useEffect(() => { load(); }, []);
@@ -68,6 +102,10 @@ export default function CaseManagerQueuePage() {
 
   const crisis    = filtered.filter(s => s.triage_label === 'In Crisis');
   const struggling = filtered.filter(s => s.triage_label === 'Struggling');
+
+  const q = search.trim().toLowerCase();
+  const filteredReviews = reviews.filter(r => !q ||
+    [r.student_name, r.school_id, r.college, r.reviewed_by].some(v => (v || '').toLowerCase().includes(q)));
 
   const StudentCard = ({ s }: { s: QueueStudent }) => {
     const { badge, dot } = labelStyle(s.triage_label);
@@ -192,6 +230,63 @@ export default function CaseManagerQueuePage() {
             </p>
             {struggling.map(s => <StudentCard key={s.student_id} s={s} />)}
           </div>
+        )}
+
+        {!loading && (filteredReviews.length > 0 || reviewsError) && (
+          <section className="space-y-3 pt-2" aria-labelledby="recent-reviews-title">
+            <div>
+              <h2 id="recent-reviews-title" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-success-text)' }}>
+                <CheckCircle size={14} aria-hidden="true" /> Recently reviewed ({filteredReviews.length})
+              </h2>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                Crises marked reviewed in the last {REVIEW_DAYS} days, newest first. Use this to follow up after the flag is cleared.
+              </p>
+            </div>
+            {reviewsError && <p className="text-xs" style={{ color: 'var(--color-danger-text)' }}>{reviewsError}</p>}
+            {filteredReviews.map(r => {
+              const { badge, dot } = labelStyle(r.current_label || '');
+              const calm = !r.current_label || !['In Crisis', 'Struggling'].includes(r.current_label);
+              return (
+                <div key={r.review_id} className="border rounded-xl p-4 flex items-start justify-between gap-4"
+                  style={{ background: 'var(--color-surface)', borderColor: r.in_crisis_again ? 'var(--color-danger)' : 'var(--color-border)' }}>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{r.student_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                      {[r.school_id, r.college].filter(Boolean).join(' · ')}
+                    </p>
+                    <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
+                      Reviewed by <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{r.reviewed_by}</span>
+                      {r.reviewed_by_role ? ` (${ROLE_NAME[r.reviewed_by_role] ?? r.reviewed_by_role})` : ''} · {fmtDateTime(r.reviewed_at)}
+                    </p>
+                    {r.note && (
+                      <p className="text-sm mt-1.5 rounded-lg px-3 py-2 whitespace-pre-line" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
+                        {r.note}
+                      </p>
+                    )}
+                    {r.in_crisis_again && (
+                      <p className="flex items-center gap-1.5 text-xs font-semibold mt-2" style={{ color: 'var(--color-danger-text)' }}>
+                        <AlertTriangle size={13} aria-hidden="true" /> In crisis again since this review. See In Crisis above.
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                      style={calm ? { background: 'var(--color-bg)', color: 'var(--color-text-secondary)' } : badge}>
+                      {!calm && <span className="w-1.5 h-1.5 rounded-full" style={dot} />}
+                      Now: {r.current_label || 'No recent data'}
+                    </span>
+                    {r.case_id ? (
+                      <Link href={`/cases/${r.case_id}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
+                        View Case <ExternalLink size={11} aria-hidden="true" />
+                      </Link>
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No case yet</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
         )}
       </div>
     </DashboardPageWrapper>

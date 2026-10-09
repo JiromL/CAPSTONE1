@@ -137,7 +137,8 @@ def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=No
                 'source': source,
                 **(({'perma_score': entry['perma_score']}) if entry.get('perma_score') else {}),
                 **(({'student_user_id': student_user_id}) if student_user_id else {}),
-            }},
+            },
+             '$setOnInsert': {'first_seen_at': now}},
             upsert=True,
         )
     # Update the quick-access fields on the user record. Unfinished conversations come back
@@ -813,6 +814,54 @@ def get_cm_queue():
         return jsonify({'error': str(e)}), 500
 
 
+@mhbot_bp.route('/cm-queue/recent-reviews', methods=['GET'])
+@jwt_required()
+def get_recent_crisis_reviews():
+    """Crisis reviews from the last N days across all students, newest first, so case managers
+    can follow up on everyone who was recently in crisis. Review notes are clinical, so only
+    case managers and admins see this list."""
+    user_id = get_jwt_identity()
+    caller = db.db.users.find_one({'_id': _resolve_user_id(user_id)}, {'role': 1})
+    if not caller or caller.get('role') not in ('CASE_MANAGER', 'ADMIN'):
+        return jsonify({'error': 'Only case managers and admins can see recent crisis reviews'}), 403
+
+    days = max(1, min(request.args.get('days', 14, type=int), 90))
+    since = datetime.utcnow() - timedelta(days=days)
+    reviews = list(db.db.perma_crisis_reviews.find({'cleared_at': {'$gte': since}}).sort('cleared_at', -1).limit(200))
+
+    people = {u['_id']: u for u in db.db.users.find(
+        {'_id': {'$in': list({r['student_id'] for r in reviews} | {r['cleared_by'] for r in reviews})}},
+        {'name': 1, 'first_name': 1, 'last_name': 1, 'email': 1, 'student_id': 1, 'college': 1,
+         'perma_triage': 1, 'perma_triage_label': 1})}
+
+    def name_of(u):
+        if not u:
+            return ''
+        return u.get('name') or f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or u.get('email', '')
+
+    results = []
+    for r in reviews:
+        student = people.get(r['student_id'])
+        triage = (student or {}).get('perma_triage') or {}
+        case = db.db.cases.find_one({'student_id': r['student_id']}, sort=[('created_at', -1)], projection={'_id': 1})
+        results.append({
+            'review_id':     str(r['_id']),
+            'student_id':    str(r['student_id']),
+            'student_name':  name_of(student) or 'Unknown student',
+            'school_id':     (student or {}).get('student_id', ''),
+            'college':       (student or {}).get('college', ''),
+            'reviewed_at':   r['cleared_at'].isoformat(),
+            'reviewed_by':   name_of(people.get(r['cleared_by'])) or 'Staff',
+            'reviewed_by_role': r.get('cleared_by_role'),
+            'note':          r.get('note', ''),
+            # Where the student stands now, so a new crisis after the review stands out
+            'current_label': (student or {}).get('perma_triage_label'),
+            'in_crisis_again': bool(triage.get('crisis_pending_review')),
+            'case_id':       str(case['_id']) if case else None,
+        })
+    return jsonify({'days': days, 'total': len(results), 'reviews': results}), 200
+
+
 @mhbot_bp.route('/stats/perma-distribution', methods=['GET'])
 @jwt_required()
 def get_perma_distribution():
@@ -1147,7 +1196,8 @@ def ema_webhook():
             'source': 'webhook',
             **(({'perma_score': data['perma_score']}) if isinstance(data.get('perma_score'), dict) else {}),
             **(({'student_user_id': student['_id']}) if student else {}),
-        }},
+        },
+         '$setOnInsert': {'first_seen_at': now}},
         upsert=True,
     )
 

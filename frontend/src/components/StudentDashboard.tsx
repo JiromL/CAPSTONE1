@@ -629,9 +629,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
             <div className="lg:hidden rounded-2xl p-4" style={{ background: 'var(--color-danger-surface)', border: '1px solid var(--color-danger)' }}>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-danger-text)' }}>Need support right now?</p>
               <p className="type-body-sm mt-1" style={{ color: 'var(--color-danger-text)' }}>
-                CPS: <a href="tel:09XXXXXXXXX" className="font-bold underline underline-offset-2">09XX-XXX-XXXX</a>
-                {' '}· Hopeline: <a href="tel:1553" className="font-bold underline underline-offset-2">1553</a>
-                {' '}· NCMH: <a href="tel:028928922" className="font-bold underline underline-offset-2">0917-899-8727</a>
+                Call the NCMH Crisis Hotline at <a href="tel:1553" className="font-bold underline underline-offset-2">1553</a>, free and open 24/7.
+                {' '}More numbers on the{' '}
+                <a href="https://ncmh.gov.ph/" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2">NCMH website</a>.
               </p>
             </div>
           </div>
@@ -647,10 +647,10 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50" onClick={() => setOpenAnnouncement(null)} />
-            <div className="relative rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" style={{ background: 'var(--color-surface)' }}>
+            <div className="relative rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto animate-scale-in" style={{ background: 'var(--color-surface)' }}>
               <div className="h-1 w-full" style={{ background: meta.accent }} />
-              <div className="p-7">
-                <div className="flex items-start justify-between gap-3 mb-5">
+              <div className="p-7 sm:p-10">
+                <div className="flex items-start justify-between gap-4 mb-6">
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-xs font-bold px-2.5 py-1 rounded-full tracking-wide uppercase" style={{ background: `${meta.accent}18`, color: meta.accent }}>
@@ -658,7 +658,7 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                       </span>
                       {a.pinned && <span className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Pinned</span>}
                     </div>
-                    <h3 className="text-lg font-bold leading-snug" style={{ color: 'var(--color-text-primary)' }}>{a.title}</h3>
+                    <h3 className="text-2xl font-bold leading-snug" style={{ color: 'var(--color-text-primary)' }}>{a.title}</h3>
                   </div>
                   <button onClick={() => setOpenAnnouncement(null)}
                     className="p-2 rounded-xl transition-colors flex-shrink-0"
@@ -667,9 +667,9 @@ export function StudentDashboard({ user, onLogout }: DashboardProps) {
                     <X size={16} style={{ color: 'var(--color-text-muted)' }} />
                   </button>
                 </div>
-                {a.body && <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--color-text-secondary)' }}>{a.body}</p>}
+                {a.body && <p className="text-base leading-relaxed whitespace-pre-line mb-6" style={{ color: 'var(--color-text-secondary)' }}>{a.body}</p>}
                 {a.event_date && (
-                  <div className="text-sm mb-5 rounded-xl px-4 py-3 font-medium" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
+                  <div className="text-base mb-6 rounded-xl px-4 py-3 font-medium" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
                     {fmtEventDate(a.event_date)}
                   </div>
                 )}

@@ -855,6 +855,73 @@ def get_cm_queue():
         return server_error(e)
 
 
+@mhbot_bp.route('/my-students', methods=['GET'])
+@jwt_required()
+def get_my_ema_students():
+    """The counselor view of EMA: every student in the caller's care, with what (if anything)
+    needs their attention, in plain words, most urgent first."""
+    user_id = get_jwt_identity()
+    if _staff_access_denied(user_id):
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    from services.ema_access import student_filter, TOTALS
+    from services.perma_triage import local_day
+    mode, own = _ema_scope()
+    if mode == TOTALS:
+        return jsonify({'error': NAMES_HIDDEN_ERROR}), 403
+
+    now = datetime.utcnow()
+    students = list(db.db.users.find(
+        {'mhbot_username': {'$nin': [None, '']}, 'role': 'STUDENT', **student_filter(mode, own)},
+        {'name': 1, 'first_name': 1, 'last_name': 1, 'college': 1, 'year_level': 1, 'mhbot_username': 1,
+         'perma_triage': 1, 'perma_crisis_cleared_at': 1}))
+    out = []
+    for st in students:
+        triage = st.get('perma_triage') or {}
+        snaps = list(db.db.perma_snapshots.find(
+            {'$or': [{'student_user_id': st['_id']}, {'mhbot_username': st['mhbot_username']}],
+             'entry_date': {'$gte': now - timedelta(days=14)}}, {'perma_label': 1, 'entry_date': 1}))
+        days = {}
+        for x in snaps:
+            if x.get('perma_label') in LABEL_SCORE:
+                days.setdefault(local_day(x['entry_date']), []).append(LABEL_SCORE[x['perma_label']])
+        today = local_day(now)
+        trend = [round(sum(days[d]) / len(days[d]), 2) if d in days else None
+                 for d in (today - timedelta(days=i) for i in range(13, -1, -1))]
+        last = triage.get('last_checkin')
+        days_silent = (now - datetime.fromisoformat(last)).days if last else None
+        case = db.db.cases.find_one({'student_id': st['_id']}, sort=[('created_at', -1)], projection={'_id': 1})
+
+        # Why this student needs the counselor, in plain words, most urgent first
+        needs = []
+        if triage.get('crisis_pending_review'):
+            needs.append({'level': 'urgent', 'text': 'In Crisis result not reviewed yet'})
+        if triage.get('label') in AT_RISK and days_silent is not None and days_silent >= 7:
+            needs.append({'level': 'high', 'text': f'No check-in for {days_silent} days after a hard result'})
+        if 'persistent_struggle' in triage.get('flags', []):
+            needs.append({'level': 'high', 'text': 'Struggling on several days this week'})
+        if 'unstable_mood' in triage.get('flags', []):
+            needs.append({'level': 'medium', 'text': 'Mood swung a lot within one day'})
+        if triage.get('label') == 'Struggling' and not needs:
+            needs.append({'level': 'medium', 'text': 'Struggling this week'})
+        if 'crisis_reviewed' in triage.get('flags', []) and not triage.get('crisis_pending_review'):
+            needs.append({'level': 'info', 'text': 'Crisis this week, already reviewed'})
+
+        out.append({
+            'student_id': str(st['_id']),
+            'name': st.get('name') or f"{st.get('first_name', '')} {st.get('last_name', '')}".strip(),
+            'college': st.get('college', ''), 'year_level': st.get('year_level', ''),
+            'label': triage.get('label'), 'latest_label': triage.get('latest_label'),
+            'last_checkin': last, 'days_silent': days_silent, 'stale': bool(triage.get('stale')),
+            'crisis_pending_review': bool(triage.get('crisis_pending_review')),
+            'needs': needs, 'trend': trend, 'case_id': str(case['_id']) if case else None,
+            '_sort': triage_priority(triage),
+        })
+    rank = {'urgent': 0, 'high': 1, 'medium': 2, 'info': 3}
+    out.sort(key=lambda r: (min([rank[n['level']] for n in r['needs'] if n['level'] != 'info'] or [9]), r.pop('_sort')))
+    attention = [r for r in out if any(n['level'] != 'info' for n in r['needs'])]
+    return jsonify({'students': out, 'needs_attention': len(attention), 'total': len(out)}), 200
+
+
 @mhbot_bp.route('/cm-queue/recent-reviews', methods=['GET'])
 @jwt_required()
 def get_recent_crisis_reviews():

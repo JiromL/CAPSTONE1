@@ -38,7 +38,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Intake Management', href: '/intake-management', id: 'intake-management'},
     { label: 'Cases',             href: '/cases',             id: 'cases'            },
     { label: 'My Schedule',       href: '/schedule',          id: 'schedule'         },
-    { label: 'EMA Bot',           href: '/mhbot',             id: 'mhbot'            },
+    { label: 'EMA check-ins',     href: '/mhbot',             id: 'mhbot'            },
     H('Account'),
     { label: 'Profile',           href: '/profile',           id: 'profile'          },
   ];
@@ -50,7 +50,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases',        href: '/cases',        id: 'cases'       },
     { label: 'Appointments', href: '/appointments', id: 'appointments'},
     { label: 'My Schedule',  href: '/schedule',     id: 'schedule'    },
-    { label: 'EMA Bot',      href: '/mhbot',        id: 'mhbot'       },
+    { label: 'EMA check-ins', href: '/mhbot',        id: 'mhbot'       },
     H('Account'),
     { label: 'Profile',      href: '/profile',      id: 'profile'     },
   ];
@@ -62,7 +62,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases',                href: '/cases',       id: 'cases'       },
     { label: 'Appointments',         href: '/appointments',id: 'appointments'},
     { label: 'My Schedule',          href: '/schedule',    id: 'schedule'    },
-    { label: 'EMA Bot',              href: '/mhbot',       id: 'mhbot'       },
+    { label: 'EMA check-ins',        href: '/mhbot',       id: 'mhbot'       },
     H('Account'),
     { label: 'Profile',              href: '/profile',     id: 'profile'     },
   ];

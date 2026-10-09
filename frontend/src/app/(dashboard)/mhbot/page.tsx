@@ -3,6 +3,7 @@
 import { TriageFlags, TriageReasons } from '@/components/PermaTriage';
 import { EmaConsentCheckbox } from '@/components/EmaPrivacyNotice';
 import { EmaInsights, LabelChip } from '@/components/EmaInsights';
+import { MyEmaStudents } from '@/components/MyEmaStudents';
 import { PERMA_COLOR } from '@/utils/perma';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -1096,6 +1097,17 @@ export default function EMAPage() {
     );
   }
 
+  // Their list comes from CPS data, so no EMA connection is needed.
+  // Counselors, psychologists and intake counselors get one simple list of their own students;
+  // the full analytics are for the case manager and admins
+  if (['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(role.toUpperCase())) {
+    return (
+      <DashboardPageWrapper title="My students on EMA" subtitle="Wellbeing check-ins of the students in your care">
+        <MyEmaStudents />
+      </DashboardPageWrapper>
+    );
+  }
+
   // Students linked before the in-CPS chatbot have no saved EMA key yet; ask them to sign in once more
   if (!authStatus?.connected || (isStudent && authStatus.needs_relink)) {
     return (
@@ -1111,9 +1123,7 @@ export default function EMAPage() {
   return (
     <DashboardPageWrapper
       title="EMA Analytics"
-      subtitle={isStudent ? 'Your PERMA well-being'
-        : ['COUNSELOR', 'PSYCHOLOGIST', 'IC'].includes(role.toUpperCase()) ? 'Wellbeing of the students in your care'
-        : 'Student well-being monitoring & population health analytics'}
+      subtitle={isStudent ? 'Your PERMA well-being' : 'Student well-being monitoring & population health analytics'}
     >
       {isStudent
         ? <StudentView username={authStatus.mhbot_username!} onDisconnect={handleDisconnect} />

@@ -30,16 +30,16 @@ function counselorPalette(name: string) {
   return COUNSELOR_PALETTES[Math.abs(h) % COUNSELOR_PALETTES.length];
 }
 
-function StatCard({ label, value, sub, highlight, action }: {
+function StatCard({ label, value, sub, action }: {
   label: string; value?: string | number; sub?: string;
-  highlight?: boolean; action?: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="rounded-2xl border shadow-card p-5 flex flex-col gap-2 min-h-[110px] transition-shadow hover:shadow-card-md"
       style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
       <p className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
       {value !== undefined && (
-        <p className="text-3xl font-bold leading-none tracking-tight" style={{ color: highlight ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+        <p className="text-3xl font-bold leading-none tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
           {value}
         </p>
       )}
@@ -226,7 +226,8 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
     if (log.entity_type === 'case')         return 'Case';
     if (log.entity_type === 'user')         return 'User Account';
     if (log.entity_type === 'analytics')    return 'Analytics';
-    return log.entity_id ? `#${String(log.entity_id).slice(-6)}` : '—';
+    if (log.entity_type) return String(log.entity_type).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return '—';
   }
 
   return (
@@ -279,7 +280,7 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
             <StatCard label="User Management" value={staffCount || '—'} sub={`Staff accounts · ${summary?.pending_appointments ?? 0} pending approval`} />
             <StatCard label="Appointments This Month" value={summary?.week_appointments != null ? summary.week_appointments * 4 : '—'} sub="Across all departments" />
             <StatCard label="Active Cases" value={summary?.active_cases ?? '—'} sub={`${highRisk > 0 ? `${highRisk} high-risk · ` : ''}${summary?.closed_cases ?? 0} closed`} />
-            <StatCard label="Staff Availability" value={staffCount || '—'} highlight sub="Counselors & psychologists on staff" />
+            <StatCard label="Staff Availability" value={staffCount || '—'} sub="Counselors & psychologists on staff" />
             <StatCard
               label="Announcements"
               sub={latestAnn ? `"${latestAnn.title || latestAnn.content?.slice(0, 60)}"` : 'No active announcements'}
@@ -315,10 +316,8 @@ export function AdminDashboard({ user, onLogout }: DashboardProps) {
                 <div>
                   {auditLogs.map((log, i) => (
                     <div key={i}
-                      className="grid grid-cols-[1fr_2fr_1fr_90px] items-center px-5 py-3 gap-4 transition-colors"
-                      style={{ borderTop: '1px solid var(--color-border)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      className="row-hover grid grid-cols-[1fr_2fr_1fr_90px] items-center px-5 py-3 gap-4"
+                      style={{ borderTop: '1px solid var(--color-border)' }}>
                       <span className="text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
                         {log.actor_name || log.user_id?.slice(-6) || 'System'}
                       </span>

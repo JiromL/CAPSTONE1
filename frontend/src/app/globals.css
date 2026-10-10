@@ -146,6 +146,26 @@ html.dark {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   TOKEN UTILITIES
+   Tailwind v4 ignores tailwind.config.js unless it is loaded
+   with @config, so the shadow tokens defined in :root above are
+   re-exposed here as real utilities. @utility (not a plain
+   class) so hover: and other variants keep working.
+───────────────────────────────────────────────────────────── */
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+@utility shadow-card-md {
+  box-shadow: var(--shadow-card-md);
+}
+@utility shadow-card-lg {
+  box-shadow: var(--shadow-card-lg);
+}
+@utility shadow-primary {
+  box-shadow: var(--shadow-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────
    BASE STYLES
 ───────────────────────────────────────────────────────────── */
 *, *::before, *::after {
@@ -312,6 +332,15 @@ body {
     transform: translateY(-2px);
     box-shadow: var(--shadow-card-lg);
     border-color: var(--color-border-strong);
+  }
+
+  /* Calm row hover for div-based rows (the tbody rule near the bottom of
+     this file only reaches real table rows) */
+  .row-hover {
+    transition: background-color 120ms ease;
+  }
+  .row-hover:hover {
+    background-color: var(--color-bg);
   }
 
   /* Buttons — shared base */

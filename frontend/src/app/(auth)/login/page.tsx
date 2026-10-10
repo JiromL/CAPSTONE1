@@ -228,7 +228,7 @@ function LoginContent() {
 
               {/* Google */}
               {googleError
-                ? <div className="p-3 rounded-xl text-center text-sm" style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger-text)' }}>
+                ? <div className="p-3 rounded-xl text-center text-sm" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
                     Google Sign-In is unavailable right now. Use your email and password instead.
                   </div>
                 : <div>

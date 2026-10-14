@@ -302,3 +302,34 @@ def test_team_overview_is_totals_for_admin_and_refused_for_counselors(client, wo
     body = r.get_json()
     assert body['at_risk'] >= 1
     assert 'other' not in str(body)          # no student names anywhere in the response
+
+
+def test_system_calendar_status_does_not_crash(client, world):
+    r = client.get('/api/calendar/system-status', headers=auth(world['admin']))
+    assert r.status_code == 200 and r.get_json() == {'connected': False}
+
+
+def test_crisis_escalation_alerts_and_reaches_the_cm_queue(client, world):
+    tdb = db.db
+    try:
+        r = client.post(f"/api/high-risk/crisis-escalate/{world['other_case']}", headers=auth(world['admin']),
+                        json={'description': 'Disclosed a plan in session'})
+        assert r.status_code == 201
+        alerted = {n['target_user_id'] for n in tdb.notifications.find({'type': 'CASE_CRISIS', 'case_id': world['other_case']})}
+        assert str(world['cm']) in alerted                  # the case manager is told
+        assert str(world['counselor']) in alerted           # and the student's own counselor
+        assert str(world['admin']) not in alerted           # not whoever escalated it
+        assert tdb.cases.find_one({'_id': world['other_case']})['risk_level'] == 'RED'
+
+        # The CM Queue includes the student even though they never linked EMA
+        body = client.get('/api/mhbot/my-students?with_case_risk=1', headers=auth(world['cm'])).get_json()
+        row = next(s for s in body['students'] if s['student_id'] == str(world['other']))
+        assert row['sources'] == ['Counselor'] and row['on_ema'] is False
+        assert row['needs'][0]['level'] == 'urgent' and 'escalated' in row['needs'][0]['text']
+        # The counselors' EMA page stays EMA only
+        plain = client.get('/api/mhbot/my-students', headers=auth(world['cm'])).get_json()
+        assert all(s['student_id'] != str(world['other']) for s in plain['students'])
+    finally:
+        tdb.crisis_escalations.delete_many({'case_id': world['other_case']})
+        tdb.notifications.delete_many({'case_id': world['other_case']})
+        tdb.cases.update_one({'_id': world['other_case']}, {'$unset': {'risk_level': '', 'current_risk_level': '', 'requires_daily_checkin': ''}})

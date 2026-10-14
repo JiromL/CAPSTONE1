@@ -10,12 +10,14 @@ import { ClearCrisisButton } from './PermaTriage';
 
 // The EMA page for counselors, psychologists and intake counselors (backend: GET /mhbot/my-students).
 // One question: which of my students need me, and why. Campus analytics stay with the case manager.
+// withCaseRisk (the CM Queue) also lists students a counselor flagged on their case, tagged by source.
 
-interface Need { level: 'urgent' | 'high' | 'medium' | 'info'; text: string }
+interface Need { level: 'urgent' | 'high' | 'medium' | 'info'; text: string; source?: 'EMA' | 'Counselor' }
 interface Student {
   student_id: string; name: string; college: string; year_level: string;
   label: string | null; latest_label: string | null; last_checkin: string | null; days_silent: number | null;
-  stale: boolean; crisis_pending_review: boolean; needs: Need[]; trend: (number | null)[]; case_id: string | null;
+  stale: boolean; crisis_pending_review: boolean; needs: Need[]; trend: (number | null)[]; case_id: string | null; case_closed?: boolean;
+  on_ema?: boolean; sources?: ('EMA' | 'Counselor')[];
 }
 
 const ink = { primary: 'var(--color-text-primary)', secondary: 'var(--color-text-secondary)', muted: 'var(--color-text-muted)' };
@@ -29,6 +31,7 @@ const LABEL_HELP: [string, string][] = [
 ];
 
 function lastSeen(s: Student) {
+  if (s.on_ema === false) return 'Not on EMA';
   if (s.days_silent === null) return 'No check-in yet';
   if (s.days_silent === 0) return 'Today';
   if (s.days_silent === 1) return 'Yesterday';
@@ -56,6 +59,16 @@ function Trend({ points, name }: { points: (number | null)[]; name: string }) {
   );
 }
 
+/** Where a flag came from: the student's EMA check-ins, or a counselor on their case. */
+function SourceTag({ source }: { source: 'EMA' | 'Counselor' }) {
+  return (
+    <span className="text-[0.6875rem] font-medium px-1.5 py-0.5 rounded"
+      style={{ background: 'var(--color-bg)', color: ink.secondary, boxShadow: '0 0 0 1px var(--color-border)' }}>
+      {source === 'EMA' ? 'EMA' : 'Counselor flag'}
+    </span>
+  );
+}
+
 function NeedLine({ need }: { need: Need }) {
   const urgent = need.level === 'urgent';
   return (
@@ -67,22 +80,24 @@ function NeedLine({ need }: { need: Need }) {
   );
 }
 
-export function MyEmaStudents() {
+export function MyEmaStudents({ scope = 'own', withCaseRisk = false }: { scope?: 'own' | 'all'; withCaseRisk?: boolean }) {
+  const campus = scope === 'all';
   const [data, setData] = useState<{ students: Student[]; needs_attention: number; total: number } | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const r = await fetch(api('/api/mhbot/my-students'), { headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` } });
+      const r = await fetch(api(`/api/mhbot/my-students${withCaseRisk ? '?with_case_risk=1' : ''}`), { headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` } });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Could not load your students');
       setData(d);
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load your students'); }
     finally { setLoading(false); }
-  }, []);
+  }, [withCaseRisk]);
   useEffect(() => { load(); }, [load]);
 
   if (loading && !data) {
@@ -99,18 +114,23 @@ export function MyEmaStudents() {
   }
 
   const attention = data.students.filter(s => s.needs.some(n => n.level !== 'info'));
+  const onEma = data.students.filter(s => s.on_ema !== false);
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-2xl font-semibold" style={{ color: ink.primary }}>
-            {data.total === 0 ? 'None of your students use EMA yet'
-              : data.needs_attention === 0 ? 'None of your students need attention right now'
-              : `${data.needs_attention} of your ${data.total} students ${data.needs_attention === 1 ? 'needs' : 'need'} attention`}
+            {withCaseRisk ? (data.needs_attention === 0 ? 'No student needs attention right now'
+              : `${data.needs_attention} ${data.needs_attention === 1 ? 'student needs' : 'students need'} attention`)
+              : data.total === 0 ? (campus ? 'No students use EMA yet' : 'None of your students use EMA yet')
+              : data.needs_attention === 0 ? (campus ? 'No student needs attention right now' : 'None of your students need attention right now')
+              : `${data.needs_attention} of ${campus ? 'the' : 'your'} ${data.total} students on EMA ${data.needs_attention === 1 ? 'needs' : 'need'} attention`}
           </p>
           <p className="text-sm mt-1" style={{ color: ink.secondary }}>
-            From their EMA wellbeing check-ins. Only students in your care are shown.
+            {withCaseRisk ? 'From EMA wellbeing check-ins and from counselors\' risk flags on cases. Most urgent first.'
+              : campus ? 'From EMA wellbeing check-ins, across every student linked to EMA. Most urgent first.'
+              : 'From their EMA wellbeing check-ins. Only students in your care are shown.'}
           </p>
         </div>
         <button onClick={load} disabled={loading} className="btn-ghost">
@@ -123,21 +143,26 @@ export function MyEmaStudents() {
           <h2 id="attention-title" className="type-section-title" style={{ color: ink.primary }}>Needs your attention</h2>
           {attention.map(s => (
             <article key={s.student_id} className="card p-5"
-              style={s.crisis_pending_review ? { borderColor: 'var(--color-danger)', boxShadow: 'var(--shadow-card)' } : undefined}>
+              style={s.crisis_pending_review || s.needs.some(n => n.level === 'urgent') ? { borderColor: 'var(--color-danger)', boxShadow: 'var(--shadow-card)' } : undefined}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold" style={{ color: ink.primary }}>{s.name}</p>
+                  <p className="font-semibold flex flex-wrap items-center gap-2" style={{ color: ink.primary }}>
+                    {s.name}
+                    {withCaseRisk && s.sources?.map(src => <SourceTag key={src} source={src} />)}
+                  </p>
                   <p className="text-xs" style={{ color: ink.muted }}>{[s.college, s.year_level].filter(Boolean).join(' · ')}</p>
                 </div>
-                <div className="text-sm"><LabelChip label={s.label} /></div>
+                <div className="text-sm">{s.on_ema === false
+                  ? <span className="text-xs" style={{ color: ink.muted }}>Not on EMA</span>
+                  : <LabelChip label={s.label} />}</div>
               </div>
               <ul className="mt-3 space-y-1">{s.needs.map((n, i) => <NeedLine key={i} need={n} />)}</ul>
               <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-                <span className="text-xs" style={{ color: ink.muted }}>Last check-in: {lastSeen(s)}</span>
+                <span className="text-xs" style={{ color: ink.muted }}>{s.on_ema === false ? 'Not on EMA' : `Last check-in: ${lastSeen(s)}`}</span>
                 <div className="flex-1" />
                 {s.crisis_pending_review && <ClearCrisisButton studentId={s.student_id} onCleared={load} />}
                 {s.case_id && (
-                  <Link href={`/cases/${s.case_id}`} className="btn-ghost">Open case <ChevronRight size={14} aria-hidden="true" /></Link>
+                  <Link href={`/cases/${s.case_id}`} className="btn-ghost">{s.case_closed ? 'View closed case' : 'Open case'} <ChevronRight size={14} aria-hidden="true" /></Link>
                 )}
               </div>
             </article>
@@ -146,8 +171,15 @@ export function MyEmaStudents() {
       )}
 
       <section aria-labelledby="all-title">
-        <h2 id="all-title" className="type-section-title mb-3" style={{ color: ink.primary }}>All your students on EMA</h2>
-        {data.students.length === 0 ? (
+        <div className="flex items-center justify-between mb-3">
+          <h2 id="all-title" className="type-section-title" style={{ color: ink.primary }}>{campus ? 'All students on EMA' : 'All your students on EMA'} ({onEma.length})</h2>
+          {onEma.length > 12 && (
+            <button onClick={() => setShowAll(v => !v)} className="text-xs font-medium hover:underline" style={{ color: 'var(--color-primary-text)' }}>
+              {showAll ? 'Show fewer' : `Show all ${onEma.length}`}
+            </button>
+          )}
+        </div>
+        {onEma.length === 0 ? (
           <p className="text-sm" style={{ color: ink.muted }}>Students appear here once they link EMA in CPS.</p>
         ) : (
           <div className="card overflow-x-auto">
@@ -160,14 +192,14 @@ export function MyEmaStudents() {
                 <th className="px-4 py-2.5"><span className="sr-only">Case</span></th>
               </tr></thead>
               <tbody>
-                {data.students.map(s => (
+                {(showAll ? onEma : onEma.slice(0, 12)).map(s => (
                   <tr key={s.student_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <td className="px-4 py-2.5 font-medium" style={{ color: ink.primary }}>{s.name}</td>
                     <td className="px-4 py-2.5"><LabelChip label={s.label} /></td>
                     <td className="px-4 py-1.5"><Trend points={s.trend} name={s.name} /></td>
                     <td className="px-4 py-2.5" style={{ color: s.days_silent !== null && s.days_silent >= 7 ? 'var(--color-warning-text)' : ink.secondary }}>{lastSeen(s)}</td>
                     <td className="px-4 py-2.5 text-right">
-                      {s.case_id && <Link href={`/cases/${s.case_id}`} className="text-xs font-medium hover:underline" style={{ color: 'var(--color-primary-text)' }}>Open case</Link>}
+                      {s.case_id && <Link href={`/cases/${s.case_id}`} className="text-xs font-medium hover:underline" style={{ color: 'var(--color-primary-text)' }}>{s.case_closed ? 'Closed case' : 'Open case'}</Link>}
                     </td>
                   </tr>
                 ))}

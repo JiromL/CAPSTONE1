@@ -464,11 +464,15 @@ def escalate_to_crisis(case_id):
         {"_id": case['_id']},
         {"$set": {
             "current_risk_level": RiskLevel.CRITICAL.value,
+            "risk_level": RiskLevel.RED.value,      # the level the case page and Cases list show
             "last_risk_assessment": datetime.utcnow(),
             "requires_daily_checkin": True
         }}
     )
     
+    from services.crisis_alerts import alert_case_escalation
+    alert_case_escalation(db.db, case, initiated_by=escalation['initiated_by_id'])
+
     audit_log(db.db, 'crisis_escalation', 'create', entity_id=str(result.inserted_id), new_values={
         'case_id': str(case['_id']),
         'description': data['description']

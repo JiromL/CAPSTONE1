@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Save, Calendar, CheckCircle, Loader2, Link2Off } from 'lucide-react';
+import { Save, Calendar, CheckCircle, Loader2, Link2Off, RefreshCw, WifiOff } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
 
@@ -43,7 +43,28 @@ export default function SettingsPage() {
   const [calConnecting, setCalConnecting]   = useState(false);
   const [calDisconnecting, setCalDisconnecting] = useState(false);
 
+  const [emaUp, setEmaUp]       = useState<boolean | null>(null);
+  const [emaSyncing, setEmaSyncing] = useState(false);
+  const [emaMsg, setEmaMsg]     = useState('');
+
   const tok = () => localStorage.getItem('token') || '';
+
+  useEffect(() => {
+    fetch(api('/api/mhbot/health'))
+      .then(async r => setEmaUp(r.ok && (await r.json()).status === 'healthy'))
+      .catch(() => setEmaUp(false));
+  }, []);
+
+  // EMA results arrive automatically (webhook, plus a sync every 6 hours); this pulls them now.
+  const handleEmaSync = async () => {
+    setEmaSyncing(true); setEmaMsg('');
+    try {
+      const r = await fetch(api('/api/mhbot/sync'), { method: 'POST', headers: { Authorization: `Bearer ${tok()}` } });
+      const d = await r.json().catch(() => ({}));
+      setEmaMsg(r.ok ? `Updated ${d.synced} of ${d.total} linked students` : (d.error || 'Sync failed. Check the EMA connection.'));
+    } catch { setEmaMsg('Could not reach the server'); }
+    finally { setEmaSyncing(false); }
+  };
 
   useEffect(() => {
     fetch(api('/api/calendar/system-status'), { headers: { Authorization: `Bearer ${tok()}` } })
@@ -165,6 +186,26 @@ export default function SettingsPage() {
               {calConnecting ? 'Redirecting to Google…' : 'Connect CPS Google Calendar'}
             </button>
           )}
+
+          <div className="pt-4 mt-1 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>EMA wellbeing check-ins</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              Students&apos; EMA results come in automatically, and CPS also checks every 6 hours. Use this only if results seem out of date.
+            </p>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-sm" style={{ color: emaUp === false ? 'var(--color-danger-text)' : emaUp ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
+                {emaUp === null ? <><Loader2 size={13} className="animate-spin" /> Checking…</>
+                  : emaUp ? <><CheckCircle size={15} /> EMA is reachable</>
+                  : <><WifiOff size={15} /> EMA can&apos;t be reached right now</>}
+              </div>
+              <button onClick={handleEmaSync} disabled={emaSyncing}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-bg)' }}>
+                {emaSyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} {emaSyncing ? 'Updating…' : 'Update EMA results now'}
+              </button>
+            </div>
+            {emaMsg && <p role="status" className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{emaMsg}</p>}
+          </div>
         </Sec>
 
         <button onClick={handleSave} disabled={status === 'saving'}

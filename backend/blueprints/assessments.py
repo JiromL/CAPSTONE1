@@ -136,11 +136,16 @@ def create_triage_assessment(case_id):
             db.db.crisis_escalations.insert_one({
                 "_id": ObjectId(),
                 "case_id": ObjectId(case_id) if isinstance(case_id, str) else case_id,
-                "initiated_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
+                "initiated_by_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
                 "crisis_level": RiskLevel.CRITICAL.value,
                 "description": f"Auto-triggered alert from {assessment_type} assessment with critical risk score",
+                "resolved": False,
                 "created_at": datetime.utcnow()
             })
+            case_doc = db.db.cases.find_one({"_id": ObjectId(case_id) if isinstance(case_id, str) else case_id})
+            if case_doc:
+                from services.crisis_alerts import alert_case_escalation
+                alert_case_escalation(db.db, case_doc, auto=True)
     
     audit_log(db.db, 'assessment', 'create', entity_id=str(result.inserted_id), new_values={
         'assessment_type': assessment_type,

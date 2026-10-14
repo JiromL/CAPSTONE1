@@ -399,7 +399,9 @@ function EngagementLine({ weeks }: { weeks: Insights['engagement']['weeks'] }) {
   );
 }
 
-export function EmaInsights() {
+/** reportsOnly: numbers and charts only. The case manager's named lists live in the
+ *  'Needs action' tab (MyEmaStudents), so they are not repeated here. */
+export function EmaInsights({ reportsOnly = false }: { reportsOnly?: boolean } = {}) {
   const [data, setData] = useState<Insights | null>(null);
   const [error, setError] = useState('');
 
@@ -458,6 +460,7 @@ export function EmaInsights() {
           note={`In Crisis: ${tv.latest_in_crisis} by latest label, ${tv.triage_in_crisis} by triage`} />
       </div>
 
+      {!reportsOnly && (<>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card title="Crises waiting for review" subtitle={`Longest waiting first. Over ${cf.overdue_hours} hours is overdue.`}>
           {data.names_hidden ? <NamesHidden n={data.counts.pending_crises} what="students have a crisis waiting for review" /> : cf.pending.length === 0 ? (
@@ -525,6 +528,7 @@ export function EmaInsights() {
           )}
         </Card>
       </div>
+      </>)}
 
       <div className="pt-2">
         <h2 className="text-sm font-semibold" style={{ color: ink.primary }}>Closing the loop</h2>
@@ -543,6 +547,7 @@ export function EmaInsights() {
           note="No open case and nothing booked" />
       </div>
 
+      {!reportsOnly && (<>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card title="At risk, not in care" subtitle="Struggling or In Crisis, with no open case and no session booked. The outreach list.">
           {data.names_hidden ? <NamesHidden n={data.counts.not_in_care} what="at-risk students have no open case or booking" /> : data.not_in_care.length === 0 ? (
@@ -621,6 +626,7 @@ export function EmaInsights() {
           </div>
         )}
       </Card>
+      </>)}
 
       <div className="pt-2">
         <h2 className="text-sm font-semibold" style={{ color: ink.primary }}>Outcomes</h2>
@@ -656,6 +662,7 @@ export function EmaInsights() {
         </Card>
       </div>
 
+      {!reportsOnly && (
       <Card title="Declining students" subtitle="Monthly average EMA score fell by a full label level or more compared with the month before.">
         {data.names_hidden ? <NamesHidden n={data.counts.declining} what="students' monthly average dropped a full level" /> : data.declining.length === 0 ? (
           <p className="text-sm py-6 text-center" style={{ color: ink.muted }}>No student&apos;s monthly average dropped a full level.</p>
@@ -683,6 +690,7 @@ export function EmaInsights() {
           </div>
         )}
       </Card>
+      )}
 
       <div className="pt-2">
         <h2 className="text-sm font-semibold" style={{ color: ink.primary }}>Patterns</h2>

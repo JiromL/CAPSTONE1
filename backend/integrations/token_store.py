@@ -5,6 +5,14 @@ from datetime import datetime
 from bson import ObjectId
 
 
+def _owner(user_id):
+    """Token owner key: a user's ObjectId, or a plain string for system accounts such as
+    the shared CPS calendar ('__cps_system__')."""
+    if isinstance(user_id, ObjectId):
+        return user_id
+    return ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
+
+
 def _get_fernet(config):
     # Handle both Config objects (attribute access) and Flask's current_app.config (dict access)
     if hasattr(config, 'ENCRYPTION_KEY'):
@@ -30,7 +38,7 @@ def save_tokens(db, config, user_id, provider, access_token, refresh_token, expi
     enc_refresh = f.encrypt(refresh_token.encode()).decode() if refresh_token else None
 
     record = {
-        'user_id': ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id,
+        'user_id': _owner(user_id),
         'provider': provider,
         'access_token': enc_access,
         'refresh_token': enc_refresh,
@@ -51,7 +59,7 @@ def save_tokens(db, config, user_id, provider, access_token, refresh_token, expi
 
 def get_tokens(db, config, user_id, provider):
     f = _get_fernet(config)
-    rec = db.tokens.find_one({'user_id': ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id, 'provider': provider})
+    rec = db.tokens.find_one({'user_id': _owner(user_id), 'provider': provider})
     if not rec:
         return None
     try:

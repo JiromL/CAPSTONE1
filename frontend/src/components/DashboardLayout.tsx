@@ -209,7 +209,7 @@ export function DashboardLayout({
   /* ── Sidebar nav item renderer ─────────────────────────── */
   const NavItem = ({ item, index }: { item: MenuItem; index: number }) => {
     const isActive = (activeSection && item.id && activeSection === item.id)
-      || (!activeSection && item.href && pathname === item.href);
+      || (item.href && pathname === item.href);
     const icon = item.icon || (item.id ? getMenuIcon(item.id) : null);
 
     const collapsedDesktop = !mobileOpen && sidebarCollapsed;

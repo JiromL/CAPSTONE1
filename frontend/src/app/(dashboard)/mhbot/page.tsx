@@ -1,10 +1,10 @@
 'use client';
 
-import { TriageFlags, TriageReasons } from '@/components/PermaTriage';
 import { EmaConsentCheckbox } from '@/components/EmaPrivacyNotice';
 import { EmaInsights, LabelChip } from '@/components/EmaInsights';
 import { MyEmaStudents } from '@/components/MyEmaStudents';
 import { AdminEmaOverview } from '@/components/AdminEmaOverview';
+import { RecentCrisisReviews } from '@/components/RecentCrisisReviews';
 import { PERMA_COLOR } from '@/utils/perma';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -15,13 +15,13 @@ import {
 import {
   Activity, Wifi, WifiOff, RefreshCw, Loader2, Users,
   LogIn, LogOut, TrendingUp, AlertTriangle,
-  ExternalLink, MessageSquare, Download, ChevronRight,
-  CheckCircle2, Clock, XCircle, Building2, Brain,
+  Download, ChevronRight,
+  CheckCircle2, Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { useTheme } from '@/context/ThemeContext';
-import PendingStudentsWithPerma, { PermaBadge, PERMA_STYLES } from '@/components/PendingStudentsWithPerma';
+import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import { api } from '@/utils/api';
 import { todayPH } from '@/utils/dateUtils';
 
@@ -58,7 +58,6 @@ interface PermaEntry { perma_label: string | null; date: string; }
 
 const LABEL_ORDER = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'] as const;
 const PERMA_COLORS = PERMA_COLOR;   // validated, theme-aware (app/globals.css)
-const EMA_URL = 'https://pchrd-ema.dlsu.edu.ph/app/login/';
 const STUDENT_ROLES = ['STUDENT'];
 const ADMIN_ROLES   = ['ADMIN', 'DPO', 'MANAGEMENT'];
 
@@ -161,7 +160,7 @@ function Empty({ text = 'No data for this period' }: { text?: string }) {
 
 function AnalyticsTab({
   summary, trend, colleges, attention, role, isDark, loading,
-  granularity, onGranularityChange, trendLoading,
+  granularity, onGranularityChange, trendLoading, reportsOnly = false,
 }: {
   summary: AnalyticsSummary | null;
   trend: TrendData | null;
@@ -173,6 +172,8 @@ function AnalyticsTab({
   granularity: TrendGranularity;
   onGranularityChange: (g: TrendGranularity) => void;
   trendLoading: boolean;
+  /** Case manager's "Trends & reports" tab: charts and numbers only; the named lists are in "Needs action" */
+  reportsOnly?: boolean;
 }) {
   const isAdmin = ADMIN_ROLES.includes(role.toUpperCase());
   void isDark;
@@ -262,7 +263,7 @@ function AnalyticsTab({
       </div>
 
       {/* Care follow-up and outcomes */}
-      <EmaInsights />
+      <EmaInsights reportsOnly={reportsOnly} />
 
       <div className="pt-2">
         <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Wellbeing over time</h2>
@@ -398,6 +399,7 @@ function AnalyticsTab({
         </SCard>
       )}
 
+      {!reportsOnly && (<>
       {/* Students Needing Attention */}
       <div className="rounded-xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -490,148 +492,16 @@ function AnalyticsTab({
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }
 
 // ── At-Risk Tab ───────────────────────────────────────────────────────────────
 
-function AtRiskTab({ isDark }: { isDark: boolean }) {
-  const [students, setStudents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const hdrs = { Authorization: `Bearer ${localStorage.getItem('token')}` };
-    fetch(api('/api/mhbot/cm-queue'), { headers: hdrs })
-      .then(r => r.ok ? r.json() : { students: [] })
-      .then(d => setStudents(d.students || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return (
-    <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-primary)' }} /></div>
-  );
-
-  if (students.length === 0) return (
-    <div className="py-16 text-center rounded-xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-      <CheckCircle2 size={32} className="mx-auto mb-3" style={{ color: 'var(--color-success)' }} />
-      <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>No at-risk students</p>
-      <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>All tracked students are Surviving or above.</p>
-    </div>
-  );
-
-  const crisisStudents   = students.filter(s => s.triage_label === 'In Crisis');
-  const strugglingStudents = students.filter(s => s.triage_label === 'Struggling');
-
-  const StudentCard = ({ s }: { s: any }) => {
-    const days = daysSince(s.latest_date);
-    const isCrisis = s.triage_label === 'In Crisis';
-    return (
-      <div className="flex items-start gap-4 p-4 rounded-xl border transition"
-        style={{
-          background: 'var(--color-surface)',
-          // Crisis keeps a full-strength outline; the colored badge already marks Struggling
-          borderColor: isCrisis ? PERMA_COLORS['In Crisis'] : 'var(--color-border)',
-        }}>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{s.student_name || '—'}</span>
-            <PermaBadge label={s.triage_label} />
-          </div>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{s.school_id || s.student_email}</p>
-          {s.college && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{s.college}</p>}
-          <p className="text-xs mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
-            Last check-in: {fmtDate(s.latest_date)}{days !== null ? ` · ${days}d ago` : ''}
-            {s.latest_label && s.latest_label !== s.triage_label ? ` · latest result ${s.latest_label}` : ''}
-          </p>
-          <div className="mt-2 space-y-1.5">
-            <TriageFlags flags={s.flags} />
-            <TriageReasons reasons={s.reasons} />
-          </div>
-        </div>
-        {s.case_id && (
-          <Link href={`/cases/${s.case_id}`}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border flex-shrink-0"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-bg)' }}>
-            View Case <ChevronRight size={11} />
-          </Link>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-2 text-xs px-1" style={{ color: 'var(--color-text-muted)' }}>
-        <AlertTriangle size={13} style={{ color: 'var(--color-warning)' }} />
-        {students.length} student{students.length !== 1 ? 's' : ''} flagged — immediate follow-up recommended
-      </div>
-
-      {crisisStudents.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest px-1 flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-            <span className="w-2 h-2 rounded-full" style={{ background: PERMA_COLORS['In Crisis'] }} aria-hidden />
-            In Crisis ({crisisStudents.length})
-          </p>
-          {crisisStudents.map(s => <StudentCard key={s.student_id} s={s} />)}
-        </div>
-      )}
-
-      {strugglingStudents.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest px-1 flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-            <span className="w-2 h-2 rounded-full" style={{ background: PERMA_COLORS.Struggling }} aria-hidden />
-            Struggling ({strugglingStudents.length})
-          </p>
-          {strugglingStudents.map(s => <StudentCard key={s.student_id} s={s} />)}
-        </div>
-      )}
-
-      <p className="text-xs px-1" style={{ color: 'var(--color-text-muted)' }}>
-        PH Crisis Hotlines: <strong>Hopeline 8804-4673</strong> · <strong>Crisis Line 0917-899-8727</strong>
-      </p>
-    </div>
-  );
-}
 
 // ── EMA Chatbot embed ─────────────────────────────────────────────────────────
 
-function EmaEmbed() {
-  const [iframeKey, setIframeKey] = useState(0);
-  return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 280px)' }}>
-      <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          <MessageSquare size={13} />
-          <span>EMA Chatbot — <a href={EMA_URL} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--color-primary)' }}>pchrd-ema.dlsu.edu.ph</a></span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setIframeKey(k => k + 1)}
-            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border rounded-lg transition"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <RefreshCw size={12} /> Reload
-          </button>
-          <a href={EMA_URL} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border rounded-lg transition"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}>
-            <ExternalLink size={12} /> New tab
-          </a>
-        </div>
-      </div>
-      <p className="text-xs mb-3 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
-        This opens EMA&apos;s own chat app inside this page — sign in below with the same EMA username and password you used to link your account. This is separate from the CPS login above.
-      </p>
-      <div className="flex-1 rounded-xl overflow-hidden border shadow-sm" style={{ borderColor: 'var(--color-border)' }}>
-        <iframe key={iframeKey} src={EMA_URL} title="EMA Chatbot" className="w-full h-full border-0" allow="microphone; camera" />
-      </div>
-    </div>
-  );
-}
 
 // ── Connect card ──────────────────────────────────────────────────────────────
 
@@ -872,23 +742,19 @@ function StudentView({ username, onDisconnect }: { username: string; onDisconnec
 
 // ── Staff View ────────────────────────────────────────────────────────────────
 
-type StaffTab = 'analytics' | 'at-risk' | 'students' | 'chatbot';
-
-function StaffView({ username, role, onDisconnect }: { username: string; role: string; onDisconnect: () => void }) {
+/** The CM Queue: every at-risk student, from EMA or flagged by a counselor on their case, with
+ *  recently reviewed crises below; the EMA charts in a second tab. Sync lives with admins. */
+function StaffView({ role }: { role: string }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const [tab, setTab]           = useState<StaffTab>('analytics');
+  const [tab, setTab]           = useState<'action' | 'reports'>('action');
   const [summary, setSummary]   = useState<AnalyticsSummary | null>(null);
   const [trend, setTrend]       = useState<TrendData | null>(null);
   const [trendLoading, setTrendLoading] = useState(true);
   const [granularity, setGranularity]   = useState<TrendGranularity>('day');
   const [colleges, setColleges] = useState<CollegeEntry[]>([]);
-  const [attention, setAttention] = useState<AttentionStudent[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [syncing, setSyncing]   = useState(false);
-  const [syncMsg, setSyncMsg]   = useState('');
-  const [serverUp, setServerUp] = useState<boolean | null>(null);
 
   const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
@@ -904,142 +770,63 @@ function StaffView({ username, role, onDisconnect }: { username: string; role: s
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const [summRes, collegeRes, attRes] = await Promise.all([
-        fetch(api('/api/mhbot/analytics/summary'),   { headers: hdrs() }),
-        fetch(api('/api/mhbot/analytics/college'),   { headers: hdrs() }),
-        fetch(api('/api/mhbot/analytics/attention'), { headers: hdrs() }),
+      const [summRes, collegeRes] = await Promise.all([
+        fetch(api('/api/mhbot/analytics/summary'), { headers: hdrs() }),
+        fetch(api('/api/mhbot/analytics/college'), { headers: hdrs() }),
       ]);
       if (summRes.ok)    setSummary(await summRes.json());
       if (collegeRes.ok) setColleges((await collegeRes.json()).colleges || []);
-      if (attRes.ok)     setAttention((await attRes.json()).students || []);
     } catch {}
     finally { setLoading(false); }
   }, []);
 
-  const checkServer = useCallback(async () => {
-    try {
-      const r = await fetch(api('/api/mhbot/health'));
-      setServerUp(r.ok && (await r.json()).status === 'healthy');
-    } catch { setServerUp(false); }
-  }, []);
+  useEffect(() => { if (tab === 'reports' && !summary) fetchAnalytics(); }, [tab, summary, fetchAnalytics]);
+  useEffect(() => { if (tab === 'reports') fetchTrend(granularity); }, [tab, fetchTrend, granularity]);
 
-  const handleSync = async () => {
-    setSyncing(true); setSyncMsg('');
-    try {
-      const r = await fetch(api('/api/mhbot/sync'), { method: 'POST', headers: hdrs() });
-      if (r.ok) {
-        const d = await r.json();
-        setSyncMsg(`Synced ${d.synced} of ${d.total} students`);
-        await Promise.all([fetchAnalytics(), fetchTrend(granularity)]);
-      } else {
-        setSyncMsg('Sync failed — check EMA connection');
-      }
-    } catch { setSyncMsg('Network error during sync'); }
-    finally { setSyncing(false); setTimeout(() => setSyncMsg(''), 4000); }
-  };
-
-  useEffect(() => {
-    fetchAnalytics();
-    checkServer();
-  }, [fetchAnalytics, checkServer]);
-
-  useEffect(() => {
-    fetchTrend(granularity);
-  }, [fetchTrend, granularity]);
-
-  const TAB_LABELS: { key: StaffTab; label: string }[] = [
-    { key: 'analytics', label: 'Analytics'   },
-    { key: 'at-risk',   label: 'At-Risk'     },
-    { key: 'students',  label: 'Students'    },
-    { key: 'chatbot',   label: 'Chatbot'     },
+  const TABS: { key: 'action' | 'reports'; label: string; hint: string }[] = [
+    { key: 'action',  label: 'Needs action',          hint: 'Who to follow up, most urgent first' },
+    { key: 'reports', label: 'EMA trends & reports',  hint: 'How students on EMA are doing over time' },
   ];
 
-  const atRiskCount = summary?.at_risk_count ?? 0;
-
   return (
-    <div className="space-y-4">
-
-      {/* Connection bar */}
-      <div className="flex items-center gap-3 p-3 rounded-xl border"
-        style={{ background: 'var(--color-success-surface)', borderColor: 'var(--color-success)' }}>
-        {serverUp === null
-          ? <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
-          : serverUp
-          ? <Wifi size={14} className="flex-shrink-0" style={{ color: 'var(--color-success)' }} />
-          : <WifiOff size={14} className="flex-shrink-0" style={{ color: 'var(--color-danger)' }} />}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium" style={{ color: 'var(--color-success)' }}>
-            {username
-              ? <>Connected as <span className="font-semibold">{username}</span></>
-              : 'Connected to EMA via the shared CPS staff account'}
-          </p>
-          {serverUp === false && (
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-danger)' }}>EMA server unreachable — data may be stale</p>
-          )}
-          {syncMsg && <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>{syncMsg}</p>}
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={handleSync} disabled={syncing}
-            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition disabled:opacity-50"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-bg)' }}
-            onMouseEnter={e => { if (!syncing) e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}>
-            {syncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-            {syncing ? 'Syncing…' : 'Sync EMA'}
-          </button>
-          <button onClick={onDisconnect}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <LogOut size={11} /> Disconnect
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-        {TAB_LABELS.map(({ key, label }) => {
+    <div className="space-y-5">
+      <div role="tablist" aria-label="EMA views" className="flex items-center gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+        {TABS.map(({ key, label, hint }) => {
           const active = tab === key;
           return (
-            <button key={key} onClick={() => setTab(key)}
-              className="relative px-4 py-1.5 rounded-md text-sm font-medium transition-all"
+            <button key={key} role="tab" aria-selected={active} title={hint} onClick={() => setTab(key)}
+              className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
               style={active
-                ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
-                : { color: 'var(--color-text-muted)' }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--color-text-muted)'; }}>
+                ? { background: 'var(--color-surface)', color: 'var(--color-text-primary)', boxShadow: 'var(--shadow-card)' }
+                : { color: 'var(--color-text-muted)' }}>
               {label}
-              {key === 'at-risk' && atRiskCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[0.5625rem] font-bold flex items-center justify-center text-white"
-                  style={{ background: 'var(--color-danger)' }}>
-                  {atRiskCount > 9 ? '9+' : atRiskCount}
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
-      {/* Tab content */}
-      {tab === 'analytics' && (
+      {tab === 'action' && (
+        <div className="space-y-8">
+          <MyEmaStudents scope="all" withCaseRisk />
+          <RecentCrisisReviews />
+        </div>
+      )}
+
+      {tab === 'reports' && (
         <AnalyticsTab
           summary={summary}
           trend={trend}
           colleges={colleges}
-          attention={attention}
+          attention={[]}
           role={role}
           isDark={isDark}
           loading={loading}
           granularity={granularity}
           onGranularityChange={setGranularity}
           trendLoading={trendLoading}
+          reportsOnly
         />
       )}
-
-      {tab === 'at-risk' && <AtRiskTab isDark={isDark} />}
-      {tab === 'students' && <PendingStudentsWithPerma />}
-      {tab === 'chatbot'  && <EmaEmbed />}
     </div>
   );
 }
@@ -1098,6 +885,15 @@ export default function EMAPage() {
     );
   }
 
+  // Case manager: action list across campus plus reports. No EMA connection needed either.
+  if (role.toUpperCase() === 'CASE_MANAGER') {
+    return (
+      <DashboardPageWrapper title="CM Queue" subtitle="Every student who needs follow-up, whether flagged by EMA or by a counselor">
+        <StaffView role={role} />
+      </DashboardPageWrapper>
+    );
+  }
+
   // Admins and the DPO: totals and team workload, never student names. Also no EMA connection needed.
   if (['ADMIN', 'DPO'].includes(role.toUpperCase())) {
     return (
@@ -1137,7 +933,7 @@ export default function EMAPage() {
     >
       {isStudent
         ? <StudentView username={authStatus.mhbot_username!} onDisconnect={handleDisconnect} />
-        : <StaffView   username={authStatus.mhbot_username!} role={role} onDisconnect={handleDisconnect} />}
+        : <StaffView role={role} />}
     </DashboardPageWrapper>
   );
 }

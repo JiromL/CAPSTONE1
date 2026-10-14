@@ -855,11 +855,15 @@ def get_cm_queue():
         return server_error(e)
 
 
+OPEN_CASE_STATUSES = ('NEW', 'INTAKE_SCHEDULED', 'ACTIVE', 'PENDING_TERMINATION')
+BOOKED_STATUSES = ('REQUESTED', 'PENDING_APPROVAL', 'CONFIRMED', 'APPROVED', 'MATCHED', 'RESCHEDULE_REQUESTED')
+
+
 @mhbot_bp.route('/my-students', methods=['GET'])
 @jwt_required()
 def get_my_ema_students():
-    """The counselor view of EMA: every student in the caller's care, with what (if anything)
-    needs their attention, in plain words, most urgent first."""
+    """The action list of EMA: every student the caller may see (their own for counselors,
+    everyone for the case manager), with what needs attention in plain words, most urgent first."""
     user_id = get_jwt_identity()
     if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
@@ -870,14 +874,33 @@ def get_my_ema_students():
         return jsonify({'error': NAMES_HIDDEN_ERROR}), 403
 
     now = datetime.utcnow()
+    # ?with_case_risk=1 (the CM Queue): also students a counselor flagged on their case, a RED
+    # risk level or an unresolved crisis escalation, whether or not they use EMA.
+    case_risk = {}
+    if request.args.get('with_case_risk') == '1':
+        for c in db.db.cases.find({'case_status': {'$in': list(OPEN_CASE_STATUSES)}, 'risk_level': {'$in': ['RED', 'CRITICAL']}},
+                                  {'student_id': 1, 'risk_level': 1}):
+            case_risk.setdefault(c['student_id'], {'case_id': c['_id'], 'red': True, 'escalation': None})
+        for e in db.db.crisis_escalations.find({'resolved': {'$ne': True}}).sort('created_at', -1):
+            c = db.db.cases.find_one({'_id': e.get('case_id')}, {'student_id': 1, 'case_status': 1})
+            if not c or c.get('case_status') not in OPEN_CASE_STATUSES:
+                continue
+            row = case_risk.setdefault(c['student_id'], {'case_id': c['_id'], 'red': False, 'escalation': None})
+            if not row['escalation']:
+                by = db.db.users.find_one({'_id': e.get('initiated_by_id')}, {'name': 1}) if e.get('initiated_by_id') else None
+                row['escalation'] = {'at': e['created_at'], 'by': (by or {}).get('name') or 'a critical assessment'}
+    who = {'mhbot_username': {'$nin': [None, '']}}
+    if case_risk:
+        who = {'$or': [who, {'_id': {'$in': list(case_risk)}}]}
     students = list(db.db.users.find(
-        {'mhbot_username': {'$nin': [None, '']}, 'role': 'STUDENT', **student_filter(mode, own)},
+        {'role': 'STUDENT', **who, **student_filter(mode, own)},
         {'name': 1, 'first_name': 1, 'last_name': 1, 'college': 1, 'year_level': 1, 'mhbot_username': 1,
          'perma_triage': 1, 'perma_crisis_cleared_at': 1}))
     out = []
     for st in students:
-        triage = st.get('perma_triage') or {}
-        snaps = list(db.db.perma_snapshots.find(
+        on_ema = bool(st.get('mhbot_username'))
+        triage = (st.get('perma_triage') or {}) if on_ema else {}
+        snaps = [] if not on_ema else list(db.db.perma_snapshots.find(
             {'$or': [{'student_user_id': st['_id']}, {'mhbot_username': st['mhbot_username']}],
              'entry_date': {'$gte': now - timedelta(days=14)}}, {'perma_label': 1, 'entry_date': 1}))
         days = {}
@@ -889,10 +912,17 @@ def get_my_ema_students():
                  for d in (today - timedelta(days=i) for i in range(13, -1, -1))]
         last = triage.get('last_checkin')
         days_silent = (now - datetime.fromisoformat(last)).days if last else None
-        case = db.db.cases.find_one({'student_id': st['_id']}, sort=[('created_at', -1)], projection={'_id': 1})
+        case = db.db.cases.find_one({'student_id': st['_id']}, sort=[('created_at', -1)], projection={'_id': 1, 'case_status': 1})
 
         # Why this student needs the counselor, in plain words, most urgent first
         needs = []
+        flagged = case_risk.get(st['_id'])
+        if flagged and flagged['escalation']:
+            esc = flagged['escalation']
+            needs.append({'level': 'urgent', 'source': 'Counselor',
+                          'text': f"Crisis escalated by {esc['by']} on {(esc['at'] + timedelta(hours=8)):%b %d}, not resolved yet"})
+        elif flagged:
+            needs.append({'level': 'high', 'source': 'Counselor', 'text': 'Counselor marked this case high risk (RED)'})
         if triage.get('crisis_pending_review'):
             needs.append({'level': 'urgent', 'text': 'In Crisis result not reviewed yet'})
         if triage.get('label') in AT_RISK and days_silent is not None and days_silent >= 7:
@@ -901,19 +931,40 @@ def get_my_ema_students():
             needs.append({'level': 'high', 'text': 'Struggling on several days this week'})
         if 'unstable_mood' in triage.get('flags', []):
             needs.append({'level': 'medium', 'text': 'Mood swung a lot within one day'})
-        if triage.get('label') == 'Struggling' and not needs:
+        if triage.get('label') == 'Struggling' and not any(n.get('source', 'EMA') == 'EMA' for n in needs):
             needs.append({'level': 'medium', 'text': 'Struggling this week'})
+        if triage.get('label') in AT_RISK:
+            # At risk but outside care: no open case and nothing booked
+            open_case = db.db.cases.find_one({'student_id': st['_id'], 'case_status': {'$in': list(OPEN_CASE_STATUSES)}}, {'_id': 1})
+            booked = db.db.appointments.find_one({'student_id': st['_id'], 'status': {'$in': list(BOOKED_STATUSES)}}, {'_id': 1})
+            if not open_case and not booked:
+                needs.append({'level': 'high', 'text': 'At risk with no open case and nothing booked'})
+        # A reviewed crisis should be followed by a session; flag it after 3 days without one
+        last_review = db.db.perma_crisis_reviews.find_one({'student_id': st['_id']}, sort=[('cleared_at', -1)])
+        if last_review and now - last_review['cleared_at'] >= timedelta(days=3) and now - last_review['cleared_at'] <= timedelta(days=30):
+            seen = db.db.appointments.find_one({'student_id': st['_id'], 'status': {'$in': ['COMPLETED', 'FOLLOW_UP']},
+                                                'scheduled_start': {'$gte': last_review['cleared_at'] + timedelta(hours=8) - timedelta(days=1)}}, {'_id': 1})
+            if not seen:
+                when = (last_review['cleared_at'] + timedelta(hours=8)).strftime('%b %d')
+                needs.append({'level': 'high', 'text': f'No session since the crisis reviewed on {when}'})
         if 'crisis_reviewed' in triage.get('flags', []) and not triage.get('crisis_pending_review'):
             needs.append({'level': 'info', 'text': 'Crisis this week, already reviewed'})
 
+        needs.sort(key=lambda n: ['urgent', 'high', 'medium', 'info'].index(n['level']))   # stable: same level keeps order
+        if flagged:     # link to the flagged (open) case, not an older or newer one
+            case = db.db.cases.find_one({'_id': flagged['case_id']}, {'_id': 1, 'case_status': 1})
+        sources = (['EMA'] if any(n.get('source', 'EMA') == 'EMA' and n['level'] != 'info' for n in needs) else []) \
+            + (['Counselor'] if flagged else [])
         out.append({
             'student_id': str(st['_id']),
             'name': st.get('name') or f"{st.get('first_name', '')} {st.get('last_name', '')}".strip(),
             'college': st.get('college', ''), 'year_level': st.get('year_level', ''),
+            'on_ema': on_ema, 'sources': sources,
             'label': triage.get('label'), 'latest_label': triage.get('latest_label'),
             'last_checkin': last, 'days_silent': days_silent, 'stale': bool(triage.get('stale')),
             'crisis_pending_review': bool(triage.get('crisis_pending_review')),
             'needs': needs, 'trend': trend, 'case_id': str(case['_id']) if case else None,
+            'case_closed': bool(case) and case.get('case_status') not in OPEN_CASE_STATUSES,
             '_sort': triage_priority(triage),
         })
     rank = {'urgent': 0, 'high': 1, 'medium': 2, 'info': 3}

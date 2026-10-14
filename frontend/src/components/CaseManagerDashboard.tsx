@@ -120,7 +120,7 @@ export function CaseManagerDashboard({ user, onLogout }: DashboardProps) {
           <h3 className="type-section-title mb-4" style={{ color: 'var(--color-text-primary)' }}>Quick Access</h3>
           <div>
             {[
-              { href: '/case-manager/queue', label: 'CM Queue', icon: AlertTriangle, note: 'Struggling & In Crisis students' },
+              { href: '/mhbot', label: 'CM Queue', icon: AlertTriangle, note: 'At-risk students, from EMA and counselors' },
               { href: '/cases',              label: 'All Cases',  icon: ClipboardList, note: 'View and manage cases' },
             ].map(({ href, label, icon: Icon, note }, i) => (
               <Link key={href} href={href}

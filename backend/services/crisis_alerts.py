@@ -24,7 +24,7 @@ OPEN_CASE = ('NEW', 'INTAKE_SCHEDULED', 'ACTIVE', 'PENDING_TERMINATION')
 
 def _recipients(db, student_id):
     """Every active case manager, plus the clinician on the student's open case."""
-    out = [(u['_id'], u.get('email'), '/case-manager/queue')
+    out = [(u['_id'], u.get('email'), '/mhbot')
            for u in db.users.find({'role': 'CASE_MANAGER', 'is_active': {'$ne': False}}, {'email': 1})]
     case = db.cases.find_one({'student_id': student_id}, sort=[('created_at', -1)])
     status = ((case or {}).get('case_status') or (case or {}).get('status') or '').upper()
@@ -72,3 +72,45 @@ def alert_new_crisis(db, student_id, entry_date, now=None):
             except Exception as e:      # an email problem must never block the in-app alert
                 logger.warning('Crisis alert email failed: %s', e)
     return len(recipients)
+
+
+CASE_ALERT_TYPE = 'CASE_CRISIS'
+
+
+def alert_case_escalation(db, case, initiated_by=None, auto=False, now=None):
+    """Alert people when a case is escalated to crisis by a counselor (or by a critical
+    assessment score): every case manager and the case's own clinician, the same people an
+    EMA crisis alerts, minus whoever escalated it. Name-free email, as for EMA alerts."""
+    now = now or datetime.utcnow()
+    student = db.users.find_one({'_id': case.get('student_id')}, {'name': 1, 'first_name': 1, 'last_name': 1}) or {}
+    name = student.get('name') or f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() or 'A student'
+    by = db.users.find_one({'_id': initiated_by}, {'name': 1}) if initiated_by else None
+    who = 'a critical assessment score' if auto else ((by or {}).get('name') or 'a counselor')
+    out = [(u['_id'], u.get('email')) for u in db.users.find({'role': 'CASE_MANAGER', 'is_active': {'$ne': False}}, {'email': 1})]
+    if case.get('assigned_counselor_id'):
+        c = db.users.find_one({'_id': case['assigned_counselor_id'], 'is_active': {'$ne': False}}, {'email': 1})
+        if c:
+            out.append((c['_id'], c.get('email')))
+    sent, seen = 0, set()
+    for user_id, email in out:
+        if user_id in seen or user_id == initiated_by:
+            continue
+        seen.add(user_id)
+        db.notifications.insert_one({
+            'target_user_id': str(user_id), 'type': CASE_ALERT_TYPE, 'student_id': case.get('student_id'),
+            'case_id': case['_id'], 'link': f"/cases/{case['_id']}",
+            'title': 'Urgent: case escalated to crisis',
+            'message': f"{name}'s case was escalated to crisis by {who}. Please review and follow up.",
+            'read': False, 'created_at': now,
+        })
+        sent += 1
+        if email:
+            try:
+                from services.email_service import send_email
+                send_email(email, 'CPS: a case was escalated to crisis',
+                           'A case in CPS was escalated to crisis and needs follow-up.\n\n'
+                           'Please sign in to CPS to see which case. '
+                           'For privacy, this email does not include the student\'s name or details.')
+            except Exception as e:
+                logger.warning('Case crisis alert email failed: %s', e)
+    return sent

@@ -71,7 +71,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
   const caseManagerItems: MenuItem[] = [
     { label: 'Dashboard',    href: '/dashboard',          id: 'dashboard'    },
     H('Case management'),
-    { label: 'CM Queue',     href: '/case-manager/queue', id: 'cm-queue'     },
+    { label: 'CM Queue',     href: '/mhbot',              id: 'cm-queue'     },
     { label: 'Cases',        href: '/cases',              id: 'cases'        },
     { label: 'Appointments', href: '/appointments',       id: 'appointments' },
     H('Account'),

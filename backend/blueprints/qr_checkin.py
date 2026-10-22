@@ -3,7 +3,7 @@ import base64
 import io
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import qrcode
 from bson import ObjectId
@@ -44,7 +44,7 @@ def generate_qr(appointment_id):
     if appt.get('status') not in ('CONFIRMED', 'confirmed', 'APPROVED', 'approved'):
         return jsonify({'error': 'Appointment is not confirmed'}), 400
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # Expiry = end of the appointment's scheduled day (midnight UTC+8 → UTC)
     scheduled = appt.get('scheduled_start') or appt.get('requested_start')
@@ -108,7 +108,7 @@ def verify_checkin():
     if record.get('used'):
         return jsonify({'error': 'QR code already used'}), 409
 
-    if datetime.utcnow() > record.get('expires_at', datetime.utcnow()):
+    if datetime.now(timezone.utc).replace(tzinfo=None) > record.get('expires_at', datetime.now(timezone.utc).replace(tzinfo=None)):
         return jsonify({'error': 'QR code has expired'}), 410
 
     if str(record.get('appointment_id')) != str(appointment_id):
@@ -117,13 +117,13 @@ def verify_checkin():
     # Mark token as used
     db.db.checkin_tokens.update_one(
         {'_id': record['_id']},
-        {'$set': {'used': True, 'used_at': datetime.utcnow()}}
+        {'$set': {'used': True, 'used_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
 
     # Mark appointment as checked in and update status
     db.db.appointments.update_one(
         {'_id': ObjectId(appointment_id)},
-        {'$set': {'checked_in': True, 'checked_in_at': datetime.utcnow(), 'status': 'CHECKED_IN'}}
+        {'$set': {'checked_in': True, 'checked_in_at': datetime.now(timezone.utc).replace(tzinfo=None), 'status': 'CHECKED_IN'}}
     )
 
     appt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
@@ -135,7 +135,7 @@ def verify_checkin():
         'message': f'{student_name} checked in successfully',
         'student_name': student_name,
         'appointment_id': appointment_id,
-        'checked_in_at': datetime.utcnow().isoformat(),
+        'checked_in_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }), 200
 
 
@@ -154,7 +154,7 @@ def verify_checkin_public():
         return jsonify({'error': 'Invalid QR code'}), 404
     if record.get('used'):
         return jsonify({'error': 'This QR code has already been used'}), 409
-    if datetime.utcnow() > record.get('expires_at', datetime.utcnow()):
+    if datetime.now(timezone.utc).replace(tzinfo=None) > record.get('expires_at', datetime.now(timezone.utc).replace(tzinfo=None)):
         return jsonify({'error': 'QR code has expired. Ask the student to generate a new one.'}), 410
     if str(record.get('appointment_id')) != str(appointment_id):
         return jsonify({'error': 'QR code does not match this appointment'}), 400
@@ -162,13 +162,13 @@ def verify_checkin_public():
     # Mark token as used
     db.db.checkin_tokens.update_one(
         {'_id': record['_id']},
-        {'$set': {'used': True, 'used_at': datetime.utcnow()}}
+        {'$set': {'used': True, 'used_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
 
     # Mark appointment as checked in and update status
     db.db.appointments.update_one(
         {'_id': ObjectId(appointment_id)},
-        {'$set': {'checked_in': True, 'checked_in_at': datetime.utcnow(), 'status': 'CHECKED_IN'}}
+        {'$set': {'checked_in': True, 'checked_in_at': datetime.now(timezone.utc).replace(tzinfo=None), 'status': 'CHECKED_IN'}}
     )
 
     appt = db.db.appointments.find_one({'_id': ObjectId(appointment_id)})
@@ -191,7 +191,7 @@ def verify_checkin_public():
         'scheduled_start': scheduled_str,
         'reference_id': appt.get('reference_id', '') if appt else '',
         'method': appt.get('preferred_method', 'in_person') if appt else '',
-        'checked_in_at': datetime.utcnow().isoformat(),
+        'checked_in_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }), 200
 
 

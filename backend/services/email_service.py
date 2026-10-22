@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 
@@ -158,7 +158,7 @@ def _ics(title: str, start_dt: datetime, end_dt: datetime,
         'METHOD:REQUEST\r\n'
         'BEGIN:VEVENT\r\n'
         f'UID:{uid or f"cps-apt@dlsu-cps.edu.ph"}\r\n'
-        f'DTSTAMP:{fmt(datetime.utcnow())}\r\n'
+        f'DTSTAMP:{fmt(datetime.now(timezone.utc).replace(tzinfo=None))}\r\n'
         f'DTSTART:{fmt(start_dt)}\r\n'
         f'DTEND:{fmt(end_dt)}\r\n'
         f'SUMMARY:{title}\r\n'

@@ -12,7 +12,7 @@ counselor or psychologist, and sends them a short email.
   do not alert; only crises from the last RECENT_HOURS do.
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ def _recipients(db, student_id):
 
 def alert_new_crisis(db, student_id, entry_date, now=None):
     """Call when a new In Crisis result is saved. Returns how many people were alerted."""
-    now = now or datetime.utcnow()
+    now = now or datetime.now(timezone.utc).replace(tzinfo=None)
     if not student_id or not entry_date or now - entry_date > timedelta(hours=RECENT_HOURS):
         return 0
     if db.notifications.find_one({'type': ALERT_TYPE, 'student_id': student_id,
@@ -81,7 +81,7 @@ def alert_case_escalation(db, case, initiated_by=None, auto=False, now=None):
     """Alert people when a case is escalated to crisis by a counselor (or by a critical
     assessment score): every case manager and the case's own clinician, the same people an
     EMA crisis alerts, minus whoever escalated it. Name-free email, as for EMA alerts."""
-    now = now or datetime.utcnow()
+    now = now or datetime.now(timezone.utc).replace(tzinfo=None)
     student = db.users.find_one({'_id': case.get('student_id')}, {'name': 1, 'first_name': 1, 'last_name': 1}) or {}
     name = student.get('name') or f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() or 'A student'
     by = db.users.find_one({'_id': initiated_by}, {'name': 1}) if initiated_by else None

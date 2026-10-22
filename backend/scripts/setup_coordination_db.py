@@ -3,7 +3,7 @@ Setup script for Reminders, Feedback, and Counselor-to-Counselor Referral collec
 """
 
 from pymongo import MongoClient, ASCENDING, DESCENDING
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
 
@@ -81,7 +81,7 @@ def setup_collections():
                     {"id": "helpful", "text": "Did you find the session helpful?", "type": "scale", "scale": 5},
                     {"id": "recommendations", "text": "Do you have any recommendations?", "type": "text"}
                 ],
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
             },
             {
                 "_id": "effectiveness_survey",
@@ -93,7 +93,7 @@ def setup_collections():
                     {"id": "guidance", "text": "The guidance provided was practical", "type": "scale", "scale": 5},
                     {"id": "environment", "text": "The counseling environment was comfortable", "type": "scale", "scale": 5}
                 ],
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
             },
             {
                 "_id": "outcome_tracking",
@@ -105,7 +105,7 @@ def setup_collections():
                     {"id": "goal_progress", "text": "Progress toward treatment goals", "type": "scale", "scale": 5},
                     {"id": "follow_up_needed", "text": "Follow-up care needed", "type": "choice", "options": ["yes", "no", "maybe"]}
                 ],
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
             },
             {
                 "_id": "satisfaction_form",
@@ -116,7 +116,7 @@ def setup_collections():
                     {"id": "accessibility", "text": "Ease of accessing services", "type": "scale", "scale": 5},
                     {"id": "recommend", "text": "Would you recommend to others", "type": "choice", "options": ["yes", "no", "maybe"]}
                 ],
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
             }
         ]
         

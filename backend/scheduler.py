@@ -4,7 +4,7 @@ Runs in a daemon thread; checks every 5 minutes for due reminders.
 """
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def _process_reminders(app):
@@ -16,7 +16,7 @@ def _process_reminders(app):
 
         email_svc = EmailService()
         sms_svc = SMSService()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         window_24h_start = now + timedelta(hours=23, minutes=30)
         window_24h_end   = now + timedelta(hours=24, minutes=30)
         window_1h_start  = now + timedelta(minutes=50)
@@ -47,7 +47,7 @@ def _process_reminders(app):
                 'scheduled_for': scheduled_for,
                 'status': 'pending',
                 'auto_generated': True,
-                'created_at': datetime.utcnow(),
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
             }
             db.db.reminders.insert_one(doc)
             print(f"[Scheduler] Created {label} reminder for {name} ({email})")
@@ -120,7 +120,7 @@ def _process_assessment_schedules(app):
     """Create due scheduled assessments and advance next_due dates."""
     with app.app_context():
         from models import db
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         due = db.db.assessment_schedules.find({'active': True, 'next_due': {'$lte': now}})
         for sched in due:
             existing = db.db.scheduled_assessments.find_one({
@@ -231,7 +231,7 @@ def _claim(app, job, every_seconds):
     from pymongo.errors import DuplicateKeyError
     with app.app_context():
         from models import db
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         lease = {'next_run': now + timedelta(seconds=every_seconds), 'last_run': now}
         if db.db.scheduler_runs.find_one_and_update({'_id': job, 'next_run': {'$lte': now}}, {'$set': lease}):
             return True

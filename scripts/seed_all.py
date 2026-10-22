@@ -157,13 +157,17 @@ print(f"✅  {len(nc_docs)} non-counseling clients seeded")
 
 
 # ── 3. Check-in-only counseling cases ────────────────────────────────────────
+# Pick real seeded students to link these cases to real user records (no orphaned student_ids)
+seeded_students = list(db.users.find({'role': 'STUDENT'}, {'_id': 1}).sort('created_at', -1).limit(20))
 checkin_docs = []
 for i, (first, last) in enumerate(STUDENT_NAMES):
     created = _past(30, 120)
+    # Use a real student _id if available, otherwise generate a new one (fallback)
+    student_oid = seeded_students[i]['_id'] if i < len(seeded_students) else ObjectId()
     checkin_docs.append({
         '_id': ObjectId(),
         'counseling_id': f'CPS-2025-{2000 + i:04d}',
-        'student_id': ObjectId(),
+        'student_id': student_oid,
         'student_name': f'{first} {last}',
         'student_email': f'{first.lower()}.{last.lower().replace(" ", "")}@dlsu.edu.ph',
         'status': 'ACTIVE',

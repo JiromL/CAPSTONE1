@@ -10,7 +10,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, UserRole
 from utils import audit_log
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 import uuid
 
@@ -19,7 +19,7 @@ client_tracking_bp = Blueprint('client_tracking', __name__, url_prefix='/api/cli
 
 def generate_case_number():
     """Generate unique case number: CASE-YYYYMM-XXXX"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     year_month = now.strftime('%Y%m')
     random_suffix = str(uuid.uuid4().hex[:4]).upper()
     return f"CASE-{year_month}-{random_suffix}"
@@ -251,8 +251,8 @@ def create_new_intake():
         'intake_counselor_name': user['name'],
         'action_taken': data.get('action_taken', ''),
         'status': data.get('status', 'NEW'),
-        'created_date': datetime.utcnow(),
-        'updated_date': datetime.utcnow(),
+        'created_date': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_date': datetime.now(timezone.utc).replace(tzinfo=None),
     }
     
     result = db.db.new_client_intakes.insert_one(intake)
@@ -302,7 +302,7 @@ def update_new_intake(intake_id):
         if field in data:
             intake[field] = data[field]
     
-    intake['updated_date'] = datetime.utcnow()
+    intake['updated_date'] = datetime.now(timezone.utc).replace(tzinfo=None)
     
     db.db.new_client_intakes.update_one({"_id": intake_obj_id}, {"$set": intake})
     
@@ -400,8 +400,8 @@ def create_check_in_client():
         'concern': data['concern'],
         'counselor_id': ObjectId(data['counselor_id']),
         'status': data.get('status', 'Active'),
-        'created_date': datetime.utcnow(),
-        'updated_date': datetime.utcnow(),
+        'created_date': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_date': datetime.now(timezone.utc).replace(tzinfo=None),
     }
     
     result = db.db.non_counseling_clients.insert_one(check_in)
@@ -447,7 +447,7 @@ def update_check_in_client(client_id):
         if field in data:
             client[field] = data[field]
 
-    client['updated_date'] = datetime.utcnow()
+    client['updated_date'] = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.db.non_counseling_clients.update_one({"_id": client_obj_id}, {"$set": client})
     
@@ -542,8 +542,8 @@ def create_counseling_case():
         'target_sessions': int(data['target_sessions']),
         'current_sessions': int(data.get('current_sessions', 0)),
         'status': data.get('status', 'Active'),
-        'created_date': datetime.utcnow(),
-        'updated_date': datetime.utcnow(),
+        'created_date': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_date': datetime.now(timezone.utc).replace(tzinfo=None),
     }
     
     result = db.db.counseling_cases.insert_one(counseling_case)
@@ -592,7 +592,7 @@ def update_counseling_case(case_id):
             else:
                 case[field] = data[field]
     
-    case['updated_date'] = datetime.utcnow()
+    case['updated_date'] = datetime.now(timezone.utc).replace(tzinfo=None)
     
     db.db.counseling_cases.update_one({"_id": case_obj_id}, {"$set": case})
     

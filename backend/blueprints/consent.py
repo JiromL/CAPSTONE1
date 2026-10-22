@@ -1,5 +1,5 @@
 """Informed consent recording for counseling services."""
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson.objectid import ObjectId
@@ -22,14 +22,14 @@ def submit_consent():
     record = {
         'user_id': ObjectId(user_id) if isinstance(user_id, str) else user_id,
         'consent_types': consent_types,
-        'consented_at': datetime.utcnow(),
+        'consented_at': datetime.now(timezone.utc).replace(tzinfo=None),
         'ip_address': request.remote_addr,
         'user_agent': request.headers.get('User-Agent', ''),
         'version': data.get('version', '1.0'),
     }
     db.db.consent_records.insert_one(record)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     stamp = {
         'consent_given': True,
         'consent_given_at': now,

@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, RiskLevel, UserRole, PermissionType
 from utils import audit_log, user_has_permission
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 high_risk_bp = Blueprint('high_risk', __name__, url_prefix='/api/high-risk')
 
@@ -48,8 +48,8 @@ def create_daily_checkin(case_id):
         "current_risk_level": data['current_risk_level'].upper(),
         "risk_escalation_needed": data.get('risk_escalation_needed', False),
         "escalation_reason": data.get('escalation_reason'),
-        "check_in_date": datetime.utcnow(),
-        "created_at": datetime.utcnow()
+        "check_in_date": datetime.now(timezone.utc).replace(tzinfo=None),
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.high_risk_checkins.insert_one(checkin)
@@ -60,7 +60,7 @@ def create_daily_checkin(case_id):
             {"_id": case['_id']},
             {"$set": {
                 "current_risk_level": checkin['current_risk_level'],
-                "last_risk_assessment": datetime.utcnow()
+                "last_risk_assessment": datetime.now(timezone.utc).replace(tzinfo=None)
             }}
         )
         
@@ -72,7 +72,7 @@ def create_daily_checkin(case_id):
                 "crisis_level": RiskLevel.CRITICAL.value,
                 "description": f"Crisis escalation from daily check-in: {data.get('escalation_reason', '')}",
                 "resolved": False,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
             }
             db.db.crisis_escalations.insert_one(escalation)
     
@@ -172,7 +172,7 @@ def create_safety_plan(case_id):
         "counselor_signature": data.get('counselor_signature', ''),
         "client_signature": data.get('client_signature', ''),
         "updated_by": user_id,
-        "updated_at": datetime.utcnow(),
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
     }
 
     if safety_plan:
@@ -186,7 +186,7 @@ def create_safety_plan(case_id):
         # Create new
         safety_plan_doc = {
             "case_id": case['_id'],
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
             **structured_fields,
         }
         result = db.db.safety_plans.insert_one(safety_plan_doc)
@@ -399,7 +399,7 @@ def notify_counselor_for_user(username):
         'body': body,
         'metadata': {'student_username': username, 'risk': current_risk},
         'read': False,
-        'created_at': datetime.utcnow()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     res = db.db.notifications.insert_one(notif)
 
@@ -454,7 +454,7 @@ def escalate_to_crisis(case_id):
         "hospital_contact": data.get('hospital_contact', False),
         "police_contact": data.get('police_contact', False),
         "resolved": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.crisis_escalations.insert_one(escalation)
@@ -465,7 +465,7 @@ def escalate_to_crisis(case_id):
         {"$set": {
             "current_risk_level": RiskLevel.CRITICAL.value,
             "risk_level": RiskLevel.RED.value,      # the level the case page and Cases list show
-            "last_risk_assessment": datetime.utcnow(),
+            "last_risk_assessment": datetime.now(timezone.utc).replace(tzinfo=None),
             "requires_daily_checkin": True
         }}
     )
@@ -583,7 +583,7 @@ def resolve_crisis(escalation_id):
         {"_id": escalation['_id']},
         {"$set": {
             "resolved": True,
-            "resolved_at": datetime.utcnow(),
+            "resolved_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "resolution_notes": data.get('resolution_notes')
         }}
     )
@@ -596,7 +596,7 @@ def resolve_crisis(escalation_id):
     return jsonify({
         'message': 'Crisis escalation resolved',
         'escalation_id': str(escalation['_id']),
-        'resolved_at': datetime.utcnow().isoformat()
+        'resolved_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     }), 200
 
 
@@ -619,7 +619,7 @@ def get_monitoring_dashboard():
     escalations = list(db.db.crisis_escalations.find({"resolved": False}).sort("created_at", -1))
     
     # Get cases missing daily check-ins
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     yesterday = now - timedelta(days=1)
     
     missing_checkins = []
@@ -673,7 +673,7 @@ def get_daily_updates_due():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     yesterday = now - timedelta(days=1)
     
     # Find cases requiring daily check-in that haven't been checked in today

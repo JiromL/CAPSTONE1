@@ -1,7 +1,7 @@
 """Encrypted token storage for third-party provider tokens"""
 import base64
 from cryptography.fernet import Fernet, InvalidToken
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 
@@ -44,7 +44,7 @@ def save_tokens(db, config, user_id, provider, access_token, refresh_token, expi
         'refresh_token': enc_refresh,
         'scopes': scopes or [],
         'expires_at': expires_at,
-        'created_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
         'last_used_at': None,
     }
 
@@ -69,7 +69,7 @@ def get_tokens(db, config, user_id, provider):
         raise RuntimeError('Failed to decrypt tokens - invalid ENCRYPTION_KEY')
 
     # Update last_used_at
-    db.tokens.update_one({'_id': rec['_id']}, {'$set': {'last_used_at': datetime.utcnow()}})
+    db.tokens.update_one({'_id': rec['_id']}, {'$set': {'last_used_at': datetime.now(timezone.utc).replace(tzinfo=None)}})
 
     return {
         'access_token': access,

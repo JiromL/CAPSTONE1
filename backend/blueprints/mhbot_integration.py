@@ -11,7 +11,7 @@ import requests
 import hmac
 import hashlib
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from models import db, PermissionType
 from utils import user_has_permission, audit_log, case_access_error, server_error
@@ -39,7 +39,7 @@ def _get_shared_ema_token() -> str:
     """Return a valid shared EMA admin token, logging in / refreshing as needed."""
     with _token_lock:
         cache = _token_cache
-        if cache['token'] and cache['expires_at'] and datetime.utcnow() < cache['expires_at']:
+        if cache['token'] and cache['expires_at'] and datetime.now(timezone.utc).replace(tzinfo=None) < cache['expires_at']:
             return cache['token']
         username = os.getenv('EMA_ADMIN_USERNAME', '')
         password = os.getenv('EMA_ADMIN_PASSWORD', '')
@@ -58,7 +58,7 @@ def _get_shared_ema_token() -> str:
                 token = payload.get('access_token', '')
                 expires_in = int(payload.get('expires_in', 1800))
                 cache['token'] = token
-                cache['expires_at'] = datetime.utcnow() + timedelta(seconds=expires_in - 120)
+                cache['expires_at'] = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=expires_in - 120)
                 return token
             logger.warning('EMA admin login failed: %s', resp.text[:200])
         except Exception as e:
@@ -109,7 +109,7 @@ def _staff_access_denied(user_id) -> bool:
 
 def _record_ema_consent(uid):
     """Store the student's EMA consent the same way /api/consent/submit does."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     db.db.consent_records.insert_one({
         'user_id': uid, 'consent_types': ['ema_data_linking'], 'consented_at': now,
         'ip_address': request.remote_addr, 'user_agent': request.headers.get('User-Agent', ''),
@@ -133,7 +133,7 @@ def _save_perma_snapshots(mhbot_username: str, history: list, student_user_id=No
     """Upsert PERMA entries into perma_snapshots collection."""
     if not history:
         return
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     for entry in history:
         _norm = {'Flourishing': 'Excelling'}
         label = _norm.get(entry.get('perma_label'), entry.get('perma_label'))
@@ -252,12 +252,12 @@ def _store_student_tokens(uid, tokens: dict, extra: dict = None):
         {'_id': uid},
         {'$set': {
             'ema_refresh_token': _token_cipher().encrypt(tokens['refresh_token'].encode()).decode(),
-            'ema_token_updated_at': datetime.utcnow(),
+            'ema_token_updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
             **(extra or {}),
         },
          '$unset': {'ema_chat_needs_relink': ''}},
     )
-    _student_access_cache[str(uid)] = (tokens['access_token'], datetime.utcnow() + EMA_ACCESS_TOKEN_TTL)
+    _student_access_cache[str(uid)] = (tokens['access_token'], datetime.now(timezone.utc).replace(tzinfo=None) + EMA_ACCESS_TOKEN_TTL)
 
 
 def _mark_student_relink(uid):
@@ -291,7 +291,7 @@ def _refresh_student_tokens(user: dict) -> str:
 
 def get_student_ema_access_token(user: dict) -> str:
     cached = _student_access_cache.get(str(user['_id']))
-    if cached and cached[1] > datetime.utcnow():
+    if cached and cached[1] > datetime.now(timezone.utc).replace(tzinfo=None):
         return cached[0]
     return _refresh_student_tokens(user)
 
@@ -360,7 +360,7 @@ def link_ema_username():
         _record_ema_consent(uid)
     _store_student_tokens(uid, tokens, {
         'mhbot_username': ema_username,
-        'mhbot_linked_at': datetime.utcnow(),
+        'mhbot_linked_at': datetime.now(timezone.utc).replace(tzinfo=None),
         'ema_user_id': me.get('id'),
     })
 
@@ -384,7 +384,7 @@ def mhbot_logout():
     uid = _resolve_user_id(get_jwt_identity())
     _student_access_cache.pop(str(uid), None)
     db.db.users.update_one({'_id': uid}, {'$set': {'ema_consent_given': False,
-                                                  'ema_consent_withdrawn_at': datetime.utcnow()}})
+                                                  'ema_consent_withdrawn_at': datetime.now(timezone.utc).replace(tzinfo=None)}})
     db.db.users.update_one(
         {'_id': uid},
         {'$unset': {'mhbot_username': '', 'mhbot_linked_at': '', 'ema_user_id': '',
@@ -565,7 +565,7 @@ def _save_ema_journal(user: dict, conversation_id: str, text: str, label) -> boo
     label = label if label in LABEL_MOOD else None
     if db.db.journal_entries.find_one({'student_id': user['_id'], 'ema_conversation_id': conversation_id}):
         return True
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     result = db.db.journal_entries.insert_one({
         'student_id': user['_id'],
         # The check-in rating is how the student said they felt; fall back to the EMA label
@@ -765,7 +765,7 @@ def link_case_to_mhbot(case_id):
 
     db.db.users.update_one(
         {'_id': case.get('student_id')},
-        {'$set': {'mhbot_username': mhbot_username, 'mhbot_linked_at': datetime.utcnow()}}
+        {'$set': {'mhbot_username': mhbot_username, 'mhbot_linked_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
     get_perma_history(mhbot_username, token, limit=100, save=True, student_user_id=case.get('student_id'), source='link')
 
@@ -873,7 +873,7 @@ def get_my_ema_students():
     if mode == TOTALS:
         return jsonify({'error': NAMES_HIDDEN_ERROR}), 403
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     # ?with_case_risk=1 (the CM Queue): also students a counselor flagged on their case, a RED
     # risk level or an unresolved crisis escalation, whether or not they use EMA.
     case_risk = {}
@@ -985,7 +985,7 @@ def get_recent_crisis_reviews():
         return jsonify({'error': 'Only case managers can see recent crisis reviews'}), 403
 
     days = max(1, min(request.args.get('days', 14, type=int), 90))
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
     reviews = list(db.db.perma_crisis_reviews.find({'cleared_at': {'$gte': since}}).sort('cleared_at', -1).limit(200))
 
     people = {u['_id']: u for u in db.db.users.find(
@@ -1213,7 +1213,7 @@ def sync_all_perma():
         'synced': synced,
         'failed': failed,
         'total': len(students),
-        'synced_at': datetime.utcnow().isoformat(),
+        'synced_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }), 200
 
 
@@ -1319,7 +1319,7 @@ def ema_webhook():
     data = request.get_json(silent=True) or {}
     mhbot_username = (data.get('mhbot_username') or data.get('username', '')).strip()
     perma_label    = (data.get('perma_label') or data.get('label', '')).strip()
-    date_str       = data.get('date') or datetime.utcnow().isoformat()
+    date_str       = data.get('date') or datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     email          = (data.get('email') or '').strip().lower()
 
     valid_labels = {'Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis'}
@@ -1339,17 +1339,17 @@ def ema_webhook():
         if student and mhbot_username and not student.get('mhbot_username'):
             db.db.users.update_one(
                 {'_id': student['_id']},
-                {'$set': {'mhbot_username': mhbot_username, 'mhbot_linked_at': datetime.utcnow()}}
+                {'$set': {'mhbot_username': mhbot_username, 'mhbot_linked_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
             )
 
     # ── Parse date ─────────────────────────────────────────────────────────
     try:
         entry_date = datetime.fromisoformat(date_str.replace('Z', ''))
     except Exception:
-        entry_date = datetime.utcnow()
+        entry_date = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # ── Save snapshot ──────────────────────────────────────────────────────
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     saved = db.db.perma_snapshots.update_one(
         {
             'mhbot_username': mhbot_username or (student.get('mhbot_username') if student else None),
@@ -1400,7 +1400,7 @@ def get_ema_analytics_summary():
     if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     cutoff_30d = now - timedelta(days=30)
     cutoff_14d = now - timedelta(days=14)
 
@@ -1463,7 +1463,7 @@ def get_ema_analytics_trend():
     granularity = request.args.get('granularity', 'month')
     if granularity not in ('day', 'week', 'month'):
         granularity = 'month'
-    now = datetime.utcnow() + timedelta(hours=8)   # buckets are Philippine days, weeks and months
+    now = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)   # buckets are Philippine days, weeks and months
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
 
     if granularity == 'day':
@@ -1610,7 +1610,7 @@ def get_ema_team_overview():
     if not caller or caller.get('role') not in ('ADMIN', 'DPO', 'CASE_MANAGER'):
         return jsonify({'error': 'Only admins, the DPO and the case manager can see the team overview'}), 403
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     students = list(db.db.users.find({'role': 'STUDENT', 'is_active': {'$ne': False}},
                                      {'mhbot_username': 1, 'ema_consent_given': 1, 'perma_triage': 1}))
     linked = [s for s in students if s.get('mhbot_username')]
@@ -1683,7 +1683,7 @@ def get_ema_analytics_attention():
     from services.ema_access import student_filter, TOTALS
     mode, own = _ema_scope()
     inactive_days = request.args.get('inactive_days', 14, type=int)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     inactive_cutoff = now - timedelta(days=inactive_days)
 
     students = list(db.db.users.find(
@@ -1786,7 +1786,7 @@ def clear_crisis_flag(student_id):
     if not (student.get('perma_triage') or {}).get('crisis_pending_review'):
         return jsonify({'error': 'This student has no crisis flag waiting for review'}), 409
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     db.db.perma_crisis_reviews.insert_one({
         'student_id': student_oid, 'cleared_by': _resolve_user_id(user_id), 'cleared_by_role': caller.get('role'),
         'note': note[:2000], 'cleared_at': now,
@@ -1816,7 +1816,7 @@ def student_perma_trend(student_id):
     if not student:
         return jsonify({'error': 'Student not found'}), 404
     days = min(request.args.get('days', 90, type=int), 365)
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
     query = {'student_user_id': student_oid}
     if student.get('mhbot_username'):
         query = {'$or': [query, {'mhbot_username': student['mhbot_username']}]}
@@ -1829,7 +1829,7 @@ def student_perma_trend(student_id):
         'triage': student.get('perma_triage'),
         'daily': daily_scores(recent),
         'monthly': monthly_scores(snaps),
-        'weakest_area': weakest_area(snaps, since=datetime.utcnow() - timedelta(days=30)),
+        'weakest_area': weakest_area(snaps, since=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)),
         'crisis_reviews': [{'cleared_at': r['cleared_at'].isoformat(), 'note': r.get('note'),
                             'cleared_by': reviewers.get(r['cleared_by'], 'Staff')} for r in reviews],
     }), 200
@@ -1860,7 +1860,7 @@ def triage_settings():
             if not lo <= v <= hi:
                 return jsonify({'error': f'{key} must be between {lo} and {hi}'}), 400
             update[key] = v
-    db.db.settings.update_one({'_id': 'perma_triage'}, {'$set': {**update, 'updated_at': datetime.utcnow(),
+    db.db.settings.update_one({'_id': 'perma_triage'}, {'$set': {**update, 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
                                                                 'updated_by': user_id}}, upsert=True)
     audit_log(db.db, 'perma_triage', 'update_settings', entity_id='perma_triage', new_values=update)
     from services.perma_triage import refresh_all_triage

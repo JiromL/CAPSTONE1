@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
 from utils import user_has_permission, is_staff, server_error
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 scheduling_reports_bp = Blueprint('scheduling_reports', __name__, url_prefix='/api/scheduling-reports')
@@ -31,7 +31,7 @@ def get_calendar_capacity():
         # Get query parameters
         days_forward = int(request.args.get('days', 30))
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         end_date = now + timedelta(days=days_forward)
         
         # Get all counselors
@@ -90,7 +90,7 @@ def get_calendar_capacity():
         capacity_report.sort(key=lambda x: x['utilization_percentage'], reverse=True)
         
         return jsonify({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'period_days': days_forward,
             'period_end': end_date.isoformat(),
             'total_counselors': len(capacity_report),
@@ -123,7 +123,7 @@ def get_upcoming_appointments_report():
         days_forward = int(request.args.get('days', 14))
         sort_by = request.args.get('sort', 'date')  # date, counselor, student, priority
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         end_date = now + timedelta(days=days_forward)
         
         # Get upcoming appointments
@@ -185,7 +185,7 @@ def get_upcoming_appointments_report():
             by_date[date_str].append(apt)
         
         return jsonify({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'period_days': days_forward,
             'period_end': end_date.isoformat(),
             'total_appointments': len(appointments_report),
@@ -220,7 +220,7 @@ def get_resource_allocation_report():
         # Get query parameters
         days_forward = int(request.args.get('days', 30))
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         end_date = now + timedelta(days=days_forward)
         
         # Get appointments in period
@@ -288,7 +288,7 @@ def get_resource_allocation_report():
         counselor_data.sort(key=lambda x: x['total_appointments'], reverse=True)
         
         return jsonify({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'period_days': days_forward,
             'period_end': end_date.isoformat(),
             'total_appointments': len(appointments),
@@ -323,7 +323,7 @@ def get_scheduling_gaps():
         # Get query parameters
         days_forward = int(request.args.get('days', 30))
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         end_date = now + timedelta(days=days_forward)
         
         gaps_report = []
@@ -383,7 +383,7 @@ def get_scheduling_gaps():
         gaps_report.sort(key=lambda x: x['total_free_hours'], reverse=True)
         
         return jsonify({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'period_days': days_forward,
             'period_end': end_date.isoformat(),
             'counselors_with_gaps': len(gaps_report),

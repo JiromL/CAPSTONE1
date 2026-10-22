@@ -9,7 +9,7 @@ Exportable spreadsheet data matching the three CPS tracking templates:
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import db
 from utils import audit_log, server_error
 
@@ -146,7 +146,7 @@ def cps_summary():
     """Quick count summary for the 3 CPS categories."""
     try:
         from datetime import timedelta
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         month_ago = now - timedelta(days=30)
 
         new_clients_total = db.db.appointments.count_documents({})
@@ -695,7 +695,7 @@ def case_summary(case_id):
             return v.strftime('%B %d, %Y') if isinstance(v, datetime) else _s(v)[:10]
 
         result = {
-            'generated_at': (datetime.utcnow() + timedelta(hours=8)).strftime('%B %d, %Y %I:%M %p PHT'),
+            'generated_at': (datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)).strftime('%B %d, %Y %I:%M %p PHT'),
             'case': {
                 'case_number':     case.get('case_number', ''),
                 'status':          case.get('status', ''),

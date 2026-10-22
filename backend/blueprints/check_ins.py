@@ -9,7 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType, ClientStatus, TransactionType
 from utils import audit_log, user_has_permission
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 check_ins_bp = Blueprint('check_ins', __name__, url_prefix='/api/check-ins')
 
@@ -74,8 +74,8 @@ def create_check_in():
         "outcome": data.get('outcome'),  # RESOLVED, ONGOING, REFERRED, NEEDS_FOLLOWUP
         "next_check_in_date": data.get('next_check_in_date'),  # When to check in again
         
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.check_ins.insert_one(check_in)
@@ -84,7 +84,7 @@ def create_check_in():
     if data.get('new_status'):
         update_fields = {
             "client_status": data['new_status'],
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         }
         
         # Also update primary concern if provided
@@ -188,7 +188,7 @@ def get_pending_check_ins():
     if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     
     # Find cases with overdue check-ins
     # 1. Cases with CHECK_IN_ONLY or WITH_MH_CHECK_IN status
@@ -324,7 +324,7 @@ def update_check_in(check_in_id):
     
     data = request.get_json()
     
-    update_fields = {"updated_at": datetime.utcnow()}
+    update_fields = {"updated_at": datetime.now(timezone.utc).replace(tzinfo=None)}
     
     if 'notes' in data:
         update_fields['notes'] = data['notes']
@@ -454,8 +454,8 @@ def student_self_checkin():
         "reviewed_by": None,  # Will be filled when staff reviews
         "staff_notes": None,  # Staff response/notes
         
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.check_ins.insert_one(check_in)
@@ -469,7 +469,7 @@ def student_self_checkin():
         'check_in_id': str(result.inserted_id),
         'case_id': str(case['_id']) if case else None,
         'status': 'SUBMITTED_FOR_REVIEW',
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     }), 201
 
 
@@ -575,21 +575,21 @@ def get_pending_student_checkins():
     
     # If case has next_check_in_date and it's in the past, it's due
     next_checkin_date = case.get('next_check_in_date')
-    if next_checkin_date and next_checkin_date <= datetime.utcnow():
+    if next_checkin_date and next_checkin_date <= datetime.now(timezone.utc).replace(tzinfo=None):
         pending.append({
             'case_id': str(case['_id']),
             'due_date': next_checkin_date.isoformat(),
-            'days_overdue': (datetime.utcnow() - next_checkin_date).days,
+            'days_overdue': (datetime.now(timezone.utc).replace(tzinfo=None) - next_checkin_date).days,
             'message': 'Your periodic check-in is due'
         })
     elif last_checkin:
         # Estimate next check-in (30 days after last one by default)
         next_est = last_checkin['created_at'] + timedelta(days=30)
-        if datetime.utcnow() >= next_est:
+        if datetime.now(timezone.utc).replace(tzinfo=None) >= next_est:
             pending.append({
                 'case_id': str(case['_id']),
                 'due_date': next_est.isoformat(),
-                'days_overdue': (datetime.utcnow() - next_est).days,
+                'days_overdue': (datetime.now(timezone.utc).replace(tzinfo=None) - next_est).days,
                 'message': 'Your periodic check-in is due'
             })
     else:

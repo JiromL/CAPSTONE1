@@ -26,14 +26,14 @@ def system_authorize_calendar():
     if not user_has_permission(db.db, user_id, PermissionType.MANAGE_USERS.value):
         return jsonify({'error': 'Admin access required'}), 403
 
-    state = f"{SYSTEM_CALENDAR_USER}_{datetime.utcnow().timestamp()}"
+    state = f"{SYSTEM_CALENDAR_USER}_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}"
     google = GoogleIntegration(current_app.config)
     auth_url = google.get_authorize_url(state=state)
 
     db.db.oauth_states.update_one(
         {"user_id": SYSTEM_CALENDAR_USER},
-        {"$set": {"state": state, "created_at": datetime.utcnow(),
-                  "expires_at": datetime.utcnow() + timedelta(hours=1)}},
+        {"$set": {"state": state, "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+                  "expires_at": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)}},
         upsert=True
     )
     return jsonify({'auth_url': auth_url}), 200
@@ -78,7 +78,7 @@ def authorize_calendar():
         return jsonify({'error': 'User not found'}), 404
     
     # Create state to track authorization
-    state = f"{user_id}_{datetime.utcnow().timestamp()}"
+    state = f"{user_id}_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}"
     
     google = GoogleIntegration(current_app.config)
     auth_url = google.get_authorize_url(state=state)
@@ -88,8 +88,8 @@ def authorize_calendar():
         {"user_id": ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id},
         {"$set": {
             "state": state,
-            "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(hours=1)
+            "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            "expires_at": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
         }},
         upsert=True
     )
@@ -124,7 +124,7 @@ def calendar_callback():
             state_record = db.db.oauth_states.find_one({
                 "user_id": SYSTEM_CALENDAR_USER,
                 "state": state,
-                "expires_at": {"$gt": datetime.utcnow()}
+                "expires_at": {"$gt": datetime.now(timezone.utc).replace(tzinfo=None)}
             })
         else:
             raw_user_id = state.rsplit('_', 1)[0]
@@ -132,7 +132,7 @@ def calendar_callback():
             state_record = db.db.oauth_states.find_one({
                 "user_id": ObjectId(raw_user_id),
                 "state": state,
-                "expires_at": {"$gt": datetime.utcnow()}
+                "expires_at": {"$gt": datetime.now(timezone.utc).replace(tzinfo=None)}
             })
 
         if not state_record:
@@ -248,7 +248,7 @@ def create_personal_event():
         'end':        end,
         'note':       data.get('note', ''),
         'color':      data.get('color', '#64748b'),
-        'created_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
     }
     res = db.db.personal_events.insert_one(doc)
     return jsonify({'id': str(res.inserted_id)}), 201

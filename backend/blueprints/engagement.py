@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db
 from utils import audit_log
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 engagement_bp = Blueprint('engagement', __name__, url_prefix='/api/engagement')
 
@@ -42,7 +42,7 @@ def create_video_link(session_id):
         'link_url': data.get('link_url'),
         'password': data.get('password'),
         'start_time': data.get('start_time'),
-        'created_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
         'created_by': ObjectId(user_id)
     }
     
@@ -57,7 +57,7 @@ def create_video_link(session_id):
         'video_link_id': str(result.inserted_id),
         'platform': data.get('platform'),
         'link_url': data.get('link_url'),
-        'created_at': datetime.utcnow().isoformat()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     }), 201
 
 
@@ -102,8 +102,8 @@ def create_journal_entry():
         'tags': data.get('tags', []),  # e.g., ['stress', 'family', 'school']
         'is_private': data.get('is_private', True),
         'attachments': data.get('attachments', []),
-        'created_at': datetime.utcnow(),
-        'updated_at': datetime.utcnow()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.journal_entries.insert_one(entry)
@@ -115,7 +115,7 @@ def create_journal_entry():
     
     return jsonify({
         'journal_id': str(result.inserted_id),
-        'created_at': datetime.utcnow().isoformat(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
         'mood': data.get('mood')
     }), 201
 
@@ -203,7 +203,7 @@ def update_journal_entry(journal_id):
     if 'tags' in data:
         update_data['tags'] = data['tags']
     
-    update_data['updated_at'] = datetime.utcnow()
+    update_data['updated_at'] = datetime.now(timezone.utc).replace(tzinfo=None)
     
     db.db.journal_entries.update_one(
         {'_id': ObjectId(journal_id)},
@@ -262,8 +262,8 @@ def create_reminder():
         'recurrence_pattern': data.get('recurrence_pattern'),  # daily, weekly, monthly
         'sent': False,
         'acknowledged': False,
-        'created_at': datetime.utcnow(),
-        'updated_at': datetime.utcnow()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.reminders.insert_one(reminder)
@@ -277,7 +277,7 @@ def create_reminder():
         'reminder_id': str(result.inserted_id),
         'title': data.get('title'),
         'reminder_time': data.get('reminder_time'),
-        'created_at': datetime.utcnow().isoformat()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     }), 201
 
 
@@ -291,9 +291,9 @@ def list_reminders():
     query = {'user_id': ObjectId(user_id)}
     
     if filter_type == 'upcoming':
-        query['reminder_time'] = {'$gte': datetime.utcnow()}
+        query['reminder_time'] = {'$gte': datetime.now(timezone.utc).replace(tzinfo=None)}
     elif filter_type == 'past':
-        query['reminder_time'] = {'$lt': datetime.utcnow()}
+        query['reminder_time'] = {'$lt': datetime.now(timezone.utc).replace(tzinfo=None)}
     
     reminders = list(db.db.reminders.find(query).sort('reminder_time', 1).limit(50))
     
@@ -331,7 +331,7 @@ def acknowledge_reminder(reminder_id):
     
     db.db.reminders.update_one(
         {'_id': ObjectId(reminder_id)},
-        {'$set': {'acknowledged': True, 'updated_at': datetime.utcnow()}}
+        {'$set': {'acknowledged': True, 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
     
     return jsonify({'message': 'Reminder acknowledged', 'reminder_id': reminder_id}), 200
@@ -380,7 +380,7 @@ def submit_feedback():
         'would_recommend': data.get('would_recommend'),  # yes/no
         'improvements': data.get('improvements', []),
         'anonymous': data.get('anonymous', False),
-        'created_at': datetime.utcnow()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.feedback.insert_one(feedback)
@@ -393,7 +393,7 @@ def submit_feedback():
     return jsonify({
         'feedback_id': str(result.inserted_id),
         'rating': data.get('rating'),
-        'created_at': datetime.utcnow().isoformat()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     }), 201
 
 

@@ -13,8 +13,8 @@ class OAuthService:
     """Handle Google OAuth authentication"""
     
     def __init__(self):
-        self.google_client_id = os.getenv('GOOGLE_CLIENT_ID')
-        self.google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        # Credentials are read lazily at call time so load_dotenv(override=True)
+        # in app.py always wins, even if a system env var was set beforehand.
         _domain = os.getenv('ALLOWED_EMAIL_DOMAIN', '@dlsu.edu.ph').lstrip('@')
         self.allowed_domains = [_domain]
         
@@ -24,11 +24,10 @@ class OAuthService:
         Returns user info if valid, None if invalid
         """
         try:
-            # Verify the token
             idinfo = id_token.verify_oauth2_token(
                 token,
                 requests.Request(),
-                self.google_client_id
+                os.getenv('GOOGLE_CLIENT_ID')
             )
             
             # Verify token is not expired (Google does this automatically)
@@ -73,7 +72,7 @@ class OAuthService:
     
     def get_google_client_id(self):
         """Get Google Client ID for frontend"""
-        return self.google_client_id
+        return os.getenv('GOOGLE_CLIENT_ID')
 
 
 def create_oauth_service():

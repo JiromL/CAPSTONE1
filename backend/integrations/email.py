@@ -7,7 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 from .token_store import get_tokens, save_tokens
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 class EmailIntegration:
     def __init__(self, config):
@@ -108,7 +108,7 @@ class EmailIntegration:
             expires_in = new_tokens.get('expires_in')
             expires_at = None
             if expires_in:
-                expires_at = datetime.utcnow() + timedelta(seconds=int(expires_in))
+                expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=int(expires_in))
             # Save updated tokens
             save_tokens(db, config, user_id, 'google', new_access, refresh, expires_at=expires_at)
             # Retry send

@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, current_app
 from utils import server_error
 from functools import wraps
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 from models import UserRole, ResourceUploadRole, db
 from integrations.s3 import S3Integration
 import mimetypes
@@ -122,8 +122,8 @@ def upload_resource():
             'file_size': len(file_content),
             'uploaded_by_user_id': ObjectId(user_id),
             'uploaded_by_role': role,  # PSYCHOLOGIST, COUNSELOR, CASE_MANAGER, IC
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
         }
         
         result = db.db.resources.insert_one(resource_doc)

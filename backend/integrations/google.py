@@ -3,7 +3,7 @@ import os
 import json
 from urllib.parse import urlencode
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from .token_store import save_tokens, get_tokens
 
@@ -56,7 +56,7 @@ class GoogleMeetIntegration:
             pass
         
         # Fallback: use system time (may be incorrect but better than nothing)
-        return int(datetime.utcnow().timestamp())
+        return int(datetime.now(timezone.utc).replace(tzinfo=None).timestamp())
         
     def _get_service_account_token(self):
         """
@@ -141,7 +141,7 @@ class GoogleMeetIntegration:
             },
             'conferenceData': {
                 'createRequest': {
-                    'requestId': f"meet-{int(datetime.utcnow().timestamp())}",
+                    'requestId': f"meet-{int(datetime.now(timezone.utc).replace(tzinfo=None).timestamp())}",
                     'conferenceSolution': {
                         'key': {
                             'type': 'hangoutsMeet',
@@ -250,7 +250,7 @@ class GoogleIntegration:
         expires_in = tokens.get('expires_in')
         expires_at = None
         if expires_in:
-            expires_at = datetime.utcnow() + timedelta(seconds=int(expires_in))
+            expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=int(expires_in))
         save_tokens(db, config, user_id, 'google', access, refresh, expires_at=expires_at, scopes=self.scope.split())
         return tokens
 
@@ -274,10 +274,10 @@ class GoogleIntegration:
             return None
         # Refresh if expired or close to expiry
         expires_at = tokens.get('expires_at')
-        if expires_at and expires_at < datetime.utcnow() + timedelta(minutes=5):
+        if expires_at and expires_at < datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=5):
             try:
                 new = self.refresh_access_token(tokens['refresh_token'])
-                new_expiry = datetime.utcnow() + timedelta(seconds=new.get('expires_in', 3600))
+                new_expiry = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=new.get('expires_in', 3600))
                 save_tokens(db_client, config, user_id, 'google',
                             new['access_token'], tokens['refresh_token'],
                             expires_at=new_expiry, scopes=tokens.get('scopes', []))

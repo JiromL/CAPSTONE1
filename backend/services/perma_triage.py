@@ -20,7 +20,7 @@ The thresholds are clinical choices for CPS to confirm, so they live in the `set
 collection (_id "perma_triage") and fall back to the defaults below.
 """
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from bson import ObjectId
 
@@ -79,7 +79,7 @@ def _labeled(snapshots):
 
 def compute_triage(snapshots, settings: dict, crisis_cleared_at=None, now=None) -> dict:
     """Triage result for one student from their saved PERMA snapshots."""
-    now = now or datetime.utcnow()
+    now = now or datetime.now(timezone.utc).replace(tzinfo=None)
     entries = _labeled(snapshots)
     if not entries:
         return {'label': None, 'flags': [], 'reasons': [], 'checkins_in_window': 0,
@@ -202,7 +202,7 @@ def refresh_student_triage(db, user_id, now=None) -> dict:
         query = {'$or': [query, {'mhbot_username': user['mhbot_username']}]}
     snapshots = list(db.perma_snapshots.find(query, {'perma_label': 1, 'entry_date': 1, 'first_seen_at': 1}))
     triage = compute_triage(snapshots, get_settings(db), user.get('perma_crisis_cleared_at'), now)
-    triage['computed_at'] = (now or datetime.utcnow()).isoformat()
+    triage['computed_at'] = (now or datetime.now(timezone.utc).replace(tzinfo=None)).isoformat()
     db.users.update_one({'_id': user_id}, {'$set': {'perma_triage': triage, 'perma_triage_label': triage['label']}})
     return triage
 

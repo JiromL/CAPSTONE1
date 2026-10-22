@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, IntakeStatus, PermissionType, AppointmentStatus
 from utils import audit_log, user_has_permission, serialize_doc, case_access_error, server_error
-from datetime import datetime, timedelta, date as date_type
+from datetime import datetime, timedelta, date as date_type, timezone
 from bson import ObjectId
 import random
 import string
@@ -19,7 +19,7 @@ intake_bp = Blueprint('intake', __name__, url_prefix='/api/intake')
 
 
 def generate_case_number():
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     return f"CPS-{now.year}-{uuid.uuid4().hex[:3].upper()}"
 
 
@@ -72,7 +72,7 @@ def find_next_available_slot(risk_level: str = 'GREEN', max_wait_minutes: int = 
     
     Returns: (appointment_datetime, urgency_text, availability_status, is_user_selectable)
     """
-    now = datetime.utcnow() + timedelta(hours=8)  # PHT = UTC+8
+    now = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)  # PHT = UTC+8
     business_hours_start = 9   # 9 AM PHT
     business_hours_end = 17    # 5 PM PHT
     
@@ -167,7 +167,7 @@ def get_available_slots_for_risk(risk_level: str = 'GREEN', num_days: int = 7):
     
     Returns: List of available time slots
     """
-    now = datetime.utcnow() + timedelta(hours=8)  # PHT = UTC+8
+    now = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)  # PHT = UTC+8
     business_hours_start = 9
     business_hours_end = 17
 
@@ -313,7 +313,7 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
         try:
             # Format start time for Zoom API (ISO 8601 with timezone)
             if appointment_date is None:
-                appointment_date = datetime.utcnow() + timedelta(days=3)
+                appointment_date = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=3)
             
             # Convert to ISO format: 2026-03-15T10:30:00
             start_time = appointment_date.strftime('%Y-%m-%dT%H:%M:%S')
@@ -351,7 +351,7 @@ def generate_meeting_link(preferred_platform: str, appointment_id: str, counseli
                 }
             
             if appointment_date is None:
-                appointment_date = datetime.utcnow() + timedelta(days=3)
+                appointment_date = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=3)
             
             # Note: Service accounts cannot add attendees without domain-wide delegation
             # The public Google Meet link is sufficient for students to join
@@ -412,8 +412,8 @@ def start_intake(case_id):
         "status": IntakeStatus.IN_PROGRESS.value,
         "initiated_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
         "responses": {},
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.intakes.insert_one(intake_doc)
@@ -453,7 +453,7 @@ def submit_intake(intake_id):
             "$set": {
                 "responses": data.get('responses', {}),
                 "status": IntakeStatus.COMPLETED.value,
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
             }
         }
     )
@@ -517,7 +517,7 @@ def submit_triage(intake_id):
     calculated_risk = get_risk_level(phq9_score=phq9_score, gad7_score=gad7_score)
     risk_level = data.get('risk_override') or calculated_risk
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # Update intake document
     db.db.intakes.update_one(
@@ -705,7 +705,8 @@ def submit_triage(intake_id):
                 ),
             )
         except Exception as _e:
-            pass  # Email failure must not block triage submission
+            import logging
+            logging.getLogger('cps').warning('Triage email failed: %s', _e)
 
     return jsonify({
         'message': 'Triage submitted.',
@@ -757,8 +758,8 @@ def get_intake(intake_id):
                     'is_emergency': appt.get('is_emergency', False),
                     'method': appt.get('preferred_method', ''),
                     'responses': {'concern': appt.get('concern', '')},
-                    'created_at': datetime.utcnow(),
-                    'updated_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+                    'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
                     # NOTE: case_id intentionally omitted — set later when endorsement creates a case
                 }
                 try:
@@ -882,7 +883,7 @@ def calculate_appointment():
     appointment_date, estimated_days, appointment_time = calculate_appointment_date(is_emergency, urgency_level, risk_level)
 
     # Get minimum selectable date (use PHT for today reference)
-    today = datetime.utcnow() + timedelta(hours=8)
+    today = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)
     min_date = appointment_date - timedelta(days=1)
     
     return jsonify({
@@ -976,7 +977,7 @@ def assign_emergency_appointment(intake_id):
         {
             "$set": {
                 "emergency_reviewed_by": ObjectId(user_id),
-                "emergency_assigned_at": datetime.utcnow(),
+                "emergency_assigned_at": datetime.now(timezone.utc).replace(tzinfo=None),
                 "assigned_counselor_id": ObjectId(counselor_id),
                 "emergency_appointment_date": appointment_date,
                 "emergency_appointment_time": appointment_time,
@@ -1086,7 +1087,7 @@ def get_assessment_dashboard():
     user_role = user.get('role')
     dashboard_data = {
         'user_role': user_role,
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
         'alerts': [],
         'summary': {},
         'recent_cases': []
@@ -1315,7 +1316,7 @@ def get_assessment_dashboard():
         print(f"Dashboard error for user {user_id}: {str(e)}")
         return jsonify({
             'user_role': user_role,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'alerts': [],
             'summary': {'error': str(e)},
             'recent_cases': []
@@ -1569,7 +1570,7 @@ def get_available_dates():
         counselor_ids = [c["_id"] for c in counselors]
         
         available_dates = []
-        current_date = (datetime.utcnow() + timedelta(hours=8)).replace(hour=0, minute=0, second=0, microsecond=0)
+        current_date = (datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)).replace(hour=0, minute=0, second=0, microsecond=0)
         business_hours_start = 9
         business_hours_end = 17
         
@@ -1725,7 +1726,7 @@ def select_appointment_time():
         # Validate the appointment time
         # GREEN: Must be tomorrow or later
         # YELLOW: Must be today or tomorrow
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         min_hours_ahead = 24 if risk_level == 'GREEN' else 0
         hours_ahead = (appointment_dt - now).total_seconds() / 3600
         
@@ -1858,7 +1859,7 @@ def get_priority_queue():
             # Calculate wait time
             submitted = intake.get('student_submitted_at')
             if submitted:
-                wait_minutes = int((datetime.utcnow() - submitted).total_seconds() / 60)
+                wait_minutes = int((datetime.now(timezone.utc).replace(tzinfo=None) - submitted).total_seconds() / 60)
             else:
                 wait_minutes = 0
             
@@ -1887,7 +1888,7 @@ def get_priority_queue():
             'total_in_queue': len(result),
             'queue_statistics': stats,
             'available_counselors': len(get_available_intake_counselors()),
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
         }), 200
     
     except Exception as e:
@@ -1954,7 +1955,7 @@ def create_walkin_intake():
         if data.get('counselor_id') and data.get('scheduled_time'):
             try:
                 h, m = map(int, data['scheduled_time'].split(':'))
-                appointment_date = datetime.utcnow().replace(hour=h, minute=m, second=0, microsecond=0)
+                appointment_date = datetime.now(timezone.utc).replace(tzinfo=None).replace(hour=h, minute=m, second=0, microsecond=0)
                 days_string = 'today'
                 appointment_time = data['scheduled_time']
             except Exception:
@@ -1971,7 +1972,7 @@ def create_walkin_intake():
                     "status": {"$in": ["REQUESTED", "PENDING_APPROVAL", "APPROVED", "MATCHED", "CONFIRMED"]},
                     "$or": [
                         {"requested_start": {"$exists": False}},
-                        {"requested_start": {"$gt": datetime.utcnow()}}
+                        {"requested_start": {"$gt": datetime.now(timezone.utc).replace(tzinfo=None)}}
                     ]
                 })
                 
@@ -2005,7 +2006,7 @@ def create_walkin_intake():
 
         if existing_walkin_case:
             case_id = existing_walkin_case['_id']
-            db.db.cases.update_one({'_id': case_id}, {'$set': {'updated_at': datetime.utcnow()}})
+            db.db.cases.update_one({'_id': case_id}, {'$set': {'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}})
         else:
             case_id = ObjectId()
             case_data = {
@@ -2018,7 +2019,7 @@ def create_walkin_intake():
                 'case_status': 'ACTIVE',
                 'status': 'ACTIVE',
                 'risk_level': risk_level,
-                'created_at': datetime.utcnow(),
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
                 'created_by': user_id,
                 'intake_source': 'WALKIN',
                 'notes': data.get('notes', ''),
@@ -2042,7 +2043,7 @@ def create_walkin_intake():
             'urgency_level': urgency_level,
             'is_walkin': True,
             'walkin_notes': data.get('notes', ''),
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'created_by': user_id,
             'created_by_role': user.get('role'),
             'responses': {
@@ -2077,7 +2078,7 @@ def create_walkin_intake():
             'appointment_time': appointment_time,
             'risk_level': risk_level,
             'is_walkin': True,
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'created_by': 'WALKIN_SYSTEM',
         }
         if assigned_ic_id:
@@ -2135,7 +2136,7 @@ def student_self_checkin():
         return jsonify({'error': 'Only DLSU email addresses (@dlsu.edu.ph) are accepted for walk-in check-in'}), 400
 
     # Prevent duplicate same-day check-ins for the same email
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = datetime.now(timezone.utc).replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
     existing_today = db.db.appointments.find_one({
         'student_email': email,
         'intake_source': 'SELF_CHECKIN',
@@ -2156,7 +2157,7 @@ def student_self_checkin():
 
     try:
         counseling_id = generate_counseling_id()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         # BR-9: derive initial risk level from PHQ-4 total score
         phq4_total = sum(phq4) if phq4 else None
@@ -2301,8 +2302,8 @@ def save_intake_draft():
             "communicationMethod": data.get('communicationMethod', 'in_person'),
             "automaticAppointmentInfo": data.get('automaticAppointmentInfo', {}),
         },
-        "updated_at": datetime.utcnow(),
-        "created_at": datetime.utcnow() if not existing_draft else existing_draft.get('created_at', datetime.utcnow())
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None) if not existing_draft else existing_draft.get('created_at', datetime.now(timezone.utc).replace(tzinfo=None))
     }
     
     if existing_draft:
@@ -2449,7 +2450,7 @@ def list_intakes():
 
     status_param = request.args.get('status', 'pending').upper()
     OVERDUE_DAYS = 3
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # Build appointment query — appointments of intake type that haven't been conducted yet
     base_appt_types = ['intake_interview', 'initial', 'triage_interview', 'initial_interview']
@@ -2618,13 +2619,13 @@ def submit_intake_packet():
         'spif': spif,
         'phq4_responses': phq4,
         'signature': signature,
-        'signed_at': datetime.utcnow().isoformat() if signature else None,
+        'signed_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat() if signature else None,
         'signature_covers': ['accuracy', 'data_privacy_consent', 'counseling_consent'] if signature else [],
         # Consent audit trail (RA 10173 compliance)
         'consent_audit': {
             'consent_to_service': icf.get('consent_to_service', False),
             'consent_to_data': icf.get('consent_to_data', False),
-            'consent_timestamp': datetime.utcnow().isoformat(),
+            'consent_timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'consent_version': '2025-AY',
             'submitted_by': source,
         },
@@ -2635,7 +2636,7 @@ def submit_intake_packet():
             'depression_risk': phq2_score is not None and phq2_score >= 3,
             'anxiety_risk':    gad2_score  is not None and gad2_score  >= 3,
         } if phq4 else None,
-        'updated_at': datetime.utcnow(),
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
     }
 
     existing = db.db.intake_packets.find_one(match_key)
@@ -2643,7 +2644,7 @@ def submit_intake_packet():
         db.db.intake_packets.update_one({'_id': existing['_id']}, {'$set': packet})
         packet_id = str(existing['_id'])
     else:
-        packet['created_at'] = datetime.utcnow()
+        packet['created_at'] = datetime.now(timezone.utc).replace(tzinfo=None)
         res = db.db.intake_packets.insert_one(packet)
         packet_id = str(res.inserted_id)
 
@@ -2780,7 +2781,7 @@ def verify_intake(intake_id):
         {'$set': {
             'verification_status': verification_status,
             'verified_by': ObjectId(user_id),
-            'verified_at': datetime.utcnow(),
+            'verified_at': datetime.now(timezone.utc).replace(tzinfo=None),
         }}
     )
     if result.matched_count == 0:

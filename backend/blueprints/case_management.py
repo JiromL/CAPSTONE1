@@ -9,7 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType
 from utils import audit_log, user_has_permission
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 case_management_bp = Blueprint('case_management', __name__, url_prefix='/api/case-management')
 
@@ -64,7 +64,7 @@ def create_session_note():
         "deleted_at": None,
         "deleted_by": None,
         "current_version": 1,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "created_by": user_oid,
         "edit_history": [],
     }
@@ -112,7 +112,7 @@ def edit_session_note(note_id):
         "session_note_id": note_oid,
         "version_number": note.get('current_version', 1) + 1,
         "edited_by": user_oid,
-        "edited_at": datetime.utcnow(),
+        "edited_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "previous_values": {
             "topics_discussed": note.get('topics_discussed'),
             "interventions": note.get('interventions'),
@@ -151,7 +151,7 @@ def edit_session_note(note_id):
     # Track edit history
     edit_history = note.get('edit_history', [])
     edit_history.append({
-        "edited_at": datetime.utcnow(),
+        "edited_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "edited_by": user_oid,
         "change_reason": data.get('change_reason', 'No reason provided'),
         "version_id": version_id
@@ -260,7 +260,7 @@ def soft_delete_session_note(note_id):
         {"_id": note_oid},
         {"$set": {
             "is_deleted": True,
-            "deleted_at": datetime.utcnow(),
+            "deleted_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "deleted_by": user_oid
         }}
     )
@@ -339,14 +339,14 @@ def initiate_handover():
         "from_counselor_id": case.get('assigned_counselor_id'),
         "to_counselor_id": to_counselor_id,
         "initiated_by": user_oid,
-        "initiated_at": datetime.utcnow(),
+        "initiated_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "status": "INITIATED",
         "reason": data['reason'],
         "notes": data.get('notes'),
         "handover_session_notes": data.get('handover_session_notes', []),
         "status_history": [{
             "status": "INITIATED",
-            "changed_at": datetime.utcnow(),
+            "changed_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "changed_by": user_oid
         }],
         "completed_at": None
@@ -357,7 +357,7 @@ def initiate_handover():
     # Update case status to HANDOVER_IN_PROGRESS
     db.db.cases.update_one(
         {"_id": case_id},
-        {"$set": {"status": "HANDOVER_IN_PROGRESS", "last_activity": datetime.utcnow()}}
+        {"$set": {"status": "HANDOVER_IN_PROGRESS", "last_activity": datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
     
     audit_log(db.db, 'case_handover', 'create', entity_id=str(result.inserted_id), 
@@ -428,7 +428,7 @@ def approve_handover(handover_id):
     status_history = handover.get('status_history', [])
     status_history.append({
         "status": "PENDING_APPROVAL",
-        "changed_at": datetime.utcnow(),
+        "changed_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "changed_by": user_oid
     })
     
@@ -469,7 +469,7 @@ def reject_handover(handover_id):
     status_history = handover.get('status_history', [])
     status_history.append({
         "status": "REJECTED",
-        "changed_at": datetime.utcnow(),
+        "changed_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "changed_by": user_oid
     })
     
@@ -516,11 +516,11 @@ def complete_handover(handover_id):
     status_history = handover.get('status_history', [])
     status_history.append({
         "status": "COMPLETED",
-        "changed_at": datetime.utcnow(),
+        "changed_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "changed_by": user_oid
     })
     
-    completed_at = datetime.utcnow()
+    completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     db.db.case_handovers.update_one(
         {"_id": handover_oid},
@@ -537,7 +537,7 @@ def complete_handover(handover_id):
         {"$set": {
             "assigned_counselor_id": handover['to_counselor_id'],
             "status": "ACTIVE",
-            "last_activity": datetime.utcnow()
+            "last_activity": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -584,7 +584,7 @@ def log_referral():
         "contact_person": data.get('contact_person'),
         "contact_email": data.get('contact_email'),
         "contact_phone": data.get('contact_phone'),
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "created_by": user_oid,
         "status": "INITIATED",
         "notes": data.get('notes'),
@@ -673,7 +673,7 @@ def log_referral_followup(referral_id):
     user_oid = ObjectId(user_id) if isinstance(user_id, str) else user_id
     
     followup = {
-        "logged_at": datetime.utcnow(),
+        "logged_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "logged_by": user_oid,
         "action_taken": data['action_taken'],
         "notes": data.get('notes'),
@@ -751,7 +751,7 @@ def get_case_timeline(case_id):
     # Case created event
     timeline_events.append({
         'event_type': 'case_created',
-        'timestamp': case.get('created_at', datetime.utcnow()).isoformat(),
+        'timestamp': case.get('created_at', datetime.now(timezone.utc).replace(tzinfo=None)).isoformat(),
         'description': f'Case created for {case.get("case_type", "unknown")} type',
         'initiator': str(case.get('created_by', 'system'))
     })
@@ -761,7 +761,7 @@ def get_case_timeline(case_id):
     for status_change in status_history:
         timeline_events.append({
             'event_type': 'status_change',
-            'timestamp': status_change.get('changed_at', datetime.utcnow()).isoformat(),
+            'timestamp': status_change.get('changed_at', datetime.now(timezone.utc).replace(tzinfo=None)).isoformat(),
             'description': f'Status changed to {status_change.get("status")}',
             'reason': status_change.get('reason', 'No reason provided'),
             'initiator': str(status_change.get('changed_by', 'system'))
@@ -776,7 +776,7 @@ def get_case_timeline(case_id):
     for note in session_notes:
         timeline_events.append({
             'event_type': 'session_note_added',
-            'timestamp': note.get('created_at', datetime.utcnow()).isoformat(),
+            'timestamp': note.get('created_at', datetime.now(timezone.utc).replace(tzinfo=None)).isoformat(),
             'description': f'Session note created - {note.get("session_type")}',
             'session_date': note.get('session_date', note.get('created_at')).isoformat(),
             'initiator': str(note.get('created_by', 'unknown'))
@@ -788,7 +788,7 @@ def get_case_timeline(case_id):
     for referral in referrals:
         timeline_events.append({
             'event_type': 'referral_created',
-            'timestamp': referral.get('created_at', datetime.utcnow()).isoformat(),
+            'timestamp': referral.get('created_at', datetime.now(timezone.utc).replace(tzinfo=None)).isoformat(),
             'description': f'Referral created to {referral.get("agency_name")}',
             'referral_type': referral.get('referral_type'),
             'status': referral.get('status'),
@@ -804,7 +804,7 @@ def get_case_timeline(case_id):
     for handover in handovers:
         timeline_events.append({
             'event_type': 'handover_completed',
-            'timestamp': handover.get('completed_at', datetime.utcnow()).isoformat(),
+            'timestamp': handover.get('completed_at', datetime.now(timezone.utc).replace(tzinfo=None)).isoformat(),
             'description': f'Case handed over to new counselor',
             'from_counselor': str(handover.get('from_counselor_id', 'unknown')),
             'to_counselor': str(handover.get('to_counselor_id', 'unknown')),
@@ -817,7 +817,7 @@ def get_case_timeline(case_id):
     for checkin in checkins:
         timeline_events.append({
             'event_type': 'check_in',
-            'timestamp': checkin.get('created_at', datetime.utcnow()).isoformat(),
+            'timestamp': checkin.get('created_at', datetime.now(timezone.utc).replace(tzinfo=None)).isoformat(),
             'description': f'Check-in recorded - Status: {checkin.get("status")}',
             'initiator': str(checkin.get('created_by', 'unknown'))
         })
@@ -892,7 +892,7 @@ def change_case_status(case_id):
     status_history = case.get('status_history', [])
     status_history.append({
         "status": new_status,
-        "changed_at": datetime.utcnow(),
+        "changed_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "changed_by": user_oid,
         "reason": reason
     })
@@ -902,7 +902,7 @@ def change_case_status(case_id):
         {"$set": {
             "status": new_status,
             "status_history": status_history,
-            "last_activity": datetime.utcnow()
+            "last_activity": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -980,7 +980,7 @@ def get_case_audit_log(case_id):
     ).sort("changed_at", -1))
     
     combined = audit_entries + [{
-        'timestamp': entry.get('changed_at', datetime.utcnow()),
+        'timestamp': entry.get('changed_at', datetime.now(timezone.utc).replace(tzinfo=None)),
         'action': entry.get('event_type', 'unknown'),
         'entity': 'case',
         'changed_by': str(entry.get('changed_by', 'system')),
@@ -989,7 +989,7 @@ def get_case_audit_log(case_id):
         'reason': entry.get('reason')
     } for entry in case_audit]
     
-    combined.sort(key=lambda x: x.get('timestamp', datetime.utcnow()), reverse=True)
+    combined.sort(key=lambda x: x.get('timestamp', datetime.now(timezone.utc).replace(tzinfo=None)), reverse=True)
     
     return jsonify({
         'case_id': str(case_oid),

@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType
 from utils import user_has_permission
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 availability_bp = Blueprint('availability', __name__, url_prefix='/api/availability')
 
@@ -81,7 +81,7 @@ def free_slots_for_counselor(counselor_id, target_date, exclude_past=False):
     all_slots = sorted(slot_set)
 
     if exclude_past:
-        now = datetime.utcnow() + timedelta(hours=8)   # slots are Philippine wall-clock times
+        now = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)   # slots are Philippine wall-clock times
         all_slots = [s for s in all_slots if s > now]
 
     day_start_dt = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -205,7 +205,7 @@ def set_weekly_schedule():
 
     db.db.counselor_weekly_schedule.replace_one(
         {'counselor_id': uid_obj},
-        {'counselor_id': uid_obj, 'session_method': session_method, 'schedule': schedule, 'updated_at': datetime.utcnow()},
+        {'counselor_id': uid_obj, 'session_method': session_method, 'schedule': schedule, 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)},
         upsert=True,
     )
     return jsonify({'message': 'Weekly schedule saved', 'days': len(schedule)}), 200
@@ -422,7 +422,7 @@ def set_availability():
                     'slot_start': slot_start,
                     'slot_end': slot_end,
                     'is_available': True,
-                    'updated_at': datetime.utcnow()
+                    'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
                 }}
             )
             created_slots.append({
@@ -438,8 +438,8 @@ def set_availability():
                 'slot_start': slot_start,
                 'slot_end': slot_end,
                 'is_available': True,
-                'created_at': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+                'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
             }
             result = db.db.counselor_availability.insert_one(new_slot)
             created_slots.append({
@@ -658,8 +658,8 @@ def bulk_create_availability():
                 'slot_start': slot_start,
                 'slot_end': slot_end,
                 'is_available': True,
-                'created_at': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+                'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
             }
             
             result = db.db.counselor_availability.insert_one(new_slot)
@@ -736,7 +736,7 @@ def get_my_leaves():
     include_past = request.args.get('include_past', 'false').lower() == 'true'
     query = {'counselor_id': uid}
     if not include_past:
-        today = datetime.utcnow().strftime('%Y-%m-%d')
+        today = datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%d')
         query['date'] = {'$gte': today}
 
     docs = list(db.db.counselor_leaves.find(query).sort('date', 1))
@@ -771,7 +771,7 @@ def add_leave():
 
     created = []
     skipped = []
-    today = datetime.utcnow().strftime('%Y-%m-%d')
+    today = datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%d')
     for date_str in dates:
         if not date_str:
             continue
@@ -802,7 +802,7 @@ def add_leave():
             'date': date_str,
             'reason': reason,
             'confirmed_appointments_on_date': confirmed_count,
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
         })
         entry = {'id': str(result.inserted_id), 'date': date_str}
         if confirmed_count:

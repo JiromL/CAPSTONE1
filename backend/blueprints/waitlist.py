@@ -4,7 +4,7 @@ Waitlist Blueprint - Queue students when all counselor slots are full
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 from models import db
 from utils import audit_log
 
@@ -64,8 +64,8 @@ def join_waitlist():
         'position': position,
         'status': 'waiting',
         'notes': data.get('notes', ''),
-        'joined_at': datetime.utcnow(),
-        'updated_at': datetime.utcnow(),
+        'joined_at': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
     }
 
     result = db.db.waitlist.insert_one(entry)
@@ -167,9 +167,9 @@ def promote_from_waitlist(entry_id):
         {'_id': entry['_id']},
         {'$set': {
             'status': 'promoted',
-            'promoted_at': datetime.utcnow(),
+            'promoted_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'promoted_notes': notes,
-            'updated_at': datetime.utcnow(),
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
         }}
     )
 
@@ -184,7 +184,7 @@ def promote_from_waitlist(entry_id):
         'type': 'waitlist_promoted',
         'message': 'A slot is now available for you! Please book your appointment.',
         'read': False,
-        'created_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
     })
 
     audit_log(db.db, 'waitlist', 'promote', entity_id=entry_id)
@@ -210,7 +210,7 @@ def remove_from_waitlist(entry_id):
 
     db.db.waitlist.update_one(
         {'_id': entry['_id']},
-        {'$set': {'status': 'removed', 'updated_at': datetime.utcnow()}}
+        {'$set': {'status': 'removed', 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
 
     # Re-number remaining

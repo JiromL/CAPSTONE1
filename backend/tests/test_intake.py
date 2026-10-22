@@ -4,7 +4,7 @@ After the intake interview the intake counselor submits the PHQ-9 / GAD-7 answer
 decision: endorse to a counselor (ENDORSE_CC), to a psychologist (ENDORSE_CP), or close at
 intake. Triage sets the risk level, opens or closes the case, and completes the appointment.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import ObjectId
@@ -31,7 +31,7 @@ def world():
         'student_id': ids['student'], 'counselor_id': ids['ic'], 'purpose': 'intake_interview',
         'status': 'CONFIRMED', 'scheduled_start': datetime(2026, 10, 20, 9)}).inserted_id
     ids['intake'] = tdb.intakes.insert_one({'student_id': ids['student'], 'appointment_id': ids['appointment'],
-                                            'status': 'IN_PROGRESS', 'created_at': datetime.utcnow()}).inserted_id
+                                            'status': 'IN_PROGRESS', 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)}).inserted_id
     yield ids
     people = [ids[k] for k in ('ic', 'counselor', 'psych', 'student')]
     tdb.users.delete_many({'_id': {'$in': people}})

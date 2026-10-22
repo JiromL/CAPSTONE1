@@ -282,6 +282,7 @@ class MongoDB:
             self.db.resources.create_index("uploaded_by_user_id")
             self.db.resources.create_index("uploaded_by_role")
             self.db.audit_logs.create_index("user_id")
+            self.db.audit_logs.create_index([("timestamp", -1)])
             self.db.permission_overrides.create_index("user_id")
             # New client tracking collections
             self.db.new_client_intakes.create_index("client_id_number")

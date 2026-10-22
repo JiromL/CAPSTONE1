@@ -5,7 +5,7 @@ Handles case CRUD, assignment, session tracking, and role-based access
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
+from datetime import datetime, timezone
 from bson.objectid import ObjectId
 from models import db, UserRole, CaseStatus, CaseType, RiskLevel, PermissionType, ROLE_PERMISSIONS, TerminationType
 from utils import serialize_doc, user_has_permission, case_access_error, audit_log, server_error
@@ -18,7 +18,7 @@ def _ensure_case_number(case):
     """Lazily assign a case_number to cases created before the field existed."""
     if case.get('case_number'):
         return case
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     num = f"CPS-{now.year}-{uuid.uuid4().hex[:3].upper()}"
     db.db.cases.update_one({'_id': case['_id']}, {'$set': {'case_number': num}})
     case['case_number'] = num
@@ -295,8 +295,8 @@ def create_checkin_case():
         'primary_concern': data.get('primary_concern', data['concern']),
         'case_type': CaseType.DEVELOPMENTAL.value,
         'risk_level': RiskLevel.GREEN.value,
-        'created_at': datetime.utcnow(),
-        'updated_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
         'created_by': ObjectId(user_id) if isinstance(user_id, str) else user_id,
         'notes': data.get('notes', '')
     }
@@ -376,8 +376,8 @@ def create_case():
         'last_session_date': None,
         'next_appointment': data.get('next_appointment'),
         'notes': [],
-        'created_at': datetime.utcnow(),
-        'updated_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
     }
     
     result = db.db.cases.insert_one(new_case)
@@ -396,7 +396,7 @@ def create_case():
                         {'_id': result.inserted_id},
                         {'$set': {
                             'initial_perma_label': perma_result['latest_label'],
-                            'initial_perma_date': datetime.utcnow(),
+                            'initial_perma_date': datetime.now(timezone.utc).replace(tzinfo=None),
                         }}
                     )
     except Exception:
@@ -629,7 +629,7 @@ def update_case(case_id):
         old_risk = case.get('risk_level', '')
         if new_risk in ('CRITICAL', 'RED') and old_risk not in ('CRITICAL', 'RED'):
             psych_users = list(db.db.users.find({'role': {'$in': ['PSYCHOLOGIST', 'ADMIN']}, 'is_active': {'$ne': False}}, {'_id': 1}))
-            now_ts = datetime.utcnow()
+            now_ts = datetime.now(timezone.utc).replace(tzinfo=None)
             student_name = case.get('student_name', 'Unknown student')
             for pu in psych_users:
                 db.db.notifications.insert_one({
@@ -652,7 +652,7 @@ def update_case(case_id):
     if 'notes' in data:
         updates['notes'] = data['notes']
     
-    updates['updated_at'] = datetime.utcnow()
+    updates['updated_at'] = datetime.now(timezone.utc).replace(tzinfo=None)
     
     db.db.cases.update_one({'_id': ObjectId(case_id)}, {'$set': updates})
     
@@ -700,7 +700,7 @@ def assign_case(case_id):
             'case_type': case_type,
             'case_status': CaseStatus.ACTIVE.value,
             'status': CaseStatus.ACTIVE.value,
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -732,7 +732,7 @@ def assign_case(case_id):
                 'message': f'Your case has been assigned to {counselor["first_name"]} {counselor["last_name"]}.',
                 'target_user_id': case.get('student_id'),
                 'read': False,
-                'created_at': datetime.utcnow(),
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
             })
     except Exception as notif_err:
         print(f"⚠ Case assignment notification failed: {notif_err}")
@@ -768,10 +768,10 @@ def add_session(case_id):
     data = request.get_json()
     
     session = {
-        'date': data.get('date', datetime.utcnow().isoformat()),
+        'date': data.get('date', datetime.now(timezone.utc).replace(tzinfo=None).isoformat()),
         'duration_minutes': data.get('duration_minutes'),
         'notes': data.get('notes', ''),
-        'created_at': datetime.utcnow()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     # Increment session count and add session
@@ -781,8 +781,8 @@ def add_session(case_id):
             '$inc': {'session_count': 1},
             '$push': {'sessions': session},
             '$set': {
-                'last_session_date': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
+                'last_session_date': datetime.now(timezone.utc).replace(tzinfo=None),
+                'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
             }
         }
     )
@@ -883,10 +883,10 @@ def close_case(case_id):
             'case_status': CaseStatus.CLOSED.value,
             'status': CaseStatus.CLOSED.value,
             'termination_reason': data.get('termination_reason') or (', '.join(data.get('reasons', [])) if data.get('reasons') else None),
-            'termination_date': datetime.utcnow(),
+            'termination_date': datetime.now(timezone.utc).replace(tzinfo=None),
             'final_notes': data.get('final_notes') or data.get('summary'),
             'termination_form': termination_form,
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
 
@@ -944,7 +944,7 @@ def confirm_no_show_termination(case_id):
     if case.get('termination_type') != TerminationType.ADMINISTRATIVE.value:
         return jsonify({'error': 'Case termination type is not administrative'}), 400
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     student_id = case.get('student_id')
 
     db.db.cases.update_one(
@@ -1034,7 +1034,7 @@ def update_client_status(case_id):
     
     update_fields = {
         'client_status': new_status,
-        'updated_at': datetime.utcnow()
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     # Also update primary concern if provided
@@ -1085,8 +1085,8 @@ def save_intake_form(case_id):
         {'_id': cid},
         {'$set': {
             'intake_interview_form': data,
-            'intake_form_updated_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
+            'intake_form_updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
         }}
     )
 
@@ -1139,12 +1139,12 @@ def add_diagnosis(case_id):
         'type': data.get('type', 'primary'),         # primary | secondary | rule_out
         'system': data.get('system', 'DSM-5'),       # DSM-5 | ICD-10
         'added_by': str(user_id),
-        'added_at': datetime.utcnow().isoformat(),
+        'added_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }
     try:
         db.db.cases.update_one(
             {'_id': ObjectId(case_id)},
-            {'$push': {'diagnoses': diagnosis}, '$set': {'updated_at': datetime.utcnow()}}
+            {'$push': {'diagnoses': diagnosis}, '$set': {'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
         )
     except Exception as e:
         return server_error(e)
@@ -1170,7 +1170,7 @@ def remove_diagnosis(case_id, index):
         diagnoses.pop(index)
         db.db.cases.update_one(
             {'_id': ObjectId(case_id)},
-            {'$set': {'diagnoses': diagnoses, 'updated_at': datetime.utcnow()}}
+            {'$set': {'diagnoses': diagnoses, 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
         )
     except Exception as e:
         return server_error(e)
@@ -1206,7 +1206,7 @@ def reopen_case(case_id):
 
     data = request.get_json() or {}
     reason = data.get('reason', 'Returning client — case reopened.')
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.db.cases.update_one(
         {'_id': ObjectId(case_id)},
@@ -1317,7 +1317,7 @@ def reassign_case(case_id):
         {'$set': {
             'counselor_id':   counselor['_id'],
             'counselor_name': new_counselor_display,
-            'updated_at':     datetime.utcnow(),
+            'updated_at':     datetime.now(timezone.utc).replace(tzinfo=None),
         }}
     )
 

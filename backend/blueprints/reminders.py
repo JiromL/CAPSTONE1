@@ -6,7 +6,7 @@ via email, SMS, and dashboard notifications.
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson.objectid import ObjectId
 import os
 from dotenv import load_dotenv
@@ -121,8 +121,8 @@ def create_reminder():
             "sent_at": None,
             "read_at": None,
             "created_by": user_id,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "metadata": data.get('metadata', {})
         }
         
@@ -225,9 +225,9 @@ def update_reminder(reminder_id):
             return jsonify({"error": f"status must be one of: {', '.join(allowed)}"}), 400
         updates['status'] = data['status']
         if data['status'] == 'sent':
-            updates['sent_at'] = datetime.utcnow()
+            updates['sent_at'] = datetime.now(timezone.utc).replace(tzinfo=None)
         elif data['status'] == 'read':
-            updates['read_at'] = datetime.utcnow()
+            updates['read_at'] = datetime.now(timezone.utc).replace(tzinfo=None)
             updates['is_read'] = True
     for field in ('title', 'message'):
         if field in data:
@@ -237,7 +237,7 @@ def update_reminder(reminder_id):
             updates['scheduled_for'] = datetime.fromisoformat(data['scheduled_for'].replace('Z', '+00:00'))
         except (AttributeError, ValueError):
             return jsonify({"error": "Invalid datetime format"}), 400
-    updates['updated_at'] = datetime.utcnow()
+    updates['updated_at'] = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.db.reminders.update_one({'_id': reminder['_id']}, {'$set': updates})
     _audit('update', reminder_id, user_id, {k: v for k, v in updates.items() if k in ('status', 'title')})
@@ -255,7 +255,7 @@ def delete_reminder(reminder_id):
     if not (_can_manage(user_id) or str(reminder.get('created_by')) == str(user_id)):
         return jsonify({"error": "Only the person who created this reminder or reminder staff can delete it"}), 403
     db.db.reminders.update_one({'_id': reminder['_id']},
-                               {'$set': {'status': 'deleted', 'updated_at': datetime.utcnow()}})
+                               {'$set': {'status': 'deleted', 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}})
     _audit('delete', reminder_id, user_id, {'status': 'deleted'})
     return jsonify({"message": "Reminder deleted successfully"}), 200
 
@@ -278,7 +278,7 @@ def send_reminder(reminder_id):
     if reminder.get('status') in ('sent', 'deleted'):
         return jsonify({"error": "Cannot send this reminder"}), 400
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     methods = reminder.get('delivery_methods') or ['dashboard']
     delivery_results = {}
     if 'email' in methods and reminder.get('recipient_email'):
@@ -325,7 +325,7 @@ def mark_reminders_sent():
         object_ids = [ObjectId(rid) for rid in reminder_ids]
     except Exception:
         return jsonify({"error": "Invalid reminder ID"}), 400
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     result = db.db.reminders.update_many({'_id': {'$in': object_ids}, 'status': 'pending'},
                                          {'$set': {'status': 'sent', 'sent_at': now, 'updated_at': now}})
     return jsonify({"message": f"Updated {result.modified_count} reminders",
@@ -355,7 +355,7 @@ def mark_all_reminders_read():
 def get_upcoming_reminders():
     """Reminders scheduled for the next 24 hours: all for reminder staff, otherwise only your own."""
     user_id = get_jwt_identity()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     query = {'scheduled_for': {'$gte': now, '$lte': now + timedelta(hours=24)}, 'status': 'pending'}
     if not _can_manage(user_id):
         try:

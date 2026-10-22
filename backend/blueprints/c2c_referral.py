@@ -6,7 +6,7 @@ This is for specialized treatment needs that require different counselor experti
 """
 
 from flask import Blueprint, request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from bson.objectid import ObjectId
 
@@ -98,8 +98,8 @@ def create_c2c_referral():
             "rare_case_justification": data.get('rare_case_justification', ''),
             "status": "pending_acceptance",  # pending_acceptance, accepted, declined, completed
             "created_by": user_id,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "accepted_at": None,
             "acceptance_notes": "",
             "declined_at": None,
@@ -202,9 +202,9 @@ def accept_c2c_referral(referral_id):
         
         updates = {
             'status': 'accepted',
-            'accepted_at': datetime.utcnow(),
+            'accepted_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'acceptance_notes': data.get('acceptance_notes', ''),
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
         }
         
         db.db.counselor_referrals.update_one({'_id': ObjectId(referral_id)}, {'$set': updates})
@@ -246,9 +246,9 @@ def decline_c2c_referral(referral_id):
         
         updates = {
             'status': 'declined',
-            'declined_at': datetime.utcnow(),
+            'declined_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'decline_reason': data['decline_reason'],
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
         }
         
         db.db.counselor_referrals.update_one({'_id': ObjectId(referral_id)}, {'$set': updates})
@@ -288,9 +288,9 @@ def complete_c2c_referral(referral_id):
         
         updates = {
             'status': 'completed',
-            'completed_at': datetime.utcnow(),
+            'completed_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'completion_notes': data.get('completion_notes', ''),
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
         }
         
         db.db.counselor_referrals.update_one({'_id': ObjectId(referral_id)}, {'$set': updates})
@@ -332,7 +332,7 @@ def log_follow_up(referral_id):
         follow_up_entry = {
             'logged_by': user_id,
             'note': data['note'],
-            'logged_at': datetime.utcnow(),
+            'logged_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'session_summary': data.get('session_summary', '')
         }
         
@@ -340,7 +340,7 @@ def log_follow_up(referral_id):
             {'_id': ObjectId(referral_id)},
             {
                 '$push': {'follow_up_sessions': follow_up_entry},
-                '$set': {'updated_at': datetime.utcnow()}
+                '$set': {'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}
             }
         )
         

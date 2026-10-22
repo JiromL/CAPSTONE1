@@ -5,8 +5,16 @@ Utility functions for authentication, authorization, and audit logging
 from functools import wraps
 from flask import request, jsonify, g
 from flask_jwt_extended import get_jwt_identity
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
+
+
+def find_by_id(collection, id_str):
+    """Find a MongoDB document by string ID, trying ObjectId first then raw string."""
+    try:
+        return collection.find_one({"_id": ObjectId(id_str)})
+    except Exception:
+        return collection.find_one({"_id": id_str})
 
 
 def serialize_doc(v):
@@ -42,7 +50,7 @@ def audit_log(db, entity_type, action, entity_id=None, old_values=None, new_valu
             "old_values": old_values or {},
             "new_values": new_values or {},
             "ip_address": ip_address,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc).replace(tzinfo=None)
         }
         
         db.audit_logs.insert_one(log_entry)
@@ -70,7 +78,7 @@ def user_has_permission(db, user_id, permission):
         override = db.permission_overrides.find_one({
             "user_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
             "permission": permission,
-            "expires_at": {"$gt": datetime.utcnow()}
+            "expires_at": {"$gt": datetime.now(timezone.utc).replace(tzinfo=None)}
         })
         
         return override is not None

@@ -5,20 +5,25 @@ Counseling, High-Risk Monitoring, and Referral Management - Using MongoDB
 """
 
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from pathlib import Path
 
 # Load environment variables BEFORE any other imports
-# Look for .env in the parent directory (project root)
+# Load root .env first, then backend/.env so backend-specific values win.
+# override=True ensures these values beat any pre-existing shell env vars.
 env_path = Path(__file__).parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+backend_env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(dotenv_path=backend_env_path, override=True)
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import config
 from models import db, UserRole, PermissionType, RiskLevel
@@ -63,19 +68,34 @@ from blueprints.reports import reports_bp
 from blueprints.communications import communications_bp
 from blueprints.holidays import holidays_bp
 
+def _configure_logging(app):
+    log_dir = Path(__file__).parent / 'logs'
+    log_dir.mkdir(exist_ok=True)
+    handler = RotatingFileHandler(
+        log_dir / 'cps.log', maxBytes=10 * 1024 * 1024, backupCount=5
+    )
+    handler.setFormatter(logging.Formatter(
+        '[%(asctime)s] %(levelname)s %(name)s: %(message)s'
+    ))
+    handler.setLevel(logging.WARNING)
+    app.logger.addHandler(handler)
+    logging.getLogger('cps').addHandler(handler)
+
+
 def create_app(config_name=None):
     """Application factory"""
     if config_name is None:
         config_name = os.getenv('FLASK_ENV', 'development')
-    
+
     app = Flask(__name__)
     app.config.from_object(config.get(config_name, config['development']))
+    _configure_logging(app)
 
     # The built-in defaults are public (they are in this repository). Anyone who knows them
-    # could forge a login token, so production refuses to start without real secrets.
+    # could forge a login token or decrypt sensitive tokens, so production refuses to start without real secrets.
     if config_name == 'production':
-        weak = [k for k in ('SECRET_KEY', 'JWT_SECRET_KEY')
-                if not os.getenv(k) or 'change-in-production' in str(app.config.get(k))]
+        weak = [k for k in ('SECRET_KEY', 'JWT_SECRET_KEY', 'ENCRYPTION_KEY')
+                if not os.getenv(k) or 'change-in-production' in str(app.config.get(k)) or str(app.config.get(k)) == '5k4TtzFSzW3xEVU1ZT-2zV1X-vZEX_V_ZIXwcfvcK3Y=']
         if weak:
             raise RuntimeError(f"Set {', '.join(weak)} in the environment before running in production.")
     
@@ -94,7 +114,7 @@ def create_app(config_name=None):
     # Initialize extensions
     # CORS — restrict to configured frontend origin in production
     allowed_origin = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-    CORS(app, resources={r"/api/*": {"origins": [allowed_origin, "http://localhost:3000"]}})
+    CORS(app, resources={r"/api/*": {"origins": [allowed_origin]}})
     jwt = JWTManager(app)
 
     # Rate limiter — memory storage is fine for single-process; swap to Redis in prod
@@ -189,7 +209,7 @@ def create_app(config_name=None):
         
         return jsonify({
             'status': 'Backend is running',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'version': '1.0.0',
             'database': 'MongoDB',
             'mongodb_status': mongodb_status,
@@ -205,6 +225,20 @@ def create_app(config_name=None):
             ]
         }), 200
     
+    @app.route('/api/health/scheduler', methods=['GET'])
+    def scheduler_health():
+        try:
+            runs = list(mongodb.scheduler_runs.find(
+                {}, {'_id': 0}, sort=[('started_at', -1)], limit=10
+            ))
+            for r in runs:
+                for k, v in r.items():
+                    if hasattr(v, 'isoformat'):
+                        r[k] = v.isoformat()
+            return jsonify({'scheduler_runs': runs}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     # Error handlers
     @app.errorhandler(404)
     def not_found(error):

@@ -100,7 +100,7 @@ print(f"✅ {older} older EMA results added (history now reaches ~4 months)")
 # seed.py writes check-in hours as Philippine time, but the app stores UTC: shift them back
 # 8 hours. Some check-ins happen late at night, and hard moments more often, so a share of
 # results move to 9 PM–2 AM (more of the at-risk ones).
-for snap in db.perma_snapshots.find({}, {'entry_date': 1, 'perma_label': 1}):
+for snap in db.perma_snapshots.find({}, {'entry_date': 1, 'perma_label': 1, 'mhbot_username': 1}):
     when = snap['entry_date'] - timedelta(hours=8)
     late = 0.35 if snap['perma_label'] in ('Struggling', 'In Crisis') else 0.12   # some students write at night anyway
     if rng.random() < late:
@@ -108,6 +108,8 @@ for snap in db.perma_snapshots.find({}, {'entry_date': 1, 'perma_label': 1}):
         manila = (when + timedelta(hours=8)).replace(hour=local_hour, minute=rng.randint(0, 59))
         when = manila - timedelta(hours=8)
     when = min(when, now - timedelta(minutes=5))
+    while db.perma_snapshots.find_one({'mhbot_username': snap.get('mhbot_username'), 'entry_date': when, '_id': {'$ne': snap['_id']}}):
+        when += timedelta(minutes=1)
     db.perma_snapshots.update_one({'_id': snap['_id']}, {'$set': {
         'entry_date': when, 'raw_date': when.isoformat(), 'saved_at': when}})
 
@@ -142,6 +144,8 @@ for snap in list(db.perma_snapshots.find({'entry_date': {'$gte': ago(days=90)}})
             break                                          # stay on the same Philippine day
         step = rng.choices([0, 1, -1], weights=[6, 2, 2])[0]
         label = LABELS[max(1 if base else 0, min(4, base + step))]   # extra chats rarely add a new crisis
+        while db.perma_snapshots.find_one({'mhbot_username': snap['mhbot_username'], 'entry_date': when}):
+            when += timedelta(minutes=rng.randint(1, 10))
         db.perma_snapshots.insert_one({
             'student_user_id': snap.get('student_user_id'), 'mhbot_username': snap['mhbot_username'],
             'perma_label': label, 'entry_date': when, 'raw_date': when.isoformat(), 'saved_at': when, 'source': 'webhook'})

@@ -6,7 +6,7 @@ Routes: POST /api/communications/bulk-send
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 from models import db
 
 communications_bp = Blueprint('communications', __name__, url_prefix='/api/communications')
@@ -42,7 +42,7 @@ def bulk_send():
         if sender else 'Staff'
     )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     notifications = []
     sent_count = 0
 

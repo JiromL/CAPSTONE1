@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import SessionTimeoutWarning from '@/components/SessionTimeoutWarning';
 
 export default function ICLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -55,5 +56,10 @@ export default function ICLayout({ children }: { children: React.ReactNode }) {
     return () => { window.fetch = original; };
   }, []);
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <SessionTimeoutWarning />
+    </>
+  );
 }

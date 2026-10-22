@@ -6,7 +6,7 @@ Provides comprehensive metrics for Directors and Program Administrators
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import db, PermissionType
 from utils import audit_log, user_has_permission, server_error
 
@@ -54,7 +54,7 @@ def get_analytics_summary():
         total_psychologists = db.db.users.count_documents({'role': 'PSYCHOLOGIST'})
 
         # Appointments this week (confirmed or completed)
-        week_start = datetime.utcnow() - timedelta(days=7)
+        week_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
         week_appointments = db.db.appointments.count_documents({
             'scheduled_start': {'$gte': week_start},
             'status': {'$in': ['COMPLETED', 'completed', 'CONFIRMED', 'confirmed']}
@@ -66,7 +66,7 @@ def get_analytics_summary():
         })
 
         # Assessments this month (check intake_packets with phq4)
-        month_start = datetime.utcnow() - timedelta(days=30)
+        month_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
         month_assessments = db.db.intake_packets.count_documents({
             'created_at': {'$gte': month_start},
             'phq4_responses': {'$ne': None}
@@ -85,7 +85,7 @@ def get_analytics_summary():
             'week_appointments': week_appointments,
             'pending_appointments': pending_appointments,
             'month_assessments': month_assessments,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
         }), 200
     
     except Exception as e:
@@ -101,7 +101,7 @@ def get_case_trends():
     days = request.args.get('days', default=30, type=int)
     
     try:
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
         
         # Get cases created in the period
         pipeline = [
@@ -226,7 +226,7 @@ def get_staff_workload():
             })
 
             # Completed this week
-            week_start = datetime.utcnow() - timedelta(days=7)
+            week_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
             week_completed = db.db.appointments.count_documents({
                 'counselor_id': staff_id,
                 'status': {'$in': ['COMPLETED', 'completed']},
@@ -266,7 +266,7 @@ def get_appointment_statistics():
     days = request.args.get('days', default=30, type=int)
     
     try:
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
         
         # Appointment stats
         pipeline = [
@@ -350,7 +350,7 @@ def get_risk_trends():
     days = request.args.get('days', default=30, type=int)
     
     try:
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
         
         # Risk trends by day
         pipeline = [
@@ -490,7 +490,7 @@ def get_appointments_monthly():
     try:
         num_months = min(int(request.args.get('months', 6)), 24)
         result = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         for i in range(num_months - 1, -1, -1):
             # Build month boundaries
@@ -535,7 +535,7 @@ def get_cases_monthly():
     try:
         num_months = min(int(request.args.get('months', 6)), 24)
         result = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         for i in range(num_months - 1, -1, -1):
             year = now.year
@@ -621,7 +621,7 @@ def get_concern_distribution():
 def get_assessment_score_trends():
     """Monthly average PHQ-9 and GAD-7 scores for the last 6 months"""
     try:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         result = []
 
         for i in range(5, -1, -1):
@@ -663,7 +663,7 @@ def get_appointments_by_day():
     """Appointment volume by day of week and top booking hours"""
     try:
         days_back = int(request.args.get('days', 90))
-        start_date = datetime.utcnow() - timedelta(days=days_back)
+        start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_back)
 
         # By day of week (0=Sunday in $dayOfWeek)
         day_pipeline = [
@@ -711,7 +711,7 @@ def get_appointments_breakdown():
     """Session mode (F2F/Online) and type (INTAKE/COUNSELING) breakdown + monthly method trend."""
     try:
         days_back = int(request.args.get('days', 180))
-        start_date = datetime.utcnow() - timedelta(days=days_back)
+        start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_back)
 
         # Method distribution (all-time)
         method_agg = list(db.db.appointments.aggregate([
@@ -735,7 +735,7 @@ def get_appointments_breakdown():
         }
 
         # Monthly breakdown (period)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         num_months = min(int(request.args.get('months', 6)), 12)
         monthly = []
         for i in range(num_months - 1, -1, -1):
@@ -840,7 +840,7 @@ def get_cases_pipeline():
         diagnoses = [{'name': item['_id'], 'count': item['count']} for item in db.db.cases.aggregate(diag_pipeline) if item['_id']]
 
         # Cases stuck in NEW for > 7 days (need assignment)
-        week_ago = datetime.utcnow() - timedelta(days=7)
+        week_ago = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
         stuck_new = db.db.cases.count_documents({
             '$or': [{'case_status': 'NEW'}, {'status': 'NEW'}],
             'created_at': {'$lt': week_ago},
@@ -864,7 +864,7 @@ def get_session_outcomes():
     """Monthly avg mood from session notes, risk-flagged count, PERMA label distribution."""
     try:
         months_back = min(int(request.args.get('months', 6)), 12)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         mood_monthly = []
         for i in range(months_back - 1, -1, -1):
             yr, mo = now.year, now.month - i
@@ -939,7 +939,7 @@ def evaluations_summary():
     """Aggregate session evaluation stats + individual list for admin analytics."""
     try:
         days = int(request.args.get('days', 180))
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
 
         pipeline_agg = [
             {'$match': {

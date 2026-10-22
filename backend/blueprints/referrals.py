@@ -9,7 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType
 from utils import audit_log, user_has_permission
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 referrals_bp = Blueprint('referrals', __name__, url_prefix='/api/referrals')
 
@@ -78,8 +78,8 @@ def initiate_referral():
         "referral_type": referral_type,
         "reason": data.get('reason'),
         "urgency": data.get('urgency', 'routine'),  # URGENT, ROUTINE
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     # Handle different referral types
@@ -171,7 +171,7 @@ def initiate_referral():
                 {"$set": {
                     "assigned_counselor_id": provider['_id'],
                     "endorsed_to_role": assigned_to_role.upper() if assigned_to_role else provider.get('role', ''),
-                    "updated_at": datetime.utcnow(),
+                    "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
                 }}
             )
 
@@ -202,7 +202,7 @@ def initiate_referral():
                     "purpose": "endorsed_counseling",
                     "booked_by_ic": True,
                     "referral_id": result.inserted_id,
-                    "created_at": datetime.utcnow(),
+                    "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
                 }
                 appt_result = db.db.appointments.insert_one(appt_doc)
                 first_appt_id = str(appt_result.inserted_id)
@@ -259,12 +259,12 @@ def assign_cps_investigator(referral_id):
             "cps_case_number": data.get('cps_case_number'),
             "investigator_name": data.get('investigator_name'),
             "investigator_contact": data.get('investigator_contact'),
-            "investigation_started_date": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "investigation_started_date": datetime.now(timezone.utc).replace(tzinfo=None),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         },
         "$push": {
             "investigation_notes": {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(timezone.utc).replace(tzinfo=None),
                 "note": f"Assigned to investigator {data.get('investigator_name')}"
             }
         }}
@@ -308,11 +308,11 @@ def start_cps_investigation(referral_id):
         {"_id": referral['_id']},
         {"$set": {
             "status": "UNDER_INVESTIGATION",
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         },
         "$push": {
             "investigation_notes": {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(timezone.utc).replace(tzinfo=None),
                 "note": "Investigation started"
             }
         }}
@@ -361,12 +361,12 @@ def submit_cps_investigation_findings(referral_id):
             "status": "FINDINGS_ISSUED",
             "investigation_findings": findings,
             "investigation_details": investigation_details,
-            "investigation_completed_date": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "investigation_completed_date": datetime.now(timezone.utc).replace(tzinfo=None),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         },
         "$push": {
             "investigation_notes": {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(timezone.utc).replace(tzinfo=None),
                 "note": f"Investigation findings: {findings}",
                 "details": investigation_details
             }
@@ -414,7 +414,7 @@ def submit_cps_decision(referral_id):
     
     update_data = {
         "decision": decision,
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     if decision == 'CASE_OPENED':
@@ -430,7 +430,7 @@ def submit_cps_decision(referral_id):
         {"$set": update_data,
         "$push": {
             "investigation_notes": {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(timezone.utc).replace(tzinfo=None),
                 "note": f"CPS decision: {decision}",
                 "decision_details": data.get('decision_details')
             }
@@ -480,13 +480,13 @@ def add_cps_investigation_note(referral_id):
         {"_id": referral['_id']},
         {"$push": {
             "investigation_notes": {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(timezone.utc).replace(tzinfo=None),
                 "note": note,
                 "added_by": str(user_id)
             }
         },
         "$set": {
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -523,7 +523,7 @@ def request_roi_signature(referral_id):
         {"_id": referral['_id']},
         {"$set": {
             "status": "SUBMITTED",  # Keep status as submitted until ROI received
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -577,7 +577,7 @@ def upload_roi(referral_id):
     os.makedirs(upload_dir, exist_ok=True)
     # Use only the hex ObjectId string (already validated above as ObjectId) to avoid path traversal
     safe_id = str(referral['_id'])
-    file_path = os.path.join(upload_dir, f'referral_{safe_id}_{datetime.utcnow().timestamp()}.{ext}')
+    file_path = os.path.join(upload_dir, f'referral_{safe_id}_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}.{ext}')
     file.save(file_path)
 
     db.db.referrals.update_one(
@@ -585,9 +585,9 @@ def upload_roi(referral_id):
         {"$set": {
             "roi_file_url": file_path,
             "roi_signed": True,
-            "roi_signed_at": datetime.utcnow(),
-            "roi_expires_at": datetime.utcnow() + timedelta(days=365),
-            "updated_at": datetime.utcnow()
+            "roi_signed_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            "roi_expires_at": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=365),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -596,12 +596,12 @@ def upload_roi(referral_id):
         'roi_signed': True
     })
     
-    expires_at = datetime.utcnow() + timedelta(days=365)
+    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=365)
     
     return jsonify({
         'message': 'ROI uploaded',
         'referral_id': str(referral['_id']),
-        'roi_signed_at': datetime.utcnow().isoformat(),
+        'roi_signed_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
         'roi_expires_at': expires_at.isoformat()
     }), 201
 
@@ -641,7 +641,7 @@ def send_referral(referral_id):
         {"_id": referral['_id']},
         {"$set": {
             "status": new_status,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -682,11 +682,11 @@ def acknowledge_referral(referral_id):
     
     update_data = {
         "status": new_status,
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     if ref_type == 'INTERNAL':
-        update_data["provider_acknowledgment_date"] = datetime.utcnow()
+        update_data["provider_acknowledgment_date"] = datetime.now(timezone.utc).replace(tzinfo=None)
     
     db.db.referrals.update_one(
         {"_id": referral['_id']},
@@ -734,13 +734,13 @@ def complete_warm_handoff(referral_id):
     update_data = {
         "warm_handoff_completed": True,
         "status": new_status,
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     if 'handoff_date' in data:
         update_data["handoff_date"] = datetime.fromisoformat(data['handoff_date']) if isinstance(data['handoff_date'], str) else data['handoff_date']
     else:
-        update_data["handoff_date"] = datetime.utcnow()
+        update_data["handoff_date"] = datetime.now(timezone.utc).replace(tzinfo=None)
     
     if data.get('completion_notes'):
         update_data["completion_notes"] = data.get('completion_notes')
@@ -941,7 +941,7 @@ def get_pending_warm_handoffs():
             'created_at': r['created_at'].isoformat() if isinstance(r.get('created_at'), datetime) else None,
             'case_number': case.get('case_number') if case else None,
             'student_name': f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else None,
-            'days_pending': (datetime.utcnow() - r['created_at']).days if isinstance(r['created_at'], datetime) else 0
+            'days_pending': (datetime.now(timezone.utc).replace(tzinfo=None) - r['created_at']).days if isinstance(r['created_at'], datetime) else 0
         }
         
         # Add type-specific information
@@ -1112,7 +1112,7 @@ def list_cps_referrals():
             'investigation_findings': r.get('investigation_findings'),
             'decision': r.get('decision'),
             'case_opened_with_cps': r.get('case_opened_with_cps'),
-            'days_since_submitted': (datetime.utcnow() - r['created_at']).days if isinstance(r['created_at'], datetime) else 0,
+            'days_since_submitted': (datetime.now(timezone.utc).replace(tzinfo=None) - r['created_at']).days if isinstance(r['created_at'], datetime) else 0,
             'created_at': r['created_at'].isoformat() if isinstance(r['created_at'], datetime) else r['created_at']
         })
     

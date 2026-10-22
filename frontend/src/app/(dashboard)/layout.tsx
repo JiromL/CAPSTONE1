@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import SessionTimeoutWarning from '@/components/SessionTimeoutWarning';
 
 
 export default function DashboardLayout({
@@ -83,5 +84,10 @@ export default function DashboardLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <SessionTimeoutWarning />
+    </>
+  );
 }

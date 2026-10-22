@@ -1,5 +1,5 @@
 """Access and crash regressions, run against the cps_system_test database (see conftest.py)."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from bson import ObjectId
@@ -21,17 +21,17 @@ def world():
                                           'name': name, 'is_active': True}).inserted_id
     ids['case'] = tdb.cases.insert_one({'student_id': ids['student'], 'assigned_counselor_id': ids['counselor'],
                                         'case_status': 'CLOSED', 'status': 'CLOSED',
-                                        'created_at': datetime.utcnow()}).inserted_id
+                                        'created_at': datetime.now(timezone.utc).replace(tzinfo=None)}).inserted_id
     ids['other_case'] = tdb.cases.insert_one({'student_id': ids['other'], 'assigned_counselor_id': ids['counselor'],
-                                              'case_status': 'ACTIVE', 'created_at': datetime.utcnow()}).inserted_id
+                                              'case_status': 'ACTIVE', 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)}).inserted_id
     oc = ids['other_case']
     ids['plan'] = tdb.safety_plans.insert_one({'case_id': oc, 'warning_signs': 'private'}).inserted_id
-    ids['checkin'] = tdb.check_ins.insert_one({'case_id': oc, 'notes': 'private', 'created_at': datetime.utcnow()}).inserted_id
-    ids['referral'] = tdb.referrals.insert_one({'case_id': oc, 'provider': 'private', 'created_at': datetime.utcnow()}).inserted_id
+    ids['checkin'] = tdb.check_ins.insert_one({'case_id': oc, 'notes': 'private', 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)}).inserted_id
+    ids['referral'] = tdb.referrals.insert_one({'case_id': oc, 'provider': 'private', 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)}).inserted_id
     ids['reminder'] = tdb.reminders.insert_one({'recipient_id': str(ids['student']), 'created_by': str(ids['cm']),
                                                 'title': 'Session tomorrow', 'message': 'See you', 'status': 'pending',
                                                 'delivery_methods': ['dashboard'],
-                                                'scheduled_for': datetime.utcnow() + timedelta(hours=2)}).inserted_id
+                                                'scheduled_for': datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=2)}).inserted_id
     yield ids
     tdb.users.delete_many({'_id': {'$in': [ids[k] for k in ('student', 'other', 'counselor', 'stranger_counselor', 'cm', 'admin', 'office')]}})
     tdb.consent_records.delete_many({'user_id': {'$in': [ids['student'], ids['other']]}})
@@ -284,13 +284,13 @@ def test_new_crisis_alerts_case_managers_and_own_counselor_once(client, world):
     from services.crisis_alerts import alert_new_crisis, ALERT_TYPE
     sid = world['other']
     try:
-        assert alert_new_crisis(db.db, sid, datetime.utcnow()) >= 2
-        assert alert_new_crisis(db.db, sid, datetime.utcnow()) == 0                    # one alert per 12 hours
+        assert alert_new_crisis(db.db, sid, datetime.now(timezone.utc).replace(tzinfo=None)) >= 2
+        assert alert_new_crisis(db.db, sid, datetime.now(timezone.utc).replace(tzinfo=None)) == 0                    # one alert per 12 hours
         mine = client.get('/api/high-risk/notifications', headers=auth(world['counselor'])).get_json()['notifications']
         assert any(n['type'] == ALERT_TYPE and n['link'].startswith('/cases/') for n in mine)
         assert client.get('/api/high-risk/notifications', headers=auth(world['stranger_counselor'])).get_json()['count'] == 0
         db.db.notifications.delete_many({'type': ALERT_TYPE, 'student_id': sid})
-        assert alert_new_crisis(db.db, sid, datetime.utcnow() - timedelta(days=5)) == 0  # old results arriving late
+        assert alert_new_crisis(db.db, sid, datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=5)) == 0  # old results arriving late
     finally:
         db.db.notifications.delete_many({'type': ALERT_TYPE, 'student_id': sid})
 

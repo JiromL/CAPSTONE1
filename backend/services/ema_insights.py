@@ -9,7 +9,7 @@ MIN_GROUP students, so nobody can be singled out from a breakdown. Lists that na
 students are only served to the care team (checked by the route).
 """
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from statistics import mean, median
 
 from services.perma_triage import LABEL_SCORE, AT_RISK, PERMA_AREAS, daily_scores, monthly_scores, label_for_score, crisis_reviewed
@@ -481,7 +481,7 @@ def engagement(students, snaps, now):
 def build_insights(db, now=None, student_ids=None, hide_names=False, scope='all'):
     """student_ids: limit to these students (a counselor's own caseload).
     hide_names: totals only, for admins and the DPO; named lists become counts."""
-    now = now or datetime.utcnow()
+    now = now or datetime.now(timezone.utc).replace(tzinfo=None)
     students = _students(db)
     if student_ids is not None:
         keep = {str(i) for i in student_ids}

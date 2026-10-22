@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType, CaseStatus, TerminationType
 from utils import audit_log, user_has_permission, server_error
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import random
 import string
@@ -35,15 +35,19 @@ def _email_footer():
 BOOKING_CONSENT_VERSION = '2025-AY'
 
 # Appointment event times are stored as naive Philippine wall-clock (UTC+8).
-# Compare them against this, never datetime.utcnow(), so past/future checks are
-# correct regardless of the server's own timezone.
+# Compare them against naive PHT, not UTC, so past/future checks are correct
+# regardless of the server's own timezone.
 PH_OFFSET = timedelta(hours=8)
 
 
 def _ph_now():
-    """Current Philippine wall-clock time, host-timezone independent."""
-    return datetime.utcnow() + PH_OFFSET
+    """Current Philippine wall-clock time as a naive datetime, host-timezone independent."""
+    return datetime.now(timezone.utc).replace(tzinfo=None) + PH_OFFSET
 
+
+def _utcnow():
+    """Current UTC time as a naive datetime (matches how MongoDB stores timestamps throughout)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 def _claim_booking_lock(counselor_id, start):
     """Atomically reserve a counselor's time slot.
@@ -59,7 +63,7 @@ def _claim_booking_lock(counselor_id, start):
         res = db.db.booking_locks.insert_one({
             'counselor_id': counselor_id,
             'start': start,
-            'created_at': datetime.utcnow(),
+            'created_at': _utcnow(),
         })
         return res.inserted_id
     except DuplicateKeyError:
@@ -234,7 +238,7 @@ def auto_assign_appointment(appointment_id):
                 "status": AppointmentStatus.MATCHED.value,
                 "scheduled_start": appointment['requested_start'],
                 "scheduled_end": appointment['requested_end'],
-                "updated_at": datetime.utcnow()
+                "updated_at": _utcnow()
             }}
         )
         
@@ -245,7 +249,7 @@ def auto_assign_appointment(appointment_id):
                 {"_id": appointment['case_id']},
                 {"$set": {
                     "assigned_counselor_id": counselor['_id'],
-                    "updated_at": datetime.utcnow()
+                    "updated_at": _utcnow()
                 }}
             )
             print(f"[auto_assign_appointment] Also assigned counselor to case {appointment['case_id']}")
@@ -679,7 +683,7 @@ def check_active_appointment():
 
         # Rebook override: counselor set a deadline after a no-show
         rebook_deadline = student_case.get('rebook_deadline')
-        if rebook_deadline and rebook_deadline > datetime.utcnow():
+        if rebook_deadline and rebook_deadline > _utcnow():
             return jsonify({
                 'has_active_appointment': False,
                 'can_self_book': True,
@@ -783,7 +787,7 @@ def request_appointment():
             'user_id': user_id_obj,
             'consent_types': ['counseling_services', 'data_privacy'],
             'context': 'appointment_booking',
-            'consented_at': datetime.utcnow(),
+            'consented_at': _utcnow(),
             'ip_address': request.remote_addr,
             'user_agent': request.headers.get('User-Agent', ''),
             'version': BOOKING_CONSENT_VERSION,
@@ -868,8 +872,8 @@ def request_appointment():
                     {'$set': {
                         'status': AppointmentStatus.CANCELLED.value,
                         'cancellation_reason': 'Superseded by a new reschedule request.',
-                        'cancelled_at': datetime.utcnow(),
-                        'updated_at': datetime.utcnow(),
+                        'cancelled_at': _utcnow(),
+                        'updated_at': _utcnow(),
                     }}
                 )
                 # Remove from Google Calendar
@@ -967,8 +971,8 @@ def request_appointment():
                 "case_number": generate_case_number(),
                 "status": CaseStatus.ACTIVE.value,
                 "case_status": CaseStatus.ACTIVE.value,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "created_at": _utcnow(),
+                "updated_at": _utcnow()
             }
             result = db.db.cases.insert_one(case_doc)
             case_id = result.inserted_id
@@ -1012,7 +1016,7 @@ def request_appointment():
             "preferred_method": data.get('preferred_method'),
             "preferred_platform": data.get('preferred_platform'),
             "preferred_counselor_id": preferred_counselor_id,
-            "created_at": datetime.utcnow()
+            "created_at": _utcnow()
         }
 
         # Attach counselor when booking via legacy slot
@@ -1080,7 +1084,7 @@ def request_appointment():
         if case and case.get('rebook_deadline'):
             db.db.cases.update_one(
                 {'_id': case['_id']},
-                {'$unset': {'rebook_deadline': ''}, '$set': {'updated_at': datetime.utcnow()}}
+                {'$unset': {'rebook_deadline': ''}, '$set': {'updated_at': _utcnow()}}
             )
 
         # Record who booked the slot and which appointment owns it
@@ -1248,7 +1252,7 @@ def match_counselor(appointment_id):
             "counselor_name": f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}".strip(),
             "status": AppointmentStatus.CONFIRMED.value,
             "confirmation_sent": True,
-            "updated_at": datetime.utcnow()
+            "updated_at": _utcnow()
         }
         if scheduled_start:
             update_fields["scheduled_start"] = scheduled_start
@@ -1280,8 +1284,8 @@ def match_counselor(appointment_id):
                         'risk_level': appointment.get('risk_level', 'GREEN'),
                         'is_emergency': False,
                         'responses': {'concern': appointment.get('concern', '')},
-                        'created_at': datetime.utcnow(),
-                        'deadline': (scheduled_start or datetime.utcnow()) + _td(days=3),
+                        'created_at': _utcnow(),
+                        'deadline': (scheduled_start or _utcnow()) + _td(days=3),
                     })
                     print(f"✓ Auto-created intakes record for intake_interview appointment {appointment['_id']}")
         except Exception as e:
@@ -1307,7 +1311,7 @@ def match_counselor(appointment_id):
                             'scheduled_for': appt_time - offset,
                             'status': 'pending',
                             'auto_generated': True,
-                            'created_at': datetime.utcnow(),
+                            'created_at': _utcnow(),
                         })
         except Exception as e:
             print(f"Auto-reminder creation error: {e}")
@@ -1439,7 +1443,7 @@ def list_counselors():
 @jwt_required()
 def get_open_slots():
     """Return upcoming available counselor slots grouped by counselor, for student booking."""
-    now = datetime.utcnow()
+    now = _utcnow()
     days_ahead = int(request.args.get('days', 30))
     cutoff = now + timedelta(days=days_ahead)
 
@@ -1611,7 +1615,7 @@ def confirm_appointment(appointment_id):
     update_fields = {
         "status": AppointmentStatus.CONFIRMED.value,
         "confirmation_sent": True,
-        "updated_at": datetime.utcnow()
+        "updated_at": _utcnow()
     }
 
     # If the student already picked a time slot, lock it in as the confirmed schedule
@@ -1660,7 +1664,7 @@ def confirm_appointment(appointment_id):
                         'scheduled_for': appt_start - offset,
                         'status': 'pending',
                         'auto_generated': True,
-                        'created_at': datetime.utcnow(),
+                        'created_at': _utcnow(),
                     })
     except Exception as e:
         print(f"Auto-reminder creation error: {e}")
@@ -1684,8 +1688,8 @@ def confirm_appointment(appointment_id):
         counselor_name = f"{counselor.get('first_name', '')} {counselor.get('last_name', '')}" if counselor else "CPS Staff"
         
         # Format dates/times
-        appointment_date = appointment.get('requested_start', datetime.utcnow()).strftime('%B %d, %Y')
-        appointment_time = appointment.get('requested_start', datetime.utcnow()).strftime('%I:%M %p')
+        appointment_date = appointment.get('requested_start', _utcnow()).strftime('%B %d, %Y')
+        appointment_time = appointment.get('requested_start', _utcnow()).strftime('%I:%M %p')
         
         # Get platform (format properly)
         platform = appointment.get('preferred_method', 'in-person')
@@ -1819,7 +1823,7 @@ def send_reminder(appointment_id):
     # In production, integrate with SMS/Email service here
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
-        {"$set": {"reminder_sent": True, "updated_at": datetime.utcnow()}}
+        {"$set": {"reminder_sent": True, "updated_at": _utcnow()}}
     )
     
     audit_log(db.db, 'appointment', 'reminder_sent', entity_id=str(appointment['_id']))
@@ -1862,10 +1866,10 @@ def mark_no_show(appointment_id):
         return jsonify({'error': f'Cannot mark no-show: appointment is already {current_status}'}), 400
 
     scheduled_start = appointment.get('scheduled_start') or appointment.get('requested_start')
-    if isinstance(scheduled_start, datetime) and datetime.utcnow() < scheduled_start:
+    if isinstance(scheduled_start, datetime) and _utcnow() < scheduled_start:
         return jsonify({'error': 'Cannot mark no-show before the scheduled session time has passed.'}), 400
 
-    now = datetime.utcnow()
+    now = _utcnow()
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
         {"$set": {"status": AppointmentStatus.NO_SHOW.value, "updated_at": now}}
@@ -1981,7 +1985,7 @@ def rebook_after_noshow(appointment_id):
     risk_level = (case.get('risk_level') or '').upper()
     days = 7 if risk_level in ('HIGH', 'CRITICAL') else 14
 
-    now = datetime.utcnow()
+    now = _utcnow()
     deadline = now + timedelta(days=days)
 
     db.db.cases.update_one(
@@ -2169,7 +2173,7 @@ def student_pick_slot(appointment_id):
             'scheduled_end':    scheduled_end,
             'status':           AppointmentStatus.CONFIRMED.value,
             'scheduled_by':     'student',
-            'updated_at':       datetime.utcnow(),
+            'updated_at':       _utcnow(),
         }}
     )
     if result.matched_count == 0:
@@ -2236,10 +2240,10 @@ def complete_appointment(appointment_id):
     if appointment.get('status') not in completable:
         return jsonify({'error': f"Cannot complete appointment with status {appointment.get('status')}"}), 400
 
-    actual_start = appointment.get('scheduled_start') or appointment.get('requested_start') or datetime.utcnow()
-    actual_end = appointment.get('scheduled_end') or appointment.get('requested_end') or datetime.utcnow()
+    actual_start = appointment.get('scheduled_start') or appointment.get('requested_start') or _utcnow()
+    actual_end = appointment.get('scheduled_end') or appointment.get('requested_end') or _utcnow()
 
-    now_complete = datetime.utcnow()
+    now_complete = _utcnow()
     db.db.appointments.update_one(
         {"_id": appointment['_id']},
         {"$set": {
@@ -2291,7 +2295,7 @@ def check_in_appointment(appointment_id):
     if apt.get('status') not in allowed:
         return jsonify({'error': f"Cannot check in from status {apt.get('status')}"}), 400
 
-    now = datetime.utcnow()
+    now = _utcnow()
     db.db.appointments.update_one(
         {'_id': apt['_id']},
         {'$set': {'status': AppointmentStatus.CHECKED_IN.value, 'checked_in_at': now, 'updated_at': now}}
@@ -2330,7 +2334,7 @@ def set_evaluation(appointment_id):
     if apt.get('status') not in allowed:
         return jsonify({'error': f"Cannot move to evaluation from status {apt.get('status')}"}), 400
 
-    now = datetime.utcnow()
+    now = _utcnow()
     db.db.appointments.update_one(
         {'_id': apt['_id']},
         {'$set': {'status': AppointmentStatus.EVALUATION.value, 'updated_at': now, 'session_done_at': now}}
@@ -2370,7 +2374,7 @@ def set_follow_up(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
 
     data = request.get_json() or {}
-    now = datetime.utcnow()
+    now = _utcnow()
 
     # Guard: don't create a duplicate pending follow-up for this case
     existing_pending = db.db.appointments.find_one({
@@ -2507,7 +2511,7 @@ def set_referral_status(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
 
     data = request.get_json() or {}
-    update = {'status': AppointmentStatus.REFERRAL.value, 'updated_at': datetime.utcnow()}
+    update = {'status': AppointmentStatus.REFERRAL.value, 'updated_at': _utcnow()}
     if data.get('notes'):
         update['referral_notes'] = data['notes']
 
@@ -2549,7 +2553,7 @@ def submit_evaluation(appointment_id):
         'overall_experience': int(ratings.get('overall_experience', 0)),
         'liked_most': data.get('liked_most', '').strip(),
         'to_improve': data.get('to_improve', '').strip(),
-        'submitted_at': datetime.utcnow(),
+        'submitted_at': _utcnow(),
     }
 
     db.db.appointments.update_one(
@@ -2557,8 +2561,8 @@ def submit_evaluation(appointment_id):
         {'$set': {
             'evaluation': evaluation,
             'status': AppointmentStatus.COMPLETED.value,
-            'completed_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
+            'completed_at': _utcnow(),
+            'updated_at': _utcnow(),
         }}
     )
     return jsonify({'message': 'Evaluation submitted. Thank you!', 'status': AppointmentStatus.COMPLETED.value}), 200
@@ -2604,7 +2608,7 @@ def get_upcoming_appointments(case_id):
     if not case:
         return jsonify({'error': 'Case not found'}), 404
     
-    now = datetime.utcnow()
+    now = _utcnow()
     appointments = list(db.db.appointments.find({
         "case_id": case['_id'],
         "requested_start": {"$gte": now},
@@ -2645,8 +2649,8 @@ def get_google_authorization_url():
     db.db.oauth_states.insert_one({
         'user_id': ObjectId(user_id),
         'state': state,
-        'created_at': datetime.utcnow(),
-        'expires_at': datetime.utcnow() + timedelta(minutes=10)
+        'created_at': _utcnow(),
+        'expires_at': _utcnow() + timedelta(minutes=10)
     })
     
     google = GoogleIntegration(current_app.config)
@@ -2675,7 +2679,7 @@ def google_oauth_callback():
     if not oauth_state:
         return redirect(f'/dashboard/staff-settings?error=Invalid+state+parameter')
     
-    if oauth_state['expires_at'] < datetime.utcnow():
+    if oauth_state['expires_at'] < _utcnow():
         return redirect(f'/dashboard/staff-settings?error=State+expired')
     
     user_id = oauth_state['user_id']
@@ -2763,7 +2767,7 @@ def sync_appointment_to_calendar(appointment_id):
             {'$set': {
                 'google_calendar_event_id': response['id'],
                 'calendar_synced': True,
-                'calendar_last_sync': datetime.utcnow()
+                'calendar_last_sync': _utcnow()
             }}
         )
         
@@ -3139,8 +3143,8 @@ def staff_schedule_for_student():
             'student_email': student.get('email', ''),
             'case_status': 'ACTIVE',
             'chief_complaint': concern,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
+            'created_at': _utcnow(),
+            'updated_at': _utcnow(),
         }
         db.db.cases.insert_one(case_doc)
         case = case_doc
@@ -3196,8 +3200,8 @@ def staff_schedule_for_student():
         'scheduled_end': scheduled_end,
         'referral_type': 'staff_scheduled',
         'referred_by': actor.get('first_name', '') + ' ' + actor.get('last_name', ''),
-        'created_at': datetime.utcnow(),
-        'updated_at': datetime.utcnow(),
+        'created_at': _utcnow(),
+        'updated_at': _utcnow(),
     }
     db.db.appointments.insert_one(apt)
     audit_log(db.db, 'appointment', 'staff_schedule', entity_id=str(apt['_id']))
@@ -3219,7 +3223,7 @@ def batch_auto_assign():
     end_date = data.get('end_date')
     
     if not start_date or not end_date:
-        start_date = datetime.utcnow()
+        start_date = _utcnow()
         end_date = start_date + timedelta(days=30)
     else:
         try:
@@ -3339,7 +3343,7 @@ def get_workload_report():
         workload_data.sort(key=lambda x: x['active_appointments'], reverse=True)
         
         return jsonify({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': _utcnow().isoformat(),
             'total_counselors': len(counselors),
             'workload': workload_data
         }), 200
@@ -3368,7 +3372,7 @@ def ic_counselor_workload():
         'is_active': {'$ne': False},
     }))
 
-    now = datetime.utcnow()
+    now = _utcnow()
     week_start = now - timedelta(days=now.weekday())
     week_end = week_start + timedelta(days=7)
 
@@ -3555,7 +3559,7 @@ def cancel_appointment(appointment_id):
         appt_start = appointment.get('requested_start')
         late_cancel = False
         if appt_start and isinstance(appt_start, datetime):
-            hours_until = (appt_start - datetime.utcnow()).total_seconds() / 3600
+            hours_until = (appt_start - _utcnow()).total_seconds() / 3600
             if hours_until < 24:
                 late_cancel = True
                 # Track late cancellation on user
@@ -3576,7 +3580,7 @@ def cancel_appointment(appointment_id):
             {
                 "$set": {
                     "status": AppointmentStatus.CANCELLED.value,
-                    "cancelled_at": datetime.utcnow(),
+                    "cancelled_at": _utcnow(),
                     "cancellation_reason": reason,
                     "cancelled_by_user_id": user_id_obj,
                     "late_cancellation": late_cancel,
@@ -3708,9 +3712,9 @@ def approve_appointment(appointment_id):
             {
                 "$set": {
                     "status": AppointmentStatus.APPROVED.value,
-                    "approved_at": datetime.utcnow(),
+                    "approved_at": _utcnow(),
                     "approved_by_counselor_id": user_id_obj,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": _utcnow()
                 }
             }
         )
@@ -3783,10 +3787,10 @@ def deny_appointment(appointment_id):
             {
                 "$set": {
                     "status": AppointmentStatus.DENIED.value,
-                    "denied_at": datetime.utcnow(),
+                    "denied_at": _utcnow(),
                     "denied_by_counselor_id": user_id_obj,
                     "denial_reason": denial_reason,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": _utcnow()
                 }
             }
         )
@@ -3885,7 +3889,7 @@ def reschedule_appointment(appointment_id):
     # 24h notice requirement
     appt_start = appointment.get('scheduled_start') or appointment.get('requested_start')
     if appt_start and isinstance(appt_start, datetime):
-        hours_until = (appt_start - datetime.utcnow()).total_seconds() / 3600
+        hours_until = (appt_start - _utcnow()).total_seconds() / 3600
         if hours_until < 24:
             return jsonify({'error': 'Appointments cannot be rescheduled within 24 hours of the session. Please contact the CPS office.', 'too_late': True}), 400
 
@@ -3926,7 +3930,7 @@ def reschedule_appointment(appointment_id):
                     "status": AppointmentStatus.RESCHEDULE_REQUESTED.value,
                     "reschedule_requested_start": new_start,
                     "reschedule_requested_end": new_end_resolved,
-                    "rescheduled_at": datetime.utcnow(),
+                    "rescheduled_at": _utcnow(),
                     "reschedule_reason": reason,
                     "rescheduled_by_user_id": user_id_obj,
                     "reschedule_requested_by_role": reschedule_requested_by_role,
@@ -4122,7 +4126,7 @@ def approve_reschedule_request(request_id):
                 "requested_start": new_start,
                 "requested_end": new_end,
                 "reschedule_approved": True,
-                "reschedule_approved_at": datetime.utcnow(),
+                "reschedule_approved_at": _utcnow(),
                 "reschedule_approved_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
             },
             "$unset": {
@@ -4208,7 +4212,7 @@ def deny_reschedule_request(request_id):
             "$set": {
                 "status": AppointmentStatus.CONFIRMED.value,
                 "reschedule_denied": True,
-                "reschedule_denied_at": datetime.utcnow(),
+                "reschedule_denied_at": _utcnow(),
                 "reschedule_denied_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
             },
             "$unset": {
@@ -4259,7 +4263,7 @@ def create_recurring_appointments():
     except ValueError:
         return jsonify({'error': 'Invalid start_date or time format'}), 400
 
-    if start_dt < datetime.utcnow():
+    if start_dt < _utcnow():
         return jsonify({'error': 'Start date must be in the future'}), 400
 
     duration = int(data.get('duration_minutes', 60))
@@ -4304,8 +4308,8 @@ def create_recurring_appointments():
             'is_recurring': True,
             'parent_appointment_id': parent_id,
             'created_by': counselor_id_obj,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
+            'created_at': _utcnow(),
+            'updated_at': _utcnow(),
         }
 
         result = db.db.appointments.insert_one(doc)
@@ -4338,7 +4342,7 @@ def create_recurring_appointments():
                 'scheduled_for': slot_start - offset,
                 'status': 'pending',
                 'auto_generated': True,
-                'created_at': datetime.utcnow(),
+                'created_at': _utcnow(),
             })
 
     audit_log(db.db, 'appointment', 'create_recurring', new_values={
@@ -4382,7 +4386,7 @@ def set_meeting_link(appointment_id):
         {'$set': {
             'meeting_link': meeting_link,
             'is_telehealth': bool(meeting_link),
-            'updated_at': datetime.utcnow(),
+            'updated_at': _utcnow(),
         }}
     )
 
@@ -4428,7 +4432,7 @@ def edit_appointment(appointment_id):
         return jsonify({'error': 'Appointment not found'}), 404
 
     data = request.get_json() or {}
-    updates = {'updated_at': datetime.utcnow()}
+    updates = {'updated_at': _utcnow()}
 
     # Counselor reassignment
     if data.get('counselor_id'):
@@ -4501,7 +4505,7 @@ def schedule_endorsed_appointment(appointment_id):
     except Exception:
         return jsonify({'error': 'Invalid date or time format (use YYYY-MM-DD and HH:MM)'}), 400
 
-    now = datetime.utcnow()
+    now = _utcnow()
     db.db.appointments.update_one({'_id': apt_id}, {'$set': {
         'scheduled_start':           scheduled_start,
         'preferred_date':            scheduled_start.isoformat(),
@@ -4536,7 +4540,7 @@ def confirm_schedule(appointment_id):
     if apt.get('status') != AppointmentStatus.PENDING_STUDENT_APPROVAL.value:
         return jsonify({'error': 'Appointment is not awaiting confirmation'}), 400
 
-    now = datetime.utcnow()
+    now = _utcnow()
     db.db.appointments.update_one({'_id': apt_id}, {'$set': {
         'status':       AppointmentStatus.CONFIRMED.value,
         'confirmed_at': now,
@@ -4611,7 +4615,7 @@ def confirm_intake_slot(appointment_id):
     if existing_counselor and str(existing_counselor) != str(uid_obj) and user.get('role') != 'ADMIN':
         return jsonify({'error': 'This slot booking is not assigned to you'}), 403
 
-    now = datetime.utcnow()
+    now = _utcnow()
     preferred_method = apt.get('preferred_method') or 'in-person'
     pref_platform = apt.get('preferred_platform') or ''
     scheduled_start  = apt.get('scheduled_start') or apt.get('requested_start')
@@ -4721,7 +4725,7 @@ def close_at_intake(appointment_id):
     if apt.get('status') not in allowed:
         return jsonify({'error': f"Cannot close at intake from status '{apt.get('status')}'"}), 400
 
-    now = datetime.utcnow()
+    now = _utcnow()
 
     # Close the appointment
     db.db.appointments.update_one(
@@ -4780,7 +4784,7 @@ def acknowledge_session(appointment_id):
     if not apt:
         return jsonify({'error': 'Appointment not found'}), 404
 
-    now = datetime.utcnow()
+    now = _utcnow()
     db.db.appointments.update_one(
         {'_id': apt['_id']},
         {'$set': {'endorsed_acknowledged_at': now, 'endorsed_acknowledged_by': user_id, 'updated_at': now}}
@@ -4825,7 +4829,7 @@ def complete_with_termination(appointment_id):
     if not apt:
         return jsonify({'error': 'Appointment not found'}), 404
 
-    now = datetime.utcnow()
+    now = _utcnow()
     db.db.appointments.update_one(
         {'_id': apt['_id']},
         {'$set': {
@@ -4871,8 +4875,8 @@ def complete_with_termination(appointment_id):
 def walkin_capacity():
     """Return today's walk-in capacity for a counselor (or overall CPS)."""
     counselor_id_str = request.args.get('counselor_id')
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end   = datetime.utcnow().replace(hour=23, minute=59, second=59, microsecond=0)
+    today_start = _utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end   = _utcnow().replace(hour=23, minute=59, second=59, microsecond=0)
 
     query = {
         'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},

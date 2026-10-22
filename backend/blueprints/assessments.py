@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, AssessmentType, RiskLevel, PermissionType
 from utils import audit_log, user_has_permission
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 assessments_bp = Blueprint('assessments', __name__, url_prefix='/api/assessments')
@@ -114,7 +114,7 @@ def create_triage_assessment(case_id):
         "risk_level": risk_level,
         "responses": responses,
         "created_by": ObjectId(user_id) if isinstance(user_id, str) else user_id,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.assessments.insert_one(assessment_doc)
@@ -126,7 +126,7 @@ def create_triage_assessment(case_id):
             {
                 "$set": {
                     "current_risk_level": risk_level,
-                    "last_risk_assessment": datetime.utcnow()
+                    "last_risk_assessment": datetime.now(timezone.utc).replace(tzinfo=None)
                 }
             }
         )
@@ -140,7 +140,7 @@ def create_triage_assessment(case_id):
                 "crisis_level": RiskLevel.CRITICAL.value,
                 "description": f"Auto-triggered alert from {assessment_type} assessment with critical risk score",
                 "resolved": False,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
             })
             case_doc = db.db.cases.find_one({"_id": ObjectId(case_id) if isinstance(case_id, str) else case_id})
             if case_doc:
@@ -393,7 +393,7 @@ def create_assessment_schedule(case_id):
     interval_days = data.get('interval_days')
     if not assessment_type or not interval_days:
         return jsonify({'error': 'assessment_type and interval_days are required'}), 400
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     doc = {
         'case_id': cid,
         'assessment_type': assessment_type,

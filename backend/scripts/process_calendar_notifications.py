@@ -6,7 +6,7 @@ each entry, and updates matching appointments by `gcal_event_id` or `event_id`.
 """
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -50,7 +50,7 @@ def process_one(db):
             continue
 
         # Update appointment metadata based on payload
-        update = {'last_synced_at': datetime.utcnow(), 'calendar_payload': payload}
+        update = {'last_synced_at': datetime.now(timezone.utc).replace(tzinfo=None), 'calendar_payload': payload}
 
         # If payload contains status or summary, map to appointment status
         status = None

@@ -13,7 +13,7 @@ from utils import audit_log, user_has_permission, case_access_error, server_erro
 DOC_UPLOAD_ROLES = ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN')
 DOC_ALLOWED_EXT = {'.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt'}
 DOC_MAX_BYTES = 10 * 1024 * 1024
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import sys
 import json
@@ -157,7 +157,7 @@ def upload_document():
         
         # Upload to Google Drive
         gdrive = get_gdrive_service()
-        filename = secure_filename(f"{case_id}_{datetime.utcnow().timestamp()}_{file.filename}")
+        filename = secure_filename(f"{case_id}_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}_{file.filename}")
         
         gdrive_file = gdrive.upload_file(
             file_content=file_content,
@@ -187,8 +187,8 @@ def upload_document():
             'mime_type': file.content_type or 'application/octet-stream',
             'created_by_id': user_id_obj,
             'created_by_name': f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'is_locked': False,
             'version': 1
         }
@@ -363,7 +363,7 @@ def create_document(case_id):
         "created_by_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
         "version": 1,
         "is_locked": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.documents.insert_one(document)
@@ -498,13 +498,13 @@ def update_document(document_id):
         "content": old_content,
         "changed_by_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
         "change_summary": data.get('change_summary'),
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     db.db.document_versions.insert_one(version)
     
     # Update document
-    update_data = {"updated_at": datetime.utcnow()}
+    update_data = {"updated_at": datetime.now(timezone.utc).replace(tzinfo=None)}
     
     if 'content' in data:
         update_data['content'] = data['content']
@@ -554,7 +554,7 @@ def lock_document(document_id):
         {"$set": {
             "is_locked": True,
             "locked_by_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
-            "locked_at": datetime.utcnow()
+            "locked_at": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -709,17 +709,17 @@ def upload_roi(case_id):
         return jsonify({'error': 'No file selected'}), 400
     
     # In production, implement secure file upload with virus scanning
-    file_path = f'uploads/{str(case["_id"])}/roi_{datetime.utcnow().timestamp()}.pdf'
+    file_path = f'uploads/{str(case["_id"])}/roi_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}.pdf'
     
     document = {
         "case_id": case['_id'],
         "document_type": 'roi',
-        "title": f'ROI Upload - {datetime.utcnow().isoformat()}',
+        "title": f'ROI Upload - {datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}',
         "file_path": file_path,
         "created_by_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
         "version": 1,
         "is_locked": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.documents.insert_one(document)
@@ -779,8 +779,8 @@ def presign_upload(case_id):
         'created_by_id': ObjectId(user_id) if isinstance(user_id, str) else user_id,
         'version': 1,
         'is_locked': False,
-        'created_at': __import__('datetime').datetime.utcnow(),
-        'presigned_expires_at': __import__('datetime').datetime.utcnow()
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+        'presigned_expires_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
 
     res = db.db.documents.insert_one(document)
@@ -815,17 +815,17 @@ def upload_safety_plan(case_id):
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    file_path = f'uploads/{str(case["_id"])}/safety_plan_{datetime.utcnow().timestamp()}.pdf'
+    file_path = f'uploads/{str(case["_id"])}/safety_plan_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}.pdf'
     
     document = {
         "case_id": case['_id'],
         "document_type": 'safety_plan',
-        "title": f'Safety Plan - {datetime.utcnow().isoformat()}',
+        "title": f'Safety Plan - {datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}',
         "file_path": file_path,
         "created_by_id": ObjectId(user_id) if isinstance(user_id, str) else user_id,
         "version": 1,
         "is_locked": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     result = db.db.documents.insert_one(document)

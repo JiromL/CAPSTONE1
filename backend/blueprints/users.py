@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, UserRole
 from bson import ObjectId
 from utils import audit_log, server_error
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
@@ -57,7 +57,7 @@ def update_profile():
             'last_name': last_name,
             'email': email,
             'phone': phone,
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
         }
 
         optional_fields = ['id_number', 'college', 'course', 'major', 'year',
@@ -311,7 +311,7 @@ def update_user_role(user_id):
             {'_id': target_user_id_obj},
             {'$set': {
                 'role': new_role,
-                'updated_at': datetime.utcnow()
+                'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
             }}
         )
         
@@ -386,7 +386,7 @@ def toggle_user_status(user_id):
                         'counselor_id': target_id_obj,
                         'status': {'$in': ['CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN']},
                         # appointment times are Philippine wall-clock time
-                        'scheduled_start': {'$gt': datetime.utcnow() + timedelta(hours=8)},
+                        'scheduled_start': {'$gt': datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)},
                     })
                     if upcoming > 0:
                         return jsonify({
@@ -412,7 +412,7 @@ def toggle_user_status(user_id):
 
         result = db.db.users.update_one(
             {'_id': target_id_obj},
-            {'$set': {'is_active': is_active, 'updated_at': datetime.utcnow()}}
+            {'$set': {'is_active': is_active, 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
         )
 
         if result.matched_count == 0:

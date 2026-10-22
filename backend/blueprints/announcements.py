@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from functools import wraps
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 from models import db
 
 announcements_bp = Blueprint('announcements', __name__, url_prefix='/api/announcements')
@@ -116,7 +116,7 @@ def create_announcement():
         'pinned':     bool(data.get('pinned', False)),
         'is_active':  True,
         'created_by': user_oid,
-        'created_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
     }
 
     result = db.db.announcements.insert_one(doc)

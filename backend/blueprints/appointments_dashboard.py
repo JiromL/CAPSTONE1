@@ -7,7 +7,7 @@ from flask import Blueprint, jsonify, request
 from utils import server_error
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import db, AppointmentStatus
 
 appointments_dashboard_bp = Blueprint('appointments_dashboard', __name__, url_prefix='/api/appointments/dashboard')
@@ -595,7 +595,7 @@ def dashboard_pending_notes():
     if role not in ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO'):
         return jsonify({'pending': [], 'count': 0}), 200
 
-    cutoff = datetime.utcnow() - timedelta(days=30)
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
 
     completed = list(db.db.appointments.find(
         {'counselor_id': uid, 'status': 'COMPLETED', 'scheduled_start': {'$gte': cutoff}},

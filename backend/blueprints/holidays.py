@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db
 from bson import ObjectId
 from utils import audit_log
-from datetime import datetime
+from datetime import datetime, timezone
 
 holidays_bp = Blueprint('holidays', __name__, url_prefix='/api/holidays')
 
@@ -82,7 +82,7 @@ def create_holiday():
         'name': name,
         'description': data.get('description', ''),
         'created_by': user_id,
-        'created_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
     }
     result = db.db.holidays.insert_one(doc)
     audit_log(db.db, 'holidays', 'create', entity_id=str(result.inserted_id),

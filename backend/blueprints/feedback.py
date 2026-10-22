@@ -5,7 +5,7 @@ Includes session satisfaction, counselor effectiveness, and treatment outcome fo
 """
 
 from flask import Blueprint, request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from bson.objectid import ObjectId
 
@@ -125,8 +125,8 @@ def submit_feedback():
             "effectiveness_rating": data.get('effectiveness_rating'),
             "comments": data.get('comments', ''),
             "status": "submitted",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "anonymized": data.get('anonymized', False),
             "tags": data.get('tags', [])
         }
@@ -228,7 +228,7 @@ def update_feedback(feedback_id):
         if 'tags' in data:
             updates['tags'] = data['tags']
         
-        updates['updated_at'] = datetime.utcnow()
+        updates['updated_at'] = datetime.now(timezone.utc).replace(tzinfo=None)
         
         db.db.feedback_submissions.update_one({'_id': ObjectId(feedback_id)}, {'$set': updates})
         

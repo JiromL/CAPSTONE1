@@ -10,7 +10,7 @@ from utils import server_error
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, UserRole
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 appointments_enh_bp = Blueprint('appointments_enh', __name__, url_prefix='/api/appointments')
 
@@ -31,16 +31,16 @@ def get_counselor_availability(counselor_id):
         existing_apts = list(db.db.appointments.find({
             'counselor_id': counselor_id_obj,
             'status': {'$in': [AppointmentStatus.CONFIRMED.value, AppointmentStatus.MATCHED.value, 'SCHEDULED']},
-            'scheduled_start': {'$gte': datetime.utcnow()},
-            'scheduled_start': {'$lte': datetime.utcnow() + timedelta(days=30)}
+            'scheduled_start': {'$gte': datetime.now(timezone.utc).replace(tzinfo=None)},
+            'scheduled_start': {'$lte': datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=30)}
         }))
         
         # Build availability slots (simplified: 9 AM to 5 PM, 1-hour slots)
         available_slots = []
-        current_date = datetime.utcnow().date()
+        current_date = datetime.now(timezone.utc).replace(tzinfo=None).date()
         
         for day_offset in range(1, 31):  # Next 30 days
-            slot_date = (datetime.utcnow() + timedelta(days=day_offset)).date()
+            slot_date = (datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=day_offset)).date()
             
             # Skip weekends
             if slot_date.weekday() >= 5:
@@ -110,7 +110,7 @@ def get_appointment_stats():
         upcoming = db.db.appointments.count_documents({
             **query,
             'status': {'$nin': [AppointmentStatus.COMPLETED.value, AppointmentStatus.CANCELLED.value]},
-            'scheduled_start': {'$gte': datetime.utcnow()}
+            'scheduled_start': {'$gte': datetime.now(timezone.utc).replace(tzinfo=None)}
         })
         completed = db.db.appointments.count_documents({
             **query,
@@ -125,7 +125,7 @@ def get_appointment_stats():
         next_apt = db.db.appointments.find_one(
             {
                 **query,
-                'scheduled_start': {'$gte': datetime.utcnow()}
+                'scheduled_start': {'$gte': datetime.now(timezone.utc).replace(tzinfo=None)}
             },
             sort=[('scheduled_start', 1)]
         )

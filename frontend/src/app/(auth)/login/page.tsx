@@ -99,6 +99,7 @@ function LoginContent() {
       }
       const d = await r.json();
       localStorage.setItem('token', d.access_token);
+      if (d.refresh_token) localStorage.setItem('refresh_token', d.refresh_token);
       localStorage.setItem('user', JSON.stringify(d));
       router.replace('/dashboard');
     } catch { setError('Google sign-in failed. Please try again or use email and password.'); }
@@ -121,6 +122,7 @@ function LoginContent() {
       }
       const d = await r.json();
       localStorage.setItem('token', d.access_token);
+      if (d.refresh_token) localStorage.setItem('refresh_token', d.refresh_token);
       localStorage.setItem('user', JSON.stringify(d));
       router.replace('/dashboard');
     } catch { setError('Unable to connect. Check your internet connection and try again.'); }

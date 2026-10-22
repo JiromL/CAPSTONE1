@@ -857,6 +857,7 @@ for sv, (baseline, trend) in _perma_map.items():
     base_idx = float(_LABEL_ORDER.index(baseline))
     mhbot_username = _emails[sv].split('@')[0]
     entries = []
+    seen_dates = set()
     cur_val = base_idx
     for day in range(DAYS_OF_HISTORY, -1, -1):
         # ~75% check-in rate — students don't check in every single day
@@ -865,6 +866,9 @@ for sv, (baseline, trend) in _perma_map.items():
         cur_val = _next_value(cur_val, base_idx, trend, (DAYS_OF_HISTORY - day) / DAYS_OF_HISTORY)
         label = _LABEL_ORDER[round(cur_val)]
         entry_date = H(day, h=rng.randint(7, 22), m=rng.randint(0, 59))
+        while entry_date in seen_dates:
+            entry_date += timedelta(minutes=rng.randint(1, 15))
+        seen_dates.add(entry_date)
         entries.append((entry_date, label))
     entries.sort(key=lambda e: e[0])
     for entry_date, label in entries:

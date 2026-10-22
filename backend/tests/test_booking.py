@@ -4,7 +4,7 @@ The flow a first-time student takes: pick a mode, see the intake counselors' fre
 that mode, book one, and the intake counselor confirms it, which creates the meeting link.
 Appointment times are Philippine wall-clock times, stored without a timezone.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from bson import ObjectId
@@ -22,14 +22,14 @@ def auth(user_id):
 
 
 def next_weekday(days_ahead):
-    d = (datetime.utcnow() + PH).date() + timedelta(days=days_ahead)
+    d = (datetime.now(timezone.utc).replace(tzinfo=None) + PH).date() + timedelta(days=days_ahead)
     while d.weekday() >= 5:
         d += timedelta(days=1)
     return d
 
 
 def next_saturday():
-    d = (datetime.utcnow() + PH).date() + timedelta(days=2)
+    d = (datetime.now(timezone.utc).replace(tzinfo=None) + PH).date() + timedelta(days=2)
     while d.weekday() != 5:
         d += timedelta(days=1)
     return d
@@ -116,8 +116,8 @@ def test_student_cannot_hold_two_bookings_at_the_same_time(client, world):
 
 @pytest.mark.parametrize('when, why', [
     (lambda: next_saturday(), 'weekend'),
-    (lambda: (datetime.utcnow() + PH).date() - timedelta(days=1), 'past'),
-    (lambda: (datetime.utcnow() + PH).date() + timedelta(days=200), 'too far ahead'),
+    (lambda: (datetime.now(timezone.utc).replace(tzinfo=None) + PH).date() - timedelta(days=1), 'past'),
+    (lambda: (datetime.now(timezone.utc).replace(tzinfo=None) + PH).date() + timedelta(days=200), 'too far ahead'),
 ])
 def test_bookings_outside_the_rules_are_refused(client, world, when, why):
     r = book(client, world['rex'], when(), '09:00', world['online_ic'])

@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, PermissionType
 from utils import user_has_permission, audit_log, server_error
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 conflict_resolution_bp = Blueprint('conflict_resolution', __name__, url_prefix='/api/conflict-resolution')
 
@@ -225,7 +225,7 @@ def detect_double_bookings():
         student_id = request.args.get('student_id')
         days_back = int(request.args.get('days_back', 7))
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         date_cutoff = now - timedelta(days=days_back)
         
         # Query for confirmed/matched appointments
@@ -296,7 +296,7 @@ def detect_double_bookings():
                     })
         
         return jsonify({
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             'scan_period_days': days_back,
             'total_appointments_scanned': len(appointments),
             'conflicts_found': len(detected_conflicts),

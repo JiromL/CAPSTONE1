@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 staff_settings_bp = Blueprint('staff_settings', __name__, url_prefix='/api/staff/settings')
 
@@ -100,7 +100,7 @@ def update_my_settings():
     # Prepare update document
     update_data = {
         'user_id': user_id_obj,
-        'updated_at': datetime.utcnow()
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     # Update work preferences if provided
@@ -152,7 +152,7 @@ def update_my_settings():
         {'user_id': user_id_obj},
         {
             '$set': update_data,
-            '$setOnInsert': {'created_at': datetime.utcnow()}
+            '$setOnInsert': {'created_at': datetime.now(timezone.utc).replace(tzinfo=None)}
         },
         upsert=True
     )
@@ -287,14 +287,14 @@ def update_working_hours():
     update_data = {
         'user_id': user_id_obj,
         'working_hours': working_hours,
-        'updated_at': datetime.utcnow()
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)
     }
     
     db.db.staff_working_hours.update_one(
         {'user_id': user_id_obj},
         {
             '$set': update_data,
-            '$setOnInsert': {'created_at': datetime.utcnow()}
+            '$setOnInsert': {'created_at': datetime.now(timezone.utc).replace(tzinfo=None)}
         },
         upsert=True
     )
@@ -447,7 +447,7 @@ def update_booking_rules():
         'last_slot_start': last_slot,
         'max_daily_walkins': max_walkins,
         'max_daily_appointments_per_counselor': max_per_counselor,
-        'updated_at': datetime.utcnow(),
+        'updated_at': datetime.now(timezone.utc).replace(tzinfo=None),
         'updated_by': str(user_id_obj),
     }
 

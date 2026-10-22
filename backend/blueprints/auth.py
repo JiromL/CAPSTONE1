@@ -5,14 +5,14 @@ MongoDB-compatible version with Google OAuth2.0 and Email Verification
 """
 
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, UserRole, PermissionType, ROLE_PERMISSIONS
 from utils import audit_log, user_has_permission
 from limiter_instance import limiter
 from services.oauth_service import OAuthService
 from services.email_service import EmailService
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 import uuid
 import os
@@ -71,7 +71,7 @@ def google_oauth_callback():
                     "oauth_id": user_info.get('sub'),
                     "picture": user_info.get('picture', ''),
                     "is_verified": True,  # OAuth emails are verified
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
                 }}
             )
 
@@ -93,8 +93,8 @@ def google_oauth_callback():
             "specializations": [],
             "is_active": True,
             "is_verified": True,  # OAuth users are automatically verified
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
         }
         
         result = db.db.users.insert_one(user_doc)
@@ -108,14 +108,14 @@ def google_oauth_callback():
             'is_verified': True
         })
     
-    # Create JWT token
-    access_token = create_access_token(
-        identity=str(existing_user['_id']),
-        additional_claims={'role': existing_user.get('role', '')}
-    )
-    
+    # Create JWT tokens
+    claims = {'role': existing_user.get('role', '')}
+    access_token = create_access_token(identity=str(existing_user['_id']), additional_claims=claims)
+    refresh_token = create_refresh_token(identity=str(existing_user['_id']), additional_claims=claims)
+
     return jsonify({
         'access_token': access_token,
+        'refresh_token': refresh_token,
         'user_id': str(existing_user['_id']),
         'email': existing_user['email'],
         'first_name': existing_user.get('first_name', ''),
@@ -142,6 +142,8 @@ def register():
     # Validate required fields
     if not data.get('email') or not data.get('password') or not data.get('first_name') or not data.get('last_name'):
         return jsonify({'error': 'Missing required fields: email, password, first_name, last_name'}), 400
+    if len(data['password']) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
 
     # Validate student ID number (optional at registration, set later via profile)
     id_number = data.get('id_number', '').strip()
@@ -165,7 +167,7 @@ def register():
         else:
             # User exists but not verified, send new code
             verification_code = EmailService.generate_verification_code()
-            code_expiry = datetime.utcnow() + timedelta(hours=24)
+            code_expiry = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
             
             db.db.users.update_one(
                 {"_id": existing_user['_id']},
@@ -192,7 +194,7 @@ def register():
     # Create unverified user account
     verification_code = EmailService.generate_verification_code()
     verification_token = str(uuid.uuid4())
-    code_expiry = datetime.utcnow() + timedelta(hours=24)
+    code_expiry = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
 
     user_doc = {
         "_id": ObjectId(),
@@ -211,8 +213,8 @@ def register():
         "verification_token": verification_token,
         "verification_code_expires": code_expiry,
         "verification_attempts": 0,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
     }
 
     result = db.db.users.insert_one(user_doc)
@@ -265,7 +267,7 @@ def verify_email():
     if not user.get('verification_code_expires'):
         return jsonify({'error': 'No verification code requested'}), 400
     
-    if user['verification_code_expires'] < datetime.utcnow():
+    if user['verification_code_expires'] < datetime.now(timezone.utc).replace(tzinfo=None):
         return jsonify({'error': 'Verification code expired. Please request a new code.'}), 400
     
     # Check attempts
@@ -289,7 +291,7 @@ def verify_email():
             "verification_code": None,
             "verification_code_expires": None,
             "verification_attempts": 0,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
         }}
     )
     
@@ -315,7 +317,7 @@ def verify_email_link():
     if user.get('is_verified'):
         return jsonify({'message': 'Email already verified. You can log in.'}), 200
 
-    if user.get('verification_code_expires') and user['verification_code_expires'] < datetime.utcnow():
+    if user.get('verification_code_expires') and user['verification_code_expires'] < datetime.now(timezone.utc).replace(tzinfo=None):
         return jsonify({'error': 'Verification link has expired. Please request a new code.'}), 400
 
     db.db.users.update_one(
@@ -326,7 +328,7 @@ def verify_email_link():
             "verification_token": None,
             "verification_code_expires": None,
             "verification_attempts": 0,
-            "updated_at": datetime.utcnow(),
+            "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
         }}
     )
 
@@ -356,7 +358,7 @@ def resend_code():
     # Generate new code and token
     verification_code = EmailService.generate_verification_code()
     verification_token = str(uuid.uuid4())
-    code_expiry = datetime.utcnow() + timedelta(hours=24)
+    code_expiry = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
 
     db.db.users.update_one(
         {"_id": user['_id']},
@@ -398,6 +400,12 @@ def login():
         user = db.db.users.find_one({"id_number": identifier})
 
     if user:
+        # Check account lockout
+        locked_until = user.get('locked_until')
+        if locked_until and datetime.now(timezone.utc).replace(tzinfo=None) < locked_until:
+            remaining = int((locked_until - datetime.now(timezone.utc).replace(tzinfo=None)).total_seconds() / 60) + 1
+            return jsonify({'error': f'Account locked due to too many failed attempts. Try again in {remaining} minute(s).'}), 423
+
         pwd_check = check_password_hash(user['password_hash'], data['password']) if user.get('password_hash') else False
         if pwd_check:
             if not user.get('is_verified', True):
@@ -410,14 +418,20 @@ def login():
             if not user.get('is_active', True):
                 return jsonify({'error': 'User account is inactive'}), 403
 
-            access_token = create_access_token(
-                identity=str(user['_id']),
-                additional_claims={'role': user.get('role', '')}
+            # Reset failed attempts on success
+            db.db.users.update_one(
+                {'_id': user['_id']},
+                {'$set': {'failed_login_attempts': 0, 'locked_until': None}}
             )
+
+            claims = {'role': user.get('role', '')}
+            access_token = create_access_token(identity=str(user['_id']), additional_claims=claims)
+            refresh_token = create_refresh_token(identity=str(user['_id']), additional_claims=claims)
             audit_log(db.db, 'auth', 'login', entity_id=str(user['_id']))
 
             return jsonify({
                 'access_token': access_token,
+                'refresh_token': refresh_token,
                 'user_id': str(user['_id']),
                 'email': user['email'],
                 'id_number': user.get('id_number', ''),
@@ -432,6 +446,13 @@ def login():
                 'emergency_phone': user.get('emergency_phone'),
                 'emergency_contact_relationship': user.get('emergency_contact_relationship'),
             }), 200
+
+        # Track failed attempt
+        attempts = user.get('failed_login_attempts', 0) + 1
+        update = {'failed_login_attempts': attempts}
+        if attempts >= 5:
+            update['locked_until'] = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
+        db.db.users.update_one({'_id': user['_id']}, {'$set': update})
 
     audit_log(db.db, 'access_control', 'failed_login', old_values={'identifier': identifier})
     return jsonify({'error': 'Invalid credentials'}), 401
@@ -516,7 +537,7 @@ def update_user_role(user_id):
     old_role = target_user.get('role')
     db.db.users.update_one(
         {"_id": target_user['_id']},
-        {"$set": {"role": data['role'], "updated_at": datetime.utcnow()}}
+        {"$set": {"role": data['role'], "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
     
     audit_log(db.db, 'user', 'update_role', entity_id=user_id, old_values={'role': old_role}, new_values={'role': data['role']})
@@ -609,7 +630,7 @@ def forgot_password():
         return jsonify({'message': 'If that email is registered, a reset link has been sent'}), 200
 
     reset_token = str(uuid.uuid4())
-    expiry = datetime.utcnow() + timedelta(hours=1)
+    expiry = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
     db.db.users.update_one(
         {'_id': user['_id']},
         {'$set': {'reset_token': reset_token, 'reset_token_expiry': expiry}}
@@ -642,6 +663,7 @@ def forgot_password():
 
 @auth_bp.route('/change-password', methods=['POST'])
 @jwt_required()
+@limiter.limit("5 per minute; 20 per hour")
 def change_password():
     """Change password for a logged-in user (requires current password)"""
     user_id = get_jwt_identity()
@@ -666,13 +688,14 @@ def change_password():
 
     db.db.users.update_one(
         {'_id': user['_id']},
-        {'$set': {'password_hash': generate_password_hash(new_password), 'updated_at': datetime.utcnow()}}
+        {'$set': {'password_hash': generate_password_hash(new_password), 'updated_at': datetime.now(timezone.utc).replace(tzinfo=None)}}
     )
     audit_log(db.db, 'auth', 'change_password', entity_id=user_id)
     return jsonify({'message': 'Password changed successfully'}), 200
 
 
 @auth_bp.route('/reset-password', methods=['POST'])
+@limiter.limit("5 per minute; 15 per hour")
 def reset_password():
     """Reset password using token"""
     data = request.get_json() or {}
@@ -687,7 +710,7 @@ def reset_password():
     user = db.db.users.find_one({'reset_token': token})
     if not user:
         return jsonify({'error': 'Invalid or expired reset link'}), 400
-    if user.get('reset_token_expiry') and datetime.utcnow() > user['reset_token_expiry']:
+    if user.get('reset_token_expiry') and datetime.now(timezone.utc).replace(tzinfo=None) > user['reset_token_expiry']:
         return jsonify({'error': 'Reset link has expired. Please request a new one.'}), 400
 
     db.db.users.update_one(
@@ -696,3 +719,53 @@ def reset_password():
          '$unset': {'reset_token': '', 'reset_token_expiry': ''}}
     )
     return jsonify({'message': 'Password reset successfully'}), 200
+
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_token():
+    """Issue a new access token using a valid refresh token"""
+    user_id = get_jwt_identity()
+    claims = get_jwt()
+    new_access_token = create_access_token(
+        identity=user_id,
+        additional_claims={'role': claims.get('role', '')}
+    )
+    return jsonify({'access_token': new_access_token}), 200
+
+
+@auth_bp.route('/admin/backup', methods=['POST'])
+@jwt_required()
+@limiter.limit("2 per hour")
+def trigger_backup():
+    """Trigger a mongodump backup (admin only)."""
+    import subprocess, shutil
+    from datetime import datetime, timezone
+    user_id = get_jwt_identity()
+    user = db.db.users.find_one({'_id': ObjectId(user_id)})
+    if not user or user.get('role') != 'ADMIN':
+        return jsonify({'error': 'Admin only'}), 403
+
+    if not shutil.which('mongodump'):
+        return jsonify({'error': 'mongodump not found on server'}), 500
+
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')
+    backup_dir = f'/tmp/cps_backup_{timestamp}'
+    mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
+    db_name = 'cps_system'
+
+    try:
+        result = subprocess.run(
+            ['mongodump', '--uri', mongo_uri, '--db', db_name, '--out', backup_dir],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode != 0:
+            return jsonify({'error': 'mongodump failed', 'details': result.stderr}), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Backup timed out'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    from utils import audit_log
+    audit_log(db.db, 'backup', 'create', entity_id=timestamp)
+    return jsonify({'message': 'Backup completed', 'path': backup_dir, 'timestamp': timestamp}), 200

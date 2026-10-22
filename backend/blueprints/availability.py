@@ -81,7 +81,7 @@ def free_slots_for_counselor(counselor_id, target_date, exclude_past=False):
     all_slots = sorted(slot_set)
 
     if exclude_past:
-        now = datetime.utcnow()
+        now = datetime.utcnow() + timedelta(hours=8)   # slots are Philippine wall-clock times
         all_slots = [s for s in all_slots if s > now]
 
     day_start_dt = target_date.replace(hour=0, minute=0, second=0, microsecond=0)

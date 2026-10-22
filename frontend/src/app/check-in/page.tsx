@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle, XCircle, AlertCircle, Clock, User, Calendar, Loader2 } from 'lucide-react';
 import { api } from '@/utils/api';
 import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
+import { friendlyName } from '@/utils/names';
 
 interface CheckInResult {
   success: boolean;
@@ -129,7 +130,7 @@ function CheckInContent() {
               <div className="pt-4 space-y-3" style={{ borderTop: '1px solid var(--color-border)' }}>
                 <Row label="Appointment" value={result.appointment_type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
                 <Row label="Purpose" value={result.purpose?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
-                <Row label="Counselor" value={result.counselor_name} />
+                <Row label="Counselor" value={friendlyName(result.counselor_name)} />
                 <Row label="Scheduled" value={formatDt(result.scheduled_start)} />
                 <Row label="Mode" value={formatMethod(result.method)} />
                 {result.reference_id && <Row label="Reference" value={result.reference_id} mono />}

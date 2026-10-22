@@ -61,8 +61,8 @@ export function AdminEmaOverview() {
             note={`${data.linked} of ${data.students_total} students linked · ${data.consented} with consent recorded`} />
           <Tile icon={<Activity size={13} />} label="At risk now" value={data.at_risk}
             note={`${data.in_crisis} In Crisis · ${data.at_risk - data.in_crisis} Struggling`} />
-          <Tile icon={<AlertTriangle size={13} />} label="Crises not yet reviewed" value={data.unreviewed_crises}
-            alert={data.unreviewed_crises > 0} note={data.unreviewed_crises ? 'The case manager and counselors are alerted' : 'Every crisis has been reviewed'} />
+          <Tile icon={<AlertTriangle size={13} />} label="At risk, no open case" value={data.at_risk_without_case}
+            alert={data.at_risk_without_case > 0} note="Struggling or In Crisis students CPS has no case for" />
           <Tile icon={<BellRing size={13} />} label="Crisis alerts, last 30 days" value={data.students_alerted_30d}
             note="Students whose In Crisis result alerted the team" />
         </div>
@@ -72,7 +72,7 @@ export function AdminEmaOverview() {
         <h2 id="team-title" className="text-sm font-semibold" style={{ color: ink.primary }}>At-risk students per counselor</h2>
         <p className="text-xs mt-0.5 mb-4 max-w-prose" style={{ color: ink.muted }}>
           Students whose EMA triage is Struggling or In Crisis, by the counselor or psychologist on their open case. Use it to spot
-          overload and rebalance cases.{data.at_risk_without_case > 0 && <> <strong style={{ color: ink.primary }}>{data.at_risk_without_case}</strong> at-risk {data.at_risk_without_case === 1 ? 'student has' : 'students have'} no open case.</>}
+          overload and rebalance cases.
         </p>
         {busiest.length === 0 ? (
           <p className="text-sm py-6 text-center" style={{ color: ink.muted }}>No counselor has an at-risk student right now.</p>
@@ -110,7 +110,7 @@ export function AdminEmaOverview() {
         )}
       </section>
 
-      <EmaInsights />
+      <EmaInsights reportsOnly />
     </div>
   );
 }

@@ -15,11 +15,11 @@ interface Announcement {
   created_at: string;
 }
 
-const TYPE_META: Record<string, { label: string; accent: string }> = {
-  webinar: { label: 'Webinar', accent: '#3B82F6' },
-  event:   { label: 'Event',   accent: '#10B981' },
-  notice:  { label: 'Notice',  accent: '#F59E0B' },
-  info:    { label: 'Info',    accent: '#6B7280' },
+const TYPE_META: Record<string, { label: string }> = {
+  webinar: { label: 'Webinar' },
+  event:   { label: 'Event' },
+  notice:  { label: 'Notice' },
+  info:    { label: 'Info' },
 };
 
 function fmtEventDate(s: string) {
@@ -69,10 +69,9 @@ export function AnnouncementsPanel() {
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: meta.accent }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs font-bold tracking-wide uppercase" style={{ color: meta.accent }}>{meta.label}</span>
+                        <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{meta.label}</span>
                         {a.pinned && <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>· Pinned</span>}
                       </div>
                       <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--color-text-primary)' }}>{a.title}</p>
@@ -96,12 +95,11 @@ export function AnnouncementsPanel() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(null)} />
             <div className="relative rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto animate-scale-in" style={{ background: 'var(--color-surface)' }}>
-              <div className="h-1 w-full" style={{ background: meta.accent }} />
               <div className="p-7 sm:p-10">
                 <div className="flex items-start justify-between gap-4 mb-6">
                   <div>
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full tracking-wide uppercase" style={{ background: `${meta.accent}18`, color: meta.accent }}>
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)', boxShadow: '0 0 0 1px var(--color-border)' }}>
                         {meta.label}
                       </span>
                       {open.pinned && <span className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Pinned</span>}

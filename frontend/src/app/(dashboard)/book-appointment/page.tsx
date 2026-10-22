@@ -14,6 +14,7 @@ import {
 import { SignaturePad } from '@/components/SignaturePad';
 import { CpsLogoMark, CPS_LOGO_TILE } from '@/components/CpsLogo';
 import { ymd } from '@/utils/dateUtils';
+import { friendlyName } from '@/utils/names';
 
 const PURPOSES = [
   { value: 'intake_interview', label: "First Time",           desc: "I'd like to talk to someone for the first time" },
@@ -268,7 +269,7 @@ function BookAppointmentContent() {
     fetch(api('/api/appointments/my-counselor'), { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
-        if (d.counselor_id) { setAssignedCounselor({ id: d.counselor_id, name: d.counselor_name, role: d.role }); setSelectedCounselorId(d.counselor_id); }
+        if (d.counselor_id) { setAssignedCounselor({ id: d.counselor_id, name: friendlyName(d.counselor_name), role: d.role }); setSelectedCounselorId(d.counselor_id); }
         else {
           setAssignedCounselor(null);
           fetch(api('/api/appointments/available-counselors'), { headers: { Authorization: `Bearer ${token}` } })
@@ -925,7 +926,8 @@ function BookAppointmentContent() {
   const isSelectable = (day: number) => {
     const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const d = new Date(ds + 'T12:00:00');
-    return d >= minDate && d <= maxDate && !bookingRules.blackout_dates.includes(ds);
+    const weekend = d.getDay() === 0 || d.getDay() === 6;   // CPS sessions run Monday to Friday
+    return !weekend && d >= minDate && d <= maxDate && !bookingRules.blackout_dates.includes(ds);
   };
 
   const isF2F = (m?: string) => ['f2f', 'in-person', 'in_person', 'face-to-face', 'onsite'].includes((m || '').toLowerCase());
@@ -1504,7 +1506,7 @@ function BookAppointmentContent() {
                         <div className="min-w-0">
                           <p className="text-xs font-bold" style={{ color: sel ? 'white' : 'var(--color-text-primary)' }}>{fmtT(s.time)}</p>
                           {s.counselor_name && purpose !== 'intake_interview' && (
-                            <p className="text-xs mt-0.5 truncate" style={{ color: sel ? 'rgba(255,255,255,0.7)' : 'var(--color-text-muted)' }}>{s.counselor_name}</p>
+                            <p className="text-xs mt-0.5 truncate" style={{ color: sel ? 'rgba(255,255,255,0.7)' : 'var(--color-text-muted)' }}>{friendlyName(s.counselor_name)}</p>
                           )}
                         </div>
                         {purpose === 'intake_interview' && (() => {

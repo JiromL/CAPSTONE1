@@ -1,7 +1,7 @@
 'use client';
 
 import { EmaConsentCheckbox } from '@/components/EmaPrivacyNotice';
-import { EmaInsights, LabelChip } from '@/components/EmaInsights';
+import { EmaInsights } from '@/components/EmaInsights';
 import { MyEmaStudents } from '@/components/MyEmaStudents';
 import { AdminEmaOverview } from '@/components/AdminEmaOverview';
 import { RecentCrisisReviews } from '@/components/RecentCrisisReviews';
@@ -15,15 +15,12 @@ import {
 import {
   Activity, Wifi, WifiOff, RefreshCw, Loader2, Users,
   LogIn, LogOut, TrendingUp, AlertTriangle,
-  Download, ChevronRight,
   CheckCircle2, Clock,
 } from 'lucide-react';
-import Link from 'next/link';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { useTheme } from '@/context/ThemeContext';
 import { PermaBadge } from '@/components/PendingStudentsWithPerma';
 import { api } from '@/utils/api';
-import { todayPH } from '@/utils/dateUtils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,12 +43,6 @@ interface CollegeEntry {
   Excelling: number; Thriving: number; Surviving: number;
   Struggling: number; 'In Crisis': number; 'No Data': number;
 }
-interface AttentionStudent {
-  student_id: string; name: string; email: string; school_id: string;
-  college: string; year_level: string; label: string | null;
-  last_checkin: string | null; reason: 'at_risk' | 'inactive' | 'no_checkin';
-  case_id: string | null; case_status: string | null;
-}
 interface PermaEntry { perma_label: string | null; date: string; }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -66,13 +57,6 @@ const ADMIN_ROLES   = ['ADMIN', 'DPO', 'MANAGEMENT'];
 function fmtDate(d: string | null) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function daysSince(dateStr: string | null): number | null {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return null;
-  return Math.floor((Date.now() - d.getTime()) / 86_400_000);
 }
 
 function fmtMonthKey(key: string) {
@@ -159,13 +143,12 @@ function Empty({ text = 'No data for this period' }: { text?: string }) {
 // ── Analytics Tab ─────────────────────────────────────────────────────────────
 
 function AnalyticsTab({
-  summary, trend, colleges, attention, role, isDark, loading,
+  summary, trend, colleges, role, isDark, loading,
   granularity, onGranularityChange, trendLoading, reportsOnly = false,
 }: {
   summary: AnalyticsSummary | null;
   trend: TrendData | null;
   colleges: CollegeEntry[];
-  attention: AttentionStudent[];
   role: string;
   isDark: boolean;
   loading: boolean;
@@ -194,28 +177,6 @@ function AnalyticsTab({
         ...LABEL_ORDER.reduce((acc, l) => ({ ...acc, [l]: trend.data[m]?.[l] ?? 0 }), {}),
       }))
     : [];
-
-  // Attention export CSV
-  const exportCSV = () => {
-    const header = 'Name,Email,School ID,College,Year Level,EMA Label,Last Check-in,Case Status,Reason';
-    const rows = attention.map(s => [
-      s.name, s.email, s.school_id, s.college, s.year_level,
-      s.label || 'No Data', s.last_checkin ? fmtDate(s.last_checkin) : '—',
-      s.case_status || '—',
-      s.reason === 'at_risk' ? 'At-Risk Label' : s.reason === 'inactive' ? 'Inactive (14d+)' : 'No Check-in',
-    ].map(v => `"${v}"`).join(','));
-    const csv = [header, ...rows].join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = `ema-attention-${todayPH()}.csv`;
-    a.click();
-  };
-
-  const REASON_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-    at_risk:    { label: 'At risk',      bg: 'var(--color-danger-surface)',  color: 'var(--color-danger-text)' },
-    inactive:   { label: 'Inactive 14d', bg: 'var(--color-warning-surface)', color: 'var(--color-warning-text)' },
-    no_checkin: { label: 'No check-in',  bg: 'var(--color-bg)',              color: 'var(--color-text-muted)' },
-  };
 
   if (loading && !summary) {
     return (
@@ -398,101 +359,6 @@ function AnalyticsTab({
           </ResponsiveContainer>
         </SCard>
       )}
-
-      {!reportsOnly && (<>
-      {/* Students Needing Attention */}
-      <div className="rounded-xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Students Needing Attention</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-              At-risk labels · Inactive 14+ days · No check-in on record
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
-              style={{ background: attention.length > 0 ? 'var(--color-danger-surface)' : 'var(--color-bg)', color: attention.length > 0 ? 'var(--color-danger-text)' : 'var(--color-text-muted)' }}>
-              {attention.length}
-            </span>
-            {attention.length > 0 && (
-              <button onClick={exportCSV}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition"
-                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <Download size={12} /> Export CSV
-              </button>
-            )}
-          </div>
-        </div>
-
-        {loading && attention.length === 0 ? (
-          <div className="flex justify-center py-10"><Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /></div>
-        ) : attention.length === 0 ? (
-          <div className="py-10 text-center">
-            <CheckCircle2 size={28} className="mx-auto mb-2" style={{ color: 'var(--color-success)' }} />
-            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>All students are active and healthy</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>No attention items at this time.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  {['Student', 'College', 'EMA Status', 'Last Check-in', 'Days Ago', 'Case', 'Reason'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left font-semibold" style={{ color: 'var(--color-text-muted)' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {attention.map(s => {
-                  const days = daysSince(s.last_checkin);
-                  const rb = REASON_BADGE[s.reason];
-                  return (
-                    <tr key={s.student_id} style={{ borderBottom: '1px solid var(--color-border)' }}
-                      className="hover:bg-[var(--color-bg)] transition-colors">
-                      <td className="px-4 py-3">
-                        <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{s.name || '—'}</p>
-                        <p style={{ color: 'var(--color-text-muted)' }}>{s.school_id || s.email}</p>
-                      </td>
-                      <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>
-                        {s.college || '—'}
-                        {s.year_level && <span className="block" style={{ color: 'var(--color-text-muted)' }}>Year {s.year_level}</span>}
-                      </td>
-                      <td className="px-4 py-3"><LabelChip label={s.label} /></td>
-                      <td className="px-4 py-3 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
-                        {fmtDate(s.last_checkin)}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums font-semibold"
-                        style={{ color: days === null ? 'var(--color-text-muted)' : days > 14 ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}>
-                        {days === null ? '—' : `${days}d`}
-                      </td>
-                      <td className="px-4 py-3">
-                        {s.case_id ? (
-                          <Link href={`/cases/${s.case_id}`}
-                            className="inline-flex items-center gap-1 text-xs hover:underline"
-                            style={{ color: 'var(--color-primary)' }}>
-                            {s.case_status || 'View'} <ChevronRight size={10} />
-                          </Link>
-                        ) : (
-                          <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold"
-                          style={{ background: rb.bg, color: rb.color }}>
-                          {rb.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      </>)}
     </div>
   );
 }
@@ -817,7 +683,6 @@ function StaffView({ role }: { role: string }) {
           summary={summary}
           trend={trend}
           colleges={colleges}
-          attention={[]}
           role={role}
           isDark={isDark}
           loading={loading}

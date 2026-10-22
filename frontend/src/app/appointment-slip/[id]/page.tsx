@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Printer, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '@/utils/api';
+import { friendlyName } from '@/utils/names';
 
 interface SlipData {
   appointment_id: string;
@@ -202,7 +203,7 @@ export default function AppointmentSlipPage() {
                   <SlipRow label="Type" value={formatType(slip.appointment_type)} />
                   <SlipRow label="Purpose" value={formatType(slip.purpose)} />
                   {slip.concern && <SlipRow label="Concern" value={slip.concern} />}
-                  <SlipRow label="Counselor" value={slip.counselor_name} />
+                  <SlipRow label="Counselor" value={friendlyName(slip.counselor_name)} />
                   <SlipRow label="Schedule" value={formatDt(slip.scheduled_start)} />
                   <SlipRow label="Mode" value={formatMethod(slip.method)} />
                   <SlipRow

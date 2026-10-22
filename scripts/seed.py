@@ -55,8 +55,13 @@ MON, TUE, WED, THU, FRI = 0, 1, 2, 3, 4
 _case_seq = [0]
 
 def ph(pw):    return generate_password_hash(pw)
-def H(d, h=9, m=0):  return (now - timedelta(days=d)).replace(hour=h, minute=m, second=0, microsecond=0)
-def F(d, h=9, m=0):  return (now + timedelta(days=abs(d))).replace(hour=h, minute=m, second=0, microsecond=0)
+def _weekday(dt, step):
+    # CPS runs Monday to Friday: move a weekend date to the nearest weekday in the given direction
+    while dt.weekday() >= 5:
+        dt += timedelta(days=step)
+    return dt
+def H(d, h=9, m=0):  return _weekday((now - timedelta(days=d)).replace(hour=h, minute=m, second=0, microsecond=0), -1)
+def F(d, h=9, m=0):  return _weekday((now + timedelta(days=abs(d))).replace(hour=h, minute=m, second=0, microsecond=0), 1)
 def ymd(d):   return d.strftime('%Y-%m-%d')
 def cnum():
     _case_seq[0] += 1

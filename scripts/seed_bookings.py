@@ -12,11 +12,17 @@ import random, re
 db = MongoClient()['cps_system_dev']
 now = datetime.utcnow()
 
+def _weekday(dt, step):
+    # CPS runs Monday to Friday: move a weekend date to the nearest weekday in the given direction
+    while dt.weekday() >= 5:
+        dt += timedelta(days=step)
+    return dt
+
 def F(days, h=9, m=0):
-    return (now + timedelta(days=days)).replace(hour=h, minute=m, second=0, microsecond=0)
+    return _weekday((now + timedelta(days=days)).replace(hour=h, minute=m, second=0, microsecond=0), 1)
 
 def H(days, h=9, m=0):
-    return (now - timedelta(days=days)).replace(hour=h, minute=m, second=0, microsecond=0)
+    return _weekday((now - timedelta(days=days)).replace(hour=h, minute=m, second=0, microsecond=0), -1)
 
 def ref_id():
     return 'APT-' + ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=8))

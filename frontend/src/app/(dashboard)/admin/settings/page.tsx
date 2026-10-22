@@ -18,9 +18,9 @@ function Sec({ title, children }: { title: string; children: React.ReactNode }) 
 }
 function F({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <label className="text-sm w-52 flex-shrink-0" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
-      <div className="flex-1">{children}</div>
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <label className="text-sm sm:w-52 sm:flex-shrink-0" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
+      <div className="sm:flex-1 min-w-0">{children}</div>
     </div>
   );
 }

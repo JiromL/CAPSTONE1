@@ -62,11 +62,18 @@ print("🗑  non_counseling_clients")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+def _office_hours(dt, step):
+    # On the hour between 8 AM and 4 PM, Monday to Friday (CPS opening hours)
+    dt = dt.replace(hour=random.randint(8, 16), minute=0, second=0, microsecond=0)
+    while dt.weekday() >= 5:
+        dt += timedelta(days=step)
+    return dt
+
 def _future(lo=1, hi=14):
-    return now + timedelta(days=random.randint(lo, hi), hours=random.randint(8, 16))
+    return _office_hours(now + timedelta(days=random.randint(lo, hi)), 1)
 
 def _past(lo=1, hi=30):
-    return now - timedelta(days=random.randint(lo, hi), hours=random.randint(8, 16))
+    return _office_hours(now - timedelta(days=random.randint(lo, hi)), -1)
 
 
 STUDENT_NAMES = [

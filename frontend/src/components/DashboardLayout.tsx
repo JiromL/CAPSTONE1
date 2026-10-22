@@ -456,7 +456,7 @@ export function DashboardLayout({
       )}
 
       {/* ── Main area ────────────────────────────────────── */}
-      <div style={{ background: 'radial-gradient(1200px 420px at 15% -120px, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 72%), var(--color-bg)' }} className={`flex-1 flex flex-col min-h-screen ${sidebarReady ? 'transition-[margin] duration-200' : ''} ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+      <div style={{ background: 'radial-gradient(1200px 420px at 15% -120px, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 72%), var(--color-bg)' }} className={`flex-1 min-w-0 flex flex-col min-h-screen ${sidebarReady ? 'transition-[margin] duration-200' : ''} ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
 
         {/* Top header */}
         <header

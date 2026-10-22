@@ -182,7 +182,7 @@ export function MyEmaStudents({ scope = 'own', withCaseRisk = false }: { scope?:
         {onEma.length === 0 ? (
           <p className="text-sm" style={{ color: ink.muted }}>Students appear here once they link EMA in CPS.</p>
         ) : (
-          <div className="card overflow-x-auto">
+          <div className="card overflow-x-auto relative">
             <table className="w-full text-sm">
               <thead><tr className="text-xs" style={{ color: ink.muted, borderBottom: '1px solid var(--color-border)' }}>
                 <th className="text-left font-medium px-4 py-2.5">Student</th>

@@ -838,6 +838,9 @@ def request_appointment():
                 'error': 'Cannot book appointments for dates and times in the past. Please select a future date and time.'
             }), 400
 
+        if requested_start.weekday() >= 5:      # CPS sessions run Monday to Friday
+            return jsonify({'error': 'CPS sessions are held Monday to Friday. Please choose a weekday.'}), 400
+
         # Enforce the configured booking window on the server (the UI enforces it too).
         rules = db.db.booking_rules.find_one({'type': 'system'}) or {}
         try:
@@ -1025,6 +1028,18 @@ def request_appointment():
             counselor_doc = db.db.users.find_one({"_id": weekly_slot_counselor_id})
             if counselor_doc:
                 appointment["counselor_name"] = f"{counselor_doc.get('first_name','')} {counselor_doc.get('last_name','')}".strip()
+
+        # A time picked from a counselor's weekly schedule must really be one of their free
+        # times, in the mode the student chose (the booking page only offers those; the API
+        # must not accept anything else either).
+        if weekly_slot_counselor_id and requested_start:
+            day = requested_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            online = data.get('preferred_method') == 'online'
+            ok = any(sl['time'] == requested_start.strftime('%H:%M')
+                     and ((sl.get('method') or '').lower() in ('online', 'video', 'zoom', 'google-meet', 'google_meet')) == online
+                     for sl in free_slots_for_counselor(weekly_slot_counselor_id, day))
+            if not ok:
+                return jsonify({'error': 'That time is not available with this counselor for the session mode you chose. Please pick a time from the list.'}), 409
 
         # ── Concurrency guard: never let two students take the same counselor slot ──
         lock_counselor_id = slot_counselor_id if booked_slot else weekly_slot_counselor_id
@@ -4598,6 +4613,7 @@ def confirm_intake_slot(appointment_id):
 
     now = datetime.utcnow()
     preferred_method = apt.get('preferred_method') or 'in-person'
+    pref_platform = apt.get('preferred_platform') or ''
     scheduled_start  = apt.get('scheduled_start') or apt.get('requested_start')
     scheduled_end    = apt.get('scheduled_end')   or (scheduled_start + timedelta(minutes=_cfg('APPOINTMENT_DURATION_MINUTES', 60)) if scheduled_start else None)
 

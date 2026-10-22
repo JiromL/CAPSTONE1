@@ -37,8 +37,9 @@ nohup.out
 .vscode/
 .idea/
 
-# Claude Code
+# Claude Code & AI tool artifacts
 .claude/
+.impeccable/
 
 # Environment variables
 .env

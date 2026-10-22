@@ -8,6 +8,7 @@ import {
   Loader2, Plus, Video, X, RotateCcw, Clock, Eye,
   CheckCircle, CalendarDays, Star, History, AlertCircle, FileText, MapPin, Check } from 'lucide-react';
 import Link from 'next/link';
+import { friendlyName } from '@/utils/names';
 
 interface Appointment {
   _id: string;
@@ -572,7 +573,7 @@ export default function MyAppointmentsPage() {
                         </div>
                         {appt.counselor_name ? (
                           <p className="mt-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                            With <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{appt.counselor_name}</span>
+                            With <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{friendlyName(appt.counselor_name)}</span>
                             {appt.counselor_role && ROLE_LABEL[appt.counselor_role] && (
                               <span className="ml-1" style={{ color: 'var(--color-text-muted)' }}>· {ROLE_LABEL[appt.counselor_role]}</span>
                             )}
@@ -788,7 +789,7 @@ export default function MyAppointmentsPage() {
                 {[
                   ['Date & Time', fmtDateTime(detailAppt.scheduled_start || detailAppt.requested_start)],
                   ['Assigned Counselor', detailAppt.counselor_name
-                    ? `${detailAppt.counselor_name}${detailAppt.counselor_role && ROLE_LABEL[detailAppt.counselor_role] ? ` · ${ROLE_LABEL[detailAppt.counselor_role]}` : ''}`
+                    ? `${friendlyName(detailAppt.counselor_name)}${detailAppt.counselor_role && ROLE_LABEL[detailAppt.counselor_role] ? ` · ${ROLE_LABEL[detailAppt.counselor_role]}` : ''}`
                     : 'Not yet assigned'],
                 ].map(([k, v]) => (
                   <div key={k} className="rounded-xl p-3" style={{ background: 'var(--color-bg)' }}>

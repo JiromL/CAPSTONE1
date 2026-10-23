@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts';
 
 interface IntakeConversion {
   intake_started: number; intake_completed: number; cases_created: number;
@@ -128,6 +131,35 @@ export default function ComplianceReportPage() {
                   <CheckCircle size={16} style={{ color: 'var(--color-primary)' }} />
                   <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Appointment Compliance</h2>
                 </div>
+
+                {appointments.total > 0 && (
+                  <div className="mb-6">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Completed', value: appointments.completed },
+                            { name: 'Cancelled', value: appointments.cancelled },
+                            { name: 'No-Show',   value: appointments.no_show   },
+                          ].filter(d => d.value > 0)}
+                          cx="50%" cy="50%"
+                          innerRadius={52} outerRadius={80}
+                          paddingAngle={3} dataKey="value"
+                        >
+                          <Cell fill="#059669" />
+                          <Cell fill="#D97706" />
+                          <Cell fill="#DC2626" />
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                          formatter={(value) => [value, '']}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11, color: '#6B7280' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead style={{ background: 'var(--color-bg)' }}>

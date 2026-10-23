@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { RefreshCw, AlertTriangle, Users } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer,
+} from 'recharts';
 
 interface UserEntry {
   _id: string; name: string; email: string; role: string;
@@ -100,6 +104,30 @@ export default function UsersReportPage() {
                 </div>
               ))}
             </div>
+
+            {roleCounts.filter(r => r.total > 0).length > 0 && (
+              <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>User Distribution by Role</p>
+                <ResponsiveContainer width="100%" height={Math.max(160, roleCounts.filter(r => r.total > 0).length * 36)}>
+                  <BarChart
+                    data={roleCounts.filter(r => r.total > 0)}
+                    layout="vertical"
+                    margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis type="category" dataKey="role" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} width={96} />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                      labelStyle={{ color: 'var(--color-text-muted)', marginBottom: 4 }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11, color: '#6B7280' }} />
+                    <Bar dataKey="active"   name="Active"   fill="#059669" radius={[0,3,3,0]} barSize={12} />
+                    <Bar dataKey="inactive" name="Inactive" fill="#94A3B8" radius={[0,3,3,0]} barSize={12} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
             <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>

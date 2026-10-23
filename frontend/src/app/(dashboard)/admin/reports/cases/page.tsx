@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 import { DashboardPageWrapper } from '@/components/DashboardPageWrapper';
 import { api } from '@/utils/api';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer,
+} from 'recharts';
 
 interface AnalyticsSummary {
   total_cases: number; active_cases: number; closed_cases: number;
@@ -87,35 +91,58 @@ export default function CasesReportPage() {
             </div>
 
             {monthly.length > 0 && (
-              <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Monthly Case Breakdown (Last 6 Months)</h2>
+              <>
+                <div className="rounded-2xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Monthly Case Trend</p>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={monthly} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                      <XAxis dataKey="short" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                        labelStyle={{ color: 'var(--color-text-muted)', marginBottom: 4 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11, color: '#6B7280' }} />
+                      <Bar dataKey="new_cases"    name="New Cases"    fill="#2352CC" radius={[3,3,0,0]} />
+                      <Bar dataKey="closed_cases" name="Closed Cases" fill="#059669" radius={[3,3,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
+                    A growing gap between new and closed cases signals increasing caseload pressure.
+                  </p>
                 </div>
-                <table className="w-full text-sm">
-                  <thead style={{ background: 'var(--color-bg)' }}>
-                    <tr>{['Month', 'New Cases', 'Closed Cases', 'Net Change'].map(h => <TH key={h}>{h}</TH>)}</tr>
-                  </thead>
-                  <tbody>
-                    {monthly.map(row => {
-                      const net = row.new_cases - row.closed_cases;
-                      return (
-                        <tr key={row.label} className="transition"
-                          style={{ borderTop: '1px solid var(--color-border)' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                          <td className="px-6 py-3 font-medium" style={{ color: 'var(--color-text-primary)' }}>{row.label}</td>
-                          <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{row.new_cases}</td>
-                          <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{row.closed_cases}</td>
-                          <td className="px-6 py-3 font-medium"
-                            style={{ color: net > 0 ? 'var(--color-danger)' : net < 0 ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
-                            {net > 0 ? `+${net}` : net}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Monthly Case Breakdown (Last 6 Months)</h2>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead style={{ background: 'var(--color-bg)' }}>
+                      <tr>{['Month', 'New Cases', 'Closed Cases', 'Net Change'].map(h => <TH key={h}>{h}</TH>)}</tr>
+                    </thead>
+                    <tbody>
+                      {monthly.map(row => {
+                        const net = row.new_cases - row.closed_cases;
+                        return (
+                          <tr key={row.label} className="transition"
+                            style={{ borderTop: '1px solid var(--color-border)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            <td className="px-6 py-3 font-medium" style={{ color: 'var(--color-text-primary)' }}>{row.label}</td>
+                            <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{row.new_cases}</td>
+                            <td className="px-6 py-3" style={{ color: 'var(--color-text-secondary)' }}>{row.closed_cases}</td>
+                            <td className="px-6 py-3 font-medium"
+                              style={{ color: net > 0 ? 'var(--color-danger)' : net < 0 ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
+                              {net > 0 ? `+${net}` : net}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </>
         ) : null}

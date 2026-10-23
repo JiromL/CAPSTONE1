@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="field-label">
-                    Email
+                    Email <span style={{ color: 'var(--color-danger)' }} aria-hidden="true">*</span>
                   </label>
                   <input
                     type="email"
@@ -84,6 +84,7 @@ export default function ForgotPasswordPage() {
                     className={IC}
                     style={ICS}
                   />
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Enter your @dlsu.edu.ph email address</p>
                 </div>
                 <button type="submit" disabled={loading}
                   className="btn-primary w-full !min-h-12 !text-[0.9375rem]">

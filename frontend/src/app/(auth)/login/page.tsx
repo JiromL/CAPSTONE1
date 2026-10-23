@@ -179,7 +179,9 @@ function LoginContent() {
 
               <form onSubmit={handleLogin} className="mt-6 space-y-4">
                 <div>
-                  <label htmlFor="email" className="field-label">University email</label>
+                  <label htmlFor="email" className="field-label">
+                    University email <span style={{ color: 'var(--color-danger)' }} aria-hidden="true">*</span>
+                  </label>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--color-text-muted)' }} aria-hidden="true" />
                     <input
@@ -188,11 +190,14 @@ function LoginContent() {
                       className="input !pl-10 !py-3"
                     />
                   </div>
+                  <p className="type-caption mt-1" style={{ color: 'var(--color-text-muted)' }}>Must be a @dlsu.edu.ph address</p>
                 </div>
 
                 <div>
                   <div className="flex items-baseline justify-between">
-                    <label htmlFor="password" className="field-label">Password</label>
+                    <label htmlFor="password" className="field-label">
+                      Password <span style={{ color: 'var(--color-danger)' }} aria-hidden="true">*</span>
+                    </label>
                     <Link href="/forgot-password" className="type-caption hover:underline underline-offset-2" style={{ color: 'var(--color-primary-text)' }}>
                       Forgot password?
                     </Link>

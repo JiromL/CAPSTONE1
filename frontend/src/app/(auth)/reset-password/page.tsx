@@ -83,17 +83,22 @@ function ResetPasswordContent() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="field-label">
-                    New password
+                    New password <span style={{ color: 'var(--color-danger)' }} aria-hidden="true">*</span>
                   </label>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                     required minLength={8} disabled={!token} className={IC} style={ICS} />
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>At least 8 characters</p>
                 </div>
                 <div>
                   <label className="field-label">
-                    Confirm password
+                    Confirm password <span style={{ color: 'var(--color-danger)' }} aria-hidden="true">*</span>
                   </label>
                   <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
-                    required disabled={!token} className={IC} style={ICS} />
+                    required disabled={!token} className={IC}
+                    style={confirm.length > 0 && password !== confirm ? { border: '1px solid var(--color-danger)' } : ICS} />
+                  {confirm.length > 0 && password !== confirm && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>Passwords do not match</p>
+                  )}
                 </div>
                 <button type="submit" disabled={loading || !token}
                   className="btn-primary w-full !min-h-12 !text-[0.9375rem]">

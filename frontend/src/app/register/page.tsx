@@ -24,6 +24,8 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
   return { score, ...levels[score] };
 }
 
+const REQ = () => <span style={{ color: 'var(--color-danger)', marginLeft: 2 }} aria-hidden="true">*</span>;
+
 export default function RegisterPage() {
   const router = useRouter()
   const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '' })
@@ -32,6 +34,9 @@ export default function RegisterPage() {
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const touch = (f: string) => setTouched(t => ({ ...t, [f]: true }))
+  const emailInvalid = touched.email && form.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
 
   const pwStrength = passwordStrength(form.password)
   const pwMismatch = confirm.length > 0 && form.password !== confirm
@@ -73,25 +78,36 @@ export default function RegisterPage() {
         <form onSubmit={submit} className="space-y-3.5">
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>First name</label>
-              <input className={IC} style={ICS} placeholder="Juan" value={form.first_name}
-                onChange={e => setForm({ ...form, first_name: e.target.value })} required />
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>First name<REQ /></label>
+              <input className={IC} style={touched.first_name && !form.first_name ? { ...ICS, border: '1px solid var(--color-danger)' } : ICS}
+                placeholder="Juan" value={form.first_name}
+                onChange={e => setForm({ ...form, first_name: e.target.value })}
+                onBlur={() => touch('first_name')} required />
+              {touched.first_name && !form.first_name && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>First name is required</p>}
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Last name</label>
-              <input className={IC} style={ICS} placeholder="dela Cruz" value={form.last_name}
-                onChange={e => setForm({ ...form, last_name: e.target.value })} required />
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Last name<REQ /></label>
+              <input className={IC} style={touched.last_name && !form.last_name ? { ...ICS, border: '1px solid var(--color-danger)' } : ICS}
+                placeholder="dela Cruz" value={form.last_name}
+                onChange={e => setForm({ ...form, last_name: e.target.value })}
+                onBlur={() => touch('last_name')} required />
+              {touched.last_name && !form.last_name && <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>Last name is required</p>}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>DLSU Email</label>
-            <input className={IC} style={ICS} placeholder="you@dlsu.edu.ph" type="email"
-              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required autoComplete="email" />
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>DLSU Email<REQ /></label>
+            <input className={IC} style={emailInvalid ? { ...ICS, border: '1px solid var(--color-danger)' } : ICS}
+              placeholder="you@dlsu.edu.ph" type="email"
+              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+              onBlur={() => touch('email')} required autoComplete="email" />
+            <p className="text-xs mt-1" style={{ color: emailInvalid ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+              {emailInvalid ? 'Enter a valid email address' : 'Must be a @dlsu.edu.ph address'}
+            </p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Password</label>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Password<REQ /></label>
             <div className="relative">
               <input className={IC + ' pr-10'} style={ICS} type={showPw ? 'text' : 'password'}
                 placeholder="At least 8 characters" value={form.password}
@@ -118,7 +134,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Confirm password</label>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Confirm password<REQ /></label>
             <input className={IC}
               style={pwMismatch ? { ...ICS, border: '1px solid var(--color-danger)' } : ICS}
               type={showPw ? 'text' : 'password'} placeholder="Re-enter password"

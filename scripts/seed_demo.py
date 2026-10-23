@@ -1,43 +1,56 @@
 #!/usr/bin/env python3
 """
-CPS Demo Seed — simple, predictable accounts for demonstrations.
+CPS Demo Seed — full data + easy demo credentials.
 
-Creates easy-to-remember demo accounts (Demo1234!) without wiping the
-database. Safe to re-run — all inserts are upserted by email.
+Runs the complete seed_all.py first (all 40 students, 35 cases, clinical
+notes, PERMA history, EMA data), then:
+  1. Updates key staff account passwords to Demo1234! for easy demo use.
+  2. Adds student1–8 demo accounts (simple emails, memorable names).
 
 Usage:
     python3 scripts/seed_demo.py
 
 Demo credentials (all passwords: Demo1234!):
-    admin@dlsu.edu.ph        ADMIN
-    dpo@dlsu.edu.ph          DPO
-    ic1@dlsu.edu.ph          IC (Intake Counselor)
-    ic2@dlsu.edu.ph          IC
-    counselor1@dlsu.edu.ph   COUNSELOR
-    counselor2@dlsu.edu.ph   COUNSELOR
-    counselor3@dlsu.edu.ph   COUNSELOR
-    casemanager@dlsu.edu.ph  CASE_MANAGER
-    staff@dlsu.edu.ph        STAFF
-    psych@dlsu.edu.ph        PSYCHOLOGIST
-    student1@dlsu.edu.ph     STUDENT (active case, stable)
-    student2@dlsu.edu.ph     STUDENT (active case, declining)
-    student3@dlsu.edu.ph     STUDENT (crisis case, high-risk)
-    student4@dlsu.edu.ph     STUDENT (improving / recovery)
-    student5@dlsu.edu.ph     STUDENT (completed case)
-    student6@dlsu.edu.ph     STUDENT (new intake pending)
-    student7@dlsu.edu.ph     STUDENT (no case yet)
-    student8@dlsu.edu.ph     STUDENT (no case yet)
+    admin@dlsu.edu.ph          ADMIN
+    dpo@dlsu.edu.ph            DPO
+    staff@dlsu.edu.ph          STAFF
+    cm@dlsu.edu.ph             CASE_MANAGER
+    julse@dlsu.edu.ph          IC  (Intake Counselor)
+    rose.t@dlsu.edu.ph         COUNSELOR
+    daryl@dlsu.edu.ph          PSYCHOLOGIST
+    student1@dlsu.edu.ph       STUDENT — active case, stable        (Maria Reyes)
+    student2@dlsu.edu.ph       STUDENT — active case, high risk     (Juan Santos)
+    student3@dlsu.edu.ph       STUDENT — CRISIS case                (Ana Garcia)
+    student4@dlsu.edu.ph       STUDENT — improving / recovery       (Miguel Cruz)
+    student5@dlsu.edu.ph       STUDENT — completed / discharged     (Sofia Dela Rosa)
+    student6@dlsu.edu.ph       STUDENT — new intake pending         (Diego Lim)
+    student7@dlsu.edu.ph       STUDENT — no case yet                (Isabel Tan)
+    student8@dlsu.edu.ph       STUDENT — no case yet                (Rafael Morales)
+
+Full seed accounts (ejohnson@, msmith@, etc.) also updated to Demo1234!
 """
 
-import os, sys, random
+import os, sys, subprocess, random
 from datetime import datetime, timedelta
 from pathlib import Path
+
 import bcrypt
 from pymongo import MongoClient
 from bson import ObjectId
 
-# ── Load .env manually (no Flask needed) ─────────────────────────────────────
-env_path = Path(__file__).parent.parent / 'backend' / '.env'
+# ── Step 1: run the full seed_all.py ─────────────────────────────────────────
+HERE = Path(__file__).parent
+print("=" * 60)
+print("STEP 1 — Running full seed_all.py (wipe + rebuild all data)")
+print("=" * 60)
+result = subprocess.run([sys.executable, str(HERE / 'seed_all.py')], check=False)
+if result.returncode != 0:
+    print(f"\n❌  seed_all.py failed (exit {result.returncode}). Aborting.")
+    sys.exit(result.returncode)
+print()
+
+# ── Connect ───────────────────────────────────────────────────────────────────
+env_path = HERE.parent / 'backend' / '.env'
 if env_path.exists():
     for line in env_path.read_text().splitlines():
         line = line.strip()
@@ -51,7 +64,6 @@ DB_NAME   = os.environ.get('MONGODB_DB_NAME', 'cps_system_dev')
 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 try:
     client.admin.command('ping')
-    print(f"✓ MongoDB OK  ({MONGO_URI}  /  {DB_NAME})\n")
 except Exception as e:
     print(f"✗ MongoDB connection failed: {e}")
     sys.exit(1)
@@ -62,25 +74,48 @@ now = datetime.utcnow()
 
 DEMO_PW = bcrypt.hashpw(b'Demo1234!', bcrypt.gensalt()).decode()
 
+print("=" * 60)
+print("STEP 2 — Applying Demo1234! passwords to key accounts")
+print("=" * 60)
+
+# ── Step 2: update passwords for all seed.py accounts to Demo1234! ───────────
+DEMO_EMAILS = [
+    # Staff
+    'admin@dlsu.edu.ph', 'dpo@dlsu.edu.ph', 'staff@dlsu.edu.ph', 'cm@dlsu.edu.ph',
+    # ICs
+    'julse@dlsu.edu.ph', 'archie@dlsu.edu.ph', 'mars@dlsu.edu.ph', 'ria@dlsu.edu.ph',
+    'cris@dlsu.edu.ph', 'wil@dlsu.edu.ph', 'rose.c@dlsu.edu.ph', 'gracie@dlsu.edu.ph',
+    # Counselors
+    'rose.t@dlsu.edu.ph', 'bia@dlsu.edu.ph', 'chelly@dlsu.edu.ph', 'daye@dlsu.edu.ph', 'clara@dlsu.edu.ph',
+    # Psychologists
+    'daryl@dlsu.edu.ph', 'niko@dlsu.edu.ph', 'bon@dlsu.edu.ph', 'shel@dlsu.edu.ph',
+    'jenny@dlsu.edu.ph', 'chona@dlsu.edu.ph', 'carl@dlsu.edu.ph',
+    # Key students
+    'ejohnson@dlsu.edu.ph', 'msmith@dlsu.edu.ph', 'achen@dlsu.edu.ph',
+]
+
+updated = db.users.update_many(
+    {'email': {'$in': DEMO_EMAILS}},
+    {'$set': {'password_hash': DEMO_PW}}
+)
+print(f"✅ {updated.modified_count} existing accounts updated to Demo1234!")
+
+# ── Step 3: helpers ───────────────────────────────────────────────────────────
 def H(days, h=9, m=0):
-    """Past datetime, weekday-safe."""
     dt = (now - timedelta(days=days)).replace(hour=h, minute=m, second=0, microsecond=0)
     while dt.weekday() >= 5:
         dt -= timedelta(days=1)
     return dt
 
 def F(days, h=9, m=0):
-    """Future datetime, weekday-safe."""
     dt = (now + timedelta(days=days)).replace(hour=h, minute=m, second=0, microsecond=0)
     while dt.weekday() >= 5:
         dt += timedelta(days=1)
     return dt
 
-# ── Upsert user ───────────────────────────────────────────────────────────────
 def upsert_user(email, first, last, role, **extra):
     doc = {
-        'email': email,
-        'password_hash': DEMO_PW,
+        'email': email, 'password_hash': DEMO_PW,
         'first_name': first, 'last_name': last,
         'name': f'{first} {last}',
         'role': role,
@@ -90,58 +125,33 @@ def upsert_user(email, first, last, role, **extra):
     }
     result = db.users.update_one({'email': email}, {'$setOnInsert': doc}, upsert=True)
     user = db.users.find_one({'email': email})
-    created = result.upserted_id is not None
-    return user['_id'], created
+    # Always ensure password is Demo1234! even if user existed
+    db.users.update_one({'email': email}, {'$set': {'password_hash': DEMO_PW}})
+    return user['_id'], result.upserted_id is not None
 
 def sid(yr_label, n):
     pfx = {'1st Year': 124, '2nd Year': 123, '3rd Year': 122, '4th Year': 121}.get(yr_label, 120)
     return f'{pfx}{n:05d}'
 
-# ── Staff / clinical accounts ─────────────────────────────────────────────────
-staff_accounts = [
-    ('admin@dlsu.edu.ph',       'Admin',    'Demo',      'ADMIN'),
-    ('dpo@dlsu.edu.ph',         'Diana',    'Protector', 'DPO'),
-    ('ic1@dlsu.edu.ph',         'Ingrid',   'Cruz',      'IC'),
-    ('ic2@dlsu.edu.ph',         'Ivan',     'Reyes',     'IC'),
-    ('counselor1@dlsu.edu.ph',  'Clara',    'Santos',    'COUNSELOR'),
-    ('counselor2@dlsu.edu.ph',  'Carlos',   'Navarro',   'COUNSELOR'),
-    ('counselor3@dlsu.edu.ph',  'Camille',  'Dela Cruz', 'COUNSELOR'),
-    ('casemanager@dlsu.edu.ph', 'Marco',    'Bautista',  'CASE_MANAGER'),
-    ('staff@dlsu.edu.ph',       'Sandra',   'Flores',    'STAFF'),
-    ('psych@dlsu.edu.ph',       'Pablo',    'Aquino',    'PSYCHOLOGIST'),
-]
+print()
+print("=" * 60)
+print("STEP 3 — Adding student1–8 demo accounts")
+print("=" * 60)
 
-staff_ids = {}
-created_count = 0
-for email, first, last, role in staff_accounts:
-    _id, created = upsert_user(email, first, last, role)
-    staff_ids[email] = _id
-    if created:
-        created_count += 1
-
-admin_id  = staff_ids['admin@dlsu.edu.ph']
-ic1_id    = staff_ids['ic1@dlsu.edu.ph']
-ic2_id    = staff_ids['ic2@dlsu.edu.ph']
-c1_id     = staff_ids['counselor1@dlsu.edu.ph']
-c2_id     = staff_ids['counselor2@dlsu.edu.ph']
-c3_id     = staff_ids['counselor3@dlsu.edu.ph']
-cm_id     = staff_ids['casemanager@dlsu.edu.ph']
-psych_id  = staff_ids['psych@dlsu.edu.ph']
-
-# ── Student accounts ──────────────────────────────────────────────────────────
+# ── Step 4: upsert simple demo student accounts ───────────────────────────────
 students_data = [
-    # email,                  first,     last,        college, course,               year,       id_n
-    ('student1@dlsu.edu.ph', 'Maria',   'Reyes',    'CCS',   'BS Computer Science',         '3rd Year', 1),
-    ('student2@dlsu.edu.ph', 'Juan',    'Santos',   'GCOE',  'BS Civil Engineering',        '2nd Year', 2),
-    ('student3@dlsu.edu.ph', 'Ana',     'Garcia',   'CLA',   'AB Psychology',               '4th Year', 3),
-    ('student4@dlsu.edu.ph', 'Miguel',  'Cruz',     'CCS',   'BS Information Technology',   '1st Year', 4),
-    ('student5@dlsu.edu.ph', 'Sofia',   'Dela Rosa','RVRCOB','BS Accountancy',              '3rd Year', 5),
-    ('student6@dlsu.edu.ph', 'Diego',   'Lim',      'COS',   'BS Biology',                  '2nd Year', 6),
-    ('student7@dlsu.edu.ph', 'Isabel',  'Tan',      'CLA',   'AB Communication',            '1st Year', 7),
-    ('student8@dlsu.edu.ph', 'Rafael',  'Morales',  'GCOE',  'BS Electronics Engineering',  '2nd Year', 8),
+    ('student1@dlsu.edu.ph', 'Maria',   'Reyes',    'CCS',    'BS Computer Science',          '3rd Year', 1),
+    ('student2@dlsu.edu.ph', 'Juan',    'Santos',   'GCOE',   'BS Civil Engineering',         '2nd Year', 2),
+    ('student3@dlsu.edu.ph', 'Ana',     'Garcia',   'CLA',    'AB Psychology',                '4th Year', 3),
+    ('student4@dlsu.edu.ph', 'Miguel',  'Cruz',     'CCS',    'BS Information Technology',    '1st Year', 4),
+    ('student5@dlsu.edu.ph', 'Sofia',   'Dela Rosa','RVRCOB', 'BS Accountancy',               '3rd Year', 5),
+    ('student6@dlsu.edu.ph', 'Diego',   'Lim',      'COS',    'BS Biology',                   '2nd Year', 6),
+    ('student7@dlsu.edu.ph', 'Isabel',  'Tan',      'CLA',    'AB Communication',             '1st Year', 7),
+    ('student8@dlsu.edu.ph', 'Rafael',  'Morales',  'GCOE',   'BS Electronics Engineering',   '2nd Year', 8),
 ]
 
 student_ids = {}
+created_count = 0
 for email, first, last, college, course, year, n in students_data:
     _id, created = upsert_user(email, first, last, 'STUDENT',
         college=college, course=course, year_level=year,
@@ -158,43 +168,32 @@ for email, first, last, college, course, year, n in students_data:
 
 s = {i+1: student_ids[f'student{i+1}@dlsu.edu.ph'] for i in range(8)}
 s_name = {
-    s[1]: 'Maria Reyes',    s[2]: 'Juan Santos',   s[3]: 'Ana Garcia',
-    s[4]: 'Miguel Cruz',    s[5]: 'Sofia Dela Rosa',s[6]: 'Diego Lim',
+    s[1]: 'Maria Reyes',    s[2]: 'Juan Santos',     s[3]: 'Ana Garcia',
+    s[4]: 'Miguel Cruz',    s[5]: 'Sofia Dela Rosa',  s[6]: 'Diego Lim',
     s[7]: 'Isabel Tan',     s[8]: 'Rafael Morales',
 }
 s_email = {s[i]: f'student{i}@dlsu.edu.ph' for i in range(1, 9)}
 
-print(f"✅ Users: {created_count} new, {len(staff_accounts)+len(students_data)-created_count} already existed")
+print(f"✅ student1–8: {created_count} new, {8 - created_count} already existed (passwords updated)")
 
-# ── Counselor availability (Mon–Fri, 9am–5pm, next 2 weeks) ──────────────────
-avail_created = 0
-for cid, days in [
-    (c1_id, [0,1,2,3,4]), (c2_id, [0,2,4]), (c3_id, [1,3]),
-    (psych_id, [0,1,2,3,4]),
-]:
-    for offset in range(14):
-        slot_date = now.date() + timedelta(days=offset)
-        if slot_date.weekday() not in days:
-            continue
-        slot_dt = datetime.combine(slot_date, datetime.min.time())
-        for hour in range(9, 17):
-            start = slot_dt.replace(hour=hour)
-            end   = start + timedelta(hours=1)
-            existing = db.counselor_availability.find_one({
-                'counselor_id': cid, 'start_time': start,
-            })
-            if not existing:
-                db.counselor_availability.insert_one({
-                    'counselor_id': cid,
-                    'date': slot_date.isoformat(),
-                    'start_time': start, 'end_time': end,
-                    'is_available': True,
-                    'session_method': 'in_person',
-                    'created_at': now,
-                })
-                avail_created += 1
+# ── Look up staff IDs (created by seed.py) ────────────────────────────────────
+def get_id(email):
+    u = db.users.find_one({'email': email}, {'_id': 1})
+    return u['_id'] if u else None
 
-print(f"✅ Availability: {avail_created} new slots created")
+ic1_id   = get_id('julse@dlsu.edu.ph')
+ic2_id   = get_id('archie@dlsu.edu.ph')
+c1_id    = get_id('rose.t@dlsu.edu.ph')
+c2_id    = get_id('bia@dlsu.edu.ph')
+c3_id    = get_id('chelly@dlsu.edu.ph')
+psych_id = get_id('daryl@dlsu.edu.ph')
+cm_id    = get_id('cm@dlsu.edu.ph')
+admin_id = get_id('admin@dlsu.edu.ph')
+
+print()
+print("=" * 60)
+print("STEP 4 — Creating demo cases and clinical data for student1–8")
+print("=" * 60)
 
 # ── Case creation helper ──────────────────────────────────────────────────────
 _case_n = [0]
@@ -202,7 +201,6 @@ def make_case(student_id, counselor_id, ic_id, status, risk, concern, issue,
               endorsed_to, days_ago, diagnoses=None):
     _case_n[0] += 1
     num = f'CPS-DEMO-{_case_n[0]:03d}'
-    # Check for existing demo case for this student
     existing = db.cases.find_one({'student_id': student_id, 'case_number': {'$regex': '^CPS-DEMO-'}})
     if existing:
         return existing['_id'], False
@@ -242,54 +240,47 @@ def make_case(student_id, counselor_id, ic_id, status, risk, concern, issue,
 
 cases_created = 0
 
-# Case 1 — Maria (s1): Academic stress, stable/improving
-case1_id, c1_new = make_case(s[1], c1_id, ic1_id, 'ACTIVE', 'YELLOW',
+case1_id, new = make_case(s[1], c1_id, ic1_id, 'ACTIVE', 'YELLOW',
     'Academic stress, anxiety',
     'Student presents with exam anxiety and thesis deadline stress. Difficulty sleeping.',
     'COUNSELOR', 45)
-if c1_new: cases_created += 1
+if new: cases_created += 1
 
-# Case 2 — Juan (s2): Depression, declining
-case2_id, c2_new = make_case(s[2], c2_id, ic1_id, 'ACTIVE', 'RED',
+case2_id, new = make_case(s[2], c2_id, ic1_id, 'ACTIVE', 'RED',
     'Depression, persistent low mood',
     'Student reports low mood for 6 weeks, social withdrawal, passive suicidal ideation without plan.',
     'PSYCHOLOGIST', 30, diagnoses=['Major Depressive Disorder, Moderate'])
-if c2_new: cases_created += 1
+if new: cases_created += 1
 
-# Case 3 — Ana (s3): CRISIS, high-risk
-case3_id, c3_new = make_case(s[3], psych_id, ic2_id, 'ACTIVE', 'CRITICAL',
+case3_id, new = make_case(s[3], psych_id, ic2_id, 'ACTIVE', 'RED',
     'Suicidal ideation with plan',
     'Student disclosed active SI with specific plan. Crisis intervention initiated.',
     'PSYCHOLOGIST', 14, diagnoses=['Major Depressive Disorder, Severe'])
-if c3_new: cases_created += 1
+if new: cases_created += 1
 
-# Case 4 — Miguel (s4): Anxiety, improving
-case4_id, c4_new = make_case(s[4], c1_id, ic1_id, 'ACTIVE', 'GREEN',
+case4_id, new = make_case(s[4], c1_id, ic1_id, 'ACTIVE', 'GREEN',
     'Social anxiety, adjustment',
     'First-year student experiencing social anxiety and difficulty adjusting to university life.',
     'COUNSELOR', 21)
-if c4_new: cases_created += 1
+if new: cases_created += 1
 
-# Case 5 — Sofia (s5): Completed
-case5_id, c5_new = make_case(s[5], c2_id, ic2_id, 'CLOSED', 'GREEN',
+case5_id, new = make_case(s[5], c2_id, ic2_id, 'CLOSED', 'GREEN',
     'Academic burnout',
     'Student reported burnout and exhaustion. Goals met after 8 sessions.',
     'COUNSELOR', 90)
-if c5_new: cases_created += 1
+if new: cases_created += 1
 
-# Case 6 — Diego (s6): New intake pending
-case6_id, c6_new = make_case(s[6], c3_id, ic2_id, 'NEW', 'YELLOW',
+case6_id, new = make_case(s[6], c3_id, ic2_id, 'NEW', 'YELLOW',
     'Relationship issues, anxiety',
     'Student self-referred after difficult breakup. Reports sleep disturbance.',
     'COUNSELOR', 3)
-if c6_new: cases_created += 1
+if new: cases_created += 1
 
-print(f"✅ Cases: {cases_created} new")
+print(f"✅ Cases: {cases_created} new demo cases created")
 
 # ── Session notes ─────────────────────────────────────────────────────────────
 def soap_note(case_id, counselor_id, student_id, dt, subj, obj, asmt, plan, mood, risk=False):
-    existing = db.session_notes.find_one({'case_id': case_id, 'session_date': dt})
-    if existing:
+    if db.session_notes.find_one({'case_id': case_id, 'session_date': dt}):
         return
     db.session_notes.insert_one({
         'case_id': case_id, 'counselor_id': counselor_id, 'student_id': student_id,
@@ -320,7 +311,7 @@ soap_note(case1_id, c1_id, s[1], H(14, 9),
     'Good progress. Academic performance stabilizing.',
     'Begin tapering plan. Assign self-monitoring protocol. Discuss closure in 2 sessions.', 7)
 
-# Juan (case2) — declining, high risk
+# Juan (case2) — high risk, declining
 soap_note(case2_id, c2_id, s[2], H(25, 10),
     'Reports "not seeing the point" of things. Passive SI — no plan. Stopped attending most classes.',
     'Poorly groomed, monotone speech. Mood 2/10. PHQ-9: 21.',
@@ -366,85 +357,68 @@ soap_note(case4_id, c1_id, s[4], H(11, 14),
     'Social anxiety reducing with gradual exposure.',
     'Continue exposure hierarchy. Add positive self-talk practice.', 6)
 
-print('✅ Session notes seeded')
+print('✅ Session notes seeded for demo students')
 
 # ── Appointments ──────────────────────────────────────────────────────────────
-def make_apt(student_id, counselor_id, case_id, start, status, purpose='counseling', method='in_person'):
-    existing = db.appointments.find_one({'student_id': student_id, 'scheduled_start': start})
-    if existing:
-        return existing['_id']
-    end = start + timedelta(minutes=50)
-    apt_id = db.appointments.insert_one({
-        'student_id': student_id, 'counselor_id': counselor_id,
-        'case_id': case_id,
+def make_apt(student_id, counselor_id, case_id, start, status, purpose='counseling'):
+    if db.appointments.find_one({'student_id': student_id, 'scheduled_start': start}):
+        return
+    db.appointments.insert_one({
+        'student_id': student_id, 'counselor_id': counselor_id, 'case_id': case_id,
         'student_name': s_name[student_id],
-        'status': status, 'purpose': purpose, 'method': method,
-        'scheduled_start': start, 'scheduled_end': end,
+        'status': status, 'purpose': purpose, 'method': 'in_person',
+        'scheduled_start': start, 'scheduled_end': start + timedelta(minutes=50),
         'created_at': start - timedelta(days=7), 'updated_at': start,
-    }).inserted_id
-    return apt_id
+    })
 
-# Past completed
-make_apt(s[1], c1_id, case1_id, H(35, 9),  'COMPLETED')
-make_apt(s[1], c1_id, case1_id, H(28, 9),  'COMPLETED')
-make_apt(s[1], c1_id, case1_id, H(14, 9),  'COMPLETED')
-make_apt(s[2], c2_id, case2_id, H(25, 10), 'COMPLETED')
-make_apt(s[2], c2_id, case2_id, H(18, 10), 'COMPLETED')
+# Completed (history)
+make_apt(s[1], c1_id,    case1_id, H(35, 9),  'COMPLETED')
+make_apt(s[1], c1_id,    case1_id, H(28, 9),  'COMPLETED')
+make_apt(s[1], c1_id,    case1_id, H(14, 9),  'COMPLETED')
+make_apt(s[2], c2_id,    case2_id, H(25, 10), 'COMPLETED')
+make_apt(s[2], c2_id,    case2_id, H(18, 10), 'COMPLETED')
 make_apt(s[3], psych_id, case3_id, H(12, 11), 'COMPLETED')
 make_apt(s[3], psych_id, case3_id, H(9,  11), 'COMPLETED')
-make_apt(s[4], c1_id, case4_id, H(18, 14), 'COMPLETED')
-make_apt(s[4], c1_id, case4_id, H(11, 14), 'COMPLETED')
-make_apt(s[5], c2_id, case5_id, H(90, 10), 'COMPLETED')
+make_apt(s[4], c1_id,    case4_id, H(18, 14), 'COMPLETED')
+make_apt(s[4], c1_id,    case4_id, H(11, 14), 'COMPLETED')
+make_apt(s[5], c2_id,    case5_id, H(90, 10), 'COMPLETED')
 
-# Upcoming confirmed
+# Upcoming
 make_apt(s[1], c1_id,    case1_id, F(2, 9),  'CONFIRMED')
 make_apt(s[2], c2_id,    case2_id, F(3, 10), 'CONFIRMED')
 make_apt(s[3], psych_id, case3_id, F(1, 11), 'CONFIRMED')
 make_apt(s[4], c1_id,    case4_id, F(5, 14), 'CONFIRMED')
 
-# Pending approval requests
+# Pending approval
 make_apt(s[7], c3_id, None, F(4, 9),  'PENDING_APPROVAL', 'intake_interview')
 make_apt(s[8], c3_id, None, F(6, 10), 'PENDING_APPROVAL', 'intake_interview')
 
-print('✅ Appointments seeded')
+print('✅ Appointments seeded for demo students')
 
-# ── PERMA snapshots ───────────────────────────────────────────────────────────
+# ── PERMA snapshots for demo students ─────────────────────────────────────────
 LABELS = ['In Crisis', 'Struggling', 'Surviving', 'Thriving', 'Excelling']
-
 perma_config = {
-    # (student_id, base_label, trend)
-    s[1]: ('Thriving',   'stable'),    # Maria — stable
-    s[2]: ('Surviving',  'declining'), # Juan — declining (triggers triage)
-    s[3]: ('In Crisis',  'volatile'),  # Ana — crisis/volatile
-    s[4]: ('Surviving',  'improving'), # Miguel — improving (recovery arc)
-    s[5]: ('Excelling',  'stable'),    # Sofia — discharged, doing well
-    s[6]: ('Struggling', 'declining'), # Diego — new intake, getting worse
+    s[1]: ('Thriving',  'stable'),    # Maria — stable
+    s[2]: ('Surviving', 'declining'), # Juan — declining (triage)
+    s[3]: ('In Crisis', 'volatile'),  # Ana — crisis/volatile
+    s[4]: ('Surviving', 'improving'), # Miguel — recovery
+    s[5]: ('Excelling', 'stable'),    # Sofia — discharged, doing well
+    s[6]: ('Struggling','declining'), # Diego — new intake, worsening
 }
-
-def perma_score():
-    """Random 0–10 score for one PERMA dimension."""
-    return round(rng.uniform(0, 10), 1)
 
 snap_created = 0
 for sv, (base_label, trend) in perma_config.items():
     base_idx = float(LABELS.index(base_label))
     mhbot_username = s_email[sv].split('@')[0]
-    # Check if demo snapshots already exist
-    existing_count = db.perma_snapshots.count_documents({
-        'student_user_id': sv,
-        'mhbot_username': mhbot_username,
-    })
-    if existing_count > 10:
+    if db.perma_snapshots.count_documents({'student_user_id': sv, 'mhbot_username': mhbot_username}) > 10:
         continue  # already seeded
 
     cur_val = base_idx
     entries = []
     for day in range(28, -1, -1):
         if rng.random() > 0.78 and day != 0:
-            continue  # ~78% check-in rate
+            continue
         progress = (28 - day) / 28
-
-        # Drift logic
         pull = (base_idx - cur_val) * 0.2
         if trend == 'declining':
             bias = -0.07 * progress * 4
@@ -454,38 +428,30 @@ for sv, (base_label, trend) in perma_config.items():
             bias = rng.choice([-0.3, 0.3])
         else:
             bias = 0
-        noise = rng.uniform(-0.4, 0.4)
-        cur_val = max(0.0, min(4.0, cur_val + pull + bias + noise))
+        cur_val = max(0.0, min(4.0, cur_val + pull + bias + rng.uniform(-0.4, 0.4)))
         label = LABELS[round(cur_val)]
-
         entry_dt = H(day, h=rng.randint(7, 22), m=rng.randint(0, 59))
-
-        # Build dimension scores matching the label
-        dim_base = round(cur_val) * 2  # 0, 2, 4, 6, 8 mapped from label index
-        dims = {
+        dim_base = round(cur_val) * 2
+        entries.append((entry_dt, label, {
             'd_positive_emotion': min(10, max(0, dim_base + rng.uniform(-1.5, 1.5))),
             'd_engagement':       min(10, max(0, dim_base + rng.uniform(-1.5, 1.5))),
             'd_relationships':    min(10, max(0, dim_base + rng.uniform(-1.5, 1.5))),
             'd_meaning':          min(10, max(0, dim_base + rng.uniform(-1.5, 1.5))),
             'd_accomplishment':   min(10, max(0, dim_base + rng.uniform(-1.5, 1.5))),
-        }
-        entries.append((entry_dt, label, dims))
+        }))
 
     entries.sort(key=lambda e: e[0])
     for entry_dt, label, dims in entries:
         try:
             db.perma_snapshots.insert_one({
-                'student_user_id': sv,
-                'mhbot_username': mhbot_username,
+                'student_user_id': sv, 'mhbot_username': mhbot_username,
                 'perma_label': label,
-                'entry_date': entry_dt,
-                'raw_date': entry_dt.isoformat(),
-                'saved_at': entry_dt,
+                'entry_date': entry_dt, 'raw_date': entry_dt.isoformat(), 'saved_at': entry_dt,
                 **dims,
             })
             snap_created += 1
         except Exception:
-            pass  # skip duplicate dates
+            pass
 
     if entries:
         latest_dt, latest_label, _ = entries[-1]
@@ -496,85 +462,88 @@ for sv, (base_label, trend) in perma_config.items():
             'perma_synced_at': now,
         }})
 
-print(f'✅ PERMA snapshots: {snap_created} new entries for {len(perma_config)} students')
+print(f'✅ PERMA snapshots: {snap_created} new entries for {len(perma_config)} demo students')
 
 # ── Crisis escalation for Ana (s3) ────────────────────────────────────────────
-existing_crisis = db.crisis_escalations.find_one({'case_id': case3_id})
-if not existing_crisis:
+if not db.crisis_escalations.find_one({'case_id': case3_id}):
     db.crisis_escalations.insert_one({
-        'case_id': case3_id,
-        'student_id': s[3],
-        'reported_by': psych_id,
-        'risk_level': 'CRITICAL',
+        'case_id': case3_id, 'student_id': s[3], 'reported_by': psych_id,
+        'risk_level': 'RED',
         'escalation_type': 'SUICIDAL_IDEATION_WITH_PLAN',
-        'description': 'Student disclosed active SI with specific plan during intake session. Mandatory reporting initiated. Family contacted. Medications secured.',
+        'description': 'Student disclosed active SI with specific plan during intake. Mandatory reporting initiated. Family contacted. Medications secured.',
         'actions_taken': ['Safety plan activated', 'Family notified', 'Medications removed', 'Psychiatric consult arranged', 'Daily welfare calls initiated'],
         'status': 'ACTIVE',
-        'created_at': H(12, 11),
-        'updated_at': H(6, 11),
+        'created_at': H(12, 11), 'updated_at': H(6, 11),
     })
-    print('✅ Crisis escalation record created for Ana (student3)')
+    print('✅ Crisis escalation created for Ana (student3)')
 
-# ── Audit logs ────────────────────────────────────────────────────────────────
+# ── Safety plan for high-risk demo students ───────────────────────────────────
+for sv, casev, cov in [(s[2], case2_id, c2_id), (s[3], case3_id, psych_id)]:
+    if not db.safety_plans.find_one({'case_id': casev}):
+        db.safety_plans.insert_one({
+            'case_id': casev, 'student_id': sv, 'created_by': cov,
+            'warning_signs': ['Increased isolation', 'Stopping medication', 'Giving away belongings'],
+            'coping_strategies': ['Call a trusted friend', 'Go for a walk', 'Use breathing exercises'],
+            'reasons_for_living': ['Family', 'Future goals'],
+            'contacts': [
+                {'name': 'Counselor', 'phone': '(02) 8524-4611 ext 420'},
+                {'name': 'NCMH Crisis Hotline', 'phone': '1553'},
+            ],
+            'emergency_contacts': [{'name': 'Parent', 'phone': '09181234567'}],
+            'created_at': H(rng.randint(5, 12)), 'updated_at': now,
+        })
+print('✅ Safety plans seeded for high-risk demo students')
+
+# ── Audit log entries for demo actions ────────────────────────────────────────
 audit_entries = [
-    (admin_id,   'ADMIN',        'USER_CREATED',     f'Created demo user accounts for system demonstration', H(1)),
-    (ic1_id,     'IC',           'INTAKE_COMPLETED',  'Completed intake interview for Maria Reyes — endorsed to COUNSELOR', H(45)),
-    (ic2_id,     'IC',           'INTAKE_COMPLETED',  'Completed intake interview for Ana Garcia — crisis protocol activated', H(14)),
+    (admin_id,   'ADMIN',        'USER_CREATED',      'Created demo accounts for system demonstration', H(1)),
+    (ic1_id,     'IC',           'INTAKE_COMPLETED',  'Completed intake for Maria Reyes — endorsed to COUNSELOR', H(45)),
+    (ic2_id,     'IC',           'INTAKE_COMPLETED',  'Completed intake for Ana Garcia — crisis protocol activated', H(14)),
     (c1_id,      'COUNSELOR',    'SESSION_NOTE',      'Added SOAP note for Maria Reyes — session 3 of 8', H(14)),
     (psych_id,   'PSYCHOLOGIST', 'CRISIS_ESCALATION', 'Crisis escalation filed for Ana Garcia — active SI with plan', H(12)),
-    (cm_id,      'CASE_MANAGER', 'CASE_REVIEW',       'Reviewed high-risk queue — 1 critical case flagged for daily monitoring', H(10)),
+    (cm_id,      'CASE_MANAGER', 'CASE_REVIEW',       'Reviewed high-risk queue — 1 critical case flagged', H(10)),
     (c2_id,      'COUNSELOR',    'SESSION_NOTE',      'Added SOAP note for Juan Santos — PHQ-9 improving', H(11)),
-    (admin_id,   'ADMIN',        'USER_ROLE_UPDATED',  'Updated role for demo counselor accounts', H(5)),
-    (psych_id,   'PSYCHOLOGIST', 'SAFETY_PLAN',       'Updated safety plan for Ana Garcia — post-crisis stabilization', H(6)),
-    (c1_id,      'COUNSELOR',    'APPOINTMENT_CONFIRMED', 'Confirmed upcoming session for Maria Reyes on ' + F(2, 9).strftime('%Y-%m-%d'), H(2)),
+    (psych_id,   'PSYCHOLOGIST', 'SAFETY_PLAN',       'Updated safety plan for Ana Garcia — post-crisis', H(6)),
 ]
-
-audit_created = 0
-for user_id, role, action, desc, dt in audit_entries:
-    existing = db.audit_logs.find_one({'user_id': user_id, 'action': action, 'timestamp': dt})
-    if not existing:
-        db.audit_logs.insert_one({
-            'user_id': user_id,
-            'role': role,
-            'action': action,
-            'description': desc,
-            'timestamp': dt,
-            'ip_address': '127.0.0.1',
-        })
-        audit_created += 1
-
+audit_created = sum(
+    1 for user_id, role, action, desc, dt in audit_entries
+    if not db.audit_logs.find_one({'user_id': user_id, 'action': action, 'timestamp': dt})
+    and db.audit_logs.insert_one({'user_id': user_id, 'role': role, 'action': action,
+        'description': desc, 'timestamp': dt, 'ip_address': '127.0.0.1'})
+)
 print(f'✅ Audit logs: {audit_created} new entries')
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 print()
 print('=' * 60)
-print('✅  Demo seed complete')
-print(f'   Total users in DB:        {db.users.count_documents({})}')
-print(f'   Total cases in DB:        {db.cases.count_documents({})}')
-print(f'   Total appointments in DB: {db.appointments.count_documents({})}')
-print(f'   Total session notes:      {db.session_notes.count_documents({})}')
-print(f'   Total PERMA snapshots:    {db.perma_snapshots.count_documents({})}')
+print('✅  DEMO SEED COMPLETE')
 print('=' * 60)
+print(f'   Total users:         {db.users.count_documents({})}')
+print(f'   Total students:      {db.users.count_documents({"role":"STUDENT"})}')
+print(f'   Total cases:         {db.cases.count_documents({})}')
+print(f'   Total appointments:  {db.appointments.count_documents({})}')
+print(f'   Total session notes: {db.session_notes.count_documents({})}')
+print(f'   Total PERMA entries: {db.perma_snapshots.count_documents({})}')
 print()
-print('Demo credentials (password for all: Demo1234!)')
-print('  admin@dlsu.edu.ph          ADMIN')
-print('  dpo@dlsu.edu.ph            DPO')
-print('  ic1@dlsu.edu.ph            IC (Intake Counselor)')
-print('  ic2@dlsu.edu.ph            IC')
-print('  counselor1@dlsu.edu.ph     COUNSELOR')
-print('  counselor2@dlsu.edu.ph     COUNSELOR')
-print('  counselor3@dlsu.edu.ph     COUNSELOR')
-print('  casemanager@dlsu.edu.ph    CASE_MANAGER')
-print('  staff@dlsu.edu.ph          STAFF')
-print('  psych@dlsu.edu.ph          PSYCHOLOGIST')
-print('  student1@dlsu.edu.ph       STUDENT — active case, stable (Maria Reyes)')
-print('  student2@dlsu.edu.ph       STUDENT — active case, declining (Juan Santos)')
-print('  student3@dlsu.edu.ph       STUDENT — CRISIS case (Ana Garcia)')
-print('  student4@dlsu.edu.ph       STUDENT — improving / recovery (Miguel Cruz)')
-print('  student5@dlsu.edu.ph       STUDENT — completed case (Sofia Dela Rosa)')
-print('  student6@dlsu.edu.ph       STUDENT — new intake (Diego Lim)')
-print('  student7@dlsu.edu.ph       STUDENT — no case yet (Isabel Tan)')
-print('  student8@dlsu.edu.ph       STUDENT — no case yet (Rafael Morales)')
+print('Key demo credentials (all passwords: Demo1234!)')
+print('  admin@dlsu.edu.ph      ADMIN')
+print('  dpo@dlsu.edu.ph        DPO')
+print('  julse@dlsu.edu.ph      IC (Intake Counselor)')
+print('  rose.t@dlsu.edu.ph     COUNSELOR')
+print('  daryl@dlsu.edu.ph      PSYCHOLOGIST')
+print('  cm@dlsu.edu.ph         CASE MANAGER')
+print('  staff@dlsu.edu.ph      STAFF')
 print()
-print('Run the full seed for 40+ students and 35+ cases:')
-print('  python3 scripts/seed_all.py')
+print('Simple demo students (Demo1234!):')
+print('  student1@dlsu.edu.ph   Maria Reyes    — active case, stable')
+print('  student2@dlsu.edu.ph   Juan Santos    — active case, high risk')
+print('  student3@dlsu.edu.ph   Ana Garcia     — CRISIS case')
+print('  student4@dlsu.edu.ph   Miguel Cruz    — improving / recovery')
+print('  student5@dlsu.edu.ph   Sofia Dela Rosa — discharged')
+print('  student6@dlsu.edu.ph   Diego Lim      — new intake pending')
+print('  student7@dlsu.edu.ph   Isabel Tan     — no case yet')
+print('  student8@dlsu.edu.ph   Rafael Morales — no case yet')
+print()
+print('Full seed accounts (ejohnson@, msmith@, etc.) also use Demo1234!')
+print()
+print('Run this anytime to reset — safe to re-run.')

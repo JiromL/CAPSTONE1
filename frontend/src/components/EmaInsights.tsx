@@ -404,15 +404,24 @@ function EngagementLine({ weeks }: { weeks: Insights['engagement']['weeks'] }) {
 export function EmaInsights({ reportsOnly = false }: { reportsOnly?: boolean } = {}) {
   const [data, setData] = useState<Insights | null>(null);
   const [error, setError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
+    setError('');
     fetch(api('/api/mhbot/analytics/insights'), { headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` } })
       .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Could not load insights'); return d; })
       .then(setData)
       .catch(e => setError(e.message));
-  }, []);
+  }, [retryKey]);
 
-  if (error) return null;
+  if (error) return (
+    <div role="alert" className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+      <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Could not load EMA insights</p>
+      <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{error}</p>
+      <button onClick={() => setRetryKey(k => k + 1)}
+        className="btn-ghost mt-4 text-sm">Try again</button>
+    </div>
+  );
   if (!data) {
     return <div className="flex justify-center py-8"><Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} /></div>;
   }

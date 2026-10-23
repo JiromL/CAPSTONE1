@@ -92,7 +92,7 @@ export function EmaChat({ onNeedsRelink }: { onNeedsRelink: () => void }) {
           setPhase('rating');
         }
       })
-      .catch(e => { if (e.message) { setError(e.message); setPhase('rating'); } });
+      .catch(e => { setError(e.message || 'Could not resume your session. Please try again.'); setPhase('rating'); });
   }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending]);

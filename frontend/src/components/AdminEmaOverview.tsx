@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Activity, AlertTriangle, BellRing, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { api } from '@/utils/api';
 import { EmaInsights } from './EmaInsights';
@@ -34,14 +34,22 @@ export function AdminEmaOverview() {
   const [data, setData] = useState<Team | null>(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError('');
     fetch(api('/api/mhbot/analytics/team'), { headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` } })
       .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Could not load the EMA overview'); return d; })
       .then(setData)
       .catch(e => setError(e.message));
   }, []);
+  useEffect(() => { load(); }, [load]);
 
-  if (error) return <div role="alert" className="card p-6 text-sm" style={{ color: 'var(--color-danger-text)' }}>{error}</div>;
+  if (error) return (
+    <div role="alert" className="card p-6 space-y-3">
+      <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Could not load the EMA overview</p>
+      <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{error}</p>
+      <button onClick={load} className="btn-ghost text-sm">Try again</button>
+    </div>
+  );
   if (!data) return <div role="status" className="flex justify-center py-12"><Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} aria-hidden="true" /></div>;
 
   const maxRisk = Math.max(1, ...data.team.map(t => t.at_risk));

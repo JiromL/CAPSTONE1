@@ -91,17 +91,18 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
 
   // ============ ADMIN ============
   const adminItems: MenuItem[] = [
-    { label: 'Dashboard',            href: '/dashboard',            id: 'dashboard'       },
+    { label: 'Dashboard',            href: '/dashboard',                  id: 'dashboard'       },
     H('Operations'),
-    { label: 'User Management',      href: '/admin/users',          id: 'admin'           },
-    { label: 'Appointment Requests', href: '/appointment-requests', id: 'appointments'    },
-    { label: 'Cases',                href: '/cases',                id: 'cases'           },
+    { label: 'User Management',      href: '/admin/users',                id: 'admin'           },
+    { label: 'Appointment Requests', href: '/appointment-requests',       id: 'appointments'    },
+    { label: 'Cases',                href: '/cases',                      id: 'cases'           },
+    { label: 'Bulk Communications',  href: '/admin/communications',       id: 'communications'  },
     H('Insights & settings'),
-    { label: 'Analytics',            href: '/admin/analytics',      id: 'analytics'       },
-    { label: 'EMA overview',         href: '/mhbot',                id: 'mhbot'           },
-    { label: 'System Settings',      href: '/admin/settings',       id: 'admin-settings'  },
+    { label: 'Analytics',            href: '/admin/analytics',            id: 'analytics'       },
+    { label: 'EMA overview',         href: '/mhbot',                      id: 'mhbot'           },
+    { label: 'System Settings',      href: '/admin/settings',             id: 'admin-settings'  },
     H('Account'),
-    { label: 'Profile',              href: '/profile',              id: 'profile'         },
+    { label: 'Profile',              href: '/profile',                    id: 'profile'         },
   ];
 
   // ============ DPO (Data Protection Officer) ============
@@ -174,8 +175,11 @@ export function getActiveSectionFromPath(pathname: string): string {
     'cases':                'cases',
     'high-risk':            'high-risk',
     'mhbot':                'mhbot',
-    'ema':                  'ema',
+    'ema':                  'mhbot',
     'queue':                'cm-queue',
+
+    // Admin
+    'communications':       'communications',
 
     // Admin / DPO
     'users':                'admin',

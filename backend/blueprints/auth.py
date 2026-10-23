@@ -609,6 +609,7 @@ def get_audit_logs():
 
 
 @auth_bp.route('/roles', methods=['GET'])
+@jwt_required()
 def get_roles():
     """Get available roles"""
     roles = [role.value for role in UserRole]

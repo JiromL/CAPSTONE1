@@ -12,10 +12,30 @@ from bson import ObjectId
 import random
 import string
 import uuid
+import hmac
+import hashlib
+import time
+import os
 from integrations import EmailIntegration, ZoomIntegration, GoogleMeetIntegration
 from limiter_instance import limiter
 
 intake_bp = Blueprint('intake', __name__, url_prefix='/api/intake')
+
+_CHECKIN_TOKEN_TTL = 900  # 15 minutes
+
+def _checkin_token_sign(ts: int) -> str:
+    key = (os.getenv('SECRET_KEY') or 'dev').encode()
+    return hmac.new(key, f"checkin:{ts}".encode(), hashlib.sha256).hexdigest()
+
+def _checkin_token_valid(token: str) -> bool:
+    try:
+        ts_str, sig = token.split('.', 1)
+        ts = int(ts_str)
+        if abs(time.time() - ts) > _CHECKIN_TOKEN_TTL:
+            return False
+        return hmac.compare_digest(sig, _checkin_token_sign(ts))
+    except Exception:
+        return False
 
 
 def generate_case_number():
@@ -2112,6 +2132,15 @@ def create_walkin_intake():
         return server_error(e)
 
 
+@intake_bp.route('/checkin-token', methods=['GET'])
+@limiter.limit("60 per hour")
+def get_checkin_token():
+    """Issue a short-lived token for the public self-checkin form (replaces CAPTCHA)."""
+    ts = int(time.time())
+    token = f"{ts}.{_checkin_token_sign(ts)}"
+    return jsonify({'token': token, 'expires_in': _CHECKIN_TOKEN_TTL}), 200
+
+
 @intake_bp.route('/self-checkin', methods=['POST'])
 @limiter.limit("30 per hour")   # public kiosk form: allows a busy office, stops flooding
 def student_self_checkin():
@@ -2122,6 +2151,11 @@ def student_self_checkin():
     Returns reference number (counseling_id) for the student to show at the desk.
     """
     data = request.get_json() or {}
+
+    # ── Validate checkin token (prevents automated flooding) ──────────────────
+    token = data.get('checkin_token', '')
+    if not _checkin_token_valid(token):
+        return jsonify({'error': 'Invalid or expired form session. Please refresh and try again.'}), 403
 
     # ── Validate required fields ──────────────────────────────────────────────
     required = ['first_name', 'last_name', 'email']

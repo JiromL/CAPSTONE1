@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { Activity, AlertTriangle, BellRing, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { api } from '@/utils/api';
 import { EmaInsights } from './EmaInsights';
+import { EmaTrends } from './EmaTrends';
 
-// EMA page for admins and the DPO (backend: GET /mhbot/analytics/team + /analytics/insights).
+// EMA page for admins and the DPO (backend: GET /mhbot/analytics/team, /analytics/history + /analytics/insights).
 // Totals only: staff are named, students never are (services/ema_access.py).
 
 interface TeamRow { name: string; role: string; open_cases: number; at_risk: number; in_crisis: number; unreviewed: number }
@@ -75,6 +76,8 @@ export function AdminEmaOverview() {
             note="Students whose In Crisis result alerted the team" />
         </div>
       </section>
+
+      <EmaTrends />
 
       <section aria-labelledby="team-title" className="card p-5">
         <h2 id="team-title" className="text-sm font-semibold" style={{ color: ink.primary }}>At-risk students per counselor</h2>

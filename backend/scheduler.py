@@ -224,6 +224,13 @@ def _refresh_triage(app):
         print(f"[Scheduler] PERMA triage recomputed for {refresh_all_triage(db.db)} students")
 
 
+def _record_ema_daily_stats(app):
+    with app.app_context():
+        from models import db
+        from services.ema_daily_stats import record_daily_stats
+        print(f"[Scheduler] EMA daily totals saved for {record_daily_stats(db.db)} days")
+
+
 def _claim(app, job, every_seconds):
     """True for exactly one server process per period. A production server runs several
     processes, each with this thread; a lease in MongoDB stops them all sending the same
@@ -254,6 +261,10 @@ def _scheduler_loop(app, interval_seconds=300):
             if _claim(app, 'perma_sync', PERMA_SYNC_INTERVAL_SECONDS):
                 _sync_perma_labels(app)
                 _refresh_triage(app)
+
+            # Save the EMA daily totals behind the admin trends (late results redo recent days)
+            if _claim(app, 'ema_daily_stats', PERMA_SYNC_INTERVAL_SECONDS):
+                _record_ema_daily_stats(app)
 
             # Renew student EMA chat keys every 6 hours
             if _claim(app, 'ema_keys', EMA_TOKEN_REFRESH_INTERVAL_SECONDS):

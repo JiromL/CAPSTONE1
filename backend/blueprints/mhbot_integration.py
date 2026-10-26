@@ -8,6 +8,7 @@ chat widget can talk to EMA as them without a second login.
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import requests
+from collections import defaultdict
 import hmac
 import hashlib
 import threading
@@ -656,25 +657,20 @@ def batch_perma_labels():
     if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_shared_ema_token()
-    if not token:
-        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     data = request.get_json() or {}
     usernames = data.get('usernames', [])
     if not usernames:
         return jsonify({'labels': {}}), 200
 
+    # Labels come from the database (EMA sync + webhook), not one live EMA call per student
     mode, own = _ema_scope()
+    usernames = [u for u in usernames[:50] if isinstance(u, str) and u]   # cap at 50 to avoid abuse
+    saved = {u['mhbot_username']: u.get('perma_latest_label') for u in
+             db.db.users.find({'role': 'STUDENT', 'mhbot_username': {'$in': usernames}}, {'mhbot_username': 1, 'perma_latest_label': 1})}
     labels = {}
-    for username in usernames[:50]:  # cap at 50 to avoid abuse
-        if not username:
-            continue
-        if not _visible_student(mode, own, username):
-            labels[username] = None
-            continue
-        r = get_perma_history(username, token, limit=1)
-        labels[username] = r['latest_label'] if r['success'] else None
+    for username in usernames:
+        labels[username] = saved.get(username) if _visible_student(mode, own, username) else None
 
     return jsonify({'labels': labels}), 200
 
@@ -686,9 +682,6 @@ def get_pending_students_with_perma():
     if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_shared_ema_token()
-    if not token:
-        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     from services.ema_access import can_see_student
     mode, own = _ema_scope()
@@ -703,12 +696,10 @@ def get_pending_students_with_perma():
             if not student or not can_see_student(mode, own, student['_id']):
                 continue
 
-            perma_data = None
             mhbot_un = student.get('mhbot_username')
-            if mhbot_un:
-                r = get_perma_history(mhbot_un, token, limit=1)
-                if r['success']:
-                    perma_data = {'label': r['latest_label'], 'date': r['latest_date']}
+            # Saved by the EMA sync and webhook, not a live EMA call per student
+            perma_data = ({'label': student['perma_latest_label'], 'date': student.get('perma_latest_date')}
+                          if mhbot_un and student.get('perma_latest_label') else None)
 
             results.append({
                 'appointment_id': str(apt['_id']),
@@ -896,13 +887,36 @@ def get_my_ema_students():
         {'role': 'STUDENT', **who, **student_filter(mode, own)},
         {'name': 1, 'first_name': 1, 'last_name': 1, 'college': 1, 'year_level': 1, 'mhbot_username': 1,
          'perma_triage': 1, 'perma_crisis_cleared_at': 1}))
+    # Everything the loop needs, read in a few queries instead of several per student
+    # (with a term's worth of students the per-student queries took ~20 s)
+    ids = [st['_id'] for st in students]
+    id_set = set(ids)
+    by_name = {st['mhbot_username']: st['_id'] for st in students if st.get('mhbot_username')}
+    recent = defaultdict(list)
+    for x in db.db.perma_snapshots.find(
+            {'entry_date': {'$gte': now - timedelta(days=14)},
+             '$or': [{'student_user_id': {'$in': ids}}, {'mhbot_username': {'$in': list(by_name)}}]},
+            {'perma_label': 1, 'entry_date': 1, 'student_user_id': 1, 'mhbot_username': 1}):
+        sid = x.get('student_user_id') if x.get('student_user_id') in id_set else by_name.get(x.get('mhbot_username'))
+        if sid:
+            recent[sid].append(x)
+    latest_case, has_open_case = {}, set()
+    for c in db.db.cases.find({'student_id': {'$in': ids}}, {'student_id': 1, 'case_status': 1, 'created_at': 1}).sort('created_at', -1):
+        latest_case.setdefault(c['student_id'], c)
+        if c.get('case_status') in OPEN_CASE_STATUSES:
+            has_open_case.add(c['student_id'])
+    has_booking = set(db.db.appointments.distinct('student_id', {'student_id': {'$in': ids}, 'status': {'$in': list(BOOKED_STATUSES)}}))
+    last_reviews = {}
+    for r in db.db.perma_crisis_reviews.find({'student_id': {'$in': ids}}).sort('cleared_at', 1):
+        last_reviews[r['student_id']] = r
+    flagged_cases = {c['_id']: c for c in db.db.cases.find({'_id': {'$in': [f['case_id'] for f in case_risk.values()]}},
+                                                         {'_id': 1, 'case_status': 1})}
+
     out = []
     for st in students:
         on_ema = bool(st.get('mhbot_username'))
         triage = (st.get('perma_triage') or {}) if on_ema else {}
-        snaps = [] if not on_ema else list(db.db.perma_snapshots.find(
-            {'$or': [{'student_user_id': st['_id']}, {'mhbot_username': st['mhbot_username']}],
-             'entry_date': {'$gte': now - timedelta(days=14)}}, {'perma_label': 1, 'entry_date': 1}))
+        snaps = recent.get(st['_id'], []) if on_ema else []
         days = {}
         for x in snaps:
             if x.get('perma_label') in LABEL_SCORE:
@@ -912,7 +926,7 @@ def get_my_ema_students():
                  for d in (today - timedelta(days=i) for i in range(13, -1, -1))]
         last = triage.get('last_checkin')
         days_silent = (now - datetime.fromisoformat(last)).days if last else None
-        case = db.db.cases.find_one({'student_id': st['_id']}, sort=[('created_at', -1)], projection={'_id': 1, 'case_status': 1})
+        case = latest_case.get(st['_id'])
 
         # Why this student needs the counselor, in plain words, most urgent first
         needs = []
@@ -935,12 +949,10 @@ def get_my_ema_students():
             needs.append({'level': 'medium', 'text': 'Struggling this week'})
         if triage.get('label') in AT_RISK:
             # At risk but outside care: no open case and nothing booked
-            open_case = db.db.cases.find_one({'student_id': st['_id'], 'case_status': {'$in': list(OPEN_CASE_STATUSES)}}, {'_id': 1})
-            booked = db.db.appointments.find_one({'student_id': st['_id'], 'status': {'$in': list(BOOKED_STATUSES)}}, {'_id': 1})
-            if not open_case and not booked:
+            if st['_id'] not in has_open_case and st['_id'] not in has_booking:
                 needs.append({'level': 'high', 'text': 'At risk with no open case and nothing booked'})
         # A reviewed crisis should be followed by a session; flag it after 3 days without one
-        last_review = db.db.perma_crisis_reviews.find_one({'student_id': st['_id']}, sort=[('cleared_at', -1)])
+        last_review = last_reviews.get(st['_id'])
         if last_review and now - last_review['cleared_at'] >= timedelta(days=3) and now - last_review['cleared_at'] <= timedelta(days=30):
             seen = db.db.appointments.find_one({'student_id': st['_id'], 'status': {'$in': ['COMPLETED', 'FOLLOW_UP']},
                                                 'scheduled_start': {'$gte': last_review['cleared_at'] + timedelta(hours=8) - timedelta(days=1)}}, {'_id': 1})
@@ -952,7 +964,7 @@ def get_my_ema_students():
 
         needs.sort(key=lambda n: ['urgent', 'high', 'medium', 'info'].index(n['level']))   # stable: same level keeps order
         if flagged:     # link to the flagged (open) case, not an older or newer one
-            case = db.db.cases.find_one({'_id': flagged['case_id']}, {'_id': 1, 'case_status': 1})
+            case = flagged_cases.get(flagged['case_id'])
         sources = (['EMA'] if any(n.get('source', 'EMA') == 'EMA' and n['level'] != 'info' for n in needs) else []) \
             + (['Counselor'] if flagged else [])
         out.append({
@@ -1028,23 +1040,20 @@ def get_perma_distribution():
     if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_shared_ema_token()
-    if not token:
-        return jsonify({'error': 'EMA service is currently unavailable'}), 503
-
     try:
         labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
         counts = {l: 0 for l in labels}
         counts['No Data'] = 0
         total = 0
 
+        # Latest labels as saved by the EMA sync and webhook. Asking EMA live meant one HTTP call
+        # per student on every page load: minutes once a term's worth of students is linked.
         from services.ema_access import student_filter
         mode, own = _ema_scope()
         for student in db.db.users.find({'mhbot_username': {'$exists': True, '$ne': None}, 'role': 'STUDENT',
-                                         **student_filter(mode, own)}):
+                                         **student_filter(mode, own)}, {'perma_latest_label': 1}):
             total += 1
-            r = get_perma_history(student['mhbot_username'], token, limit=1)
-            label = r['latest_label'] if r['success'] else None
+            label = student.get('perma_latest_label')
             if label in counts:
                 counts[label] += 1
             else:
@@ -1125,9 +1134,6 @@ def get_perma_trends():
     if _staff_access_denied(user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
-    token = _get_shared_ema_token()
-    if not token:
-        return jsonify({'error': 'EMA service is currently unavailable'}), 503
 
     from datetime import datetime as dt
     labels = ['Excelling', 'Thriving', 'Surviving', 'Struggling', 'In Crisis']
@@ -1157,22 +1163,18 @@ def get_perma_trends():
         monthly[key] = {l: 0 for l in labels}
         monthly[key]['No Data'] = 0
 
-    for student in students:
-        r = get_perma_history(student['mhbot_username'], token, limit=50)
-        if not r['success']:
-            continue
-        for entry in r['data']:
-            try:
-                d = dt.fromisoformat(entry['date'].replace('Z', ''))
-                key = f"{d.year}-{str(d.month).zfill(2)}"
-                label = entry.get('perma_label')
-                if key in monthly:
-                    if label in labels:
-                        monthly[key][label] += 1
-                    else:
-                        monthly[key]['No Data'] += 1
-            except Exception:
-                continue
+    # Saved results (EMA sync + webhook) counted in the database, not 50 live EMA calls per student
+    y0, m0 = months[0]
+    for row in db.db.perma_snapshots.aggregate([
+        {'$match': {'mhbot_username': {'$in': [s['mhbot_username'] for s in students]},
+                    'entry_date': {'$gte': dt(y0, m0, 1)}}},
+        {'$group': {'_id': {'y': {'$year': '$entry_date'}, 'm': {'$month': '$entry_date'}, 'label': '$perma_label'},
+                    'n': {'$sum': 1}}},
+    ]):
+        key = f"{row['_id']['y']}-{str(row['_id']['m']).zfill(2)}"
+        if key in monthly:
+            label = row['_id']['label']
+            monthly[key][label if label in labels else 'No Data'] += row['n']
 
     return jsonify({
         'months': [f"{y}-{str(m).zfill(2)}" for y, m in months],
@@ -1658,6 +1660,19 @@ def get_ema_team_overview():
     }), 200
 
 
+@mhbot_bp.route('/analytics/history', methods=['GET'])
+@jwt_required()
+def get_ema_history():
+    """Campus EMA trends from the saved daily totals (services/ema_daily_stats.py), for the same
+    roles as the team overview. ?days=30|90|180: daily points up to 31 days, weekly beyond."""
+    caller = db.db.users.find_one({'_id': _resolve_user_id(get_jwt_identity())}, {'role': 1})
+    if not caller or caller.get('role') not in ('ADMIN', 'DPO', 'CASE_MANAGER'):
+        return jsonify({'error': 'Only admins, the DPO and the case manager can see EMA trends'}), 403
+    from services.ema_daily_stats import history, HISTORY_DAYS
+    days = max(7, min(request.args.get('days', 90, type=int), HISTORY_DAYS))
+    return jsonify(history(db.db, days)), 200
+
+
 @mhbot_bp.route('/analytics/insights', methods=['GET'])
 @jwt_required()
 def get_ema_insights():
@@ -1878,7 +1893,8 @@ def check_mhbot_health():
         return jsonify({'status': 'unhealthy', 'mhbot_server': MHBOT_BASE_URL, 'error': f'HTTP {resp.status_code}'}), 503
     except requests.exceptions.Timeout:
         return jsonify({'status': 'timeout', 'mhbot_server': MHBOT_BASE_URL, 'error': 'Server not responding'}), 503
-    except requests.exceptions.ConnectionError as e:
-        return jsonify({'status': 'error', 'mhbot_server': MHBOT_BASE_URL, 'error': str(e)[:100]}), 503
-    except Exception as e:
-        return jsonify({'status': 'error', 'mhbot_server': MHBOT_BASE_URL, 'error': str(e)}), 500
+    except requests.exceptions.ConnectionError:
+        return jsonify({'status': 'error', 'mhbot_server': MHBOT_BASE_URL, 'error': 'Cannot connect'}), 503
+    except Exception:
+        logger.exception('EMA health check failed')
+        return jsonify({'status': 'error', 'mhbot_server': MHBOT_BASE_URL, 'error': 'Health check failed'}), 500

@@ -4,7 +4,7 @@
  * Strategy: network-first for API calls, cache-first for static assets.
  */
 
-const CACHE_NAME = 'dlsu-cps-v1';
+const CACHE_NAME = 'dlsu-cps-v2';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
@@ -51,18 +51,28 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Static assets: cache-first, fall back to network
-  event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(response => {
-        if (!response || response.status !== 200 || response.type === 'opaque') {
-          return response;
+  // Build files and images never change under the same URL: cache-first
+  if (url.pathname.startsWith('/_next/static/') || /\.(png|jpg|jpeg|svg|ico|webp|woff2?)$/.test(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then(cached => cached || fetch(request).then(response => {
+        if (response && response.status === 200 && response.type !== 'opaque') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
         }
+        return response;
+      }))
+    );
+    return;
+  }
+
+  // Pages: network-first so a new deploy shows at once; the cached copy is only for offline
+  event.respondWith(
+    fetch(request).then(response => {
+      if (response && response.status === 200 && response.type === 'basic') {
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-        return response;
-      });
-    })
+      }
+      return response;
+    }).catch(() => caches.match(request))
   );
 });

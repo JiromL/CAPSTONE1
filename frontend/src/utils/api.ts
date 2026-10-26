@@ -34,7 +34,9 @@ export async function apiFetch(input: string, init: RequestInit = {}): Promise<R
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(input, { ...init, headers });
+  // Relative '/api/...' paths go to the backend, not to the Next.js server
+  const url = input.startsWith('/') ? api(input) : input;
+  const res = await fetch(url, { ...init, headers });
 
   if (res.status !== 401) return res;
 
@@ -55,5 +57,5 @@ export async function apiFetch(input: string, init: RequestInit = {}): Promise<R
   }
 
   headers.set('Authorization', `Bearer ${newToken}`);
-  return fetch(input, { ...init, headers });
+  return fetch(url, { ...init, headers });
 }

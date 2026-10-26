@@ -32,6 +32,9 @@ function LoginContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const sessionExpired = searchParams.get('expired') === 'true';
+  // Where to go after signing in. Same-site paths only, so a link cannot send people elsewhere.
+  const nextParam = searchParams.get('next') ?? '';
+  const afterLogin = nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.startsWith('/\\') ? nextParam : '/dashboard';
   const { theme, toggleTheme } = useTheme();
   const office = useOfficeStatus();
 
@@ -101,7 +104,7 @@ function LoginContent() {
       localStorage.setItem('token', d.access_token);
       if (d.refresh_token) localStorage.setItem('refresh_token', d.refresh_token);
       localStorage.setItem('user', JSON.stringify(d));
-      router.replace('/dashboard');
+      router.replace(afterLogin);
     } catch { setError('Google sign-in failed. Please try again or use email and password.'); }
     finally { setLoading(false); }
   };
@@ -124,7 +127,7 @@ function LoginContent() {
       localStorage.setItem('token', d.access_token);
       if (d.refresh_token) localStorage.setItem('refresh_token', d.refresh_token);
       localStorage.setItem('user', JSON.stringify(d));
-      router.replace('/dashboard');
+      router.replace(afterLogin);
     } catch { setError('Unable to connect. Check your internet connection and try again.'); }
     finally { setLoading(false); }
   };

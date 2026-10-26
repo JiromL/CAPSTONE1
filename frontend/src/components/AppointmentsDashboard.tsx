@@ -340,6 +340,8 @@ export default function AppointmentsDashboard() {
   const fetchPermaLabels = async (apts: Appointment[]) => {
     const usernames = apts.map(a => a.mhbot_username).filter(Boolean) as string[];
     if (usernames.length === 0) return;
+    // Office assistants never see EMA labels (backend EMA_DATA_ROLES), so do not ask
+    try { if (JSON.parse(localStorage.getItem('user') || '{}').role?.toUpperCase() === 'STAFF') return; } catch {}
     try {
       const token = localStorage.getItem('token');
       const r = await fetch(api('/api/mhbot/batch-labels'), {

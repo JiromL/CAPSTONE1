@@ -160,7 +160,7 @@ function PendingNotesPanel() {
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Session on {fmtDate(item.scheduled_start)}</p>
               </div>
               <Link
-                href={item.case_id ? `/cases/${item.case_id}` : '/cases'}
+                href={item.case_id ? `/cases/${item.case_id}?tab=session-notes&note_for=${item.appointment_id}` : '/cases'}
                 className="flex-shrink-0 text-xs px-2.5 py-1 text-white rounded-lg transition-opacity hover:opacity-90"
                 style={{ background: 'var(--color-warning)' }}>
                 Add Note

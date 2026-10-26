@@ -327,7 +327,10 @@ function CaseDetailContent() {
   const [closureChecks, setClosureChecks] = useState({ notes: false, referrals: false, notified: false });
   const [confirmingNoShowTerm, setConfirmingNoShowTerm] = useState(false);
   const [reopeningCase, setReopeningCase] = useState(false);
-  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [showNoteForm, setShowNoteForm] = useState(() => !!searchParams.get('note_for'));
+  // The session a new note documents. Saved with the note so the dashboard's
+  // "Pending Session Notes" knows it is done (dashboard links pass ?note_for=<appointment id>).
+  const [noteAppointmentId, setNoteAppointmentId] = useState<string | null>(() => searchParams.get('note_for'));
   const [noteForm, setNoteForm] = useState({ ...emptyNote, session_date: '' });
   const [structuredSoap, setStructuredSoap] = useState<StructuredSOAPData>({ ...emptyStructuredSOAP });
   const [savingNote, setSavingNote] = useState(false);
@@ -729,6 +732,7 @@ function CaseDetailContent() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       setNoteForm({ ...emptyNote, session_date: now.toISOString().slice(0, 16) });
+      setNoteAppointmentId(appointmentId);
       setShowNoteForm(true);
       setActiveTab('clinical-record');
       showSuccess('Appointment marked complete — fill in the session note below.');
@@ -1106,6 +1110,8 @@ function CaseDetailContent() {
     const student = cd.student || {};
     const username = student.mhbot_username;
     if (!username) return;
+    // Admins and the DPO see EMA as totals only (services/ema_access.py): no per-student history
+    try { if (['ADMIN', 'DPO'].includes(JSON.parse(localStorage.getItem('user') || '{}').role?.toUpperCase())) return; } catch {}
     setPermaLoading(true);
     if (!silent) setMhbotError('');
     try {
@@ -1369,9 +1375,10 @@ function CaseDetailContent() {
     try {
       setSavingNote(true);
       const token = localStorage.getItem('token');
-      const payload = noteForm.note_format === 'SOAP'
+      const base = noteForm.note_format === 'SOAP'
         ? { ...noteForm, structured_soap: structuredSoap }
         : noteForm;
+      const payload = noteAppointmentId ? { ...base, appointment_id: noteAppointmentId } : base;
       const res = await fetch(api(`/api/counseling/case/${caseId}/session-note`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1383,6 +1390,7 @@ function CaseDetailContent() {
       }
       showSuccess('Session note saved');
       setShowNoteForm(false);
+      setNoteAppointmentId(null);
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       setNoteForm({ ...emptyNote, session_date: now.toISOString().slice(0, 16) });

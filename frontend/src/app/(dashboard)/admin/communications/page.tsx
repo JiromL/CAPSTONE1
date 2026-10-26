@@ -37,7 +37,7 @@ export default function CommunicationsPage() {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`/api/admin/users?role=${roleFilter}&limit=200`);
+      const res = await apiFetch(`/api/users?role=${roleFilter}&limit=200`);
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || data || []);

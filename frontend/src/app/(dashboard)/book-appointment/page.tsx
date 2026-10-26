@@ -378,7 +378,7 @@ function BookAppointmentContent() {
       if (r.ok) {
         clearDraft();
         const apptId = d.counseling_id || d.appointment_id || '';
-        setTicketNumber(apptId); setAppointmentId(apptId);
+        setTicketNumber(d.reference_id || apptId); setAppointmentId(apptId);
         if (purpose === 'intake_interview') {
           setIcf(p => ({ ...p, first_name: user?.first_name||'', last_name: user?.last_name||'', email: user?.email||'', student_id: user?.student_id||user?.id_number||'', phone: user?.phone||'', college: user?.college||'', program: user?.program||user?.course||'', emergency_contact_name: user?.emergency_contact||'', emergency_contact_relationship: user?.emergency_contact_relationship||'', emergency_contact_phone: user?.emergency_phone||'', presenting_concern: concern, referral_source: referralType==='referred'?'referred':'self-referred', referred_by: referredBy }));
           setIntakeStep(0); setIntakeError('');
@@ -856,7 +856,7 @@ function BookAppointmentContent() {
                 <p className="text-lg font-bold">Ticket #{ticketNumber}</p>
                 {isSlotBooking ? (
                   <p className="text-sm mt-1 text-white/80">
-                    Your slot at <strong>{fmtT(prefTime)}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. Your IC will confirm it within 1–2 business days.
+                    Your slot at <strong>{fmtT(prefTime)}</strong> on <strong>{new Date(prefDate+'T12:00:00').toLocaleDateString('en-PH',{ timeZone: 'Asia/Manila',weekday:'long',month:'long',day:'numeric'})}</strong> is reserved. {purpose === 'intake_interview' ? 'Your IC' : 'Your counselor'} will confirm it within 1–2 business days.
                   </p>
                 ) : (
                   <p className="text-sm mt-1 text-white/80">Taking this step takes courage. The CPS team will reach out within 1–2 business days to schedule your session.</p>
@@ -869,9 +869,13 @@ function BookAppointmentContent() {
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-muted)' }}>What happens next</p>
             <ol className="space-y-3">
               {(isSlotBooking ? [
-                { label: 'IC reviews your slot', desc: 'Your intake counselor will confirm or adjust your reserved time within 1–2 business days.' },
+                purpose === 'intake_interview'
+                  ? { label: 'IC reviews your slot', desc: 'Your intake counselor will confirm or adjust your reserved time within 1–2 business days.' }
+                  : { label: 'Your counselor reviews your slot', desc: 'Your counselor will confirm or adjust your reserved time within 1–2 business days.' },
                 { label: 'Check your email', desc: "You'll receive a confirmation email at your DLSU address once your appointment is confirmed." },
-                { label: 'Attend your intake interview', desc: 'Bring a valid DLSU ID. The session is confidential and takes about 30–45 minutes.' },
+                purpose === 'intake_interview'
+                  ? { label: 'Attend your intake interview', desc: 'Bring a valid DLSU ID. The session is confidential and takes about 30–45 minutes.' }
+                  : { label: 'Attend your session', desc: 'Bring a valid DLSU ID. Your session is confidential.' },
               ] : [
                 { label: 'Office reviews your request', desc: 'The CPS office will review your request and reach out within 1–2 business days.' },
                 { label: 'Check your email', desc: "You'll receive scheduling details at your DLSU email address." },

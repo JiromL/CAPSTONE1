@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import SessionTimeoutWarning from '@/components/SessionTimeoutWarning';
+import { canAccessPage, type UserRole } from '@/utils/roleAccess';
 
 export default function ICLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const routerRef = useRef(router);
 
   useEffect(() => {
@@ -21,14 +23,15 @@ export default function ICLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const user = JSON.parse(userRaw);
-      const role = (user.role || '').toUpperCase();
-      if (role !== 'IC') {
-        router.replace('/login');
+      // Same rule as every other page (utils/roleAccess): admins and the DPO may open IC pages too
+      const role = (user.role || '').toUpperCase() as UserRole;
+      if (!canAccessPage(pathname, role)) {
+        router.replace('/dashboard');
       }
     } catch {
       router.replace('/login');
     }
-  }, [router]);
+  }, [router, pathname]);
 
   // Global 401 interceptor — mirrors the (dashboard) layout pattern.
   useEffect(() => {

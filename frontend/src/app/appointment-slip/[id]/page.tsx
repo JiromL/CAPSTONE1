@@ -255,7 +255,7 @@ export default function AppointmentSlipPage() {
                   <p className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Reminders</p>
                   <p>· Bring a valid school ID</p>
                   <p>· Arrive 10 minutes early</p>
-                  <p>· QR expires 30 min after generation</p>
+                  <p>· QR is valid only on your appointment day</p>
                   <p>· Reschedule at least 24 hrs in advance</p>
                 </div>
               </div>

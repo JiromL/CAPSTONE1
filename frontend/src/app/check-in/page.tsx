@@ -21,7 +21,7 @@ interface CheckInResult {
   error?: string;
 }
 
-type State = 'loading' | 'success' | 'error';
+type State = 'loading' | 'success' | 'error' | 'signin';
 
 function formatDt(dt: string | undefined) {
   if (!dt) return '—';
@@ -53,13 +53,23 @@ function CheckInContent() {
       return;
     }
 
+    // Checking in is for CPS staff: the student's own phone must not be able to do it
+    const staffToken = localStorage.getItem('token');
+    if (!staffToken) {
+      setState('signin');
+      return;
+    }
     fetch(api('/api/qr/verify-public'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${staffToken}` },
       body: JSON.stringify({ token, appointment_id: appt }),
     })
-      .then(r => r.json())
+      .then(async r => {
+        if (r.status === 401 || r.status === 422) { setState('signin'); return null; }
+        return r.json();
+      })
       .then(data => {
+        if (!data) return;
         if (data.success) {
           setState('success');
           setResult(data);
@@ -143,6 +153,20 @@ function CheckInContent() {
                 <p className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>Student has been marked as arrived</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Not signed in as staff */}
+        {state === 'signin' && (
+          <div className="rounded-2xl p-6 text-center space-y-3"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+            <User size={32} className="mx-auto" style={{ color: 'var(--color-primary)' }} />
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>CPS staff sign-in needed</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Students: show this QR code at the CPS desk. Staff: sign in on this device to check the student in.
+            </p>
+            <a href={`/login?next=${encodeURIComponent(`/check-in?token=${token ?? ''}&appt=${appt ?? ''}`)}`}
+              className="btn-primary inline-flex text-sm">Sign in as staff</a>
           </div>
         )}
 

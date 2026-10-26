@@ -34,7 +34,7 @@ import os, sys, subprocess, random
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import bcrypt
+from werkzeug.security import generate_password_hash
 from pymongo import MongoClient
 from bson import ObjectId
 
@@ -72,7 +72,7 @@ db  = client[DB_NAME]
 rng = random.Random(42)
 now = datetime.utcnow()
 
-DEMO_PW = bcrypt.hashpw(b'Demo1234!', bcrypt.gensalt()).decode()
+DEMO_PW = generate_password_hash('Demo1234!')
 
 print("=" * 60)
 print("STEP 2 — Applying Demo1234! passwords to key accounts")

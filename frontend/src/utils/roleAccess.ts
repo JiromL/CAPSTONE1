@@ -85,6 +85,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/admin/resources':           ['ADMIN', 'DPO'],
   '/admin/logs':                ['ADMIN', 'DPO'],
   '/admin/alerts':              ['ADMIN', 'DPO'],
+  '/admin/communications':      ['ADMIN'],
   '/admin/reports/cases':       ['ADMIN', 'DPO'],
   '/admin/reports/export':      ['ADMIN', 'DPO'],
   '/admin/reports/compliance':  ['ADMIN', 'DPO'],

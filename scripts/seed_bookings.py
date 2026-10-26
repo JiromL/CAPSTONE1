@@ -4,12 +4,13 @@ Seed realistic booking workflow appointments:
   REQUESTED  — student submitted, no counselor/time assigned yet
   PENDING_APPROVAL — staff assigned counselor + time, awaiting counselor confirmation
 """
+import os
 from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime, timedelta
 import random, re
 
-db = MongoClient()['cps_system_dev']
+db = MongoClient(os.getenv('MONGODB_URI', 'mongodb://localhost:27017'))[os.getenv('MONGODB_DB_NAME', 'cps_system_dev')]
 now = datetime.utcnow()
 
 def _weekday(dt, step):

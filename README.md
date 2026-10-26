@@ -90,7 +90,8 @@ backend/venv/bin/python scripts/seed_all.py
 ```
 
 It runs, in order: `seed.py` (base data), `enrich_ic_forms.py`, `seed_bookings.py`, `seed_structured_soap.py`,
-`seed_announcements.py`, `seed_ema.py` and the staff sample data.
+`seed_announcements.py`, `seed_ema.py`, `seed_intakes.py` (an intake record per case, for the Intake tab) and the
+staff sample data.
 
 `seed_ema.py` makes the EMA data follow the app's triage rules: EMA consent for every linked student, when each
 result reached CPS, about 4 months of history, crisis reviews with notes, journal entries (some saved from EMA),
@@ -109,6 +110,20 @@ situation. Log in as the case manager (`cm@dlsu.edu.ph`) and open the CM Queue t
 | Nina Cruz (`ncruz@`) | No check-in for 12 days | Struggling, marked stale |
 
 After seeding: **64 users, 45 cases, about 2,500 EMA results, about 130 crisis reviews, about 55 journal entries**
+
+#### Stress seed (worst case)
+
+`scripts/seed_stress.py` builds a separate database, **`cps_system_stress`**, that looks like the busiest point
+of the term: the demo data plus about 1,500 more students, 1,200 cases piled unevenly on counselors, every
+clinician's next four weeks about 95% booked, months of past sessions (many still missing their note), a backlog of
+unassigned requests and walk-ins, a waitlist, and about 75,000 EMA results with crises. Your dev data is not touched.
+
+```bash
+backend/venv/bin/python scripts/seed_stress.py            # about 1-2 minutes; --students 400 for a lighter run
+DEV_DB_NAME=cps_system_stress backend/venv/bin/python backend/app.py
+```
+
+Staff use the usual accounts below; every stress student's password is `stress123`.
 
 ### Tests
 

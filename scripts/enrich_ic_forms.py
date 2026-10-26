@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Enrich all cases with complete IC interview form data (all 11 wizard sections)."""
+import os
 from pymongo import MongoClient
 
-db = MongoClient()['cps_system_dev']
+db = MongoClient(os.getenv('MONGODB_URI', 'mongodb://localhost:27017'))[os.getenv('MONGODB_DB_NAME', 'cps_system_dev')]
 
 # ── Shorthand option strings (exact wizard option text) ──────────────────────
 GA = {

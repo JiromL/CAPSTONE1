@@ -31,6 +31,7 @@ STEPS = [
     ('seed_structured_soap.py', 'Structured SOAP session notes'),
     ('seed_announcements.py',   'Announcements (title · body · type · pinned)'),
     ('seed_ema.py',             'EMA triage scenarios · crisis reviews · EMA consent · journal entries'),
+    ('seed_intakes.py',         'Intake records for every case (Intake tab: PHQ-9 / GAD-7 and the IC triage)'),
 ]
 
 for i, (script, desc) in enumerate(STEPS, start=1):

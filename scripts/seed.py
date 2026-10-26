@@ -37,6 +37,7 @@ WIPE = [
     'perma_snapshots','perma_history','perma_crisis_reviews','missed_appointment_tracker',
     'notifications','announcements','resources','consent_records',
     'reschedule_requests','non_counseling_clients',
+    'ema_daily_stats',   # derived from the snapshots above: stale after a reseed
     'referrals','referral_logs','counselor_referrals','case_handovers',
     'high_risk_checkins','crisis_escalations','waitlist','feedback',
     'reminders','journal_entries','progress_metrics','video_links',

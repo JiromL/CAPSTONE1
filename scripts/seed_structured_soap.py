@@ -3,10 +3,11 @@
 Add structured SOAP session notes (using the StructuredSOAPForm schema)
 to several cases that currently only have free-form notes.
 """
+import os
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 
-db = MongoClient()['cps_system_dev']
+db = MongoClient(os.getenv('MONGODB_URI', 'mongodb://localhost:27017'))[os.getenv('MONGODB_DB_NAME', 'cps_system_dev')]
 now = datetime.utcnow()
 
 def H(days, h=10, m=0):

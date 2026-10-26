@@ -71,7 +71,8 @@ class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = False
     MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
-    MONGODB_DB_NAME = 'cps_system_dev'
+    # DEV_DB_NAME=cps_system_stress runs the app on the stress seed (scripts/seed_stress.py)
+    MONGODB_DB_NAME = os.getenv('DEV_DB_NAME', 'cps_system_dev')
     SMTP_HOST = os.getenv('SMTP_HOST')
     SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
     SMTP_USER = os.getenv('SMTP_USER')

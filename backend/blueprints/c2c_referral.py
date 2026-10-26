@@ -15,8 +15,19 @@ c2c_referral_bp = Blueprint('c2c_referral', __name__, url_prefix='/api/counselor
 
 # Import database and utilities
 from models import db, PermissionType
-from utils import audit_log, user_has_permission, server_error
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from utils import audit_log, user_has_permission, server_error, is_staff
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+
+
+@c2c_referral_bp.before_request
+def staff_only():
+    """Referrals between counselors are clinical records: never for students."""
+    if request.method == 'OPTIONS':
+        return None
+    verify_jwt_in_request()
+    if not is_staff(db.db, get_jwt_identity()):
+        return jsonify({'error': 'Only CPS staff can view counselor referrals'}), 403
+    return None
 
 # Permission decorators
 

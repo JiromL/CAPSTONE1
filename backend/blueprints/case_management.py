@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, can_read_session_notes, case_access_error
 from datetime import datetime, timedelta, timezone
 
 case_management_bp = Blueprint('case_management', __name__, url_prefix='/api/case-management')
@@ -35,6 +35,10 @@ def create_session_note():
     try:
         case_id = ObjectId(data['case_id'])
         case = db.db.cases.find_one({"_id": case_id})
+        # case_id comes from the body, so the URL-based case rule (app.py) does not apply
+        denied = case_access_error(db.db, user_id, case_id)
+        if denied:
+            return jsonify({'error': denied[0]}), denied[1]
     except:
         return jsonify({'error': 'Invalid case_id format'}), 400
     
@@ -177,7 +181,7 @@ def get_session_note_versions(note_id):
     """View all versions of a session note (Feature 1.3)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not can_read_session_notes(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions to view session notes'}), 403
     
     try:
@@ -213,7 +217,7 @@ def get_session_note_version(note_id, version_id):
     """View specific version of a session note (Feature 1.4)"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not can_read_session_notes(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
@@ -326,6 +330,10 @@ def initiate_handover():
         case_id = ObjectId(data['case_id'])
         to_counselor_id = ObjectId(data['to_counselor_id'])
         case = db.db.cases.find_one({"_id": case_id})
+        # case_id comes from the body, so the URL-based case rule (app.py) does not apply
+        denied = case_access_error(db.db, user_id, case_id)
+        if denied:
+            return jsonify({'error': denied[0]}), denied[1]
     except:
         return jsonify({'error': 'Invalid case_id or to_counselor_id format'}), 400
     
@@ -568,6 +576,10 @@ def log_referral():
     try:
         case_id = ObjectId(data['case_id'])
         case = db.db.cases.find_one({"_id": case_id})
+        # case_id comes from the body, so the URL-based case rule (app.py) does not apply
+        denied = case_access_error(db.db, user_id, case_id)
+        if denied:
+            return jsonify({'error': denied[0]}), denied[1]
     except:
         return jsonify({'error': 'Invalid case_id format'}), 400
     

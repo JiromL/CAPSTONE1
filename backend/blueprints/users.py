@@ -225,7 +225,7 @@ def list_users_by_role():
         current = db.db.users.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
     except Exception:
         current = None
-    if not current or current.get('role') not in ('STAFF', 'ADMIN', 'PSYCHOLOGIST', 'COUNSELOR', 'IC'):
+    if not current or current.get('role') not in ('STAFF', 'ADMIN', 'DPO', 'PSYCHOLOGIST', 'COUNSELOR', 'IC'):
         return jsonify({'error': 'Insufficient permissions'}), 403
 
     role  = request.args.get('role')

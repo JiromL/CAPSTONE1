@@ -12,6 +12,7 @@ from models import db, UserRole
 from utils import audit_log
 from datetime import datetime, timezone
 from bson import ObjectId
+import re
 import uuid
 
 client_tracking_bp = Blueprint('client_tracking', __name__, url_prefix='/api/client-tracking')
@@ -44,7 +45,7 @@ def get_new_intakes():
 
     page  = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
-    search = request.args.get('search', '')
+    search = re.escape(request.args.get('search', '').strip())   # literal text, not a regex
     month  = request.args.get('month', '')
     status = request.args.get('status', '')
 
@@ -152,7 +153,7 @@ def get_new_intakes_counts():
     if user['role'] == UserRole.STUDENT:
         return jsonify({"error": "Access denied"}), 403
 
-    search = request.args.get('search', '')
+    search = re.escape(request.args.get('search', '').strip())   # literal text, not a regex
     month  = request.args.get('month', '')
     mine   = request.args.get('mine', 'false').lower() == 'true'
 
@@ -201,7 +202,7 @@ def get_walk_in_intakes():
         return jsonify({"error": "Access denied"}), 403
     page  = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 50, type=int)
-    search = request.args.get('search', '')
+    search = re.escape(request.args.get('search', '').strip())   # literal text, not a regex
     query = {}
     if search:
         query['$or'] = [
@@ -333,7 +334,7 @@ def get_check_in_clients():
     
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
-    search = request.args.get('search', '')
+    search = re.escape(request.args.get('search', '').strip())   # literal text, not a regex
     month = request.args.get('month', '')
     concern_filter = request.args.get('concern', '')
     status_filter = request.args.get('status', '')
@@ -477,7 +478,7 @@ def get_counseling_cases():
     
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
-    search = request.args.get('search', '')
+    search = re.escape(request.args.get('search', '').strip())   # literal text, not a regex
     month = request.args.get('month', '')
     status_filter = request.args.get('status', '')
     

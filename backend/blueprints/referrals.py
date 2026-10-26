@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, is_staff, case_access_error
 from datetime import datetime, timedelta, timezone
 
 referrals_bp = Blueprint('referrals', __name__, url_prefix='/api/referrals')
@@ -43,6 +43,20 @@ INTERNAL_STATUSES = {
 
 
 
+
+def _referral_case_scope(user_id):
+    """Which cases' referrals the caller may list. Referrals hold abuse allegations and
+    investigation findings: oversight roles see all, counselors and psychologists only
+    their own cases, everyone else (office staff, intake, students) none.
+    Returns a case filter, {} for all, or None when the caller may not list referrals."""
+    user = db.db.users.find_one({'_id': ObjectId(user_id)}, {'role': 1})
+    role = (user or {}).get('role')
+    if role in ('ADMIN', 'DPO', 'CASE_MANAGER'):
+        return {}
+    if role in ('COUNSELOR', 'PSYCHOLOGIST'):
+        return {'case_id': {'$in': [c['_id'] for c in db.db.cases.find({'assigned_counselor_id': ObjectId(user_id)}, {'_id': 1})]}}
+    return None
+
 @referrals_bp.route('/initiate', methods=['POST'])
 @jwt_required()
 def initiate_referral():
@@ -59,10 +73,14 @@ def initiate_referral():
         return jsonify({'error': 'Missing required fields: case_id, referral_type'}), 400
     
     try:
-        cid = ObjectId(data['case_id'])
-        case = db.db.cases.find_one({"_id": cid})
-    except:
-        case = db.db.cases.find_one({"_id": data['case_id']})
+        cid = ObjectId(str(data['case_id']))
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+    # The case comes from the body, so the URL-based case rule (app.py) does not see it
+    denied = case_access_error(db.db, user_id, cid)
+    if denied:
+        return jsonify({'error': denied[0]}), denied[1]
+    case = db.db.cases.find_one({"_id": cid})
     
     if not case:
         return jsonify({'error': 'Case not found'}), 404
@@ -918,13 +936,16 @@ def get_pending_warm_handoffs():
     user_id = get_jwt_identity()
     
     # Check permission
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not is_staff(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     # Get pending referrals across all types
+    scope = _referral_case_scope(user_id)
+    if scope is None:
+        return jsonify({'error': 'Insufficient permissions'}), 403
     pending = list(db.db.referrals.find({
         "status": {"$nin": ["COMPLETED", "CASE_CLOSED", "REJECTED"]},
-        "warm_handoff_completed": False
+        "warm_handoff_completed": False, **scope
     }).sort("created_at", 1))
     
     result_referrals = []
@@ -1035,7 +1056,7 @@ def get_referral_summary():
     """Get summary of all referrals by status"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not is_staff(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     all_referrals = list(db.db.referrals.find())
@@ -1089,11 +1110,14 @@ def list_cps_referrals():
     """List all CPS referrals with investigation status"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not is_staff(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
+    scope = _referral_case_scope(user_id)
+    if scope is None:
+        return jsonify({'error': 'Insufficient permissions'}), 403
     cps_referrals = list(db.db.referrals.find({
-        "referral_type": "CPS"
+        "referral_type": "CPS", **scope
     }).sort("created_at", -1))
     
     result = []

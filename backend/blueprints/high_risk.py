@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, RiskLevel, UserRole, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, is_staff
 from datetime import datetime, timedelta, timezone
 
 high_risk_bp = Blueprint('high_risk', __name__, url_prefix='/api/high-risk')
@@ -670,7 +670,7 @@ def get_daily_updates_due():
     user_id = get_jwt_identity()
     
     # Check permission
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not is_staff(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     now = datetime.now(timezone.utc).replace(tzinfo=None)

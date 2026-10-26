@@ -166,7 +166,8 @@ def get_staff_resources(staff_id):
         
         for resource in resources:
             resource['_id'] = str(resource['_id'])
-            resource['uploaded_by_user_id'] = str(resource['uploaded_by_user_id'])
+            if resource.get('uploaded_by_user_id'):   # link resources have no uploader
+                resource['uploaded_by_user_id'] = str(resource['uploaded_by_user_id'])
             if isinstance(resource.get('created_at'), datetime):
                 resource['created_at'] = resource['created_at'].isoformat()
             if isinstance(resource.get('updated_at'), datetime):
@@ -188,7 +189,8 @@ def get_staff_resources(staff_id):
 @token_required
 def get_student_resources():
     """
-    Get wellness resources from the student's assigned counselor/psychologist
+    Wellness resources for the Resources page. Students get the CPS-wide resources plus those
+    their assigned counselor/psychologist uploaded; staff get every active resource.
     
     Flow:
     1. Get current user (must be STUDENT)
@@ -198,7 +200,6 @@ def get_student_resources():
     
     Returns:
         - 200: List of resources
-        - 400: User is not a student
         - 404: Student case not found
     """
     from flask_jwt_extended import get_jwt
@@ -207,44 +208,41 @@ def get_student_resources():
     user_id = claims.get('sub')
     role = claims.get('role')
     
-    if role != 'STUDENT':
-        return jsonify({'error': 'Only students can access this endpoint'}), 400
-    
-    try:
-        # Find student's case
-        case = db.db.cases.find_one({'student_id': ObjectId(user_id)})
-        if not case:
-            return jsonify({
-                'case_found': False,
-                'resources': [],
-                'message': 'No active case found. Resources will be available after intake.'
-            }), 200
-        
-        assigned_counselor_id = case.get('assigned_counselor_id')
-        if not assigned_counselor_id:
-            return jsonify({
-                'case_found': True,
-                'resources': [],
-                'message': 'Case under review. Resources will be available once assigned.'
-            }), 200
-        
-        # Get counselor/psychologist info
-        counselor = db.db.users.find_one({'_id': ObjectId(assigned_counselor_id)})
-        
-        # Get resources uploaded by assigned counselor
-        resources = list(db.db.resources.find(
-            {'uploaded_by_user_id': ObjectId(assigned_counselor_id)},
-            {'file_path': 0, 'file_size': 0}
-        ).sort('created_at', -1))
-        
-        for resource in resources:
+    general = {'uploaded_by_user_id': {'$exists': False}, 'is_active': {'$ne': False}}   # CPS-wide links
+
+    def listing(query):
+        out = list(db.db.resources.find(query, {'file_path': 0, 'file_size': 0}).sort('created_at', -1))
+        for resource in out:
             resource['_id'] = str(resource['_id'])
-            resource['uploaded_by_user_id'] = str(resource['uploaded_by_user_id'])
+            if resource.get('uploaded_by_user_id'):   # link resources have no uploader
+                resource['uploaded_by_user_id'] = str(resource['uploaded_by_user_id'])
             if isinstance(resource.get('created_at'), datetime):
                 resource['created_at'] = resource['created_at'].isoformat()
             if isinstance(resource.get('updated_at'), datetime):
                 resource['updated_at'] = resource['updated_at'].isoformat()
-        
+        return out
+
+    try:
+        # Staff open the same page: they see every active resource
+        if role != 'STUDENT':
+            resources = listing({'is_active': {'$ne': False}})
+            return jsonify({'resources_count': len(resources), 'resources': resources}), 200
+
+        # Students: CPS-wide resources, plus their own counselor's uploads once assigned
+        case = db.db.cases.find_one({'student_id': ObjectId(user_id)})
+        assigned_counselor_id = (case or {}).get('assigned_counselor_id')
+        if not assigned_counselor_id:
+            resources = listing(general)
+            return jsonify({
+                'case_found': bool(case),
+                'resources': resources,
+                'message': 'Case under review. Your counselor can share more resources once assigned.' if case
+                           else 'No active case found. Your counselor can share more resources after intake.'
+            }), 200
+
+        counselor = db.db.users.find_one({'_id': ObjectId(assigned_counselor_id)})
+        resources = listing({'$or': [general, {'uploaded_by_user_id': ObjectId(assigned_counselor_id)}]})
+
         return jsonify({
             'case_id': str(case['_id']),
             'assigned_to': counselor.get('name', 'Unknown') if counselor else 'Unknown',
@@ -284,10 +282,15 @@ def download_resource(resource_id):
         if not resource:
             return jsonify({'error': 'Resource not found'}), 404
         
+        # Link resources (no uploaded file) are open to everyone: hand back the link
+        if not resource.get('file_path'):
+            return jsonify({'resource_id': resource_id, 'title': resource.get('title'),
+                            'download_url': resource.get('url'), 'expires_in_seconds': None}), 200
+
         # Authorization check for students
         if role == 'STUDENT':
             case = db.db.cases.find_one({'student_id': ObjectId(user_id)})
-            if not case or str(case.get('assigned_counselor_id')) != str(resource['uploaded_by_user_id']):
+            if not case or str(case.get('assigned_counselor_id')) != str(resource.get('uploaded_by_user_id')):
                 return jsonify({'error': 'Not authorized to download this resource'}), 403
         
         # Generate presigned download URL
@@ -301,7 +304,7 @@ def download_resource(resource_id):
         return jsonify({
             'resource_id': resource_id,
             'title': resource['title'],
-            'file_name': resource['file_name'],
+            'file_name': resource.get('file_name'),
             'download_url': download_url,
             'expires_in_seconds': 3600
         }), 200
@@ -330,7 +333,8 @@ def get_resource_info(resource_id):
             return jsonify({'error': 'Resource not found'}), 404
         
         resource['_id'] = str(resource['_id'])
-        resource['uploaded_by_user_id'] = str(resource['uploaded_by_user_id'])
+        if resource.get('uploaded_by_user_id'):   # link resources have no uploader
+            resource['uploaded_by_user_id'] = str(resource['uploaded_by_user_id'])
         if isinstance(resource.get('created_at'), datetime):
             resource['created_at'] = resource['created_at'].isoformat()
         if isinstance(resource.get('updated_at'), datetime):
@@ -366,11 +370,11 @@ def delete_resource(resource_id):
             return jsonify({'error': 'Resource not found'}), 404
         
         # Check authorization
-        if str(resource['uploaded_by_user_id']) != user_id and role != 'ADMIN':
+        if str(resource.get('uploaded_by_user_id')) != user_id and role != 'ADMIN':
             return jsonify({'error': 'Not authorized to delete this resource'}), 403
         
         # Delete from S3 if applicable
-        if resource['file_path'].startswith('resources/'):
+        if (resource.get('file_path') or '').startswith('resources/'):
             try:
                 s3 = S3Integration(current_app.config)
                 if s3.enabled:

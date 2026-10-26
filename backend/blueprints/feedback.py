@@ -14,7 +14,7 @@ feedback_bp = Blueprint('feedback', __name__, url_prefix='/api/feedback')
 
 # Import database and utilities
 from models import db, PermissionType
-from utils import audit_log, user_has_permission, server_error
+from utils import audit_log, user_has_permission, server_error, case_access_error
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
@@ -113,12 +113,24 @@ def submit_feedback():
         if data['feedback_type'] not in valid_types:
             return jsonify({"error": f"Invalid feedback_type. Must be one of: {', '.join(valid_types)}"}), 400
         
+        # Who the feedback is about comes from the case, not the body: otherwise anyone could
+        # rate any counselor in another student's name and skew the performance reports
+        try:
+            case_oid = ObjectId(str(data['case_id']))
+            session_oid = ObjectId(str(data['session_id']))
+        except Exception:
+            return jsonify({"error": "Invalid case_id or session_id"}), 400
+        denied = case_access_error(db.db, user_id, case_oid)
+        if denied:
+            return jsonify({"error": denied[0]}), denied[1]
+        case = db.db.cases.find_one({'_id': case_oid}, {'student_id': 1, 'assigned_counselor_id': 1})
+
         feedback_doc = {
-            "case_id": ObjectId(data['case_id']),
-            "session_id": ObjectId(data['session_id']),
+            "case_id": case_oid,
+            "session_id": session_oid,
             "feedback_type": data['feedback_type'],
-            "counselor_id": data['counselor_id'],
-            "client_id": data['client_id'],
+            "counselor_id": str(case.get('assigned_counselor_id') or ''),
+            "client_id": str(case.get('student_id') or ''),
             "submitted_by": user_id,
             "responses": data['responses'],
             "overall_satisfaction": data.get('overall_satisfaction'),

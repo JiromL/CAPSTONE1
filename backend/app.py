@@ -15,8 +15,10 @@ from pathlib import Path
 # override=True ensures these values beat any pre-existing shell env vars.
 env_path = Path(__file__).parent.parent / '.env'
 backend_env_path = Path(__file__).parent / '.env'
-load_dotenv(dotenv_path=env_path, override=True)
-load_dotenv(dotenv_path=backend_env_path, override=True)
+# Tests (conftest.py) set FLASK_ENV=testing first; overriding it would point them at the dev database.
+_override = os.getenv('FLASK_ENV') != 'testing'
+load_dotenv(dotenv_path=env_path, override=_override)
+load_dotenv(dotenv_path=backend_env_path, override=_override)
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -176,6 +178,28 @@ def create_app(config_name=None):
         from scheduler import start_scheduler
         start_scheduler(app)
 
+    # A deactivated account's tokens stop working at once, not when they expire (24 h / 30 days)
+    @app.before_request
+    def refuse_deactivated_accounts():
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from bson import ObjectId
+        if request.method == 'OPTIONS':
+            return None
+        try:
+            verify_jwt_in_request(optional=True)
+            user_id = get_jwt_identity()
+        except Exception:
+            return None   # the route's own @jwt_required reports bad or expired tokens
+        if not user_id:
+            return None
+        try:
+            user = mongodb.users.find_one({'_id': ObjectId(user_id)}, {'is_active': 1})
+        except Exception:
+            return None
+        if user and user.get('is_active') is False:
+            return jsonify({'error': 'This account has been deactivated'}), 401
+        return None
+
     # One access rule for every URL that names a case or a record inside a case, so
     # sub-resources (notes, safety plans, check-ins, referrals…) follow the case page's rules
     @app.before_request
@@ -204,8 +228,9 @@ def create_app(config_name=None):
             # Check MongoDB connection
             mongodb.client.admin.command('ping')
             mongodb_status = 'connected'
-        except Exception as e:
-            mongodb_status = f'error: {str(e)}'
+        except Exception:
+            mongodb_status = 'error'   # details go to the log, not to anonymous callers
+            app.logger.exception('Health check: MongoDB ping failed')
         
         return jsonify({
             'status': 'Backend is running',
@@ -236,8 +261,9 @@ def create_app(config_name=None):
                     if hasattr(v, 'isoformat'):
                         r[k] = v.isoformat()
             return jsonify({'scheduler_runs': runs}), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception:
+            app.logger.exception('Scheduler health check failed')
+            return jsonify({'error': 'Could not read scheduler status'}), 500
 
     # Error handlers
     @app.errorhandler(404)

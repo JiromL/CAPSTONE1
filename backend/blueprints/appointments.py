@@ -220,7 +220,7 @@ def auto_assign_appointment(appointment_id):
         
         # Find available counselor — intake goes to IC only, others to COUNSELOR/PSYCHOLOGIST
         counselor = find_available_counselor(
-            appointment['case_id'],
+            appointment.get('case_id'),   # requests can exist before their case does
             appointment['requested_start'],
             appointment['requested_end'],
             preferred_method,
@@ -243,7 +243,7 @@ def auto_assign_appointment(appointment_id):
         )
         
         # Also update the case with the assigned counselor (if not already assigned)
-        case = db.db.cases.find_one({"_id": appointment['case_id']})
+        case = db.db.cases.find_one({"_id": appointment['case_id']}) if appointment.get('case_id') else None
         if case and not case.get('assigned_counselor_id'):
             db.db.cases.update_one(
                 {"_id": appointment['case_id']},
@@ -942,14 +942,15 @@ def request_appointment():
     if data.get('case_id'):
         # Use provided case_id
         try:
-            case_id = ObjectId(data['case_id']) if isinstance(data['case_id'], str) else data['case_id']
-            case = db.db.cases.find_one({"_id": case_id})
-            if not case:
-                return jsonify({'error': 'Case not found'}), 404
-        except:
-            case = db.db.cases.find_one({"_id": data['case_id']})
-            if not case:
-                return jsonify({'error': 'Case not found'}), 404
+            case_id = ObjectId(str(data['case_id']))
+        except Exception:
+            return jsonify({'error': 'Invalid case ID'}), 400
+        case = db.db.cases.find_one({"_id": case_id})
+        if not case:
+            return jsonify({'error': 'Case not found'}), 404
+        # The appointment is always the caller's own, so it may only join their own case
+        if str(case.get('student_id')) != str(user_id_obj):
+            return jsonify({'error': 'You can only book under your own case'}), 403
     else:
         # Auto-create case for student if needed
         # Reuse existing open case; don't link a new appointment to a closed/cancelled case
@@ -1182,10 +1183,10 @@ def match_counselor(appointment_id):
     if data.get('counselor_id'):
         # Manual assignment
         try:
-            counselor_id = ObjectId(data['counselor_id'])
-            counselor = db.db.users.find_one({"_id": counselor_id})
-        except:
-            counselor = db.db.users.find_one({"_id": data['counselor_id']})
+            counselor_id = ObjectId(str(data['counselor_id']))
+        except Exception:
+            return jsonify({'error': 'Invalid counselor ID'}), 400
+        counselor = db.db.users.find_one({"_id": counselor_id})
         
         if not counselor:
             return jsonify({'error': 'Counselor not found'}), 404
@@ -3003,7 +3004,9 @@ def get_appointment_details(appointment_id):
     # 2. Counselor can view appointments they're assigned to
     # 3. Check case.student_id if appointment.student_id is not set (for backwards compatibility)
     
-    has_permission = False
+    # Oversight roles may open any appointment (the session page is open to them in roleAccess)
+    viewer = db.db.users.find_one({'_id': user_id_obj}, {'role': 1}) or {}
+    has_permission = viewer.get('role') in ('ADMIN', 'DPO')
     
     # Check if user is the student
     if student_id and str(user_id_obj) == str(student_id):
@@ -4014,7 +4017,7 @@ def list_reschedule_requests():
     """List all pending reschedule requests (appointments rescheduled by students awaiting approval)"""
     user_id = get_jwt_identity()
     user = db.db.users.find_one({"_id": ObjectId(user_id) if isinstance(user_id, str) else user_id})
-    if not user or user.get('role') not in ['ADMIN', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
+    if not user or user.get('role') not in ['ADMIN', 'DPO', 'CASE_MANAGER', 'STAFF', 'COUNSELOR', 'PSYCHOLOGIST', 'IC']:
         return jsonify({'error': 'Access denied'}), 403
 
     role = user.get('role', '')

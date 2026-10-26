@@ -46,7 +46,10 @@ def has_permission(user_role, permission):
 
 def get_cases_for_user(user_id, user_role):
     """Get cases filtered by role"""
-    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER, UserRole.PSYCHOLOGIST, UserRole.COUNSELOR, UserRole.IC, UserRole.STAFF]:
+    if user_role in [UserRole.COUNSELOR, UserRole.PSYCHOLOGIST]:
+        # Same rule as opening a case (utils.case_access_error): only cases assigned to them
+        return {'assigned_counselor_id': ObjectId(user_id)}
+    if user_role in [UserRole.DPO, UserRole.ADMIN, UserRole.CASE_MANAGER, UserRole.IC, UserRole.STAFF]:
         # These roles see all cases (further scoped by my_cases param if needed)
         return {}
     elif user_role == UserRole.STUDENT:

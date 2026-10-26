@@ -23,11 +23,16 @@ class OAuthService:
         Verify Google ID token
         Returns user info if valid, None if invalid
         """
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        if not client_id:
+            # Without it google-auth skips the audience check, so a Google token issued to any
+            # other site would be accepted here
+            return None
         try:
             idinfo = id_token.verify_oauth2_token(
                 token,
                 requests.Request(),
-                os.getenv('GOOGLE_CLIENT_ID')
+                client_id
             )
             
             # Verify token is not expired (Google does this automatically)
@@ -36,6 +41,8 @@ class OAuthService:
                 return None
             
             email = idinfo.get('email', '')
+            if not idinfo.get('email_verified'):
+                return None
             
             # Check allowed domain
             if not self._is_allowed_email(email):

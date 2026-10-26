@@ -14,6 +14,19 @@ from models import db
 
 qr_bp = Blueprint('qr', __name__, url_prefix='/api/qr')
 
+# The QR code is shown to the student, so the link alone must not check them in: whoever
+# scans it has to be signed in as CPS staff. Otherwise a student could check in from home.
+CHECKIN_ROLES = ('STAFF', 'IC', 'COUNSELOR', 'PSYCHOLOGIST', 'CASE_MANAGER', 'ADMIN')
+
+
+def _not_staff():
+    try:
+        uid = ObjectId(get_jwt_identity())
+    except Exception:
+        return True
+    user = db.db.users.find_one({'_id': uid}, {'role': 1})
+    return not user or user.get('role') not in CHECKIN_ROLES
+
 
 def _qr_expiry_minutes():
     return current_app.config.get('QR_EXPIRY_MINUTES', 30)
@@ -49,10 +62,9 @@ def generate_qr(appointment_id):
     # Expiry = end of the appointment's scheduled day (midnight UTC+8 → UTC)
     scheduled = appt.get('scheduled_start') or appt.get('requested_start')
     if scheduled and hasattr(scheduled, 'date'):
-        from datetime import timezone
         appt_date = scheduled.date()
-        # midnight PH time (UTC+8) = 16:00 UTC previous day
-        expires_at = datetime(appt_date.year, appt_date.month, appt_date.day, 16, 0, 0) + timedelta(days=1)
+        # scheduled_start is Philippine wall-clock time; the PH midnight that ends that day is 16:00 UTC on the same date
+        expires_at = datetime(appt_date.year, appt_date.month, appt_date.day, 16, 0, 0)
     else:
         expires_at = now + timedelta(hours=24)
 
@@ -94,6 +106,8 @@ def generate_qr(appointment_id):
 @jwt_required()
 def verify_checkin():
     """Staff scans QR → verify token and mark appointment as checked in."""
+    if _not_staff():
+        return jsonify({'error': 'Only CPS staff can check students in. Please show this QR code at the CPS desk.'}), 403
     data = request.get_json() or {}
     token = data.get('token')
     appointment_id = data.get('appointment_id') or data.get('appt')
@@ -140,8 +154,11 @@ def verify_checkin():
 
 
 @qr_bp.route('/verify-public', methods=['POST'])
+@jwt_required()
 def verify_checkin_public():
-    """Public endpoint — no JWT needed. Token is the security. Staff scans QR → this verifies."""
+    """The check-in page a scanned QR code opens (/check-in). Staff only, see CHECKIN_ROLES."""
+    if _not_staff():
+        return jsonify({'error': 'Only CPS staff can check students in. Please show this QR code at the CPS desk.'}), 403
     data = request.get_json() or {}
     token = data.get('token')
     appointment_id = data.get('appointment_id') or data.get('appt')

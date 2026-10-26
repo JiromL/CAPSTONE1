@@ -180,7 +180,6 @@ ROLE_PERMISSIONS = {
         PermissionType.CREATE_ASSESSMENT,
         PermissionType.VIEW_NOTES,
         PermissionType.EDIT_NOTES,
-        PermissionType.VIEW_AUDIT_LOG,
     },
     UserRole.PSYCHOLOGIST: {
         PermissionType.VIEW_CASE,
@@ -190,7 +189,6 @@ ROLE_PERMISSIONS = {
         PermissionType.VIEW_NOTES,
         PermissionType.EDIT_NOTES,
         PermissionType.VIEW_SENSITIVE_FIELDS,
-        PermissionType.VIEW_AUDIT_LOG,
         PermissionType.VIEW_RISK_DASHBOARD,
         PermissionType.ESCALATE_CRISIS,
     },
@@ -268,6 +266,7 @@ class MongoDB:
             self.db.users.create_index("email", unique=True)
             # One record per EMA result; also stops two syncs from saving the same result twice
             self.db.perma_snapshots.create_index([("mhbot_username", 1), ("entry_date", 1)], unique=True)
+            self.db.perma_snapshots.create_index("entry_date")   # day-based EMA totals and trends
             self.db.cases.create_index("student_id")
             self.db.cases.create_index("assigned_counselor_id")
             self.db.assessments.create_index("case_id")

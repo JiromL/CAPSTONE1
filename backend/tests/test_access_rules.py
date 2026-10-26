@@ -195,6 +195,14 @@ def test_insights_are_care_team_only(client, world):
     assert r.status_code == 200 and r.get_json()['min_group'] == 5
 
 
+def test_ema_trends_are_for_admins_dpo_and_case_manager(client, world):
+    for who in ('student', 'office', 'counselor'):
+        assert client.get('/api/mhbot/analytics/history', headers=auth(world[who])).status_code == 403
+    for who in ('admin', 'cm'):
+        r = client.get('/api/mhbot/analytics/history?days=30', headers=auth(world[who]))
+        assert r.status_code == 200 and r.get_json()['granularity'] == 'day'
+
+
 # ── EMA scope: own students, everyone, or totals only (services/ema_access.py) ──
 
 @pytest.fixture

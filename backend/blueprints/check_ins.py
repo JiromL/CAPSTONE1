@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, PermissionType, ClientStatus, TransactionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, is_staff, case_access_error
 from datetime import datetime, timedelta, timezone
 
 check_ins_bp = Blueprint('check_ins', __name__, url_prefix='/api/check-ins')
@@ -38,10 +38,14 @@ def create_check_in():
         return jsonify({'error': f'Invalid check_in_type. Must be one of: {", ".join(valid_types)}'}), 400
     
     try:
-        case_id = ObjectId(data['case_id'])
-        case = db.db.cases.find_one({"_id": case_id})
-    except:
-        case = db.db.cases.find_one({"_id": data['case_id']})
+        case_id = ObjectId(str(data['case_id']))
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+    # The case comes from the body, so the URL-based case rule (app.py) does not see it
+    denied = case_access_error(db.db, user_id, case_id)
+    if denied:
+        return jsonify({'error': denied[0]}), denied[1]
+    case = db.db.cases.find_one({"_id": case_id})
     
     if not case:
         return jsonify({'error': 'Case not found'}), 404
@@ -185,7 +189,7 @@ def get_pending_check_ins():
     """Get all pending/overdue check-ins across cases"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not is_staff(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -358,7 +362,7 @@ def get_check_in_summary():
     """Get summary of check-in statuses"""
     user_id = get_jwt_identity()
     
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_CASE.value) or not is_staff(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     # Count cases by client status

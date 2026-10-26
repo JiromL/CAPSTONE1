@@ -627,7 +627,7 @@ def case_summary(case_id):
     """GET /api/reports/case-summary/<case_id> — structured case data for printing."""
     from flask_jwt_extended import get_jwt
     role = get_jwt().get('role', '')
-    if role not in ('ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'STAFF'):
+    if role not in ('ADMIN', 'DPO', 'COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER'):   # includes session notes: no office staff
         return jsonify({'error': 'Access denied'}), 403
 
     try:

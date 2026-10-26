@@ -935,7 +935,7 @@ def get_emergency_intakes():
     user_id = get_jwt_identity()
     user = db.db.users.find_one({"_id": ObjectId(user_id)})
     
-    if not user or user.get('role') not in ['PSYCHOLOGIST', 'COUNSELOR', 'CASE_MANAGER']:
+    if not user or user.get('role') not in ['PSYCHOLOGIST', 'COUNSELOR', 'CASE_MANAGER', 'ADMIN', 'DPO']:
         return jsonify({'error': 'Only counseling staff can view emergency intakes'}), 403
     
     emergency_intakes = list(db.db.intakes.find({
@@ -1071,18 +1071,28 @@ def init_indexes():
         return jsonify({'error': 'Only admins can initialize indexes'}), 403
     
     try:
-        # Create efficient database indexes
-        db.db.intakes.create_index([("is_emergency", 1), ("status", 1), ("student_submitted_at", -1)])
-        db.db.intakes.create_index([("case_id", 1)])
-        db.db.intakes.create_index([("assigned_counselor_id", 1), ("status", 1)])
-        db.db.intakes.create_index([("urgency_level", 1), ("student_submitted_at", -1)])
-        db.db.intakes.create_index([("responses.phq9_score", 1), ("responses.gad7_score", 1)])
-        db.db.assessments.create_index([("case_id", 1)])
-        db.db.assessments.create_index([("assessment_type", 1), ("created_at", -1)])
-        db.db.cases.create_index([("student_id", 1)])
-        db.db.cases.create_index([("assigned_counselor_id", 1)])
-        db.db.cases.create_index([("case_status", 1)])
-        
+        # Create efficient database indexes. Ones that already exist under another name
+        # (e.g. created at startup) are fine: skip them
+        from pymongo.errors import OperationFailure
+        specs = [
+            ('intakes', [("is_emergency", 1), ("status", 1), ("student_submitted_at", -1)]),
+            ('intakes', [("case_id", 1)]),
+            ('intakes', [("assigned_counselor_id", 1), ("status", 1)]),
+            ('intakes', [("urgency_level", 1), ("student_submitted_at", -1)]),
+            ('intakes', [("responses.phq9_score", 1), ("responses.gad7_score", 1)]),
+            ('assessments', [("case_id", 1)]),
+            ('assessments', [("assessment_type", 1), ("created_at", -1)]),
+            ('cases', [("student_id", 1)]),
+            ('cases', [("assigned_counselor_id", 1)]),
+            ('cases', [("case_status", 1)]),
+        ]
+        for coll, keys in specs:
+            try:
+                db.db[coll].create_index(keys)
+            except OperationFailure as e:
+                if e.code not in (85, 86):   # IndexOptionsConflict / IndexKeySpecsConflict
+                    raise
+
         return jsonify({
             'status': 'success',
             'message': 'All database indexes created successfully'
@@ -2379,6 +2389,7 @@ def load_intake_draft():
         return jsonify({'message': 'No draft found', 'has_draft': False}), 200
     
     draft['_id'] = str(draft['_id'])
+    draft['student_id'] = str(draft['student_id'])
     draft['created_at'] = draft['created_at'].isoformat()
     draft['updated_at'] = draft['updated_at'].isoformat()
     
@@ -2528,7 +2539,9 @@ def list_intakes():
                 student = db.db.users.find_one({'_id': ObjectId(str(student_id))})
             except Exception:
                 pass
-        student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student else 'Unknown'
+        # First-time walk-ins have no student account yet; the appointment keeps their name
+        student_name = (f"{student.get('first_name', '')} {student.get('last_name', '')}".strip() if student
+                        else appt.get('student_name') or 'Unknown')
 
         # Check if student pre-submitted an intake packet
         packet = db.db.intake_packets.find_one({'appointment_id': appt['_id']})
@@ -2545,7 +2558,7 @@ def list_intakes():
             '_id': str(appt['_id']),
             'student_id': str(student_id) if student_id else '',
             'student_name': student_name,
-            'student_email': student.get('email', '') if student else '',
+            'student_email': student.get('email', '') if student else appt.get('student_email', ''),
             'status': appt.get('status', ''),
             'verification_status': appt.get('verification_status', 'pending'),
             'appointment_type': appt.get('appointment_type', ''),

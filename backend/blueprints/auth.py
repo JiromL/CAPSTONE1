@@ -5,7 +5,7 @@ MongoDB-compatible version with Google OAuth2.0 and Email Verification
 """
 
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, UserRole, PermissionType, ROLE_PERMISSIONS
 from utils import audit_log, user_has_permission
@@ -155,6 +155,22 @@ def register():
 
     email = data['email'].lower().strip()
 
+    # Admin → Add User sends the admin's token: an admin or the DPO picks the role and vouches
+    # for the address. Public sign-ups are always unverified students, whatever they send.
+    creator = None
+    try:
+        verify_jwt_in_request(optional=True)
+        if get_jwt_identity():
+            creator = db.db.users.find_one({'_id': ObjectId(get_jwt_identity())}, {'role': 1})
+    except Exception:
+        creator = None
+    by_admin = bool(creator) and creator.get('role') in ('ADMIN', 'DPO')
+    role = UserRole.STUDENT.value
+    if by_admin and data.get('role'):
+        if data['role'] not in [r.value for r in UserRole]:
+            return jsonify({'error': 'Invalid role'}), 400
+        role = data['role']
+
     allowed_domain = current_app.config.get('ALLOWED_EMAIL_DOMAIN', '@dlsu.edu.ph')
     if not email.endswith(allowed_domain):
         return jsonify({'error': f'Only {allowed_domain} email addresses are allowed'}), 400
@@ -162,7 +178,7 @@ def register():
     # Check if email already exists
     existing_user = db.db.users.find_one({"email": email})
     if existing_user:
-        if existing_user.get('is_verified'):
+        if existing_user.get('is_verified') or by_admin:
             return jsonify({'error': 'Email already registered'}), 409
         else:
             # User exists but not verified, send new code
@@ -203,13 +219,13 @@ def register():
         "password_hash": generate_password_hash(data['password']),
         "first_name": data['first_name'],
         "last_name": data['last_name'],
-        "role": UserRole.STUDENT.value,
+        "role": role,
         "phone": data.get('phone'),
         "department": data.get('department'),
         "specializations": data.get('specializations', []),
         "is_active": True,
-        "is_verified": False,
-        "verification_code": verification_code,
+        "is_verified": by_admin,
+        "verification_code": None if by_admin else verification_code,
         "verification_token": verification_token,
         "verification_code_expires": code_expiry,
         "verification_attempts": 0,
@@ -223,28 +239,31 @@ def register():
     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
     verify_url = f"{frontend_url}/verify-email?token={verification_token}&email={email}"
 
-    # Send verification email with button + code fallback
-    email_service.send_verification_email(
-        email,
-        data['first_name'],
-        verification_code,
-        verify_url=verify_url
-    )
+    # Send verification email with button + code fallback (not needed when an admin created it)
+    if not by_admin:
+        email_service.send_verification_email(
+            email,
+            data['first_name'],
+            verification_code,
+            verify_url=verify_url
+        )
     
     audit_log(db.db, 'user', 'create', entity_id=str(result.inserted_id), new_values={
         'email': user_doc['email'],
         'role': user_doc['role'],
-        'is_verified': False
+        'is_verified': by_admin,
+        'created_by_admin': by_admin,
     })
     
     return jsonify({
-        'message': 'Account created. Please check your email for verification code.',
+        'message': 'Account created.' if by_admin else 'Account created. Please check your email for verification code.',
         'email': email,
         'user_id': str(result.inserted_id)
     }), 201
 
 
 @auth_bp.route('/verify-email', methods=['POST'])
+@limiter.limit("10 per minute; 30 per hour")
 def verify_email():
     """Verify email with verification code"""
     data = request.get_json()
@@ -339,6 +358,7 @@ def verify_email_link():
 
 
 @auth_bp.route('/resend-code', methods=['POST'])
+@limiter.limit("3 per minute; 10 per hour")   # each resend resets the 5-guess limit
 def resend_code():
     """Resend verification code"""
     data = request.get_json()
@@ -727,10 +747,17 @@ def reset_password():
 def refresh_token():
     """Issue a new access token using a valid refresh token"""
     user_id = get_jwt_identity()
-    claims = get_jwt()
+    # Read the role and status now, not from the old token: a refresh token lives 30 days,
+    # and a changed role or a deactivated account must take effect on the next refresh
+    try:
+        user = db.db.users.find_one({'_id': ObjectId(user_id)}, {'role': 1, 'is_active': 1})
+    except Exception:
+        user = None
+    if not user or not user.get('is_active', True):
+        return jsonify({'error': 'Account is not active'}), 401
     new_access_token = create_access_token(
         identity=user_id,
-        additional_claims={'role': claims.get('role', '')}
+        additional_claims={'role': user.get('role', '')}
     )
     return jsonify({'access_token': new_access_token}), 200
 

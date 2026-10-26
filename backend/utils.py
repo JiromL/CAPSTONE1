@@ -199,6 +199,19 @@ def is_staff(db, user_id):
     return bool(user) and user.get('role') not in (None, 'STUDENT')
 
 
+NOTE_READER_ROLES = ('COUNSELOR', 'PSYCHOLOGIST', 'IC', 'CASE_MANAGER', 'ADMIN', 'DPO')
+
+
+def can_read_session_notes(db, user_id):
+    """Counseling session notes are clinical records: the care team only. Students (even for
+    their own case) and office assistants never read them, whatever permissions they hold."""
+    try:
+        user = db.users.find_one({'_id': ObjectId(user_id)}, {'role': 1})
+    except Exception:
+        return False
+    return bool(user) and user.get('role') in NOTE_READER_ROLES
+
+
 # Route parameters that point at a record belonging to a case, and where that record lives.
 _CASE_RECORD_PARAMS = {
     'appointment_id': 'appointments', 'note_id': 'session_notes', 'session_id': 'session_notes',

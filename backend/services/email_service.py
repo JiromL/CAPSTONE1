@@ -6,6 +6,7 @@ Brand colour: #2352CC (matches --color-primary in the frontend).
 import smtplib
 import os
 import random
+import secrets
 import string
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -187,7 +188,7 @@ class EmailService:
 
     @staticmethod
     def generate_verification_code(length=6):
-        return ''.join(random.choices(string.digits, k=length))
+        return ''.join(secrets.choice(string.digits) for _ in range(length))   # not random: codes must be unguessable
 
     # ── Auth emails ─────────────────────────────────────────────────────────────
 

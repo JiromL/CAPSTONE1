@@ -474,8 +474,9 @@ def get_my_availability():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     
-    query = {'counselor_id': user_id_obj}
-    
+    # The collection also holds each counselor's weekly schedule document (no slot_start); list slots only
+    query = {'counselor_id': user_id_obj, 'slot_start': {'$exists': True}}
+
     if start_date and end_date:
         try:
             start = datetime.fromisoformat(start_date)

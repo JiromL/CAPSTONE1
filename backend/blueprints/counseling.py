@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 from models import db, AppointmentStatus, RiskLevel, PermissionType
-from utils import audit_log, user_has_permission
+from utils import audit_log, user_has_permission, can_read_session_notes, case_access_error
 from datetime import datetime, timezone
 
 counseling_bp = Blueprint('counseling', __name__, url_prefix='/api/counseling')
@@ -103,7 +103,7 @@ def get_session_note(note_id):
     user_id = get_jwt_identity()
     
     # Check permission
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_NOTES.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_NOTES.value) or not can_read_session_notes(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
@@ -240,7 +240,7 @@ def get_case_session_history(case_id):
     user_id = get_jwt_identity()
     
     # Check permission
-    if not user_has_permission(db.db, user_id, PermissionType.VIEW_NOTES.value):
+    if not user_has_permission(db.db, user_id, PermissionType.VIEW_NOTES.value) or not can_read_session_notes(db.db, user_id):
         return jsonify({'error': 'Insufficient permissions'}), 403
     
     try:
@@ -325,10 +325,14 @@ def add_progress_metric():
         return jsonify({'error': 'case_id and metric_name are required'}), 400
     
     try:
-        cid = ObjectId(data['case_id'])
-        case = db.db.cases.find_one({"_id": cid})
-    except:
-        case = db.db.cases.find_one({"_id": data['case_id']})
+        cid = ObjectId(str(data['case_id']))
+    except Exception:
+        return jsonify({'error': 'Invalid case ID'}), 400
+    # The case comes from the body, so the URL-based case rule (app.py) does not see it
+    denied = case_access_error(db.db, user_id, cid)
+    if denied:
+        return jsonify({'error': denied[0]}), denied[1]
+    case = db.db.cases.find_one({"_id": cid})
     
     if not case:
         return jsonify({'error': 'Case not found'}), 404

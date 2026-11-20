@@ -39,6 +39,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Cases',             href: '/cases',             id: 'cases'            },
     { label: 'My Schedule',       href: '/schedule',          id: 'schedule'         },
     { label: 'EMA check-ins',     href: '/mhbot',             id: 'mhbot'            },
+    { label: 'Wellness Resources', href: '/resources',        id: 'resources'   },
     H('Account'),
     { label: 'Profile',           href: '/profile',           id: 'profile'          },
   ];
@@ -51,6 +52,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Appointments', href: '/appointments', id: 'appointments'},
     { label: 'My Schedule',  href: '/schedule',     id: 'schedule'    },
     { label: 'EMA check-ins', href: '/mhbot',        id: 'mhbot'       },
+    { label: 'Wellness Resources', href: '/resources',        id: 'resources'   },
     H('Account'),
     { label: 'Profile',      href: '/profile',      id: 'profile'     },
   ];
@@ -63,6 +65,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Appointments',         href: '/appointments',id: 'appointments'},
     { label: 'My Schedule',          href: '/schedule',    id: 'schedule'    },
     { label: 'EMA check-ins',        href: '/mhbot',       id: 'mhbot'       },
+    { label: 'Wellness Resources', href: '/resources',        id: 'resources'   },
     H('Account'),
     { label: 'Profile',              href: '/profile',     id: 'profile'     },
   ];
@@ -74,6 +77,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'CM Queue',     href: '/mhbot',              id: 'cm-queue'     },
     { label: 'Cases',        href: '/cases',              id: 'cases'        },
     { label: 'Appointments', href: '/appointments',       id: 'appointments' },
+    { label: 'Wellness Resources', href: '/resources',        id: 'resources'   },
     H('Account'),
     { label: 'Profile',      href: '/profile',            id: 'profile'      },
   ];
@@ -101,6 +105,7 @@ export function getMenuItemsByRole(role: string): MenuItem[] {
     { label: 'Analytics',            href: '/admin/analytics',            id: 'analytics'       },
     { label: 'EMA overview',         href: '/mhbot',                      id: 'mhbot'           },
     { label: 'System Settings',      href: '/admin/settings',             id: 'admin-settings'  },
+    { label: 'Wellness Resources', href: '/resources',        id: 'resources'   },
     H('Account'),
     { label: 'Profile',              href: '/profile',                    id: 'profile'         },
   ];

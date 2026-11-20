@@ -179,12 +179,16 @@ class EmailService:
         self.smtp_host     = smtp_host     or os.getenv('SMTP_HOST')
         self.smtp_port     = smtp_port     or int(os.getenv('SMTP_PORT', 587))
         self.smtp_user     = smtp_user     or os.getenv('SMTP_USER')
-        self.smtp_password = smtp_password or os.getenv('SMTP_PASSWORD')
+        # SMTP_PASS is the name in .env, config.py and render.yaml; SMTP_PASSWORD also accepted
+        self.smtp_password = smtp_password or os.getenv('SMTP_PASS') or os.getenv('SMTP_PASSWORD')
         self.from_email    = os.getenv('SMTP_FROM_EMAIL', 'noreply@dlsu-cps.edu.ph')
         # EMAIL_DISABLED=1 prints emails instead of sending them: use it in development and tests,
         # where seeded accounts have real-looking @dlsu.edu.ph addresses that could reach real people
         self.dev_mode      = (os.getenv('EMAIL_DISABLED') == '1'
                               or not (self.smtp_host and self.smtp_user and self.smtp_password))
+        # EMAIL_ALLOWLIST=a@dlsu.edu.ph,b@gmail.com: only these addresses get real email (a live demo
+        # on seeded data); every other email is printed like dev mode. Unset = everyone.
+        self.allowlist = {a.strip().lower() for a in os.getenv('EMAIL_ALLOWLIST', '').split(',') if a.strip()}
 
     @staticmethod
     def generate_verification_code(length=6):
@@ -458,7 +462,7 @@ class EmailService:
         if not to:
             return False
 
-        if self.dev_mode:
+        if self.dev_mode or (self.allowlist and to.strip().lower() not in self.allowlist):
             print(f'\n{"="*60}')
             print(f'[EMAIL DEV] To: {to}')
             print(f'[EMAIL DEV] Subject: {subject}')

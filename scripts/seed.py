@@ -57,9 +57,12 @@ _case_seq = [0]
 
 def ph(pw):    return generate_password_hash(pw)
 def _weekday(dt, step):
-    # CPS runs Monday to Friday: move a weekend date to the nearest weekday in the given direction
-    while dt.weekday() >= 5:
-        dt += timedelta(days=step)
+    # CPS runs Monday to Friday: move a weekend date onto a weekday in the given direction. Spread over
+    # Mon-Fri by the date itself (not always the nearest Friday/Monday), so the same date always lands
+    # on the same weekday and the week doesn't pile up on one day.
+    if dt.weekday() >= 5:
+        dt += timedelta(days=step * (dt.weekday() - 4 + dt.toordinal() % 5)) if step < 0 else \
+            timedelta(days=(7 - dt.weekday()) + dt.toordinal() % 5)
     return dt
 def H(d, h=9, m=0):  return _weekday((now - timedelta(days=d)).replace(hour=h, minute=m, second=0, microsecond=0), -1)
 def F(d, h=9, m=0):  return _weekday((now + timedelta(days=abs(d))).replace(hour=h, minute=m, second=0, microsecond=0), 1)
@@ -68,7 +71,19 @@ def cnum():
     _case_seq[0] += 1
     return f'CPS-2025-{_case_seq[0]:03d}'
 
-_YR_PFX = {'1st Year': 124, '2nd Year': 123, '3rd Year': 122, '4th Year': 121}
+# ID prefix = 1 + two-digit entry year, counted from the current academic year (starts in August)
+_AY = now.year if now.month >= 8 else now.year - 1
+_YR_PFX = {f'{n}{s} Year': 100 + (_AY - n + 1) % 100 for n, s in [(1, 'st'), (2, 'nd'), (3, 'rd'), (4, 'th')]}
+
+
+def _current_dob(dob, yr, course):
+    # Undergrads are about 18 + years in school; Juris Doctor students keep their listed (older) age
+    if course == 'Juris Doctor' or yr not in _YR_PFX:
+        return dob
+    entry_year = 2000 + _YR_PFX[yr] - 100
+    born = datetime.strptime(dob, '%Y-%m-%d')
+    year = entry_year - 18 if (born.month, born.day) < (8, 1) else entry_year - 19
+    return born.replace(year=year).strftime('%Y-%m-%d')
 
 def sid(yr, n):
     return f'{_YR_PFX.get(yr, 120)}{n:05d}'
@@ -186,7 +201,7 @@ for first, last, email, pw, college, course, yr, id_sfx, ph_sfx, dob in _student
         college=college, course=course, year_level=yr,
         student_id=sid(yr, int(id_sfx)),
         contact_number=f'0917{ph_sfx.zfill(7)}',
-        date_of_birth=dob,
+        date_of_birth=_current_dob(dob, yr, course),
         emergency_contact={
             'name': f'{last} Parent',
             'relationship': 'Parent',
@@ -864,9 +879,13 @@ for sv, (baseline, trend) in _perma_map.items():
         # ~75% check-in rate — students don't check in every single day
         if rng.random() > 0.75 and day != 0:
             continue
+        # EMA is open every day, unlike the CPS office (no H() weekday rounding), but quieter on weekends
+        entry_date = (now - timedelta(days=day)).replace(hour=rng.randint(7, 22), minute=rng.randint(0, 59),
+                                                         second=0, microsecond=0)
+        if entry_date.weekday() >= 5 and rng.random() < 0.3 and day != 0:
+            continue
         cur_val = _next_value(cur_val, base_idx, trend, (DAYS_OF_HISTORY - day) / DAYS_OF_HISTORY)
         label = _LABEL_ORDER[round(cur_val)]
-        entry_date = H(day, h=rng.randint(7, 22), m=rng.randint(0, 59))
         while entry_date in seen_dates:
             entry_date += timedelta(minutes=rng.randint(1, 15))
         seen_dates.add(entry_date)

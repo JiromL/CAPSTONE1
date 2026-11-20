@@ -82,7 +82,7 @@ export const pagePermissions: Record<string, UserRole[]> = {
   '/admin/backup':              ['ADMIN', 'DPO'],
   '/admin/database':            ['ADMIN', 'DPO'],
   '/admin/health':              ['ADMIN', 'DPO'],
-  '/admin/resources':           ['ADMIN', 'DPO'],
+  '/admin/resources':           ['ADMIN', 'DPO'],   // moved: redirects to /resources
   '/admin/logs':                ['ADMIN', 'DPO'],
   '/admin/alerts':              ['ADMIN', 'DPO'],
   '/admin/communications':      ['ADMIN'],

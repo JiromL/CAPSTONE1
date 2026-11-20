@@ -292,6 +292,7 @@ function CaseDetailContent() {
   const [diagForm, setDiagForm] = useState({ code: '', description: '', type: 'primary', system: 'DSM-5' });
   const [savingDiag, setSavingDiag] = useState(false);
   const [permaHistory, setPermaHistory] = useState<Array<{ date: string; perma_label: string | null }>>([]);
+  const [permaNote, setPermaNote] = useState('');   // set when EMA is unreachable and saved results are shown
   const [permaLoading, setPermaLoading] = useState(false);
   const [permaTrendDrop, setPermaTrendDrop] = useState<string | null>(null);
   const [mhbotUsername, setMhbotUsername] = useState('');
@@ -1123,6 +1124,7 @@ function CaseDetailContent() {
         const d = await r.json();
         const history = d.history ?? [];
         setPermaHistory(history);
+        setPermaNote(d.source === 'saved' ? 'Saved results from the last EMA sync; live EMA data is unavailable right now.' : '');
         setPermaTrendDrop(detectTrendDrop(history));
       } else if (!silent) {
         setMhbotError('Failed to fetch PERMA history');
@@ -3750,6 +3752,7 @@ function CaseDetailContent() {
                   <p className="text-sm text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No PERMA records found</p>
                 ) : (
                   <>
+                    {permaNote && <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>{permaNote}</p>}
                     <ResponsiveContainer width="100%" height={220}>
                       <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                         <defs>

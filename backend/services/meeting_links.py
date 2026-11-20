@@ -63,6 +63,7 @@ def create_meeting_link(appointment: dict, counselor: dict, student: dict, start
         if made:
             if p != platform:
                 print(f"⚠ {platform} unavailable; used {p} instead")
+                made['meeting_platform_requested'] = platform   # so staff can see the student asked for another platform
             return {**made, 'is_telehealth': True}
     print(f"⚠ No meeting link could be created for appointment {appointment.get('_id')}")
     return None

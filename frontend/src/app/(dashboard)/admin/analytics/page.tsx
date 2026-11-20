@@ -23,7 +23,8 @@ interface Summary {
 }
 interface MonthlyAppt  { short: string; label: string; total: number; completed: number; cancelled: number; no_show: number; }
 interface MonthlyCase  { short: string; label: string; new_cases: number; closed_cases: number; high_risk: number; }
-interface StaffMember  { name: string; role: string; active_cases: number; week_completed: number; }
+interface StaffMember  { name: string; role: string; active_cases: number; week_completed: number;
+  caseload_label?: string; weekly_hours?: number; booked_next_7d?: number; utilization_pct?: number | null; }
 interface ApptStats    { completion_rate: number; no_show_rate: number; avg_wait_days: number; total_appointments: number; completed: number; no_shows: number; cancelled: number; }
 interface DayCount     { day: string; count: number; }
 interface HourCount    { hour: string; count: number; }
@@ -264,7 +265,6 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
   isDark: boolean;
 }) {
   const ct = useChartTheme(isDark);
-  const maxCases = Math.max(...staff.map(s => s.active_cases), 1);
 
   const attentionItems = [
     summary?.pending_appointments && summary.pending_appointments > 0
@@ -377,11 +377,11 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
       </div>
 
       {staff.length > 0 && (
-        <Card title="Staff Utilization" subtitle="Active caseload per counselor — who is at capacity?">
+        <Card title="Staff Utilization" subtitle="Share of each clinician's weekly hours already booked for the next 7 days">
           <div className="space-y-2.5">
-            {staff.slice(0, 10).map(s => {
-              const pct = Math.min(Math.round((s.active_cases / maxCases) * 100), 100);
-              const barColor = pct >= 80 ? C.red : pct >= 60 ? C.amber : C.green;
+            {[...staff].filter(s => s.utilization_pct != null).sort((a, b) => (b.utilization_pct ?? 0) - (a.utilization_pct ?? 0)).slice(0, 10).map(s => {
+              const pct = Math.min(s.utilization_pct ?? 0, 100);
+              const barColor = pct >= 90 ? C.red : pct >= 70 ? C.amber : C.green;
               return (
                 <div key={s.name} className="flex items-center gap-3">
                   <div className="flex items-center gap-2 w-40 flex-shrink-0">
@@ -395,14 +395,14 @@ function OverviewTab({ summary, monthlyAppts, monthlyCases, staff, pipeline, ses
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
                     </div>
-                    <span className="text-xs font-semibold w-8 text-right" style={{ color: barColor }}>{s.active_cases}</span>
+                    <span className="text-xs font-semibold w-12 text-right tabular-nums" style={{ color: barColor }}>{s.utilization_pct}%</span>
                   </div>
                 </div>
               );
             })}
           </div>
           <p className="text-xs mt-4" style={{ color: 'var(--color-text-muted)' }}>
-            Bar width is relative to highest individual caseload.
+            Each bar is the share of that person's weekly hours already booked for the next 7 days.
           </p>
         </Card>
       )}
@@ -823,13 +823,12 @@ function StaffTab({ staff, referrals, isDark }: {
     sortBy === 'sessions' ? b.week_completed - a.week_completed :
     a.name.localeCompare(b.name)
   );
-  const CAPACITY = 25;
 
   return (
     <div className="space-y-6">
       <Card
         title="Counselor & Psychologist Workload"
-        subtitle="Active caseload and sessions completed this week"
+        subtitle="Caseload, sessions held in the last 7 days, and how full each schedule is for the next 7"
         action={
           <div className="flex gap-1">
             {(['cases', 'sessions', 'name'] as const).map(k => (
@@ -851,15 +850,15 @@ function StaffTab({ staff, referrals, isDark }: {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  {['Name', 'Role', 'Active Cases', 'Sessions (7d)', 'Capacity'].map(h => (
-                    <th key={h} className={`pb-2.5 font-semibold text-xs ${h === 'Active Cases' || h === 'Sessions (7d)' ? 'text-right' : 'text-left'}`}
+                  {['Name', 'Role', 'Caseload', 'Sessions, last 7 days', 'Schedule booked, next 7 days'].map((h, i) => (
+                    <th key={h} className={`pb-2.5 font-semibold text-xs ${i === 2 || i === 3 ? 'text-right pr-6' : 'text-left'} ${i === 4 ? 'pl-2' : ''}`}
                       style={{ color: 'var(--color-text-muted)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sorted.map(s => {
-                  const pct = Math.min(Math.round((s.active_cases / CAPACITY) * 100), 100);
+                  const pct = Math.min(s.utilization_pct ?? 0, 100);
                   const barColor = pct >= 90 ? C.red : pct >= 70 ? C.amber : C.green;
                   return (
                     <tr key={s.name} style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -870,15 +869,23 @@ function StaffTab({ staff, referrals, isDark }: {
                           {s.role}
                         </span>
                       </td>
-                      <td className="py-3 text-right font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{s.active_cases}</td>
-                      <td className="py-3 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>{s.week_completed}</td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
-                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                      <td className="py-3 pr-6 text-right tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
+                        <span className="font-bold">{s.active_cases}</span>
+                        <span className="block text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>{s.caseload_label ?? 'open cases'}</span>
+                      </td>
+                      <td className="py-3 pr-6 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>{s.week_completed}</td>
+                      <td className="py-3 pl-2">
+                        {s.utilization_pct == null ? (
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No weekly hours set</span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg)' }}>
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                            </div>
+                            <span className="text-xs font-semibold tabular-nums w-10" style={{ color: barColor }}>{s.utilization_pct}%</span>
+                            <span className="text-xs tabular-nums" style={{ color: 'var(--color-text-muted)' }}>{s.booked_next_7d} of {s.weekly_hours} h</span>
                           </div>
-                          <span className="text-xs font-medium w-8" style={{ color: barColor }}>{pct}%</span>
-                        </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -886,7 +893,7 @@ function StaffTab({ staff, referrals, isDark }: {
               </tbody>
             </table>
             <p className="text-xs mt-3" style={{ color: 'var(--color-text-muted)' }}>
-              Capacity % assumes {CAPACITY} cases maximum. Adjust based on institutional guidelines.
+              Schedule booked = sessions booked in the next 7 days against the hours in each person's weekly availability (one session per hour). ICs&apos; caseload is the intake interviews booked with them.
             </p>
           </div>
         )}
@@ -1101,7 +1108,7 @@ function OutcomesTab({ sessionOutcomes, isDark }: {
 
 const CAT_LABELS: Record<string, string> = {
   counselor_attitude:     'Counselor Attitude',
-  online_communication:   'Communication',
+  online_communication:   'Online communication (online sessions)',
   counseling_objectives:  'Session Objectives',
   techniques_used:        'Techniques Used',
   overall_experience:     'Overall Experience',
@@ -1198,10 +1205,14 @@ function RatingsTab({ data, isDark }: { data: any; isDark: boolean }) {
                       <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{CAT_LABELS[cat]}</span>
                       <Stars value={val} />
                     </div>
-                    <div className="h-1.5 rounded-full" style={{ background: 'var(--color-border)' }}>
-                      <div className="h-1.5 rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: pct >= 80 ? '#22C55E' : pct >= 60 ? '#F59E0B' : '#EF4444' }} />
-                    </div>
+                    {val > 0 ? (
+                      <div className="h-1.5 rounded-full" style={{ background: 'var(--color-border)' }}>
+                        <div className="h-1.5 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: pct >= 80 ? '#22C55E' : pct >= 60 ? '#F59E0B' : '#EF4444' }} />
+                      </div>
+                    ) : (
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No ratings yet</p>
+                    )}
                   </div>
                 );
               })}

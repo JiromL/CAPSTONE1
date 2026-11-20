@@ -107,7 +107,8 @@ for snap in db.perma_snapshots.find({}, {'entry_date': 1, 'perma_label': 1, 'mhb
         local_hour = rng.choice([21, 22, 23, 0, 1])
         manila = (when + timedelta(hours=8)).replace(hour=local_hour, minute=rng.randint(0, 59))
         when = manila - timedelta(hours=8)
-    when = min(when, now - timedelta(minutes=5))
+    if when > now - timedelta(minutes=5):           # not in the future, and not all at the same minute
+        when = now - timedelta(minutes=rng.randint(6, 180))
     while db.perma_snapshots.find_one({'mhbot_username': snap.get('mhbot_username'), 'entry_date': when, '_id': {'$ne': snap['_id']}}):
         when += timedelta(minutes=1)
     db.perma_snapshots.update_one({'_id': snap['_id']}, {'$set': {

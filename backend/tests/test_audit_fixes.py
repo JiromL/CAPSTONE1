@@ -177,3 +177,17 @@ def test_walk_in_shows_by_name_in_the_ic_queue(client, world):
         db.db.appointments.delete_many({'student_email': email})
         db.db.intakes.delete_many({'_id': ObjectId(b['intake_id'])} if b.get('intake_id') else {'_id': None})
         db.db.cases.delete_many({'_id': ObjectId(b['case_id'])} if b.get('case_id') else {'_id': None})
+
+
+def test_assessment_summary_survives_minimal_scores(client, world):
+    admin = db.db.users.insert_one({'email': f'adm-{ObjectId()}@test.local', 'role': 'ADMIN', 'is_active': True}).inserted_id
+    aid = db.db.assessments.insert_one({'case_id': world['case'], 'assessment_type': 'PHQ9', 'raw_score': 3,
+                                        'risk_level': None, 'created_at': now()}).inserted_id
+    try:
+        with app.app_context():
+            token = create_access_token(identity=str(admin), additional_claims={'role': 'ADMIN'})   # analytics checks the claim
+        r = client.get('/api/analytics/assessments/distribution', headers={'Authorization': f'Bearer {token}'})
+        assert r.status_code == 200, r.get_json()
+        assert 'MINIMAL' in r.get_json()['overall_risk_distribution']
+    finally:
+        db.db.assessments.delete_one({'_id': aid}); db.db.users.delete_one({'_id': admin})

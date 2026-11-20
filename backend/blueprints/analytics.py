@@ -12,6 +12,9 @@ from utils import audit_log, user_has_permission, server_error
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')
 
+# Booking saves 'in_person'; older records and imports use the other spellings
+F2F_METHODS = ['in_person', 'in-person', 'IN_PERSON', 'F2F', 'f2f', 'face-to-face']
+
 
 def dpo_admin_only(f):
     """Verify user is DPO or ADMIN"""
@@ -163,6 +166,7 @@ def get_assessment_distribution():
         for assessment in assessment_dist:
             risk_counts = {}
             for risk in assessment.get('risk_distribution', []):
+                risk = risk or 'MINIMAL'   # minimal scores carry no risk level (assessments.py)
                 risk_counts[risk] = risk_counts.get(risk, 0) + 1
             assessment['risk_breakdown'] = risk_counts
             del assessment['risk_distribution']
@@ -175,7 +179,7 @@ def get_assessment_distribution():
             }}
         ])
         
-        risk_summary = {item['_id']: item['count'] for item in all_risks}
+        risk_summary = {(item['_id'] or 'MINIMAL'): item['count'] for item in all_risks}
         
         audit_log(db.db, 'analytics', 'view_assessment_distribution')
         
@@ -193,66 +197,70 @@ def get_assessment_distribution():
 @jwt_required()
 @dpo_admin_only
 def get_staff_workload():
-    """Get counselor/psychologist workload metrics"""
-    user_id = get_jwt_identity()
-    
+    """Each clinician's caseload, sessions in the last 7 days, and how full their schedule is for
+    the next 7 days: booked hours against the hours in their weekly availability. ICs carry
+    intakes rather than cases, so their caseload is the intake interviews booked with them."""
     try:
-        # Get all staff
         staff = list(db.db.users.find(
-            {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'IC']}},
+            {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST', 'IC']}, 'is_active': {'$ne': False}},
             {'_id': 1, 'first_name': 1, 'last_name': 1, 'name': 1, 'role': 1}
         ))
+        now_ph = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)   # appointments are PH wall-clock
+        week_ahead, week_back = now_ph + timedelta(days=7), now_ph - timedelta(days=7)
+        booked_statuses = ['REQUESTED', 'CONFIRMED', 'APPROVED', 'MATCHED', 'CHECKED_IN', 'PENDING_STUDENT_APPROVAL']
+        open_statuses = ['ACTIVE', 'PENDING_TERMINATION', 'active']
+        schedules = {a['counselor_id']: a.get('schedule') or [] for a in
+                     db.db.counselor_availability.find({'schedule': {'$exists': True}}, {'counselor_id': 1, 'schedule': 1})}
+
+        def weekly_hours(blocks):
+            total = 0
+            for blk in blocks:
+                try:
+                    h0, m0 = map(int, blk['start_time'].split(':'))
+                    h1, m1 = map(int, blk['end_time'].split(':'))
+                    total += max(0, (h1 * 60 + m1) - (h0 * 60 + m0)) // 60
+                except (KeyError, ValueError, AttributeError):
+                    continue
+            return total
 
         workload_data = []
-
-        for staff_member in staff:
-            staff_id = staff_member['_id']
-            fn = staff_member.get('first_name', '')
-            ln = staff_member.get('last_name', '')
-            display_name = f"{fn} {ln}".strip() or staff_member.get('name', 'Unknown')
-
-            # Active cases assigned (try both field names)
-            cases_assigned = db.db.cases.count_documents({
-                '$and': [
-                    {'$or': [{'counselor_id': staff_id}, {'assigned_counselor_id': staff_id}]},
-                    {'$or': [{'case_status': {'$in': ['ACTIVE', 'active']}}, {'status': {'$in': ['ACTIVE', 'active']}}]},
-                ]
-            })
-
-            # Total appointments
-            appointments = db.db.appointments.count_documents({
-                'counselor_id': staff_id,
-                'status': {'$in': ['MATCHED', 'CONFIRMED', 'COMPLETED', 'completed']}
-            })
-
-            # Completed this week
-            week_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
+        for member in staff:
+            sid, role = member['_id'], member.get('role')
+            name = f"{member.get('first_name', '')} {member.get('last_name', '')}".strip() or member.get('name', 'Unknown')
+            if role == 'IC':
+                caseload = db.db.appointments.count_documents({'counselor_id': sid, 'purpose': 'intake_interview',
+                                                               'status': {'$in': booked_statuses}})
+            else:
+                caseload = db.db.cases.count_documents({
+                    '$and': [{'$or': [{'counselor_id': sid}, {'assigned_counselor_id': sid}]},
+                             {'$or': [{'case_status': {'$in': open_statuses}}, {'status': {'$in': open_statuses}}]}]})
             week_completed = db.db.appointments.count_documents({
-                'counselor_id': staff_id,
-                'status': {'$in': ['COMPLETED', 'completed']},
-                'scheduled_start': {'$gte': week_start}
+                'counselor_id': sid, 'status': {'$in': ['COMPLETED', 'completed']},
+                'scheduled_start': {'$gte': week_back, '$lte': now_ph}})
+            booked_next_7d = db.db.appointments.count_documents({
+                'counselor_id': sid, 'status': {'$in': booked_statuses},
+                '$or': [{'scheduled_start': {'$gte': now_ph, '$lt': week_ahead}},
+                        {'scheduled_start': None, 'requested_start': {'$gte': now_ph, '$lt': week_ahead}}]})
+            hours = weekly_hours(schedules.get(sid, []))
+            workload_data.append({
+                'staff_id': str(sid), 'name': name, 'role': role,
+                'active_cases': caseload,
+                'caseload_label': 'intakes booked' if role == 'IC' else 'open cases',
+                'total_appointments': booked_next_7d,
+                'week_completed': week_completed,
+                'weekly_hours': hours,
+                'booked_next_7d': booked_next_7d,
+                'utilization_pct': round(100 * booked_next_7d / hours) if hours else None,
             })
 
-            workload_data.append({
-                'staff_id': str(staff_id),
-                'name': display_name,
-                'role': staff_member.get('role'),
-                'active_cases': cases_assigned,
-                'total_appointments': appointments,
-                'week_completed': week_completed
-            })
-        
-        # Sort by workload
         workload_data.sort(key=lambda x: x['active_cases'], reverse=True)
-        
         audit_log(db.db, 'analytics', 'view_staff_workload')
-        
+        clinicians = [w for w in workload_data if w['role'] != 'IC']
         return jsonify({
             'staff_workload': workload_data,
             'total_staff': len(staff),
-            'avg_cases_per_counselor': sum(w['active_cases'] for w in workload_data) / len(workload_data) if workload_data else 0
+            'avg_cases_per_counselor': sum(w['active_cases'] for w in clinicians) / len(clinicians) if clinicians else 0,
         }), 200
-    
     except Exception as e:
         return server_error(e, 'Failed to get staff workload. Please try again.')
 
@@ -287,8 +295,10 @@ def get_appointment_statistics():
         cancelled_count= status_counts.get('CANCELLED', 0) + status_counts.get('cancelled', 0)
         completed_count= status_counts.get('COMPLETED', 0) + status_counts.get('completed', 0)
         
-        no_show_rate = (no_show_count / total * 100) if total > 0 else 0
-        completion_rate = (completed_count / total * 100) if total > 0 else 0
+        # Rates are over sessions that have an outcome; upcoming and still-requested ones don't count yet
+        finished = completed_count + no_show_count + cancelled_count
+        no_show_rate = (no_show_count / finished * 100) if finished > 0 else 0
+        completion_rate = (completed_count / finished * 100) if finished > 0 else 0
         
         # Average wait time (days from case creation to first appointment)
         pipeline_wait = [
@@ -300,9 +310,13 @@ def get_appointment_statistics():
             }},
             {'$match': {'case_info': {'$ne': []}, 'scheduled_start': {'$exists': True}}},
             {'$project': {
+                'case_id': 1,
                 'case_created': {'$arrayElemAt': ['$case_info.created_at', 0]},
                 'scheduled_start': 1
             }},
+            # First appointment per case only; later sessions aren't waiting time
+            {'$group': {'_id': '$case_id', 'case_created': {'$first': '$case_created'},
+                        'scheduled_start': {'$min': '$scheduled_start'}}},
             {'$project': {
                 'wait_days': {
                     '$divide': [
@@ -455,14 +469,13 @@ def get_intake_conversion():
     user_id = get_jwt_identity()
     
     try:
-        # Total intake packets submitted
-        intake_started = db.db.intake_packets.count_documents({})
-
-        # Completed = has ICF data (first_name filled in)
-        intake_completed = db.db.intake_packets.count_documents({'icf.first_name': {'$exists': True, '$ne': ''}})
-
-        # Cases created (any case in DB)
-        cases_from_intake = db.db.cases.count_documents({})
+        # Each stage counts the students who reached it: intake form submitted, intake interview
+        # completed (the IC's triage), and endorsed into ongoing counseling. Each rate is
+        # against the stage before, so it cannot pass 100%.
+        intake_completed = db.db.intakes.count_documents({'status': {'$in': ['COMPLETED', 'ENDORSED']}})
+        cases_from_intake = db.db.intakes.count_documents({'triage_decision': {'$in': ['ENDORSE_CC', 'ENDORSE_CP']}})
+        # Walk-ins can be interviewed without a form, so the first stage is never smaller than the next
+        intake_started = max(db.db.intake_packets.count_documents({}), intake_completed)
 
         # Conversion rates
         intake_conversion = (intake_completed / intake_started * 100) if intake_started > 0 else 0
@@ -578,39 +591,38 @@ def get_cases_monthly():
 @jwt_required()
 @dpo_admin_only
 def get_concern_distribution():
-    """Breakdown of concern types across intakes using categorical purpose field"""
+    """Most common presenting concerns. Concerns are free text (the case's concern, or a walk-in
+    form's presenting concern), so each is sorted into categories by its key words; a concern that
+    names several ("academic stress and anxiety") counts once in each."""
     try:
-        LABEL_MAP = {
-            'personal': 'Personal / Mental Health',
-            'mental_health': 'Personal / Mental Health',
-            'academic': 'Academic',
-            'career': 'Career',
-            'relationship': 'Relationships',
-            'social': 'Social / Relationships',
-            'crisis': 'Crisis',
-            'family': 'Family',
-            'other': 'Other',
-            'others': 'Other',
-        }
-
-        # Use icf.service_requested from intake_packets
-        intake_pipeline = [
-            {'$match': {'icf.service_requested': {'$exists': True, '$ne': None, '$ne': ''}}},
-            {'$group': {'_id': '$icf.service_requested', 'count': {'$sum': 1}}},
-            {'$sort': {'count': -1}}
+        categories = [
+            ('Anxiety and stress', ('anxi', 'panic', 'stress', 'worry', 'nervous')),
+            ('Academic', ('academic', 'exam', 'grade', 'thesis', 'class', 'school', 'study', 'dropping out')),
+            ('Low mood and depression', ('depress', 'low mood', 'sad', 'motivation', 'hopeless', 'empty')),
+            ('Family', ('family', 'parent', 'home')),
+            ('Relationships', ('relationship', 'breakup', 'break-up', 'partner', 'friend')),
+            ('Grief and loss', ('grief', 'loss', 'death', 'died', 'passed away', 'bereave')),
+            ('Self-harm and crisis', ('self-harm', 'suicid', 'crisis', 'hurt myself')),
+            ('Adjustment and loneliness', ('adjust', 'isolat', 'lonel', 'homesick', 'dorm')),
+            ('Self-esteem and identity', ('self-esteem', 'esteem', 'body image', 'identity', 'confidence')),
+            ('Sleep', ('sleep', 'insomnia')),
+            ('Burnout', ('burnout', 'burn out', 'overwork', 'exhaust')),
         ]
-        combined = {}
-        for item in db.db.intake_packets.aggregate(intake_pipeline):
-            raw = (item['_id'] or '').lower().strip()
-            label = LABEL_MAP.get(raw, raw.replace('_', ' ').title() if raw else 'Other')
-            combined[label] = combined.get(label, 0) + item['count']
+        texts = [c.get('concern') or c.get('presenting_issue') or '' for c in
+                 db.db.cases.find({}, {'concern': 1, 'presenting_issue': 1})]
+        # Intake forms not yet linked to a case (the student is waiting for the interview)
+        texts += [(p.get('icf') or {}).get('presenting_concern') or '' for p in
+                  db.db.intake_packets.find({'case_id': None}, {'icf.presenting_concern': 1})]
+        counts = {}
+        for text in texts:
+            low = text.lower()
+            if not low.strip():
+                continue
+            for name in [n for n, words in categories if any(w in low for w in words)] or ['Other']:
+                counts[name] = counts.get(name, 0) + 1
 
-        result = [{'concern': k, 'count': v} for k, v in sorted(combined.items(), key=lambda x: -x[1])]
-
-        return jsonify({
-            'concerns': result,
-            'total': sum(r['count'] for r in result)
-        }), 200
+        result = [{'concern': k, 'count': v} for k, v in sorted(counts.items(), key=lambda x: -x[1])]
+        return jsonify({'concerns': result, 'total': sum(r['count'] for r in result)}), 200
     except Exception as e:
         return server_error(e)
 
@@ -688,12 +700,11 @@ def get_appointments_by_day():
             {'$sort': {'_id': 1}}
         ]
         hour_raw = {item['_id']: item['count'] for item in db.db.appointments.aggregate(hour_pipeline)}
-        # PHT = UTC+8, only show 9-17
+        # scheduled_start is stored as Philippine wall-clock time (as booked), so read the hour as is; 9AM-5PM
         by_hour = []
-        for h_utc in range(1, 10):  # 1-9 UTC = 9AM-5PM PHT
-            h_pht = h_utc + 8
+        for h_pht in range(9, 18):
             label = f"{h_pht % 12 or 12}{'AM' if h_pht < 12 else 'PM'}"
-            by_hour.append({'hour': label, 'count': hour_raw.get(h_utc, 0)})
+            by_hour.append({'hour': label, 'count': hour_raw.get(h_pht, 0)})
 
         return jsonify({
             'by_day': by_day,
@@ -717,7 +728,12 @@ def get_appointments_breakdown():
         method_agg = list(db.db.appointments.aggregate([
             {'$group': {'_id': '$method', 'count': {'$sum': 1}}}
         ]))
-        method_dist = {item['_id']: item['count'] for item in method_agg if item['_id']}
+        method_dist = {}
+        for item in method_agg:
+            if item['_id']:
+                key = 'Face-to-Face' if item['_id'] in F2F_METHODS else \
+                    'Online' if str(item['_id']).lower() in ('online', 'virtual') else item['_id']
+                method_dist[key] = method_dist.get(key, 0) + item['count']
 
         # Purpose distribution (all-time) — use canonical 4 types
         PURPOSE_LABELS = {
@@ -745,7 +761,7 @@ def get_appointments_breakdown():
             ms = datetime(yr, mo, 1)
             me = datetime(yr, mo + 1, 1) if mo < 12 else datetime(yr + 1, 1, 1)
             qr = {'created_at': {'$gte': ms, '$lt': me}}
-            f2f    = db.db.appointments.count_documents({**qr, 'method': {'$in': ['F2F', 'f2f', 'face-to-face']}})
+            f2f    = db.db.appointments.count_documents({**qr, 'method': {'$in': F2F_METHODS}})
             online = db.db.appointments.count_documents({**qr, 'method': {'$in': ['Online', 'online', 'ONLINE', 'virtual', 'VIRTUAL']}})
             intake  = db.db.appointments.count_documents({**qr, 'purpose': 'intake_interview'})
             counsel = db.db.appointments.count_documents({**qr, 'purpose': 'counseling'})

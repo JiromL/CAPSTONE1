@@ -599,13 +599,11 @@ def get_user_perma(username):
     if not student:
         return jsonify({'error': NOT_IN_CARE_ERROR}), 403
 
-    token = _get_shared_ema_token()
-    if not token:
-        return jsonify({'error': 'EMA service is currently unavailable'}), 503
-
     limit = min(request.args.get('limit', 5, type=int), 100)
     student_uid = student['_id']
-    result = get_perma_history(username, token, limit, save=True, student_user_id=student_uid)
+    token = _get_shared_ema_token()
+    result = get_perma_history(username, token, limit, save=True, student_user_id=student_uid) if token \
+        else {'success': False, 'error': 'EMA service is currently unavailable'}
 
     if result['success']:
         return jsonify({
@@ -613,8 +611,26 @@ def get_user_perma(username):
             'latest_label': result['latest_label'],
             'latest_date': result['latest_date'],
             'history': result['data'],
+            'source': 'ema',
         }), 200
-    return jsonify({'error': result['error'], 'username': username}), 400
+
+    # EMA unreachable (or it does not know this username): show the results CPS already saved
+    # from the sync and webhook, newest first, so the Wellbeing tab is never blank for no reason
+    saved = list(db.db.perma_snapshots.find(
+        {'$or': [{'student_user_id': student_uid}, {'mhbot_username': username}], 'perma_label': {'$ne': None}},
+        {'entry_date': 1, 'raw_date': 1, 'perma_label': 1, 'perma_score': 1}).sort('entry_date', -1).limit(limit))
+    if saved:
+        history = [{'date': x.get('raw_date') or x['entry_date'].isoformat(), 'perma_label': x.get('perma_label'),
+                    'perma_score': x.get('perma_score')} for x in saved]
+        return jsonify({
+            'username': username,
+            'latest_label': history[0]['perma_label'],
+            'latest_date': history[0]['date'],
+            'history': history,
+            'source': 'saved',
+            'note': f"Showing saved results; live EMA data is unavailable ({result['error']}).",
+        }), 200
+    return jsonify({'error': result['error'], 'username': username}), 503 if not token else 400
 
 
 @mhbot_bp.route('/lookup', methods=['POST'])

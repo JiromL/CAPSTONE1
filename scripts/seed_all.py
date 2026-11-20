@@ -32,6 +32,7 @@ STEPS = [
     ('seed_announcements.py',   'Announcements (title · body · type · pinned)'),
     ('seed_ema.py',             'EMA triage scenarios · crisis reviews · EMA consent · journal entries'),
     ('seed_intakes.py',         'Intake records for every case (Intake tab: PHQ-9 / GAD-7 and the IC triage)'),
+    ('seed_analytics.py',       'Intake packets, PHQ-9 / GAD-7 assessments over time, session ratings, case sources'),
 ]
 
 for i, (script, desc) in enumerate(STEPS, start=1):
@@ -183,6 +184,16 @@ for i, (first, last) in enumerate(STUDENT_NAMES):
 
 db.cases.insert_many(checkin_docs)
 print(f"✅  {len(checkin_docs)} check-in-only cases seeded")
+
+# ── Realism pass (last, so it covers the staff sample data too) ───────────────
+print()
+print("=" * 60)
+print("REALISM — session history by term, no-shows, online share, ratings, case sources")
+print("=" * 60)
+result = subprocess.run([sys.executable, os.path.join(HERE, 'seed_realism.py')], check=False)
+if result.returncode != 0:
+    print(f"\n❌  seed_realism.py failed (exit {result.returncode}). Aborting.")
+    sys.exit(result.returncode)
 
 
 # ── Summary ───────────────────────────────────────────────────────────────────

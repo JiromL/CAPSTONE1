@@ -15,6 +15,8 @@ import string
 from services.pdf_service import generate_appointment_confirmation_pdf
 from services.email_service import EmailService
 from blueprints.availability import free_slots_for_counselor, date_block_reason
+from services.caseload import (HIGH_RISK_LEVELS, HIGH_RISK_WARNING_THRESHOLD, CLOSED_CASE_STATUSES,
+                               specialties_for, matched_specialties, pick_recommended)
 
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/appointments')
 
@@ -1427,15 +1429,20 @@ def list_counselors():
     """Return active counselors and psychologists for student counselor-preference selection."""
     counselors = list(db.db.users.find(
         {'role': {'$in': ['COUNSELOR', 'PSYCHOLOGIST']}, 'is_active': True},
-        {'first_name': 1, 'last_name': 1, 'role': 1, 'specialization': 1}
+        {'first_name': 1, 'last_name': 1, 'role': 1, 'specializations': 1}
     ))
+    areas_by_user = {s['user_id']: s.get('specialty_areas') or [] for s in db.db.staff_settings.find(
+        {'user_id': {'$in': [c['_id'] for c in counselors]}}, {'user_id': 1, 'specialty_areas': 1})}
     result = []
     for c in counselors:
+        # Staff pick specialty areas in Staff Settings; older accounts may have users.specializations
+        areas = areas_by_user.get(c['_id']) or c.get('specializations') or []
         result.append({
             'counselor_id': str(c['_id']),
             'name': f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
             'role': c.get('role', 'COUNSELOR'),
-            'specialization': c.get('specialization', ''),
+            'specialization': ', '.join(areas),
+            'specialty_areas': areas,
         })
     return jsonify({'counselors': result}), 200
 
@@ -3369,11 +3376,15 @@ def ic_counselor_workload():
 
     role = request.args.get('role', 'COUNSELOR').upper()
     risk_level = (request.args.get('risk_level') or '').upper()  # CRITICAL / RED / YELLOW / GREEN
+    # Student's concern (intake.concern) and/or ICF service requested, used for specialty matching
+    wanted = specialties_for(request.args.get('concern'), request.args.get('service'))
 
     counselors = list(db.db.users.find({
         'role': role,
         'is_active': {'$ne': False},
     }))
+    areas_by_user = {s['user_id']: s.get('specialty_areas') or [] for s in db.db.staff_settings.find(
+        {'user_id': {'$in': [c['_id'] for c in counselors]}}, {'user_id': 1, 'specialty_areas': 1})}
 
     now = _utcnow()
     week_start = now - timedelta(days=now.weekday())
@@ -3393,8 +3404,14 @@ def ic_counselor_workload():
         })
         active_cases = db.db.cases.count_documents({
             'assigned_counselor_id': cid,
-            'case_status': {'$nin': ['CLOSED', 'ARCHIVED']},
+            'case_status': {'$nin': CLOSED_CASE_STATUSES},
         })
+        high_risk_cases = db.db.cases.count_documents({
+            'assigned_counselor_id': cid,
+            'case_status': {'$nin': CLOSED_CASE_STATUSES},
+            'risk_level': {'$in': list(HIGH_RISK_LEVELS)},
+        })
+        areas = areas_by_user.get(cid) or c.get('specializations') or []
         # Lower score = more available; weight cases heavier than appointment count
         score = (active_cases * 2) + active_appts
         utilization = 'HIGH' if active_appts >= 8 else 'MEDIUM' if active_appts >= 4 else 'LOW'
@@ -3407,6 +3424,9 @@ def ic_counselor_workload():
             'active_appointments': active_appts,
             'this_week': this_week,
             'active_cases': active_cases,
+            'high_risk_cases': high_risk_cases,
+            'specialty_areas': areas,
+            'matched_specialties': matched_specialties(areas, wanted),
             'utilization': utilization,
             '_score': score,
         })
@@ -3414,22 +3434,19 @@ def ic_counselor_workload():
     # Sort: lowest score first (most available), then alphabetically
     result.sort(key=lambda x: (x['_score'], x['last_name']))
 
-    # Recommend the counselor with the lowest score, or prefer
-    # very low utilization for high-risk cases
-    recommended_id = None
-    if result:
-        if risk_level in ('CRITICAL', 'RED'):
-            # For urgent cases: prefer LOW utilization over everything else
-            low = [r for r in result if r['utilization'] == 'LOW']
-            recommended_id = (low[0] if low else result[0])['counselor_id']
-        else:
-            recommended_id = result[0]['counselor_id']
+    # Recommend: specialist first, then (for RED/CRITICAL) fewest high-risk cases, then lowest workload
+    recommended_id = pick_recommended(result, risk_level)
 
     # Strip internal score from response
     for r in result:
         del r['_score']
 
-    return jsonify({'counselors': result, 'recommended_id': recommended_id}), 200
+    return jsonify({
+        'counselors': result,
+        'recommended_id': recommended_id,
+        'wanted_specialties': wanted,
+        'high_risk_warning_threshold': HIGH_RISK_WARNING_THRESHOLD,
+    }), 200
 
 
 @appointments_bp.route('/staff/reassignment-suggestions', methods=['GET'])

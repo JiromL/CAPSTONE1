@@ -227,9 +227,13 @@ export default function ConductIntakePage() {
     active_appointments: number;
     this_week: number;
     active_cases: number;
+    high_risk_cases?: number;
+    specialty_areas?: string[];
+    matched_specialties?: string[];
     utilization: 'LOW' | 'MEDIUM' | 'HIGH';
   };
   const [workload, setWorkload] = useState<CounselorLoad[]>([]);
+  const [highRiskThreshold, setHighRiskThreshold] = useState(3);
   const [workloadLoading, setWorkloadLoading] = useState(false);
   const [recommendedId, setRecommendedId] = useState<string | null>(null);
 
@@ -297,12 +301,19 @@ export default function ConductIntakePage() {
     const token = localStorage.getItem('token');
     setWorkloadLoading(true);
     const risk = displayRisk || '';
-    fetch(api(`/api/appointments/ic-counselor-workload?role=${referralRole}&risk_level=${risk}`), {
+    const params = new URLSearchParams({
+      role: referralRole,
+      risk_level: risk,
+      concern: intake?.concern || intake?.responses?.concern || '',
+      service: packet?.icf?.service_requested || '',
+    });
+    fetch(api(`/api/appointments/ic-counselor-workload?${params}`), {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : { counselors: [], recommended_id: null })
       .then(d => {
         setWorkload(d.counselors || []);
+        if (d.high_risk_warning_threshold) setHighRiskThreshold(d.high_risk_warning_threshold);
         if (d.recommended_id && !referralUserId) {
           setReferralUserId(d.recommended_id);
           setRecommendedId(d.recommended_id);
@@ -734,6 +745,22 @@ export default function ConductIntakePage() {
                                   <span>·</span>
                                   <span>{c.this_week} this week</span>
                                 </div>
+                                {((c.high_risk_cases ?? 0) > 0 || (c.matched_specialties?.length ?? 0) > 0) && (
+                                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                    {(c.high_risk_cases ?? 0) > 0 && (
+                                      <span className="text-[0.6875rem] font-semibold px-1.5 py-0.5 rounded-full"
+                                        style={{ background: 'var(--color-danger-surface)', color: 'var(--color-danger)' }}>
+                                        {c.high_risk_cases} high-risk case{c.high_risk_cases !== 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                    {(c.matched_specialties?.length ?? 0) > 0 && (
+                                      <span className="text-[0.6875rem] font-semibold px-1.5 py-0.5 rounded-full"
+                                        style={{ background: '#F0FDF4', color: '#15803D' }}>
+                                        ✓ Specializes in {c.matched_specialties!.join(', ')}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               <span className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                                 style={{ background: utilBg, color: utilColor, border: `1px solid ${utilColor}30` }}>
@@ -754,6 +781,23 @@ export default function ConductIntakePage() {
                       No active {referralRole === 'COUNSELOR' ? 'counselors' : 'psychologists'} found.
                     </p>
                   )}
+
+                  {(() => {
+                    const sel = workload.find(w => w.counselor_id === referralUserId);
+                    const urgent = displayRisk === 'RED' || displayRisk === 'CRITICAL';
+                    if (!sel || !urgent || (sel.high_risk_cases ?? 0) < highRiskThreshold) return null;
+                    return (
+                      <div role="alert" className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
+                        style={{ background: 'var(--color-warning-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-warning)' }}>
+                        <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-warning)' }} />
+                        <span>
+                          <strong>{sel.first_name} {sel.last_name}</strong> is already handling{' '}
+                          <strong>{sel.high_risk_cases} RED/CRITICAL cases</strong>. Consider assigning this {displayRisk} case
+                          to someone with fewer high-risk cases.
+                        </span>
+                      </div>
+                    );
+                  })()}
               </div>
 
               {referralUserId && (
